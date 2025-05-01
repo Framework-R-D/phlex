@@ -1,5 +1,35 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.31)
 
+# ##############################################################################
+# Ensure we have access to a suitable version of Cetmodules
+include(FetchContent)
+FetchContent_Declare(
+  cetmodules
+  GIT_REPOSITORY https://github.com/FNALssi/cetmodules
+  GIT_TAG v4-branch
+  # GIT_TAG fd6ebf45
+  FIND_PACKAGE_ARGS 3.99.00
+  )
+# ... and Microsoft's C++ Guideline Support Library
+FetchContent_Declare(
+  GSL
+  GIT_REPOSITORY https://github.com/microsoft/GSL
+  GIT_TAG 2828399820ef4928cc89b65605dca5dc68efca6e # v4.2.0
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS NAMES Microsoft.GSL
+  )
+# ... and Catch2
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG 914aeecfe23b1e16af6ea675a4fb5dbd5a5b8d0a # v3.8.0
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS
+  )
+FetchContent_MakeAvailable(cetmodules Catch2 GSL)
+# ##############################################################################
+
+find_package(cetmodules 3.99.00 REQUIRED)
 project(
   phlex
   VERSION 0.0.1
@@ -9,15 +39,12 @@ project(
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-# set(CMAKE_BUILD_TYPE "Debug")
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
 # GCC 14.1 issues many false positives re. array-bounds and stringop-overflow
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION
-                                             VERSION_GREATER_EQUAL "14.1"
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15.0"
     )
   add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
 endif ()
