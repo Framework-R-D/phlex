@@ -5,6 +5,7 @@
 #include "phlex/model/qualified_name.hpp"
 
 #include "boost/core/demangle.hpp"
+#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
 #include <memory>

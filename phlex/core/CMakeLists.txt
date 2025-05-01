@@ -35,7 +35,7 @@ endif ()
 
 target_link_libraries(
   phlex_core PRIVATE TBB::tbb phlex::graph phlex::metaprogramming phlex::model
-                     phlex::utilities spdlog::spdlog
+                     phlex::utilities PUBLIC spdlog::spdlog
   )
 
 # Interface library

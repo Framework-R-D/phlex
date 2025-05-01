@@ -1,6 +1,7 @@
 #include "phlex/model/level_id.hpp"
 #include "phlex/utilities/async_driver.hpp"
 
+#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 #include "tbb/flow_graph.h"
 

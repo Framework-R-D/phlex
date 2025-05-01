@@ -17,6 +17,7 @@
 #include "phlex/model/qualified_name.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
+#include "fmt/std.h"
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"

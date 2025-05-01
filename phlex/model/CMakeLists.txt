@@ -12,8 +12,8 @@ add_library(
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(
   phlex_model
-  PUBLIC Boost::boost
-  PRIVATE phlex::graph spdlog::spdlog phlex::utilities
+  PUBLIC Boost::boost spdlog::spdlog
+  PRIVATE phlex::graph phlex::utilities
   )
 
 # Interface library

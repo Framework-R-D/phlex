@@ -22,6 +22,7 @@
 #include "test/products_for_output.hpp"
 
 #include "catch2/catch_all.hpp"
+#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
 #include <atomic>

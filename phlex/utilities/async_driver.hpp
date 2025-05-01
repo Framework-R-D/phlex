@@ -1,6 +1,7 @@
 #ifndef phlex_utilities_async_driver_hpp
 #define phlex_utilities_async_driver_hpp
 
+#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 #include "tbb/task.h"
 #include "tbb/task_group.h"

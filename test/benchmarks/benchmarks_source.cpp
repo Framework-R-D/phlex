@@ -4,6 +4,7 @@
 
 #include "phlex/source.hpp"
 
+#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
 #include <ranges>

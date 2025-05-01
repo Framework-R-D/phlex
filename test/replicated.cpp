@@ -1,6 +1,7 @@
 #include "phlex/utilities/thread_counter.hpp"
 
 #include "catch2/catch_all.hpp"
+#include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 

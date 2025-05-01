@@ -1,6 +1,7 @@
 #include "phlex/core/multiplexer.hpp"
 #include "phlex/model/product_store.hpp"
 
+#include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"

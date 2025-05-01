@@ -17,6 +17,7 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
+#include "fmt/std.h"
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"

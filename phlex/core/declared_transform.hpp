@@ -19,6 +19,7 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/qualified_name.hpp"
 
+#include "fmt/std.h"
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
