@@ -5,6 +5,10 @@ add_subdirectory(metaprogramming)
 add_subdirectory(model)
 add_subdirectory(utilities)
 
+if (PHLEX_USE_FORM)
+  add_subdirectory(form)
+endif()
+
 # Interface library
 add_library(phlex_int INTERFACE)
 target_include_directories(
