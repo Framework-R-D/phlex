@@ -93,3 +93,7 @@ add_subdirectory(plugins)
 add_subdirectory(utilities)
 add_subdirectory(mock-workflow)
 add_subdirectory(demo-giantdata)
+
+if (PHLEX_USE_FORM)
+  add_subdirectory(form)
+endif()
