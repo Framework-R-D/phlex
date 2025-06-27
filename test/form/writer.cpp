@@ -1,0 +1,97 @@
+// Copyright (C) 2025 ...
+
+#include "form/form.hpp"
+#include "form/phlex_toy_core.hpp" // toy of phlex core components
+
+#include <cstdlib>  // For rand() and srand()
+#include <iostream> // For cout
+#include <vector>
+
+using namespace form::experimental;
+
+static const int NUMBER_EVENT = 2;
+static const int NUMBER_SEGMENT = 15;
+
+static const char* const evt_id = "[EVENT=%08X]";
+static const char* const seg_id = "[EVENT=%08X;SEG=%08X]";
+
+void generate(std::vector<float>& vrand, int size)
+{
+  int rand1 = rand() % 32768;
+  int rand2 = rand() % 32768;
+  int npx = (rand1 * 32768 + rand2) % size;
+  for (int nelement = 0; nelement < npx; ++nelement) {
+    int rand1 = rand() % 32768;
+    int rand2 = rand() % 32768;
+    float random = float(rand1 * 32768 + rand2) / (32768 * 32768);
+    vrand.push_back(random);
+  }
+}
+
+int main(int /*argc*/, char** /* argv[]*/)
+{
+  std::cout << "In main" << std::endl;
+  srand(time(0));
+
+  form_interface form;
+
+  for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
+    std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
+
+    // Processing per event / data creation
+    std::vector<float> vrand;
+
+    for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
+      // phlex Alg per segment
+      // Processing per sub-event
+      std::vector<float> vrand_seg;
+      generate(vrand_seg, 4 * 1024 /* * 1024*/); // sub-event processing
+      float check = 0.0;
+      for (unsigned int j = 0; j < vrand_seg.size(); ++j) {
+        check += vrand_seg.at(j);
+      }
+      // done, phlex call write(phlex::product_base)
+      // sub-event writing called by phlex
+      char seg_id_text[64];
+      sprintf(seg_id_text, seg_id, nevent, nseg);
+      phlex::product_base pb = {"<ToyAlg_Segment>/<ToyProduct>",
+                                seg_id_text,
+                                &vrand_seg,
+                                std::type_index{typeid(std::vector<float>)}};
+      std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
+                << ", check = " << check << std::endl;
+      form.write(
+        pb,
+        "std::vector<float>"); //FIXME: PHLEX has to provide this.  Use boost to de-mangle std::type_index::name()
+      // Accumulate Data, for framework without sub-event writing
+      vrand.insert(vrand.end(), vrand_seg.begin(), vrand_seg.end());
+    }
+
+    std::cout << "PHLEX: Write Event segments done " << nevent << std::endl;
+
+    float check = 0.0;
+    for (unsigned int j = 0; j < vrand.size(); ++j) {
+      check += vrand.at(j);
+    }
+
+    // event writing, current framework, will also write references
+    char evt_id_text[64];
+    sprintf(evt_id_text, evt_id, nevent);
+    phlex::product_base pb = {"<ToyAlg_Event>/<ToyProduct>",
+                              evt_id_text,
+                              &vrand,
+                              std::type_index{typeid(std::vector<float>)}};
+    std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
+              << ", check = " << check << std::endl;
+    form.write(
+      pb,
+      "std::vector<float>"); //FIXME: PHLEX has to provide this.  Use boost to de-mangle std::type_index::name()
+    // write references only //FIXME
+    //		fill_branch(file, "tvec", "rand", vrand, -2);
+
+    std::cout << "PHLEX: Write Event done " << nevent << std::endl;
+  }
+
+  std::cout << "PHLEX: Write done " << std::endl;
+  return 0;
+}
