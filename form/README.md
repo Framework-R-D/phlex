@@ -1,4 +1,4 @@
-# FORM (
+# FORM (Fine-grained Object Reading/Writing Model)
 
 Prototype development for I/O infrastructure supporting Phlex
 
