@@ -6,8 +6,6 @@
 #include <iostream> // For cout
 #include <vector>
 
-using namespace form::experimental;
-
 static const int NUMBER_EVENT = 2;
 static const int NUMBER_SEGMENT = 15;
 
@@ -18,7 +16,8 @@ int main(int /* argc*/, char** /* argv[]*/)
 {
   std::cout << "In main" << std::endl;
 
-  form_interface form;
+  std::shared_ptr<phlex::product_type_names> type_map = phlex::createTypeMap();
+  form::experimental::form_interface form(type_map);
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Read Event No. " << nevent << std::endl;
@@ -36,10 +35,8 @@ int main(int /* argc*/, char** /* argv[]*/)
                                 seg_id_text,
                                 vrand_seg,
                                 std::type_index{typeid(std::vector<float>)}};
-      std::string type = "std::vector<float>";
-      form.read(
-        pb,
-        type); //FIXME: PHLEX has to provide this.  Use boost to de-mangle std::type_index::name()
+      type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+      form.read(pb);
       vrand_seg =
         static_cast<const std::vector<float>*>(pb.data); //FIXME: Can this be done by FORM?
       float check = 0.0;
@@ -59,9 +56,8 @@ int main(int /* argc*/, char** /* argv[]*/)
                               evt_id_text,
                               vrand,
                               std::type_index{typeid(std::vector<float>)}};
-    std::string type = "std::vector<float>";
-    form.read(
-      pb, type); //FIXME: PHLEX has to provide this.  Use boost to de-mangle std::type_index::name()
+    type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+    form.read(pb);
     vrand = static_cast<const std::vector<float>*>(pb.data); //FIXME: Can this be done by FORM?
     float check = 0.0;
     for (unsigned int j = 0; j < vrand->size(); ++j) {

@@ -7,8 +7,6 @@
 #include <iostream> // For cout
 #include <vector>
 
-using namespace form::experimental;
-
 static const int NUMBER_EVENT = 2;
 static const int NUMBER_SEGMENT = 15;
 
@@ -33,7 +31,8 @@ int main(int /*argc*/, char** /* argv[]*/)
   std::cout << "In main" << std::endl;
   srand(time(0));
 
-  form_interface form;
+  std::shared_ptr<phlex::product_type_names> type_map = phlex::createTypeMap();
+  form::experimental::form_interface form(type_map);
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
@@ -58,11 +57,10 @@ int main(int /*argc*/, char** /* argv[]*/)
                                 seg_id_text,
                                 &vrand_seg,
                                 std::type_index{typeid(std::vector<float>)}};
+      type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << std::endl;
-      form.write(
-        pb,
-        "std::vector<float>"); //FIXME: PHLEX has to provide this.  Use boost to de-mangle std::type_index::name()
+      form.write(pb);
 
       // Now write an int vector for the same event, but from a different algorithm (-> different container/tree)
       std::vector<int> vint;
@@ -73,8 +71,9 @@ int main(int /*argc*/, char** /* argv[]*/)
                                     seg_id_text,
                                     &vint,
                                     std::type_index{typeid(std::vector<int>)}};
+      type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
 
-      form.write(pb_int, "std::vector<int>");
+      form.write(pb_int);
 
       // Accumulate Data, for framework without sub-event writing
       vrand.insert(vrand.end(), vrand_seg.begin(), vrand_seg.end());
@@ -94,13 +93,10 @@ int main(int /*argc*/, char** /* argv[]*/)
                               evt_id_text,
                               &vrand,
                               std::type_index{typeid(std::vector<float>)}};
+    type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << std::endl;
-    form.write(
-      pb,
-      "std::vector<float>"); //FIXME: PHLEX has to provide this.  Use boost to de-mangle std::type_index::name()
-    // write references only //FIXME
-    //		fill_branch(file, "tvec", "rand", vrand, -2);
+    form.write(pb);
 
     std::cout << "PHLEX: Write Event done " << nevent << std::endl;
   }

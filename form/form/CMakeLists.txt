@@ -4,5 +4,8 @@
 #find_package( PHLEX )
 
 # Component(s) in the package:
-add_library(form form.cpp)
+add_library(form
+	form.cpp
+	phlex_toy_core.cpp
+)
 target_link_libraries(form persistence)

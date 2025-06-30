@@ -12,14 +12,15 @@
 namespace form::experimental {
   class form_interface {
   public:
-    form_interface();
+    form_interface(std::shared_ptr<phlex::product_type_names> tm);
     ~form_interface() = default;
 
-    void write(const phlex::product_base& pb, const std::string& type);
-    void read(phlex::product_base& pb, std::string& type);
+    void write(const phlex::product_base& pb);
+    void read(phlex::product_base& pb);
 
   private:
     std::unique_ptr<IPersistence> m_pers;
+    std::shared_ptr<phlex::product_type_names> m_type_map;
   };
 }
 
