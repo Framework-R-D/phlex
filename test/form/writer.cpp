@@ -63,6 +63,19 @@ int main(int /*argc*/, char** /* argv[]*/)
       form.write(
         pb,
         "std::vector<float>"); //FIXME: PHLEX has to provide this.  Use boost to de-mangle std::type_index::name()
+
+      // Now write an int vector for the same event, but from a different algorithm (-> different container/tree)
+      std::vector<int> vint;
+      for (int i = 0; i < 100; ++i) {
+        vint.push_back(i);
+      }
+      phlex::product_base pb_int = {"<ToyAlg_Segment_i>/<ToyProduct_i>",
+                                    seg_id_text,
+                                    &vint,
+                                    std::type_index{typeid(std::vector<int>)}};
+
+      form.write(pb_int, "std::vector<int>");
+
       // Accumulate Data, for framework without sub-event writing
       vrand.insert(vrand.end(), vrand_seg.begin(), vrand_seg.end());
     }
