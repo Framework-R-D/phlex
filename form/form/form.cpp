@@ -17,6 +17,23 @@ namespace form::experimental {
     m_pers->commitOutput(pb.label, pb.id);
   }
 
+  void form_interface::write(const std::vector<phlex::product_base>& batch)
+  {
+    if (batch.empty())
+      return;
+
+    for (const auto& pb : batch) {
+      const std::string& type = m_type_map->names[pb.type];
+      // FIXME: We could consider checking id and creator to be identical for all product bases here
+      m_pers->registerWrite(pb.label, pb.data, type);
+    }
+
+    // Single commit per segment (product ID shared among products in the same segment)
+    const std::string& label = batch[0].label;
+    const std::string& id = batch[0].id;
+    m_pers->commitOutput(label, id);
+  }
+
   void form_interface::read(phlex::product_base& pb)
   {
     // For now reading into 'empty' product_base, may change

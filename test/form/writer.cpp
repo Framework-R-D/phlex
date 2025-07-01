@@ -53,6 +53,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       // sub-event writing called by phlex
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
+      std::vector<phlex::product_base> batch;
       phlex::product_base pb = {"<ToyAlg_Segment>/<ToyProduct>",
                                 seg_id_text,
                                 &vrand_seg,
@@ -60,22 +61,22 @@ int main(int /*argc*/, char** /* argv[]*/)
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << std::endl;
-      form.write(pb);
+      batch.push_back(pb);
 
-      // Now write an int vector for the same event, but from a different algorithm (-> different container/tree)
+      // Now write an int vector for the same event/data grain, and the same algorithm
       std::vector<int> vint;
       for (int i = 0; i < 100; ++i) {
         vint.push_back(i);
       }
-      phlex::product_base pb_int = {"<ToyAlg_Segment_i>/<ToyProduct_i>",
+      phlex::product_base pb_int = {"<ToyAlg_Segment>/<ToyProduct_i>",
                                     seg_id_text,
                                     &vint,
                                     std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
+      batch.push_back(pb_int);
+      form.write(batch); // writes all data products for only this segment
 
-      form.write(pb_int);
-
-      // Accumulate Data, for framework without sub-event writing
+      // Accumulate Data
       vrand.insert(vrand.end(), vrand_seg.begin(), vrand_seg.end());
     }
 

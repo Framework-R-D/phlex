@@ -16,6 +16,7 @@ namespace form::experimental {
     ~form_interface() = default;
 
     void write(const phlex::product_base& pb);
+    void write(const std::vector<phlex::product_base>& batch); // batch version
     void read(phlex::product_base& pb);
 
   private:
