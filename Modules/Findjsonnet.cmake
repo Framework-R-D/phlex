@@ -1,6 +1,6 @@
 find_program(JSONNET_EXE NAMES jsonnet)
 mark_as_advanced(JSONNET_EXE)
-if (JSONNET_EXE)
+if(JSONNET_EXE)
   execute_process(
     COMMAND ${JSONNET_EXE} --version
     OUTPUT_VARIABLE ${CMAKE_FIND_PACKAGE_NAME}_VERSION
@@ -10,15 +10,15 @@ if (JSONNET_EXE)
          REPLACE "^.*v([0-9.]+)$" "\\1" ${CMAKE_FIND_PACKAGE_NAME}_VERSION
                  "${${CMAKE_FIND_PACKAGE_NAME}_VERSION}"
          )
-  if (NOT ${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR)
+  if(NOT ${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR)
     find_path(${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR NAMES libjsonnet++.h)
     mark_as_advanced(${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR)
-  endif ()
+  endif()
   find_library(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY NAMES jsonnet++)
   mark_as_advanced(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY)
   find_library(${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY NAMES jsonnet)
   mark_as_advanced(${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY)
-endif ()
+endif()
 
 include(FindPackageHandleStandardArgs)
 
@@ -29,14 +29,14 @@ find_package_handle_standard_args(
   VERSION_VAR ${CMAKE_FIND_PACKAGE_NAME}_VERSION
   )
 
-if (${CMAKE_FIND_PACKAGE_NAME}_FOUND)
+if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
   set(${CMAKE_FIND_PACKAGE_NAME}_LIBRARIES
       ${${CMAKE_FIND_PACKAGE_NAME}_LIBRARY}
       )
   set(${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIRS
       ${${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIRS}
       )
-  if (NOT TARGET jsonnet::lib)
+  if(NOT TARGET jsonnet::lib)
     add_library(jsonnet::lib SHARED IMPORTED)
     set_target_properties(
       jsonnet::lib
@@ -46,5 +46,5 @@ if (${CMAKE_FIND_PACKAGE_NAME}_FOUND)
                  INTERFACE_LINK_LIBRARIES
                  ${${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY}
       )
-  endif ()
-endif ()
+  endif()
+endif()
