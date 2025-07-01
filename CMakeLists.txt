@@ -1,5 +1,35 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.31)
 
+# ##############################################################################
+# Ensure we have access to a suitable version of Cetmodules
+include(FetchContent)
+FetchContent_Declare(
+  cetmodules
+  GIT_REPOSITORY https://github.com/FNALssi/cetmodules
+  GIT_TAG v4-branch
+  # GIT_TAG fd6ebf45
+  FIND_PACKAGE_ARGS 3.99.00
+  )
+# ... and Microsoft's C++ Guideline Support Library
+FetchContent_Declare(
+  GSL
+  GIT_REPOSITORY https://github.com/microsoft/GSL
+  GIT_TAG 2828399820ef4928cc89b65605dca5dc68efca6e # v4.2.0
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS NAMES Microsoft.GSL
+  )
+# ... and Catch2
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG 914aeecfe23b1e16af6ea675a4fb5dbd5a5b8d0a # v3.8.0
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS
+  )
+FetchContent_MakeAvailable(cetmodules Catch2 GSL)
+# ##############################################################################
+
+find_package(cetmodules 3.99.00 REQUIRED)
 project(
   phlex
   VERSION 0.0.1
@@ -14,17 +44,15 @@ option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
-# GCC 14.1 issues many false positives re. array-bounds and stringop-overflow
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION
-                                            VERSION_GREATER_EQUAL "14.1"
-   )
-  add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
-endif()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
+    )
+    # GCC 14.1 issues many false positives re. array-bounds and stringop-overflow
+    add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
+  endif ()
+endif ()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
@@ -48,12 +76,11 @@ if(ENABLE_TSAN)
      )
     message(STATUS "Enabling ThreadSanitizer")
     # Add the sanitizer flag
-    add_compile_options(-fsanitize=thread -g -O1)
+    add_compile_options(-fsanitize=thread -g -O1
+      # Ensure no optimizations interfere with TSan
+      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>
+    )
     add_link_options(-fsanitize=thread)
-    # Ensure no optimizations interfere with TSan
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls"
-        )
   else()
     message(
       FATAL_ERROR
@@ -70,12 +97,11 @@ if(ENABLE_ASAN)
      )
     message(STATUS "Enabling AddressSanitizer")
     # Add the sanitizer flag
-    add_compile_options(-fsanitize=address -g -O1)
+    add_compile_options(-fsanitize=address -g -O1
+      # Ensure no optimizations interfere with ASan
+      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>
+    )
     add_link_options(-fsanitize=address)
-    # Ensure no optimizations interfere with TSan
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls"
-        )
   else()
     message(
       FATAL_ERROR
