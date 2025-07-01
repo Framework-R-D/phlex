@@ -1,10 +1,4 @@
 #include "phlex/module.hpp"
-#include "test/plugins/add.hpp"
-
-#include "boost/dll/import.hpp"
-
-#include <cassert>
-#include <iostream>
 
 #include <Python.h>
 #include <dlfcn.h>
@@ -109,3 +103,9 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
     throw std::runtime_error(msg.c_str());
   }
 }
+
+
+// dict-like construct to access configuration from Python
+
+// TODO: the current implementation of the configuration hides the iteration
+// over the underlying object, thus preventing nice printout etc.

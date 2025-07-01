@@ -2,6 +2,7 @@
 #include "phlex/model/product_store.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
