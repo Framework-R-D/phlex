@@ -8,6 +8,19 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <utility> // for std::pair
+
+// Hash function for std::pair
+struct pair_hash {
+  template <typename T1, typename T2>
+  std::size_t operator()(const std::pair<T1, T2>& p) const
+  {
+    std::hash<T1> h1;
+    std::hash<T2> h2;
+    return h1(p.first) ^ (h2(p.second) << 1);
+  }
+};
 
 class Storage : public IStorage {
 public:
@@ -21,8 +34,12 @@ public:
 
 private:
   std::map<std::string, std::shared_ptr<IStorage_File>> m_files;
-  std::map<std::string, std::shared_ptr<IStorage_Container>> m_containers;
-
+  // std::map<std::string, std::shared_ptr<IStorage_Container>> m_containers;
+  // Changed from std::map<std::string, ...> to key on (fileName, containerName)
+  std::unordered_map<std::pair<std::string, std::string>,
+                     std::shared_ptr<IStorage_Container>,
+                     pair_hash>
+    m_containers;
   std::map<std::string, std::map<std::string, int>> m_indexMaps;
 };
 

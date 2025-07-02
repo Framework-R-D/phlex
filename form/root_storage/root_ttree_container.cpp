@@ -80,6 +80,9 @@ void ROOT_TTree_ContainerImp::fill(const void* data, const std::string& type)
 
   auto dictInfo = TDictionary::GetDictionary(type.c_str());
   if (m_branch == nullptr) {
+    if (!dictInfo) {
+      throw std::string("Unsupported type passed to ROOT_TTree_ContainerImp::fill: " + type);
+    }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(m_branchName.c_str(),
                                 &data,
