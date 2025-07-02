@@ -1,0 +1,3 @@
+# Copyright (C) 2025 ...
+
+# Component(s) in the package:
