@@ -1,0 +1,27 @@
+// Copyright (C) 2025 ...
+
+#ifndef __IPERSISTENCE_H__
+#define __IPERSISTENCE_H__
+
+#include <memory>
+#include <string>
+
+class IPersistence {
+public:
+  IPersistence() {};
+  virtual ~IPersistence() {};
+
+  virtual void registerWrite(const std::string& label,
+                             const void* data,
+                             const std::string& type) = 0;
+  virtual void commitOutput(const std::string& label, const std::string& id) = 0;
+
+  virtual void read(const std::string& label,
+                    const std::string& id,
+                    const void** data,
+                    std::string& type) = 0;
+};
+
+std::unique_ptr<IPersistence> createPersistence();
+
+#endif
