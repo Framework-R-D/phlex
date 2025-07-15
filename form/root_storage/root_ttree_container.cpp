@@ -92,7 +92,7 @@ void ROOT_TTree_ContainerImp::fill(const void* data, const std::string& type)
       m_branch = m_tree->Branch(m_branchName.c_str(), dictInfo->GetName(), &data);
     }
   }
-  if (m_tree == nullptr) {
+  if (m_branch == nullptr) {
     throw std::string("ROOT_TTree_ContainerImp::fill no branch created");
   }
   if (dictInfo->Property() & EProperty::kIsFundamental) {
@@ -101,6 +101,12 @@ void ROOT_TTree_ContainerImp::fill(const void* data, const std::string& type)
     m_branch->SetAddress(&data);
   }
   m_branch->Fill();
+  m_branch->ResetAddress();
+  return;
+}
+
+void ROOT_TTree_ContainerImp::commit()
+{
   // Forward the tree
   m_tree->SetEntries(m_branch->GetEntries());
   return;
