@@ -102,11 +102,6 @@ void ROOT_TTree_ContainerImp::fill(const void* data, const std::string& type)
   }
   m_branch->Fill();
   m_branch->ResetAddress();
-  return;
-}
-
-void ROOT_TTree_ContainerImp::commit()
-{
   // Forward the tree
   m_tree->SetEntries(m_branch->GetEntries());
   return;

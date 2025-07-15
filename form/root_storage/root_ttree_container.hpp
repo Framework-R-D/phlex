@@ -21,7 +21,6 @@ public:
 
   void setFile(std::shared_ptr<IStorage_File> file);
   void fill(const void* data, const std::string& type);
-  void commit();
   bool read(int id, const void** data, std::string& type);
 
 private:
