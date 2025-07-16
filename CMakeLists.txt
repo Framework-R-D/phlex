@@ -6,9 +6,8 @@ include(FetchContent)
 FetchContent_Declare(
   cetmodules
   GIT_REPOSITORY https://github.com/FNALssi/cetmodules
-  GIT_TAG v4-branch
-  # GIT_TAG fd6ebf45
-  FIND_PACKAGE_ARGS 3.99.00
+  GIT_TAG 4a5a5881 # v4.00.00
+  FIND_PACKAGE_ARGS 4.00.00
   )
 # ... and Microsoft's C++ Guideline Support Library
 FetchContent_Declare(
@@ -29,7 +28,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cetmodules Catch2 GSL)
 # ##############################################################################
 
-find_package(cetmodules 3.99.00 REQUIRED)
+find_package(cetmodules 4.00.00 REQUIRED)
 project(
   phlex
   VERSION 0.0.1
