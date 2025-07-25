@@ -14,7 +14,7 @@
 #include <memory>
 #include <string>
 
-namespace form::experimental{
+namespace form::detail::experimental {
   std::shared_ptr<IStorage_File> createFile(int tech, const std::string& name, char mode)
   {
     if (int(tech / 256) == 1) { //ROOT major technology
