@@ -10,19 +10,21 @@
 
 class TFile;
 
-class ROOT_TFileImp : public IStorage_File {
-public:
-  ROOT_TFileImp(const std::string& name, char mode);
-  ~ROOT_TFileImp();
+namespace form::detail::experimental {
+  class ROOT_TFileImp : public IStorage_File {
+  public:
+    ROOT_TFileImp(const std::string& name, char mode);
+    ~ROOT_TFileImp();
 
-  const std::string& name();
-  std::shared_ptr<TFile> getTFile();
+    const std::string& name();
+    std::shared_ptr<TFile> getTFile();
 
-private:
-  std::string m_name;
-  char m_mode;
+  private:
+    std::string m_name;
+    char m_mode;
 
-  std::shared_ptr<TFile> m_file;
-};
+    std::shared_ptr<TFile> m_file;
+  };
+}
 
 #endif

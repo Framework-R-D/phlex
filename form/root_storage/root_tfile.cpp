@@ -4,6 +4,7 @@
 
 #include "TFile.h"
 
+using namespace form::detail::experimental;
 ROOT_TFileImp::ROOT_TFileImp(const std::string& name, char mode) :
   m_name(name), m_mode(mode), m_file(nullptr)
 {

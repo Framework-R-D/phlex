@@ -23,6 +23,8 @@ namespace {
                                                                      {"bool", "/O"}};
 }
 
+using namespace form::detail::experimental;
+
 ROOT_TTree_ContainerImp::ROOT_TTree_ContainerImp(const std::string& name) :
   m_name(name),
   m_treeName(""),

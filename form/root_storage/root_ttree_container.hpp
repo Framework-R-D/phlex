@@ -12,26 +12,29 @@ class TFile;
 class TTree;
 class TBranch;
 
-class ROOT_TTree_ContainerImp : public IStorage_Container {
-public:
-  ROOT_TTree_ContainerImp(const std::string& name);
-  ~ROOT_TTree_ContainerImp();
+namespace form::detail::experimental {
 
-  const std::string& name();
+  class ROOT_TTree_ContainerImp : public IStorage_Container {
+  public:
+    ROOT_TTree_ContainerImp(const std::string& name);
+    ~ROOT_TTree_ContainerImp();
 
-  void setFile(std::shared_ptr<IStorage_File> file);
-  void fill(const void* data, const std::string& type);
-  bool read(int id, const void** data, std::string& type);
+    const std::string& name();
 
-private:
-  std::string m_name;
-  std::string m_treeName;
-  std::string m_branchName;
+    void setFile(std::shared_ptr<IStorage_File> file);
+    void fill(const void* data, const std::string& type);
+    bool read(int id, const void** data, std::string& type);
 
-  std::shared_ptr<TFile> m_file;
-  TTree* m_tree;
-  bool m_ownsTree;
-  TBranch* m_branch;
-};
+  private:
+    std::string m_name;
+    std::string m_treeName;
+    std::string m_branchName;
+
+    std::shared_ptr<TFile> m_file;
+    TTree* m_tree;
+    bool m_ownsTree;
+    TBranch* m_branch;
+  };
+}
 
 #endif
