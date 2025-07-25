@@ -9,7 +9,9 @@
 using namespace form::detail::experimental;
 
 // Factory function implementation
-std::unique_ptr<IStorage> createStorage() { return std::unique_ptr<IStorage>(new Storage()); }
+namespace form::detail::experimental {
+  std::unique_ptr<IStorage> createStorage() { return std::unique_ptr<IStorage>(new Storage()); }
+}
 
 void Storage::fillContainer(const Placement& plcmnt, const void* data, const std::string& type)
 {

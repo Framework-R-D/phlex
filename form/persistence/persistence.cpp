@@ -7,10 +7,12 @@
 using namespace form::detail::experimental;
 
 // Factory function implementation
-std::unique_ptr<IPersistence> createPersistence()
-{
-  return std::unique_ptr<IPersistence>(new Persistence());
-}
+namespace form::detail::experimental {
+  std::unique_ptr<IPersistence> createPersistence()
+  {
+    return std::unique_ptr<IPersistence>(new Persistence());
+  }
+} // namespace form::detail::experimental
 
 Persistence::Persistence() : m_store(nullptr) { m_store = createStorage(); }
 
