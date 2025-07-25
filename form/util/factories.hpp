@@ -14,26 +14,28 @@
 #include <memory>
 #include <string>
 
-std::shared_ptr<IStorage_File> createFile(int tech, const std::string& name, char mode)
-{
-  if (int(tech / 256) == 1) { //ROOT major technology
+namespace form::experimental {
+  std::shared_ptr<IStorage_File> createFile(int tech, const std::string& name, char mode)
+  {
+    if (int(tech / 256) == 1) { //ROOT major technology
 #ifdef USE_ROOT_STORAGE
-    return std::shared_ptr<IStorage_File>(new ROOT_TFileImp(name, mode));
-#endif
-  }
-  return std::shared_ptr<IStorage_File>(new Storage_File(name, mode));
-}
-
-std::shared_ptr<IStorage_Container> createContainer(int tech, const std::string& name)
-{
-  if (int(tech / 256) == 1) {   //ROOT major technology
-    if (int(tech % 256) == 1) { //ROOT TTree minor technology
-#ifdef USE_ROOT_STORAGE
-      return std::shared_ptr<IStorage_Container>(new ROOT_TTree_ContainerImp(name));
+      return std::shared_ptr<IStorage_File>(new ROOT_TFileImp(name, mode));
 #endif
     }
+    return std::shared_ptr<IStorage_File>(new Storage_File(name, mode));
   }
-  return std::shared_ptr<IStorage_Container>(new Storage_Container(name));
+  
+  std::shared_ptr<IStorage_Container> createContainer(int tech, const std::string& name)
+  {
+    if (int(tech / 256) == 1) {   //ROOT major technology
+      if (int(tech % 256) == 1) { //ROOT TTree minor technology
+#ifdef USE_ROOT_STORAGE
+	return std::shared_ptr<IStorage_Container>(new ROOT_TTree_ContainerImp(name));
+#endif
+      }
+    }
+    return std::shared_ptr<IStorage_Container>(new Storage_Container(name));
+  }
 }
 
 #endif
