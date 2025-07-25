@@ -6,7 +6,7 @@ namespace form::experimental {
   form_interface::form_interface(std::shared_ptr<phlex::product_type_names> tm) :
     m_pers(nullptr), m_type_map(tm)
   {
-    m_pers = createPersistence();
+    m_pers = form::detail::experimental::createPersistence();
   }
 
   void form_interface::write(const phlex::product_base& pb)

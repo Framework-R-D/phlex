@@ -20,7 +20,7 @@ namespace form::experimental {
     void read(phlex::product_base& pb);
 
   private:
-    std::unique_ptr<IPersistence> m_pers;
+    std::unique_ptr<form::detail::experimental::IPersistence> m_pers;
     std::shared_ptr<phlex::product_type_names> m_type_map;
   };
 }
