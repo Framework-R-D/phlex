@@ -6,22 +6,24 @@
 #include <memory>
 #include <string>
 
-class IPersistence {
-public:
-  IPersistence() {};
-  virtual ~IPersistence() {};
+namespace form::detail::experimental {
 
-  virtual void registerWrite(const std::string& label,
-                             const void* data,
-                             const std::string& type) = 0;
-  virtual void commitOutput(const std::string& label, const std::string& id) = 0;
+  class IPersistence {
+  public:
+    IPersistence() {};
+    virtual ~IPersistence() {};
 
-  virtual void read(const std::string& label,
-                    const std::string& id,
-                    const void** data,
-                    std::string& type) = 0;
-};
+    virtual void registerWrite(const std::string& label,
+                               const void* data,
+                               const std::string& type) = 0;
+    virtual void commitOutput(const std::string& label, const std::string& id) = 0;
 
-std::unique_ptr<IPersistence> createPersistence();
+    virtual void read(const std::string& label,
+                      const std::string& id,
+                      const void** data,
+                      std::string& type) = 0;
+  };
 
+  std::unique_ptr<IPersistence> createPersistence();
+} // namespace form::detail::experimental
 #endif

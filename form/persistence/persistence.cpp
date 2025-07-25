@@ -4,6 +4,8 @@
 
 #include <cstring>
 
+using namespace form::detail::experimental;
+
 // Factory function implementation
 std::unique_ptr<IPersistence> createPersistence()
 {
