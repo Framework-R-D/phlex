@@ -4,7 +4,7 @@ Prototype development for I/O infrastructure supporting Phlex
 
 ## build
 
-`cmake cmake -DUSE_FORM_ALONE=ON -DFORM_USE_ROOT_STORAGE=ON ../phlex/ ; make`
+`cmake -DUSE_FORM_ALONE=ON -DFORM_USE_ROOT_STORAGE=ON ../phlex/ ; make`
 
 ## run writer
 
