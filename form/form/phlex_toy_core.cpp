@@ -5,6 +5,6 @@
 namespace phlex {
   std::shared_ptr<product_type_names> createTypeMap()
   {
-    return std::shared_ptr<product_type_names>(new product_type_names());
+    return std::make_shared<product_type_names>();
   }
 }
