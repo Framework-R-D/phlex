@@ -7,15 +7,17 @@
 
 #include <string>
 
-class Storage_File : public IStorage_File {
-public:
-  Storage_File(const std::string& name, char mode);
-  ~Storage_File();
+namespace form::detail::experimental {
+  class Storage_File : public IStorage_File {
+  public:
+    Storage_File(const std::string& name, char mode);
+    ~Storage_File();
 
-  const std::string& name();
+    const std::string& name();
 
-private:
-  std::string m_name;
-};
+  private:
+    std::string m_name;
+  };
+}
 
 #endif

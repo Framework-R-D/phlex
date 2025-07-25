@@ -3,6 +3,7 @@
 #include "storage_container.hpp"
 #include "storage_file.hpp"
 
+using namespace form::detail::experimental;
 Storage_Container::Storage_Container(const std::string& name) :
   m_name(name), m_file(nullptr), m_tName(""), m_cName("")
 {

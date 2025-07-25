@@ -9,37 +9,40 @@
 #include <memory>
 #include <string>
 
-class IStorage {
-public:
-  IStorage() = default;
-  virtual ~IStorage() = default;
+namespace form::detail::experimental {
 
-  virtual void fillContainer(const Placement& plcmnt,
-                             const void* data,
-                             const std::string& type) = 0;
+  class IStorage {
+  public:
+    IStorage() = default;
+    virtual ~IStorage() = default;
 
-  virtual int getIndex(const Token& token, const std::string& id) = 0;
-  virtual void readContainer(const Token& token, const void** data, std::string& type) = 0;
-};
+    virtual void fillContainer(const Placement& plcmnt,
+                               const void* data,
+                               const std::string& type) = 0;
 
-class IStorage_File {
-public:
-  virtual ~IStorage_File() = default;
+    virtual int getIndex(const Token& token, const std::string& id) = 0;
+    virtual void readContainer(const Token& token, const void** data, std::string& type) = 0;
+  };
 
-  virtual const std::string& name() = 0;
-};
+  class IStorage_File {
+  public:
+    virtual ~IStorage_File() = default;
 
-class IStorage_Container {
-public:
-  virtual ~IStorage_Container() {};
+    virtual const std::string& name() = 0;
+  };
 
-  virtual const std::string& name() = 0;
+  class IStorage_Container {
+  public:
+    virtual ~IStorage_Container() {};
 
-  virtual void setFile(std::shared_ptr<IStorage_File> file) = 0;
-  virtual void fill(const void* data, const std::string& type) = 0;
-  virtual bool read(int id, const void** data, std::string& type) = 0;
-};
+    virtual const std::string& name() = 0;
 
-std::unique_ptr<IStorage> createStorage();
+    virtual void setFile(std::shared_ptr<IStorage_File> file) = 0;
+    virtual void fill(const void* data, const std::string& type) = 0;
+    virtual bool read(int id, const void** data, std::string& type) = 0;
+  };
+
+  std::unique_ptr<IStorage> createStorage();
+}
 
 #endif

@@ -6,6 +6,8 @@
 
 #include "util/factories.hpp"
 
+using namespace form::detail::experimental;
+
 // Factory function implementation
 std::unique_ptr<IStorage> createStorage() { return std::unique_ptr<IStorage>(new Storage()); }
 
