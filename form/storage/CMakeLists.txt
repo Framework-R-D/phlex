@@ -8,5 +8,5 @@ add_library(storage
 )
 
 if (FORM_USE_ROOT_STORAGE)
-	target_link_libraries(storage root_storage)
+	target_link_libraries(storage core root_storage)
 endif()

@@ -8,63 +8,37 @@
 /* @class Placement
  * @brief This class holds all the necessary information to guide the writing of an object in a physical file.
  */
-namespace form {
-  namespace detail {
-    namespace experimental {
+namespace form::detail::experimental {
 
-      class Placement {
-      public:
-        /// Default Constructor
-        Placement() = default;
+  class Placement {
+  public:
+    /// Default Constructor
+    Placement() = default;
 
-        /// Constructor with initialization
-        Placement(const std::string& fileName, const std::string& containerName, int technology) :
-          m_technology(technology), m_fileName(fileName), m_containerName(containerName)
-        {
-        }
+    /// Constructor with initialization
+    Placement(const std::string& fileName, const std::string& containerName, int technology);
 
-        /// Access file name
-        const std::string& fileName() const { return m_fileName; }
-        /// Set file name
-        Placement& setFileName(const std::string& fileName)
-        {
-          m_fileName = fileName;
-          return *this;
-        }
-        /// Access container name
-        const std::string& containerName() const { return m_containerName; }
-        /// Set container name
-        Placement& setContainerName(const std::string& containerName)
-        {
-          m_containerName = containerName;
-          return *this;
-        }
-        /// Access technology type
-        int technology() const { return m_technology; }
-        /// Set technology type
-        Placement& setTechnology(int technology)
-        {
-          m_technology = technology;
-          return *this;
-        }
+    /// Access file name
+    const std::string& fileName() const;
+    /// Set file name
+    Placement& setFileName(const std::string& fileName);
+    /// Access container name
+    const std::string& containerName() const;
+    /// Set container name
+    Placement& setContainerName(const std::string& containerName);
+    /// Access technology type
+    int technology() const;
+    /// Set technology type
+    Placement& setTechnology(int technology);
 
-        /*
-       /// Retrieve the string representation of the placement.
-       const std::string toString() const;
-       /// Build from the string representation of a placement.
-       Placement& fromString(const std::string& from);
-	*/
-
-      private:
-        /// Technology identifier
-        int m_technology;
-        /// File name
-        std::string m_fileName;
-        /// Container name
-        std::string m_containerName;
-      };
-    } // namespace experimental
-  } // namespace detail
-} // namespace form
+  private:
+    /// Technology identifier
+    int m_technology;
+    /// File name
+    std::string m_fileName;
+    /// Container name
+    std::string m_containerName;
+  };
+} // namespace form::detail::experimental
 
 #endif
