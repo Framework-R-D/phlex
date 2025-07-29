@@ -70,7 +70,6 @@ add_catch_test(different_hierarchies LIBRARIES phlex::core)
 add_catch_test(filter_impl LIBRARIES phlex::core)
 add_catch_test(filter LIBRARIES phlex::core Boost::json TEST_DOT_GRAPH)
 add_catch_test(function_registration LIBRARIES phlex::core Boost::json)
-add_catch_test(function_name LIBRARIES phlex::metaprogramming)
 add_catch_test(
   hierarchical_nodes LIBRARIES Boost::json TBB::tbb phlex::core TEST_DOT_GRAPH
   )

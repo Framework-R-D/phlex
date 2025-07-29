@@ -60,26 +60,26 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   store->add_product("name", std::string{"John"});
 
   framework_graph g{store};
-  SECTION("No framework") { g.with(no_framework).transform(product_names).to(oproduct_names); }
+  SECTION("No framework") { g.with("no_framework", no_framework).transform(product_names).to(oproduct_names); }
   SECTION("No framework, all references")
   {
-    g.with(no_framework_all_refs).transform(product_names).to(oproduct_names);
+    g.with("no_framework_all_refs", no_framework_all_refs).transform(product_names).to(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
-    g.with(no_framework_all_ptrs).transform(product_names).to(oproduct_names);
+    g.with("no_framework_all_ptrs", no_framework_all_ptrs).transform(product_names).to(oproduct_names);
   }
   SECTION("One framework argument")
   {
-    g.with(one_framework_arg).transform(product_names).to(oproduct_names);
+    g.with("one_framework_arg", one_framework_arg).transform(product_names).to(oproduct_names);
   }
   SECTION("All framework arguments")
   {
-    g.with(all_framework_args).transform(product_names).to(oproduct_names);
+    g.with("all_framework_args", all_framework_args).transform(product_names).to(oproduct_names);
   }
 
   // The following is invoked for *each* section above
-  g.with(verify_results).observe(product_names);
+  g.with("verify_results", verify_results).observe(product_names);
 
   g.execute();
 }

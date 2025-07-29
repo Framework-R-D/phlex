@@ -101,21 +101,22 @@ TEST_CASE("Splitting the processing", "[graph]")
     .unfold("max_number")
     .into("new_number")
     .within_family("lower1");
-  g.with(add, concurrency::unlimited).fold("new_number").partitioned_by("event").to("sum1");
-  g.with(check_sum, concurrency::unlimited).observe("sum1");
+  g.with("add", add, concurrency::unlimited).fold("new_number").partitioned_by("event").to("sum1");
+  g.with("check_sum", check_sum, concurrency::unlimited).observe("sum1");
 
   g.with<iterate_through>(
      &iterate_through::predicate, &iterate_through::unfold, concurrency::unlimited)
     .unfold("ten_numbers")
     .into("each_number")
     .within_family("lower2");
-  g.with(add_numbers, concurrency::unlimited)
+  g.with("add_numbers", add_numbers, concurrency::unlimited)
     .fold("each_number")
     .partitioned_by("event")
     .to("sum2");
-  g.with(check_sum_same, concurrency::unlimited).observe("sum2");
+  g.with("check_sum_same", check_sum_same, concurrency::unlimited).observe("sum2");
 
-  g.make<test::products_for_output>().output_with(&test::products_for_output::save,
+  g.make<test::products_for_output>().output_with("save",
+                                                  &test::products_for_output::save,
                                                   concurrency::serial);
 
   g.execute("unfold_t");

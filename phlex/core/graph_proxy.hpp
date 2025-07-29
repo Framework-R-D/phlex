@@ -8,7 +8,6 @@
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
-#include "phlex/metaprogramming/function_name.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -51,8 +50,6 @@ namespace phlex::experimental {
       return glue{graph_, nodes_, bound_obj_, errors_, config_}.with(name, f, c);
     }
 
-    auto with(auto f, concurrency c = concurrency::serial) { return with(function_name(f), f, c); }
-
     template <typename Splitter>
     auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
     {
@@ -63,10 +60,6 @@ namespace phlex::experimental {
     {
       return output_creator{
         nodes_.register_output(errors_), config_, name, graph_, delegate(bound_obj_, f), c};
-    }
-    auto output_with(is_output_like auto f, concurrency c = concurrency::serial)
-    {
-      return output_with(function_name(f), f, c);
     }
 
   private:

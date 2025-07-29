@@ -71,7 +71,7 @@ namespace phlex::experimental {
     {
       return proxy().with(std::move(name), f, c);
     }
-    auto with(auto f, concurrency c = concurrency::serial) { return with(function_name(f), f, c); }
+
     template <typename T>
     auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
     {

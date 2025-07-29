@@ -85,8 +85,8 @@ namespace {
 TEST_CASE("Two predicates", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.with(evens_only, concurrency::unlimited).evaluate("num").for_each("event");
-  g.with(odds_only, concurrency::unlimited).evaluate("num").for_each("event");
+  g.with("evens_only", evens_only, concurrency::unlimited).evaluate("num").for_each("event");
+  g.with("odds_only", odds_only, concurrency::unlimited).evaluate("num").for_each("event");
   g.make<sum_numbers>(20u)
     .with("add_evens", &sum_numbers::add, concurrency::unlimited)
     .when("evens_only")
@@ -104,10 +104,10 @@ TEST_CASE("Two predicates", "[filtering]")
 TEST_CASE("Two predicates in series", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.with(evens_only, concurrency::unlimited).evaluate("num");
-  g.with(odds_only, concurrency::unlimited).when("evens_only").evaluate("num");
+  g.with("evens_only", evens_only, concurrency::unlimited).evaluate("num");
+  g.with("odds_only", odds_only, concurrency::unlimited).when("evens_only").evaluate("num");
   g.make<sum_numbers>(0u)
-    .with(&sum_numbers::add, concurrency::unlimited)
+    .with("add", &sum_numbers::add, concurrency::unlimited)
     .when("odds_only")
     .observe("num");
 
@@ -117,10 +117,10 @@ TEST_CASE("Two predicates in series", "[filtering]")
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.with(evens_only, concurrency::unlimited).evaluate("num");
-  g.with(odds_only, concurrency::unlimited).evaluate("num");
+  g.with("evens_only", evens_only, concurrency::unlimited).evaluate("num");
+  g.with("odds_only", odds_only, concurrency::unlimited).evaluate("num");
   g.make<sum_numbers>(0u)
-    .with(&sum_numbers::add, concurrency::unlimited)
+    .with("add", &sum_numbers::add, concurrency::unlimited)
     .when("odds_only", "evens_only")
     .observe("num");
 
@@ -149,7 +149,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
     "exclude_0_to_4", "exclude_6_to_7", "exclude_gt_8"};
   auto const expected_numbers = {4u, 5u, 7u};
   g.make<collect_numbers>(expected_numbers)
-    .with(&collect_numbers::collect, concurrency::unlimited)
+    .with("collect", &collect_numbers::collect, concurrency::unlimited)
     .when(predicate_names)
     .observe("num");
 
@@ -159,8 +159,8 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.with(evens_only, concurrency::unlimited).evaluate("num");
-  g.with(odds_only, concurrency::unlimited).evaluate("num");
+  g.with("evens_only", evens_only, concurrency::unlimited).evaluate("num");
+  g.with("odds_only", odds_only, concurrency::unlimited).evaluate("num");
   g.make<check_multiple_numbers>(5 * 100)
     .with("check_evens", &check_multiple_numbers::add_difference, concurrency::unlimited)
     .when("evens_only")

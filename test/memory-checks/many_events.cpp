@@ -25,6 +25,6 @@ int main()
   };
 
   framework_graph g{levels_to_process};
-  g.with(pass_on, concurrency::unlimited).transform("number").to("different");
+  g.with("pass_on", pass_on, concurrency::unlimited).transform("number").to("different");
   g.execute();
 }

@@ -9,7 +9,7 @@
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
-#include "phlex/metaprogramming/function_name.hpp"
+#include "phlex/utilities/stripped_name.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -51,8 +51,6 @@ namespace phlex::experimental {
       return bound_function{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
     }
 
-    auto with(auto f, concurrency c = concurrency::serial) { return with(function_name(f), f, c); }
-
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
       return output_creator{nodes_.register_output(errors_),
@@ -61,10 +59,6 @@ namespace phlex::experimental {
                             graph_,
                             delegate(bound_obj_, f),
                             c};
-    }
-    auto output_with(is_output_like auto f, concurrency c = concurrency::serial)
-    {
-      return output_with(function_name(f), f, c);
     }
 
   private:

@@ -5,6 +5,7 @@ using namespace phlex::experimental::test;
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
 {
-  m.make<products_for_output>().output_with(&products_for_output::save,
+  m.make<products_for_output>().output_with("save",
+                                            &products_for_output::save,
                                             phlex::experimental::concurrency::unlimited);
 }
