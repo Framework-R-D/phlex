@@ -161,9 +161,8 @@ int main(int argc, char* argv[])
       ;
 
     demo::log_record("add_output");
-    g.make<test::products_for_output>().output_with("save",
-                                                    &test::products_for_output::save,
-                                                    concurrency::serial);
+    g.make<test::products_for_output>().output_with(
+      "save", &test::products_for_output::save, concurrency::serial);
 
     // Execute the graph.
     demo::log_record("execute_graph");

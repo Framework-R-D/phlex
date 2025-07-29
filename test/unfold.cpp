@@ -115,9 +115,8 @@ TEST_CASE("Splitting the processing", "[graph]")
     .to("sum2");
   g.with("check_sum_same", check_sum_same, concurrency::unlimited).observe("sum2");
 
-  g.make<test::products_for_output>().output_with("save",
-                                                  &test::products_for_output::save,
-                                                  concurrency::serial);
+  g.make<test::products_for_output>().output_with(
+    "save", &test::products_for_output::save, concurrency::serial);
 
   g.execute("unfold_t");
 
