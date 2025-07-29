@@ -5,4 +5,8 @@ target_include_directories(
                                       "$<INSTALL_INTERFACE:include>"
   )
 
+target_link_libraries(phlex_metaprogramming_int INTERFACE Boost::boost)
+
 add_library(phlex::metaprogramming ALIAS phlex_metaprogramming_int)
+
+install(TARGETS phlex_metaprogramming_int)
