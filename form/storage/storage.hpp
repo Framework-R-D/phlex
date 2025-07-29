@@ -29,21 +29,22 @@ namespace form::detail::experimental {
     Storage() = default;
     ~Storage() = default;
 
+    void createContainers(const std::map<std::unique_ptr<Placement>, std::string>& containers);
     void fillContainer(const Placement& plcmnt, const void* data, const std::string& type);
+    void commitContainers(const Placement& plcmnt);
 
     int getIndex(const Token& token, const std::string& id);
     void readContainer(const Token& token, const void** data, std::string& type);
 
   private:
     std::map<std::string, std::shared_ptr<IStorage_File>> m_files;
-    // std::map<std::string, std::shared_ptr<IStorage_Container>> m_containers;
-    // Changed from std::map<std::string, ...> to key on (fileName, containerName)
     std::unordered_map<std::pair<std::string, std::string>,
                        std::shared_ptr<IStorage_Container>,
                        pair_hash>
       m_containers;
     std::map<std::string, std::map<std::string, int>> m_indexMaps;
   };
-}
+
+} // namespace form::detail::experimental
 
 #endif

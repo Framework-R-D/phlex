@@ -8,6 +8,7 @@
 #include "persistence/ipersistence.hpp"
 
 #include <memory>
+#include <string>
 
 namespace form::experimental {
   class form_interface {
@@ -15,8 +16,9 @@ namespace form::experimental {
     form_interface(std::shared_ptr<phlex::product_type_names> tm);
     ~form_interface() = default;
 
-    void write(const phlex::product_base& pb);
-    void write(const std::vector<phlex::product_base>& batch); // batch version
+    void write(const std::string& creator, const phlex::product_base& pb);
+    void write(const std::string& creator,
+               const std::vector<phlex::product_base>& batch); // batch version
     void read(phlex::product_base& pb);
 
   private:

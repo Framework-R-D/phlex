@@ -11,7 +11,7 @@
 
 namespace phlex {
   struct product_base {
-    std::string label; // Containing algorithm and data product name?
+    std::string label; // Containing data product name only?
     std::string id;
     const void* data;
     std::type_index type;

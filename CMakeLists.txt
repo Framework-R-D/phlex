@@ -8,6 +8,7 @@ project(
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
+option(USE_FORM_ALONE "Enable FORM in standalone mode (no PHLEX)" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -30,13 +31,17 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 
 list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Modules)
 
-find_library(BACKTRACE_LIB backtrace REQUIRED)
-find_path(BACKTRACE_INC backtrace.h REQUIRED)
-find_package(Boost REQUIRED COMPONENTS json program_options stacktrace_basic)
-find_package(TBB REQUIRED)
-find_package(fmt REQUIRED)
-find_package(jsonnet REQUIRED)
-find_package(spdlog REQUIRED)
+if (USE_FORM_ALONE)
+  message(STATUS "Building FORM in standalone mode (no PHLEX)")
+else ()
+  find_library(BACKTRACE_LIB backtrace REQUIRED)
+  find_path(BACKTRACE_INC backtrace.h REQUIRED)
+  find_package(Boost REQUIRED COMPONENTS json program_options stacktrace_basic)
+  find_package(TBB REQUIRED)
+  find_package(fmt REQUIRED)
+  find_package(jsonnet REQUIRED)
+  find_package(spdlog REQUIRED)
+endif ()
 
 # Apply ThreadSanitizer flags if enabled
 if (ENABLE_TSAN)
@@ -83,13 +88,22 @@ if (ENABLE_ASAN)
   endif ()
 endif ()
 
-add_subdirectory(phlex)
-
-if (PHLEX_USE_FORM)
+if (USE_FORM_ALONE)
   add_subdirectory(form)
-endif()
 
-include(CTest)
-if (BUILD_TESTING)
-  add_subdirectory(test)
-endif()
+  include(CTest)
+  if (BUILD_TESTING)
+    add_subdirectory(test)
+  endif ()
+else ()
+  add_subdirectory(phlex)
+
+  if (PHLEX_USE_FORM)
+    add_subdirectory(form)
+  endif()
+
+  include(CTest)
+  if (BUILD_TESTING)
+    add_subdirectory(test)
+  endif ()
+endif ()

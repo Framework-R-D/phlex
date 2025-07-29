@@ -5,9 +5,11 @@
 
 #include "storage/istorage.hpp"
 
+#include "storage/storage_association.hpp"
 #include "storage/storage_container.hpp"
 #include "storage/storage_file.hpp"
 
+#include "root_storage/root_tbranch_container.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_container.hpp"
 
@@ -25,7 +27,7 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_File>(name, mode);
   }
 
-  std::shared_ptr<IStorage_Container> createContainer(int tech, const std::string& name)
+  std::shared_ptr<IStorage_Container> createAssociation(int tech, const std::string& name)
   {
     if (int(tech / 256) == 1) {   //ROOT major technology
       if (int(tech % 256) == 1) { //ROOT TTree minor technology
@@ -34,8 +36,20 @@ namespace form::detail::experimental {
 #endif
       }
     }
+    return std::make_shared<Storage_Association>(name);
+  }
+
+  std::shared_ptr<IStorage_Container> createContainer(int tech, const std::string& name)
+  {
+    if (int(tech / 256) == 1) {   //ROOT major technology
+      if (int(tech % 256) == 1) { //ROOT TTree minor technology
+#ifdef USE_ROOT_STORAGE
+        return std::make_shared<ROOT_TBranch_ContainerImp>(name);
+#endif
+      }
+    }
     return std::make_shared<Storage_Container>(name);
   }
-}
+} // namespace form::detail::experimental
 
 #endif

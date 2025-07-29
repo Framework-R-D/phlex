@@ -1,3 +1,6 @@
+if (USE_FORM_ALONE)
+	  add_subdirectory(form)
+  else ()
 find_package(Catch2 REQUIRED)
 
 find_program(DOT dot)
@@ -94,6 +97,7 @@ add_subdirectory(utilities)
 add_subdirectory(mock-workflow)
 add_subdirectory(demo-giantdata)
 add_subdirectory(python)
+endif ()
 
 if (PHLEX_USE_FORM)
   add_subdirectory(form)

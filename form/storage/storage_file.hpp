@@ -15,9 +15,10 @@ namespace form::detail::experimental {
 
     const std::string& name();
 
-  private:
+  protected:
     std::string m_name;
+    char m_mode;
   };
-}
+} // namespace form::detail::experimental
 
 #endif

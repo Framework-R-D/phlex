@@ -2,12 +2,13 @@
 
 #include "form/form.hpp"
 #include "form/phlex_toy_core.hpp" // toy of phlex core components
+#include "data_products/track_start.hpp"
 
 #include <cstdlib>  // For rand() and srand()
 #include <iostream> // For cout
 #include <vector>
 
-static const int NUMBER_EVENT = 2;
+static const int NUMBER_EVENT = 4;
 static const int NUMBER_SEGMENT = 15;
 
 static const char* const evt_id = "[EVENT=%08X]";
@@ -26,6 +27,22 @@ void generate(std::vector<float>& vrand, int size)
   }
 }
 
+void generate(std::vector<TrackStart>& points, int size)
+{
+  //Get a 32-bit random integer with even the lowest allowed precision of rand()
+  auto gen = []() {
+    int rand1 = rand() % 32768;
+    int rand2 = rand() % 32768;
+    return (rand1 * 32768 + rand2);
+  };
+  const float gen_max = 32768u * 32768u;
+
+  int npx = gen() % size;
+  for (int nelement = 0; nelement < npx; ++nelement) {
+    points.emplace_back(float(gen()) / gen_max, float(gen()) / gen_max, float(gen()) / gen_max);
+  }
+}
+
 int main(int /*argc*/, char** /* argv[]*/)
 {
   std::cout << "In main" << std::endl;
@@ -38,66 +55,79 @@ int main(int /*argc*/, char** /* argv[]*/)
     std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
 
     // Processing per event / data creation
-    std::vector<float> vrand;
+    std::vector<float> track_x;
 
     for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
       // phlex Alg per segment
       // Processing per sub-event
-      std::vector<float> vrand_seg;
-      generate(vrand_seg, 4 * 1024 /* * 1024*/); // sub-event processing
+      std::vector<float> track_start_x;
+      generate(track_start_x, 4 * 1024 /* * 1024*/); // sub-event processing
       float check = 0.0;
-      for (unsigned int j = 0; j < vrand_seg.size(); ++j) {
-        check += vrand_seg.at(j);
-      }
+      for (float val : track_start_x)
+        check += val;
+
       // done, phlex call write(phlex::product_base)
       // sub-event writing called by phlex
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
       std::vector<phlex::product_base> batch;
-      phlex::product_base pb = {"<ToyAlg_Segment>/<ToyProduct>",
-                                seg_id_text,
-                                &vrand_seg,
-                                std::type_index{typeid(std::vector<float>)}};
+      const std::string creator = "Toy_Tracker";
+      phlex::product_base pb = {
+        "trackStart", seg_id_text, &track_start_x, std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
-      std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", check = " << check << std::endl;
       batch.push_back(pb);
 
       // Now write an int vector for the same event/data grain, and the same algorithm
-      std::vector<int> vint;
+      std::vector<int> track_n_hits;
       for (int i = 0; i < 100; ++i) {
-        vint.push_back(i);
+        track_n_hits.push_back(i);
       }
-      phlex::product_base pb_int = {"<ToyAlg_Segment>/<ToyProduct_i>",
-                                    seg_id_text,
-                                    &vint,
-                                    std::type_index{typeid(std::vector<int>)}};
+      for (int val : track_n_hits)
+        check += val;
+      std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
+                << ", check = " << check << std::endl;
+      phlex::product_base pb_int = {
+        "trackNumberHits", seg_id_text, &track_n_hits, std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
       batch.push_back(pb_int);
-      form.write(batch); // writes all data products for only this segment
+
+      // Now write a vector of a user-defined class for the same event/data grain
+      std::vector<TrackStart> start_points;
+      generate(start_points, 4 * 1024);
+      TrackStart checkPoints;
+      for (const TrackStart& point : start_points)
+        checkPoints += point;
+      std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
+                << ", checkPoints = " << checkPoints << std::endl;
+      phlex::product_base pb_points = {"trackStartPoints",
+                                       seg_id_text,
+                                       &start_points,
+                                       std::type_index{typeid(std::vector<TrackStart>)}};
+      type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
+      batch.push_back(pb_points);
+
+      form.write(creator, batch); // writes all data products for only this segment
 
       // Accumulate Data
-      vrand.insert(vrand.end(), vrand_seg.begin(), vrand_seg.end());
+      track_x.insert(track_x.end(), track_start_x.begin(), track_start_x.end());
     }
 
     std::cout << "PHLEX: Write Event segments done " << nevent << std::endl;
 
     float check = 0.0;
-    for (unsigned int j = 0; j < vrand.size(); ++j) {
-      check += vrand.at(j);
-    }
+    for (float val : track_x)
+      check += val;
 
     // event writing, current framework, will also write references
     char evt_id_text[64];
     sprintf(evt_id_text, evt_id, nevent);
-    phlex::product_base pb = {"<ToyAlg_Event>/<ToyProduct>",
-                              evt_id_text,
-                              &vrand,
-                              std::type_index{typeid(std::vector<float>)}};
+    const std::string creator = "Toy_Tracker_Event";
+    phlex::product_base pb = {
+      "trackStart", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << std::endl;
-    form.write(pb);
+    form.write(creator, pb);
 
     std::cout << "PHLEX: Write Event done " << nevent << std::endl;
   }

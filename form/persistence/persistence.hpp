@@ -13,11 +13,14 @@
 #include <memory>
 
 namespace form::detail::experimental {
+
   class Persistence : public IPersistence {
   public:
     Persistence();
     ~Persistence() = default;
 
+    void createContainers(const std::string& creator,
+                          const std::map<std::string, std::string>& products);
     void registerWrite(const std::string& label, const void* data, const std::string& type);
     void commitOutput(const std::string& label, const std::string& id);
 
@@ -33,6 +36,7 @@ namespace form::detail::experimental {
   private:
     std::unique_ptr<IStorage> m_store;
   };
+
 } // namespace form::detail::experimental
 
 #endif

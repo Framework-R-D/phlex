@@ -9,29 +9,41 @@ namespace form::experimental {
     m_pers = form::detail::experimental::createPersistence();
   }
 
-  void form_interface::write(const phlex::product_base& pb)
+  void form_interface::write(const std::string& creator, const phlex::product_base& pb)
   {
-    // Prepare for having phlex algorithms return several products, do registerWrite() for each
     const std::string type = m_type_map->names[pb.type];
-    m_pers->registerWrite(pb.label, pb.data, type);
-    m_pers->commitOutput(pb.label, pb.id);
+    // FIXME: Really only needed on first call
+    std::map<std::string, std::string> products = {{pb.label, type}};
+    m_pers->createContainers(creator, products);
+
+    m_pers->registerWrite(creator + "/" + pb.label, pb.data, type);
+
+    m_pers->commitOutput(creator, pb.id);
   }
 
-  void form_interface::write(const std::vector<phlex::product_base>& batch)
+  void form_interface::write(const std::string& creator,
+                             const std::vector<phlex::product_base>& batch)
   {
     if (batch.empty())
       return;
 
+    // FIXME: Really only needed on first call
+    std::map<std::string, std::string> products;
     for (const auto& pb : batch) {
       const std::string& type = m_type_map->names[pb.type];
-      // FIXME: We could consider checking id and creator to be identical for all product bases here
-      m_pers->registerWrite(pb.label, pb.data, type);
+      products.insert(std::make_pair(pb.label, type));
+    }
+    m_pers->createContainers(creator, products);
+
+    for (const auto& pb : batch) {
+      const std::string& type = m_type_map->names[pb.type];
+      // FIXME: We could consider checking id to be identical for all product bases here
+      m_pers->registerWrite(creator + "/" + pb.label, pb.data, type);
     }
 
     // Single commit per segment (product ID shared among products in the same segment)
-    const std::string& label = batch[0].label;
     const std::string& id = batch[0].id;
-    m_pers->commitOutput(label, id);
+    m_pers->commitOutput(creator, id);
   }
 
   void form_interface::read(phlex::product_base& pb)

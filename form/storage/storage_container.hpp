@@ -9,6 +9,7 @@
 #include <string>
 
 namespace form::detail::experimental {
+
   class Storage_Container : public IStorage_Container {
   public:
     Storage_Container(const std::string& name);
@@ -16,17 +17,17 @@ namespace form::detail::experimental {
 
     const std::string& name();
 
-    void setFile(std::shared_ptr<IStorage_File> file);
-    void fill(const void* data, const std::string& type);
+    virtual void setFile(std::shared_ptr<IStorage_File> file);
+
+    void setupWrite(const std::string& type = "");
+    void fill(const void* data);
+    void commit();
     bool read(int id, const void** data, std::string& type);
 
-  private:
+  protected:
     std::string m_name;
     std::shared_ptr<IStorage_File> m_file;
-    std::string m_tName;
-    std::string
-      m_cName; // For associative containers, with two levels (such as tree/branch), this will store column name
   };
-}
+} // namespace form::detail::experimental
 
 #endif
