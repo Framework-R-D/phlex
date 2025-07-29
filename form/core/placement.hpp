@@ -20,16 +20,10 @@ namespace form::detail::experimental {
 
     /// Access file name
     const std::string& fileName() const;
-    /// Set file name
-    Placement& setFileName(const std::string& fileName);
     /// Access container name
     const std::string& containerName() const;
-    /// Set container name
-    Placement& setContainerName(const std::string& containerName);
     /// Access technology type
     int technology() const;
-    /// Set technology type
-    Placement& setTechnology(int technology);
 
   private:
     /// Technology identifier

@@ -51,20 +51,14 @@ void Persistence::read(const std::string& label,
 
 std::unique_ptr<Placement> Persistence::getPlacement(const std::string& label)
 {
-  std::unique_ptr<Placement> plcmnt = std::unique_ptr<Placement>(new Placement());
   // FIXME: get parameters from configuration
-  plcmnt->setTechnology(1 * 256 + 1); // Includes major/file and minor/container
-  plcmnt->setFileName("toy.root");
-  plcmnt->setContainerName(label);
+  std::unique_ptr<Placement> plcmnt = std::unique_ptr<Placement>(new Placement("toy.root", label, 1 * 256 + 1));
   return plcmnt;
 }
 
 std::unique_ptr<Token> Persistence::getToken(const std::string& label, const std::string& id)
 {
-  std::unique_ptr<Token> token = std::unique_ptr<Token>(new Token());
   // FIXME: get parameters from configuration
-  token->setTechnology(1 * 256 + 1); // Includes major/file and minor/container
-  token->setFileName("toy.root");
   std::string index;
   auto del_pos = label.find("/");
   if (del_pos != std::string::npos) {
@@ -72,9 +66,8 @@ std::unique_ptr<Token> Persistence::getToken(const std::string& label, const std
   } else {
     index = label + "/index";
   }
-  token->setContainerName(index);
-  int rowId = m_store->getIndex(*token, id);
-  token->setContainerName(label);
-  token->setId(rowId);
+  std::unique_ptr<Token> index_token = std::unique_ptr<Token>(new Token("toy.root", index, 1 * 256 + 1));
+  int rowId = m_store->getIndex(*index_token, id);
+  std::unique_ptr<Token> token = std::unique_ptr<Token>(new Token("toy.root", label, 1 * 256 + 1, rowId));
   return token;
 }
