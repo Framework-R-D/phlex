@@ -62,7 +62,7 @@ void ROOT_TTree_ContainerImp::commit()
   return;
 }
 
-bool ROOT_TTree_ContainerImp::read(int/* id*/, const void** /* data*/, std::string&/* type*/)
+bool ROOT_TTree_ContainerImp::read(int /* id*/, const void** /* data*/, std::string& /* type*/)
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::read not implemented");
   return false;

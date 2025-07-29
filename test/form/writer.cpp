@@ -1,8 +1,8 @@
 // Copyright (C) 2025 ...
 
+#include "data_products/track_start.hpp"
 #include "form/form.hpp"
 #include "form/phlex_toy_core.hpp" // toy of phlex core components
-#include "data_products/track_start.hpp"
 
 #include <cstdlib>  // For rand() and srand()
 #include <iostream> // For cout
