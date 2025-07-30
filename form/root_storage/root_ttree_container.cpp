@@ -53,19 +53,16 @@ void ROOT_TTree_ContainerImp::setupWrite(const std::string& /* type*/)
 void ROOT_TTree_ContainerImp::fill(const void* /* data*/)
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::fill not implemented");
-  return;
 }
 
 void ROOT_TTree_ContainerImp::commit()
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::commit not implemented");
-  return;
 }
 
 bool ROOT_TTree_ContainerImp::read(int /* id*/, const void** /* data*/, std::string& /* type*/)
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::read not implemented");
-  return false;
 }
 
 TTree* ROOT_TTree_ContainerImp::getTTree() { return m_tree; }
