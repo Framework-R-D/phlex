@@ -68,12 +68,13 @@ void ROOT_TBranch_ContainerImp::setupWrite(const std::string& type)
       throw std::runtime_error("ROOT_TBranch_ContainerImp::setupWrite unsupported type: " + type);
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
-      m_branch = m_tree->Branch(m_cName.c_str(),
+      m_branch = m_tree->Branch(col_name().c_str(),
                                 static_cast<void**>(nullptr),
-                                (m_cName + typeNameToLeafList[dictInfo->GetName()]).c_str(),
+                                (col_name() + typeNameToLeafList[dictInfo->GetName()]).c_str(),
                                 4096);
     } else {
-      m_branch = m_tree->Branch(m_cName.c_str(), dictInfo->GetName(), static_cast<void**>(nullptr));
+      m_branch =
+        m_tree->Branch(col_name().c_str(), dictInfo->GetName(), static_cast<void**>(nullptr));
     }
   }
   if (m_branch == nullptr) {
@@ -87,7 +88,7 @@ void ROOT_TBranch_ContainerImp::fill(const void* data)
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::fill no branch found");
   }
-  TLeaf* leaf = m_branch->GetLeaf(m_cName.c_str());
+  TLeaf* leaf = m_branch->GetLeaf(col_name().c_str());
   if (leaf != nullptr &&
       TDictionary::GetDictionary(leaf->GetTypeName())->Property() & EProperty::kIsFundamental) {
     m_branch->SetAddress(const_cast<void*>(data)); //FIXME: const_cast?
@@ -115,13 +116,13 @@ bool ROOT_TBranch_ContainerImp::read(int id, const void** data, std::string& typ
     throw std::runtime_error("ROOT_TBranch_ContainerImp::read no file attached");
   }
   if (m_tree == nullptr) {
-    m_tree = m_tfile->Get<TTree>(m_tName.c_str());
+    m_tree = m_tfile->Get<TTree>(top_name().c_str());
   }
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::read no tree found");
   }
   if (m_branch == nullptr) {
-    m_branch = m_tree->GetBranch(m_cName.c_str());
+    m_branch = m_tree->GetBranch(col_name().c_str());
   }
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::read no branch found");
@@ -135,13 +136,13 @@ bool ROOT_TBranch_ContainerImp::read(int id, const void** data, std::string& typ
   if (dictInfo) {
     branchBuffer = dictInfo->New();
     branchStatus = m_tree->SetBranchAddress(
-      m_cName.c_str(), &branchBuffer, TClass::GetClass(type.c_str()), EDataType::kOther_t, true);
+      col_name().c_str(), &branchBuffer, TClass::GetClass(type.c_str()), EDataType::kOther_t, true);
   } else {
     //Assume this is a fundamental type like int or double
     auto fundInfo = static_cast<TDataType*>(TDictionary::GetDictionary(type.c_str()));
     branchBuffer = new char[fundInfo->Size()];
     branchStatus = m_tree->SetBranchAddress(
-      m_cName.c_str(), &branchBuffer, nullptr, EDataType(fundInfo->GetType()), true);
+      col_name().c_str(), &branchBuffer, nullptr, EDataType(fundInfo->GetType()), true);
   }
 
   if (branchStatus < 0) {

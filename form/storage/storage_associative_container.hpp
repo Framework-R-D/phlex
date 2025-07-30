@@ -19,7 +19,7 @@ namespace form::detail::experimental {
 
     virtual void setParent(std::shared_ptr<IStorage_Container> parent) { m_parent = parent; }
 
-  protected:
+  private:
     std::string m_tName;
     std::string m_cName;
 
