@@ -24,7 +24,7 @@ namespace form::detail::experimental {
     void commit();
     bool read(int id, const void** data, std::string& type);
 
-  protected:
+  private:
     std::string m_name;
     std::shared_ptr<IStorage_File> m_file;
   };

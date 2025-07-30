@@ -38,10 +38,10 @@ void ROOT_TTree_ContainerImp::setupWrite(const std::string& /* type*/)
     throw std::runtime_error("ROOT_TTree_ContainerImp::setupWrite no file attached");
   }
   if (m_tree == nullptr) {
-    m_tree = m_tfile->Get<TTree>(m_name.c_str());
+    m_tree = m_tfile->Get<TTree>(name().c_str());
   }
   if (m_tree == nullptr) {
-    m_tree = new TTree(m_name.c_str(), m_name.c_str());
+    m_tree = new TTree(name().c_str(), name().c_str());
     m_tree->SetDirectory(m_tfile.get());
   }
   if (m_tree == nullptr) {
