@@ -54,7 +54,7 @@ void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::s
   return;
 }
 
-void Storage::fillContainer(const Placement& plcmnt, const void* data, const std::string& type)
+void Storage::fillContainer(const Placement& plcmnt, const void* data, const std::string& /* type*/)
 {
   // Use file+container as composite key
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
@@ -63,17 +63,6 @@ void Storage::fillContainer(const Placement& plcmnt, const void* data, const std
     // FIXME: For now throw an exception here, but in future, we may have storage technology do that.
     throw std::runtime_error("Storage::fillContainer Container doesn't exist: " +
                              plcmnt.containerName());
-    // Ensure the file exists
-    auto file = m_files.find(plcmnt.fileName());
-    if (file == m_files.end()) {
-      m_files.insert({plcmnt.fileName(), createFile(plcmnt.technology(), plcmnt.fileName(), 'o')});
-      file = m_files.find(plcmnt.fileName());
-    }
-    // Create and bind container to file
-    m_containers.insert({key, createContainer(plcmnt.technology(), plcmnt.containerName())});
-    cont = m_containers.find(key);
-    cont->second->setFile(file->second);
-    cont->second->setupWrite(type);
   }
   cont->second->fill(data);
   return;
