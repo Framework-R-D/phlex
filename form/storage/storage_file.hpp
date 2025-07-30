@@ -14,8 +14,9 @@ namespace form::detail::experimental {
     ~Storage_File();
 
     const std::string& name();
+    const char mode();
 
-  protected:
+  private:
     std::string m_name;
     char m_mode;
   };

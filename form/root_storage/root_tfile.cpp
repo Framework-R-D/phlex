@@ -8,7 +8,7 @@ using namespace form::detail::experimental;
 ROOT_TFileImp::ROOT_TFileImp(const std::string& name, char mode) :
   Storage_File(name, mode), m_file(nullptr)
 {
-  if (m_mode == 'c' || m_mode == 'r' || m_mode == 'o') {
+  if (mode == 'c' || mode == 'r' || mode == 'o') {
     m_file.reset(TFile::Open(name.c_str(), "RECREATE"));
   } else {
     m_file.reset(TFile::Open(name.c_str(), "READ"));
