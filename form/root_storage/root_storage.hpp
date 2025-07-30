@@ -5,12 +5,14 @@
 
 #include "storage/storage.hpp"
 
-class ROOT_StorageImp : public Storage {
-public:
-  ROOT_StorageImp() = default;
-  ~ROOT_StorageImp() = default;
+namespace form::detail::experimental {
 
-private:
-};
+  class ROOT_StorageImp : public Storage {
+  public:
+    ROOT_StorageImp() = default;
+    ~ROOT_StorageImp() = default;
+  };
+
+} //namespace form::detail::experimental
 
 #endif
