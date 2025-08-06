@@ -32,7 +32,7 @@ void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::s
       auto container = createContainer(plcmnt->technology(), plcmnt->containerName());
       m_containers.insert({key, container});
       // For associative container, create association layer
-      auto associative_container = std::dynamic_pointer_cast<Storage_Associative_Container>(container);
+      auto associative_container = dynamic_pointer_cast<Storage_Associative_Container>(container);
       if (associative_container) {
         auto parent_key = std::make_pair(plcmnt->fileName(), associative_container->top_name());
         auto parent = m_containers.find(parent_key);
