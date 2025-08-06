@@ -18,11 +18,14 @@ namespace form::detail::experimental {
     ROOT_TTree_ContainerImp(const std::string& name);
     ~ROOT_TTree_ContainerImp();
 
-    void setFile(std::shared_ptr<IStorage_File> file);
-    void setupWrite(const std::string& type = "");
-    void fill(const void* data);
-    void commit();
-    bool read(int id, const void** data, std::string& type);
+    ROOT_TTree_ContainerImp(const ROOT_TTree_ContainerImp& other) = delete;
+    ROOT_TTree_ContainerImp& operator=(ROOT_TTree_ContainerImp& other) = delete;
+
+    void setFile(std::shared_ptr<IStorage_File> file) override;
+    void setupWrite(const std::string& type = "") override;
+    void fill(const void* data) override;
+    void commit() override;
+    bool read(int id, const void** data, std::string& type) override;
 
     TTree* getTTree();
 

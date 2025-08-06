@@ -1,4 +1,4 @@
-#include "track_start.hpp"
+#include "phlex_driver/data_products/track_start.hpp"
 
 TrackStart::TrackStart() : m_x(0), m_y(0), m_z(0) {}
 
@@ -9,6 +9,12 @@ float TrackStart::getX() const { return m_x; }
 float TrackStart::getY() const { return m_y; }
 
 float TrackStart::getZ() const { return m_z; }
+
+void TrackStart::setX(float x) { m_x = x; }
+
+void TrackStart::setY(float y) { m_y = y; }
+
+void TrackStart::setZ(float z) { m_z = z; }
 
 TrackStart TrackStart::operator+(const TrackStart& other) const
 {

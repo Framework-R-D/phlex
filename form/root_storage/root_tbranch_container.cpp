@@ -32,8 +32,6 @@ ROOT_TBranch_ContainerImp::ROOT_TBranch_ContainerImp(const std::string& name) :
 {
 }
 
-ROOT_TBranch_ContainerImp::~ROOT_TBranch_ContainerImp() {}
-
 void ROOT_TBranch_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
   this->Storage_Associative_Container::setFile(file);

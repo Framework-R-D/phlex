@@ -15,7 +15,10 @@ namespace form::detail::experimental {
     Token() = default;
 
     /// Constructor with initialization
-    Token(const std::string& fileName, const std::string& containerName, int technology, int id = -1);
+    Token(const std::string& fileName,
+          const std::string& containerName,
+          int technology,
+          int id = -1);
 
     /// Access file name
     const std::string& fileName() const;

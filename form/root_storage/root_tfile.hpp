@@ -15,7 +15,7 @@ namespace form::detail::experimental {
   class ROOT_TFileImp : public Storage_File {
   public:
     ROOT_TFileImp(const std::string& name, char mode);
-    ~ROOT_TFileImp();
+    ~ROOT_TFileImp() = default;
 
     std::shared_ptr<TFile> getTFile();
 

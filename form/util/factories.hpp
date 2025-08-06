@@ -9,9 +9,11 @@
 #include "storage/storage_container.hpp"
 #include "storage/storage_file.hpp"
 
+#ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tbranch_container.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_container.hpp"
+#endif
 
 #include <memory>
 #include <string>
@@ -45,8 +47,8 @@ namespace form::detail::experimental {
       if (int(tech % 256) == 1) { //ROOT TTree minor technology
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_ContainerImp>(name);
-#endif
       }
+#endif
     }
     return std::make_shared<Storage_Container>(name);
   }

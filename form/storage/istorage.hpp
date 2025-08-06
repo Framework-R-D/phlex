@@ -34,6 +34,7 @@ namespace form::detail::experimental {
     virtual ~IStorage_File() = default;
 
     virtual const std::string& name() = 0;
+    virtual const char mode() = 0;
   };
 
   class IStorage_Container {

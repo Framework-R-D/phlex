@@ -16,6 +16,10 @@ public:
   float getY() const;
   float getZ() const;
 
+  void setX(float x);
+  void setY(float y);
+  void setZ(float z);
+
   TrackStart operator+(const TrackStart& other) const;
   TrackStart& operator+=(const TrackStart& other);
   TrackStart operator-(const TrackStart& other) const;

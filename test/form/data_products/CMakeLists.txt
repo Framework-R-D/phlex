@@ -6,3 +6,4 @@ find_package(ROOT REQUIRED COMPONENTS Core RIO Tree) #Only used for ROOT_GENERAT
  include_directories(${ROOT_INCLUDE_DIRS})
 
 ROOT_GENERATE_DICTIONARY(${FORM_DATA_PROD_LIB_NAME}_dict dict.h LINKDEF LinkDef.h MODULE ${FORM_DATA_PROD_LIB_NAME})
+target_compile_options(${FORM_DATA_PROD_LIB_NAME}_dict PRIVATE "-w")

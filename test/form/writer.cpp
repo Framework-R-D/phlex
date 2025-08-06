@@ -1,8 +1,10 @@
 // Copyright (C) 2025 ...
 
-#include "data_products/track_start.hpp"
 #include "form/form.hpp"
 #include "form/phlex_toy_core.hpp" // toy of phlex core components
+#include "phlex_driver/config.hpp"
+#include "phlex_driver/data_products/track_start.hpp"
+#include "phlex_driver/toy_tracker.hpp"
 
 #include <cstdlib>  // For rand() and srand()
 #include <iostream> // For cout
@@ -27,29 +29,25 @@ void generate(std::vector<float>& vrand, int size)
   }
 }
 
-void generate(std::vector<TrackStart>& points, int size)
-{
-  //Get a 32-bit random integer with even the lowest allowed precision of rand()
-  auto gen = []() {
-    int rand1 = rand() % 32768;
-    int rand2 = rand() % 32768;
-    return (rand1 * 32768 + rand2);
-  };
-  const float gen_max = 32768u * 32768u;
-
-  int npx = gen() % size;
-  for (int nelement = 0; nelement < npx; ++nelement) {
-    points.emplace_back(float(gen()) / gen_max, float(gen()) / gen_max, float(gen()) / gen_max);
-  }
-}
-
 int main(int /*argc*/, char** /* argv[]*/)
 {
   std::cout << "In main" << std::endl;
   srand(time(0));
 
   std::shared_ptr<phlex::product_type_names> type_map = phlex::createTypeMap();
-  form::experimental::form_interface form(type_map);
+
+  // TODO: Read configuration from config file instead of hardcoding
+  // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
+  // Create configuration and pass to form
+  phlex::config::parse_config config;
+  config.addItem("trackStart", "toy.root", phlex::config::Technology::ROOT_TTREE);
+  config.addItem("trackNumberHits", "toy.root", phlex::config::Technology::ROOT_TTREE);
+  config.addItem("trackStartPoints", "toy.root", phlex::config::Technology::ROOT_TTREE);
+  config.addItem("trackStartX", "toy.root", phlex::config::Technology::ROOT_TTREE);
+
+  form::experimental::form_interface form(type_map, config);
+
+  ToyTracker tracker(4 * 1024);
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
@@ -92,8 +90,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       batch.push_back(pb_int);
 
       // Now write a vector of a user-defined class for the same event/data grain
-      std::vector<TrackStart> start_points;
-      generate(start_points, 4 * 1024);
+      std::vector<TrackStart> start_points = tracker();
       TrackStart checkPoints;
       for (const TrackStart& point : start_points)
         checkPoints += point;
@@ -123,7 +120,7 @@ int main(int /*argc*/, char** /* argv[]*/)
     sprintf(evt_id_text, evt_id, nevent);
     const std::string creator = "Toy_Tracker_Event";
     phlex::product_base pb = {
-      "trackStart", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};
+      "trackStartX", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << std::endl;

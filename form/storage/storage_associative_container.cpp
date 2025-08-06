@@ -16,3 +16,12 @@ Storage_Associative_Container::Storage_Associative_Container(const std::string& 
     m_cName = "Main";
   }
 }
+
+const std::string& Storage_Associative_Container::top_name() { return m_tName; }
+
+const std::string& Storage_Associative_Container::col_name() { return m_cName; }
+
+void Storage_Associative_Container::setParent(std::shared_ptr<IStorage_Container> parent)
+{
+  m_parent = parent;
+}
