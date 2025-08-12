@@ -71,11 +71,9 @@ std::unique_ptr<Placement> Persistence::getPlacement(const std::string& creator,
   std::string file_name;
   int technology;
 
-  std::string product_name = label;
-
   // Special handling for index containers
   bool found = false;
-  if (product_name == "/index") {
+  if (label == "/index") {
     // Index containers use same file/technology as their creator
     // Find any item from this creator to get file/technology
     for (const auto& item : m_config.getItems()) {
@@ -89,7 +87,7 @@ std::unique_ptr<Placement> Persistence::getPlacement(const std::string& creator,
   } else {
     // Find exact match in config for regular data products
     for (const auto& item : m_config.getItems()) {
-      if (item.product_name == product_name) {
+      if (item.product_name == label) {
         file_name = item.file_name;
         technology = item.technology;
         found = true;
@@ -98,15 +96,15 @@ std::unique_ptr<Placement> Persistence::getPlacement(const std::string& creator,
     }
   }
   if (!found) {
-    throw std::runtime_error("No configuration found for product: " + product_name +
+    throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
   std::string full_label;
-  if (product_name == "/index") {
+  if (label == "/index") {
     full_label = creator + "/index";
   } else {
-    full_label = creator + "/" + product_name;
+    full_label = creator + "/" + label;
   }
 
   std::unique_ptr<Placement> plcmnt =
@@ -123,13 +121,11 @@ std::unique_ptr<Token> Persistence::getToken(const std::string& creator,
   std::string index_label = creator + "/index";
 
   // Get parameters from configuration
-  std::string product_name = label;
-
   std::string file_name;
   int technology;
   bool found = false;
   for (const auto& item : m_config.getItems()) {
-    if (item.product_name == product_name) {
+    if (item.product_name == label) {
       file_name = item.file_name;
       technology = item.technology;
       found = true;
@@ -138,7 +134,7 @@ std::unique_ptr<Token> Persistence::getToken(const std::string& creator,
   }
 
   if (!found) {
-    throw std::runtime_error("No configuration found for product: " + product_name +
+    throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
