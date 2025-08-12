@@ -1,11 +1,6 @@
 # Copyright (C) 2025 ...
 
-# External dependencies:
-#find_package( PHLEX )
-
-#if(FORM_USE_ROOT_STORAGE)
 add_subdirectory(data_products)
-#endif()
 
 add_executable(phlex_writer writer.cpp config.cpp toy_tracker.cpp)
 target_include_directories(phlex_writer PRIVATE ${PROJECT_SOURCE_DIR})
