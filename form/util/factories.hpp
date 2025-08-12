@@ -47,8 +47,8 @@ namespace form::detail::experimental {
       if (int(tech % 256) == 1) { //ROOT TTree minor technology
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_ContainerImp>(name);
-      }
 #endif
+      }
     }
     return std::make_shared<Storage_Container>(name);
   }

@@ -1,19 +1,14 @@
 #ifndef __FORM_PARSE_CONFIG_H__
 #define __FORM_PARSE_CONFIG_H__
 
+#include "technology.hpp" // Use shared Technology constants
+
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace form::experimental::config {
-
-  // Technology constants
-  namespace Technology {
-    const int ROOT_TTREE = 1 * 256 + 1;   // ROOT TTree
-    const int ROOT_RNTUPLE = 1 * 256 + 2; // ROOT RNtuple
-    const int HDF5 = 2 * 256 + 1;         // HDF5
-  }
 
   struct PersistenceItem {
     std::string product_name; // e.g. "trackStart", "trackNumberHits"

@@ -18,6 +18,7 @@ endif()
 
 # Add sub directories
 add_subdirectory(form)
+add_subdirectory(mock_phlex)
 add_subdirectory(core)
 add_subdirectory(util)
 add_subdirectory(persistence)

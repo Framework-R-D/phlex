@@ -2,7 +2,7 @@
 
 #include "phlex_toy_core.hpp"
 
-namespace phlex {
+namespace phlex::testing {
   std::shared_ptr<product_type_names> createTypeMap()
   {
     return std::make_shared<product_type_names>();

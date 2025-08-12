@@ -5,15 +5,15 @@
 namespace form::experimental {
 
   // Accept and store config
-  form_interface::form_interface(std::shared_ptr<phlex::product_type_names> tm,
-                                 const phlex::config::parse_config& config) :
+  form_interface::form_interface(std::shared_ptr<phlex::testing::product_type_names> tm,
+                                 const form::experimental::config::parse_config& config) :
     m_pers(nullptr), m_type_map(tm), m_config()
   {
     // Convert phlex config to form config
     for (const auto& phlex_item : config.getItems()) {
       m_config.addItem(phlex_item.product_name, phlex_item.file_name, phlex_item.technology);
 
-      // Build lookup maps for O(1) access
+      // Look up creator from PersistenceItem
       m_product_to_config.emplace(
         phlex_item.product_name,
         form::experimental::config::PersistenceItem(
@@ -22,9 +22,9 @@ namespace form::experimental {
     m_pers = form::detail::experimental::createPersistence(m_config);
   }
 
-  void form_interface::write(const std::string& creator, const phlex::product_base& pb)
+  void form_interface::write(const std::string& creator, const phlex::testing::product_base& pb)
   {
-    // Look up creator from PersistenceItem. O(1) lookup instead of loop
+    // Look up creator from config based on product name
     auto it = m_product_to_config.find(pb.label);
     if (it == m_product_to_config.end()) {
       throw std::runtime_error("No configuration found for product: " + pb.label);
@@ -40,12 +40,12 @@ namespace form::experimental {
 
   // Look up creator from config
   void form_interface::write(const std::string& creator,
-                             const std::vector<phlex::product_base>& batch)
+                             const std::vector<phlex::testing::product_base>& batch)
   {
     if (batch.empty())
       return;
 
-    // Look up creator from config based on product name. O(1) lookup instead of loop
+    // Look up creator from config based on product name.
     auto it = m_product_to_config.find(batch[0].label);
     if (it == m_product_to_config.end()) {
       throw std::runtime_error("No configuration found for product: " + batch[0].label);
@@ -68,7 +68,7 @@ namespace form::experimental {
     m_pers->commitOutput(creator, id);
   }
 
-  void form_interface::read(const std::string& creator, phlex::product_base& pb)
+  void form_interface::read(const std::string& creator, phlex::testing::product_base& pb)
   {
     // Look up creator from config based on product name. O(1) lookup instead of loop
     auto it = m_product_to_config.find(pb.label);

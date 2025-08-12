@@ -6,7 +6,11 @@
 # Component(s) in the package:
 add_library(form
 	form.cpp
-	phlex_toy_core.cpp
-	phlex_toy_config.cpp
-)
+        parse_config.cpp
+      )
+
+# Set up include directories so form.hpp can find mock_phlex headers
+target_include_directories(form PRIVATE ${PROJECT_SOURCE_DIR}/form/)
+
 target_link_libraries(form persistence)
+target_link_libraries(form mock_phlex)
