@@ -20,3 +20,4 @@ target_link_libraries(phlex_reader form form_test_data_products)
 
 add_test(NAME WriteVector COMMAND phlex_writer)
 add_test(NAME ReadVector COMMAND phlex_reader)
+set_tests_properties(ReadVector PROPERTIES DEPENDS WriteVector)
