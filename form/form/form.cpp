@@ -70,7 +70,7 @@ namespace form::experimental {
 
   void form_interface::read(const std::string& creator, phlex::testing::product_base& pb)
   {
-    // Look up creator from config based on product name. O(1) lookup instead of loop
+    // Look up creator from config based on product name. 
     auto it = m_product_to_config.find(pb.label);
     if (it == m_product_to_config.end()) {
       throw std::runtime_error("No configuration found for product: " + pb.label);
