@@ -27,8 +27,6 @@ namespace form::experimental {
     std::unique_ptr<form::detail::experimental::IPersistence> m_pers;
     std::shared_ptr<phlex::testing::product_type_names> m_type_map;
     form::experimental::config::parse_config m_config;
-    // Fast lookup maps built once in constructor
-    std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
   };
 }
 

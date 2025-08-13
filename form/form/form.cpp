@@ -12,23 +12,12 @@ namespace form::experimental {
     // Convert phlex config to form config
     for (const auto& phlex_item : config.getItems()) {
       m_config.addItem(phlex_item.product_name, phlex_item.file_name, phlex_item.technology);
-
-      // Look up creator from PersistenceItem
-      m_product_to_config.emplace(
-        phlex_item.product_name,
-        form::experimental::config::PersistenceItem(
-          phlex_item.product_name, phlex_item.file_name, phlex_item.technology));
     }
     m_pers = form::detail::experimental::createPersistence(m_config);
   }
 
   void form_interface::write(const std::string& creator, const phlex::testing::product_base& pb)
   {
-    // Look up creator from config based on product name
-    auto it = m_product_to_config.find(pb.label);
-    if (it == m_product_to_config.end()) {
-      throw std::runtime_error("No configuration found for product: " + pb.label);
-    }
 
     const std::string type = m_type_map->names[pb.type];
     // FIXME: Really only needed on first call
@@ -38,18 +27,11 @@ namespace form::experimental {
     m_pers->commitOutput(creator, pb.id);
   }
 
-  // Look up creator from config
   void form_interface::write(const std::string& creator,
                              const std::vector<phlex::testing::product_base>& batch)
   {
     if (batch.empty())
       return;
-
-    // Look up creator from config based on product name.
-    auto it = m_product_to_config.find(batch[0].label);
-    if (it == m_product_to_config.end()) {
-      throw std::runtime_error("No configuration found for product: " + batch[0].label);
-    }
 
     // FIXME: Really only needed on first call
     std::map<std::string, std::string> products;
@@ -70,12 +52,6 @@ namespace form::experimental {
 
   void form_interface::read(const std::string& creator, phlex::testing::product_base& pb)
   {
-    // Look up creator from config based on product name. 
-    auto it = m_product_to_config.find(pb.label);
-    if (it == m_product_to_config.end()) {
-      throw std::runtime_error("No configuration found for product: " + pb.label);
-    }
-
     // Original type lookup
     std::string type = m_type_map->names[pb.type];
 
