@@ -10,12 +10,6 @@ float TrackStart::getY() const { return m_y; }
 
 float TrackStart::getZ() const { return m_z; }
 
-void TrackStart::setX(float x) { m_x = x; }
-
-void TrackStart::setY(float y) { m_y = y; }
-
-void TrackStart::setZ(float z) { m_z = z; }
-
 TrackStart TrackStart::operator+(const TrackStart& other) const
 {
   return TrackStart(m_x + other.m_x, m_y + other.m_y, m_z + other.m_z);
