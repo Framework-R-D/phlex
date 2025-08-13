@@ -2,6 +2,7 @@
 #define __PARSE_CONFIG_H__
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,10 +33,8 @@ namespace phlex::config {
 
     // Add a configuration item
     void addItem(const std::string& product_name, const std::string& file_name, int technology);
-
     // Find configuration for a product+creator combination
-    const PersistenceItem* findItem(const std::string& product_name) const;
-
+    std::optional<PersistenceItem> findItem(const std::string& product_name) const;
     // Get all items (for debugging/validation)
     const std::vector<PersistenceItem>& getItems() const { return m_items; }
 

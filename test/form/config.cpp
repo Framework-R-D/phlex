@@ -9,14 +9,13 @@ namespace phlex::config {
     m_items.emplace_back(product_name, file_name, technology);
   }
 
-  const PersistenceItem* parse_config::findItem(const std::string& product_name) const
+  std::optional<PersistenceItem> parse_config::findItem(const std::string& product_name) const
   {
     for (const auto& item : m_items) {
       if (item.product_name == product_name) {
-        return &item;
+        return item;
       }
     }
-    return nullptr;
+    return std::nullopt;
   }
-
 } // namespace phlex::config
