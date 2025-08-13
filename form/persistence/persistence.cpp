@@ -29,7 +29,7 @@ void Persistence::createContainers(const std::string& creator,
   for (const auto& [label, type] : products) {
     containers.insert(std::make_pair(getPlacement(creator, label), type));
   }
-  containers.insert(std::make_pair(getPlacement(creator, "/index"), "std::string"));
+  containers.insert(std::make_pair(getPlacement(creator, "index"), "std::string"));
   m_store->createContainers(containers);
   return;
 }
@@ -46,7 +46,7 @@ void Persistence::registerWrite(const std::string& creator,
 
 void Persistence::commitOutput(const std::string& creator, const std::string& id)
 {
-  std::unique_ptr<Placement> plcmnt = getPlacement(creator, "/index");
+  std::unique_ptr<Placement> plcmnt = getPlacement(creator, "index");
   m_store->fillContainer(*plcmnt, &id, "std::string");
   //FIXME: Flush Containers
   m_store->commitContainers(*plcmnt);
@@ -73,8 +73,7 @@ std::unique_ptr<Placement> Persistence::getPlacement(const std::string& creator,
 
   // Special handling for index containers
   bool found = false;
-  if (label == "/index") {
-    // Index containers use same file/technology as their creator
+  if (label == "index") {
     // Find any item from this creator to get file/technology
     for (const auto& item : m_config.getItems()) {
       if (item.product_name != "index") {
@@ -100,12 +99,7 @@ std::unique_ptr<Placement> Persistence::getPlacement(const std::string& creator,
                              " from creator: " + creator);
   }
 
-  std::string full_label;
-  if (label == "/index") {
-    full_label = creator + "/index";
-  } else {
-    full_label = creator + "/" + label;
-  }
+  std::string full_label = creator + "/" + label;
 
   std::unique_ptr<Placement> plcmnt =
     std::unique_ptr<Placement>(new Placement(file_name, full_label, technology));
