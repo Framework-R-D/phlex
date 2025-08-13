@@ -11,10 +11,10 @@ namespace form::detail::experimental {
   class Storage_File : public IStorage_File {
   public:
     Storage_File(const std::string& name, char mode);
-    ~Storage_File();
+    ~Storage_File() = default;
 
-    const std::string& name();
-    const char mode();
+    const std::string& name() override;
+    const char mode() override;
 
   private:
     std::string m_name;

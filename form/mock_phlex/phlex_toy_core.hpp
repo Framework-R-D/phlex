@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace phlex {
+namespace phlex::testing {
   struct product_base {
     std::string label; // Containing data product name only?
     std::string id;

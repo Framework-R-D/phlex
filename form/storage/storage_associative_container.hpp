@@ -14,10 +14,10 @@ namespace form::detail::experimental {
     Storage_Associative_Container(const std::string& name);
     ~Storage_Associative_Container() = default;
 
-    const std::string& top_name() { return m_tName; }
-    const std::string& col_name() { return m_cName; }
+    const std::string& top_name();
+    const std::string& col_name();
 
-    virtual void setParent(std::shared_ptr<IStorage_Container> parent) { m_parent = parent; }
+    virtual void setParent(std::shared_ptr<IStorage_Container> parent);
 
   private:
     std::string m_tName;

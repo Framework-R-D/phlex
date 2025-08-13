@@ -9,9 +9,11 @@
 #include "storage/storage_container.hpp"
 #include "storage/storage_file.hpp"
 
+#ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tbranch_container.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_container.hpp"
+#endif
 
 #include <memory>
 #include <string>
