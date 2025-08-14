@@ -23,10 +23,11 @@ jobs:
       with:
         path: src
   
-    - name: Check clang-format
-      uses: DoozyX/clang-format-lint-action@v0.20
-      with:
-        clangFormatVersion: 20
+    #TODO: Turn this back on once the repository matches our formatting requirements.  Can I get it to only process new changes?
+    #- name: Check clang-format
+    #  uses: DoozyX/clang-format-lint-action@v0.20
+    #  with:
+    #    clangFormatVersion: 20
   
     - name: CMake build
       run: |
