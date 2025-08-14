@@ -15,7 +15,8 @@ jobs:
   build:
     runs-on: ubuntu-24.04
 
-    container: ../../ci/ #ghcr.io/framework-r-d/phlex-ci:2025-08-12
+    container:
+      image: '../../ci/Dockerfile' #ghcr.io/framework-r-d/phlex-ci:2025-08-12
   
     steps:
     - name: Check out main branch from github
