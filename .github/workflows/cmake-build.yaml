@@ -17,7 +17,7 @@ jobs:
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:2025-08-12
-      entrypoint: ["bash"]
+      entrypoint: "bash"
   
     steps:
     - name: Check out main branch from github
