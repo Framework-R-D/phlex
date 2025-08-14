@@ -17,6 +17,7 @@ jobs:
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:2025-08-12
+      entrypoint: ["bash"]
   
     steps:
     - name: Check out main branch from github
@@ -30,6 +31,11 @@ jobs:
     #  with:
     #    clangFormatVersion: 20
   
+    - name: Set up Spack
+      run: |
+        . spack/share/spack/setup-env.sh
+        spack env activate PHLEXDEV
+
     - name: CMake build
       run: |
         mkdir -p ${{ github.workspace }}/opt/build
