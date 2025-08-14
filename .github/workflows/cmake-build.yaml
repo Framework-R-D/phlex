@@ -31,7 +31,12 @@ jobs:
   
     - name: Set up Spack
       run: |
+        echo "PWD: "
         ls -lathr
+        echo "/: "
+        ls -lathr /
+        echo "HOME: "
+        ls -lathr ${HOME}
         pwd
         . spack/share/spack/setup-env.sh
         spack env activate PHLEXDEV
