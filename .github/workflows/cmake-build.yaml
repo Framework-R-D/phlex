@@ -38,7 +38,7 @@ jobs:
         echo "HOME: "
         ls -lathr ${HOME}
         pwd
-        . spack/share/spack/setup-env.sh
+        . /spack/share/spack/setup-env.sh
         spack env activate PHLEXDEV
 
     - name: CMake build
