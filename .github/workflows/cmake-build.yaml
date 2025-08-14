@@ -31,6 +31,8 @@ jobs:
   
     - name: Set up Spack
       run: |
+        ls -lathr
+        pwd
         . spack/share/spack/setup-env.sh
         spack env activate PHLEXDEV
 
