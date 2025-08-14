@@ -29,24 +29,12 @@ jobs:
     #  with:
     #    clangFormatVersion: 20
   
-    - name: Set up Spack
+    - name: Build and test
       run: |
-        echo "PWD: "
-        ls -lathr
-        echo "/: "
-        ls -lathr /
-        echo "HOME: "
-        ls -lathr ${HOME}
-        pwd
         . /spack/share/spack/setup-env.sh
         spack env activate PHLEXDEV
-
-    - name: CMake build
-      run: |
         mkdir -p ${{ github.workspace }}/opt/build
         cd ${{ github.workspace }}/opt/build
         cmake ${{ github.workspace }}/src -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/opt -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DPHLEX_USE_FORM=ON -DFORM_USE_ROOT_STORAGE=ON
         make install -j
-    - name: Run tests
-      run:
         ctest -j -C ${{ env.BUILD_TYPE }} --test-dir ${{ github.workspace }}/opt/build
