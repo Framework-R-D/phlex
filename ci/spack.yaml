@@ -1,0 +1,38 @@
+spack:
+  specs:
+  - phlex
+  - cmake
+  - catch2
+  view: true
+  concretizer:
+    unify: true
+
+  packages:
+    all:
+      target:
+      - x86_64_v3
+
+    phlex:
+      require:
+      - "+form"
+      - "cxxstd=20"
+      - "%gcc@15"
+
+
+    # GCC 15 uses C23 as the default C language, and the versions of
+    # libunwind and unuran available in Spack (as of 8/12/2025) do not
+    # yet support C23.
+    libunwind:
+      require:
+      - "cflags='-std=c17'"
+
+    unuran:
+      require:
+      - "cflags='-std=c17'"
+
+    # ROOT should be built with the same version of the C++ standard
+    # as will be used by Phlex (C++20 for now).
+    root:
+      require:
+      - "~x"  # No graphics libraries required
+      - "cxxstd=20"

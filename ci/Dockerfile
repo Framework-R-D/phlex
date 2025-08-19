@@ -12,6 +12,8 @@
 FROM gcc:15.2.0
 ARG parallelism=18
 
+COPY ./spack.yaml /
+
 RUN git clone --depth=2 https://github.com/spack/spack.git
 RUN <<EOF
 # Setup environment
@@ -31,20 +33,8 @@ spack compiler find
 spack external find --exclude python
 
 # Create and prepare phlex-development environment
-spack env activate --create PHLEXDEV
-
-# Special handling for libunwind, root, and unuran
-# - GCC 15 uses C23 as the default C language, and the versions of
-#   libunwind and unuran available in Spack (as of 8/12/2025) do not
-#   yet support C23.
-# - ROOT should be built with the same version of the C++ standard as
-#   will be used by Phlex (C++20 for now).
-spack add phlex+form cxxstd=20 %gcc@15 \
-    ^libunwind cflags='-std=c17' \
-    ^root cxxstd=20 \
-    ^unuran cflags='-std=c17'
-spack add cmake
-spack add catch2
+spack env create phlex-ci spack.yaml
+spack env activate phlex-ci
 
 # Display concretized solution
 spack concretize
@@ -63,5 +53,3 @@ EOF
 
 COPY ./entrypoint.sh /
 RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
