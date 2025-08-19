@@ -1,5 +1,5 @@
-#ifndef __PARSE_CONFIG_H__
-#define __PARSE_CONFIG_H__
+#ifndef PHLEX_CONFIG_HPP
+#define PHLEX_CONFIG_HPP
 
 #include <memory>
 #include <optional>

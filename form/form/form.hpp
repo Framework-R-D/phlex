@@ -1,12 +1,12 @@
 // Copyright (C) 2025 ...
 
-#ifndef __FORM_H__
-#define __FORM_H__
+#ifndef FORM_HPP
+#define FORM_HPP
 
-#include "mock_phlex/phlex_toy_config.hpp"
 #include "mock_phlex/phlex_toy_core.hpp"
 #include "parse_config.hpp"
 #include "persistence/ipersistence.hpp"
+#include "test/form/config.hpp"
 
 #include <memory>
 #include <string>
@@ -15,7 +15,7 @@ namespace form::experimental {
   class form_interface {
   public:
     form_interface(std::shared_ptr<phlex::testing::product_type_names> tm,
-                   const form::experimental::config::parse_config& config);
+                   const phlex::config::parse_config& phlex_config); // Accept phlex config
     ~form_interface() = default;
 
     void write(const std::string& creator, const phlex::testing::product_base& pb);

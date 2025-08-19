@@ -6,11 +6,11 @@ namespace form::experimental {
 
   // Accept and store config
   form_interface::form_interface(std::shared_ptr<phlex::testing::product_type_names> tm,
-                                 const form::experimental::config::parse_config& config) :
+                                 const phlex::config::parse_config& phlex_config) :
     m_pers(nullptr), m_type_map(tm), m_config()
   {
     // Convert phlex config to form config
-    for (const auto& phlex_item : config.getItems()) {
+    for (const auto& phlex_item : phlex_config.getItems()) {
       m_config.addItem(phlex_item.product_name, phlex_item.file_name, phlex_item.technology);
     }
     m_pers = form::detail::experimental::createPersistence(m_config);

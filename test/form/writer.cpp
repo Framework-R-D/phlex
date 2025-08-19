@@ -39,12 +39,13 @@ int main(int /*argc*/, char** /* argv[]*/)
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
-  form::experimental::config::parse_config config;
-  config.addItem("trackStart", "toy.root", form::config::Technology::ROOT_TTREE);
-  config.addItem("trackNumberHits", "toy.root", form::config::Technology::ROOT_TTREE);
-  config.addItem("trackStartPoints", "toy.root", form::config::Technology::ROOT_TTREE);
-  config.addItem("trackStartX", "toy.root", form::config::Technology::ROOT_TTREE);
+  phlex::config::parse_config config; // Create PHLEX config
+  config.addItem("trackStart", "toy.root", phlex::config::Technology::ROOT_TTREE);
+  config.addItem("trackNumberHits", "toy.root", phlex::config::Technology::ROOT_TTREE);
+  config.addItem("trackStartPoints", "toy.root", phlex::config::Technology::ROOT_TTREE);
+  config.addItem("trackStartX", "toy.root", phlex::config::Technology::ROOT_TTREE);
 
+  // Pass phlex config to interface
   form::experimental::form_interface form(type_map, config);
 
   ToyTracker tracker(4 * 1024);

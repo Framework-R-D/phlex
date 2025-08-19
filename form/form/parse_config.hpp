@@ -1,5 +1,5 @@
-#ifndef __FORM_PARSE_CONFIG_H__
-#define __FORM_PARSE_CONFIG_H__
+#ifndef FORM_PARSE_CONFIG_HPP
+#define FORM_PARSE_CONFIG_HPP
 
 #include "technology.hpp" // Use shared Technology constants
 

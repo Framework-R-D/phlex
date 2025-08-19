@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PHLEX_TOY_CORE_H__
-#define __PHLEX_TOY_CORE_H__
+#ifndef PHLEX_TOY_CORE_HPP
+#define PHLEX_TOY_CORE_HPP
 
 #include <memory>
 #include <string>
