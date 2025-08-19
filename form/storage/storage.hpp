@@ -16,7 +16,7 @@ namespace form::detail::experimental {
   // Hash function for std::pair
   struct pair_hash {
     template <typename T1, typename T2>
-    std::size_t operator()(const std::pair<T1, T2>& p) const
+    std::size_t operator()(std::pair<T1, T2> const& p) const
     {
       std::hash<T1> h1;
       std::hash<T2> h2;
@@ -30,12 +30,12 @@ namespace form::detail::experimental {
     ~Storage() = default;
 
     void createContainers(
-      const std::map<std::unique_ptr<Placement>, std::string>& containers) override;
-    void fillContainer(const Placement& plcmnt, const void* data, const std::string& type) override;
-    void commitContainers(const Placement& plcmnt) override;
+      std::map<std::unique_ptr<Placement>, std::string> const& containers) override;
+    void fillContainer(Placement const& plcmnt, void const* data, std::string const& type) override;
+    void commitContainers(Placement const& plcmnt) override;
 
-    int getIndex(const Token& token, const std::string& id) override;
-    void readContainer(const Token& token, const void** data, std::string& type) override;
+    int getIndex(Token const& token, std::string const& id) override;
+    void readContainer(Token const& token, void const** data, std::string& type) override;
 
   private:
     std::map<std::string, std::shared_ptr<IStorage_File>> m_files;

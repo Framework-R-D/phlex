@@ -18,23 +18,23 @@ namespace form::detail::experimental {
     IPersistence() {};
     virtual ~IPersistence() = default;
 
-    virtual void createContainers(const std::string& creator,
-                                  const std::map<std::string, std::string>& products) = 0;
-    virtual void registerWrite(const std::string& creator,
-                               const std::string& label,
-                               const void* data,
-                               const std::string& type) = 0;
-    virtual void commitOutput(const std::string& creator, const std::string& id) = 0;
+    virtual void createContainers(std::string const& creator,
+                                  std::map<std::string, std::string> const& products) = 0;
+    virtual void registerWrite(std::string const& creator,
+                               std::string const& label,
+                               void const* data,
+                               std::string const& type) = 0;
+    virtual void commitOutput(std::string const& creator, std::string const& id) = 0;
 
-    virtual void read(const std::string& creator,
-                      const std::string& label,
-                      const std::string& id,
-                      const void** data,
+    virtual void read(std::string const& creator,
+                      std::string const& label,
+                      std::string const& id,
+                      void const** data,
                       std::string& type) = 0;
   };
 
   std::unique_ptr<IPersistence> createPersistence(
-    const form::experimental::config::parse_config& config); // Has parameter
+    form::experimental::config::parse_config const& config); // Has parameter
 
 } // namespace form::detail::experimental
 

@@ -15,13 +15,13 @@ namespace form::experimental {
   class form_interface {
   public:
     form_interface(std::shared_ptr<mock_phlex::product_type_names> tm,
-                   const mock_phlex::config::parse_config& phlex_config); // Accept phlex config
+                   mock_phlex::config::parse_config const& phlex_config); // Accept phlex config
     ~form_interface() = default;
 
-    void write(const std::string& creator, const mock_phlex::product_base& pb);
-    void write(const std::string& creator,
-               const std::vector<mock_phlex::product_base>& batch); // batch version
-    void read(const std::string& creator, mock_phlex::product_base& pb);
+    void write(std::string const& creator, mock_phlex::product_base const& pb);
+    void write(std::string const& creator,
+               std::vector<mock_phlex::product_base> const& batch); // batch version
+    void read(std::string const& creator, mock_phlex::product_base& pb);
 
   private:
     std::unique_ptr<form::detail::experimental::IPersistence> m_pers;

@@ -2,16 +2,16 @@
 
 namespace mock_phlex::config {
 
-  void parse_config::addItem(const std::string& product_name,
-                             const std::string& file_name,
+  void parse_config::addItem(std::string const& product_name,
+                             std::string const& file_name,
                              int technology)
   {
     m_items.emplace_back(product_name, file_name, technology);
   }
 
-  const PersistenceItem* parse_config::findItem(const std::string& product_name) const
+  PersistenceItem const* parse_config::findItem(std::string const& product_name) const
   {
-    for (const auto& item : m_items) {
+    for (auto const& item : m_items) {
       if (item.product_name == product_name) {
         return &item;
       }

@@ -23,30 +23,30 @@ namespace form::detail::experimental {
 
   class Persistence : public IPersistence {
   public:
-    Persistence(const form::experimental::config::parse_config& config);
+    Persistence(form::experimental::config::parse_config const& config);
     ~Persistence() = default;
 
-    void createContainers(const std::string& creator,
-                          const std::map<std::string, std::string>& products) override;
-    void registerWrite(const std::string& creator,
-                       const std::string& label,
-                       const void* data,
-                       const std::string& type) override;
-    void commitOutput(const std::string& creator, const std::string& id) override;
+    void createContainers(std::string const& creator,
+                          std::map<std::string, std::string> const& products) override;
+    void registerWrite(std::string const& creator,
+                       std::string const& label,
+                       void const* data,
+                       std::string const& type) override;
+    void commitOutput(std::string const& creator, std::string const& id) override;
 
-    void read(const std::string& creator,
-              const std::string& label,
-              const std::string& id,
-              const void** data,
+    void read(std::string const& creator,
+              std::string const& label,
+              std::string const& id,
+              void const** data,
               std::string& type) override;
 
   private:
-    std::unique_ptr<Placement> getPlacement(const std::string& creator, const std::string& label);
-    std::unique_ptr<Token> getToken(const std::string& creator,
-                                    const std::string& label,
-                                    const std::string& id);
-    const form::experimental::config::PersistenceItem* findConfigItem(
-      const std::string& label) const;
+    std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);
+    std::unique_ptr<Token> getToken(std::string const& creator,
+                                    std::string const& label,
+                                    std::string const& id);
+    form::experimental::config::PersistenceItem const* findConfigItem(
+      std::string const& label) const;
     std::string buildFullLabel(std::string_view creator, std::string_view label) const;
 
   private:

@@ -5,7 +5,7 @@
 #include "TFile.h"
 
 using namespace form::detail::experimental;
-ROOT_TFileImp::ROOT_TFileImp(const std::string& name, char mode) :
+ROOT_TFileImp::ROOT_TFileImp(std::string const& name, char mode) :
   Storage_File(name, mode), m_file(nullptr)
 {
   if (mode == 'c' || mode == 'r' || mode == 'o') {

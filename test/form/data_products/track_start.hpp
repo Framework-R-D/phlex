@@ -16,9 +16,9 @@ public:
   float getY() const;
   float getZ() const;
 
-  TrackStart operator+(const TrackStart& other) const;
-  TrackStart& operator+=(const TrackStart& other);
-  TrackStart operator-(const TrackStart& other) const;
+  TrackStart operator+(TrackStart const& other) const;
+  TrackStart& operator+=(TrackStart const& other);
+  TrackStart operator-(TrackStart const& other) const;
 
 private:
   float m_x;
@@ -26,6 +26,6 @@ private:
   float m_z;
 };
 
-std::ostream& operator<<(std::ostream& os, const TrackStart& track);
+std::ostream& operator<<(std::ostream& os, TrackStart const& track);
 
 #endif //__TRACK_START_HPP__
