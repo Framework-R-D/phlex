@@ -1,0 +1,27 @@
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  comment_pr:
+    runs-on: ubuntu-latest
+    name: An example job to comment a PR
+    if: ${{ github.event.issue.pull_request }}
+    steps:
+      - name: Check if the comment contains the run command
+        id: check_comment
+        run: |
+          comment="${{ github.event.comment.body }}"
+          command=$(echo $comment | grep -oE '@phlexbot:[[:space:]]+(.+)')
+          echo "command=$command" >> $GITHUB_OUTPUT
+
+      # - name: Checkout
+      #   if: steps.check_comment.outputs.command != ''
+      #   uses: actions/checkout@v4
+
+      - name: Report result
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            Received: "${{ steps.check_comment.outputs.command }}"
