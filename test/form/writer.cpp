@@ -3,7 +3,7 @@
 #include "config.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form/form.hpp"
-#include "form/mock_phlex/phlex_toy_core.hpp" // toy of phlex core components
+#include "form/form/parse_config.hpp"
 #include "toy_tracker.hpp"
 
 #include <cstdlib>  // For rand() and srand()
@@ -34,16 +34,18 @@ int main(int /*argc*/, char** /* argv[]*/)
   std::cout << "In main" << std::endl;
   srand(time(0));
 
-  std::shared_ptr<phlex::testing::product_type_names> type_map = phlex::testing::createTypeMap();
+  std::shared_ptr<mock_phlex::testing::product_type_names> type_map =
+    mock_phlex::testing::createTypeMap();
 
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
-  phlex::config::parse_config config; // Create PHLEX config
-  config.addItem("trackStart", "toy.root", phlex::config::Technology::ROOT_TTREE);
-  config.addItem("trackNumberHits", "toy.root", phlex::config::Technology::ROOT_TTREE);
-  config.addItem("trackStartPoints", "toy.root", phlex::config::Technology::ROOT_TTREE);
-  config.addItem("trackStartX", "toy.root", phlex::config::Technology::ROOT_TTREE);
+  mock_phlex::config::parse_config config; // Create PHLEX config
+  config.addItem("trackStart", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("trackNumberHits", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("trackStartPoints", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("trackStartX", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("index", "toy.root", form::Technology::ROOT_TTREE);
 
   // Pass phlex config to interface
   form::experimental::form_interface form(type_map, config);
@@ -65,13 +67,13 @@ int main(int /*argc*/, char** /* argv[]*/)
       for (float val : track_start_x)
         check += val;
 
-      // done, phlex call write(phlex::product_base)
+      // done, phlex call write(mock_phlex::product_base)
       // sub-event writing called by phlex
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
-      std::vector<phlex::testing::product_base> batch;
+      std::vector<mock_phlex::testing::product_base> batch;
       const std::string creator = "Toy_Tracker";
-      phlex::testing::product_base pb = {
+      mock_phlex::testing::product_base pb = {
         "trackStart", seg_id_text, &track_start_x, std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
       batch.push_back(pb);
@@ -85,7 +87,7 @@ int main(int /*argc*/, char** /* argv[]*/)
         check += val;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << std::endl;
-      phlex::testing::product_base pb_int = {
+      mock_phlex::testing::product_base pb_int = {
         "trackNumberHits", seg_id_text, &track_n_hits, std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
       batch.push_back(pb_int);
@@ -97,10 +99,11 @@ int main(int /*argc*/, char** /* argv[]*/)
         checkPoints += point;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", checkPoints = " << checkPoints << std::endl;
-      phlex::testing::product_base pb_points = {"trackStartPoints",
-                                                seg_id_text,
-                                                &start_points,
-                                                std::type_index{typeid(std::vector<TrackStart>)}};
+      mock_phlex::testing::product_base pb_points = {
+        "trackStartPoints",
+        seg_id_text,
+        &start_points,
+        std::type_index{typeid(std::vector<TrackStart>)}};
       type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
       batch.push_back(pb_points);
 
@@ -120,7 +123,7 @@ int main(int /*argc*/, char** /* argv[]*/)
     char evt_id_text[64];
     sprintf(evt_id_text, evt_id, nevent);
     const std::string creator = "Toy_Tracker_Event";
-    phlex::testing::product_base pb = {
+    mock_phlex::testing::product_base pb = {
       "trackStartX", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text

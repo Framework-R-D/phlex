@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PERSISTENCE_H__
-#define __PERSISTENCE_H__
+#ifndef __PERSISTENCE_HPP__
+#define __PERSISTENCE_HPP__
 
 #include "ipersistence.hpp"
 
@@ -45,6 +45,9 @@ namespace form::detail::experimental {
     std::unique_ptr<Token> getToken(const std::string& creator,
                                     const std::string& label,
                                     const std::string& id);
+    const form::experimental::config::PersistenceItem* findConfigItem(
+      const std::string& label) const;
+    std::string buildFullLabel(std::string_view creator, std::string_view label) const;
 
   private:
     std::unique_ptr<IStorage> m_store;

@@ -1,7 +1,7 @@
 #ifndef __TECHNOLOGY_HPP__
 #define __TECHNOLOGY_HPP__
 
-namespace form::config {
+namespace form {
 
   // Technology constants - single source of truth
   namespace Technology {
@@ -10,6 +10,6 @@ namespace form::config {
     const int HDF5 = 2 * 256 + 1;         // HDF5
   }
 
-} // namespace form::config
+} // namespace form
 
 #endif

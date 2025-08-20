@@ -10,7 +10,6 @@ add_library(form
       )
 
 # Set up include directories so form.hpp can find mock_phlex headers
-include_directories(${PROJECT_SOURCE_DIR})
 target_include_directories(form PRIVATE ${PROJECT_SOURCE_DIR}/form/)
 
 target_link_libraries(form persistence)

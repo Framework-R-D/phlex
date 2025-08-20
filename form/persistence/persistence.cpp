@@ -2,6 +2,7 @@
 
 #include "persistence.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <utility>
 
@@ -64,78 +65,60 @@ void Persistence::read(const std::string& creator,
   return;
 }
 
+const form::experimental::config::PersistenceItem* Persistence::findConfigItem(
+  const std::string& label) const
+{
+  const auto& items = m_config.getItems();
+  auto it = std::find_if(
+    items.begin(), items.end(), [&label](const auto& item) { return item.product_name == label; });
+
+  return (it != items.end()) ? &(*it) : nullptr;
+}
+
+std::string Persistence::buildFullLabel(std::string_view creator, std::string_view label) const
+{
+  std::string result;
+  result.reserve(creator.size() + 1 + label.size());
+  result += creator;
+  result += '/';
+  result += label;
+  return result;
+}
+
 std::unique_ptr<Placement> Persistence::getPlacement(const std::string& creator,
                                                      const std::string& label)
 {
-  //use config to determine values
-  std::string file_name;
-  int technology;
+  const auto* config_item = findConfigItem(label);
 
-  // Special handling for index containers
-  bool found = false;
-  if (label == "index") {
-    // Find any item from this creator to get file/technology
-    for (const auto& item : m_config.getItems()) {
-      if (item.product_name != "index") {
-        file_name = item.file_name;
-        technology = item.technology;
-        found = true;
-        break;
-      }
-    }
-  } else {
-    // Find exact match in config for regular data products
-    for (const auto& item : m_config.getItems()) {
-      if (item.product_name == label) {
-        file_name = item.file_name;
-        technology = item.technology;
-        found = true;
-        break;
-      }
-    }
-  }
-  if (!found) {
+  if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::string full_label = creator + "/" + label;
+  const std::string full_label = buildFullLabel(creator, label);
 
-  std::unique_ptr<Placement> plcmnt =
-    std::unique_ptr<Placement>(new Placement(file_name, full_label, technology));
-  return plcmnt;
+  return std::make_unique<Placement>(config_item->file_name, full_label, config_item->technology);
 }
 
 std::unique_ptr<Token> Persistence::getToken(const std::string& creator,
                                              const std::string& label,
                                              const std::string& id)
 {
-  // Full label and index label construction
-  std::string full_label = creator + "/" + label;
-  std::string index_label = creator + "/index";
+  const auto* config_item = findConfigItem(label);
 
-  // Get parameters from configuration
-  std::string file_name;
-  int technology;
-  bool found = false;
-  for (const auto& item : m_config.getItems()) {
-    if (item.product_name == label) {
-      file_name = item.file_name;
-      technology = item.technology;
-      found = true;
-      break;
-    }
-  }
-
-  if (!found) {
+  if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::unique_ptr<Token> index_token =
-    std::unique_ptr<Token>(new Token(file_name, index_label, technology));
+  const std::string full_label = buildFullLabel(creator, label);
+  const std::string index_label = buildFullLabel(creator, "index");
+
+  auto index_token =
+    std::make_unique<Token>(config_item->file_name, index_label, config_item->technology);
+
   int rowId = m_store->getIndex(*index_token, id);
-  std::unique_ptr<Token> token =
-    std::unique_ptr<Token>(new Token(file_name, full_label, technology, rowId));
-  return token;
+
+  return std::make_unique<Token>(
+    config_item->file_name, full_label, config_item->technology, rowId);
 }

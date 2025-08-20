@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef PHLEX_TOY_CORE_HPP
-#define PHLEX_TOY_CORE_HPP
+#ifndef __PHLEX_TOY_CORE_HPP__
+#define __PHLEX_TOY_CORE_HPP__
 
 #include <memory>
 #include <string>
@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace phlex::testing {
+namespace mock_phlex::testing {
   struct product_base {
     std::string label; // Containing data product name only?
     std::string id;

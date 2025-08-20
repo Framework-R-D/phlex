@@ -5,8 +5,8 @@
 namespace form::experimental {
 
   // Accept and store config
-  form_interface::form_interface(std::shared_ptr<phlex::testing::product_type_names> tm,
-                                 const phlex::config::parse_config& phlex_config) :
+  form_interface::form_interface(std::shared_ptr<mock_phlex::testing::product_type_names> tm,
+                                 const mock_phlex::config::parse_config& phlex_config) :
     m_pers(nullptr), m_type_map(tm), m_config()
   {
     // Convert phlex config to form config
@@ -16,7 +16,8 @@ namespace form::experimental {
     m_pers = form::detail::experimental::createPersistence(m_config);
   }
 
-  void form_interface::write(const std::string& creator, const phlex::testing::product_base& pb)
+  void form_interface::write(const std::string& creator,
+                             const mock_phlex::testing::product_base& pb)
   {
 
     const std::string type = m_type_map->names[pb.type];
@@ -28,7 +29,7 @@ namespace form::experimental {
   }
 
   void form_interface::write(const std::string& creator,
-                             const std::vector<phlex::testing::product_base>& batch)
+                             const std::vector<mock_phlex::testing::product_base>& batch)
   {
     if (batch.empty())
       return;
@@ -50,7 +51,7 @@ namespace form::experimental {
     m_pers->commitOutput(creator, id);
   }
 
-  void form_interface::read(const std::string& creator, phlex::testing::product_base& pb)
+  void form_interface::read(const std::string& creator, mock_phlex::testing::product_base& pb)
   {
     // Original type lookup
     std::string type = m_type_map->names[pb.type];

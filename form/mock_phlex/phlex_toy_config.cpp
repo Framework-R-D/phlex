@@ -1,6 +1,6 @@
 #include "phlex_toy_config.hpp"
 
-namespace phlex::config {
+namespace mock_phlex::config {
 
   void parse_config::addItem(const std::string& product_name,
                              const std::string& file_name,

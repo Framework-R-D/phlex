@@ -1,5 +1,5 @@
-#ifndef __PARSE_CONFIG_H__
-#define __PARSE_CONFIG_H__
+#ifndef __PHLEX_TOY_CONFIG_HPP__
+#define __PHLEX_TOY_CONFIG_HPP__
 
 #include "form/technology.hpp" // Use shared Technology constants
 
@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace phlex::config {
+namespace mock_phlex::config {
 
   struct PersistenceItem {
     std::string product_name; // e.g. "trackStart", "trackNumberHits"
