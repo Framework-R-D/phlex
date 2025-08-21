@@ -1,8 +1,6 @@
 #ifndef FORM_PARSE_CONFIG_HPP
 #define FORM_PARSE_CONFIG_HPP
 
-#include "technology.hpp" // Use shared Technology constants
-
 #include <memory>
 #include <optional>
 #include <string>
