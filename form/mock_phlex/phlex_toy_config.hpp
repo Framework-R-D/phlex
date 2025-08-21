@@ -1,8 +1,6 @@
 #ifndef __PHLEX_TOY_CONFIG_HPP__
 #define __PHLEX_TOY_CONFIG_HPP__
 
-#include "form/technology.hpp" // Use shared Technology constants
-
 #include <memory>
 #include <string>
 #include <vector>
