@@ -36,6 +36,6 @@ namespace mock_phlex::config {
     std::vector<PersistenceItem> m_items;
   };
 
-} // namespace phlex::config
+} // namespace mock_phlex::config
 
 #endif

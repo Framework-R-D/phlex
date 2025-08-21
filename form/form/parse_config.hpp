@@ -1,5 +1,5 @@
-#ifndef FORM_PARSE_CONFIG_HPP
-#define FORM_PARSE_CONFIG_HPP
+#ifndef __FORM_PARSE_CONFIG_HPP__
+#define __FORM_PARSE_CONFIG_HPP__
 
 #include <memory>
 #include <optional>
@@ -39,6 +39,6 @@ namespace form::experimental::config {
     std::vector<PersistenceItem> m_items;
   };
 
-} // namespace form::config
+} // namespace form::experimental::config
 
 #endif
