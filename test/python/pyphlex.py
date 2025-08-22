@@ -14,7 +14,10 @@ import os
 PHLEX_INSTALL = os.environ["PHLEX_INSTALL"]
 
 # load phlex headers
-cppyy.add_include_path(os.path.join(PHLEX_INSTALL, "include"))
+includedir = os.path.join(PHLEX_INSTALL, "include")
+if not os.path.exists(includedir):
+  includedir = PHLEX_INSTALL
+cppyy.add_include_path(includedir)
 cppyy.include("phlex/core/framework_graph.hpp")
 cppyy.include("phlex/configuration.hpp")
 
