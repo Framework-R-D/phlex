@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mock_phlex::testing {
+namespace mock_phlex {
   struct product_base {
     std::string label; // Containing data product name only?
     std::string id;

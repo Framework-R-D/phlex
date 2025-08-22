@@ -14,6 +14,10 @@ namespace form {
     const int ROOT_TTREE_MINOR = 1;   // ROOT TTree minor technology ID
     const int ROOT_RNTUPLE_MINOR = 2; // ROOT RNtuple minor technology ID
     const int HDF5_MAJOR = 2;         // HDF5 major technology ID
+
+    // Helper functions
+    inline int GetMajor(int tech) { return tech / 256; }
+    inline int GetMinor(int tech) { return tech % 256; }
   }
 
 } // namespace form
