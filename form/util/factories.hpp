@@ -25,6 +25,8 @@ namespace form::detail::experimental {
 #ifdef USE_ROOT_STORAGE
       return std::make_shared<ROOT_TFileImp>(name, mode);
 #endif
+    } else if (form::Technology::GetMajor(tech) == form::Technology::HDF5_MAJOR) {
+      // Handle HDF5 file creation when implemented
     }
     return std::make_shared<Storage_File>(name, mode);
   }

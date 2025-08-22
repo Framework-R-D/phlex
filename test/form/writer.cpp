@@ -1,11 +1,12 @@
 // Copyright (C) 2025 ...
 
 #include "data_products/track_start.hpp"
-#include "form/form/form.hpp"
-#include "form/form/parse_config.hpp"
-#include "form/form/technology.hpp"
-#include "form/mock_phlex/phlex_toy_config.hpp"
 #include "toy_tracker.hpp"
+
+#include "form/form.hpp"
+#include "form/parse_config.hpp"
+#include "form/technology.hpp"
+#include "mock_phlex/phlex_toy_config.hpp"
 
 #include <cstdlib>  // For rand() and srand()
 #include <iostream> // For cout
