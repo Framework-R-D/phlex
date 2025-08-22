@@ -6,10 +6,13 @@ add_definitions("-UNDEBUG")
 
 function (dot_test BASENAME)
   if (NOT DOT)
-    message(
-      WARNING
-        "dot program not found; all TEST_DOT_GRAPH options will be ignored."
-      )
+    if (NOT DEFINED DONE_DOT_WARNING)
+      message(
+        WARNING
+          "dot program not found; all TEST_DOT_GRAPH options will be ignored."
+        )
+      set(DONE_DOT_WARNING TRUE CACHE BOOL "suppress silly warning")
+    endif()
   else ()
     set(ORIG_TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/${BASENAME}.d)
     set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/dot_${BASENAME}.d)
