@@ -19,6 +19,7 @@ jobs:
     outputs:
       match_result: ${{ steps.check_comment.outputs.match_result }}
       ref_name: ${{ steps.check_comment.outputs.ref_name }}
+      repo_name: ${{ steps.check_comment.outputs.repo_name }}
 
     steps:
       - id: check_comment
@@ -32,6 +33,7 @@ jobs:
           REPO="${{ github.repository }}"
           gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
           echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
+          echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -45,6 +47,7 @@ jobs:
         with:
           path: phlex-src
           ref: ${{ needs.check.outputs.ref_name }}
+          repository: ${{ needs.check.outputs.repo_name }}
 
       - uses: DoozyX/clang-format-lint-action@v0.20
         with:
