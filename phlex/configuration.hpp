@@ -9,7 +9,8 @@ namespace phlex::experimental {
   class configuration {
   public:
     configuration() = default;
-    explicit configuration(boost::json::object const& config) : config_{config} {}
+    explicit   
+    configuration(boost::json::object const& config) : config_{config} {}
 
     template <typename T>
     std::optional<T> get_if_present(std::string const& key) const
