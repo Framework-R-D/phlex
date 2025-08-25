@@ -24,7 +24,7 @@ jobs:
       - id: check_comment
         name: Check comment
         run: |
-          comment="${{ github.event.comment.body }}"
+          comment='${{ github.event.comment.body }}'
           match_result=$(echo $comment | grep -qE '@phlexbot[[:space:]]+format' && echo match || echo non_match)
           echo match_result="$match_result" >> $GITHUB_OUTPUT
 
