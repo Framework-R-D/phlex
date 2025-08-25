@@ -5,8 +5,8 @@
 
 namespace phlex::experimental {
   struct concurrency {
-    static concurrency const unlimited;
-    static concurrency const serial;
+ static concurrency const unlimited;
+    static   concurrency const serial;
 
     std::size_t value;
 
