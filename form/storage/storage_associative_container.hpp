@@ -12,7 +12,7 @@ namespace form::detail::experimental {
   class Storage_Associative_Container : public Storage_Container {
   public:
     Storage_Associative_Container(const std::string& name);
-    ~Storage_Associative_Container() = default;
+    ~Storage_Associative_Container();
 
     const std::string& top_name();
     const std::string& col_name();

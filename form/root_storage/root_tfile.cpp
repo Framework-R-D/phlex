@@ -15,4 +15,6 @@ ROOT_TFileImp::ROOT_TFileImp(const std::string& name, char mode) :
   }
 }
 
+ROOT_TFileImp::~ROOT_TFileImp() = default;
+
 std::shared_ptr<TFile> ROOT_TFileImp::getTFile() { return m_file; }

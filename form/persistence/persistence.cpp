@@ -18,9 +18,8 @@ namespace form::detail::experimental {
 } // namespace form::detail::experimental
 
 Persistence::Persistence(const form::experimental::config::parse_config& config) :
-  m_store(nullptr), m_config(config) // constructor takes form config
+  m_store(createStorage()), m_config(config) // constructor takes form config
 {
-  m_store = createStorage();
 }
 
 void Persistence::createContainers(const std::string& creator,

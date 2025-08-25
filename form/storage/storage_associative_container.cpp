@@ -17,6 +17,8 @@ Storage_Associative_Container::Storage_Associative_Container(const std::string& 
   }
 }
 
+Storage_Associative_Container::~Storage_Associative_Container() = default;
+
 const std::string& Storage_Associative_Container::top_name() { return m_tName; }
 
 const std::string& Storage_Associative_Container::col_name() { return m_cName; }
