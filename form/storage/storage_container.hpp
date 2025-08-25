@@ -12,17 +12,17 @@ namespace form::detail::experimental {
 
   class Storage_Container : public IStorage_Container {
   public:
-    Storage_Container(const std::string& name);
+    Storage_Container(std::string const& name);
     ~Storage_Container() = default;
 
-    const std::string& name() override;
+    std::string const& name() override;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
 
-    void setupWrite(const std::string& type = "") override;
-    void fill(const void* data) override;
+    void setupWrite(std::string const& type = "") override;
+    void fill(void const* data) override;
     void commit() override;
-    bool read(int id, const void** data, std::string& type) override;
+    bool read(int id, void const** data, std::string& type) override;
 
   private:
     std::string m_name;

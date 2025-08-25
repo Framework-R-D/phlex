@@ -27,7 +27,7 @@ namespace {
 
 using namespace form::detail::experimental;
 
-ROOT_TBranch_ContainerImp::ROOT_TBranch_ContainerImp(const std::string& name) :
+ROOT_TBranch_ContainerImp::ROOT_TBranch_ContainerImp(std::string const& name) :
   Storage_Associative_Container(name), m_tfile(nullptr), m_tree(nullptr), m_branch(nullptr)
 {
 }
@@ -54,7 +54,7 @@ void ROOT_TBranch_ContainerImp::setParent(std::shared_ptr<IStorage_Container> pa
   return;
 }
 
-void ROOT_TBranch_ContainerImp::setupWrite(const std::string& type)
+void ROOT_TBranch_ContainerImp::setupWrite(std::string const& type)
 {
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::setupWrite no tree found");
@@ -81,7 +81,7 @@ void ROOT_TBranch_ContainerImp::setupWrite(const std::string& type)
   return;
 }
 
-void ROOT_TBranch_ContainerImp::fill(const void* data)
+void ROOT_TBranch_ContainerImp::fill(void const* data)
 {
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::fill no branch found");
@@ -108,7 +108,7 @@ void ROOT_TBranch_ContainerImp::commit()
   return;
 }
 
-bool ROOT_TBranch_ContainerImp::read(int id, const void** data, std::string& type)
+bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::string& type)
 {
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::read no file attached");

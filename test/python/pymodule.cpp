@@ -104,7 +104,6 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
   }
 }
 
-
 // dict-like construct to access configuration from Python
 
 // TODO: the current implementation of the configuration hides the iteration

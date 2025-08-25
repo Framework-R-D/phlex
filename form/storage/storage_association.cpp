@@ -15,7 +15,7 @@ namespace {
   }
 }
 
-Storage_Association::Storage_Association(const std::string& name) :
+Storage_Association::Storage_Association(std::string const& name) :
   Storage_Container::Storage_Container(maybe_remove_suffix(name))
 {
 }

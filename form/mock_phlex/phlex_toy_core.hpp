@@ -13,7 +13,7 @@ namespace mock_phlex {
   struct product_base {
     std::string label; // Containing data product name only?
     std::string id;
-    const void* data;
+    void const* data;
     std::type_index type;
   };
   struct product_type_names {

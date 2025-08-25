@@ -19,7 +19,7 @@
 
 namespace form::detail::experimental {
 
-  std::shared_ptr<IStorage_File> createFile(int tech, const std::string& name, char mode)
+  std::shared_ptr<IStorage_File> createFile(int tech, std::string const& name, char mode)
   {
     if (form::Technology::GetMajor(tech) == form::Technology::ROOT_MAJOR) {
 #ifdef USE_ROOT_STORAGE
@@ -31,7 +31,7 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_File>(name, mode);
   }
 
-  std::shared_ptr<IStorage_Container> createAssociation(int tech, const std::string& name)
+  std::shared_ptr<IStorage_Container> createAssociation(int tech, std::string const& name)
   {
     if (form::Technology::GetMajor(tech) == form::Technology::ROOT_MAJOR) {
       if (form::Technology::GetMinor(tech) == form::Technology::ROOT_TTREE_MINOR) {
@@ -43,7 +43,7 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_Association>(name);
   }
 
-  std::shared_ptr<IStorage_Container> createContainer(int tech, const std::string& name)
+  std::shared_ptr<IStorage_Container> createContainer(int tech, std::string const& name)
   {
     if (form::Technology::GetMajor(tech) == form::Technology::ROOT_MAJOR) {
       if (form::Technology::GetMinor(tech) == form::Technology::ROOT_TTREE_MINOR) {

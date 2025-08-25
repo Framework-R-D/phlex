@@ -14,9 +14,9 @@ namespace form::detail::experimental {
   std::unique_ptr<IStorage> createStorage() { return std::unique_ptr<IStorage>(new Storage()); }
 }
 
-void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::string>& containers)
+void Storage::createContainers(std::map<std::unique_ptr<Placement>, std::string> const& containers)
 {
-  for (const auto& [plcmnt, type] : containers) {
+  for (auto const& [plcmnt, type] : containers) {
     // Use file+container as composite key
     auto key = std::make_pair(plcmnt->fileName(), plcmnt->containerName());
     auto cont = m_containers.find(key);
@@ -54,7 +54,7 @@ void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::s
   return;
 }
 
-void Storage::fillContainer(const Placement& plcmnt, const void* data, const std::string& /* type*/)
+void Storage::fillContainer(Placement const& plcmnt, void const* data, std::string const& /* type*/)
 {
   // Use file+container as composite key
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
@@ -68,7 +68,7 @@ void Storage::fillContainer(const Placement& plcmnt, const void* data, const std
   return;
 }
 
-void Storage::commitContainers(const Placement& plcmnt)
+void Storage::commitContainers(Placement const& plcmnt)
 {
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
   auto cont = m_containers.find(key);
@@ -76,7 +76,7 @@ void Storage::commitContainers(const Placement& plcmnt)
   return;
 }
 
-int Storage::getIndex(const Token& token, const std::string& id)
+int Storage::getIndex(Token const& token, std::string const& id)
 {
   if (m_indexMaps[token.containerName()].empty()) {
     auto key = std::make_pair(token.fileName(), token.containerName());
@@ -91,13 +91,13 @@ int Storage::getIndex(const Token& token, const std::string& id)
       cont = m_containers.find(key);
       cont->second->setFile(file->second);
     }
-    const void* data;
+    void const* data;
     std::string type = "std::string";
     int entry = 1;
     while (cont->second->read(entry, &data, type)) {
       m_indexMaps[token.containerName()].insert(
-        std::make_pair(*(static_cast<const std::string*>(data)), entry));
-      delete static_cast<const std::string*>(
+        std::make_pair(*(static_cast<std::string const*>(data)), entry));
+      delete static_cast<std::string const*>(
         data); //FIXME: smart pointer?  The overhead to delete an arbitrary type is not much prettier
       entry++;
     }
@@ -106,7 +106,7 @@ int Storage::getIndex(const Token& token, const std::string& id)
   return entry;
 }
 
-void Storage::readContainer(const Token& token, const void** data, std::string& type)
+void Storage::readContainer(Token const& token, void const** data, std::string& type)
 {
   auto key = std::make_pair(token.fileName(), token.containerName());
   auto cont = m_containers.find(key);

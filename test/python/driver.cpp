@@ -1,5 +1,5 @@
-#include "phlex/source.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/source.hpp"
 
 #include <ranges>
 

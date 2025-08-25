@@ -1,0 +1,21 @@
+name: Phlex code checks
+run-name: ${{ github.actor }} running code checks
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - uses: DoozyX/clang-format-lint-action@v0.20
+      with:
+        source: "./phlex-src"
+        clangFormatVersion: 20
