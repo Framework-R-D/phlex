@@ -15,8 +15,6 @@ ROOT_TFileImp::ROOT_TFileImp(const std::string& name, char mode) :
   }
 }
 
-//Trivial destructor is sufficient because all members managed by the stack.
-//Writing it here lets us move the dependence on the TFile implementation out of the header.
-ROOT_TFileImp::~ROOT_TFileImp() {}
+ROOT_TFileImp::~ROOT_TFileImp() = default;
 
 std::shared_ptr<TFile> ROOT_TFileImp::getTFile() { return m_file; }

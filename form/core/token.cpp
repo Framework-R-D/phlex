@@ -5,7 +5,10 @@
 using namespace form::detail::experimental;
 
 /// Constructor with initialization
-Token::Token(const std::string& fileName, const std::string& containerName, int technology, int id) :
+Token::Token(const std::string& fileName,
+             const std::string& containerName,
+             int technology,
+             int id) :
   m_technology(technology), m_fileName(fileName), m_containerName(containerName), m_id(id)
 {
 }

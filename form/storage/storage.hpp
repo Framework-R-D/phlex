@@ -29,12 +29,13 @@ namespace form::detail::experimental {
     Storage() = default;
     ~Storage() = default;
 
-    void createContainers(const std::map<std::unique_ptr<Placement>, std::string>& containers);
-    void fillContainer(const Placement& plcmnt, const void* data, const std::string& type);
-    void commitContainers(const Placement& plcmnt);
+    void createContainers(
+      const std::map<std::unique_ptr<Placement>, std::string>& containers) override;
+    void fillContainer(const Placement& plcmnt, const void* data, const std::string& type) override;
+    void commitContainers(const Placement& plcmnt) override;
 
-    int getIndex(const Token& token, const std::string& id);
-    void readContainer(const Token& token, const void** data, std::string& type);
+    int getIndex(const Token& token, const std::string& id) override;
+    void readContainer(const Token& token, const void** data, std::string& type) override;
 
   private:
     std::map<std::string, std::shared_ptr<IStorage_File>> m_files;

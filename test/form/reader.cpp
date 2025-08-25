@@ -2,7 +2,9 @@
 
 #include "data_products/track_start.hpp"
 #include "form/form.hpp"
-#include "form/phlex_toy_core.hpp" // toy of phlex core components
+#include "form/parse_config.hpp"
+#include "form/technology.hpp"
+#include "mock_phlex/phlex_toy_config.hpp"
 
 #include <iostream> // For cout
 #include <vector>
@@ -17,8 +19,20 @@ int main(int /* argc*/, char** /* argv[]*/)
 {
   std::cout << "In main" << std::endl;
 
-  std::shared_ptr<phlex::product_type_names> type_map = phlex::createTypeMap();
-  form::experimental::form_interface form(type_map);
+  std::shared_ptr<mock_phlex::product_type_names> type_map = mock_phlex::createTypeMap();
+
+  // TODO: Read configuration from config file instead of hardcoding
+  // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
+  // Create configuration and pass to form
+  mock_phlex::config::parse_config config; // Create PHLEX config
+  config.addItem("trackStart", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("trackNumberHits", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("trackStartPoints", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("trackStartX", "toy.root", form::Technology::ROOT_TTREE);
+  config.addItem("index", "toy.root", form::Technology::ROOT_TTREE);
+
+  // Pass phlex config to interface
+  form::experimental::form_interface form(type_map, config);
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Read Event No. " << nevent << std::endl;
@@ -32,30 +46,27 @@ int main(int /* argc*/, char** /* argv[]*/)
       const std::vector<float>* track_start_x = nullptr;
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
-      phlex::product_base pb = {"Toy_Tracker/trackStart",
-                                seg_id_text,
-                                track_start_x,
-                                std::type_index{typeid(std::vector<float>)}};
+      const std::string creator = "Toy_Tracker";
+      mock_phlex::product_base pb = {
+        "trackStart", seg_id_text, track_start_x, std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
-      form.read(pb);
+      form.read(creator, pb);
       track_start_x =
         static_cast<const std::vector<float>*>(pb.data); //FIXME: Can this be done by FORM?
       const std::vector<int>* track_n_hits = nullptr;
-      phlex::product_base pb_int = {"Toy_Tracker/trackNumberHits",
-                                    seg_id_text,
-                                    track_n_hits,
-                                    std::type_index{typeid(std::vector<int>)}};
+      mock_phlex::product_base pb_int = {
+        "trackNumberHits", seg_id_text, track_n_hits, std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
-      form.read(pb_int);
+      form.read(creator, pb_int);
       track_n_hits = static_cast<const std::vector<int>*>(pb_int.data);
 
       const std::vector<TrackStart>* start_points = nullptr;
-      phlex::product_base pb_points = {"Toy_Tracker/trackStartPoints",
-                                       seg_id_text,
-                                       start_points,
-                                       std::type_index{typeid(std::vector<TrackStart>)}};
+      mock_phlex::product_base pb_points = {"trackStartPoints",
+                                            seg_id_text,
+                                            start_points,
+                                            std::type_index{typeid(std::vector<TrackStart>)}};
       type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
-      form.read(pb_points);
+      form.read(creator, pb_points);
       start_points = static_cast<const std::vector<TrackStart>*>(pb_points.data);
 
       float check = 0.0;
@@ -79,12 +90,11 @@ int main(int /* argc*/, char** /* argv[]*/)
 
     char evt_id_text[64];
     sprintf(evt_id_text, evt_id, nevent);
-    phlex::product_base pb = {"Toy_Tracker_Event/trackStart",
-                              evt_id_text,
-                              track_x,
-                              std::type_index{typeid(std::vector<float>)}};
+    const std::string creator = "Toy_Tracker_Event";
+    mock_phlex::product_base pb = {
+      "trackStartX", evt_id_text, track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
-    form.read(pb);
+    form.read(creator, pb);
     track_x = static_cast<const std::vector<float>*>(pb.data); //FIXME: Can this be done by FORM?
     float check = 0.0;
     for (float val : *track_x)
