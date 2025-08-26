@@ -31,8 +31,8 @@ def window(f, *, window_generator=make_pairs, xs):
         window_generator: A function that creates a window from the list.
         xs: The list of elements to window.
     """
-    seq = window_generator(xs)
-    return (f(*t) for t in seq)
+    vals = window_generator(xs)
+    return (f(*t) for t in vals)
 
 def window_generator(xs, matcher):
     """Generate a sequence of windows from the input.

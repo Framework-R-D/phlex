@@ -41,7 +41,7 @@ def test_window_triplets():
 class Ball:
     """Simple argument type for testing window_generator.
 
-    Maching should be done based on the label attribute.
+    Matching should be done based on the label attribute.
     """
     value: float
     label: int
