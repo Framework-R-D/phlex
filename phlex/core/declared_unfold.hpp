@@ -84,7 +84,7 @@ namespace phlex::experimental {
     class complete_unfold;
 
   public:
-    partial_unfold(registrar<declared_unfolds> reg,
+    partial_unfold(registrar<declared_unfold_ptr> reg,
                    algorithm_name name,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
@@ -149,7 +149,7 @@ namespace phlex::experimental {
     InputArgs input_args_;
     std::array<specified_label, N> product_labels_;
     std::string new_level_name_;
-    registrar<declared_unfolds> reg_;
+    registrar<declared_unfold_ptr> reg_;
   };
 
   // =====================================================================================

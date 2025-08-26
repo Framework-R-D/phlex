@@ -5,8 +5,6 @@
 #include "phlex/configuration.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/declared_fold.hpp"
-#include "phlex/core/declared_observer.hpp"
-#include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/declared_transform.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/node_options.hpp"
@@ -20,47 +18,42 @@
 
 namespace phlex::experimental {
 
-  template <typename T, is_predicate_like FT>
-  class predicate_api : public node_options<predicate_api<T, FT>> {
-    using node_options_t = node_options<predicate_api<T, FT>>;
-    using input_parameter_types = function_parameter_types<FT>;
+  template <template <typename...> typename HOF, typename AlgorithmBits>
+  class registration_api : public node_options<registration_api<HOF, AlgorithmBits>> {
+    using node_options_t = node_options<registration_api<HOF, AlgorithmBits>>;
+    using Algorithm = typename AlgorithmBits::bound_type;
+    using InputArgs = typename AlgorithmBits::input_parameter_types;
+    using hof_type = HOF<Algorithm, InputArgs>;
+    using NodePtr = typename hof_type::node_ptr_type;
+
+    static constexpr auto N = std::tuple_size_v<InputArgs>;
 
   public:
-    static constexpr auto N = number_parameters<FT>;
-
-    predicate_api(configuration const* config,
-                  std::string name,
-                  std::shared_ptr<T> obj,
-                  FT f,
-                  concurrency c,
-                  tbb::flow::graph& g,
-                  node_catalog& nodes,
-                  std::vector<std::string>& errors) :
+    registration_api(configuration const* config,
+                     std::string name,
+                     AlgorithmBits alg,
+                     concurrency c,
+                     tbb::flow::graph& g,
+                     node_catalog& nodes,
+                     std::vector<std::string>& errors) :
       node_options_t{config},
       name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
-      obj_{obj},
-      ft_{std::move(f)},
+      alg_{alg.release_algorithm()},
       concurrency_{c},
       graph_{g},
-      nodes_{nodes},
-      errors_{errors}
+      registrar_{nodes.registrar_for<NodePtr>(errors)}
     {
     }
 
     auto family(std::array<specified_label, N> input_args)
     {
-      nodes_.register_predicate(errors_).set([this, in = std::move(input_args)] {
-        auto inputs = form_input_arguments<input_parameter_types>(name_.full(), std::move(in));
-        auto input_product_labels = detail::port_names(inputs);
-        auto delegated_function = delegate(obj_, ft_);
-        return std::make_unique<predicate<decltype(delegated_function), decltype(inputs)>>(
-          std::move(name_),
-          concurrency_.value,
-          node_options_t::release_predicates(),
-          graph_,
-          std::move(delegated_function),
-          std::move(inputs),
-          std::move(input_product_labels));
+      registrar_.set([this, inputs = std::move(input_args)] {
+        return std::make_unique<hof_type>(std::move(name_),
+                                          concurrency_.value,
+                                          node_options_t::release_predicates(),
+                                          graph_,
+                                          std::move(alg_),
+                                          std::move(inputs));
       });
     }
 
@@ -80,90 +73,33 @@ namespace phlex::experimental {
 
   private:
     algorithm_name name_;
-    std::shared_ptr<T> obj_;
-    FT ft_;
+    Algorithm alg_;
     concurrency concurrency_;
     tbb::flow::graph& graph_;
-    node_catalog& nodes_;
-    std::vector<std::string>& errors_;
+    registrar<NodePtr> registrar_;
   };
 
-  template <typename T, is_observer_like FT>
-  class observer_api : public node_options<observer_api<T, FT>> {
-    using node_options_t = node_options<observer_api<T, FT>>;
-    using input_parameter_types = function_parameter_types<FT>;
-
-  public:
-    static constexpr auto N = number_parameters<FT>;
-
-    observer_api(configuration const* config,
-                 std::string name,
-                 std::shared_ptr<T> obj,
-                 FT f,
-                 concurrency c,
-                 tbb::flow::graph& g,
-                 node_catalog& nodes,
-                 std::vector<std::string>& errors) :
-      node_options_t{config},
-      name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
-      obj_{obj},
-      ft_{std::move(f)},
-      concurrency_{c},
-      graph_{g},
-      nodes_{nodes},
-      errors_{errors}
-    {
-    }
-
-    auto family(std::array<specified_label, N> input_args)
-    {
-      nodes_.register_observer(errors_).set([this, in = std::move(input_args)] {
-        auto inputs = form_input_arguments<input_parameter_types>(name_.full(), std::move(in));
-        auto input_product_labels = detail::port_names(inputs);
-        auto delegated_function = delegate(obj_, ft_);
-        return std::make_unique<observer<decltype(delegated_function), decltype(inputs)>>(
-          std::move(name_),
-          concurrency_.value,
-          node_options_t::release_predicates(),
-          graph_,
-          std::move(delegated_function),
-          std::move(inputs),
-          std::move(input_product_labels));
-      });
-    }
-
-    template <label_compatible L>
-    auto family(std::array<L, N> input_args)
-    {
-      return family(to_labels(input_args));
-    }
-
-    auto family(label_compatible auto... input_args)
-    {
-      static_assert(N == sizeof...(input_args),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      return family({specified_label::create(std::forward<decltype(input_args)>(input_args))...});
-    }
-
-  private:
-    algorithm_name name_;
-    std::shared_ptr<T> obj_;
-    FT ft_;
-    concurrency concurrency_;
-    tbb::flow::graph& graph_;
-    node_catalog& nodes_;
-    std::vector<std::string>& errors_;
-  };
+  template <template <typename...> typename HOF, typename AlgorithmBits>
+  auto make_registration(configuration const* config,
+                         std::string name,
+                         AlgorithmBits alg,
+                         concurrency c,
+                         tbb::flow::graph& g,
+                         node_catalog& nodes,
+                         std::vector<std::string>& errors)
+  {
+    return registration_api<HOF, AlgorithmBits>{
+      config, std::move(name), std::move(alg), c, g, nodes, errors};
+  }
 
   template <typename T, typename FT>
   class bound_function : public node_options<bound_function<T, FT>> {
     using node_options_t = node_options<bound_function<T, FT>>;
     using input_parameter_types = function_parameter_types<FT>;
 
-  public:
     static constexpr auto N = number_parameters<FT>;
 
+  public:
     bound_function(configuration const* config,
                    std::string name,
                    std::shared_ptr<T> obj,
@@ -188,7 +124,7 @@ namespace phlex::experimental {
     {
       auto inputs =
         form_input_arguments<input_parameter_types>(name_.full(), std::move(input_args));
-      return pre_transform{nodes_.register_transform(errors_),
+      return pre_transform{nodes_.registrar_for<declared_transform_ptr>(errors_),
                            std::move(name_),
                            concurrency_.value,
                            node_options_t::release_predicates(),
@@ -202,7 +138,7 @@ namespace phlex::experimental {
     {
       using all_but_first = skip_first_type<input_parameter_types>;
       auto inputs = form_input_arguments<all_but_first>(name_.full(), std::move(input_args));
-      return pre_fold{nodes_.register_fold(errors_),
+      return pre_fold{nodes_.registrar_for<declared_fold_ptr>(errors_),
                       std::move(name_),
                       concurrency_.value,
                       node_options_t::release_predicates(),

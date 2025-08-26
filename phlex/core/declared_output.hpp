@@ -46,7 +46,7 @@ namespace phlex::experimental {
     using node_options_t = node_options<output_creator>;
 
   public:
-    output_creator(registrar<declared_outputs> reg,
+    output_creator(registrar<declared_output_ptr> reg,
                    configuration const* config,
                    std::string name,
                    tbb::flow::graph& g,
@@ -76,7 +76,7 @@ namespace phlex::experimental {
     tbb::flow::graph& graph_;
     detail::output_function_t ft_;
     concurrency concurrency_;
-    registrar<declared_outputs> reg_;
+    registrar<declared_output_ptr> reg_;
   };
 }
 

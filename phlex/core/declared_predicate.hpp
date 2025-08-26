@@ -61,16 +61,17 @@ namespace phlex::experimental {
     using const_accessor = results_t::const_accessor;
 
   public:
+    using node_ptr_type = declared_predicate_ptr;
+
     predicate(algorithm_name name,
               std::size_t concurrency,
               std::vector<std::string> predicates,
               tbb::flow::graph& g,
               function_t&& f,
-              InputArgs input,
-              std::array<specified_label, N> product_labels) :
+              std::array<specified_label, N> input) :
       declared_predicate{std::move(name), std::move(predicates)},
-      product_labels_{std::move(product_labels)},
-      input_{std::move(input)},
+      input_{form_input_arguments<InputArgs>(full_name(), std::move(input))},
+      product_labels_{detail::port_names(input_)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       predicate_{g,
                  concurrency,
@@ -124,8 +125,8 @@ namespace phlex::experimental {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
+    input_retriever_types<InputArgs> input_;
     std::array<specified_label, N> product_labels_;
-    InputArgs input_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>, predicate_result> predicate_;
     results_t results_;

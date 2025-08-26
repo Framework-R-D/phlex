@@ -60,7 +60,7 @@ namespace phlex::experimental {
         form_input_arguments<input_parameter_types>(name_.full(), std::move(input_args));
 
       return partial_unfold<Object, Predicate, Unfold, decltype(processed_input_args)>{
-        nodes_.register_unfold(errors_),
+        nodes_.registrar_for<declared_unfold_ptr>(errors_),
         std::move(name_),
         concurrency_,
         node_options_t::release_predicates(),

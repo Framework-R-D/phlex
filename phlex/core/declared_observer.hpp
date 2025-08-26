@@ -2,7 +2,9 @@
 #define phlex_core_declared_observer_hpp
 
 #include "phlex/core/concepts.hpp"
+#include "phlex/core/detail/port_names.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/specified_label.hpp"
@@ -53,16 +55,17 @@ namespace phlex::experimental {
     using accessor = stores_t::accessor;
 
   public:
+    using node_ptr_type = declared_observer_ptr;
+
     observer(algorithm_name name,
              std::size_t concurrency,
              std::vector<std::string> predicates,
              tbb::flow::graph& g,
              function_t&& f,
-             InputArgs input,
-             std::array<specified_label, N> product_labels) :
+             std::array<specified_label, N> input) :
       declared_observer{std::move(name), std::move(predicates)},
-      product_labels_{std::move(product_labels)},
-      input_{std::move(input)},
+      input_{form_input_arguments<InputArgs>(full_name(), std::move(input))},
+      product_labels_{detail::port_names(input_)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       observer_{g,
                 concurrency,
@@ -124,8 +127,8 @@ namespace phlex::experimental {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
+    input_retriever_types<InputArgs> input_;
     std::array<specified_label, N> product_labels_;
-    InputArgs input_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>> observer_;
     tbb::concurrent_hash_map<level_id::hash_type, bool> stores_;

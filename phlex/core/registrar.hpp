@@ -56,9 +56,10 @@ namespace phlex::experimental {
   template <typename T>
   concept map_like = requires { typename T::mapped_type; };
 
-  template <map_like Nodes>
+  template <typename Ptr>
   class registrar {
-    using Creator = std::function<typename Nodes::mapped_type()>;
+    using Nodes = std::map<std::string, Ptr>;
+    using Creator = std::function<Ptr()>;
 
   public:
     explicit registrar(Nodes& nodes, std::vector<std::string>& errors) :
@@ -90,6 +91,9 @@ namespace phlex::experimental {
     std::vector<std::string>& errors_;
     Creator creator_{};
   };
+
+  template <map_like Nodes>
+  registrar(Nodes&, std::vector<std::string>&) -> registrar<typename Nodes::mapped_type>;
 
 }
 
