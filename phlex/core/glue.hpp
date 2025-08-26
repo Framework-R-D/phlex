@@ -52,6 +52,12 @@ namespace phlex::experimental {
       return observer_api{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
     }
 
+    auto predicate(std::string name, auto f, concurrency c = concurrency::serial)
+    {
+      detail::verify_name(name, config_);
+      return predicate_api{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
+    }
+
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
       return output_creator{nodes_.register_output(errors_),

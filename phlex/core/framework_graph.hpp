@@ -83,6 +83,11 @@ namespace phlex::experimental {
       return proxy().observe(std::move(name), f, c);
     }
 
+    auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
+    {
+      return proxy().predicate(std::move(name), f, c);
+    }
+
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
