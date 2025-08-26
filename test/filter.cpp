@@ -85,18 +85,16 @@ namespace {
 TEST_CASE("Two predicates", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.with("evens_only", evens_only, concurrency::unlimited).evaluate("num").for_each("event");
-  g.with("odds_only", odds_only, concurrency::unlimited).evaluate("num").for_each("event");
+  g.with("evens_only", evens_only, concurrency::unlimited).evaluate("num"_in("event"));
+  g.with("odds_only", odds_only, concurrency::unlimited).evaluate("num"_in("event"));
   g.make<sum_numbers>(20u)
     .with("add_evens", &sum_numbers::add, concurrency::unlimited)
     .when("evens_only")
-    .observe("num")
-    .for_each("event");
+    .observe("num"_in("event"));
   g.make<sum_numbers>(25u)
     .with("add_odds", &sum_numbers::add, concurrency::unlimited)
     .when("odds_only")
-    .observe("num")
-    .for_each("event");
+    .observe("num"_in("event"));
 
   g.execute("two_independent_predicates_t");
 }

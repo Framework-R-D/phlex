@@ -53,9 +53,9 @@ namespace {
 TEST_CASE("Testing families", "[data model]")
 {
   framework_graph g{levels_to_process, 2};
-  g.with("se", check_two_ids).observe("id"_in("subrun"), "id").for_each("event");
-  g.with("rs", check_two_ids).observe("id"_in("run"), "id").for_each("subrun");
-  g.with("rse", check_three_ids).observe("id"_in("run"), "id"_in("subrun"), "id").for_each("event");
+  g.with("se", check_two_ids).observe("id"_in("subrun"), "id"_in("event"));
+  g.with("rs", check_two_ids).observe("id"_in("run"), "id"_in("subrun"));
+  g.with("rse", check_three_ids).observe("id"_in("run"), "id"_in("subrun"), "id"_in("event"));
   g.execute("allowed_families_t");
 
   CHECK(g.execution_counts("se") == 1ull);

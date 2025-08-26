@@ -10,9 +10,8 @@
 //     .with("name", &MyTransform::transform, concurrency{n})
 //     .when(...)
 //     .transform(...)
-//     .to(...)
-//     .for_each(...);
-//                   ^ Registration happens at the completion of the full statement.
+//     .to(...);
+//             ^ Registration happens at the completion of the full statement.
 //
 // This is achieved by creating a class registrar class object (internally during any of
 // the declare* calls), which is then passed along through each successive function call
