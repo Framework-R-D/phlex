@@ -21,6 +21,10 @@
 
 namespace phlex::experimental {
 
+  namespace detail {
+    void verify_name(std::string const& name, configuration const* config);
+  }
+
   // ==============================================================================
   // Registering user functions
 
@@ -38,17 +42,14 @@ namespace phlex::experimental {
 
     auto with(std::string name, auto f, concurrency c = concurrency::serial)
     {
-      if (name.empty()) {
-        std::string msg{"Cannot specify algorithm with no name"};
-        std::string const module = config_ ? config_->get<std::string>("module_label") : "";
-        if (!module.empty()) {
-          msg += " (module: '";
-          msg += module;
-          msg += "')";
-        }
-        throw std::runtime_error{msg};
-      }
+      detail::verify_name(name, config_);
       return bound_function{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
+    }
+
+    auto observe(std::string name, auto f, concurrency c = concurrency::serial)
+    {
+      detail::verify_name(name, config_);
+      return observer_api{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
     }
 
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)

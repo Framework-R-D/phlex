@@ -86,7 +86,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.with("verify_results", verify_results).observe(product_names);
+  g.observe("verify_results", verify_results).family(product_names);
 
   g.execute();
 }

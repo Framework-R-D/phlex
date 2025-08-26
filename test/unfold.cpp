@@ -102,7 +102,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     .into("new_number")
     .within_family("lower1");
   g.with("add", add, concurrency::unlimited).fold("new_number").partitioned_by("event").to("sum1");
-  g.with("check_sum", check_sum, concurrency::unlimited).observe("sum1");
+  g.observe("check_sum", check_sum, concurrency::unlimited).family("sum1");
 
   g.with<iterate_through>(
      &iterate_through::predicate, &iterate_through::unfold, concurrency::unlimited)
@@ -113,7 +113,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     .fold("each_number")
     .partitioned_by("event")
     .to("sum2");
-  g.with("check_sum_same", check_sum_same, concurrency::unlimited).observe("sum2");
+  g.observe("check_sum_same", check_sum_same, concurrency::unlimited).family("sum2");
 
   g.make<test::products_for_output>().output_with(
     "save", &test::products_for_output::save, concurrency::serial);

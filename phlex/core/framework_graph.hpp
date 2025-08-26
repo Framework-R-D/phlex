@@ -78,6 +78,11 @@ namespace phlex::experimental {
       return unfold_proxy<T>().declare_unfold(predicate, unfold, c);
     }
 
+    auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
+    {
+      return proxy().observe(std::move(name), f, c);
+    }
+
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {

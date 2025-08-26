@@ -47,7 +47,12 @@ namespace phlex::experimental {
 
     auto with(std::string name, auto f, concurrency c = concurrency::serial)
     {
-      return glue{graph_, nodes_, bound_obj_, errors_, config_}.with(name, f, c);
+      return glue{graph_, nodes_, bound_obj_, errors_, config_}.with(std::move(name), f, c);
+    }
+
+    auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
+    {
+      return glue{graph_, nodes_, bound_obj_, errors_, config_}.observe(std::move(name), f, c);
     }
 
     template <typename Splitter>

@@ -2,11 +2,9 @@
 #define phlex_core_declared_observer_hpp
 
 #include "phlex/core/concepts.hpp"
-#include "phlex/core/detail/port_names.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
-#include "phlex/core/registrar.hpp"
 #include "phlex/core/specified_label.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
@@ -29,9 +27,7 @@
 #include <iterator>
 #include <map>
 #include <memory>
-#include <ranges>
 #include <span>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -47,73 +43,23 @@ namespace phlex::experimental {
   using declared_observer_ptr = std::unique_ptr<declared_observer>;
   using declared_observers = std::map<std::string, declared_observer_ptr>;
 
-  // Registering concrete observers
-  template <is_observer_like FT, typename InputArgs>
-  class pre_observer {
-    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
-    using function_t = FT;
-
-    class complete_observer;
-
-  public:
-    pre_observer(registrar<declared_observers> reg,
-                 algorithm_name name,
-                 std::size_t concurrency,
-                 std::vector<std::string> predicates,
-                 tbb::flow::graph& g,
-                 function_t&& f,
-                 InputArgs input_args) :
-      name_{std::move(name)},
-      concurrency_{concurrency},
-      predicates_{std::move(predicates)},
-      graph_{g},
-      ft_{std::move(f)},
-      input_args_{std::move(input_args)},
-      product_labels_{detail::port_names(input_args_)},
-      reg_{std::move(reg)}
-    {
-      reg_.set([this] { return create(); });
-    }
-
-  private:
-    declared_observer_ptr create()
-    {
-      return std::make_unique<complete_observer>(std::move(name_),
-                                                 concurrency_,
-                                                 std::move(predicates_),
-                                                 graph_,
-                                                 std::move(ft_),
-                                                 std::move(input_args_),
-                                                 std::move(product_labels_));
-    }
-    algorithm_name name_;
-    std::size_t concurrency_;
-    std::vector<std::string> predicates_;
-    tbb::flow::graph& graph_;
-    function_t ft_;
-    InputArgs input_args_;
-    std::array<specified_label, N> product_labels_;
-    registrar<declared_observers> reg_;
-  };
+  // =====================================================================================
 
   template <is_observer_like FT, typename InputArgs>
-  class pre_observer<FT, InputArgs>::complete_observer :
-    public declared_observer,
-    private detect_flush_flag {
-
+  class observer : public declared_observer, private detect_flush_flag {
     static constexpr auto N = std::tuple_size_v<InputArgs>;
     using function_t = FT;
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, bool>;
     using accessor = stores_t::accessor;
 
   public:
-    complete_observer(algorithm_name name,
-                      std::size_t concurrency,
-                      std::vector<std::string> predicates,
-                      tbb::flow::graph& g,
-                      function_t&& f,
-                      InputArgs input,
-                      std::array<specified_label, N> product_labels) :
+    observer(algorithm_name name,
+             std::size_t concurrency,
+             std::vector<std::string> predicates,
+             tbb::flow::graph& g,
+             function_t&& f,
+             InputArgs input,
+             std::array<specified_label, N> product_labels) :
       declared_observer{std::move(name), std::move(predicates)},
       product_labels_{std::move(product_labels)},
       input_{std::move(input)},
@@ -141,7 +87,7 @@ namespace phlex::experimental {
       make_edge(join_, observer_);
     }
 
-    ~complete_observer()
+    ~observer()
     {
       if (stores_.size() > 0ull) {
         spdlog::warn("Monitor {} has {} cached stores.", full_name(), stores_.size());
