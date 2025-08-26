@@ -1,6 +1,7 @@
 from itertools import zip_longest
 from collections import defaultdict
 
+
 # TODO: make_tuples relies on the fact that it is operating
 # on a sequence for which it only has to associated adjacent
 # elements. We also want do exercise more general functions
@@ -33,6 +34,7 @@ def window(f, *, window_generator=make_pairs, xs):
     """
     vals = window_generator(xs)
     return (f(*t) for t in vals)
+
 
 def window_generator(xs, matcher):
     """Generate a sequence of windows from the input.

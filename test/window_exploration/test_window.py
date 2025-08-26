@@ -37,17 +37,21 @@ def test_window_triplets():
     ys = list(w.window(f2, window_generator=w.make_triplets, xs=xs))
     assert ys == [6, 9, 12, 9, 5]
 
+
 @dataclass
 class Ball:
     """Simple argument type for testing window_generator.
 
     Matching should be done based on the label attribute.
     """
+
     value: float
     label: int
 
+
 def adjacent_matcher(x: int, y: int) -> bool:
     return abs(x - y) == 1
+
 
 def test_window_generator():
     # Ball come in out-of-order with respect to label.
@@ -59,5 +63,5 @@ def test_window_generator():
         if b is None:
             assert a.label == 4
         else:
-            assert a.label+1 == b.label
+            assert a.label + 1 == b.label
     assert n_pairs == len(xs)
