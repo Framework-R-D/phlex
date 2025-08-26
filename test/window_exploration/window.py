@@ -1,5 +1,24 @@
-from itertools import zip_longest
 from collections import defaultdict
+from itertools import zip_longest
+from typing import Callable, Generator, Protocol, TypeVar
+
+# Type variables for use in protocols and type annotations.
+T = TypeVar("T")
+S = TypeVar("S")
+
+
+class WindowGenerator(Protocol[T]):
+    """Protocol for a generator that produces windows of elements.
+
+    A type that implements this protocol can be called given a sequence
+    (actually a generator) of objects of type T. It returns a sequence
+    (again, really a generator) of tuples of objects of type T.
+
+    """
+
+    def __call__(
+        self, xs: Generator[T, None, None]
+    ) -> Generator[tuple[T, ...], None, None]: ...
 
 
 # TODO: make_tuples relies on the fact that it is operating
@@ -36,6 +55,29 @@ def window(f, *, window_generator=make_pairs, xs):
     return (f(*t) for t in vals)
 
 
+def window(
+    f: Callable[..., S],
+    *,
+    window_generator: WindowGenerator[T],
+    xs: Generator[T, None, None]
+) -> Generator[S, None, None]:
+    """Apply a function to a window of elements from the list.
+
+    Args:
+        f: The function to apply to each window.
+        window_generator: A function that creates a window from the list.
+        xs: The list of elements to window.
+    """
+    vals = window_generator(xs)
+    return (f(*t) for t in vals)
+
+
+# TODO: generalize window_generator to allow the user to specify:
+#   - the size of the window
+#   - the number of leading nulls allowed
+#   - the number of trailing nulls allowed
+# Question: should these options be passed as argument to window_generator or
+# should they be features of the matcher function?
 def window_generator(xs, matcher):
     """Generate a sequence of windows from the input.
 
