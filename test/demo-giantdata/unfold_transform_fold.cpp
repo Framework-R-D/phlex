@@ -138,9 +138,8 @@ int main(int argc, char* argv[])
     // Because we are using a closure here, we have to provide a node name;
     // the framework is unable to deduce the name of the "function".
     g.with("clamp_node", wrapped_user_function, concurrency::unlimited)
-      .transform("waves_in_apa") // the type of node to create, and the label of the input
-      .for_each("APA")
-      .to("clamped_waves") // label the chunks we create as "clamped_waves"
+      .transform("waves_in_apa"_in("APA")) // the type of node to create, and the label of the input
+      .to("clamped_waves")                 // label the chunks we create as "clamped_waves"
       ;
 
     // Add the fold node to the graph.

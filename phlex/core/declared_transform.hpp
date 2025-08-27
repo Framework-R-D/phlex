@@ -86,16 +86,6 @@ namespace phlex::experimental {
     {
     }
 
-    auto& for_each(std::string const& family)
-    {
-      for (auto& allowed_family : product_labels_ | std::views::transform(to_family)) {
-        if (empty(allowed_family)) {
-          allowed_family = family;
-        }
-      }
-      return *this;
-    }
-
     template <std::size_t Msize>
     auto& to(std::array<std::string, Msize> output_keys)
     {

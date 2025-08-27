@@ -79,16 +79,6 @@ namespace phlex::experimental {
       reg_.set([this] { return create(); });
     }
 
-    auto& for_each(std::string const& family)
-    {
-      for (auto& allowed_family : product_labels_ | std::views::transform(to_family)) {
-        if (empty(allowed_family)) {
-          allowed_family = family;
-        }
-      }
-      return *this;
-    }
-
   private:
     declared_predicate_ptr create()
     {
