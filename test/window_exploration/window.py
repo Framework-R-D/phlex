@@ -12,12 +12,16 @@ class WindowGenerator(Protocol[T]):
 
     A type that implements this protocol can be called given a sequence
     (actually a generator) of objects of type T. It returns a sequence
-    (again, really a generator) of tuples of objects of type T.
+    (again, really a generator) of tuples of objects of type T of length N.
 
+    Args:
+        N: The length of the tuples returned by the generator.
     """
 
+    # Note that the type annotation for a generator is:
+    # Generator[YieldType, SendType, ReturnType]..
     def __call__(
-        self, xs: Generator[T, None, None]
+        self, N: int, xs: Generator[T, None, None]
     ) -> Generator[tuple[T, ...], None, None]: ...
 
 
