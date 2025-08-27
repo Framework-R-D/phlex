@@ -47,22 +47,10 @@ def make_triplets(xs):
     return make_tuples(xs, 3)
 
 
-def window(f, *, window_generator=make_pairs, xs):
-    """Apply a function to a window of elements from the list.
-
-    Args:
-        f: The function to apply to each window.
-        window_generator: A function that creates a window from the list.
-        xs: The list of elements to window.
-    """
-    vals = window_generator(xs)
-    return (f(*t) for t in vals)
-
-
 def window(
     f: Callable[..., S],
     *,
-    window_generator: WindowGenerator[T],
+    window_generator: WindowGenerator[T] = make_pairs,
     xs: Generator[T, None, None]
 ) -> Generator[S, None, None]:
     """Apply a function to a window of elements from the list.
