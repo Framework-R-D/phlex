@@ -50,6 +50,7 @@
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -57,7 +58,7 @@ namespace phlex::experimental {
   template <typename Ptr>
   class registrar {
     using Nodes = simple_ptr_map<Ptr>;
-    using Creator = std::function<Ptr()>;
+    using Creator = std::function<Ptr(std::vector<std::string>)>;
 
   public:
     explicit registrar(Nodes& nodes, std::vector<std::string>& errors) :
@@ -71,11 +72,18 @@ namespace phlex::experimental {
     registrar(registrar&&) = default;
     registrar& operator=(registrar&&) = default;
 
-    void set(Creator creator) { creator_ = std::move(creator); }
+    void set_creator(Creator creator) { creator_ = std::move(creator); }
+    void set_predicates(std::optional<std::vector<std::string>> predicates)
+    {
+      predicates_ = std::move(predicates);
+    }
+
+    bool has_predicates() const { return predicates_.has_value(); }
+
     ~registrar() noexcept(false)
     {
       if (creator_) {
-        auto ptr = creator_();
+        auto ptr = creator_(release_predicates());
         auto name = ptr->full_name();
         auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
         if (not inserted) {
@@ -85,9 +93,15 @@ namespace phlex::experimental {
     }
 
   private:
+    std::vector<std::string> release_predicates()
+    {
+      return std::move(predicates_).value_or(std::vector<std::string>{});
+    }
+
     Nodes* nodes_;
     std::vector<std::string>* errors_;
     Creator creator_{};
+    std::optional<std::vector<std::string>> predicates_;
   };
 }
 
