@@ -68,8 +68,12 @@ namespace phlex::experimental {
 
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
-      return output_creator{
-        nodes_.register_output(errors_), config_, name, graph_, delegate(bound_obj_, f), c};
+      return output_creator{nodes_.registrar_for<declared_output_ptr>(errors_),
+                            config_,
+                            name,
+                            graph_,
+                            delegate(bound_obj_, f),
+                            c};
     }
 
   private:

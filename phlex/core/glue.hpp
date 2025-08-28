@@ -70,7 +70,7 @@ namespace phlex::experimental {
 
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
-      return output_creator{nodes_.register_output(errors_),
+      return output_creator{nodes_.registrar_for<declared_output_ptr>(errors_),
                             config_,
                             std::move(name),
                             graph_,
