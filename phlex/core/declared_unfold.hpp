@@ -2,9 +2,9 @@
 #define phlex_core_declared_unfold_hpp
 
 #include "phlex/core/concepts.hpp"
-#include "phlex/core/detail/port_names.hpp"
 #include "phlex/core/end_of_message.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multiplexer.hpp"
 #include "phlex/core/products_consumer.hpp"
@@ -76,8 +76,9 @@ namespace phlex::experimental {
 
   // =====================================================================================
 
-  template <typename Object, typename Predicate, typename Unfold, typename InputArgs>
+  template <typename Object, typename Predicate, typename Unfold>
   class partial_unfold {
+    using InputArgs = constructor_parameter_types<Object>;
     static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
 
     template <std::size_t M>
@@ -91,15 +92,14 @@ namespace phlex::experimental {
                    tbb::flow::graph& g,
                    Predicate&& predicate,
                    Unfold&& unfold,
-                   InputArgs input_args) :
+                   std::array<specified_label, N> product_labels) :
       name_{std::move(name)},
       concurrency_{concurrency},
       predicates_{std::move(predicates)},
       graph_{g},
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
-      input_args_{std::move(input_args)},
-      product_labels_{detail::port_names(input_args_)},
+      product_labels_{std::move(product_labels)},
       reg_{std::move(reg)}
     {
     }
@@ -134,7 +134,6 @@ namespace phlex::experimental {
                                                   graph_,
                                                   std::move(predicate_),
                                                   std::move(unfold_),
-                                                  std::move(input_args_),
                                                   std::move(product_labels_),
                                                   std::move(outputs),
                                                   std::move(new_level_name_));
@@ -146,7 +145,6 @@ namespace phlex::experimental {
     tbb::flow::graph& graph_;
     Predicate predicate_;
     Unfold unfold_;
-    InputArgs input_args_;
     std::array<specified_label, N> product_labels_;
     std::string new_level_name_;
     registrar<declared_unfold_ptr> reg_;
@@ -154,9 +152,9 @@ namespace phlex::experimental {
 
   // =====================================================================================
 
-  template <typename Object, typename Predicate, typename Unfold, typename InputArgs>
+  template <typename Object, typename Predicate, typename Unfold>
   template <std::size_t M>
-  class partial_unfold<Object, Predicate, Unfold, InputArgs>::complete_unfold :
+  class partial_unfold<Object, Predicate, Unfold>::complete_unfold :
     public declared_unfold,
     private detect_flush_flag {
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
@@ -170,13 +168,12 @@ namespace phlex::experimental {
                     tbb::flow::graph& g,
                     Predicate&& predicate,
                     Unfold&& unfold,
-                    InputArgs input,
                     std::array<specified_label, N> product_labels,
                     std::array<qualified_name, M> output_products,
                     std::string new_level_name) :
       declared_unfold{std::move(name), std::move(predicates)},
       product_labels_{std::move(product_labels)},
-      input_{std::move(input)},
+      input_{form_input_arguments<InputArgs>(full_name(), product_labels_)},
       output_{std::move(output_products)},
       new_level_name_{std::move(new_level_name)},
       multiplexer_{g},
@@ -276,7 +273,7 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     std::array<specified_label, N> product_labels_;
-    InputArgs input_;
+    input_retriever_types<InputArgs> input_;
     std::array<qualified_name, M> output_;
     std::string new_level_name_;
     multiplexer multiplexer_;
