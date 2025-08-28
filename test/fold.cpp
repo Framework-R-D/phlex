@@ -69,17 +69,17 @@ TEST_CASE("Different levels of fold", "[graph]")
 
   g.with("two_layer_job_add", add, concurrency::unlimited).fold("run_sum").to("two_layer_job_sum");
 
-  g.with(
+  g.observe(
      "verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }, concurrency::unlimited)
-    .observe("run_sum");
-  g.with(
+    .family("run_sum");
+  g.observe(
      "verify_two_layer_job_sum",
      [](unsigned int actual) { CHECK(actual == 20u); },
      concurrency::unlimited)
-    .observe("two_layer_job_sum");
-  g.with(
+    .family("two_layer_job_sum");
+  g.observe(
      "verify_job_sum", [](unsigned int actual) { CHECK(actual == 20u); }, concurrency::unlimited)
-    .observe("job_sum");
+    .family("job_sum");
 
   g.execute();
 

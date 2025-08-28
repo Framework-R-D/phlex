@@ -7,5 +7,5 @@ namespace {
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
 {
-  m.with("read_id", read_id, phlex::experimental::concurrency::unlimited).observe("id");
+  m.observe("read_id", read_id, phlex::experimental::concurrency::unlimited).family("id");
 }

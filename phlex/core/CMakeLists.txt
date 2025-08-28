@@ -17,6 +17,7 @@ add_library(
   end_of_message.cpp
   filter.cpp
   framework_graph.cpp
+  glue.cpp
   message.cpp
   message_sender.cpp
   multiplexer.cpp
@@ -35,7 +36,7 @@ endif ()
 
 target_link_libraries(
   phlex_core PRIVATE TBB::tbb phlex::graph phlex::metaprogramming phlex::model
-                     phlex::utilities PUBLIC spdlog::spdlog
+                     phlex::utilities Boost::json PUBLIC spdlog::spdlog
   )
 
 # Interface library

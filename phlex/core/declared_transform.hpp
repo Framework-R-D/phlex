@@ -68,7 +68,7 @@ namespace phlex::experimental {
     class total_transform;
 
   public:
-    pre_transform(registrar<declared_transforms> reg,
+    pre_transform(registrar<declared_transform_ptr> reg,
                   algorithm_name name,
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
@@ -129,7 +129,7 @@ namespace phlex::experimental {
     function_t ft_;
     InputArgs input_args_;
     std::array<specified_label, N> product_labels_;
-    registrar<declared_transforms> reg_;
+    registrar<declared_transform_ptr> reg_;
   };
 
   // =====================================================================================

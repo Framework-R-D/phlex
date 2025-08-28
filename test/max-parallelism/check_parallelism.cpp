@@ -33,9 +33,9 @@ namespace {
 PHLEX_EXPERIMENTAL_REGISTER_SOURCE(send_parallelism)
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
-  m.with("verify_expected",
-         [expected = config.get<std::size_t>("expected_parallelism")](std::size_t actual) {
-           assert(actual == expected);
-         })
-    .observe("max_parallelism");
+  m.observe("verify_expected",
+            [expected = config.get<std::size_t>("expected_parallelism")](std::size_t actual) {
+              assert(actual == expected);
+            })
+    .family("max_parallelism");
 }

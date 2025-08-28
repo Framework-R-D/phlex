@@ -26,6 +26,18 @@ namespace phlex::experimental {
     }
   };
 
+  template <typename InputTypes>
+  struct input_retriever_types_impl {
+    template <std::size_t... Is>
+    static std::tuple<retriever<std::tuple_element_t<Is, InputTypes>, Is>...> form_tuple(
+      std::index_sequence<Is...>);
+
+    using type = decltype(form_tuple(std::make_index_sequence<std::tuple_size_v<InputTypes>>{}));
+  };
+
+  template <typename InputTypes>
+  using input_retriever_types = typename input_retriever_types_impl<InputTypes>::type;
+
   template <typename InputTypes, std::size_t... Is>
   auto form_input_arguments_impl(std::array<specified_label, sizeof...(Is)> args,
                                  std::index_sequence<Is...>)
@@ -33,8 +45,6 @@ namespace phlex::experimental {
     return std::make_tuple(
       retriever<std::tuple_element_t<Is, InputTypes>, Is>{std::move(args[Is])}...);
   }
-
-  // =====================================================================================
 
   template <typename InputTypes, std::size_t N>
   auto form_input_arguments(std::string const& algorithm_name, std::array<specified_label, N> args)

@@ -47,7 +47,17 @@ namespace phlex::experimental {
 
     auto with(std::string name, auto f, concurrency c = concurrency::serial)
     {
-      return glue{graph_, nodes_, bound_obj_, errors_, config_}.with(name, f, c);
+      return create_glue().with(std::move(name), f, c);
+    }
+
+    auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
+    {
+      return create_glue().observe(std::move(name), f, c);
+    }
+
+    auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
+    {
+      return create_glue().predicate(std::move(name), f, c);
     }
 
     template <typename Splitter>
@@ -72,6 +82,8 @@ namespace phlex::experimental {
       : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{bound_obj}, errors_{errors}
     {
     }
+
+    glue<T> create_glue() { return glue{graph_, nodes_, bound_obj_, errors_, config_}; }
 
     configuration const* config_;
     tbb::flow::graph& graph_;

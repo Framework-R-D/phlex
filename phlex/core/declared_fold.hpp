@@ -65,7 +65,7 @@ namespace phlex::experimental {
     class total_fold;
 
   public:
-    pre_fold(registrar<declared_folds> reg,
+    pre_fold(registrar<declared_fold_ptr> reg,
              algorithm_name name,
              std::size_t concurrency,
              std::vector<std::string> predicates,
@@ -144,7 +144,7 @@ namespace phlex::experimental {
     std::array<specified_label, N> product_labels_;
     std::string fold_interval_{level_id::base().level_name()};
     std::array<qualified_name, M> output_names_;
-    registrar<declared_folds> reg_;
+    registrar<declared_fold_ptr> reg_;
   };
 
   template <is_fold_like FT, typename InputArgs>
