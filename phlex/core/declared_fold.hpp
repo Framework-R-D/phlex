@@ -91,7 +91,7 @@ namespace phlex::experimental {
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
       std::ranges::transform(output_keys, output_names_.begin(), to_qualified_name{name_});
-      reg_.set_creator([this](auto) { return create(std::make_tuple()); });
+      reg_.set_creator([this](auto, auto) { return create(std::make_tuple()); });
       return *this;
     }
 
@@ -112,7 +112,8 @@ namespace phlex::experimental {
 
     auto& initialized_with(auto&&... ts)
     {
-      reg_.set_creator([this, init = std::tuple{ts...}](auto) { return create(std::move(init)); });
+      reg_.set_creator(
+        [this, init = std::tuple{ts...}](auto, auto) { return create(std::move(init)); });
       return *this;
     }
 
