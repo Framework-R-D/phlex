@@ -62,33 +62,33 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   auto glueball = g.make<A>();
   SECTION("No framework")
   {
-    glueball.with("no_framework", &A::no_framework, concurrency::unlimited)
-      .transform(product_names)
-      .to(oproduct_names);
+    glueball.transform("no_framework", &A::no_framework, concurrency::unlimited)
+      .input_family(product_names)
+      .output_products(oproduct_names);
   }
   SECTION("No framework, all references")
   {
-    glueball.with("no_framework_all_refs", &A::no_framework_all_refs, concurrency::unlimited)
-      .transform(product_names)
-      .to(oproduct_names);
+    glueball.transform("no_framework_all_refs", &A::no_framework_all_refs, concurrency::unlimited)
+      .input_family(product_names)
+      .output_products(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
-    glueball.with("no_framework_all_ptrs", &A::no_framework_all_ptrs, concurrency::unlimited)
-      .transform(product_names)
-      .to(oproduct_names);
+    glueball.transform("no_framework_all_ptrs", &A::no_framework_all_ptrs, concurrency::unlimited)
+      .input_family(product_names)
+      .output_products(oproduct_names);
   }
   SECTION("One framework argument")
   {
-    glueball.with("one_framework_arg", &A::one_framework_arg, concurrency::unlimited)
-      .transform(product_names)
-      .to(oproduct_names);
+    glueball.transform("one_framework_arg", &A::one_framework_arg, concurrency::unlimited)
+      .input_family(product_names)
+      .output_products(oproduct_names);
   }
   SECTION("All framework arguments")
   {
-    glueball.with("all_framework_args", &A::all_framework_args, concurrency::unlimited)
-      .transform(product_names)
-      .to(oproduct_names);
+    glueball.transform("all_framework_args", &A::all_framework_args, concurrency::unlimited)
+      .input_family(product_names)
+      .output_products(oproduct_names);
   }
 
   // The following is invoked for *each* section above

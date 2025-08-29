@@ -33,7 +33,7 @@ namespace phlex::experimental {
     concurrency_{c},
     reg_{std::move(reg)}
   {
-    reg_.set_creator([this](auto) { return create(); });
+    reg_.set_creator([this](auto, auto) { return create(); });
   }
 
 }

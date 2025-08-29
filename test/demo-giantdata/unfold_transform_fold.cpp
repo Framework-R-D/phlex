@@ -134,12 +134,9 @@ int main(int argc, char* argv[])
       return demo::clampWaveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
     };
 
-    // Because we are using a closure here, we have to provide a node name;
-    // the framework is unable to deduce the name of the "function".
-    g.with("clamp_node", wrapped_user_function, concurrency::unlimited)
-      .transform("waves_in_apa"_in("APA")) // the type of node to create, and the label of the input
-      .to("clamped_waves")                 // label the chunks we create as "clamped_waves"
-      ;
+    g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
+      .input_family("waves_in_apa"_in("APA"))
+      .output_products("clamped_waves");
 
     // Add the fold node to the graph.
     demo::log_record("add_fold");

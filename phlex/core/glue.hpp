@@ -60,6 +60,19 @@ namespace phlex::experimental {
     }
 
     template <typename FT>
+    auto transform(std::string name, FT f, concurrency c = concurrency::serial)
+    {
+      detail::verify_name(name, config_);
+      return make_registration<transform_node>(config_,
+                                               std::move(name),
+                                               algorithm_bits{bound_obj_, std::move(f)},
+                                               c,
+                                               graph_,
+                                               nodes_,
+                                               errors_);
+    }
+
+    template <typename FT>
     auto predicate(std::string name, FT f, concurrency c = concurrency::serial)
     {
       detail::verify_name(name, config_);

@@ -58,6 +58,11 @@ namespace phlex::experimental {
       return create_glue().predicate(std::move(name), f, c);
     }
 
+    auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial)
+    {
+      return create_glue().transform(std::move(name), f, c);
+    }
+
     template <typename Splitter>
     auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
     {
