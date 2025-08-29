@@ -2,10 +2,8 @@
 #define phlex_core_registration_api_hpp
 
 #include "phlex/concurrency.hpp"
-#include "phlex/configuration.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/declared_fold.hpp"
-#include "phlex/core/declared_transform.hpp"
 #include "phlex/core/detail/make_algorithm_name.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/node_options.hpp"
@@ -19,6 +17,7 @@
 #include <memory>
 
 namespace phlex::experimental {
+  class configuration;
 
   // ====================================================================================
   // Registration API
@@ -50,15 +49,29 @@ namespace phlex::experimental {
 
     auto input_family(std::array<specified_label, N> input_args)
     {
-      registrar_.set_creator([this, inputs = std::move(input_args)](auto predicates) {
-        return std::make_unique<hof_type>(std::move(name_),
-                                          concurrency_.value,
-                                          std::move(predicates),
-                                          graph_,
-                                          std::move(alg_),
-                                          std::vector(inputs.begin(), inputs.end()));
-      });
-      return upstream_predicates<NodePtr>{std::move(registrar_), config_};
+      if constexpr (M == 0ull) {
+        registrar_.set_creator(
+          [this, inputs = std::move(input_args)](auto predicates, auto /* output_products */) {
+            return std::make_unique<hof_type>(std::move(name_),
+                                              concurrency_.value,
+                                              std::move(predicates),
+                                              graph_,
+                                              std::move(alg_),
+                                              std::vector(inputs.begin(), inputs.end()));
+          });
+      } else {
+        registrar_.set_creator(
+          [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
+            return std::make_unique<hof_type>(std::move(name_),
+                                              concurrency_.value,
+                                              std::move(predicates),
+                                              graph_,
+                                              std::move(alg_),
+                                              std::vector(inputs.begin(), inputs.end()),
+                                              std::move(output_products));
+          });
+      }
+      return upstream_predicates<NodePtr, M>{std::move(registrar_), config_};
     }
 
     template <label_compatible L>
@@ -101,7 +114,6 @@ namespace phlex::experimental {
   template <typename T, typename FT>
   class bound_function : public node_options<bound_function<T, FT>> {
     using node_options_t = node_options<bound_function<T, FT>>;
-    using input_parameter_types = function_parameter_types<FT>;
 
     static constexpr auto N = number_parameters<FT>;
 
@@ -125,18 +137,6 @@ namespace phlex::experimental {
     {
     }
 
-    auto transform(std::array<specified_label, N> input_args)
-      requires is_transform_like<FT>
-    {
-      return pre_transform{nodes_.registrar_for<declared_transform_ptr>(errors_),
-                           std::move(name_),
-                           concurrency_.value,
-                           node_options_t::release_predicates(),
-                           graph_,
-                           algorithm_bits(obj_, ft_),
-                           std::vector(input_args.begin(), input_args.end())};
-    }
-
     auto fold(std::array<specified_label, N - 1> input_args)
       requires is_fold_like<FT>
     {
@@ -145,29 +145,14 @@ namespace phlex::experimental {
                       concurrency_.value,
                       node_options_t::release_predicates(),
                       graph_,
-                      algorithm_bits(obj_, ft_),
+                      algorithm_bits(obj_, std::move(ft_)),
                       std::vector(input_args.begin(), input_args.end())};
-    }
-
-    template <label_compatible L>
-    auto transform(std::array<L, N> input_args)
-    {
-      return transform(to_labels(input_args));
     }
 
     template <label_compatible L>
     auto fold(std::array<L, N> input_args)
     {
       return fold(to_labels(input_args));
-    }
-
-    auto transform(label_compatible auto... input_args)
-    {
-      static_assert(N == sizeof...(input_args),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      return transform(
-        {specified_label::create(std::forward<decltype(input_args)>(input_args))...});
     }
 
     auto fold(label_compatible auto... input_args)
