@@ -97,20 +97,18 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   framework_graph g{levels_to_process};
 
-  g.with<iota>(&iota::predicate, &iota::unfold, concurrency::unlimited)
-    .unfold("max_number")
-    .into("new_number")
-    .within_family("lower1");
+  g.unfold<iota>(&iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
+    .input_family("max_number")
+    .output_products("new_number");
   g.fold("add", add, concurrency::unlimited, "event")
     .input_family("new_number")
     .output_products("sum1");
   g.observe("check_sum", check_sum, concurrency::unlimited).input_family("sum1");
 
-  g.with<iterate_through>(
-     &iterate_through::predicate, &iterate_through::unfold, concurrency::unlimited)
-    .unfold("ten_numbers")
-    .into("each_number")
-    .within_family("lower2");
+  g.unfold<iterate_through>(
+     &iterate_through::predicate, &iterate_through::unfold, concurrency::unlimited, "lower2")
+    .input_family("ten_numbers")
+    .output_products("each_number");
   g.fold("add_numbers", add_numbers, concurrency::unlimited, "event")
     .input_family("each_number")
     .output_products("sum2");

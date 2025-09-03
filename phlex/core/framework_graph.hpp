@@ -75,42 +75,55 @@ namespace phlex::experimental {
               std::string partition = "job",
               InitArgs&&... init_args)
     {
-      return create_glue().fold(std::move(name),
-                                std::move(f),
-                                c,
-                                std::move(partition),
-                                std::forward<InitArgs>(init_args)...);
+      return make_glue().fold(std::move(name),
+                              std::move(f),
+                              c,
+                              std::move(partition),
+                              std::forward<InitArgs>(init_args)...);
     }
 
     template <typename T>
-    auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
+    auto unfold(is_predicate_like auto pred,
+                auto unf,
+                concurrency c,
+                std::string destination_data_layer)
     {
-      return unfold_proxy<T>().declare_unfold(predicate, unfold, c);
+      return make_glue<T, false>().unfold(
+        std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
     auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
     {
-      return create_glue().observe(std::move(name), std::move(f), c);
+      return make_glue().observe(std::move(name), std::move(f), c);
     }
 
     auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
     {
-      return create_glue().predicate(std::move(name), std::move(f), c);
+      return make_glue().predicate(std::move(name), std::move(f), c);
     }
 
     auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial)
     {
-      return create_glue().transform(std::move(name), std::move(f), c);
+      return make_glue().transform(std::move(name), std::move(f), c);
     }
 
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
-      return {
-        graph_, nodes_, std::make_shared<T>(std::forward<Args>(args)...), registration_errors_};
+      return make_glue<T>(std::forward<Args>(args)...);
     }
 
   private:
+    template <typename T = void_tag, bool Construct = true, typename... Args>
+    glue<T> make_glue(Args&&... args)
+    {
+      std::shared_ptr<T> bound_object{nullptr};
+      if constexpr (!std::same_as<T, void_tag> && Construct) {
+        bound_object = std::make_shared<T>(std::forward<Args>(args)...);
+      }
+      return {graph_, nodes_, std::move(bound_object), registration_errors_};
+    }
+
     void run();
     void finalize(std::string const& dot_file_prefix);
     void post_data_graph(std::string const& dot_file_prefix);
@@ -118,14 +131,6 @@ namespace phlex::experimental {
     product_store_ptr accept(product_store_ptr store);
     void drain();
     std::size_t original_message_id(product_store_ptr const& store);
-
-    glue<void_tag> create_glue() { return {graph_, nodes_, nullptr, registration_errors_}; }
-
-    template <typename T>
-    unfold_glue<T> unfold_proxy()
-    {
-      return {graph_, nodes_, registration_errors_};
-    }
 
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;
