@@ -10,12 +10,12 @@ float TrackStart::getY() const { return m_y; }
 
 float TrackStart::getZ() const { return m_z; }
 
-TrackStart TrackStart::operator+(TrackStart const& other) const
+TrackStart TrackStart::operator+(const TrackStart& other) const
 {
   return TrackStart(m_x + other.m_x, m_y + other.m_y, m_z + other.m_z);
 }
 
-TrackStart& TrackStart::operator+=(TrackStart const& other)
+TrackStart& TrackStart::operator+=(const TrackStart& other)
 {
   m_x += other.m_x;
   m_y += other.m_y;
@@ -23,12 +23,12 @@ TrackStart& TrackStart::operator+=(TrackStart const& other)
   return *this;
 }
 
-TrackStart TrackStart::operator-(TrackStart const& other) const
+TrackStart TrackStart::operator-(const TrackStart& other) const
 {
   return TrackStart(m_x - other.m_x, m_y - other.m_y, m_z - other.m_z);
 }
 
-std::ostream& operator<<(std::ostream& os, TrackStart const& track)
+std::ostream& operator<<(std::ostream& os, const TrackStart& track)
 {
   os << "TrackStart{" << track.getX() << ", " << track.getY() << ", " << track.getZ() << "}";
   return os;

@@ -5,7 +5,7 @@ ToyTracker::ToyTracker(int maxTracks) : m_maxTracks(maxTracks) {}
 
 std::vector<TrackStart> ToyTracker::operator()()
 {
-  int32_t const npx = generateRandom() % m_maxTracks;
+  const int32_t npx = generateRandom() % m_maxTracks;
   std::vector<TrackStart> points(npx);
   for (int nelement = 0; nelement < npx; ++nelement) {
     points[nelement] = TrackStart(float(generateRandom()) / random_max,

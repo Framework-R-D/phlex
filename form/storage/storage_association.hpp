@@ -11,8 +11,10 @@ namespace form::detail::experimental {
 
   class Storage_Association : public Storage_Container {
   public:
-    Storage_Association(std::string const& name);
+    Storage_Association(const std::string& name);
     ~Storage_Association() = default;
+
+    void setAttribute(const std::string& key, const std::string& value) override;
   };
 
 } // namespace form::detail::experimental

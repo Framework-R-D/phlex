@@ -1,22 +1,21 @@
 // Copyright (C) 2025 ...
 
-#include "data_products/track_start.hpp"
-#include "toy_tracker.hpp"
-
 #include "form/form.hpp"
-#include "form/parse_config.hpp"
 #include "form/technology.hpp"
 #include "mock_phlex/phlex_toy_config.hpp"
+#include "mock_phlex/phlex_toy_core.hpp" // toy of phlex core components
+#include "data_products/track_start.hpp"
+#include "toy_tracker.hpp"
 
 #include <cstdlib>  // For rand() and srand()
 #include <iostream> // For cout
 #include <vector>
 
-static int const NUMBER_EVENT = 4;
-static int const NUMBER_SEGMENT = 15;
+static const int NUMBER_EVENT = 4;
+static const int NUMBER_SEGMENT = 15;
 
-static char const* const evt_id = "[EVENT=%08X]";
-static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
+static const char* const evt_id = "[EVENT=%08X]";
+static const char* const seg_id = "[EVENT=%08X;SEG=%08X]";
 
 void generate(std::vector<float>& vrand, int size)
 {
@@ -41,14 +40,15 @@ int main(int /*argc*/, char** /* argv[]*/)
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
-  mock_phlex::config::parse_config config; // Create PHLEX config
-  config.addItem("trackStart", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("trackNumberHits", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("trackStartPoints", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("trackStartX", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("index", "toy.root", form::Technology::ROOT_TTREE);
+  mock_phlex::config::parse_config config;
+  config.addItem("trackStart", "toy.root", form::technology::ROOT_TTREE);
+  config.addItem("trackNumberHits", "toy.root", form::technology::ROOT_TTREE);
+  config.addItem("trackStartPoints", "toy.root", form::technology::ROOT_TTREE);
+  config.addItem("trackStartX", "toy.root", form::technology::ROOT_TTREE);
+  config.addContainerSetting(257, "trackStart", "auto_flush", "1");
+  config.addFileSetting(257, "toy.root", "compression", "kZSTD");
+  config.addContainerSetting(258, "Toy_Tracker/trackStartPoints", "force_streamer_field", "true");
 
-  // Pass phlex config to interface
   form::experimental::form_interface form(type_map, config);
 
   ToyTracker tracker(4 * 1024);
@@ -68,12 +68,12 @@ int main(int /*argc*/, char** /* argv[]*/)
       for (float val : track_start_x)
         check += val;
 
-      // done, phlex call write(mock_phlex::product_base)
+      // done, phlex call write(phlex::product_base)
       // sub-event writing called by phlex
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
       std::vector<mock_phlex::product_base> batch;
-      std::string const creator = "Toy_Tracker";
+      const std::string creator = "Toy_Tracker";
       mock_phlex::product_base pb = {
         "trackStart", seg_id_text, &track_start_x, std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
@@ -96,7 +96,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       // Now write a vector of a user-defined class for the same event/data grain
       std::vector<TrackStart> start_points = tracker();
       TrackStart checkPoints;
-      for (TrackStart const& point : start_points)
+      for (const TrackStart& point : start_points)
         checkPoints += point;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", checkPoints = " << checkPoints << std::endl;
@@ -122,7 +122,7 @@ int main(int /*argc*/, char** /* argv[]*/)
     // event writing, current framework, will also write references
     char evt_id_text[64];
     sprintf(evt_id_text, evt_id, nevent);
-    std::string const creator = "Toy_Tracker_Event";
+    const std::string creator = "Toy_Tracker_Event";
     mock_phlex::product_base pb = {
       "trackStartX", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";

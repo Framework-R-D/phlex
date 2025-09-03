@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PHLEX_TOY_CORE_HPP__
-#define __PHLEX_TOY_CORE_HPP__
+#ifndef __PHLEX_TOY_CORE_H__
+#define __PHLEX_TOY_CORE_H__
 
 #include <memory>
 #include <string>
@@ -13,7 +13,7 @@ namespace mock_phlex {
   struct product_base {
     std::string label; // Containing data product name only?
     std::string id;
-    void const* data;
+    const void* data;
     std::type_index type;
   };
   struct product_type_names {

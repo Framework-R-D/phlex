@@ -16,12 +16,12 @@ namespace form::detail::experimental {
     Placement() = default;
 
     /// Constructor with initialization
-    Placement(std::string const& fileName, std::string const& containerName, int technology);
+    Placement(const std::string& fileName, const std::string& containerName, int technology);
 
     /// Access file name
-    std::string const& fileName() const;
+    const std::string& fileName() const;
     /// Access container name
-    std::string const& containerName() const;
+    const std::string& containerName() const;
     /// Access technology type
     int technology() const;
 

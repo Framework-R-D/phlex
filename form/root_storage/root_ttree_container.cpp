@@ -8,7 +8,7 @@
 
 using namespace form::detail::experimental;
 
-ROOT_TTree_ContainerImp::ROOT_TTree_ContainerImp(std::string const& name) :
+ROOT_TTree_ContainerImp::ROOT_TTree_ContainerImp(const std::string& name) :
   Storage_Association(name), m_tfile(nullptr), m_tree(nullptr)
 {
 }
@@ -32,7 +32,7 @@ void ROOT_TTree_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
   return;
 }
 
-void ROOT_TTree_ContainerImp::setupWrite(std::string const& /* type*/)
+void ROOT_TTree_ContainerImp::setupWrite(const std::string& /* type*/)
 {
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TTree_ContainerImp::setupWrite no file attached");
@@ -50,7 +50,7 @@ void ROOT_TTree_ContainerImp::setupWrite(std::string const& /* type*/)
   return;
 }
 
-void ROOT_TTree_ContainerImp::fill(void const* /* data*/)
+void ROOT_TTree_ContainerImp::fill(const void* /* data*/)
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::fill not implemented");
 }
@@ -60,7 +60,7 @@ void ROOT_TTree_ContainerImp::commit()
   throw std::runtime_error("ROOT_TTree_ContainerImp::commit not implemented");
 }
 
-bool ROOT_TTree_ContainerImp::read(int /* id*/, void const** /* data*/, std::string& /* type*/)
+bool ROOT_TTree_ContainerImp::read(int /* id*/, const void** /* data*/, std::string& /* type*/)
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::read not implemented");
 }

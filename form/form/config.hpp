@@ -1,18 +1,21 @@
-#ifndef __PARSE_CONFIG_H__
-#define __PARSE_CONFIG_H__
+#ifndef __FORM_CONFIG_H__
+#define __FORM_CONFIG_H__
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace mock_phlex::config {
+namespace form::experimental::config {
 
   struct PersistenceItem {
     std::string product_name; // e.g. "trackStart", "trackNumberHits"
     std::string file_name;    // e.g. "toy.root", "output.hdf5"
     int technology;           // Technology::ROOT_TTREE, Technology::ROOT_RNTUPLE, Technology::HDF5
+
+    PersistenceItem() = default;
 
     PersistenceItem(const std::string& product, const std::string& file, int tech) :
       product_name(product), file_name(file), technology(tech)
@@ -20,39 +23,34 @@ namespace mock_phlex::config {
     }
   };
 
-  class parse_config {
+  class output_item_config {
   public:
-    parse_config() = default;
-    ~parse_config() = default;
+    output_item_config() = default;
+    ~output_item_config() = default;
 
     // Add a configuration item
     void addItem(const std::string& product_name, const std::string& file_name, int technology);
-    void addFileSetting(const int tech,
-                        const std::string& fileName,
-                        const std::string& key,
-                        const std::string& value);
-    void addContainerSetting(const int tech,
-                             const std::string& containerName,
-                             const std::string& key,
-                             const std::string& value);
 
     // Find configuration for a product+creator combination
-    const PersistenceItem* findItem(const std::string& product_name) const;
+    std::optional<PersistenceItem> findItem(const std::string& product_name) const;
 
     // Get all items (for debugging/validation)
     const std::vector<PersistenceItem>& getItems() const { return m_items; }
-    const auto& getFileSettings() const { return m_file_settings; }
-    const auto& getContainerSettings() const { return m_container_settings; }
 
   private:
     std::vector<PersistenceItem> m_items;
-
-    using table_t = std::vector<std::pair<std::string, std::string>>;
-    using map_t = std::map<int, std::unordered_map<std::string, table_t>>;
-    map_t m_file_settings;
-    map_t m_container_settings;
   };
 
-} // namespace mock_phlex::config
+  struct tech_setting_config {
+    using table_t = std::vector<std::pair<std::string, std::string>>;
+    using map_t = std::map<int, std::unordered_map<std::string, table_t>>;
+    map_t file_settings;
+    map_t container_settings;
+
+    table_t getFileTable(const int technology, const std::string& fileName) const;
+    table_t getContainerTable(const int technology, const std::string& containerName) const;
+  };
+
+} // namespace form::config
 
 #endif

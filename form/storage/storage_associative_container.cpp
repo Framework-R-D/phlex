@@ -4,7 +4,7 @@
 
 using namespace form::detail::experimental;
 
-Storage_Associative_Container::Storage_Associative_Container(std::string const& name) :
+Storage_Associative_Container::Storage_Associative_Container(const std::string& name) :
   Storage_Container::Storage_Container(name), m_tName(), m_cName(), m_parent(nullptr)
 {
   auto del_pos = name.find("/");
@@ -19,9 +19,9 @@ Storage_Associative_Container::Storage_Associative_Container(std::string const& 
 
 Storage_Associative_Container::~Storage_Associative_Container() = default;
 
-std::string const& Storage_Associative_Container::top_name() { return m_tName; }
+const std::string& Storage_Associative_Container::top_name() { return m_tName; }
 
-std::string const& Storage_Associative_Container::col_name() { return m_cName; }
+const std::string& Storage_Associative_Container::col_name() { return m_cName; }
 
 void Storage_Associative_Container::setParent(std::shared_ptr<IStorage_Container> parent)
 {

@@ -1,0 +1,4 @@
+<lcgdict>
+  <class name="TrackStart"/>
+  <class name="std::vector<TrackStart>"/>
+</lcgdict>

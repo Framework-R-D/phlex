@@ -16,16 +16,18 @@ namespace form::detail::experimental {
 
   class ROOT_TBranch_ContainerImp : public Storage_Associative_Container {
   public:
-    ROOT_TBranch_ContainerImp(std::string const& name);
+    ROOT_TBranch_ContainerImp(const std::string& name);
     ~ROOT_TBranch_ContainerImp() = default;
+
+    void setAttribute(const std::string& key, const std::string& value) override;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setParent(std::shared_ptr<IStorage_Container> parent) override;
 
-    void setupWrite(std::string const& type = "") override;
-    void fill(void const* data) override;
+    void setupWrite(const std::string& type = "") override;
+    void fill(const void* data) override;
     void commit() override;
-    bool read(int id, void const** data, std::string& type) override;
+    bool read(int id, const void** data, std::string& type) override;
 
   private:
     std::shared_ptr<TFile> m_tfile;

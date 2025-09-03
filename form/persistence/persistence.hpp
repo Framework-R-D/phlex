@@ -1,13 +1,12 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PERSISTENCE_HPP__
-#define __PERSISTENCE_HPP__
+#ifndef __PERSISTENCE_H__
+#define __PERSISTENCE_H__
 
 #include "ipersistence.hpp"
 
 #include "core/placement.hpp"
 #include "core/token.hpp"
-#include "form/parse_config.hpp"
 #include "storage/istorage.hpp"
 
 #include <map>
@@ -16,42 +15,46 @@
 
 // forward declaration for form config
 namespace form::experimental::config {
-  class parse_config;
+  class output_item_config;
+  class tech_setting_config;
 }
 
 namespace form::detail::experimental {
 
   class Persistence : public IPersistence {
   public:
-    Persistence(form::experimental::config::parse_config const& config);
+    Persistence();
     ~Persistence() = default;
+    void configureTechSettings(
+      const form::experimental::config::tech_setting_config& tech_config_settings) override;
 
-    void createContainers(std::string const& creator,
-                          std::map<std::string, std::string> const& products) override;
-    void registerWrite(std::string const& creator,
-                       std::string const& label,
-                       void const* data,
-                       std::string const& type) override;
-    void commitOutput(std::string const& creator, std::string const& id) override;
+    void configureOutputItems(
+      const form::experimental::config::output_item_config& output_items) override;
 
-    void read(std::string const& creator,
-              std::string const& label,
-              std::string const& id,
-              void const** data,
+    void createContainers(const std::string& creator,
+                          const std::map<std::string, std::string>& products) override;
+    void registerWrite(const std::string& creator,
+                       const std::string& label,
+                       const void* data,
+                       const std::string& type) override;
+    void commitOutput(const std::string& creator, const std::string& id) override;
+
+    void read(const std::string& creator,
+              const std::string& label,
+              const std::string& id,
+              const void** data,
               std::string& type) override;
 
   private:
-    std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);
-    std::unique_ptr<Token> getToken(std::string const& creator,
-                                    std::string const& label,
-                                    std::string const& id);
-    form::experimental::config::PersistenceItem const* findConfigItem(
-      std::string const& label) const;
-    std::string buildFullLabel(std::string_view creator, std::string_view label) const;
+    std::unique_ptr<Placement> getPlacement(const std::string& creator, const std::string& label);
+    std::unique_ptr<Token> getToken(const std::string& creator,
+                                    const std::string& label,
+                                    const std::string& id);
 
   private:
     std::unique_ptr<IStorage> m_store;
-    form::experimental::config::parse_config m_config;
+    form::experimental::config::output_item_config m_output_items;
+    form::experimental::config::tech_setting_config m_tech_settings;
   };
 
 } // namespace form::detail::experimental
