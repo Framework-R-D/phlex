@@ -6,7 +6,6 @@
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/detail/make_algorithm_name.hpp"
 #include "phlex/core/node_catalog.hpp"
-#include "phlex/core/node_options.hpp"
 #include "phlex/core/upstream_predicates.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
@@ -111,71 +110,80 @@ namespace phlex::experimental {
       config, std::move(name), std::move(alg), c, g, nodes, errors};
   }
 
-  template <typename T, typename FT>
-  class bound_function : public node_options<bound_function<T, FT>> {
-    using node_options_t = node_options<bound_function<T, FT>>;
+  // ====================================================================================
+  // Fold API
 
-    static constexpr auto N = number_parameters<FT>;
+  template <typename AlgorithmBits, typename... InitArgs>
+  class fold_api {
+    using InitTuple = std::tuple<InitArgs...>;
+
+    static constexpr auto N = AlgorithmBits::number_inputs;
+    static constexpr auto M = 1; // For now
 
   public:
-    bound_function(configuration const* config,
-                   std::string name,
-                   std::shared_ptr<T> obj,
-                   FT f,
-                   concurrency c,
-                   tbb::flow::graph& g,
-                   node_catalog& nodes,
-                   std::vector<std::string>& errors) :
-      node_options_t{config},
+    fold_api(configuration const* config,
+             std::string name,
+             AlgorithmBits alg,
+             concurrency c,
+             tbb::flow::graph& g,
+             node_catalog& nodes,
+             std::vector<std::string>& errors,
+             std::string partition,
+             InitArgs&&... init_args) :
+      config_{config},
       name_{detail::make_algorithm_name(config, std::move(name))},
-      obj_{obj},
-      ft_{std::move(f)},
+      alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
-      nodes_{nodes},
-      errors_{errors}
+      partition_{std::move(partition)},
+      init_{std::forward<InitArgs>(init_args)...},
+      registrar_{nodes.registrar_for<declared_fold_ptr>(errors)}
     {
     }
 
-    auto fold(std::array<specified_label, N - 1> input_args)
-      requires is_fold_like<FT>
+    auto input_family(std::array<specified_label, N - 1> input_args)
     {
-      return pre_fold{nodes_.registrar_for<declared_fold_ptr>(errors_),
-                      std::move(name_),
-                      concurrency_.value,
-                      node_options_t::release_predicates(),
-                      graph_,
-                      algorithm_bits(obj_, std::move(ft_)),
-                      std::vector(input_args.begin(), input_args.end())};
+      registrar_.set_creator(
+        [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
+          return std::make_unique<fold_node<AlgorithmBits, InitTuple>>(
+            std::move(name_),
+            concurrency_.value,
+            std::move(predicates),
+            graph_,
+            std::move(alg_),
+            std::move(init_),
+            std::vector(inputs.begin(), inputs.end()),
+            std::move(output_products),
+            std::move(partition_));
+        });
+      return upstream_predicates<declared_fold_ptr, M>{std::move(registrar_), config_};
     }
 
     template <label_compatible L>
-    auto fold(std::array<L, N> input_args)
+    auto input_family(std::array<L, N> input_args)
     {
-      return fold(to_labels(input_args));
+      return input_family(to_labels(input_args));
     }
 
-    auto fold(label_compatible auto... input_args)
+    auto input_family(label_compatible auto... input_args)
     {
       static_assert(N - 1 == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return fold({specified_label::create(std::forward<decltype(input_args)>(input_args))...});
+      return input_family(
+        {specified_label::create(std::forward<decltype(input_args)>(input_args))...});
     }
 
   private:
+    configuration const* config_;
     algorithm_name name_;
-    std::shared_ptr<T> obj_;
-    FT ft_;
+    AlgorithmBits alg_;
     concurrency concurrency_;
     tbb::flow::graph& graph_;
-    node_catalog& nodes_;
-    std::vector<std::string>& errors_;
+    std::string partition_;
+    InitTuple init_;
+    registrar<declared_fold_ptr> registrar_;
   };
-
-  template <typename T, typename FT>
-  bound_function(configuration const*, std::string, std::shared_ptr<T>, FT, node_catalog&)
-    -> bound_function<T, FT>;
 }
 
 #endif // phlex_core_registration_api_hpp

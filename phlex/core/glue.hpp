@@ -40,14 +40,24 @@ namespace phlex::experimental {
     {
     }
 
-    auto with(std::string name, auto f, concurrency c = concurrency::serial)
+    template <typename... InitArgs>
+    auto fold(
+      std::string name, auto f, concurrency c, std::string partition, InitArgs&&... init_args)
     {
       detail::verify_name(name, config_);
-      return bound_function{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
+      return fold_api{config_,
+                      std::move(name),
+                      algorithm_bits(bound_obj_, std::move(f)),
+                      c,
+                      graph_,
+                      nodes_,
+                      errors_,
+                      std::move(partition),
+                      std::forward<InitArgs>(init_args)...};
     }
 
     template <typename FT>
-    auto observe(std::string name, FT f, concurrency c = concurrency::serial)
+    auto observe(std::string name, FT f, concurrency c)
     {
       detail::verify_name(name, config_);
       return make_registration<observer_node>(config_,
@@ -60,7 +70,7 @@ namespace phlex::experimental {
     }
 
     template <typename FT>
-    auto transform(std::string name, FT f, concurrency c = concurrency::serial)
+    auto transform(std::string name, FT f, concurrency c)
     {
       detail::verify_name(name, config_);
       return make_registration<transform_node>(config_,
@@ -73,7 +83,7 @@ namespace phlex::experimental {
     }
 
     template <typename FT>
-    auto predicate(std::string name, FT f, concurrency c = concurrency::serial)
+    auto predicate(std::string name, FT f, concurrency c)
     {
       detail::verify_name(name, config_);
       return make_registration<predicate_node>(config_,

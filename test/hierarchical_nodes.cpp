@@ -110,12 +110,10 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .input_family("number")
     .output_products("squared_number");
 
-  g.with("add", add, concurrency::unlimited)
+  g.fold("add", add, concurrency::unlimited, "run", 15u)
+    .input_family("squared_number")
     .when()
-    .fold("squared_number")
-    .partitioned_by("run")
-    .to("added_data")
-    .initialized_with(15u);
+    .output_products("added_data");
 
   g.transform("scale", scale, concurrency::unlimited)
     .input_family("added_data")
