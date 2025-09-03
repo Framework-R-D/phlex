@@ -8,7 +8,6 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/multiplexer.hpp"
 #include "phlex/core/products_consumer.hpp"
-#include "phlex/core/registrar.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
@@ -82,101 +81,23 @@ namespace phlex::experimental {
   // =====================================================================================
 
   template <typename Object, typename Predicate, typename Unfold>
-  class partial_unfold {
+  class unfold_node : public declared_unfold, private detect_flush_flag {
     using InputArgs = constructor_parameter_types<Object>;
     static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
     static constexpr std::size_t M = number_output_objects<Unfold>;
 
-    class complete_unfold;
-
   public:
-    partial_unfold(registrar<declared_unfold_ptr> reg,
-                   algorithm_name name,
-                   std::size_t concurrency,
-                   std::vector<std::string> predicates,
-                   tbb::flow::graph& g,
-                   Predicate&& predicate,
-                   Unfold&& unfold,
-                   specified_labels product_labels) :
-      name_{std::move(name)},
-      concurrency_{concurrency},
-      predicates_{std::move(predicates)},
-      graph_{g},
-      predicate_{std::move(predicate)},
-      unfold_{std::move(unfold)},
-      product_labels_{std::move(product_labels)},
-      reg_{std::move(reg)}
-    {
-    }
-
-    template <std::size_t M>
-    auto& into(std::array<std::string, M> output_products)
-    {
-      std::array<qualified_name, M> outputs;
-      std::ranges::transform(output_products, outputs.begin(), to_qualified_name{name_});
-      reg_.set_creator(
-        [this, out = std::move(outputs)](auto, auto) { return create(std::move(out)); });
-      return *this;
-    }
-
-    auto& into(std::convertible_to<std::string> auto&&... ts)
-    {
-      return into(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
-    }
-
-    auto& within_family(std::string new_level_name)
-    {
-      new_level_name_ = std::move(new_level_name);
-      return *this;
-    }
-
-  private:
-    declared_unfold_ptr create(std::array<qualified_name, M> outputs)
-    {
-      return std::make_unique<complete_unfold>(std::move(name_),
-                                               concurrency_,
-                                               std::move(predicates_),
-                                               graph_,
-                                               std::move(predicate_),
-                                               std::move(unfold_),
-                                               std::move(product_labels_),
-                                               std::move(outputs),
-                                               std::move(new_level_name_));
-    }
-
-    algorithm_name name_;
-    std::size_t concurrency_;
-    std::vector<std::string> predicates_;
-    tbb::flow::graph& graph_;
-    Predicate predicate_;
-    Unfold unfold_;
-    specified_labels product_labels_;
-    std::string new_level_name_;
-    registrar<declared_unfold_ptr> reg_;
-  };
-
-  // =====================================================================================
-
-  template <typename Object, typename Predicate, typename Unfold>
-  class partial_unfold<Object, Predicate, Unfold>::complete_unfold :
-    public declared_unfold,
-    private detect_flush_flag {
-    using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
-    using accessor = stores_t::accessor;
-    using const_accessor = stores_t::const_accessor;
-
-  public:
-    complete_unfold(algorithm_name name,
-                    std::size_t concurrency,
-                    std::vector<std::string> predicates,
-                    tbb::flow::graph& g,
-                    Predicate&& predicate,
-                    Unfold&& unfold,
-                    specified_labels input_products,
-                    std::array<qualified_name, M> output_products,
-                    std::string new_level_name) :
-      declared_unfold{std::move(name), std::move(predicates), std::move(input_products)},
-      output_(output_products.begin(), output_products.end()),
+    unfold_node(algorithm_name name,
+                std::size_t concurrency,
+                std::vector<std::string> predicates,
+                tbb::flow::graph& g,
+                Predicate&& predicate,
+                Unfold&& unfold,
+                specified_labels product_labels,
+                std::vector<std::string> output_products,
+                std::string new_level_name) :
+      declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
+      output_{to_qualified_names(full_name(), std::move(output_products))},
       new_level_name_{std::move(new_level_name)},
       multiplexer_{g},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
@@ -208,7 +129,7 @@ namespace phlex::experimental {
       make_edge(to_output_, multiplexer_);
     }
 
-    ~complete_unfold() { report_cached_stores(stores_); }
+    ~unfold_node() { report_cached_stores(stores_); }
 
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
