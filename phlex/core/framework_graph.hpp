@@ -68,9 +68,18 @@ namespace phlex::experimental {
     // N.B. declare_output() is not directly accessible through framework_graph.  Is this
     //      right?
 
-    auto with(std::string name, auto f, concurrency c = concurrency::serial)
+    template <typename... InitArgs>
+    auto fold(std::string name,
+              is_fold_like auto f,
+              concurrency c = concurrency::serial,
+              std::string partition = "job",
+              InitArgs&&... init_args)
     {
-      return create_glue().with(std::move(name), f, c);
+      return create_glue().fold(std::move(name),
+                                std::move(f),
+                                c,
+                                std::move(partition),
+                                std::forward<InitArgs>(init_args)...);
     }
 
     template <typename T>

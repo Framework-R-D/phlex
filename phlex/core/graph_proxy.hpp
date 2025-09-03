@@ -43,9 +43,18 @@ namespace phlex::experimental {
         config_, graph_, nodes_, std::make_shared<U>(std::forward<Args>(args)...), errors_};
     }
 
-    auto with(std::string name, auto f, concurrency c = concurrency::serial)
+    template <typename... InitArgs>
+    auto fold(std::string name,
+              is_fold_like auto f,
+              concurrency c = concurrency::serial,
+              std::string partition = "job",
+              InitArgs&&... init_args)
     {
-      return create_glue().with(std::move(name), f, c);
+      return create_glue().fold(std::move(name),
+                                std::move(f),
+                                c,
+                                std::move(partition),
+                                std::forward<InitArgs>(init_args)...);
     }
 
     auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
