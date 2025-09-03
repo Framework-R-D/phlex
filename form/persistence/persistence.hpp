@@ -26,30 +26,30 @@ namespace form::detail::experimental {
     Persistence();
     ~Persistence() = default;
     void configureTechSettings(
-      const form::experimental::config::tech_setting_config& tech_config_settings) override;
+      form::experimental::config::tech_setting_config const& tech_config_settings) override;
 
     void configureOutputItems(
-      const form::experimental::config::output_item_config& output_items) override;
+      form::experimental::config::output_item_config const& output_items) override;
 
-    void createContainers(const std::string& creator,
-                          const std::map<std::string, std::string>& products) override;
-    void registerWrite(const std::string& creator,
-                       const std::string& label,
-                       const void* data,
-                       const std::string& type) override;
-    void commitOutput(const std::string& creator, const std::string& id) override;
+    void createContainers(std::string const& creator,
+                          std::map<std::string, std::string> const& products) override;
+    void registerWrite(std::string const& creator,
+                       std::string const& label,
+                       void const* data,
+                       std::string const& type) override;
+    void commitOutput(std::string const& creator, std::string const& id) override;
 
-    void read(const std::string& creator,
-              const std::string& label,
-              const std::string& id,
-              const void** data,
+    void read(std::string const& creator,
+              std::string const& label,
+              std::string const& id,
+              void const** data,
               std::string& type) override;
 
   private:
-    std::unique_ptr<Placement> getPlacement(const std::string& creator, const std::string& label);
-    std::unique_ptr<Token> getToken(const std::string& creator,
-                                    const std::string& label,
-                                    const std::string& id);
+    std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);
+    std::unique_ptr<Token> getToken(std::string const& creator,
+                                    std::string const& label,
+                                    std::string const& id);
 
   private:
     std::unique_ptr<IStorage> m_store;

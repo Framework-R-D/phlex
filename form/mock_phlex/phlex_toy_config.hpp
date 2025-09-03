@@ -14,7 +14,7 @@ namespace mock_phlex::config {
     std::string file_name;    // e.g. "toy.root", "output.hdf5"
     int technology;           // Technology::ROOT_TTREE, Technology::ROOT_RNTUPLE, Technology::HDF5
 
-    PersistenceItem(const std::string& product, const std::string& file, int tech) :
+    PersistenceItem(std::string const& product, std::string const& file, int tech) :
       product_name(product), file_name(file), technology(tech)
     {
     }
@@ -26,23 +26,23 @@ namespace mock_phlex::config {
     ~parse_config() = default;
 
     // Add a configuration item
-    void addItem(const std::string& product_name, const std::string& file_name, int technology);
-    void addFileSetting(const int tech,
-                        const std::string& fileName,
-                        const std::string& key,
-                        const std::string& value);
-    void addContainerSetting(const int tech,
-                             const std::string& containerName,
-                             const std::string& key,
-                             const std::string& value);
+    void addItem(std::string const& product_name, std::string const& file_name, int technology);
+    void addFileSetting(int const tech,
+                        std::string const& fileName,
+                        std::string const& key,
+                        std::string const& value);
+    void addContainerSetting(int const tech,
+                             std::string const& containerName,
+                             std::string const& key,
+                             std::string const& value);
 
     // Find configuration for a product+creator combination
-    const PersistenceItem* findItem(const std::string& product_name) const;
+    PersistenceItem const* findItem(std::string const& product_name) const;
 
     // Get all items (for debugging/validation)
-    const std::vector<PersistenceItem>& getItems() const { return m_items; }
-    const auto& getFileSettings() const { return m_file_settings; }
-    const auto& getContainerSettings() const { return m_container_settings; }
+    std::vector<PersistenceItem> const& getItems() const { return m_items; }
+    auto const& getFileSettings() const { return m_file_settings; }
+    auto const& getContainerSettings() const { return m_container_settings; }
 
   private:
     std::vector<PersistenceItem> m_items;

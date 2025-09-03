@@ -17,7 +17,7 @@ namespace form::experimental::config {
 
     PersistenceItem() = default;
 
-    PersistenceItem(const std::string& product, const std::string& file, int tech) :
+    PersistenceItem(std::string const& product, std::string const& file, int tech) :
       product_name(product), file_name(file), technology(tech)
     {
     }
@@ -29,13 +29,13 @@ namespace form::experimental::config {
     ~output_item_config() = default;
 
     // Add a configuration item
-    void addItem(const std::string& product_name, const std::string& file_name, int technology);
+    void addItem(std::string const& product_name, std::string const& file_name, int technology);
 
     // Find configuration for a product+creator combination
-    std::optional<PersistenceItem> findItem(const std::string& product_name) const;
+    std::optional<PersistenceItem> findItem(std::string const& product_name) const;
 
     // Get all items (for debugging/validation)
-    const std::vector<PersistenceItem>& getItems() const { return m_items; }
+    std::vector<PersistenceItem> const& getItems() const { return m_items; }
 
   private:
     std::vector<PersistenceItem> m_items;
@@ -47,8 +47,8 @@ namespace form::experimental::config {
     map_t file_settings;
     map_t container_settings;
 
-    table_t getFileTable(const int technology, const std::string& fileName) const;
-    table_t getContainerTable(const int technology, const std::string& containerName) const;
+    table_t getFileTable(int const technology, std::string const& fileName) const;
+    table_t getContainerTable(int const technology, std::string const& containerName) const;
   };
 
 } // namespace form::config

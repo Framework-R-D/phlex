@@ -16,7 +16,7 @@ namespace form::detail::experimental {
   // Hash function for std::pair
   struct pair_hash {
     template <typename T1, typename T2>
-    std::size_t operator()(const std::pair<T1, T2>& p) const
+    std::size_t operator()(std::pair<T1, T2> const& p) const
     {
       std::hash<T1> h1;
       std::hash<T2> h2;
@@ -30,18 +30,18 @@ namespace form::detail::experimental {
     ~Storage() = default;
 
     using table_t = form::experimental::config::tech_setting_config::table_t;
-    void createContainers(const std::map<std::unique_ptr<Placement>, std::string>& containers,
-                          const form::experimental::config::tech_setting_config& settings) override;
-    void fillContainer(const Placement& plcmnt, const void* data, const std::string& type) override;
-    void commitContainers(const Placement& plcmnt) override;
+    void createContainers(std::map<std::unique_ptr<Placement>, std::string> const& containers,
+                          form::experimental::config::tech_setting_config const& settings) override;
+    void fillContainer(Placement const& plcmnt, void const* data, std::string const& type) override;
+    void commitContainers(Placement const& plcmnt) override;
 
-    int getIndex(const Token& token,
-                 const std::string& id,
-                 const form::experimental::config::tech_setting_config& settings) override;
-    void readContainer(const Token& token,
-                       const void** data,
+    int getIndex(Token const& token,
+                 std::string const& id,
+                 form::experimental::config::tech_setting_config const& settings) override;
+    void readContainer(Token const& token,
+                       void const** data,
                        std::string& type,
-                       const form::experimental::config::tech_setting_config& settings) override;
+                       form::experimental::config::tech_setting_config const& settings) override;
 
   private:
     std::map<std::string, std::shared_ptr<IStorage_File>> m_files;

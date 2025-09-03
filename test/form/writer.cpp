@@ -1,21 +1,21 @@
 // Copyright (C) 2025 ...
 
+#include "data_products/track_start.hpp"
 #include "form/form.hpp"
 #include "form/technology.hpp"
 #include "mock_phlex/phlex_toy_config.hpp"
 #include "mock_phlex/phlex_toy_core.hpp" // toy of phlex core components
-#include "data_products/track_start.hpp"
 #include "toy_tracker.hpp"
 
 #include <cstdlib>  // For rand() and srand()
 #include <iostream> // For cout
 #include <vector>
 
-static const int NUMBER_EVENT = 4;
-static const int NUMBER_SEGMENT = 15;
+static int const NUMBER_EVENT = 4;
+static int const NUMBER_SEGMENT = 15;
 
-static const char* const evt_id = "[EVENT=%08X]";
-static const char* const seg_id = "[EVENT=%08X;SEG=%08X]";
+static char const* const evt_id = "[EVENT=%08X]";
+static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
 
 void generate(std::vector<float>& vrand, int size)
 {
@@ -73,7 +73,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
       std::vector<mock_phlex::product_base> batch;
-      const std::string creator = "Toy_Tracker";
+      std::string const creator = "Toy_Tracker";
       mock_phlex::product_base pb = {
         "trackStart", seg_id_text, &track_start_x, std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
@@ -96,7 +96,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       // Now write a vector of a user-defined class for the same event/data grain
       std::vector<TrackStart> start_points = tracker();
       TrackStart checkPoints;
-      for (const TrackStart& point : start_points)
+      for (TrackStart const& point : start_points)
         checkPoints += point;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", checkPoints = " << checkPoints << std::endl;
@@ -122,7 +122,7 @@ int main(int /*argc*/, char** /* argv[]*/)
     // event writing, current framework, will also write references
     char evt_id_text[64];
     sprintf(evt_id_text, evt_id, nevent);
-    const std::string creator = "Toy_Tracker_Event";
+    std::string const creator = "Toy_Tracker_Event";
     mock_phlex::product_base pb = {
       "trackStartX", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";

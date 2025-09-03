@@ -14,10 +14,10 @@ namespace form::detail::experimental {
   std::unique_ptr<IStorage> createStorage() { return std::unique_ptr<IStorage>(new Storage()); }
 }
 
-void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::string>& containers,
-                               const form::experimental::config::tech_setting_config& settings)
+void Storage::createContainers(std::map<std::unique_ptr<Placement>, std::string> const& containers,
+                               form::experimental::config::tech_setting_config const& settings)
 {
-  for (const auto& [plcmnt, type] : containers) {
+  for (auto const& [plcmnt, type] : containers) {
     // Use file+container as composite key
     auto key = std::make_pair(plcmnt->fileName(), plcmnt->containerName());
     auto cont = m_containers.find(key);
@@ -28,7 +28,7 @@ void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::s
         m_files.insert(
           {plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')});
         file = m_files.find(plcmnt->fileName());
-        for (const auto& [key, value] :
+        for (auto const& [key, value] :
              settings.getFileTable(plcmnt->technology(), plcmnt->fileName()))
           file->second->setAttribute(key, value);
       }
@@ -52,7 +52,7 @@ void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::s
         }
       }
 
-      for (const auto& [key, value] :
+      for (auto const& [key, value] :
            settings.getContainerTable(plcmnt->technology(), plcmnt->containerName()))
         container->setAttribute(key, value);
       container->setFile(file->second);
@@ -62,7 +62,7 @@ void Storage::createContainers(const std::map<std::unique_ptr<Placement>, std::s
   return;
 }
 
-void Storage::fillContainer(const Placement& plcmnt, const void* data, const std::string& /* type*/)
+void Storage::fillContainer(Placement const& plcmnt, void const* data, std::string const& /* type*/)
 {
   // Use file+container as composite key
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
@@ -76,7 +76,7 @@ void Storage::fillContainer(const Placement& plcmnt, const void* data, const std
   return;
 }
 
-void Storage::commitContainers(const Placement& plcmnt)
+void Storage::commitContainers(Placement const& plcmnt)
 {
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
   auto cont = m_containers.find(key);
@@ -84,9 +84,9 @@ void Storage::commitContainers(const Placement& plcmnt)
   return;
 }
 
-int Storage::getIndex(const Token& token,
-                      const std::string& id,
-                      const form::experimental::config::tech_setting_config& settings)
+int Storage::getIndex(Token const& token,
+                      std::string const& id,
+                      form::experimental::config::tech_setting_config const& settings)
 {
   if (m_indexMaps[token.containerName()].empty()) {
     auto key = std::make_pair(token.fileName(), token.containerName());
@@ -96,23 +96,23 @@ int Storage::getIndex(const Token& token,
       if (file == m_files.end()) {
         m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
         file = m_files.find(token.fileName());
-        for (const auto& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
+        for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
           file->second->setAttribute(key, value);
       }
       m_containers.insert({key, createContainer(token.technology(), token.containerName())});
       cont = m_containers.find(key);
-      for (const auto& [key, value] :
+      for (auto const& [key, value] :
            settings.getContainerTable(token.technology(), token.containerName()))
         cont->second->setAttribute(key, value);
       cont->second->setFile(file->second);
     }
-    const void* data;
+    void const* data;
     std::string type = "std::string";
     int entry = 1;
     while (cont->second->read(entry, &data, type)) {
       m_indexMaps[token.containerName()].insert(
-        std::make_pair(*(static_cast<const std::string*>(data)), entry));
-      delete static_cast<const std::string*>(
+        std::make_pair(*(static_cast<std::string const*>(data)), entry));
+      delete static_cast<std::string const*>(
         data); //FIXME: smart pointer?  The overhead to delete an arbitrary type is not much prettier
       entry++;
     }
@@ -121,10 +121,10 @@ int Storage::getIndex(const Token& token,
   return entry;
 }
 
-void Storage::readContainer(const Token& token,
-                            const void** data,
+void Storage::readContainer(Token const& token,
+                            void const** data,
                             std::string& type,
-                            const form::experimental::config::tech_setting_config& settings)
+                            form::experimental::config::tech_setting_config const& settings)
 {
   auto key = std::make_pair(token.fileName(), token.containerName());
   auto cont = m_containers.find(key);
@@ -133,13 +133,13 @@ void Storage::readContainer(const Token& token,
     if (file == m_files.end()) {
       m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
       file = m_files.find(token.fileName());
-      for (const auto& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
+      for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
         file->second->setAttribute(key, value);
     }
     m_containers.insert({key, createContainer(token.technology(), token.containerName())});
     cont = m_containers.find(key);
     cont->second->setFile(file->second);
-    for (const auto& [key, value] :
+    for (auto const& [key, value] :
          settings.getContainerTable(token.technology(), token.containerName()))
       cont->second->setAttribute(key, value);
   }

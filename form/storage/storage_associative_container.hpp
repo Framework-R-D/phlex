@@ -11,11 +11,11 @@ namespace form::detail::experimental {
 
   class Storage_Associative_Container : public Storage_Container {
   public:
-    Storage_Associative_Container(const std::string& name);
+    Storage_Associative_Container(std::string const& name);
     ~Storage_Associative_Container();
 
-    const std::string& top_name();
-    const std::string& col_name();
+    std::string const& top_name();
+    std::string const& col_name();
 
     virtual void setParent(std::shared_ptr<IStorage_Container> parent);
 
