@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
 
     // Add the fold node to the graph.
     demo::log_record("add_fold");
-    g.with(
+    g.fold(
        "accum_for_spill",
        [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) {
          auto apa_id = hwf.level_id().number();
@@ -149,11 +149,11 @@ int main(int argc, char* argv[])
          auto run_id = hwf.level_id().parent()->parent()->parent()->number();
          demo::accumulateSCW(scw, *hwf, run_id, subrun_id, spill_id, apa_id);
        },
-       concurrency::unlimited)
-      .fold("clamped_waves"_in("APA"))
-      .to("summed_waveforms")
-      .partitioned_by("spill") // partition the output by the spill
-      ;
+       concurrency::unlimited,
+       "spill" // partition the output by the spill
+       )
+      .input_family("clamped_waves"_in("APA"))
+      .output_products("summed_waveforms");
 
     demo::log_record("add_output");
     g.make<test::products_for_output>().output_with(
