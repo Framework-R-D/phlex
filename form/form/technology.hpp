@@ -1,5 +1,5 @@
-#ifndef __TECHNOLOGY_HPP__
-#define __TECHNOLOGY_HPP__
+#ifndef __TECHNOLOGY_H__
+#define __TECHNOLOGY_H__
 
 namespace form {
   namespace technology {

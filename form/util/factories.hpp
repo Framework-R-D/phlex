@@ -1,7 +1,7 @@
 // Copyright (C) 2025 .....
 
-#ifndef __FACTORIES_HPP__
-#define __FACTORIES_HPP__
+#ifndef __FACTORIES_H__
+#define __FACTORIES_H__
 
 #include "form/technology.hpp"
 
