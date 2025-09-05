@@ -1,6 +1,7 @@
 #include "phlex/core/glue.hpp"
 #include "phlex/configuration.hpp"
 
+#include <stdexcept>
 #include <string>
 
 namespace phlex::experimental::detail {

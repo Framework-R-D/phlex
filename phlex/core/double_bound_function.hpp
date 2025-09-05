@@ -7,6 +7,7 @@
 #include "phlex/core/declared_observer.hpp"
 #include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/declared_transform.hpp"
+#include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/node_options.hpp"

@@ -48,6 +48,7 @@
 // =======================================================================================
 
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -63,7 +64,7 @@ namespace phlex::experimental {
 
   public:
     explicit registrar(Nodes& nodes, std::vector<std::string>& errors) :
-      nodes_{nodes}, errors_{errors}
+      nodes_{&nodes}, errors_{&errors}
     {
     }
 
@@ -79,16 +80,16 @@ namespace phlex::experimental {
       if (creator_) {
         auto ptr = creator_();
         auto name = ptr->full_name();
-        auto [_, inserted] = nodes_.try_emplace(name, std::move(ptr));
+        auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
         if (not inserted) {
-          errors_.push_back(fmt::format("Node with name '{}' already exists", name));
+          errors_->push_back(fmt::format("Node with name '{}' already exists", name));
         }
       }
     }
 
   private:
-    Nodes& nodes_;
-    std::vector<std::string>& errors_;
+    Nodes* nodes_;
+    std::vector<std::string>* errors_;
     Creator creator_{};
   };
 

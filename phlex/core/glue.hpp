@@ -2,7 +2,6 @@
 #define phlex_core_glue_hpp
 
 #include "phlex/concurrency.hpp"
-#include "phlex/configuration.hpp"
 #include "phlex/core/bound_function.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/double_bound_function.hpp"
@@ -14,12 +13,12 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <utility>
 
 namespace phlex::experimental {
+  class configuration;
 
   namespace detail {
     void verify_name(std::string const& name, configuration const* config);

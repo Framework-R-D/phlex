@@ -9,6 +9,9 @@
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/registrar.hpp"
 
+#include <string>
+#include <vector>
+
 namespace phlex::experimental {
   struct node_catalog {
     auto register_output(std::vector<std::string>& errors) { return registrar{outputs_, errors}; }
