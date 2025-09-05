@@ -1,5 +1,5 @@
-#ifndef __PARSE_CONFIG_H__
-#define __PARSE_CONFIG_H__
+#ifndef __PARSE_CONFIG_HPP__
+#define __PARSE_CONFIG_HPP__
 
 #include <map>
 #include <memory>

@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __IPERSISTENCE_H__
-#define __IPERSISTENCE_H__
+#ifndef __IPERSISTENCE_HPP__
+#define __IPERSISTENCE_HPP__
 
 #include <map>
 #include <memory>

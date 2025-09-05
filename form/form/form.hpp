@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __FORM_H__
-#define __FORM_H__
+#ifndef __FORM_HPP__
+#define __FORM_HPP__
 
 #include "form/config.hpp"
 #include "mock_phlex/phlex_toy_config.hpp"

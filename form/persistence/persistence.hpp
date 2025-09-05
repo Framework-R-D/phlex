@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PERSISTENCE_H__
-#define __PERSISTENCE_H__
+#ifndef __PERSISTENCE_HPP__
+#define __PERSISTENCE_HPP__
 
 #include "ipersistence.hpp"
 

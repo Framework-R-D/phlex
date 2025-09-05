@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __ROOT_TBRANCH_CONTAINER_H__
-#define __ROOT_TBRANCH_CONTAINER_H__
+#ifndef __ROOT_TBRANCH_CONTAINER_HPP__
+#define __ROOT_TBRANCH_CONTAINER_HPP__
 
 #include "storage/storage_associative_container.hpp"
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __ROOT_TFILE_H__
-#define __ROOT_TFILE_H__
+#ifndef __ROOT_TFILE_HPP__
+#define __ROOT_TFILE_HPP__
 
 #include "storage/storage_file.hpp"
 

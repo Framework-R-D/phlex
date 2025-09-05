@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __ISTORAGE_H__
-#define __ISTORAGE_H__
+#ifndef __ISTORAGE_HPP__
+#define __ISTORAGE_HPP__
 
 #include "core/placement.hpp"
 #include "core/token.hpp"

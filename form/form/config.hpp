@@ -1,5 +1,5 @@
-#ifndef __FORM_CONFIG_H__
-#define __FORM_CONFIG_H__
+#ifndef __FORM_CONFIG_HPP__
+#define __FORM_CONFIG_HPP__
 
 #include <map>
 #include <memory>

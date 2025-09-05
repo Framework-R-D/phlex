@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __STORAGE_FILE_H__
-#define __STORAGE_FILE_H__
+#ifndef __STORAGE_FILE_HPP__
+#define __STORAGE_FILE_HPP__
 
 #include "istorage.hpp"
 

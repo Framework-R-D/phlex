@@ -68,7 +68,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       for (float val : track_start_x)
         check += val;
 
-      // done, phlex call write(phlex::product_base)
+      // done, phlex call write(mock_phlex::product_base)
       // sub-event writing called by phlex
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
