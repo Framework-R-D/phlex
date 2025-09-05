@@ -47,7 +47,8 @@ int main(int /*argc*/, char** /* argv[]*/)
   config.addItem("trackStartX", "toy.root", form::technology::ROOT_TTREE);
   config.addContainerSetting(form::technology::ROOT_TTREE, "trackStart", "auto_flush", "1");
   config.addFileSetting(form::technology::ROOT_TTREE, "toy.root", "compression", "kZSTD");
-  config.addContainerSetting(form::technology::ROOT_RNTUPLE, "Toy_Tracker/trackStartPoints", "force_streamer_field", "true");
+  config.addContainerSetting(
+    form::technology::ROOT_RNTUPLE, "Toy_Tracker/trackStartPoints", "force_streamer_field", "true");
 
   form::experimental::form_interface form(type_map, config);
 
