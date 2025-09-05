@@ -42,10 +42,10 @@ namespace form::detail::experimental {
 #endif // USE_ROOT_STORAGE
       }
     } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
-#ifdef USE_HDF5
+#ifdef USE_HDF5_STORAGE
       // Add HDF5 implementation when available
       // return std::make_shared<HDF5_ContainerImp>(name);
-#endif // USE_HDF5
+#endif // USE_HDF5_STORAGE
     }
 
     // Default fallback
@@ -62,10 +62,10 @@ namespace form::detail::experimental {
 #endif // USE_ROOT_STORAGE
       }
     } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
-#ifdef USE_HDF5
+#ifdef USE_HDF5_STORAGE
       // Add HDF5 implementation when available
       // return std::make_shared<HDF5_Field_ContainerImp>(name);
-#endif // USE_HDF5
+#endif // USE_HDF5_STORAGE
     }
 
     // Default fallback

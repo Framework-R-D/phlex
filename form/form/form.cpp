@@ -7,11 +7,12 @@ namespace form::experimental {
   // Accept and store config
   form_interface::form_interface(std::shared_ptr<mock_phlex::product_type_names> tm,
                                  mock_phlex::config::parse_config const& config) :
-    m_pers(nullptr), m_type_map(tm), m_output_items()
+    m_pers(nullptr), m_type_map(tm)
   {
     // Convert phlex config to form config
+    form::experimental::config::output_item_config output_items;
     for (auto const& phlex_item : config.getItems()) {
-      m_output_items.addItem(phlex_item.product_name, phlex_item.file_name, phlex_item.technology);
+      output_items.addItem(phlex_item.product_name, phlex_item.file_name, phlex_item.technology);
       m_product_to_config.emplace(
         phlex_item.product_name,
         form::experimental::config::PersistenceItem(
@@ -23,7 +24,7 @@ namespace form::experimental {
     tech_config_settings.container_settings = config.getContainerSettings();
 
     m_pers = form::detail::experimental::createPersistence();
-    m_pers->configureOutputItems(m_output_items);
+    m_pers->configureOutputItems(output_items);
     m_pers->configureTechSettings(tech_config_settings);
   }
 

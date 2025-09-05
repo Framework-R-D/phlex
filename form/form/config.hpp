@@ -51,6 +51,6 @@ namespace form::experimental::config {
     table_t getContainerTable(int const technology, std::string const& containerName) const;
   };
 
-} // namespace form::config
+} // namespace form::experimental::config
 
 #endif
