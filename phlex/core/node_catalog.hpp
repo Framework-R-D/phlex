@@ -9,23 +9,15 @@
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/registrar.hpp"
 
+#include <string>
+#include <vector>
+
 namespace phlex::experimental {
   struct node_catalog {
-    auto register_predicate(std::vector<std::string>& errors)
-    {
-      return registrar{predicates_, errors};
-    }
-    auto register_observer(std::vector<std::string>& errors)
-    {
-      return registrar{observers_, errors};
-    }
     auto register_output(std::vector<std::string>& errors) { return registrar{outputs_, errors}; }
-    auto register_fold(std::vector<std::string>& errors) { return registrar{folds_, errors}; }
-    auto register_unfold(std::vector<std::string>& errors) { return registrar{unfolds_, errors}; }
-    auto register_transform(std::vector<std::string>& errors)
-    {
-      return registrar{transforms_, errors};
-    }
+
+    template <typename T>
+    auto registrar_for(std::vector<std::string>& errors) = delete;
 
     declared_predicates predicates_{};
     declared_observers observers_{};
@@ -34,6 +26,36 @@ namespace phlex::experimental {
     declared_unfolds unfolds_{};
     declared_transforms transforms_{};
   };
+
+  template <>
+  inline auto node_catalog::registrar_for<declared_predicate_ptr>(std::vector<std::string>& errors)
+  {
+    return registrar{predicates_, errors};
+  }
+
+  template <>
+  inline auto node_catalog::registrar_for<declared_observer_ptr>(std::vector<std::string>& errors)
+  {
+    return registrar{observers_, errors};
+  }
+
+  template <>
+  inline auto node_catalog::registrar_for<declared_transform_ptr>(std::vector<std::string>& errors)
+  {
+    return registrar{transforms_, errors};
+  }
+
+  template <>
+  inline auto node_catalog::registrar_for<declared_fold_ptr>(std::vector<std::string>& errors)
+  {
+    return registrar{folds_, errors};
+  }
+
+  template <>
+  inline auto node_catalog::registrar_for<declared_unfold_ptr>(std::vector<std::string>& errors)
+  {
+    return registrar{unfolds_, errors};
+  }
 }
 
 #endif // phlex_core_node_catalog_hpp

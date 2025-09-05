@@ -53,59 +53,7 @@ namespace phlex::experimental {
   // =====================================================================================
 
   template <is_predicate_like FT, typename InputArgs>
-  class pre_predicate {
-    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
-    using function_t = FT;
-
-    class complete_predicate;
-
-  public:
-    pre_predicate(registrar<declared_predicates> reg,
-                  algorithm_name name,
-                  std::size_t concurrency,
-                  std::vector<std::string> predicates,
-                  tbb::flow::graph& g,
-                  function_t&& f,
-                  InputArgs input_args) :
-      name_{std::move(name)},
-      concurrency_{concurrency},
-      predicates_{std::move(predicates)},
-      graph_{g},
-      ft_{std::move(f)},
-      input_args_{std::move(input_args)},
-      product_labels_{detail::port_names(input_args_)},
-      reg_{std::move(reg)}
-    {
-      reg_.set([this] { return create(); });
-    }
-
-  private:
-    declared_predicate_ptr create()
-    {
-      return std::make_unique<complete_predicate>(std::move(name_),
-                                                  concurrency_,
-                                                  std::move(predicates_),
-                                                  graph_,
-                                                  std::move(ft_),
-                                                  std::move(input_args_),
-                                                  std::move(product_labels_));
-    }
-    algorithm_name name_;
-    std::size_t concurrency_;
-    std::vector<std::string> predicates_;
-    tbb::flow::graph& graph_;
-    function_t ft_;
-    InputArgs input_args_;
-    std::array<specified_label, N> product_labels_;
-    registrar<declared_predicates> reg_;
-  };
-
-  // =====================================================================================
-
-  template <is_predicate_like FT, typename InputArgs>
-  class pre_predicate<FT, InputArgs>::complete_predicate :
-    public declared_predicate,
-    private detect_flush_flag {
+  class predicate : public declared_predicate, private detect_flush_flag {
     static constexpr auto N = std::tuple_size_v<InputArgs>;
     using function_t = FT;
     using results_t = tbb::concurrent_hash_map<level_id::hash_type, predicate_result>;
@@ -113,16 +61,17 @@ namespace phlex::experimental {
     using const_accessor = results_t::const_accessor;
 
   public:
-    complete_predicate(algorithm_name name,
-                       std::size_t concurrency,
-                       std::vector<std::string> predicates,
-                       tbb::flow::graph& g,
-                       function_t&& f,
-                       InputArgs input,
-                       std::array<specified_label, N> product_labels) :
+    using node_ptr_type = declared_predicate_ptr;
+
+    predicate(algorithm_name name,
+              std::size_t concurrency,
+              std::vector<std::string> predicates,
+              tbb::flow::graph& g,
+              function_t&& f,
+              std::array<specified_label, N> input) :
       declared_predicate{std::move(name), std::move(predicates)},
-      product_labels_{std::move(product_labels)},
-      input_{std::move(input)},
+      input_{form_input_arguments<InputArgs>(full_name(), std::move(input))},
+      product_labels_{detail::port_names(input_)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       predicate_{g,
                  concurrency,
@@ -149,7 +98,7 @@ namespace phlex::experimental {
       make_edge(join_, predicate_);
     }
 
-    ~complete_predicate()
+    ~predicate()
     {
       if (results_.size() > 0ull) {
         spdlog::warn("Filter {} has {} cached results.", full_name(), results_.size());
@@ -176,8 +125,8 @@ namespace phlex::experimental {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
+    input_retriever_types<InputArgs> input_;
     std::array<specified_label, N> product_labels_;
-    InputArgs input_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>, predicate_result> predicate_;
     results_t results_;

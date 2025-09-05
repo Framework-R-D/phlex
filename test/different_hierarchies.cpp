@@ -86,12 +86,12 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
     .initialized_with(0u);
   g.with("job_add", add, concurrency::unlimited).fold("number").to("job_sum");
 
-  g.with("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }).observe("run_sum");
-  g.with("verify_job_sum",
-         [](unsigned int actual) {
-           CHECK(actual == 20u + 45u); // 20u from events, 45u from trigger primitives
-         })
-    .observe("job_sum");
+  g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }).family("run_sum");
+  g.observe("verify_job_sum",
+            [](unsigned int actual) {
+              CHECK(actual == 20u + 45u); // 20u from events, 45u from trigger primitives
+            })
+    .family("job_sum");
 
   g.execute();
 

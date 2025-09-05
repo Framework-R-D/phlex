@@ -7,6 +7,6 @@ namespace {
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
-  m.with("read_index", read_index, phlex::experimental::concurrency::unlimited)
-    .observe(config.get<std::string>("consumes"));
+  m.observe("read_index", read_index, phlex::experimental::concurrency::unlimited)
+    .family(config.get<std::string>("consumes"));
 }

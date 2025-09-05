@@ -7,6 +7,7 @@
 #include "phlex/core/declared_observer.hpp"
 #include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/declared_transform.hpp"
+#include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/node_options.hpp"
@@ -60,7 +61,7 @@ namespace phlex::experimental {
         form_input_arguments<input_parameter_types>(name_.full(), std::move(input_args));
 
       return partial_unfold<Object, Predicate, Unfold, decltype(processed_input_args)>{
-        nodes_.register_unfold(errors_),
+        nodes_.registrar_for<declared_unfold_ptr>(errors_),
         std::move(name_),
         concurrency_,
         node_options_t::release_predicates(),

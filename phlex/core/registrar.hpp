@@ -48,6 +48,7 @@
 // =======================================================================================
 
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -56,13 +57,14 @@ namespace phlex::experimental {
   template <typename T>
   concept map_like = requires { typename T::mapped_type; };
 
-  template <map_like Nodes>
+  template <typename Ptr>
   class registrar {
-    using Creator = std::function<typename Nodes::mapped_type()>;
+    using Nodes = std::map<std::string, Ptr>;
+    using Creator = std::function<Ptr()>;
 
   public:
     explicit registrar(Nodes& nodes, std::vector<std::string>& errors) :
-      nodes_{nodes}, errors_{errors}
+      nodes_{&nodes}, errors_{&errors}
     {
     }
 
@@ -78,18 +80,21 @@ namespace phlex::experimental {
       if (creator_) {
         auto ptr = creator_();
         auto name = ptr->full_name();
-        auto [_, inserted] = nodes_.try_emplace(name, std::move(ptr));
+        auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
         if (not inserted) {
-          errors_.push_back(fmt::format("Node with name '{}' already exists", name));
+          errors_->push_back(fmt::format("Node with name '{}' already exists", name));
         }
       }
     }
 
   private:
-    Nodes& nodes_;
-    std::vector<std::string>& errors_;
+    Nodes* nodes_;
+    std::vector<std::string>* errors_;
     Creator creator_{};
   };
+
+  template <map_like Nodes>
+  registrar(Nodes&, std::vector<std::string>&) -> registrar<typename Nodes::mapped_type>;
 
 }
 
