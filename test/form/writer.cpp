@@ -45,9 +45,9 @@ int main(int /*argc*/, char** /* argv[]*/)
   config.addItem("trackNumberHits", "toy.root", form::technology::ROOT_TTREE);
   config.addItem("trackStartPoints", "toy.root", form::technology::ROOT_TTREE);
   config.addItem("trackStartX", "toy.root", form::technology::ROOT_TTREE);
-  config.addContainerSetting(257, "trackStart", "auto_flush", "1");
-  config.addFileSetting(257, "toy.root", "compression", "kZSTD");
-  config.addContainerSetting(258, "Toy_Tracker/trackStartPoints", "force_streamer_field", "true");
+  config.addContainerSetting(form::technology::ROOT_TTREE, "trackStart", "auto_flush", "1");
+  config.addFileSetting(form::technology::ROOT_TTREE, "toy.root", "compression", "kZSTD");
+  config.addContainerSetting(form::technology::ROOT_RNTUPLE, "Toy_Tracker/trackStartPoints", "force_streamer_field", "true");
 
   form::experimental::form_interface form(type_map, config);
 
