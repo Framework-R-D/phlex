@@ -1,4 +1,4 @@
-#Copyright(C) 2025 ...
+# Copyright (C) 2025 ...
 
-#Component(s) in the package:
+# Component(s) in the package:
 add_library(core placement.cpp token.cpp)
