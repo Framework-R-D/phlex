@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __STORAGE_H__
-#define __STORAGE_H__
+#ifndef __STORAGE_HPP__
+#define __STORAGE_HPP__
 
 #include "istorage.hpp"
 
@@ -29,13 +29,19 @@ namespace form::detail::experimental {
     Storage() = default;
     ~Storage() = default;
 
-    void createContainers(
-      std::map<std::unique_ptr<Placement>, std::string> const& containers) override;
+    using table_t = form::experimental::config::tech_setting_config::table_t;
+    void createContainers(std::map<std::unique_ptr<Placement>, std::string> const& containers,
+                          form::experimental::config::tech_setting_config const& settings) override;
     void fillContainer(Placement const& plcmnt, void const* data, std::string const& type) override;
     void commitContainers(Placement const& plcmnt) override;
 
-    int getIndex(Token const& token, std::string const& id) override;
-    void readContainer(Token const& token, void const** data, std::string& type) override;
+    int getIndex(Token const& token,
+                 std::string const& id,
+                 form::experimental::config::tech_setting_config const& settings) override;
+    void readContainer(Token const& token,
+                       void const** data,
+                       std::string& type,
+                       form::experimental::config::tech_setting_config const& settings) override;
 
   private:
     std::map<std::string, std::shared_ptr<IStorage_File>> m_files;

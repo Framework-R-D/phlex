@@ -17,4 +17,28 @@ ROOT_TFileImp::ROOT_TFileImp(std::string const& name, char mode) :
 
 ROOT_TFileImp::~ROOT_TFileImp() = default;
 
+void ROOT_TFileImp::setAttribute(std::string const& key, std::string const& value)
+{
+  if (key == "compression") {
+    using RComp = ROOT::RCompressionSetting::EAlgorithm;
+    RComp::EValues compression;
+    if (value == "kZLIB")
+      compression = RComp::kZLIB;
+    else if (value == "kLZMA")
+      compression = RComp::kLZMA;
+    else if (value == "kOldCompressionAlgo")
+      compression = RComp::kOldCompressionAlgo;
+    else if (value == "kLZ4")
+      compression = RComp::kLZ4;
+    else if (value == "kZSTD")
+      compression = RComp::kZSTD;
+    else
+      compression = RComp::kUndefined;
+
+    m_file->SetCompressionAlgorithm(compression);
+  } else {
+    throw std::runtime_error("ROOT_TFileImp does not recognize an attribute named " + key);
+  }
+}
+
 std::shared_ptr<TFile> ROOT_TFileImp::getTFile() { return m_file; }
