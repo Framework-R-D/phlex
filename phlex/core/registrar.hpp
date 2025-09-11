@@ -47,19 +47,16 @@
 //
 // =======================================================================================
 
+#include "phlex/utilities/simple_ptr_map.hpp"
+
 #include <functional>
-#include <map>
 #include <string>
 #include <vector>
 
 namespace phlex::experimental {
-
-  template <typename T>
-  concept map_like = requires { typename T::mapped_type; };
-
   template <typename Ptr>
   class registrar {
-    using Nodes = std::map<std::string, Ptr>;
+    using Nodes = simple_ptr_map<Ptr>;
     using Creator = std::function<Ptr()>;
 
   public:
@@ -92,10 +89,6 @@ namespace phlex::experimental {
     std::vector<std::string>* errors_;
     Creator creator_{};
   };
-
-  template <map_like Nodes>
-  registrar(Nodes&, std::vector<std::string>&) -> registrar<typename Nodes::mapped_type>;
-
 }
 
 #endif // phlex_core_registrar_hpp

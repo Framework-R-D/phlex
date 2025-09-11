@@ -72,7 +72,7 @@ namespace phlex::experimental {
   };
 
   using declared_unfold_ptr = std::unique_ptr<declared_unfold>;
-  using declared_unfolds = std::map<std::string, declared_unfold_ptr>;
+  using declared_unfolds = simple_ptr_map<declared_unfold_ptr>;
 
   // =====================================================================================
 

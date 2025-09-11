@@ -12,19 +12,6 @@ namespace phlex::experimental {
     return {std::move(name), std::move(family)};
   }
 
-  // specified_label specified_label::related_to(std::string relation) &&
-  // {
-  //   return {std::move(name),
-  //           std::move(family),
-  //           std::make_shared<specified_label>(specified_label{relation})};
-  // }
-
-  // specified_label specified_label::related_to(specified_label relation) &&
-  // {
-  //   return {
-  //     std::move(name), std::move(family), std::make_shared<specified_label>(std::move(relation))};
-  // }
-
   std::string specified_label::to_string() const
   {
     if (family.empty()) {

@@ -5,6 +5,7 @@
 
 namespace phlex::experimental {
   class component;
+  class consumer;
   class declared_output;
   class end_of_message;
   class generator;

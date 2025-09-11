@@ -76,38 +76,12 @@ namespace phlex::experimental {
 
   std::size_t framework_graph::execution_counts(std::string const& node_name) const
   {
-    // FIXME: Yuck!
-    if (auto it = nodes_.predicates_.find(node_name); it != nodes_.predicates_.end()) {
-      return it->second->num_calls();
-    }
-    if (auto it = nodes_.observers_.find(node_name); it != nodes_.observers_.end()) {
-      return it->second->num_calls();
-    }
-    if (auto it = nodes_.folds_.find(node_name); it != nodes_.folds_.end()) {
-      return it->second->num_calls();
-    }
-    if (auto it = nodes_.unfolds_.find(node_name); it != nodes_.unfolds_.end()) {
-      return it->second->num_calls();
-    }
-    if (auto it = nodes_.transforms_.find(node_name); it != nodes_.transforms_.end()) {
-      return it->second->num_calls();
-    }
-    return -1u;
+    return nodes_.execution_counts(node_name);
   }
 
   std::size_t framework_graph::product_counts(std::string const& node_name) const
   {
-    // FIXME: Yuck!
-    if (auto it = nodes_.folds_.find(node_name); it != nodes_.folds_.end()) {
-      return it->second->product_count();
-    }
-    if (auto it = nodes_.unfolds_.find(node_name); it != nodes_.unfolds_.end()) {
-      return it->second->product_count();
-    }
-    if (auto it = nodes_.transforms_.find(node_name); it != nodes_.transforms_.end()) {
-      return it->second->product_count();
-    }
-    return -1u;
+    return nodes_.product_counts(node_name);
   }
 
   void framework_graph::execute(std::string const& dot_file_prefix)
@@ -138,12 +112,12 @@ namespace phlex::experimental {
 
         auto [it, success] = result.try_emplace(name, g, *consumer);
         for (auto const& predicate_name : predicates) {
-          auto fit = all_predicates.find(predicate_name);
-          if (fit == cend(all_predicates)) {
-            throw std::runtime_error("A non-existent filter with the name '" + predicate_name +
-                                     "' was specified for " + name);
+          if (auto predicate = all_predicates.get(predicate_name)) {
+            make_edge(predicate->sender(), it->second.predicate_port());
+            continue;
           }
-          make_edge(fit->second->sender(), it->second.predicate_port());
+          throw std::runtime_error("A non-existent filter with the name '" + predicate_name +
+                                   "' was specified for " + name);
         }
       }
       return result;
@@ -160,23 +134,23 @@ namespace phlex::experimental {
       throw std::runtime_error(error_msg);
     }
 
-    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.predicates_));
-    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.observers_));
-    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.outputs_));
-    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.folds_));
-    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.unfolds_));
-    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.transforms_));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.predicates));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.observers));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.outputs));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.folds));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.unfolds));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.transforms));
 
-    edge_maker make_edges{dot_file_prefix, nodes_.transforms_, nodes_.folds_};
+    edge_maker make_edges{dot_file_prefix, nodes_.transforms, nodes_.folds};
     make_edges(src_,
                multiplexer_,
                filters_,
-               nodes_.outputs_,
-               consumers{nodes_.predicates_, {.shape = "box"}},
-               consumers{nodes_.observers_, {.shape = "box"}},
-               consumers{nodes_.folds_, {.shape = "invtrapezium"}},
-               consumers{nodes_.unfolds_, {.shape = "trapezium"}},
-               consumers{nodes_.transforms_, {.shape = "box"}});
+               nodes_.outputs,
+               consumers{nodes_.predicates, {.shape = "box"}},
+               consumers{nodes_.observers, {.shape = "box"}},
+               consumers{nodes_.folds, {.shape = "invtrapezium"}},
+               consumers{nodes_.unfolds, {.shape = "trapezium"}},
+               consumers{nodes_.transforms, {.shape = "box"}});
 
     if (auto data_graph = make_edges.release_data_graph()) {
       data_graph->to_file(dot_file_prefix);

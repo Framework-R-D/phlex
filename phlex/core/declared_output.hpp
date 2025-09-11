@@ -10,6 +10,7 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -40,7 +41,7 @@ namespace phlex::experimental {
   };
 
   using declared_output_ptr = std::unique_ptr<declared_output>;
-  using declared_outputs = std::map<std::string, declared_output_ptr>;
+  using declared_outputs = simple_ptr_map<declared_output_ptr>;
 
   class output_creator : public node_options<output_creator> {
     using node_options_t = node_options<output_creator>;

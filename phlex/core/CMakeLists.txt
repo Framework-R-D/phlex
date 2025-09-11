@@ -20,6 +20,7 @@ add_library(
   glue.cpp
   message.cpp
   message_sender.cpp
+  node_catalog.cpp
   multiplexer.cpp
   products_consumer.cpp
   specified_label.cpp
