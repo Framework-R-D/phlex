@@ -122,29 +122,29 @@ namespace phlex::experimental {
     auto transform(std::array<specified_label, N> input_args)
       requires is_transform_like<FT>
     {
-      auto inputs =
-        form_input_arguments<input_parameter_types>(name_.full(), std::move(input_args));
-      return pre_transform{nodes_.registrar_for<declared_transform_ptr>(errors_),
-                           std::move(name_),
-                           concurrency_.value,
-                           node_options_t::release_predicates(),
-                           graph_,
-                           delegate(obj_, ft_),
-                           std::move(inputs)};
+      auto algorithm = delegate(obj_, ft_);
+      return pre_transform<decltype(algorithm), input_parameter_types>{
+        nodes_.registrar_for<declared_transform_ptr>(errors_),
+        std::move(name_),
+        concurrency_.value,
+        node_options_t::release_predicates(),
+        graph_,
+        std::move(algorithm),
+        std::move(input_args)};
     }
 
     auto fold(std::array<specified_label, N - 1> input_args)
       requires is_fold_like<FT>
     {
-      using all_but_first = skip_first_type<input_parameter_types>;
-      auto inputs = form_input_arguments<all_but_first>(name_.full(), std::move(input_args));
-      return pre_fold{nodes_.registrar_for<declared_fold_ptr>(errors_),
-                      std::move(name_),
-                      concurrency_.value,
-                      node_options_t::release_predicates(),
-                      graph_,
-                      delegate(obj_, ft_),
-                      std::move(inputs)};
+      auto algorithm = delegate(obj_, ft_);
+      return pre_fold<decltype(algorithm), skip_first_type<input_parameter_types>>{
+        nodes_.registrar_for<declared_fold_ptr>(errors_),
+        std::move(name_),
+        concurrency_.value,
+        node_options_t::release_predicates(),
+        graph_,
+        std::move(algorithm),
+        std::move(input_args)};
     }
 
     template <label_compatible L>

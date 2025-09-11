@@ -3,8 +3,8 @@
 
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/detail/filter_impl.hpp"
-#include "phlex/core/detail/port_names.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/registrar.hpp"
@@ -70,8 +70,8 @@ namespace phlex::experimental {
               function_t&& f,
               std::array<specified_label, N> input) :
       declared_predicate{std::move(name), std::move(predicates)},
-      input_{form_input_arguments<InputArgs>(full_name(), std::move(input))},
-      product_labels_{detail::port_names(input_)},
+      product_labels_{std::move(input)},
+      input_{form_input_arguments<InputArgs>(full_name(), product_labels_)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       predicate_{g,
                  concurrency,
@@ -125,8 +125,8 @@ namespace phlex::experimental {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    input_retriever_types<InputArgs> input_;
     std::array<specified_label, N> product_labels_;
+    input_retriever_types<InputArgs> input_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>, predicate_result> predicate_;
     results_t results_;

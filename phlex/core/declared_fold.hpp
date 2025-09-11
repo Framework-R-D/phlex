@@ -3,9 +3,9 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
-#include "phlex/core/detail/port_names.hpp"
 #include "phlex/core/fold/send.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_options.hpp"
 #include "phlex/core/products_consumer.hpp"
@@ -71,14 +71,13 @@ namespace phlex::experimental {
              std::vector<std::string> predicates,
              tbb::flow::graph& g,
              function_t&& f,
-             InputArgs input_args) :
+             std::array<specified_label, N> product_labels) :
       name_{std::move(name)},
       concurrency_{concurrency},
       predicates_{std::move(predicates)},
       graph_{g},
       ft_{std::move(f)},
-      input_args_{std::move(input_args)},
-      product_labels_{detail::port_names(input_args_)},
+      product_labels_{std::move(product_labels)},
       reg_{std::move(reg)}
     {
     }
@@ -129,7 +128,6 @@ namespace phlex::experimental {
                                                           graph_,
                                                           std::move(ft_),
                                                           std::move(init),
-                                                          std::move(input_args_),
                                                           std::move(product_labels_),
                                                           std::move(output_names_),
                                                           std::move(fold_interval_));
@@ -140,7 +138,6 @@ namespace phlex::experimental {
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
     function_t ft_;
-    InputArgs input_args_;
     std::array<specified_label, N> product_labels_;
     std::string fold_interval_{level_id::base().level_name()};
     std::array<qualified_name, M> output_names_;
@@ -157,14 +154,13 @@ namespace phlex::experimental {
                tbb::flow::graph& g,
                function_t&& f,
                InitTuple initializer,
-               InputArgs input,
                std::array<specified_label, N> product_labels,
                std::array<qualified_name, M> output,
                std::string fold_interval) :
       declared_fold{std::move(name), std::move(predicates)},
       initializer_{std::move(initializer)},
       product_labels_{std::move(product_labels)},
-      input_{std::move(input)},
+      input_{form_input_arguments<InputArgs>(full_name(), product_labels_)},
       output_{std::move(output)},
       fold_interval_{std::move(fold_interval)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
@@ -267,7 +263,7 @@ namespace phlex::experimental {
 
     InitTuple initializer_;
     std::array<specified_label, N> product_labels_;
-    InputArgs input_;
+    input_retriever_types<InputArgs> input_;
     std::array<qualified_name, M> output_;
     std::string fold_interval_;
     join_or_none_t<N> join_;

@@ -5,8 +5,8 @@
 //        of the process a given section of code is addressing.
 
 #include "phlex/core/concepts.hpp"
-#include "phlex/core/detail/port_names.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/registrar.hpp"
@@ -74,14 +74,13 @@ namespace phlex::experimental {
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
                   function_t&& f,
-                  InputArgs input_args) :
+                  std::array<specified_label, N> input) :
       name_{std::move(name)},
       concurrency_{concurrency},
       predicates_{std::move(predicates)},
       graph_{g},
       ft_{std::move(f)},
-      input_args_{std::move(input_args)},
-      product_labels_{detail::port_names(input_args_)},
+      input_{std::move(input)},
       reg_{std::move(reg)}
     {
     }
@@ -117,8 +116,7 @@ namespace phlex::experimental {
                                                   std::move(predicates_),
                                                   graph_,
                                                   std::move(ft_),
-                                                  std::move(input_args_),
-                                                  std::move(product_labels_),
+                                                  std::move(input_),
                                                   std::move(outputs));
     }
 
@@ -127,8 +125,7 @@ namespace phlex::experimental {
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
     function_t ft_;
-    InputArgs input_args_;
-    std::array<specified_label, N> product_labels_;
+    std::array<specified_label, N> input_;
     registrar<declared_transform_ptr> reg_;
   };
 
@@ -149,12 +146,11 @@ namespace phlex::experimental {
                     std::vector<std::string> predicates,
                     tbb::flow::graph& g,
                     function_t&& f,
-                    InputArgs input,
-                    std::array<specified_label, N> product_labels,
+                    std::array<specified_label, N> input,
                     std::array<qualified_name, M> output) :
       declared_transform{std::move(name), std::move(predicates)},
-      product_labels_{std::move(product_labels)},
-      input_{std::move(input)},
+      product_labels_{std::move(input)},
+      input_{form_input_arguments<InputArgs>(full_name(), product_labels_)},
       output_{std::move(output)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       transform_{
@@ -233,7 +229,7 @@ namespace phlex::experimental {
     }
 
     std::array<specified_label, N> product_labels_;
-    InputArgs input_;
+    input_retriever_types<InputArgs> input_;
     std::array<qualified_name, M> output_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;

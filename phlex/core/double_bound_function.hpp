@@ -34,7 +34,7 @@ namespace phlex::experimental {
     //   std::same_as<function_parameter_types<Predicate>, function_parameter_types<Unfold>>);
 
   public:
-    static constexpr auto N = number_parameters<Predicate>;
+    static constexpr auto N = std::tuple_size_v<input_parameter_types>;
 
     double_bound_function(configuration const* config,
                           std::string name,
@@ -57,10 +57,7 @@ namespace phlex::experimental {
 
     auto unfold(std::array<specified_label, N> input_args)
     {
-      auto processed_input_args =
-        form_input_arguments<input_parameter_types>(name_.full(), std::move(input_args));
-
-      return partial_unfold<Object, Predicate, Unfold, decltype(processed_input_args)>{
+      return partial_unfold<Object, Predicate, Unfold>{
         nodes_.registrar_for<declared_unfold_ptr>(errors_),
         std::move(name_),
         concurrency_,
@@ -68,7 +65,7 @@ namespace phlex::experimental {
         graph_,
         std::move(predicate_),
         std::move(unfold_),
-        std::move(processed_input_args)};
+        std::move(input_args)};
     }
 
     auto unfold(label_compatible auto... input_args)
