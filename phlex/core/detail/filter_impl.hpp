@@ -31,16 +31,21 @@ namespace phlex::experimental {
   }
 
   class decision_map {
+    using decisions_t = oneapi::tbb::concurrent_hash_map<std::size_t, unsigned int>;
+
   public:
+    using accessor = decisions_t::accessor;
+
     explicit decision_map(unsigned int total_decisions);
 
     void update(predicate_result result);
     unsigned int value(std::size_t msg_id) const;
-    void erase(std::size_t msg_id);
+    void erase(accessor& a);
+    bool claim(accessor& a, std::size_t msg_id);
 
   private:
     unsigned int const total_decisions_;
-    oneapi::tbb::concurrent_hash_map<std::size_t, unsigned int> results_;
+    decisions_t results_;
   };
 
   class data_map {
@@ -48,8 +53,6 @@ namespace phlex::experimental {
       oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_const_ptr>>;
 
   public:
-    using accessor = stores_t::accessor;
-
     struct for_output_t {};
     static constexpr for_output_t for_output{};
     explicit data_map(for_output_t);
@@ -58,7 +61,7 @@ namespace phlex::experimental {
     bool is_complete(std::size_t const msg_id) const;
 
     void update(std::size_t const msg_id, product_store_const_ptr const& store);
-    std::vector<product_store_const_ptr> release_data(accessor& a, std::size_t const msg_id);
+    std::vector<product_store_const_ptr> release_data(std::size_t const msg_id);
 
   private:
     stores_t stores_;
