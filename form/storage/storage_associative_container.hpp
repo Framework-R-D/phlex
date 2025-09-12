@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __STORAGE_ASSOCIATIVE_CONTAINER_H__
-#define __STORAGE_ASSOCIATIVE_CONTAINER_H__
+#ifndef __STORAGE_ASSOCIATIVE_CONTAINER_HPP__
+#define __STORAGE_ASSOCIATIVE_CONTAINER_HPP__
 
 #include "storage_container.hpp"
 

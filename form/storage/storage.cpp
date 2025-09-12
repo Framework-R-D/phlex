@@ -14,7 +14,8 @@ namespace form::detail::experimental {
   std::unique_ptr<IStorage> createStorage() { return std::unique_ptr<IStorage>(new Storage()); }
 }
 
-void Storage::createContainers(std::map<std::unique_ptr<Placement>, std::string> const& containers)
+void Storage::createContainers(std::map<std::unique_ptr<Placement>, std::string> const& containers,
+                               form::experimental::config::tech_setting_config const& settings)
 {
   for (auto const& [plcmnt, type] : containers) {
     // Use file+container as composite key
@@ -27,6 +28,9 @@ void Storage::createContainers(std::map<std::unique_ptr<Placement>, std::string>
         m_files.insert(
           {plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')});
         file = m_files.find(plcmnt->fileName());
+        for (auto const& [key, value] :
+             settings.getFileTable(plcmnt->technology(), plcmnt->fileName()))
+          file->second->setAttribute(key, value);
       }
       // Create and bind container to file
       auto container = createContainer(plcmnt->technology(), plcmnt->containerName());
@@ -47,6 +51,10 @@ void Storage::createContainers(std::map<std::unique_ptr<Placement>, std::string>
           associative_container->setParent(parent->second);
         }
       }
+
+      for (auto const& [key, value] :
+           settings.getContainerTable(plcmnt->technology(), plcmnt->containerName()))
+        container->setAttribute(key, value);
       container->setFile(file->second);
       container->setupWrite(type);
     }
@@ -76,7 +84,9 @@ void Storage::commitContainers(Placement const& plcmnt)
   return;
 }
 
-int Storage::getIndex(Token const& token, std::string const& id)
+int Storage::getIndex(Token const& token,
+                      std::string const& id,
+                      form::experimental::config::tech_setting_config const& settings)
 {
   if (m_indexMaps[token.containerName()].empty()) {
     auto key = std::make_pair(token.fileName(), token.containerName());
@@ -86,9 +96,14 @@ int Storage::getIndex(Token const& token, std::string const& id)
       if (file == m_files.end()) {
         m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
         file = m_files.find(token.fileName());
+        for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
+          file->second->setAttribute(key, value);
       }
       m_containers.insert({key, createContainer(token.technology(), token.containerName())});
       cont = m_containers.find(key);
+      for (auto const& [key, value] :
+           settings.getContainerTable(token.technology(), token.containerName()))
+        cont->second->setAttribute(key, value);
       cont->second->setFile(file->second);
     }
     void const* data;
@@ -106,7 +121,10 @@ int Storage::getIndex(Token const& token, std::string const& id)
   return entry;
 }
 
-void Storage::readContainer(Token const& token, void const** data, std::string& type)
+void Storage::readContainer(Token const& token,
+                            void const** data,
+                            std::string& type,
+                            form::experimental::config::tech_setting_config const& settings)
 {
   auto key = std::make_pair(token.fileName(), token.containerName());
   auto cont = m_containers.find(key);
@@ -115,10 +133,15 @@ void Storage::readContainer(Token const& token, void const** data, std::string& 
     if (file == m_files.end()) {
       m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
       file = m_files.find(token.fileName());
+      for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
+        file->second->setAttribute(key, value);
     }
     m_containers.insert({key, createContainer(token.technology(), token.containerName())});
     cont = m_containers.find(key);
     cont->second->setFile(file->second);
+    for (auto const& [key, value] :
+         settings.getContainerTable(token.technology(), token.containerName()))
+      cont->second->setAttribute(key, value);
   }
   cont->second->read(token.id(), data, type);
   return;
