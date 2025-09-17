@@ -9,53 +9,30 @@
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/registrar.hpp"
 
+#include "boost/pfr.hpp"
+
+#include <map>
 #include <string>
 #include <vector>
 
 namespace phlex::experimental {
+  template <typename Ptr>
+  using declared_nodes = std::map<std::string, Ptr>;
+
   struct node_catalog {
-    auto register_output(std::vector<std::string>& errors) { return registrar{outputs_, errors}; }
+    template <typename Ptr>
+    auto registrar_for(std::vector<std::string>& errors)
+    {
+      return registrar{boost::pfr::get<declared_nodes<Ptr>>(*this), errors};
+    }
 
-    template <typename T>
-    auto registrar_for(std::vector<std::string>& errors) = delete;
-
-    declared_predicates predicates_{};
-    declared_observers observers_{};
-    declared_outputs outputs_{};
-    declared_folds folds_{};
-    declared_unfolds unfolds_{};
-    declared_transforms transforms_{};
+    declared_nodes<declared_predicate_ptr> predicates_{};
+    declared_nodes<declared_observer_ptr> observers_{};
+    declared_nodes<declared_output_ptr> outputs_{};
+    declared_nodes<declared_fold_ptr> folds_{};
+    declared_nodes<declared_unfold_ptr> unfolds_{};
+    declared_nodes<declared_transform_ptr> transforms_{};
   };
-
-  template <>
-  inline auto node_catalog::registrar_for<declared_predicate_ptr>(std::vector<std::string>& errors)
-  {
-    return registrar{predicates_, errors};
-  }
-
-  template <>
-  inline auto node_catalog::registrar_for<declared_observer_ptr>(std::vector<std::string>& errors)
-  {
-    return registrar{observers_, errors};
-  }
-
-  template <>
-  inline auto node_catalog::registrar_for<declared_transform_ptr>(std::vector<std::string>& errors)
-  {
-    return registrar{transforms_, errors};
-  }
-
-  template <>
-  inline auto node_catalog::registrar_for<declared_fold_ptr>(std::vector<std::string>& errors)
-  {
-    return registrar{folds_, errors};
-  }
-
-  template <>
-  inline auto node_catalog::registrar_for<declared_unfold_ptr>(std::vector<std::string>& errors)
-  {
-    return registrar{unfolds_, errors};
-  }
 }
 
 #endif // phlex_core_node_catalog_hpp
