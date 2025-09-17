@@ -9,5 +9,5 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
      "accept_even_ids",
      [](phlex::experimental::level_id const& id) { return id.number() % 2 == 0; },
      phlex::experimental::concurrency::unlimited)
-    .family(config.get<std::string>("product_name"));
+    .input_family(config.get<std::string>("product_name"));
 }

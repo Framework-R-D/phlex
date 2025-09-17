@@ -8,5 +8,5 @@ namespace {
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
   m.observe("read_index", read_index, phlex::experimental::concurrency::unlimited)
-    .family(config.get<std::string>("consumes"));
+    .input_family(config.get<std::string>("consumes"));
 }
