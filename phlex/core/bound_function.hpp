@@ -45,7 +45,7 @@ namespace phlex::experimental {
     {
     }
 
-    auto family(std::array<specified_label, N> input_args)
+    auto input_family(std::array<specified_label, N> input_args)
     {
       registrar_.set([this, inputs = std::move(input_args)] {
         return std::make_unique<hof_type>(std::move(name_),
@@ -58,17 +58,18 @@ namespace phlex::experimental {
     }
 
     template <label_compatible L>
-    auto family(std::array<L, N> input_args)
+    auto input_family(std::array<L, N> input_args)
     {
-      return family(to_labels(input_args));
+      return input_family(to_labels(input_args));
     }
 
-    auto family(label_compatible auto... input_args)
+    auto input_family(label_compatible auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return family({specified_label::create(std::forward<decltype(input_args)>(input_args))...});
+      return input_family(
+        {specified_label::create(std::forward<decltype(input_args)>(input_args))...});
     }
 
   private:

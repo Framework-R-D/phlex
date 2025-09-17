@@ -10,5 +10,5 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
      "verify_difference",
      [expected = config.get<int>("expected", 100)](int i, int j) { assert(j - i == expected); },
      concurrency::unlimited)
-    .family(config.get<std::string>("i", "b"), config.get<std::string>("j", "c"));
+    .input_family(config.get<std::string>("i", "b"), config.get<std::string>("j", "c"));
 }

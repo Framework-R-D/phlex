@@ -85,16 +85,16 @@ namespace {
 TEST_CASE("Two predicates", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.predicate("evens_only", evens_only, concurrency::unlimited).family("num"_in("event"));
-  g.predicate("odds_only", odds_only, concurrency::unlimited).family("num"_in("event"));
+  g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
+  g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num"_in("event"));
   g.make<sum_numbers>(20u)
     .observe("add_evens", &sum_numbers::add, concurrency::unlimited)
     .when("evens_only")
-    .family("num"_in("event"));
+    .input_family("num"_in("event"));
   g.make<sum_numbers>(25u)
     .observe("add_odds", &sum_numbers::add, concurrency::unlimited)
     .when("odds_only")
-    .family("num"_in("event"));
+    .input_family("num"_in("event"));
 
   g.execute("two_independent_predicates_t");
 }
@@ -102,12 +102,14 @@ TEST_CASE("Two predicates", "[filtering]")
 TEST_CASE("Two predicates in series", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.predicate("evens_only", evens_only, concurrency::unlimited).family("num");
-  g.predicate("odds_only", odds_only, concurrency::unlimited).when("evens_only").family("num");
+  g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num");
+  g.predicate("odds_only", odds_only, concurrency::unlimited)
+    .when("evens_only")
+    .input_family("num");
   g.make<sum_numbers>(0u)
     .observe("add", &sum_numbers::add, concurrency::unlimited)
     .when("odds_only")
-    .family("num");
+    .input_family("num");
 
   g.execute("two_predicates_in_series_t");
 }
@@ -115,12 +117,12 @@ TEST_CASE("Two predicates in series", "[filtering]")
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.predicate("evens_only", evens_only, concurrency::unlimited).family("num");
-  g.predicate("odds_only", odds_only, concurrency::unlimited).family("num");
+  g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num");
+  g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num");
   g.make<sum_numbers>(0u)
     .observe("add", &sum_numbers::add, concurrency::unlimited)
     .when("odds_only", "evens_only")
-    .family("num");
+    .input_family("num");
 
   g.execute("two_predicates_in_parallel_t");
 }
@@ -140,7 +142,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
       .predicate(name, &not_in_range::eval, concurrency::unlimited)
-      .family("num");
+      .input_family("num");
   }
 
   std::vector<std::string> const predicate_names{
@@ -149,7 +151,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
   g.make<collect_numbers>(expected_numbers)
     .observe("collect", &collect_numbers::collect, concurrency::unlimited)
     .when(predicate_names)
-    .family("num");
+    .input_family("num");
 
   g.execute("three_predicates_in_parallel_t");
 }
@@ -157,17 +159,17 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
   framework_graph g{source{10u}};
-  g.predicate("evens_only", evens_only, concurrency::unlimited).family("num");
-  g.predicate("odds_only", odds_only, concurrency::unlimited).family("num");
+  g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num");
+  g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num");
   g.make<check_multiple_numbers>(5 * 100)
     .observe("check_evens", &check_multiple_numbers::add_difference, concurrency::unlimited)
     .when("evens_only")
-    .family("num", "other_num"); // <= Note input order
+    .input_family("num", "other_num"); // <= Note input order
 
   g.make<check_multiple_numbers>(-5 * 100)
     .observe("check_odds", &check_multiple_numbers::add_difference, concurrency::unlimited)
     .when("odds_only")
-    .family("other_num", "num"); // <= Note input order
+    .input_family("other_num", "num"); // <= Note input order
 
   g.execute("two_predicates_in_parallel_multiarg_t");
 }

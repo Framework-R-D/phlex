@@ -8,5 +8,5 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
      "accept_even_numbers",
      [](int i) { return i % 2 == 0; },
      phlex::experimental::concurrency::unlimited)
-    .family(config.get<std::string>("consumes"));
+    .input_family(config.get<std::string>("consumes"));
 }
