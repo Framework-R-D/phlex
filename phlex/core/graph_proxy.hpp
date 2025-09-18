@@ -87,14 +87,9 @@ namespace phlex::experimental {
       return create_glue(false).unfold(std::move(pred), std::move(unf), c);
     }
 
-    auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
+    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
-      return output_creator{nodes_.registrar_for<declared_output_ptr>(errors_),
-                            config_,
-                            name,
-                            graph_,
-                            delegate(bound_obj_, std::move(f)),
-                            c};
+      return create_glue().output(std::move(name), std::move(f), c);
     }
 
   private:
