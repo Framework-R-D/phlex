@@ -123,14 +123,14 @@ namespace phlex::experimental {
                     std::move(destination_data_layer));
     }
 
-    auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
+    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
-      return output_creator{nodes_.registrar_for<declared_output_ptr>(errors_),
-                            config_,
-                            std::move(name),
-                            graph_,
-                            delegate(bound_obj_, f),
-                            c};
+      return output_api{nodes_.registrar_for<declared_output_ptr>(errors_),
+                        config_,
+                        std::move(name),
+                        graph_,
+                        delegate(bound_obj_, f),
+                        c};
     }
 
   private:

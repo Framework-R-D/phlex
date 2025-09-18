@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
       .output_products("summed_waveforms");
 
     demo::log_record("add_output");
-    g.make<test::products_for_output>().output_with(
+    g.make<test::products_for_output>().output(
       "save", &test::products_for_output::save, concurrency::serial);
 
     // Execute the graph.

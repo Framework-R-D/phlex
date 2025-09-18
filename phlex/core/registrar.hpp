@@ -35,8 +35,8 @@
 //
 // Consider the case of two output nodes:
 //
-//   g.make<MyOutput>().output_with("all_slow", &MyOutput::output);
-//   g.make<MyOutput>().output_with("some_slow", &MyOutput::output).when(...);
+//   g.make<MyOutput>().output("all_slow", &MyOutput::output);
+//   g.make<MyOutput>().output("some_slow", &MyOutput::output).when(...);
 //
 // Either of the above registration statements are valid, but how the functions are
 // registered with the framework depends on the function call-chain.  If the registration

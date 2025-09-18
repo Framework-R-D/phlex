@@ -259,6 +259,32 @@ namespace phlex::experimental {
     std::string destination_layer_;
   };
 
+  // ====================================================================================
+  // Output API
+
+  class output_api {
+  public:
+    output_api(registrar<declared_output_ptr> reg,
+               configuration const* config,
+               std::string name,
+               tbb::flow::graph& g,
+               detail::output_function_t&& f,
+               concurrency c);
+
+    void when(std::vector<std::string> predicates);
+
+    void when(std::convertible_to<std::string> auto&&... names)
+    {
+      when({std::forward<decltype(names)>(names)...});
+    }
+
+  private:
+    algorithm_name name_;
+    tbb::flow::graph& graph_;
+    detail::output_function_t ft_;
+    concurrency concurrency_;
+    registrar<declared_output_ptr> reg_;
+  };
 }
 
 #endif // phlex_core_registration_api_hpp
