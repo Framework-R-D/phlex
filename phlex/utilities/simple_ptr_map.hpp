@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_simple_map_hpp
-#define phlex_utilities_simple_map_hpp
+#ifndef phlex_utilities_simple_ptr_map_hpp
+#define phlex_utilities_simple_ptr_map_hpp
 
 // ==================================================================================
 // The type simple_ptr_map<Ptr> is nearly equivalent to the type:
@@ -11,7 +11,7 @@
 //   - try_emplace(string, Ptr)
 //   - begin()
 //   - end()
-//   - get(std::string const& key)
+//   - get(std::string const& key) [[not provided by std::map]]
 //
 // The 'get(...') function returns a bare pointer to the stored element if it exists;
 // otherwise the null pointer is returned.
@@ -50,4 +50,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_utilities_simple_map_hpp
+#endif // phlex_utilities_simple_ptr_map_hpp

@@ -12,7 +12,6 @@
 
 #include "boost/pfr.hpp"
 
-#include <map>
 #include <string>
 #include <vector>
 

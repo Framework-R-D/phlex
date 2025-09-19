@@ -16,6 +16,7 @@
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/qualified_name.hpp"
+#include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -26,7 +27,6 @@
 #include <cstddef>
 #include <functional>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <span>
 #include <stdexcept>
@@ -48,7 +48,7 @@ namespace phlex::experimental {
   };
 
   using declared_fold_ptr = std::unique_ptr<declared_fold>;
-  using declared_folds = std::map<std::string, declared_fold_ptr>;
+  using declared_folds = simple_ptr_map<declared_fold_ptr>;
 
   // Registering concrete folds
 

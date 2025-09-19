@@ -18,6 +18,7 @@
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/qualified_name.hpp"
+#include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "fmt/std.h"
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -31,7 +32,6 @@
 #include <cstddef>
 #include <functional>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -54,7 +54,7 @@ namespace phlex::experimental {
   };
 
   using declared_transform_ptr = std::unique_ptr<declared_transform>;
-  using declared_transforms = std::map<std::string, declared_transform_ptr>;
+  using declared_transforms = simple_ptr_map<declared_transform_ptr>;
 
   // =====================================================================================
 
