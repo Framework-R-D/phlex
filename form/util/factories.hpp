@@ -1,8 +1,10 @@
 // Copyright (C) 2025 .....
+
 #ifndef __FACTORIES_HPP__
 #define __FACTORIES_HPP__
 
 #include "form/technology.hpp"
+
 #include "storage/istorage.hpp"
 #include "storage/storage_association.hpp"
 #include "storage/storage_container.hpp"
@@ -21,11 +23,11 @@ namespace form::detail::experimental {
 
   std::shared_ptr<IStorage_File> createFile(int tech, std::string const& name, char mode)
   {
-    if (form::Technology::GetMajor(tech) == form::Technology::ROOT_MAJOR) {
+    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
 #ifdef USE_ROOT_STORAGE
       return std::make_shared<ROOT_TFileImp>(name, mode);
 #endif
-    } else if (form::Technology::GetMajor(tech) == form::Technology::HDF5_MAJOR) {
+    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
       // Handle HDF5 file creation when implemented
     }
     return std::make_shared<Storage_File>(name, mode);
@@ -33,25 +35,40 @@ namespace form::detail::experimental {
 
   std::shared_ptr<IStorage_Container> createAssociation(int tech, std::string const& name)
   {
-    if (form::Technology::GetMajor(tech) == form::Technology::ROOT_MAJOR) {
-      if (form::Technology::GetMinor(tech) == form::Technology::ROOT_TTREE_MINOR) {
+    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
+      if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TTree_ContainerImp>(name);
-#endif
+#endif // USE_ROOT_STORAGE
       }
+    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
+#ifdef USE_HDF5_STORAGE
+      // Add HDF5 implementation when available
+      // return std::make_shared<HDF5_ContainerImp>(name);
+#endif // USE_HDF5_STORAGE
     }
+
+    // Default fallback
     return std::make_shared<Storage_Association>(name);
   }
 
   std::shared_ptr<IStorage_Container> createContainer(int tech, std::string const& name)
   {
-    if (form::Technology::GetMajor(tech) == form::Technology::ROOT_MAJOR) {
-      if (form::Technology::GetMinor(tech) == form::Technology::ROOT_TTREE_MINOR) {
+    // Use the helper functions from Technology namespace for consistency
+    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
+      if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_ContainerImp>(name);
-#endif
+#endif // USE_ROOT_STORAGE
       }
+    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
+#ifdef USE_HDF5_STORAGE
+      // Add HDF5 implementation when available
+      // return std::make_shared<HDF5_Field_ContainerImp>(name);
+#endif // USE_HDF5_STORAGE
     }
+
+    // Default fallback
     return std::make_shared<Storage_Container>(name);
   }
 

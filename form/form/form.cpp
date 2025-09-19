@@ -6,18 +6,35 @@ namespace form::experimental {
 
   // Accept and store config
   form_interface::form_interface(std::shared_ptr<mock_phlex::product_type_names> tm,
-                                 mock_phlex::config::parse_config const& phlex_config) :
-    m_pers(nullptr), m_type_map(tm), m_config()
+                                 mock_phlex::config::parse_config const& config) :
+    m_pers(nullptr), m_type_map(tm)
   {
     // Convert phlex config to form config
-    for (auto const& phlex_item : phlex_config.getItems()) {
-      m_config.addItem(phlex_item.product_name, phlex_item.file_name, phlex_item.technology);
+    form::experimental::config::output_item_config output_items;
+    for (auto const& phlex_item : config.getItems()) {
+      output_items.addItem(phlex_item.product_name, phlex_item.file_name, phlex_item.technology);
+      m_product_to_config.emplace(
+        phlex_item.product_name,
+        form::experimental::config::PersistenceItem(
+          phlex_item.product_name, phlex_item.file_name, phlex_item.technology));
     }
-    m_pers = form::detail::experimental::createPersistence(m_config);
+
+    config::tech_setting_config tech_config_settings;
+    tech_config_settings.file_settings = config.getFileSettings();
+    tech_config_settings.container_settings = config.getContainerSettings();
+
+    m_pers = form::detail::experimental::createPersistence();
+    m_pers->configureOutputItems(output_items);
+    m_pers->configureTechSettings(tech_config_settings);
   }
 
   void form_interface::write(std::string const& creator, mock_phlex::product_base const& pb)
   {
+    // Look up creator from PersistenceItem.
+    auto it = m_product_to_config.find(pb.label);
+    if (it == m_product_to_config.end()) {
+      throw std::runtime_error("No configuration found for product: " + pb.label);
+    }
 
     std::string const type = m_type_map->names[pb.type];
     // FIXME: Really only needed on first call
@@ -27,11 +44,18 @@ namespace form::experimental {
     m_pers->commitOutput(creator, pb.id);
   }
 
+  // Look up creator from config
   void form_interface::write(std::string const& creator,
                              std::vector<mock_phlex::product_base> const& batch)
   {
     if (batch.empty())
       return;
+
+    // Look up creator from config based on product name. O(1) lookup instead of loop
+    auto it = m_product_to_config.find(batch[0].label);
+    if (it == m_product_to_config.end()) {
+      throw std::runtime_error("No configuration found for product: " + batch[0].label);
+    }
 
     // FIXME: Really only needed on first call
     std::map<std::string, std::string> products;
@@ -52,6 +76,12 @@ namespace form::experimental {
 
   void form_interface::read(std::string const& creator, mock_phlex::product_base& pb)
   {
+    // Look up creator from config based on product name. O(1) lookup instead of loop
+    auto it = m_product_to_config.find(pb.label);
+    if (it == m_product_to_config.end()) {
+      throw std::runtime_error("No configuration found for product: " + pb.label);
+    }
+
     // Original type lookup
     std::string type = m_type_map->names[pb.type];
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __TOKEN_H__
-#define __TOKEN_H__
+#ifndef __TOKEN_HPP__
+#define __TOKEN_HPP__
 
 #include <string>
 

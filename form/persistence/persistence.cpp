@@ -2,7 +2,6 @@
 
 #include "persistence.hpp"
 
-#include <algorithm>
 #include <cstring>
 #include <utility>
 
@@ -10,16 +9,24 @@ using namespace form::detail::experimental;
 
 // Factory function implementation
 namespace form::detail::experimental {
-  std::unique_ptr<IPersistence> createPersistence(
-    form::experimental::config::parse_config const& config) //factory takes form config
-  {
-    return std::unique_ptr<IPersistence>(new Persistence(config));
-  }
+  std::unique_ptr<IPersistence> createPersistence() { return std::make_unique<Persistence>(); }
 } // namespace form::detail::experimental
 
-Persistence::Persistence(form::experimental::config::parse_config const& config) :
-  m_store(createStorage()), m_config(config) // constructor takes form config
+Persistence::Persistence() :
+  m_store(createStorage()), m_output_items(), m_tech_settings() // constructor takes form config
 {
+}
+
+void Persistence::configureTechSettings(
+  form::experimental::config::tech_setting_config const& tech_config_settings)
+{
+  m_tech_settings = tech_config_settings;
+}
+
+void Persistence::configureOutputItems(
+  form::experimental::config::output_item_config const& output_items)
+{
+  m_output_items = output_items;
 }
 
 void Persistence::createContainers(std::string const& creator,
@@ -30,7 +37,7 @@ void Persistence::createContainers(std::string const& creator,
     containers.insert(std::make_pair(getPlacement(creator, label), type));
   }
   containers.insert(std::make_pair(getPlacement(creator, "index"), "std::string"));
-  m_store->createContainers(containers);
+  m_store->createContainers(containers, m_tech_settings);
   return;
 }
 
@@ -48,7 +55,6 @@ void Persistence::commitOutput(std::string const& creator, std::string const& id
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, "index");
   m_store->fillContainer(*plcmnt, &id, "std::string");
-  //FIXME: Flush Containers
   m_store->commitContainers(*plcmnt);
   return;
 }
@@ -60,64 +66,69 @@ void Persistence::read(std::string const& creator,
                        std::string& type)
 {
   std::unique_ptr<Token> token = getToken(creator, label, id);
-  m_store->readContainer(*token, data, type);
+  m_store->readContainer(*token, data, type, m_tech_settings);
   return;
-}
-
-form::experimental::config::PersistenceItem const* Persistence::findConfigItem(
-  std::string const& label) const
-{
-  auto const& items = m_config.getItems();
-  auto it = std::find_if(
-    items.begin(), items.end(), [&label](auto const& item) { return item.product_name == label; });
-
-  return (it != items.end()) ? &(*it) : nullptr;
-}
-
-std::string Persistence::buildFullLabel(std::string_view creator, std::string_view label) const
-{
-  std::string result;
-  result.reserve(creator.size() + 1 + label.size());
-  result += creator;
-  result += '/';
-  result += label;
-  return result;
 }
 
 std::unique_ptr<Placement> Persistence::getPlacement(std::string const& creator,
                                                      std::string const& label)
 {
-  auto const* config_item = findConfigItem(label);
+  //use config to determine values
+  std::string file_name;
+  int technology;
 
-  if (!config_item) {
+  bool found = false;
+  // Find exact match in config for regular data products
+  for (auto const& item : m_output_items.getItems()) {
+    // Special handling for index containers, take first file, tech, FIXME: Reconsider
+    if (item.product_name == label || label == "index") {
+      file_name = item.file_name;
+      technology = item.technology;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::string const full_label = buildFullLabel(creator, label);
-
-  return std::make_unique<Placement>(config_item->file_name, full_label, config_item->technology);
+  std::string full_label = creator + "/" + label;
+  std::unique_ptr<Placement> plcmnt =
+    std::unique_ptr<Placement>(new Placement(file_name, full_label, technology));
+  return plcmnt;
 }
 
 std::unique_ptr<Token> Persistence::getToken(std::string const& creator,
                                              std::string const& label,
                                              std::string const& id)
 {
-  auto const* config_item = findConfigItem(label);
+  // Full label and index label construction
+  std::string full_label = creator + "/" + label;
+  std::string index_label = creator + "/index";
 
-  if (!config_item) {
+  // Get parameters from configuration
+  std::string file_name;
+  int technology;
+  bool found = false;
+  for (auto const& item : m_output_items.getItems()) {
+    if (item.product_name == label) {
+      file_name = item.file_name;
+      technology = item.technology;
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::string const full_label = buildFullLabel(creator, label);
-  std::string const index_label = buildFullLabel(creator, "index");
-
-  auto index_token =
-    std::make_unique<Token>(config_item->file_name, index_label, config_item->technology);
-
-  int rowId = m_store->getIndex(*index_token, id);
-
-  return std::make_unique<Token>(
-    config_item->file_name, full_label, config_item->technology, rowId);
+  std::unique_ptr<Token> index_token =
+    std::unique_ptr<Token>(new Token(file_name, index_label, technology));
+  int rowId = m_store->getIndex(*index_token, id, m_tech_settings);
+  std::unique_ptr<Token> token =
+    std::unique_ptr<Token>(new Token(file_name, full_label, technology, rowId));
+  return token;
 }

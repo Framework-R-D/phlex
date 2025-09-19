@@ -19,4 +19,20 @@ namespace mock_phlex::config {
     return nullptr;
   }
 
+  void parse_config::addFileSetting(int const tech,
+                                    std::string const& fileName,
+                                    std::string const& key,
+                                    std::string const& value)
+  {
+    m_file_settings[tech][fileName].emplace_back(key, value);
+  }
+
+  void parse_config::addContainerSetting(int const tech,
+                                         std::string const& containerName,
+                                         std::string const& key,
+                                         std::string const& value)
+  {
+    m_container_settings[tech][containerName].emplace_back(key, value);
+  }
+
 } // namespace mock_phlex::config
