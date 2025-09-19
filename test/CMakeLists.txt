@@ -62,6 +62,7 @@ add_unit_test(yielding_driver LIBRARIES phlex::core TBB::tbb)
 add_catch_test(
   allowed_families LIBRARIES phlex::core Boost::json TEST_DOT_GRAPH
   )
+add_catch_test(vector_of_abstract_types LIBRARIES phlex::core)
 add_catch_test(
   cached_execution LIBRARIES phlex::core Boost::json TEST_DOT_GRAPH
   )
