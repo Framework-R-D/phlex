@@ -14,6 +14,7 @@
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/qualified_name.hpp"
+#include "phlex/utilities/simple_ptr_map.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
 #include "fmt/std.h"
@@ -26,7 +27,6 @@
 #include <cstddef>
 #include <functional>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <span>
 #include <string>
@@ -42,7 +42,7 @@ namespace phlex::experimental {
   };
 
   using declared_observer_ptr = std::unique_ptr<declared_observer>;
-  using declared_observers = std::map<std::string, declared_observer_ptr>;
+  using declared_observers = simple_ptr_map<declared_observer_ptr>;
 
   // =====================================================================================
 

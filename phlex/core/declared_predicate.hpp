@@ -15,6 +15,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/utilities/simple_ptr_map.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
 #include "fmt/std.h"
@@ -27,7 +28,6 @@
 #include <cstddef>
 #include <functional>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -48,7 +48,7 @@ namespace phlex::experimental {
   };
 
   using declared_predicate_ptr = std::unique_ptr<declared_predicate>;
-  using declared_predicates = std::map<std::string, declared_predicate_ptr>;
+  using declared_predicates = simple_ptr_map<declared_predicate_ptr>;
 
   // =====================================================================================
 
