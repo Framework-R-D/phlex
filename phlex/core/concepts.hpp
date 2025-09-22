@@ -9,14 +9,14 @@
 #include <utility>
 
 namespace phlex::experimental {
-  // clang-format off
-  //  => clang-format 15 does support concept declarations well
+
   template <typename T>
   concept not_void = !std::same_as<T, void>;
 
   template <typename T>
-  concept sendable = std::move_constructible<T> ||
-    requires(T& t) { {send(t)} -> std::move_constructible; };
+  concept sendable = std::move_constructible<T> || requires(T& t) {
+    { send(t) } -> std::move_constructible;
+  };
 
   template <typename T, std::size_t N>
   concept at_least_n_input_parameters = number_parameters<T> >= N;
@@ -37,15 +37,14 @@ namespace phlex::experimental {
 
   template <typename T>
   concept first_input_parameter_is_sendable =
-    at_least_one_input_parameter<T> &&
-    sendable<function_parameter_type<0, T>>;
+    at_least_one_input_parameter<T> && sendable<function_parameter_type<0, T>>;
 
   template <typename T, typename R>
   concept returns = std::same_as<return_type<T>, R>;
 
   template <typename T, typename... Args>
-  concept expects_input_parameters = at_least_n_input_parameters<T, sizeof...(Args)> &&
-                                     check_parameters<T, Args...>::value;
+  concept expects_input_parameters =
+    at_least_n_input_parameters<T, sizeof...(Args)> && check_parameters<T, Args...>::value;
 
   template <typename T>
   concept is_predicate_like = at_least_one_input_parameter<T> && returns<T, bool>;
@@ -55,13 +54,11 @@ namespace phlex::experimental {
 
   template <typename T>
   concept is_output_like = std::is_member_function_pointer_v<T> &&
-                           expects_input_parameters<T, product_store const&> &&
-                           returns<T, void>;
+                           expects_input_parameters<T, product_store const&> && returns<T, void>;
 
   template <typename T>
   concept is_fold_like =
-    at_least_two_input_parameters<T> &&
-    first_input_parameter_is_non_const_lvalue_reference<T> &&
+    at_least_two_input_parameters<T> && first_input_parameter_is_non_const_lvalue_reference<T> &&
     first_input_parameter_is_sendable<T> &&
     returns<T, void>; // <= May change if data products can be created per fold step.
 
@@ -70,7 +67,6 @@ namespace phlex::experimental {
 
   template <typename T>
   concept is_transform_like = at_least_one_input_parameter<T> && at_least_one_output_object<T>;
-  // clang-format on
 }
 
 #endif // phlex_core_concepts_hpp
