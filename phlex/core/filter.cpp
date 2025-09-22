@@ -2,7 +2,9 @@
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/products_consumer.hpp"
 
+#include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
@@ -44,8 +46,6 @@ namespace phlex::experimental {
     unsigned int msg_id{};
     if (t.is_a<message>()) {
       auto const& msg = t.cast_to<message>();
-      data_.update(msg.id, msg.store);
-      msg_id = msg.id;
       if (msg.store->is_flush()) {
         // All flush messages are automatically forwarded to downstream ports.
         for (std::size_t i = 0ull; i != nargs_; ++i) {
@@ -53,6 +53,8 @@ namespace phlex::experimental {
         }
         return {};
       }
+      msg_id = msg.id;
+      data_.update(msg.id, msg.store);
     } else {
       auto const& result = t.cast_to<predicate_result>();
       decisions_.update(result);

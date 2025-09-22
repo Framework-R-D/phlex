@@ -2,6 +2,7 @@
 #define phlex_model_level_hierarchy_hpp
 
 #include "phlex/model/fwd.hpp"
+#include "phlex/model/level_id.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 

@@ -4,15 +4,11 @@
 #include "boost/dll/alias.hpp"
 
 #include "phlex/configuration.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/utilities/async_driver.hpp"
 
 #include <concepts>
 #include <memory>
-
-namespace phlex::experimental {
-  using framework_driver = async_driver<product_store_ptr>;
-}
 
 namespace phlex::experimental::detail {
 

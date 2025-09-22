@@ -13,8 +13,8 @@
 //     .to(...);
 //             ^ Registration happens at the completion of the full statement.
 //
-// This is achieved by creating a class registrar class object (internally during any of
-// the declare* calls), which is then passed along through each successive function call
+// This is achieved by creating a registrar class object (internally during any of the
+// declare* calls), which is then passed along through each successive function call
 // (concurrency, when, etc.).  When the statement completes (i.e. the semicolon is
 // reached), the registrar object is destroyed, where the registrar's destructor registers
 // the declared function as a graph node to be used by the framework.
@@ -49,12 +49,18 @@
 
 #include "phlex/utilities/simple_ptr_map.hpp"
 
+#include <cassert>
 #include <functional>
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace phlex::experimental {
+
+  namespace detail {
+    void add_to_error_messages(std::vector<std::string>& errors, std::string const& name);
+  }
+
   template <typename Ptr>
   class registrar {
     using Nodes = simple_ptr_map<Ptr>;
@@ -83,12 +89,7 @@ namespace phlex::experimental {
     ~registrar() noexcept(false)
     {
       if (creator_) {
-        auto ptr = creator_(release_predicates());
-        auto name = ptr->full_name();
-        auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
-        if (not inserted) {
-          errors_->push_back(fmt::format("Node with name '{}' already exists", name));
-        }
+        create_node();
       }
     }
 
@@ -96,6 +97,17 @@ namespace phlex::experimental {
     std::vector<std::string> release_predicates()
     {
       return std::move(predicates_).value_or(std::vector<std::string>{});
+    }
+
+    void create_node()
+    {
+      assert(creator_);
+      auto ptr = creator_(release_predicates());
+      auto name = ptr->full_name();
+      auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
+      if (not inserted) {
+        detail::add_to_error_messages(*errors_, name);
+      }
     }
 
     Nodes* nodes_;

@@ -1,7 +1,7 @@
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_vector.h"
 
 using namespace phlex::experimental;

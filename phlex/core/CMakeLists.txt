@@ -8,21 +8,23 @@ add_library(
   declared_fold.cpp
   declared_unfold.cpp
   declared_transform.cpp
+  detail/maybe_predicates.cpp
   detail/filter_impl.cpp
   dot/attributes.cpp
   dot/data_graph.cpp
   dot/function_graph.cpp
   edge_creation_policy.cpp
-  edge_maker.cpp
   end_of_message.cpp
   filter.cpp
   framework_graph.cpp
   glue.cpp
+  input_arguments.cpp
   message.cpp
   message_sender.cpp
   node_catalog.cpp
   multiplexer.cpp
   products_consumer.cpp
+  registrar.cpp
   specified_label.cpp
   store_counters.cpp
   )
