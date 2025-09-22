@@ -10,7 +10,6 @@
 #include "test/demo-giantdata/waveform_generator_input.hpp"
 
 #include <algorithm>
-#include <array>
 #include <ranges>
 #include <string>
 #include <vector>

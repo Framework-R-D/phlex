@@ -15,20 +15,15 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/qualified_name.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
-#include "phlex/utilities/sized_tuple.hpp"
 
-#include "fmt/std.h"
-#include "oneapi/tbb/concurrent_unordered_map.h"
+#include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
 
-#include <array>
 #include <concepts>
 #include <cstddef>
 #include <functional>
 #include <iterator>
 #include <memory>
-#include <span>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -37,8 +32,16 @@ namespace phlex::experimental {
 
   class declared_observer : public products_consumer {
   public:
-    declared_observer(algorithm_name name, std::vector<std::string> predicates);
+    declared_observer(algorithm_name name,
+                      std::vector<std::string> predicates,
+                      specified_labels input_products);
     virtual ~declared_observer();
+
+  protected:
+    using hashes_t = tbb::concurrent_hash_map<level_id::hash_type, bool>;
+    using accessor = hashes_t::accessor;
+
+    void report_cached_hashes(hashes_t const& hashes) const;
   };
 
   using declared_observer_ptr = std::unique_ptr<declared_observer>;
@@ -46,29 +49,27 @@ namespace phlex::experimental {
 
   // =====================================================================================
 
-  template <is_observer_like FT, typename InputArgs>
-  class observer : public declared_observer, private detect_flush_flag {
-    static constexpr auto N = std::tuple_size_v<InputArgs>;
-    using function_t = FT;
-    using stores_t = tbb::concurrent_hash_map<level_id::hash_type, bool>;
-    using accessor = stores_t::accessor;
+  template <typename AlgorithmBits>
+  class observer_node : public declared_observer, private detect_flush_flag {
+    using InputArgs = typename AlgorithmBits::input_parameter_types;
+    using function_t = typename AlgorithmBits::bound_type;
+    static constexpr auto N = AlgorithmBits::number_inputs;
 
   public:
+    static constexpr auto number_output_products = 0;
     using node_ptr_type = declared_observer_ptr;
 
-    observer(algorithm_name name,
-             std::size_t concurrency,
-             std::vector<std::string> predicates,
-             tbb::flow::graph& g,
-             function_t&& f,
-             std::array<specified_label, N> input) :
-      declared_observer{std::move(name), std::move(predicates)},
-      product_labels_{std::move(input)},
-      input_{form_input_arguments<InputArgs>(full_name(), product_labels_)},
+    observer_node(algorithm_name name,
+                  std::size_t concurrency,
+                  std::vector<std::string> predicates,
+                  tbb::flow::graph& g,
+                  AlgorithmBits alg,
+                  specified_labels input_products) :
+      declared_observer{std::move(name), std::move(predicates), std::move(input_products)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       observer_{g,
                 concurrency,
-                [this, ft = std::move(f)](
+                [this, ft = alg.release_algorithm()](
                   messages_t<N> const& messages) -> oneapi::tbb::flow::continue_msg {
                   auto const& msg = most_derived(messages);
                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
@@ -81,7 +82,7 @@ namespace phlex::experimental {
                   }
 
                   if (done_with(store)) {
-                    stores_.erase(store->id()->hash());
+                    cached_hashes_.erase(store->id()->hash());
                   }
                   return {};
                 }}
@@ -89,32 +90,22 @@ namespace phlex::experimental {
       make_edge(join_, observer_);
     }
 
-    ~observer()
-    {
-      if (stores_.size() > 0ull) {
-        spdlog::warn("Monitor {} has {} cached stores.", full_name(), stores_.size());
-      }
-      for (auto const& [id, _] : stores_) {
-        spdlog::debug(" => ID: {}", id);
-      }
-    }
+    ~observer_node() { report_cached_hashes(cached_hashes_); }
 
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, product_labels_, product_label);
+      return receiver_for<N>(join_, input(), product_label);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
-    specified_labels input() const override { return product_labels_; }
-
     bool needs_new(product_store_const_ptr const& store, accessor& a)
     {
-      if (stores_.count(store->id()->hash()) > 0ull) {
+      if (cached_hashes_.count(store->id()->hash()) > 0ull) {
         return false;
       }
-      return stores_.insert(a, store->id()->hash());
+      return cached_hashes_.insert(a, store->id()->hash());
     }
 
     template <std::size_t... Is>
@@ -126,11 +117,10 @@ namespace phlex::experimental {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    std::array<specified_label, N> product_labels_;
-    input_retriever_types<InputArgs> input_;
+    input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>> observer_;
-    tbb::concurrent_hash_map<level_id::hash_type, bool> stores_;
+    hashes_t cached_hashes_;
     std::atomic<std::size_t> calls_;
   };
 }

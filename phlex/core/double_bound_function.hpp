@@ -45,7 +45,7 @@ namespace phlex::experimental {
                           node_catalog& nodes,
                           std::vector<std::string>& errors) :
       node_options_t{config},
-      name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
+      name_{detail::make_algorithm_name(config, std::move(name))},
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
       concurrency_{c.value},
@@ -65,7 +65,7 @@ namespace phlex::experimental {
         graph_,
         std::move(predicate_),
         std::move(unfold_),
-        std::move(input_args)};
+        std::vector(input_args.begin(), input_args.end())};
     }
 
     auto unfold(label_compatible auto... input_args)

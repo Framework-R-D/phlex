@@ -1,5 +1,6 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
+#include <cassert>
 #include <string>
 
 namespace {
@@ -44,9 +45,10 @@ namespace phlex::experimental {
 
   void decision_map::erase(std::size_t const msg_id) { results_.erase(msg_id); }
 
-  data_map::data_map(specified_labels const product_names) :
-    product_names_{product_names}, nargs_{product_names_.size()}
+  data_map::data_map(specified_labels const& product_names) :
+    product_names_{&product_names}, nargs_{product_names.size()}
   {
+    assert(nargs_ > 0);
   }
 
   data_map::data_map(for_output_t) : data_map{for_output_only} {}
@@ -68,7 +70,7 @@ namespace phlex::experimental {
 
     // Fill slots in the order of the input arguments to the downstream node.
     for (std::size_t i = 0; i != nargs_; ++i) {
-      if (elem[i] or not store->contains_product(product_names_[i].name.full()))
+      if (elem[i] or not store->contains_product((*product_names_)[i].name.full()))
         continue;
       elem[i] = store;
     }

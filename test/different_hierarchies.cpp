@@ -29,7 +29,7 @@
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 

@@ -1,7 +1,6 @@
 #ifndef phlex_model_algorithm_name_hpp
 #define phlex_model_algorithm_name_hpp
 
-#include <span>
 #include <string>
 
 namespace phlex::experimental {

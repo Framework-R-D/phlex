@@ -1,16 +1,13 @@
 #ifndef phlex_core_detail_filter_impl_hpp
 #define phlex_core_detail_filter_impl_hpp
 
-#include "phlex/core/message.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/core/specified_label.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
-#include <span>
 
 namespace phlex::experimental {
   struct predicate_result {
@@ -56,7 +53,7 @@ namespace phlex::experimental {
     struct for_output_t {};
     static constexpr for_output_t for_output{};
     explicit data_map(for_output_t);
-    explicit data_map(specified_labels product_names);
+    explicit data_map(specified_labels const& product_names);
 
     bool is_complete(std::size_t const msg_id) const;
 
@@ -65,7 +62,7 @@ namespace phlex::experimental {
 
   private:
     stores_t stores_;
-    specified_labels product_names_;
+    std::vector<specified_label> const* product_names_;
     std::size_t nargs_;
   };
 }

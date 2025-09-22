@@ -1,6 +1,9 @@
 #ifndef phlex_core_fwd_hpp
 #define phlex_core_fwd_hpp
 
+#include "phlex/model/fwd.hpp"
+#include "phlex/utilities/async_driver.hpp"
+
 #include <memory>
 
 namespace phlex::experimental {
@@ -15,6 +18,7 @@ namespace phlex::experimental {
   class products_consumer;
 
   using end_of_message_ptr = std::shared_ptr<end_of_message>;
+  using framework_driver = async_driver<product_store_ptr>;
 }
 
 #endif // phlex_core_fwd_hpp

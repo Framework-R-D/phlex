@@ -51,16 +51,7 @@ namespace phlex::experimental {
                    std::string name,
                    tbb::flow::graph& g,
                    detail::output_function_t&& f,
-                   concurrency c) :
-      node_options_t{config},
-      name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
-      graph_{g},
-      ft_{std::move(f)},
-      concurrency_{c},
-      reg_{std::move(reg)}
-    {
-      reg_.set_creator([this](auto) { return create(); });
-    }
+                   concurrency c);
 
   private:
     declared_output_ptr create()
