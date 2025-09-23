@@ -55,7 +55,7 @@ add_library(py_cppdriver MODULE driver.cpp)
 target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
 
 # Phlex module to run Python algorithms
-add_library(pymodule MODULE pymodule.cpp)
+add_library(pymodule MODULE pymodule.cpp configwrap.cpp modulewrap.cpp)
 include_directories(pymodule, ${Python_INCLUDE_DIRS})
 target_link_libraries(pymodule PRIVATE phlex::module ${Python_LIBRARIES} PUBLIC Python::Python)
 
