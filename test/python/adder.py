@@ -1,9 +1,4 @@
-import cppyy
-
-cppyy.cppdef("""\
-namespace test {
-  int add(int i, int j) { return i + j; }
-}""")
-
-add = cppyy.gbl.test.add
+def add(i: int, j: int) -> int:
+    print("called with:", i, j, flush=True)
+    return i + j
 
