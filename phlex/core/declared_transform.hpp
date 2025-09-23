@@ -95,7 +95,7 @@ namespace phlex::experimental {
 
       std::array<qualified_name, Msize> outputs;
       std::ranges::transform(output_keys, outputs.begin(), to_qualified_name{name_});
-      reg_.set([this, out = std::move(outputs)] { return create(std::move(out)); });
+      reg_.set_creator([this, out = std::move(outputs)](auto) { return create(std::move(out)); });
       return *this;
     }
 

@@ -8,6 +8,7 @@
 #include "phlex/core/declared_transform.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/node_options.hpp"
+#include "phlex/core/upstream_predicates.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -18,9 +19,11 @@
 
 namespace phlex::experimental {
 
+  // ====================================================================================
+  // Registration API
+
   template <template <typename...> typename HOF, typename AlgorithmBits>
-  class registration_api : public node_options<registration_api<HOF, AlgorithmBits>> {
-    using node_options_t = node_options<registration_api<HOF, AlgorithmBits>>;
+  class registration_api {
     using Algorithm = typename AlgorithmBits::bound_type;
     using InputArgs = typename AlgorithmBits::input_parameter_types;
     using hof_type = HOF<Algorithm, InputArgs>;
@@ -36,7 +39,7 @@ namespace phlex::experimental {
                      tbb::flow::graph& g,
                      node_catalog& nodes,
                      std::vector<std::string>& errors) :
-      node_options_t{config},
+      config_{config},
       name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
       alg_{alg.release_algorithm()},
       concurrency_{c},
@@ -47,14 +50,15 @@ namespace phlex::experimental {
 
     auto input_family(std::array<specified_label, N> input_args)
     {
-      registrar_.set([this, inputs = std::move(input_args)] {
+      registrar_.set_creator([this, inputs = std::move(input_args)](auto predicates) {
         return std::make_unique<hof_type>(std::move(name_),
                                           concurrency_.value,
-                                          node_options_t::release_predicates(),
+                                          std::move(predicates),
                                           graph_,
                                           std::move(alg_),
                                           std::move(inputs));
       });
+      return upstream_predicates<NodePtr>{std::move(registrar_), config_};
     }
 
     template <label_compatible L>
@@ -73,6 +77,7 @@ namespace phlex::experimental {
     }
 
   private:
+    configuration const* config_;
     algorithm_name name_;
     Algorithm alg_;
     concurrency concurrency_;
