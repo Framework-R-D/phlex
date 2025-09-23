@@ -1,6 +1,7 @@
 #include "phlex/model/qualified_name.hpp"
 #include "phlex/model/algorithm_name.hpp"
 
+#include <algorithm>
 #include <regex>
 
 namespace phlex::experimental {
