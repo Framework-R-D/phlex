@@ -2,9 +2,9 @@
 
 #include "persistence.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <utility>
-#include <algorithm>
 
 using namespace form::detail::experimental;
 
