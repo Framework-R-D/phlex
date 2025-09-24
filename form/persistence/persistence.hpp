@@ -7,7 +7,6 @@
 
 #include "core/placement.hpp"
 #include "core/token.hpp"
-#include "form/parse_config.hpp"
 #include "storage/istorage.hpp"
 
 #include <map>
@@ -16,15 +15,21 @@
 
 // forward declaration for form config
 namespace form::experimental::config {
-  class parse_config;
+  class output_item_config;
+  class tech_setting_config;
 }
 
 namespace form::detail::experimental {
 
   class Persistence : public IPersistence {
   public:
-    Persistence(form::experimental::config::parse_config const& config);
+    Persistence();
     ~Persistence() = default;
+    void configureTechSettings(
+      form::experimental::config::tech_setting_config const& tech_config_settings) override;
+
+    void configureOutputItems(
+      form::experimental::config::output_item_config const& output_items) override;
 
     void createContainers(std::string const& creator,
                           std::map<std::string, std::string> const& products) override;
@@ -45,13 +50,15 @@ namespace form::detail::experimental {
     std::unique_ptr<Token> getToken(std::string const& creator,
                                     std::string const& label,
                                     std::string const& id);
+
     form::experimental::config::PersistenceItem const* findConfigItem(
       std::string const& label) const;
     std::string buildFullLabel(std::string_view creator, std::string_view label) const;
 
   private:
     std::unique_ptr<IStorage> m_store;
-    form::experimental::config::parse_config m_config;
+    form::experimental::config::output_item_config m_output_items;
+    form::experimental::config::tech_setting_config m_tech_settings;
   };
 
 } // namespace form::detail::experimental

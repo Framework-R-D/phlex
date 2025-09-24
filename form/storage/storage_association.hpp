@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __STORAGE_ASSOCIATION_H__
-#define __STORAGE_ASSOCIATION_H__
+#ifndef __STORAGE_ASSOCIATION_HPP__
+#define __STORAGE_ASSOCIATION_HPP__
 
 #include "storage_container.hpp"
 
@@ -13,6 +13,8 @@ namespace form::detail::experimental {
   public:
     Storage_Association(std::string const& name);
     ~Storage_Association() = default;
+
+    void setAttribute(std::string const& key, std::string const& value) override;
   };
 
 } // namespace form::detail::experimental

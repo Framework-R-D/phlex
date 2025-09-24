@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __STORAGE_CONTAINER_H__
-#define __STORAGE_CONTAINER_H__
+#ifndef __STORAGE_CONTAINER_HPP__
+#define __STORAGE_CONTAINER_HPP__
 
 #include "istorage.hpp"
 
@@ -23,6 +23,8 @@ namespace form::detail::experimental {
     void fill(void const* data) override;
     void commit() override;
     bool read(int id, void const** data, std::string& type) override;
+
+    void setAttribute(std::string const& name, std::string const& value) override;
 
   private:
     std::string m_name;
