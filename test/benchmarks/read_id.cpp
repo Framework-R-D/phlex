@@ -5,7 +5,4 @@ namespace {
   void read_id(phlex::experimental::level_id const&) {}
 }
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
-{
-  m.observe("read_id", read_id, phlex::experimental::concurrency::unlimited).input_family("id");
-}
+PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m) { m.observe("read_id", read_id).input_family("id"); }

@@ -18,7 +18,6 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
   using namespace test;
   m.make<even_fibonacci_numbers>(config.get<int>("max_number"))
-    .observe(
-      "only_even", &even_fibonacci_numbers::only_even, phlex::experimental::concurrency::unlimited)
+    .observe("only_even", &even_fibonacci_numbers::only_even)
     .input_family(config.get<std::string>("consumes"));
 }

@@ -9,7 +9,7 @@ namespace {
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
-  m.transform("last_index", last_index, concurrency::unlimited)
+  m.transform("last_index", last_index)
     .input_family("id")
     .output_products(config.get<std::string>("produces", "a"));
 }
