@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <utility>
+#include <algorithm>
 
 using namespace form::detail::experimental;
 
@@ -74,29 +75,20 @@ std::unique_ptr<Placement> Persistence::getPlacement(std::string const& creator,
                                                      std::string const& label)
 {
   //use config to determine values
-  std::string file_name;
-  int technology;
-
-  bool found = false;
   // Find exact match in config for regular data products
-  for (auto const& item : m_output_items.getItems()) {
-    // Special handling for index containers, take first file, tech, FIXME: Reconsider
-    if (item.product_name == label || label == "index") {
-      file_name = item.file_name;
-      technology = item.technology;
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
+  const auto found = std::find_if(m_output_items.getItems().begin(), m_output_items.getItems().end(),
+		                  [&label](const auto& persItem) {
+                                    // Special handling for index containers, take first file, tech, FIXME: Reconsider
+				    return persItem.product_name == label || label == "index";
+				  });
+
+  if (found == m_output_items.getItems().end()) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
   std::string full_label = creator + "/" + label;
-  std::unique_ptr<Placement> plcmnt =
-    std::unique_ptr<Placement>(new Placement(file_name, full_label, technology));
-  return plcmnt;
+  return std::make_unique<Placement>(found->file_name, full_label, found->technology);
 }
 
 std::unique_ptr<Token> Persistence::getToken(std::string const& creator,
@@ -108,27 +100,16 @@ std::unique_ptr<Token> Persistence::getToken(std::string const& creator,
   std::string index_label = creator + "/index";
 
   // Get parameters from configuration
-  std::string file_name;
-  int technology;
-  bool found = false;
-  for (auto const& item : m_output_items.getItems()) {
-    if (item.product_name == label) {
-      file_name = item.file_name;
-      technology = item.technology;
-      found = true;
-      break;
-    }
-  }
+  const auto found = std::find_if(m_output_items.getItems().begin(), m_output_items.getItems().end(),
+		                 [&label](auto const& persItem) {
+				   return persItem.product_name == label;
+				 });
 
-  if (!found) {
+  if (found == m_output_items.getItems().end()) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::unique_ptr<Token> index_token =
-    std::unique_ptr<Token>(new Token(file_name, index_label, technology));
-  int rowId = m_store->getIndex(*index_token, id, m_tech_settings);
-  std::unique_ptr<Token> token =
-    std::unique_ptr<Token>(new Token(file_name, full_label, technology, rowId));
-  return token;
+  int const rowId = m_store->getIndex(Token{found->file_name, index_label, found->technology}, id, m_tech_settings);
+  return std::make_unique<Token>(found->file_name, full_label, found->technology, rowId);
 }
