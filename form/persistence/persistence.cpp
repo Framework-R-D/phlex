@@ -2,9 +2,9 @@
 
 #include "persistence.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <utility>
-#include <algorithm>
 
 using namespace form::detail::experimental;
 
@@ -76,11 +76,12 @@ std::unique_ptr<Placement> Persistence::getPlacement(std::string const& creator,
 {
   //use config to determine values
   // Find exact match in config for regular data products
-  const auto found = std::find_if(m_output_items.getItems().begin(), m_output_items.getItems().end(),
-		                  [&label](const auto& persItem) {
+  auto const found = std::find_if(m_output_items.getItems().begin(),
+                                  m_output_items.getItems().end(),
+                                  [&label](auto const& persItem) {
                                     // Special handling for index containers, take first file, tech, FIXME: Reconsider
-				    return persItem.product_name == label || label == "index";
-				  });
+                                    return persItem.product_name == label || label == "index";
+                                  });
 
   if (found == m_output_items.getItems().end()) {
     throw std::runtime_error("No configuration found for product: " + label +
@@ -100,16 +101,17 @@ std::unique_ptr<Token> Persistence::getToken(std::string const& creator,
   std::string index_label = creator + "/index";
 
   // Get parameters from configuration
-  const auto found = std::find_if(m_output_items.getItems().begin(), m_output_items.getItems().end(),
-		                 [&label](auto const& persItem) {
-				   return persItem.product_name == label;
-				 });
+  auto const found =
+    std::find_if(m_output_items.getItems().begin(),
+                 m_output_items.getItems().end(),
+                 [&label](auto const& persItem) { return persItem.product_name == label; });
 
   if (found == m_output_items.getItems().end()) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  int const rowId = m_store->getIndex(Token{found->file_name, index_label, found->technology}, id, m_tech_settings);
+  int const rowId =
+    m_store->getIndex(Token{found->file_name, index_label, found->technology}, id, m_tech_settings);
   return std::make_unique<Token>(found->file_name, full_label, found->technology, rowId);
 }
