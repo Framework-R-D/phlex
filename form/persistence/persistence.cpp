@@ -71,45 +71,56 @@ void Persistence::read(std::string const& creator,
   return;
 }
 
+form::experimental::config::PersistenceItem const* Persistence::findConfigItem(
+  std::string const& label) const
+{
+  auto const& items = m_output_items.getItems();
+  if(label == "index") return (items.empty()) ? nullptr : &(*items.begin());  //emulate how FORM did this before Phlex PR #22.  Will be fixed in a future FORM update.
+
+  auto it = std::find_if(
+    items.begin(), items.end(), [&label](auto const& item) { return item.product_name == label; });
+
+  return (it != items.end()) ? &(*it) : nullptr;
+}
+
+std::string Persistence::buildFullLabel(std::string_view creator, std::string_view label) const
+{
+  std::string result;
+  result.reserve(creator.size() + 1 + label.size());
+  result += creator;
+  result += '/';
+  result += label;
+  return result;
+}
+
 std::unique_ptr<Placement> Persistence::getPlacement(std::string const& creator,
                                                      std::string const& label)
 {
-  //use config to determine values
-  // Find exact match in config for regular data products
-  const auto found = std::find_if(m_output_items.getItems().begin(), m_output_items.getItems().end(),
-		                  [&label](const auto& persItem) {
-                                    // Special handling for index containers, take first file, tech, FIXME: Reconsider
-				    return persItem.product_name == label || label == "index";
-				  });
+  auto const* config_item = findConfigItem(label);
 
-  if (found == m_output_items.getItems().end()) {
+  if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::string full_label = creator + "/" + label;
-  return std::make_unique<Placement>(found->file_name, full_label, found->technology);
+  std::string const full_label = buildFullLabel(creator, label);
+  return std::make_unique<Placement>(config_item->file_name, full_label, config_item->technology);
 }
 
 std::unique_ptr<Token> Persistence::getToken(std::string const& creator,
                                              std::string const& label,
                                              std::string const& id)
 {
-  // Full label and index label construction
-  std::string full_label = creator + "/" + label;
-  std::string index_label = creator + "/index";
+  auto const* config_item = findConfigItem(label);
 
-  // Get parameters from configuration
-  const auto found = std::find_if(m_output_items.getItems().begin(), m_output_items.getItems().end(),
-		                 [&label](auto const& persItem) {
-				   return persItem.product_name == label;
-				 });
-
-  if (found == m_output_items.getItems().end()) {
+  if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  int const rowId = m_store->getIndex(Token{found->file_name, index_label, found->technology}, id, m_tech_settings);
-  return std::make_unique<Token>(found->file_name, full_label, found->technology, rowId);
+  std::string const full_label = buildFullLabel(creator, label);
+  std::string const index_label = buildFullLabel(creator, "index");
+
+  int const rowId = m_store->getIndex(Token{config_item->file_name, index_label, config_item->technology}, id, m_tech_settings);
+  return std::make_unique<Token>(config_item->file_name, full_label, config_item->technology, rowId);
 }

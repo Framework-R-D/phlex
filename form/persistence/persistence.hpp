@@ -51,6 +51,10 @@ namespace form::detail::experimental {
                                     std::string const& label,
                                     std::string const& id);
 
+    form::experimental::config::PersistenceItem const* findConfigItem(
+      std::string const& label) const;
+    std::string buildFullLabel(std::string_view creator, std::string_view label) const;
+
   private:
     std::unique_ptr<IStorage> m_store;
     form::experimental::config::output_item_config m_output_items;
