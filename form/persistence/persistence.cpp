@@ -75,7 +75,11 @@ form::experimental::config::PersistenceItem const* Persistence::findConfigItem(
   std::string const& label) const
 {
   auto const& items = m_output_items.getItems();
-  if(label == "index") return (items.empty()) ? nullptr : &(*items.begin());  //emulate how FORM did this before Phlex PR #22.  Will be fixed in a future FORM update.
+  if (label == "index")
+    return (items.empty())
+             ? nullptr
+             : &(*items
+                    .begin()); //emulate how FORM did this before Phlex PR #22.  Will be fixed in a future FORM update.
 
   auto it = std::find_if(
     items.begin(), items.end(), [&label](auto const& item) { return item.product_name == label; });
@@ -121,6 +125,8 @@ std::unique_ptr<Token> Persistence::getToken(std::string const& creator,
   std::string const full_label = buildFullLabel(creator, label);
   std::string const index_label = buildFullLabel(creator, "index");
 
-  int const rowId = m_store->getIndex(Token{config_item->file_name, index_label, config_item->technology}, id, m_tech_settings);
-  return std::make_unique<Token>(config_item->file_name, full_label, config_item->technology, rowId);
+  int const rowId = m_store->getIndex(
+    Token{config_item->file_name, index_label, config_item->technology}, id, m_tech_settings);
+  return std::make_unique<Token>(
+    config_item->file_name, full_label, config_item->technology, rowId);
 }
