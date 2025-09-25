@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <array>
 #include <iosfwd>
-#include <memory>
-#include <span>
 #include <string>
 #include <vector>
 
@@ -15,10 +13,7 @@ namespace phlex::experimental {
   struct specified_label {
     qualified_name name;
     std::string family;
-    std::shared_ptr<specified_label> relation;
     specified_label operator()(std::string family) &&;
-    // specified_label related_to(std::string relation) &&;
-    // specified_label related_to(specified_label relation) &&;
     std::string to_string() const;
 
     static specified_label create(char const* c);
@@ -26,7 +21,7 @@ namespace phlex::experimental {
     static specified_label create(specified_label l);
   };
 
-  using specified_labels = std::span<specified_label const, std::dynamic_extent>;
+  using specified_labels = std::vector<specified_label>;
 
   inline auto& to_name(specified_label const& label) { return label.name.name(); }
   inline auto& to_family(specified_label& label) { return label.family; }

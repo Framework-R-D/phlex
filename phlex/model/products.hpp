@@ -1,13 +1,10 @@
 #ifndef phlex_model_products_hpp
 #define phlex_model_products_hpp
 
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/qualified_name.hpp"
 
-#include "boost/core/demangle.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
-
+#include <cassert>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <typeindex>
@@ -56,14 +53,16 @@ namespace phlex::experimental {
     }
 
     template <typename Ts>
-    void add_all(std::array<qualified_name, 1> names, Ts&& ts)
+    void add_all(qualified_names const& names, Ts&& ts)
     {
+      assert(names.size() == 1ull);
       add(names[0].name(), std::forward<Ts>(ts));
     }
 
     template <typename... Ts>
-    void add_all(std::array<qualified_name, sizeof...(Ts)> names, std::tuple<Ts...> ts)
+    void add_all(qualified_names const& names, std::tuple<Ts...> ts)
     {
+      assert(names.size() == sizeof...(Ts));
       [this, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
         (this->add(names[Is].name(), std::get<Is>(ts)), ...);
       }(ts, std::index_sequence_for<Ts...>{});
@@ -90,9 +89,7 @@ namespace phlex::experimental {
       if (std::strcmp(typeid(T).name(), available_product->type().name()) == 0) {
         return &reinterpret_cast<product<T> const*>(available_product)->obj;
       }
-      return "Cannot get product '" + product_name + "' with type '" +
-             boost::core::demangle(typeid(T).name()) + "' -- must specify type '" +
-             boost::core::demangle(available_product->type().name()) + "'.";
+      return error_message(product_name, typeid(T).name(), available_product->type().name());
     }
 
     bool contains(std::string const& product_name) const;
@@ -100,6 +97,10 @@ namespace phlex::experimental {
     const_iterator end() const noexcept;
 
   private:
+    static std::string error_message(std::string const& product_name,
+                                     char const* requested_type,
+                                     char const* available_type);
+
     collection_t products_;
   };
 }

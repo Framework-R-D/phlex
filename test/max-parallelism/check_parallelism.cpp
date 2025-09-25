@@ -7,10 +7,10 @@
 // phlex command line, or configuration) agrees with what is expected.
 // =======================================================================================
 
-#include "phlex/concurrency.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
+#include "phlex/utilities/max_allowed_parallelism.hpp"
 
 #include <cassert>
 
@@ -22,8 +22,7 @@ namespace {
     void next(framework_driver& driver)
     {
       auto job_store = product_store::base();
-      job_store->add_product("max_parallelism",
-                             concurrency::max_allowed_parallelism::active_value());
+      job_store->add_product("max_parallelism", max_allowed_parallelism::active_value());
       driver.yield(job_store);
     }
   };

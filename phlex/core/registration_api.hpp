@@ -1,5 +1,5 @@
-#ifndef phlex_core_bound_function_hpp
-#define phlex_core_bound_function_hpp
+#ifndef phlex_core_registration_api_hpp
+#define phlex_core_registration_api_hpp
 
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
@@ -24,12 +24,11 @@ namespace phlex::experimental {
 
   template <template <typename...> typename HOF, typename AlgorithmBits>
   class registration_api {
-    using Algorithm = typename AlgorithmBits::bound_type;
-    using InputArgs = typename AlgorithmBits::input_parameter_types;
-    using hof_type = HOF<Algorithm, InputArgs>;
+    using hof_type = HOF<AlgorithmBits>;
     using NodePtr = typename hof_type::node_ptr_type;
 
-    static constexpr auto N = std::tuple_size_v<InputArgs>;
+    static constexpr auto N = AlgorithmBits::number_inputs;
+    static constexpr auto M = hof_type::number_output_products;
 
   public:
     registration_api(configuration const* config,
@@ -40,8 +39,8 @@ namespace phlex::experimental {
                      node_catalog& nodes,
                      std::vector<std::string>& errors) :
       config_{config},
-      name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
-      alg_{alg.release_algorithm()},
+      name_{detail::make_algorithm_name(config, std::move(name))},
+      alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
       registrar_{nodes.registrar_for<NodePtr>(errors)}
@@ -56,7 +55,7 @@ namespace phlex::experimental {
                                           std::move(predicates),
                                           graph_,
                                           std::move(alg_),
-                                          std::move(inputs));
+                                          std::vector(inputs.begin(), inputs.end()));
       });
       return upstream_predicates<NodePtr>{std::move(registrar_), config_};
     }
@@ -79,7 +78,7 @@ namespace phlex::experimental {
   private:
     configuration const* config_;
     algorithm_name name_;
-    Algorithm alg_;
+    AlgorithmBits alg_;
     concurrency concurrency_;
     tbb::flow::graph& graph_;
     registrar<NodePtr> registrar_;
@@ -115,7 +114,7 @@ namespace phlex::experimental {
                    node_catalog& nodes,
                    std::vector<std::string>& errors) :
       node_options_t{config},
-      name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
+      name_{detail::make_algorithm_name(config, std::move(name))},
       obj_{obj},
       ft_{std::move(f)},
       concurrency_{c},
@@ -128,29 +127,25 @@ namespace phlex::experimental {
     auto transform(std::array<specified_label, N> input_args)
       requires is_transform_like<FT>
     {
-      auto algorithm = delegate(obj_, ft_);
-      return pre_transform<decltype(algorithm), input_parameter_types>{
-        nodes_.registrar_for<declared_transform_ptr>(errors_),
-        std::move(name_),
-        concurrency_.value,
-        node_options_t::release_predicates(),
-        graph_,
-        std::move(algorithm),
-        std::move(input_args)};
+      return pre_transform{nodes_.registrar_for<declared_transform_ptr>(errors_),
+                           std::move(name_),
+                           concurrency_.value,
+                           node_options_t::release_predicates(),
+                           graph_,
+                           algorithm_bits(obj_, ft_),
+                           std::vector(input_args.begin(), input_args.end())};
     }
 
     auto fold(std::array<specified_label, N - 1> input_args)
       requires is_fold_like<FT>
     {
-      auto algorithm = delegate(obj_, ft_);
-      return pre_fold<decltype(algorithm), skip_first_type<input_parameter_types>>{
-        nodes_.registrar_for<declared_fold_ptr>(errors_),
-        std::move(name_),
-        concurrency_.value,
-        node_options_t::release_predicates(),
-        graph_,
-        std::move(algorithm),
-        std::move(input_args)};
+      return pre_fold{nodes_.registrar_for<declared_fold_ptr>(errors_),
+                      std::move(name_),
+                      concurrency_.value,
+                      node_options_t::release_predicates(),
+                      graph_,
+                      algorithm_bits(obj_, ft_),
+                      std::vector(input_args.begin(), input_args.end())};
     }
 
     template <label_compatible L>
@@ -197,4 +192,4 @@ namespace phlex::experimental {
     -> bound_function<T, FT>;
 }
 
-#endif // phlex_core_bound_function_hpp
+#endif // phlex_core_registration_api_hpp

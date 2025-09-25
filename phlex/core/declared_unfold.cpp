@@ -2,6 +2,9 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_counter.hpp"
 
+#include "fmt/std.h"
+#include "spdlog/spdlog.h"
+
 namespace phlex::experimental {
 
   generator::generator(product_store_const_ptr const& parent,
@@ -30,10 +33,22 @@ namespace phlex::experimental {
     return result;
   }
 
-  declared_unfold::declared_unfold(algorithm_name name, std::vector<std::string> predicates) :
-    products_consumer{std::move(name), std::move(predicates)}
+  declared_unfold::declared_unfold(algorithm_name name,
+                                   std::vector<std::string> predicates,
+                                   specified_labels input_products) :
+    products_consumer{std::move(name), std::move(predicates), std::move(input_products)}
   {
   }
 
   declared_unfold::~declared_unfold() = default;
+
+  void declared_unfold::report_cached_stores(stores_t const& stores) const
+  {
+    if (stores.size() > 0ull) {
+      spdlog::warn("Unfold {} has {} cached stores.", full_name(), stores.size());
+    }
+    for (auto const& [hash, store] : stores) {
+      spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
+    }
+  }
 }

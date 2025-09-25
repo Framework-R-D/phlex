@@ -5,7 +5,9 @@
 #include "phlex/model/level_counter.hpp"
 #include "phlex/model/product_store.hpp"
 
+#include "fmt/std.h"
 #include "spdlog/cfg/env.h"
+#include "spdlog/spdlog.h"
 
 #include <cassert>
 #include <iostream>
@@ -65,8 +67,7 @@ namespace phlex::experimental {
 
     // FIXME: Should the loading of env levels happen in the phlex app only?
     spdlog::cfg::load_env_levels();
-    spdlog::info("Number of worker threads: {}",
-                 concurrency::max_allowed_parallelism::active_value());
+    spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
 
     // The parent of the job message is null
     eoms_.push(nullptr);

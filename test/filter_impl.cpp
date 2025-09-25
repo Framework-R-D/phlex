@@ -1,6 +1,6 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
 

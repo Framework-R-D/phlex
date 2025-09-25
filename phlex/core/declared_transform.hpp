@@ -20,11 +20,9 @@
 #include "phlex/model/qualified_name.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "fmt/std.h"
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <array>
@@ -44,13 +42,22 @@ namespace phlex::experimental {
 
   class declared_transform : public products_consumer {
   public:
-    declared_transform(algorithm_name name, std::vector<std::string> predicates);
+    declared_transform(algorithm_name name,
+                       std::vector<std::string> predicates,
+                       specified_labels input_products);
     virtual ~declared_transform();
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual qualified_names output() const = 0;
+    virtual qualified_names const& output() const = 0;
     virtual std::size_t product_count() const = 0;
+
+  protected:
+    using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
+    using accessor = stores_t::accessor;
+    using const_accessor = stores_t::const_accessor;
+
+    void report_cached_stores(stores_t const& stores) const;
   };
 
   using declared_transform_ptr = std::unique_ptr<declared_transform>;
@@ -58,13 +65,14 @@ namespace phlex::experimental {
 
   // =====================================================================================
 
-  template <is_transform_like FT, typename InputArgs>
+  template <typename AlgorithmBits>
   class pre_transform {
-    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
-    static constexpr std::size_t M = number_output_objects<FT>;
-    using function_t = FT;
+    using function_t = typename AlgorithmBits::bound_type;
+    using input_parameter_types = typename AlgorithmBits::input_parameter_types;
 
-    template <std::size_t M>
+    static constexpr auto N = AlgorithmBits::number_inputs;
+    static constexpr auto M = number_output_objects<function_t>;
+
     class total_transform;
 
   public:
@@ -73,13 +81,13 @@ namespace phlex::experimental {
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
-                  function_t&& f,
-                  std::array<specified_label, N> input) :
+                  AlgorithmBits alg,
+                  specified_labels input) :
       name_{std::move(name)},
       concurrency_{concurrency},
       predicates_{std::move(predicates)},
       graph_{g},
-      ft_{std::move(f)},
+      alg_{std::move(alg)},
       input_{std::move(input)},
       reg_{std::move(reg)}
     {
@@ -93,9 +101,9 @@ namespace phlex::experimental {
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
 
-      std::array<qualified_name, Msize> outputs;
-      std::ranges::transform(output_keys, outputs.begin(), to_qualified_name{name_});
-      reg_.set_creator([this, out = std::move(outputs)](auto) { return create(std::move(out)); });
+      reg_.set_creator([this, out = std::move(output_keys)](auto) {
+        return create(std::vector(out.begin(), out.end()));
+      });
       return *this;
     }
 
@@ -109,31 +117,30 @@ namespace phlex::experimental {
     }
 
   private:
-    declared_transform_ptr create(std::array<qualified_name, M> outputs)
+    declared_transform_ptr create(std::vector<std::string> outputs)
     {
-      return std::make_unique<total_transform<M>>(std::move(name_),
-                                                  concurrency_,
-                                                  std::move(predicates_),
-                                                  graph_,
-                                                  std::move(ft_),
-                                                  std::move(input_),
-                                                  std::move(outputs));
+      return std::make_unique<total_transform>(std::move(name_),
+                                               concurrency_,
+                                               std::move(predicates_),
+                                               graph_,
+                                               std::move(alg_),
+                                               std::move(input_),
+                                               std::move(outputs));
     }
 
     algorithm_name name_;
     std::size_t concurrency_;
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
-    function_t ft_;
-    std::array<specified_label, N> input_;
+    AlgorithmBits alg_;
+    specified_labels input_;
     registrar<declared_transform_ptr> reg_;
   };
 
   // =====================================================================================
 
-  template <is_transform_like FT, typename InputArgs>
-  template <std::size_t M>
-  class pre_transform<FT, InputArgs>::total_transform :
+  template <typename AlgorithmBits>
+  class pre_transform<AlgorithmBits>::total_transform :
     public declared_transform,
     private detect_flush_flag {
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
@@ -145,72 +152,64 @@ namespace phlex::experimental {
                     std::size_t concurrency,
                     std::vector<std::string> predicates,
                     tbb::flow::graph& g,
-                    function_t&& f,
-                    std::array<specified_label, N> input,
-                    std::array<qualified_name, M> output) :
-      declared_transform{std::move(name), std::move(predicates)},
-      product_labels_{std::move(input)},
-      input_{form_input_arguments<InputArgs>(full_name(), product_labels_)},
-      output_{std::move(output)},
+                    AlgorithmBits alg,
+                    specified_labels input,
+                    std::vector<std::string> output) :
+      declared_transform{std::move(name), std::move(predicates), std::move(input)},
+      output_{to_qualified_names(full_name(), std::move(output))},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      transform_{
-        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& output) {
-          auto const& msg = most_derived(messages);
-          auto const& [store, message_eom, message_id] = std::tie(msg.store, msg.eom, msg.id);
-          auto& [stay_in_graph, to_output] = output;
-          if (store->is_flush()) {
-            flag_for(store->id()->hash()).flush_received(msg.original_id);
-            stay_in_graph.try_put(msg);
-            to_output.try_put(msg);
-          } else {
-            accessor a;
-            if (stores_.insert(a, store->id()->hash())) {
-              auto result = call(ft, messages, std::make_index_sequence<N>{});
-              ++calls_;
-              ++product_count_[store->id()->level_hash()];
-              products new_products;
-              new_products.add_all(output_, std::move(result));
-              a->second = store->make_continuation(this->full_name(), std::move(new_products));
+      transform_{g,
+                 concurrency,
+                 [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto& output) {
+                   auto const& msg = most_derived(messages);
+                   auto const& [store, message_eom, message_id] =
+                     std::tie(msg.store, msg.eom, msg.id);
+                   auto& [stay_in_graph, to_output] = output;
+                   if (store->is_flush()) {
+                     flag_for(store->id()->hash()).flush_received(msg.original_id);
+                     stay_in_graph.try_put(msg);
+                     to_output.try_put(msg);
+                   } else {
+                     accessor a;
+                     if (stores_.insert(a, store->id()->hash())) {
+                       auto result = call(ft, messages, std::make_index_sequence<N>{});
+                       ++calls_;
+                       ++product_count_[store->id()->level_hash()];
+                       products new_products;
+                       new_products.add_all(output_, std::move(result));
+                       a->second =
+                         store->make_continuation(this->full_name(), std::move(new_products));
 
-              message const new_msg{a->second, msg.eom, message_id};
-              stay_in_graph.try_put(new_msg);
-              to_output.try_put(new_msg);
-              flag_for(store->id()->hash()).mark_as_processed();
-            } else {
-              stay_in_graph.try_put({a->second, msg.eom, message_id});
-            }
-          }
+                       message const new_msg{a->second, msg.eom, message_id};
+                       stay_in_graph.try_put(new_msg);
+                       to_output.try_put(new_msg);
+                       flag_for(store->id()->hash()).mark_as_processed();
+                     } else {
+                       stay_in_graph.try_put({a->second, msg.eom, message_id});
+                     }
+                   }
 
-          if (done_with(store)) {
-            stores_.erase(store->id()->hash());
-          }
-        }}
+                   if (done_with(store)) {
+                     stores_.erase(store->id()->hash());
+                   }
+                 }}
     {
       make_edge(join_, transform_);
     }
 
-    ~total_transform()
-    {
-      if (stores_.size() > 0ull) {
-        spdlog::warn("Transform {} has {} cached stores.", full_name(), stores_.size());
-      }
-      for (auto const& [hash, store] : stores_) {
-        spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
-      }
-    }
+    ~total_transform() { report_cached_stores(stores_); }
 
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, product_labels_, product_label);
+      return receiver_for<N>(join_, input(), product_label);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
     tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
-    specified_labels input() const override { return product_labels_; }
-    qualified_names output() const override { return output_; }
+    qualified_names const& output() const override { return output_; }
 
     template <std::size_t... Is>
     auto call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
@@ -228,9 +227,8 @@ namespace phlex::experimental {
       return result;
     }
 
-    std::array<specified_label, N> product_labels_;
-    input_retriever_types<InputArgs> input_;
-    std::array<qualified_name, M> output_;
+    input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
+    qualified_names output_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;
     stores_t stores_;
