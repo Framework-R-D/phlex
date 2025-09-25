@@ -35,16 +35,21 @@ FetchContent_Declare(
   FIND_PACKAGE_ARGS
   )
 
-# Make all declared fetchable content available
-FetchContent_MakeAvailable(cetmodules Catch2 GSL mimicpp)
-# ##############################################################################
-
+# Make cetmodules available
+FetchContent_MakeAvailable(cetmodules)
 find_package(cetmodules 4.01.01 REQUIRED)
+
+# ##################################
+# Main project declaration
 project(
   phlex
   VERSION 0.0.1
   LANGUAGES CXX
   )
+# ##################################
+
+# Make tools available
+FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
 include(Modules/private/CreateClangTidyTargets.cmake)
 
@@ -58,6 +63,7 @@ add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
+      AND CMAKE_COMPILER_VERSION VERSION_LESS "15"
     )
     # GCC 14.1 issues many false positives re. array-bounds and stringop-overflow
     add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
