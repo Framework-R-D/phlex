@@ -6,26 +6,37 @@ include(FetchContent)
 FetchContent_Declare(
   cetmodules
   GIT_REPOSITORY https://github.com/FNALssi/cetmodules
-  GIT_TAG 4a5a5881 # v4.00.00
-  FIND_PACKAGE_ARGS 4.00.00
+  GIT_TAG 4.01.01
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS 4.01.01
+  )
+# ... and the Catch2 unit testing framework
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG v3.10.0
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS
   )
 # ... and Microsoft's C++ Guideline Support Library
 FetchContent_Declare(
   GSL
   GIT_REPOSITORY https://github.com/microsoft/GSL
-  GIT_TAG 2828399820ef4928cc89b65605dca5dc68efca6e # v4.2.0
+  GIT_TAG v4.2.0
   GIT_SHALLOW ON
   FIND_PACKAGE_ARGS NAMES Microsoft.GSL
   )
-# ... and Catch2
+# ... and the Mimic C++ mocking framework
 FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG 914aeecfe23b1e16af6ea675a4fb5dbd5a5b8d0a # v3.8.0
+  mimicpp
+  GIT_REPOSITORY https://github.com/DNKpp/mimicpp
+  GIT_TAG v8
   GIT_SHALLOW ON
   FIND_PACKAGE_ARGS
   )
-FetchContent_MakeAvailable(cetmodules Catch2 GSL)
+
+# Make all declared fetchable content available
+FetchContent_MakeAvailable(cetmodules Catch2 GSL mimicpp)
 # ##############################################################################
 
 find_package(cetmodules 4.00.00 REQUIRED)
