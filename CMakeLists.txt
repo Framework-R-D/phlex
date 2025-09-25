@@ -39,7 +39,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cetmodules Catch2 GSL mimicpp)
 # ##############################################################################
 
-find_package(cetmodules 4.00.00 REQUIRED)
+find_package(cetmodules 4.01.01 REQUIRED)
 project(
   phlex
   VERSION 0.0.1
