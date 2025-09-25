@@ -29,7 +29,8 @@ jobs:
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         mkdir -p $GITHUB_WORKSPACE/phlex-build
         cd $GITHUB_WORKSPACE/phlex-build
-        cmake $GITHUB_WORKSPACE/phlex-src -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DPHLEX_USE_FORM=ON -DFORM_USE_ROOT_STORAGE=ON
+        [ -f "$GITHUB_WORKSPACE/phlex-src/CMakePresets.json" ] && preset_arg="--preset=default" || unset preset_arg
+        cmake $preset_arg $GITHUB_WORKSPACE/phlex-src -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DPHLEX_USE_FORM=ON -DFORM_USE_ROOT_STORAGE=ON -DCMAKE_CXX_COMPILER=g++
         cmake --build . -j $(nproc)
 
     - name: Test
