@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __ROOT_TTREE_CONTAINER_H__
-#define __ROOT_TTREE_CONTAINER_H__
+#ifndef __ROOT_TTREE_CONTAINER_HPP__
+#define __ROOT_TTREE_CONTAINER_HPP__
 
 #include "storage/storage_association.hpp"
 

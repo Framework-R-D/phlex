@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PLACEMENT_H__
-#define __PLACEMENT_H__
+#ifndef __PLACEMENT_HPP__
+#define __PLACEMENT_HPP__
 
 #include <string>
 

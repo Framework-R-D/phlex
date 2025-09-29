@@ -1,12 +1,11 @@
 // Copyright (C) 2025 ...
 
 #include "data_products/track_start.hpp"
-#include "toy_tracker.hpp"
-
 #include "form/form.hpp"
-#include "form/parse_config.hpp"
 #include "form/technology.hpp"
 #include "mock_phlex/phlex_toy_config.hpp"
+#include "mock_phlex/phlex_toy_core.hpp" // toy of phlex core components
+#include "toy_tracker.hpp"
 
 #include <cstdlib>  // For rand() and srand()
 #include <iostream> // For cout
@@ -41,14 +40,16 @@ int main(int /*argc*/, char** /* argv[]*/)
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
-  mock_phlex::config::parse_config config; // Create PHLEX config
-  config.addItem("trackStart", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("trackNumberHits", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("trackStartPoints", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("trackStartX", "toy.root", form::Technology::ROOT_TTREE);
-  config.addItem("index", "toy.root", form::Technology::ROOT_TTREE);
+  mock_phlex::config::parse_config config;
+  config.addItem("trackStart", "toy.root", form::technology::ROOT_TTREE);
+  config.addItem("trackNumberHits", "toy.root", form::technology::ROOT_TTREE);
+  config.addItem("trackStartPoints", "toy.root", form::technology::ROOT_TTREE);
+  config.addItem("trackStartX", "toy.root", form::technology::ROOT_TTREE);
+  config.addContainerSetting(form::technology::ROOT_TTREE, "trackStart", "auto_flush", "1");
+  config.addFileSetting(form::technology::ROOT_TTREE, "toy.root", "compression", "kZSTD");
+  config.addContainerSetting(
+    form::technology::ROOT_RNTUPLE, "Toy_Tracker/trackStartPoints", "force_streamer_field", "true");
 
-  // Pass phlex config to interface
   form::experimental::form_interface form(type_map, config);
 
   ToyTracker tracker(4 * 1024);

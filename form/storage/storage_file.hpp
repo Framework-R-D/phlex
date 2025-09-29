@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __STORAGE_FILE_H__
-#define __STORAGE_FILE_H__
+#ifndef __STORAGE_FILE_HPP__
+#define __STORAGE_FILE_HPP__
 
 #include "istorage.hpp"
 
@@ -15,6 +15,8 @@ namespace form::detail::experimental {
 
     std::string const& name() override;
     char const mode() override;
+
+    void setAttribute(std::string const& name, std::string const& value) override;
 
   private:
     std::string m_name;

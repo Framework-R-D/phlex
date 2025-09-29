@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __ROOT_TBRANCH_CONTAINER_H__
-#define __ROOT_TBRANCH_CONTAINER_H__
+#ifndef __ROOT_TBRANCH_CONTAINER_HPP__
+#define __ROOT_TBRANCH_CONTAINER_HPP__
 
 #include "storage/storage_associative_container.hpp"
 
@@ -18,6 +18,8 @@ namespace form::detail::experimental {
   public:
     ROOT_TBranch_ContainerImp(std::string const& name);
     ~ROOT_TBranch_ContainerImp() = default;
+
+    void setAttribute(std::string const& key, std::string const& value) override;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setParent(std::shared_ptr<IStorage_Container> parent) override;

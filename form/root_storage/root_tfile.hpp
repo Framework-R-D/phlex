@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __ROOT_TFILE_H__
-#define __ROOT_TFILE_H__
+#ifndef __ROOT_TFILE_HPP__
+#define __ROOT_TFILE_HPP__
 
 #include "storage/storage_file.hpp"
 
@@ -16,6 +16,8 @@ namespace form::detail::experimental {
   public:
     ROOT_TFileImp(std::string const& name, char mode);
     ~ROOT_TFileImp();
+
+    void setAttribute(std::string const& key, std::string const& value) override;
 
     std::shared_ptr<TFile> getTFile();
 
