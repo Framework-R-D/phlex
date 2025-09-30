@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Code Coverage
+run-name: "${{ github.actor }} running code coverage for Phlex"
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Coverage
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci:2025-08-19a
+
+    steps:
+    - name: Check out source code
+      uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - name: Setup build environment
+      uses: ./phlex-src/.github/actions/setup-build-env
+
+    - name: Configure CMake with coverage
+      uses: ./phlex-src/.github/actions/configure-cmake
+      with:
+        build-type: ${{ env.BUILD_TYPE }}
+        extra-options: '-DCMAKE_CXX_COMPILER=g++ -DENABLE_COVERAGE=ON'
+
+    - name: Build with coverage instrumentation
+      uses: ./phlex-src/.github/actions/build-cmake
+
+    - name: Run tests with coverage
+      run: |
+        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+        ctest -j $(nproc) --output-on-failure
+
+    - name: Generate coverage reports
+      run: |
+        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+
+        echo "Generating coverage reports using CMake targets..."
+        echo "Build directory: $(pwd)"
+
+        # Generate XML coverage report using CMake target
+        echo "Generating XML coverage report..."
+        cmake --build . --target coverage-xml
+
+        # Verify coverage.xml was generated and show some info about it
+        if [ -f coverage.xml ]; then
+          echo "Coverage XML generated successfully"
+          echo "Coverage XML size: $(wc -c < coverage.xml) bytes"
+          echo "Source paths in coverage.xml:"
+          grep -o '<source>.*</source>' coverage.xml | head -5
+        else
+          echo "ERROR: coverage.xml not found"
+          ls -la *.xml || echo "No XML files found"
+          exit 1
+        fi
+
+        # Also generate HTML report for artifact upload using CMake target
+        echo "Generating HTML coverage report..."
+        cmake --build . --target coverage-html || echo "HTML coverage generation failed (lcov issues), continuing..."
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      # yaml-language-server: disable
+      with:
+        file: phlex-build/coverage.xml
+        flags: unittests
+        name: phlex-coverage
+        fail_ci_if_error: true
+        verbose: true
+        working-directory: ${{ github.workspace }}
+        root_dir: ${{ github.workspace }}
+        token: ${{ secrets.CODECOV_TOKEN }}
+      # yaml-language-server: enable
+
+    - name: Upload HTML coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-html-report
+        path: phlex-build/coverage-html/
+        retention-days: 30
