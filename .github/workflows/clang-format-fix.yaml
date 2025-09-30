@@ -1,5 +1,5 @@
-name: Phlex fix format
-run-name: ${{ github.actor }} fixing code format
+name: Clang-Format Fix
+run-name: "${{ github.actor }} fixing code format"
 
 on:
   issue_comment:

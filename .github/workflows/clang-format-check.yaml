@@ -1,5 +1,5 @@
-name: Phlex code checks
-run-name: ${{ github.actor }} running code checks
+name: Clang-Format Check
+run-name: "${{ github.actor }} running code checks"
 
 on:
   pull_request:
