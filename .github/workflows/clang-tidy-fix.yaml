@@ -1,0 +1,104 @@
+name: Clang-Tidy Fix
+'run-name': "${{ github.actor }} applying clang-tidy fixes"
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+   pull-requests: write
+   contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    name: Check for phlexbot tidy-fix token
+    if: ${{ github.event.issue.pull_request }}
+
+    outputs:
+      match_result: ${{ steps.check_comment.outputs.match_result }}
+      ref_name: ${{ steps.check_comment.outputs.ref_name }}
+      repo_name: ${{ steps.check_comment.outputs.repo_name }}
+
+    steps:
+      - id: check_comment
+        name: Check comment
+        run: |
+          comment='${{ github.event.comment.body }}'
+          match_result=$(echo $comment | grep -qE '@phlexbot[[:space:]]+tidy-fix' && echo match || echo non_match)
+          echo match_result="$match_result" >> $GITHUB_OUTPUT
+
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          REPO="${{ github.repository }}"
+          gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
+          echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
+          echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  apply_tidy_fixes:
+    runs-on: ubuntu-24.04
+    name: Apply clang-tidy fixes
+    needs: check
+    if: ${{ needs.check.outputs.match_result == 'match' }}
+
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci:2025-08-19a
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: phlex-src
+          ref: ${{ needs.check.outputs.ref_name }}
+          repository: ${{ needs.check.outputs.repo_name }}
+
+      - name: Setup build environment
+        uses: ./phlex-src/.github/actions/setup-build-env
+
+      - name: Configure CMake for clang-tidy
+        uses: ./phlex-src/.github/actions/configure-cmake
+        with:
+          build-type: Debug
+          extra-options: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
+
+      - name: Build project
+        uses: ./phlex-src/.github/actions/build-cmake
+
+      - name: Apply clang-tidy fixes using CMake target
+        run: |
+          . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+          cd $GITHUB_WORKSPACE/phlex-build
+
+          echo "Applying clang-tidy fixes using CMake target..."
+          cmake --build . --target clang-tidy-fix || true
+
+          echo "Clang-tidy fixes applied"
+
+      - name: Commit tidy fixes
+        uses: EndBug/add-and-commit@v9
+        id: add_and_commit
+        with:
+          cwd: phlex-src
+          author_name: "github-actions[bot]"
+          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          message: 'Apply clang-tidy fixes'
+
+      - name: Tidy fixes committed and pushed
+        if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            Clang-tidy fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
+
+            ⚠️ **Note:** Some issues may require manual review and fixing.
+
+      - name: No tidy fixes to apply
+        if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            No clang-tidy fixes to apply
+
+            All automatically fixable issues have been resolved. Any remaining issues require manual attention.
