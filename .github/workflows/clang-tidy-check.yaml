@@ -1,0 +1,57 @@
+name: Clang-Tidy Check
+'run-name': "${{ github.actor }} running clang-tidy check"
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  clang-tidy-check:
+    runs-on: ubuntu-24.04
+
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci:2025-08-19a
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - name: Setup build environment
+      uses: ./phlex-src/.github/actions/setup-build-env
+
+    - name: Configure CMake for clang-tidy
+      uses: ./phlex-src/.github/actions/configure-cmake
+      with:
+        build-type: Debug
+        extra-options: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
+
+    - name: Build project
+      uses: ./phlex-src/.github/actions/build-cmake
+
+    - name: Run clang-tidy using CMake target
+      run: |
+        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+
+        echo "Running clang-tidy checks using CMake target..."
+
+        if ! cmake --build . --target clang-tidy-check 2>&1 | tee clang-tidy.log; then
+          echo ""
+          echo "::error::Clang-tidy found issues in the code"
+          echo "Review the output above for details"
+          echo "Comment '@phlexbot tidy-fix' on the PR to attempt auto-fix"
+          exit 1
+        fi
+
+        echo "✓ No clang-tidy issues found"
+
+    - name: Upload clang-tidy log
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: clang-tidy-log
+        path: phlex-build/clang-tidy.log
+        retention-days: 7
