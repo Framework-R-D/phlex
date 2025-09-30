@@ -9,6 +9,8 @@ project(
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
+option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -81,9 +83,49 @@ if(ENABLE_ASAN)
   endif()
 endif()
 
-# Configure clang-tidy integration
-option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
+# Configure code coverage if enabled
+if (ENABLE_COVERAGE)
+  # Check if the compiler supports code coverage
+  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+      OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+      OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
+      )
+    message(STATUS "Enabling code coverage instrumentation")
 
+    # Use CMake's built-in coverage flags
+    # Force these into the cache to override any empty defaults
+    set(CMAKE_CXX_FLAGS_COVERAGE "-g -O0 --coverage -fprofile-arcs -ftest-coverage" CACHE STRING "C++ flags for Coverage build" FORCE)
+    set(CMAKE_C_FLAGS_COVERAGE "-g -O0 --coverage -fprofile-arcs -ftest-coverage" CACHE STRING "C flags for Coverage build" FORCE)
+    set(CMAKE_EXE_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "Executable linker flags for Coverage build" FORCE)
+    set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "Shared library linker flags for Coverage build" FORCE)
+    set(CMAKE_MODULE_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "Module linker flags for Coverage build" FORCE)
+
+    # Set the build type to Coverage if not specified
+    if(NOT CMAKE_BUILD_TYPE)
+      set(CMAKE_BUILD_TYPE Coverage CACHE STRING "Build type" FORCE)
+    endif()
+
+    # Configure CTest to find coverage tools automatically
+    find_program(CTEST_COVERAGE_COMMAND
+      NAMES gcov llvm-cov
+      DOC "Coverage tool for CTest"
+    )
+
+    if(CTEST_COVERAGE_COMMAND)
+      message(STATUS "Found coverage tool: ${CTEST_COVERAGE_COMMAND}")
+    else()
+      message(WARNING "Coverage tool not found - coverage reports may not work")
+    endif()
+
+  else ()
+    message(
+      FATAL_ERROR
+        "Code coverage is not supported with ${CMAKE_CXX_COMPILER_ID}"
+      )
+  endif ()
+endif ()
+
+# Configure clang-tidy integration
 if(ENABLE_CLANG_TIDY)
   find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
 
@@ -106,6 +148,89 @@ endif()
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(test)
+
+  # Add coverage targets if coverage is enabled
+  if (ENABLE_COVERAGE)
+    # Find coverage report generation tools
+    find_program(LCOV_EXECUTABLE lcov)
+    find_program(GENHTML_EXECUTABLE genhtml)
+    find_program(GCOVR_EXECUTABLE gcovr)
+
+    # Simple coverage target that just generates XML and HTML reports
+    add_custom_target(coverage
+      COMMAND echo "Generating coverage reports from existing coverage data..."
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Generating coverage reports (use coverage-xml or coverage-html for specific formats)"
+    )
+
+    # HTML coverage report using lcov (if available)
+    if(LCOV_EXECUTABLE AND GENHTML_EXECUTABLE)
+      # Use the same root detection as for XML coverage
+      if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+        set(COVERAGE_SOURCE_ROOT ${PROJECT_SOURCE_DIR})
+        set(LCOV_EXTRACT_PATTERN "${PROJECT_SOURCE_DIR}/*")
+      else()
+        set(COVERAGE_SOURCE_ROOT ${CMAKE_SOURCE_DIR})
+        set(LCOV_EXTRACT_PATTERN "${PROJECT_SOURCE_DIR}/*")
+      endif()
+
+      add_custom_target(coverage-html
+        COMMAND ${LCOV_EXECUTABLE} --directory . --capture --output-file coverage.info --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative --ignore-errors deprecated
+        COMMAND ${LCOV_EXECUTABLE} --remove coverage.info '/usr/*' '${CMAKE_BINARY_DIR}/_deps/*' '*/spack*/*' '*/test/*' --output-file coverage.info.cleaned --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative,unused
+        COMMAND ${LCOV_EXECUTABLE} --extract coverage.info.cleaned '${LCOV_EXTRACT_PATTERN}' --output-file coverage.info.final --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative
+        COMMAND ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.final --title "Phlex Coverage Report" --show-details --legend --branch-coverage --ignore-errors mismatch,inconsistent,negative
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating HTML coverage report with lcov (filtering: ${LCOV_EXTRACT_PATTERN})"
+      )
+      message(STATUS "Added 'coverage-html' target using lcov with filter: ${LCOV_EXTRACT_PATTERN}")
+    endif()
+
+    # XML coverage report using gcovr (if available)
+    if(GCOVR_EXECUTABLE)
+      # Determine the appropriate source root for coverage analysis
+      # In standalone mode: CMAKE_SOURCE_DIR == PROJECT_SOURCE_DIR
+      # In multi-project mode: CMAKE_SOURCE_DIR is parent of PROJECT_SOURCE_DIR
+      if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+        # Standalone mode - use PROJECT_SOURCE_DIR
+        set(COVERAGE_SOURCE_ROOT ${PROJECT_SOURCE_DIR})
+      else()
+        # Multi-project mode - use CMAKE_SOURCE_DIR to include all projects
+        # but filter to only include this project's files
+        set(COVERAGE_SOURCE_ROOT ${CMAKE_SOURCE_DIR})
+      endif()
+
+      # Workaround for GCC bug #120319: "Unexpected number of branch outcomes and line coverage for C++ programs"
+      # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120319
+      # Modern GCC (15.2+) has a regression causing negative hits in gcov output for complex C++ templates
+      add_custom_target(coverage-xml
+        COMMAND ${GCOVR_EXECUTABLE}
+          --root ${COVERAGE_SOURCE_ROOT}
+          --filter ${PROJECT_SOURCE_DIR}/
+          --xml-pretty
+          --exclude-unreachable-branches
+          --print-summary
+          --gcov-ignore-parse-errors=negative_hits.warn_once_per_file
+          --gcov-ignore-errors=no_working_dir_found
+          -o coverage.xml .
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating XML coverage report with gcovr (root: ${COVERAGE_SOURCE_ROOT})"
+      )
+      message(STATUS "Added 'coverage-xml' target using gcovr with root: ${COVERAGE_SOURCE_ROOT}")
+    endif()
+
+    # Clean coverage data
+    add_custom_target(coverage-clean
+      COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
+      COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcno" -delete
+      COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.info*
+      COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.xml
+      COMMAND rm -rf ${CMAKE_BINARY_DIR}/coverage_html
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Cleaning coverage data files"
+    )
+
+    message(STATUS "Coverage targets added: coverage, coverage-xml, coverage-html, coverage-clean")
+  endif()
 endif()
 
 # ============================================================================
