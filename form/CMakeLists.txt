@@ -16,6 +16,11 @@ if (FORM_USE_ROOT_STORAGE)
 	add_definitions( -DUSE_ROOT_STORAGE )
 endif()
 
+option(FORM_USE_RNTUPLE_STORAGE "Enable RNTuple Container from ROOT 7" OFF)
+if (FORM_USE_RNTUPLE_STORAGE)
+	add_definitions( -DUSE_RNTUPLE_STORAGE )
+endif()
+
 # Add sub directories
 add_subdirectory(form)
 add_subdirectory(mock_phlex)
