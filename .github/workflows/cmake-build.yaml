@@ -29,7 +29,7 @@ jobs:
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         mkdir -p $GITHUB_WORKSPACE/phlex-build
         cd $GITHUB_WORKSPACE/phlex-build
-        cmake $GITHUB_WORKSPACE/phlex-src -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DPHLEX_USE_FORM=ON -DFORM_USE_ROOT_STORAGE=ON
+        cmake $GITHUB_WORKSPACE/phlex-src -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DPHLEX_USE_FORM=ON -DFORM_USE_ROOT_STORAGE=ON -DFORM_USE_RNTUPLE_STORAGE=ON
         cmake --build . -j $(nproc)
 
     - name: Test
