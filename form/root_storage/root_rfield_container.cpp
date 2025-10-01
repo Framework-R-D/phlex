@@ -70,11 +70,13 @@ namespace form::detail::experimental {
           std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, ""));
         //TClass takes the "std::" off of "std::vector<>" when RNTuple's on-disk format doesn't.  Convert RNTuple's type name to match TClass for manual type check because our dictionary of choice will likely be the same as TClass.
         if (strcmp(TClass::GetClass(m_view->GetField().GetTypeName().c_str())->GetName(),
-                   type.c_str())) {
+                   TClass::GetClass(type.c_str())->GetName())) {
           throw std::runtime_error(
-            "ROOT_RField_containerImp::read type " + type + " requested for a field named " +
-            col_name() +
-            " does not match the type in the file: " + m_view->GetField().GetTypeName());
+            "ROOT_RField_containerImp::read type " +
+            std::string(TClass::GetClass(type.c_str())->GetName()) +
+            " requested for a field named " + col_name() +
+            " does not match the type in the file: " +
+            TClass::GetClass(m_view->GetField().GetTypeName().c_str())->GetName());
         }
       }
     }
