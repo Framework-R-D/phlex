@@ -1,0 +1,49 @@
+name: 'Build with CMake'
+description: 'Builds the project using CMake'
+
+inputs:
+  source-path:
+    description: 'Path where source code is checked out'
+    required: false
+    default: 'phlex-src'
+  build-path:
+    description: 'Path for build directory'
+    required: false
+    default: 'phlex-build'
+  target:
+    description: 'CMake target to build (empty for default target)'
+    required: false
+    default: ''
+  parallel-jobs:
+    description: 'Number of parallel jobs (empty for auto-detect)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - shell: bash
+      run: |
+        # Source the entrypoint script
+        . $GITHUB_WORKSPACE/${{ inputs.source-path }}/ci/entrypoint.sh
+        
+        cd $GITHUB_WORKSPACE/${{ inputs.build-path }}
+        
+        # Determine parallel jobs
+        if [ -n "${{ inputs.parallel-jobs }}" ]; then
+          jobs_arg="-j ${{ inputs.parallel-jobs }}"
+        else
+          jobs_arg="-j $(nproc)"
+        fi
+        
+        # Determine target
+        if [ -n "${{ inputs.target }}" ]; then
+          target_arg="--target ${{ inputs.target }}"
+          echo "Building target: ${{ inputs.target }}"
+        else
+          target_arg=""
+          echo "Building default target"
+        fi
+        
+        # Build
+        cmake --build . $jobs_arg $target_arg
