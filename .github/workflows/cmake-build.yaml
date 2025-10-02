@@ -1,5 +1,5 @@
-name: Phlex Continuous Integration
-run-name: ${{ github.actor }} building and testing Phlex
+name: CMake Build and Test
+run-name: "${{ github.actor }} building and testing Phlex"
 
 on:
   push:
