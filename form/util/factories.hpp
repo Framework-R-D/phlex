@@ -16,6 +16,11 @@
 #include "root_storage/root_ttree_container.hpp"
 #endif
 
+#ifdef USE_RNTUPLE_STORAGE
+#include "root_storage/root_rfield_container.hpp"
+#include "root_storage/root_rntuple_container.hpp"
+#endif //USE_RNTUPLE_STORAGE
+
 #include <memory>
 #include <string>
 
@@ -40,6 +45,10 @@ namespace form::detail::experimental {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TTree_ContainerImp>(name);
 #endif // USE_ROOT_STORAGE
+      } else if (form::technology::GetMinor(tech) == form::technology::ROOT_RNTUPLE_MINOR) {
+#ifdef USE_RNTUPLE_STORAGE
+        return std::make_shared<ROOT_RNTuple_ContainerImp>(name);
+#endif // USE_RNTUPLE_STORAGE
       }
     } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
 #ifdef USE_HDF5_STORAGE
@@ -60,6 +69,10 @@ namespace form::detail::experimental {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_ContainerImp>(name);
 #endif // USE_ROOT_STORAGE
+      } else if (form::technology::GetMinor(tech) == form::technology::ROOT_RNTUPLE_MINOR) {
+#ifdef USE_RNTUPLE_STORAGE
+        return std::make_shared<ROOT_RField_ContainerImp>(name);
+#endif // USE_RNTUPLE_STORAGE
       }
     } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
 #ifdef USE_HDF5_STORAGE
