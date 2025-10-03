@@ -1,7 +1,6 @@
 #ifndef phlex_core_framework_graph_hpp
 #define phlex_core_framework_graph_hpp
 
-#include "phlex/configuration.hpp"
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/end_of_message.hpp"
@@ -15,6 +14,7 @@
 #include "phlex/model/level_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/source.hpp"
+#include "phlex/utilities/max_allowed_parallelism.hpp"
 #include "phlex/utilities/resource_usage.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -30,6 +30,7 @@
 #include <vector>
 
 namespace phlex::experimental {
+  class configuration;
 
   class level_sentry {
   public:
@@ -113,13 +114,14 @@ namespace phlex::experimental {
     }
 
     resource_usage graph_resource_usage_{};
-    concurrency::max_allowed_parallelism parallelism_limit_;
+    max_allowed_parallelism parallelism_limit_;
     level_hierarchy hierarchy_{};
     node_catalog nodes_{};
+    std::map<std::string, filter> filters_{};
+    // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
     framework_driver driver_;
     std::vector<std::string> registration_errors_{};
-    std::map<std::string, filter> filters_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::stack<end_of_message_ptr> eoms_;

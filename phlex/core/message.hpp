@@ -10,7 +10,6 @@
 #include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
 #include <cstddef>
-#include <span>
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
@@ -42,10 +41,7 @@ namespace phlex::experimental {
       tbb::flow::function_node<message, messages_t<1ull>, tbb::flow::lightweight>;
 
     struct no_join : no_join_base_t {
-      no_join(tbb::flow::graph& g, MessageHasher) :
-        no_join_base_t{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
-      {
-      }
+      no_join(tbb::flow::graph& g, MessageHasher);
     };
   }
 
@@ -71,7 +67,7 @@ namespace phlex::experimental {
     }
   }
 
-  std::size_t port_index_for(specified_labels const product_labels,
+  std::size_t port_index_for(specified_labels const& product_labels,
                              specified_label const& product_label);
 
   template <std::size_t I, std::size_t N>
@@ -89,7 +85,7 @@ namespace phlex::experimental {
 
   template <std::size_t N>
   tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             specified_labels const product_labels,
+                                             specified_labels const& product_labels,
                                              specified_label const& product_label)
   {
     if constexpr (N > 1ull) {

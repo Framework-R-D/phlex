@@ -4,7 +4,7 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/hashing.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
 

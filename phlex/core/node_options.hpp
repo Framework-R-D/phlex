@@ -6,13 +6,14 @@
 // in C++23 (which will largely replace CRTP).
 // =======================================================================================
 
-#include "phlex/configuration.hpp"
+#include "phlex/core/detail/maybe_predicates.hpp"
 
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace phlex::experimental {
+  class configuration;
 
   template <typename T>
   class node_options {
@@ -36,7 +37,7 @@ namespace phlex::experimental {
       if (!config) {
         return;
       }
-      predicates_ = config->get_if_present<std::vector<std::string>>("when");
+      predicates_ = detail::maybe_predicates(config);
     }
 
     std::vector<std::string> release_predicates()

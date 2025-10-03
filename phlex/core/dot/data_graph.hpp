@@ -14,7 +14,9 @@ namespace phlex::experimental::dot {
 
   class data_graph {
   public:
-    void add(std::string const& function_name, specified_labels input, qualified_names output);
+    void add(std::string const& function_name,
+             specified_labels const& input,
+             qualified_names const& output);
     void to_file(std::string const& file_prefix) const;
 
   private:

@@ -7,7 +7,6 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/node_options.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/store_counters.hpp"
@@ -21,14 +20,12 @@
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
 
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <functional>
 #include <iterator>
 #include <memory>
-#include <span>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -38,28 +35,31 @@
 namespace phlex::experimental {
   class declared_fold : public products_consumer {
   public:
-    declared_fold(algorithm_name name, std::vector<std::string> predicates);
+    declared_fold(algorithm_name name,
+                  std::vector<std::string> predicates,
+                  specified_labels input_products);
     virtual ~declared_fold();
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual qualified_names output() const = 0;
+    virtual qualified_names const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
   using declared_fold_ptr = std::unique_ptr<declared_fold>;
   using declared_folds = simple_ptr_map<declared_fold_ptr>;
 
-  // Registering concrete folds
+  // =====================================================================================
 
-  template <is_fold_like FT, typename InputArgs>
+  template <typename AlgorithmBits>
   class pre_fold {
-    using input_parameter_types = skip_first_type<function_parameter_types<FT>>; // Skip fold object
+    using all_parameter_types = typename AlgorithmBits::input_parameter_types;
+    using input_parameter_types = skip_first_type<all_parameter_types>; // Skip fold object
     static constexpr auto N = std::tuple_size_v<input_parameter_types>;
-    using R = std::decay_t<std::tuple_element_t<0, function_parameter_types<FT>>>;
+    using R = std::decay_t<std::tuple_element_t<0, all_parameter_types>>;
 
     static constexpr std::size_t M = 1; // hard-coded for now
-    using function_t = FT;
+    using function_t = typename AlgorithmBits::bound_type;
 
     template <typename InitTuple>
     class total_fold;
@@ -70,14 +70,14 @@ namespace phlex::experimental {
              std::size_t concurrency,
              std::vector<std::string> predicates,
              tbb::flow::graph& g,
-             function_t&& f,
-             std::array<specified_label, N> product_labels) :
+             AlgorithmBits alg,
+             specified_labels input_products) :
       name_{std::move(name)},
       concurrency_{concurrency},
       predicates_{std::move(predicates)},
       graph_{g},
-      ft_{std::move(f)},
-      product_labels_{std::move(product_labels)},
+      ft_{alg.release_algorithm()},
+      product_labels_{std::move(input_products)},
       reg_{std::move(reg)}
     {
     }
@@ -105,7 +105,7 @@ namespace phlex::experimental {
 
     auto& partitioned_by(std::string const& level_name)
     {
-      fold_interval_ = level_name;
+      partition_ = level_name;
       return *this;
     }
 
@@ -119,7 +119,7 @@ namespace phlex::experimental {
     template <typename T>
     declared_fold_ptr create(T init)
     {
-      if (empty(fold_interval_)) {
+      if (empty(partition_)) {
         throw std::runtime_error("The fold range must be specified using the 'over(...)' syntax.");
       }
       return std::make_unique<total_fold<decltype(init)>>(std::move(name_),
@@ -130,7 +130,7 @@ namespace phlex::experimental {
                                                           std::move(init),
                                                           std::move(product_labels_),
                                                           std::move(output_names_),
-                                                          std::move(fold_interval_));
+                                                          std::move(partition_));
     }
 
     algorithm_name name_;
@@ -138,15 +138,15 @@ namespace phlex::experimental {
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
     function_t ft_;
-    std::array<specified_label, N> product_labels_;
-    std::string fold_interval_{level_id::base().level_name()};
+    specified_labels product_labels_;
+    std::string partition_{level_id::base().level_name()};
     std::array<qualified_name, M> output_names_;
     registrar<declared_fold_ptr> reg_;
   };
 
-  template <is_fold_like FT, typename InputArgs>
+  template <typename AlgorithmBits>
   template <typename InitTuple>
-  class pre_fold<FT, InputArgs>::total_fold : public declared_fold, private count_stores {
+  class pre_fold<AlgorithmBits>::total_fold : public declared_fold, private count_stores {
   public:
     total_fold(algorithm_name name,
                std::size_t concurrency,
@@ -154,15 +154,13 @@ namespace phlex::experimental {
                tbb::flow::graph& g,
                function_t&& f,
                InitTuple initializer,
-               std::array<specified_label, N> product_labels,
+               specified_labels input_products,
                std::array<qualified_name, M> output,
-               std::string fold_interval) :
-      declared_fold{std::move(name), std::move(predicates)},
+               std::string partition) :
+      declared_fold{std::move(name), std::move(predicates), std::move(input_products)},
       initializer_{std::move(initializer)},
-      product_labels_{std::move(product_labels)},
-      input_{form_input_arguments<InputArgs>(full_name(), product_labels_)},
-      output_{std::move(output)},
-      fold_interval_{std::move(fold_interval)},
+      output_(output.begin(), output.end()),
+      partition_{std::move(partition)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       fold_{
         g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& outputs) {
@@ -172,19 +170,19 @@ namespace phlex::experimental {
           auto const& msg = most_derived(messages);
           auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
 
-          if (not store->is_flush() and not store->id()->parent(fold_interval_)) {
+          if (not store->is_flush() and not store->id()->parent(partition_)) {
             return;
           }
 
           if (store->is_flush()) {
             // Downstream nodes always get the flush.
             get<0>(outputs).try_put(msg);
-            if (store->id()->level_name() != fold_interval_) {
+            if (store->id()->level_name() != partition_) {
               return;
             }
           }
 
-          auto const& fold_store = store->is_flush() ? store : store->parent(fold_interval_);
+          auto const& fold_store = store->is_flush() ? store : store->parent(partition_);
           assert(fold_store);
           auto const& id_hash_for_counter = fold_store->id()->hash();
 
@@ -210,20 +208,19 @@ namespace phlex::experimental {
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, product_labels_, product_label);
+      return receiver_for<N>(join_, input(), product_label);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(fold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    specified_labels input() const override { return product_labels_; }
-    qualified_names output() const override { return output_; }
+    qualified_names const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      auto const& parent_id = *most_derived(messages).store->id()->parent(fold_interval_);
+      auto const& parent_id = *most_derived(messages).store->id()->parent(partition_);
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_id);
       if (it == results_.end()) {
@@ -262,10 +259,9 @@ namespace phlex::experimental {
     }
 
     InitTuple initializer_;
-    std::array<specified_label, N> product_labels_;
-    input_retriever_types<InputArgs> input_;
-    std::array<qualified_name, M> output_;
-    std::string fold_interval_;
+    input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
+    qualified_names output_;
+    std::string partition_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
