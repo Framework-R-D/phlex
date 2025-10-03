@@ -1,0 +1,39 @@
+name: 'Setup Build Environment'
+description: 'Sets up the Phlex build environment with source and build directories'
+
+inputs:
+  source-path:
+    description: 'Path where source code is checked out'
+    required: false
+    default: 'phlex-src'
+  build-path:
+    description: 'Path for build directory'
+    required: false
+    default: 'phlex-build'
+
+outputs:
+  source-dir:
+    description: 'Absolute path to source directory'
+    value: ${{ steps.setup.outputs.source-dir }}
+  build-dir:
+    description: 'Absolute path to build directory'
+    value: ${{ steps.setup.outputs.build-dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: setup
+      shell: bash
+      run: |
+        # Source the entrypoint script
+        . $GITHUB_WORKSPACE/${{ inputs.source-path }}/ci/entrypoint.sh
+        
+        # Create and export build directory
+        mkdir -p $GITHUB_WORKSPACE/${{ inputs.build-path }}
+        
+        # Set outputs
+        echo "source-dir=$GITHUB_WORKSPACE/${{ inputs.source-path }}" >> $GITHUB_OUTPUT
+        echo "build-dir=$GITHUB_WORKSPACE/${{ inputs.build-path }}" >> $GITHUB_OUTPUT
+        
+        echo "Source directory: $GITHUB_WORKSPACE/${{ inputs.source-path }}"
+        echo "Build directory: $GITHUB_WORKSPACE/${{ inputs.build-path }}"
