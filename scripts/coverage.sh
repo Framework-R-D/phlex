@@ -70,12 +70,27 @@ detect_build_environment() {
         warn "Could not detect build mode, using fallback paths"
     fi
 
+    # Source environment setup if available
+    # Try workspace-level first, then repository-level
     if [ -f "$WORKSPACE_ROOT/setup-env.sh" ]; then
+        log "Sourcing workspace environment: $WORKSPACE_ROOT/setup-env.sh"
         . "$WORKSPACE_ROOT/setup-env.sh"
         if (( $? != 0 )); then
-            error "unable to source setup-env.sh successfully"
+            error "unable to source workspace setup-env.sh successfully"
             exit 1
         fi
+    elif [ -f "$PROJECT_SOURCE/scripts/setup-env.sh" ]; then
+        log "Sourcing repository environment: $PROJECT_SOURCE/scripts/setup-env.sh"
+        . "$PROJECT_SOURCE/scripts/setup-env.sh"
+        if (( $? != 0 )); then
+            error "unable to source repository setup-env.sh successfully"
+            exit 1
+        fi
+    else
+        warn "No setup-env.sh found - assuming environment is already configured"
+        warn "Expected locations:"
+        warn "  - $WORKSPACE_ROOT/setup-env.sh (workspace-level)"
+        warn "  - $PROJECT_SOURCE/scripts/setup-env.sh (repository-level)"
     fi
 }
 
