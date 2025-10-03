@@ -40,7 +40,7 @@ target_link_libraries(
 add_library(verify_difference MODULE verify_difference.cpp)
 target_link_libraries(verify_difference PRIVATE phlex::module)
 
-foreach (
+foreach(
   I IN
   ITEMS 01
         02
@@ -66,4 +66,4 @@ foreach (
                             PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
     )
   dot_test(benchmark-${I})
-endforeach ()
+endforeach()
