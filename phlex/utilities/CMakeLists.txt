@@ -1,6 +1,12 @@
-add_library(phlex_utilities SHARED hashing.cpp resource_usage.cpp stripped_name.cpp)
+add_library(
+  phlex_utilities SHARED hashing.cpp resource_usage.cpp stripped_name.cpp
+  )
 target_include_directories(phlex_utilities PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(phlex_utilities PRIVATE Boost::boost PUBLIC spdlog::spdlog)
+target_link_libraries(
+  phlex_utilities
+  PRIVATE Boost::boost
+  PUBLIC spdlog::spdlog
+  )
 
 # Interface library
 add_library(phlex_utilities_int INTERFACE)

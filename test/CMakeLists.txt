@@ -1,17 +1,16 @@
 find_package(Catch2 REQUIRED)
 
 find_program(DOT dot)
-if (NOT DOT)
-  message (
-    STATUS
-    "dot program not found; all TEST_DOT_GRAPH options will be ignored."
-  )
+if(NOT DOT)
+  message(
+    STATUS "dot program not found; all TEST_DOT_GRAPH options will be ignored."
+    )
 endif()
 
 add_definitions("-UNDEBUG")
 
-function (dot_test BASENAME)
-  if (DOT)
+function(dot_test BASENAME)
+  if(DOT)
     set(ORIG_TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/${BASENAME}.d)
     set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/dot_${BASENAME}.d)
     file(MAKE_DIRECTORY ${TEST_DIR})
@@ -23,10 +22,10 @@ function (dot_test BASENAME)
       WORKING_DIRECTORY ${TEST_DIR}
       )
     set_tests_properties(dot:${BASENAME} PROPERTIES DEPENDS ${BASENAME})
-  endif ()
-endfunction ()
+  endif()
+endfunction()
 
-function (add_unit_test BASENAME)
+function(add_unit_test BASENAME)
   set(multiValueArgs LIBRARIES)
   cmake_parse_arguments(UT "" "" "${multiValueArgs}" ${ARGN})
   add_executable(${BASENAME} ${BASENAME}.cpp)
@@ -42,17 +41,17 @@ function (add_unit_test BASENAME)
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BASENAME}.d
     )
   set_tests_properties(${BASENAME} PROPERTIES ENVIRONMENT SPDLOG_LEVEL=debug)
-endfunction ()
+endfunction()
 
-function (add_catch_test BASENAME)
+function(add_catch_test BASENAME)
   set(optionalArgs TEST_DOT_GRAPH)
   set(multiValueArgs LIBRARIES)
   cmake_parse_arguments(UT "${optionalArgs}" "" "${multiValueArgs}" ${ARGN})
   add_unit_test(${BASENAME} LIBRARIES Catch2::Catch2WithMain ${UT_LIBRARIES})
-  if (UT_TEST_DOT_GRAPH)
+  if(UT_TEST_DOT_GRAPH)
     dot_test(${BASENAME})
-  endif ()
-endfunction ()
+  endif()
+endfunction()
 
 add_unit_test(concepts LIBRARIES phlex::core)
 add_unit_test(string_literal LIBRARIES phlex::utilities)
@@ -96,6 +95,6 @@ add_subdirectory(mock-workflow)
 add_subdirectory(demo-giantdata)
 add_subdirectory(python)
 
-if (PHLEX_USE_FORM)
+if(PHLEX_USE_FORM)
   add_subdirectory(form)
 endif()
