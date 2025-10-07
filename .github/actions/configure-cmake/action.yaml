@@ -26,6 +26,10 @@ inputs:
     description: 'Enable FORM root storage'
     required: false
     default: 'ON'
+  generator:
+    description: 'Specify CMake generator'
+    required: false
+    default: 'Ninja'
 
 runs:
   using: 'composite'
@@ -38,7 +42,7 @@ runs:
         cd $GITHUB_WORKSPACE/${{ inputs.build-path }}
         
         SOURCE_DIR="$GITHUB_WORKSPACE/${{ inputs.source-path }}"
-        
+
         # Determine preset usage
         if [ -f "$SOURCE_DIR/CMakePresets.json" ]; then
           echo "Configuring with CMake presets"
@@ -47,13 +51,15 @@ runs:
           echo "Configuring without presets"
           unset preset_arg
         fi
-        
+
         echo "Source directory: $SOURCE_DIR"
         echo "Build directory: $(pwd)"
         echo "Build type: ${{ inputs.build-type }}"
-        
-        # Configure CMake
+        echo "Generator: ${{ inputs.generator }}"
+
+        # Configure CMake with Ninja generator
         cmake $preset_arg "$SOURCE_DIR" \
+          -G ${{ inputs.generator }} \
           -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
           -DPHLEX_USE_FORM=${{ inputs.enable-form }} \
           -DFORM_USE_ROOT_STORAGE=${{ inputs.form-root-storage }} \
