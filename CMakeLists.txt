@@ -17,11 +17,11 @@ set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
 # GCC 14.1 issues many false positives re. array-bounds and stringop-overflow
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION
-                                             VERSION_GREATER_EQUAL "14.1"
-    )
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION
+                                            VERSION_GREATER_EQUAL "14.1"
+   )
   add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
-endif ()
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
@@ -37,12 +37,12 @@ find_package(jsonnet REQUIRED)
 find_package(spdlog REQUIRED)
 
 # Apply ThreadSanitizer flags if enabled
-if (ENABLE_TSAN)
+if(ENABLE_TSAN)
   # Check if the compiler supports ThreadSanitizer
-  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-      OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
-      OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
-      )
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+     OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
+     OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+     )
     message(STATUS "Enabling ThreadSanitizer")
     # Add the sanitizer flag
     add_compile_options(-fsanitize=thread -g -O1)
@@ -51,20 +51,20 @@ if (ENABLE_TSAN)
     set(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls"
         )
-  else ()
+  else()
     message(
       FATAL_ERROR
         "ThreadSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}"
       )
-  endif ()
-endif ()
+  endif()
+endif()
 
-if (ENABLE_ASAN)
+if(ENABLE_ASAN)
   # Check if the compiler supports AddressSanitizer
-  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-      OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
-      OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
-      )
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+     OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
+     OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+     )
     message(STATUS "Enabling AddressSanitizer")
     # Add the sanitizer flag
     add_compile_options(-fsanitize=address -g -O1)
@@ -73,21 +73,21 @@ if (ENABLE_ASAN)
     set(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls"
         )
-  else ()
+  else()
     message(
       FATAL_ERROR
         "AddressSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}"
       )
-  endif ()
-endif ()
+  endif()
+endif()
 
 add_subdirectory(phlex)
 
-if (PHLEX_USE_FORM)
+if(PHLEX_USE_FORM)
   add_subdirectory(form)
 endif()
 
 include(CTest)
-if (BUILD_TESTING)
+if(BUILD_TESTING)
   add_subdirectory(test)
 endif()

@@ -1,5 +1,5 @@
-name: Phlex fix format
-run-name: ${{ github.actor }} fixing code format
+name: CMake Format Fix
+run-name: '${{ github.actor }} fixing CMake format'
 
 on:
   issue_comment:
@@ -37,42 +37,65 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  apply_formatting:
+  apply_cmake_formatting:
     runs-on: ubuntu-latest
-    name: Apply formatting
+    name: Apply CMake formatting
     needs: check
     if: ${{ needs.check.outputs.match_result == 'match' }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           path: phlex-src
           ref: ${{ needs.check.outputs.ref_name }}
           repository: ${{ needs.check.outputs.repo_name }}
 
-      - uses: DoozyX/clang-format-lint-action@v0.20
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          source: "./phlex-src"
-          clangFormatVersion: 20
-          inplace: True
+          python-version: '3.x'
 
-      - uses: EndBug/add-and-commit@v9
+      - name: Install cmake-format
+        run: pip install cmakelang
+
+      - name: Apply CMake formatting
+        run: |
+          cd phlex-src
+          echo "Applying CMake formatting..."
+          
+          # Find all CMake files
+          cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) ! -path "*/build/*" ! -path "*/_deps/*")
+          
+          if [ -z "$cmake_files" ]; then
+            echo "No CMake files found to format"
+            exit 0
+          fi
+          
+          # Format each file
+          for file in $cmake_files; do
+            echo "Formatting $file..."
+            cmake-format -i "$file"
+          done
+
+      - name: Commit formatting changes
+        uses: EndBug/add-and-commit@v9
         id: add_and_commit
         with:
           cwd: phlex-src
           author_name: "github-actions[bot]"
           author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-          message: 'Committing clang-format changes'
+          message: 'Apply cmake-format changes'
 
       - name: Formatting changes committed and pushed
         if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
         uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
-            Code-formatting changes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
+            CMake formatting changes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
 
       - name: No formatting changes to make
         if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
         uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
-            No code-formatting changes to make
+            No CMake formatting changes to make

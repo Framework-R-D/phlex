@@ -29,15 +29,17 @@ add_library(
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
 
 # AppleClang 15.0 still treats std::views::join as experimental
-if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
-    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.5"
-    )
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION
+                                                   VERSION_GREATER_EQUAL "14.5"
+   )
   target_compile_options(phlex_core PRIVATE "-fexperimental-library")
-endif ()
+endif()
 
 target_link_libraries(
-  phlex_core PRIVATE TBB::tbb phlex::graph phlex::metaprogramming phlex::model
-                     phlex::utilities Boost::json PUBLIC spdlog::spdlog
+  phlex_core
+  PRIVATE TBB::tbb phlex::graph phlex::metaprogramming phlex::model
+          phlex::utilities Boost::json
+  PUBLIC spdlog::spdlog
   )
 
 # Interface library

@@ -1,0 +1,57 @@
+name: CMake Format Check
+run-name: "${{ github.actor }} running CMake format check"
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  cmake-format-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install cmake-format
+      run: pip install cmakelang
+
+    - name: Check CMake formatting
+      run: |
+        cd phlex-src
+        echo "Checking CMake file formatting..."
+        
+        # Find all CMake files
+        cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) ! -path "*/build/*" ! -path "*/_deps/*")
+        
+        if [ -z "$cmake_files" ]; then
+          echo "No CMake files found to check"
+          exit 0
+        fi
+        
+        # Check each file
+        format_errors=0
+        for file in $cmake_files; do
+          echo "Checking $file..."
+          if ! cmake-format --check "$file"; then
+            echo "❌ Format error in: $file"
+            format_errors=$((format_errors + 1))
+          fi
+        done
+        
+        if [ $format_errors -gt 0 ]; then
+          echo ""
+          echo "::error::Found $format_errors file(s) with formatting issues"
+          echo "Run 'cmake-format -i <file>' locally or comment '@phlexbot format' on the PR to auto-fix"
+          exit 1
+        fi
+        
+        echo "✓ All CMake files are properly formatted"

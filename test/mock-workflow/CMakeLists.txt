@@ -10,10 +10,10 @@ target_link_libraries(
 add_library(mock_workflow_source MODULE source.cpp)
 target_link_libraries(mock_workflow_source PRIVATE timed_busy phlex::module)
 
-function (add_module NAME)
+function(add_module NAME)
   add_library(${NAME} MODULE ${NAME}.cpp)
   target_link_libraries(${NAME} PRIVATE algorithm)
-endfunction ()
+endfunction()
 
 add_module(ion_and_scint)
 add_module(pd_fast_sim)
