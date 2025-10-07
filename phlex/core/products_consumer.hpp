@@ -3,6 +3,7 @@
 
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/specified_label.hpp"
 #include "phlex/model/algorithm_name.hpp"

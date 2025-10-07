@@ -1,5 +1,6 @@
 #include "phlex/core/declared_output.hpp"
 #include "phlex/configuration.hpp"
+#include "phlex/core/detail/make_algorithm_name.hpp"
 
 namespace phlex::experimental {
   declared_output::declared_output(algorithm_name name,
@@ -26,7 +27,7 @@ namespace phlex::experimental {
                                  detail::output_function_t&& f,
                                  concurrency c) :
     node_options_t{config},
-    name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
+    name_{detail::make_algorithm_name(config, std::move(name))},
     graph_{g},
     ft_{std::move(f)},
     concurrency_{c},

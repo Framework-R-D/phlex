@@ -3,6 +3,8 @@
 
 #include "oneapi/tbb/global_control.h"
 
+#include <cstddef>
+
 namespace phlex::experimental {
   class max_allowed_parallelism {
   public:

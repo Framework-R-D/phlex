@@ -9,6 +9,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/registrar.hpp"
+#include "phlex/core/specified_label.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"

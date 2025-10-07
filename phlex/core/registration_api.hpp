@@ -6,6 +6,7 @@
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_transform.hpp"
+#include "phlex/core/detail/make_algorithm_name.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/core/node_options.hpp"
 #include "phlex/core/upstream_predicates.hpp"

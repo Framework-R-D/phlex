@@ -8,6 +8,7 @@ add_library(
   declared_fold.cpp
   declared_unfold.cpp
   declared_transform.cpp
+  detail/make_algorithm_name.cpp
   detail/maybe_predicates.cpp
   detail/filter_impl.cpp
   dot/attributes.cpp
