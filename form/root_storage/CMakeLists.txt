@@ -15,17 +15,14 @@ find_package(ROOT REQUIRED COMPONENTS ${root_storage_ROOT_components})
 
 # Component(s) in the package:
 set(root_storage_SOURCES)
-list(APPEND root_storage_SOURCES
-     root_tfile.cpp
-     root_ttree_container.cpp
+list(APPEND root_storage_SOURCES root_tfile.cpp root_ttree_container.cpp
      root_tbranch_container.cpp
-)
+     )
 
 if(FORM_USE_RNTUPLE_STORAGE)
-list(APPEND root_storage_SOURCES
-     root_rntuple_container.cpp
-     root_rfield_container.cpp
-)
+  list(APPEND root_storage_SOURCES root_rntuple_container.cpp
+       root_rfield_container.cpp
+       )
 endif(FORM_USE_RNTUPLE_STORAGE)
 
 add_library(root_storage ${root_storage_SOURCES})
