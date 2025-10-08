@@ -12,8 +12,6 @@
 FROM gcc:15.2.0
 ARG parallelism=18
 
-COPY ./spack.yaml /
-
 RUN git clone --depth=2 https://github.com/spack/spack.git
 RUN <<EOF
 # Setup environment
@@ -31,6 +29,13 @@ spack compiler find
 #   not necessarily include the Python.h header file.  We therefore
 #   need Spack to build Python.
 spack external find --exclude python
+EOF
+
+COPY ./spack.yaml /
+
+RUN <<EOF
+# Setup environment
+. spack/share/spack/setup-env.sh
 
 # Create and prepare phlex-development environment
 spack env create phlex-ci spack.yaml
@@ -40,15 +45,7 @@ spack env activate phlex-ci
 spack concretize
 
 # Install almost everything
-spack install --fail-fast $parallelism \
-  boost \
-  catch2 \
-  cmake \
-  fmt \
-  intel-tbb \
-  jsonnet \
-  root \
-  spdlog
+spack install --fail-fast -j $parallelism -p 1 $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
 EOF
 
 COPY ./entrypoint.sh /
