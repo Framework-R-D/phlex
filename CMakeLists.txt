@@ -39,14 +39,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cetmodules)
 find_package(cetmodules 4.01.01 REQUIRED)
 
-# ##################################
+# ##############################################################################
 # Main project declaration
 project(
   phlex
   VERSION 0.0.1
   LANGUAGES CXX
   )
-# ##################################
+# ##############################################################################
 
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
@@ -57,14 +57,15 @@ option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
-      AND CMAKE_COMPILER_VERSION VERSION_LESS "15"
-    )
-    # GCC 14.1 issues many false positives re. array-bounds and stringop-overflow
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
+     AND CMAKE_COMPILER_VERSION VERSION_LESS "15"
+     )
+    # GCC 14.1 issues many false positives re. array-bounds and
+    # stringop-overflow
     add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
-  endif ()
-endif ()
+  endif()
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
@@ -88,10 +89,14 @@ if(ENABLE_TSAN)
      )
     message(STATUS "Enabling ThreadSanitizer")
     # Add the sanitizer flag
-    add_compile_options(-fsanitize=thread -g -O1
+    add_compile_options(
+      -fsanitize=thread
+      -g
+      -O1
       # Ensure no optimizations interfere with TSan
-      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>
-    )
+      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer
+      -fno-optimize-sibling-calls>
+      )
     add_link_options(-fsanitize=thread)
   else()
     message(
@@ -109,10 +114,14 @@ if(ENABLE_ASAN)
      )
     message(STATUS "Enabling AddressSanitizer")
     # Add the sanitizer flag
-    add_compile_options(-fsanitize=address -g -O1
+    add_compile_options(
+      -fsanitize=address
+      -g
+      -O1
       # Ensure no optimizations interfere with ASan
-      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>
-    )
+      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer
+      -fno-optimize-sibling-calls>
+      )
     add_link_options(-fsanitize=address)
   else()
     message(
