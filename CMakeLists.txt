@@ -84,18 +84,18 @@ endif()
 # Configure clang-tidy integration
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
 
-if (ENABLE_CLANG_TIDY)
+if(ENABLE_CLANG_TIDY)
   find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
 
-  if (CLANG_TIDY_EXECUTABLE)
+  if(CLANG_TIDY_EXECUTABLE)
     message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXECUTABLE}")
-    set(CMAKE_CXX_CLANG_TIDY
-        ${CLANG_TIDY_EXECUTABLE}
-        --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy)
-  else ()
+    set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXECUTABLE}
+                             --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
+        )
+  else()
     message(WARNING "clang-tidy not found, disabling clang-tidy checks")
-  endif ()
-endif ()
+  endif()
+endif()
 
 add_subdirectory(phlex)
 
@@ -115,7 +115,7 @@ endif()
 # Find clang-tidy for custom targets (independent of ENABLE_CLANG_TIDY option)
 find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
 
-if (CLANG_TIDY_EXECUTABLE)
+if(CLANG_TIDY_EXECUTABLE)
   # Get all C++ source files from the phlex target
   get_target_property(PHLEX_SOURCES phlex SOURCES)
 
@@ -128,30 +128,31 @@ if (CLANG_TIDY_EXECUTABLE)
   endforeach()
 
   # Clang-tidy check target (read-only check)
-  add_custom_target(clang-tidy-check
-    COMMAND ${CLANG_TIDY_EXECUTABLE}
-      --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
-      -p ${CMAKE_BINARY_DIR}
-      ${PHLEX_CXX_SOURCES}
+  add_custom_target(
+    clang-tidy-check
+    COMMAND
+      ${CLANG_TIDY_EXECUTABLE} --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy -p
+      ${CMAKE_BINARY_DIR} ${PHLEX_CXX_SOURCES}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Running clang-tidy checks on phlex sources"
     VERBATIM
-  )
+    )
 
   # Clang-tidy fix target (applies fixes)
-  add_custom_target(clang-tidy-fix
-    COMMAND ${CLANG_TIDY_EXECUTABLE}
-      --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
-      -p ${CMAKE_BINARY_DIR}
-      --fix
-      --fix-errors
-      ${PHLEX_CXX_SOURCES}
+  add_custom_target(
+    clang-tidy-fix
+    COMMAND
+      ${CLANG_TIDY_EXECUTABLE} --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy -p
+      ${CMAKE_BINARY_DIR} --fix --fix-errors ${PHLEX_CXX_SOURCES}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Applying clang-tidy fixes to phlex sources"
     VERBATIM
-  )
+    )
 
-  message(STATUS "Clang-tidy targets added: clang-tidy-check, clang-tidy-fix (using ${CLANG_TIDY_EXECUTABLE})")
+  message(
+    STATUS
+      "Clang-tidy targets added: clang-tidy-check, clang-tidy-fix (using ${CLANG_TIDY_EXECUTABLE})"
+    )
 else()
   message(STATUS "clang-tidy not found, skipping clang-tidy targets")
 endif()
