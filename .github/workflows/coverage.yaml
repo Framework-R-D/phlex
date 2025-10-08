@@ -65,13 +65,22 @@ jobs:
           echo "Source paths in coverage.xml:"
           grep -o '<source>.*</source>' coverage.xml | head -5
 
+          echo "Preparing generated sources for coverage mapping..."
+          GENERATED_ROOT="$GITHUB_WORKSPACE/phlex-src/.coverage-generated"
+          rm -rf "$GENERATED_ROOT"
+          find "$GITHUB_WORKSPACE/phlex-build" -type f \
+            \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \
+               -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \) \
+            -print0 | while IFS= read -r -d '' src; do
+              rel="${src#$GITHUB_WORKSPACE/phlex-build/}"
+              dest="$GENERATED_ROOT/$rel"
+              mkdir -p "$(dirname "$dest")"
+              cp "$src" "$dest"
+            done
+
           echo "Normalizing coverage XML paths for Codecov..."
-          python3 "$GITHUB_WORKSPACE/phlex-src/scripts/normalize_coverage_xml.py" \
-            --repo-root "$GITHUB_WORKSPACE/phlex-src" \
-            --coverage-root "$GITHUB_WORKSPACE/phlex-src/srcs" \
-            --coverage-alias "$GITHUB_WORKSPACE/phlex-src/srcs/phlex" \
-            --source-dir "$GITHUB_WORKSPACE/phlex-src" \
-            "$GITHUB_WORKSPACE/phlex-build/coverage.xml"
+          python3 "$GITHUB_WORKSPACE/phlex-src/scripts/normalize_coverage_xml.py" --repo-root "$GITHUB_WORKSPACE/phlex-src" --coverage-root "$GITHUB_WORKSPACE/phlex-src/srcs" --coverage-alias "$GITHUB_WORKSPACE/phlex-src/srcs/phlex" --source-dir "$GITHUB_WORKSPACE/phlex-src" --path-map "$GITHUB_WORKSPACE/phlex-build=$GITHUB_WORKSPACE/phlex-src/.coverage-generated" "$GITHUB_WORKSPACE/phlex-build/coverage.xml"
+          rm -rf "$GENERATED_ROOT"
         else
           echo "ERROR: coverage.xml not found"
           ls -la *.xml || echo "No XML files found"
