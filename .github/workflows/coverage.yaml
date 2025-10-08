@@ -64,6 +64,14 @@ jobs:
           echo "Coverage XML size: $(wc -c < coverage.xml) bytes"
           echo "Source paths in coverage.xml:"
           grep -o '<source>.*</source>' coverage.xml | head -5
+
+          echo "Normalizing coverage XML paths for Codecov..."
+          python3 "$GITHUB_WORKSPACE/phlex-src/scripts/normalize_coverage_xml.py" \
+            --repo-root "$GITHUB_WORKSPACE/phlex-src" \
+            --coverage-root "$GITHUB_WORKSPACE/phlex-src/srcs" \
+            --coverage-alias "$GITHUB_WORKSPACE/phlex-src/srcs/phlex" \
+            --source-dir "$GITHUB_WORKSPACE/phlex-src" \
+            "$GITHUB_WORKSPACE/phlex-build/coverage.xml"
         else
           echo "ERROR: coverage.xml not found"
           ls -la *.xml || echo "No XML files found"
@@ -77,13 +85,13 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
-        file: phlex-build/coverage.xml
+        file: ../phlex-build/coverage.xml
         flags: unittests
         name: phlex-coverage
         fail_ci_if_error: true
         verbose: true
-        working-directory: ${{ github.workspace }}
-        root_dir: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}/phlex-src
+        root_dir: .
         token: ${{ env.CODECOV_TOKEN }}
 
     - name: Upload HTML coverage report

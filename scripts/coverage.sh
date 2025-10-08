@@ -18,15 +18,6 @@ LAST_STALE_GCNO=""
 
 # Function definitions
 
-# CMake commands should always echo
-cmake() {
-  set -x
-  command cmake "$@"
-  local status=$?
-  { set +x; } >/dev/null 2>&1
-  return $?
-}
-
 # Get absolute path (preserving symlinks - DO NOT resolve them)
 get_absolute_path() {
     (cd "$1" && pwd)
@@ -506,13 +497,17 @@ generate_xml() {
         log "Source paths in coverage.xml:"
         grep -o '<source>.*</source>' "$output_file" | head -5 | sed 's/^/  /'
 
-        # Convert absolute paths to relative for VS Code Coverage Gutters compatibility
-        # The CMake target generates the report; we just need to post-process for VS Code
-        log "Converting absolute paths to relative paths for VS Code..."
-        sed -i "s|filename=\"$WORKSPACE_ROOT/|filename=\"|g" "$output_file"
-
-        # Update the source path to be the workspace root for Coverage Gutters
-        sed -i "s|<source>\.</source>|<source>$WORKSPACE_ROOT</source>|g" "$output_file"
+        # Normalize paths so tooling (e.g., Codecov, VS Code coverage gutters) can locate sources
+        log "Normalizing coverage XML paths for tooling compatibility..."
+        if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
+            --repo-root "$WORKSPACE_ROOT" \
+            --coverage-root "$WORKSPACE_ROOT" \
+            --coverage-alias "$SOURCE_ROOT" \
+            --source-dir "$WORKSPACE_ROOT" \
+            "$output_file"; then
+            error "Failed to normalize coverage XML. Adjust filters/excludes and retry."
+            exit 1
+        fi
 
         success "XML coverage report generated: $output_file"
 
@@ -545,11 +540,24 @@ generate_html() {
     if [[ -d coverage-html ]]; then
         success "HTML coverage report generated: $BUILD_DIR/coverage-html/"
 
-        # Copy the final .info file to workspace root for VS Code Coverage Gutters
+        # Normalize and copy the final .info file for VS Code Coverage Gutters
         if [[ -f coverage.info.final ]]; then
-            log "Copying coverage.info to workspace root for VS Code Coverage Gutters..."
+            log "Normalizing LCOV coverage paths for editor tooling..."
+            if ! python3 "$SCRIPT_DIR/normalize_coverage_lcov.py" \
+                --repo-root "$WORKSPACE_ROOT" \
+                --coverage-root "$WORKSPACE_ROOT" \
+                --coverage-alias "$PROJECT_SOURCE" \
+                "$BUILD_DIR/coverage.info.final"; then
+                error "Failed to normalize LCOV coverage report. Adjust filters/excludes and retry."
+                exit 1
+            fi
+
+            log "Copying lcov.info to workspace root for VS Code Coverage Gutters..."
+            cp coverage.info.final "$WORKSPACE_ROOT/lcov.info"
+            success "Coverage info file available at: $WORKSPACE_ROOT/lcov.info"
+
+            # Maintain legacy coverage.info for downstream tooling (e.g., Codecov uploads)
             cp coverage.info.final "$WORKSPACE_ROOT/coverage.info"
-            success "Coverage info file available at: $WORKSPACE_ROOT/coverage.info"
         fi
     else
         warn "HTML coverage report not available (lcov dependency issues)"
@@ -589,28 +597,44 @@ show_summary() {
         exit 1
     fi
 
-    # Get physical workspace path (gcovr internally resolves symlinks)
-    local workspace_physical="$(cd "$WORKSPACE_ROOT" && pwd -P)"
-
     # Resolve CMake paths to physical paths (they may contain symlinks)
     local phlex_binary_physical="$(cd "$phlex_binary_dir" && pwd -P)"
     local phlex_source_physical="$(cd "$phlex_source_dir" && pwd -P)"
 
-    # Convert absolute paths to relative paths from physical workspace
-    # gcovr uses physical paths internally, so filters must be relative to physical root
-    local phlex_binary_rel="${phlex_binary_physical#$workspace_physical/}"
-    local phlex_source_rel="${phlex_source_physical#$workspace_physical/}"
+    # Build up the same filter set used by the CMake coverage target so manual
+    # summaries match CI and IDE overlays. Capture both the logical paths that
+    # CMake reports (which may include workspace symlinks) and the physical
+    # paths that gcov emits after resolving symlinks.
+    local -a gcovr_filter_paths=("$phlex_source_dir" "$phlex_binary_dir")
 
-    # Escape special regex characters in paths for use in --filter
-    local build_filter="$(echo "$phlex_binary_rel" | sed 's|[][$*.^\\]|\\&|g')"
-    local source_filter="$(echo "$phlex_source_rel" | sed 's|[][$*.^\\]|\\&|g')"
+    if [[ "$phlex_source_physical" != "$phlex_source_dir" ]]; then
+        gcovr_filter_paths+=("$phlex_source_physical")
+    fi
 
-    # Also create filters from physical paths (gcovr internally resolves to physical)
-    local build_filter_physical="$(echo "$phlex_binary_physical" | sed 's|[][$*.^\\]|\\&|g')"
-    local source_filter_physical="$(echo "$phlex_source_physical" | sed 's|[][$*.^\\]|\\&|g')"
+    if [[ "$phlex_binary_physical" != "$phlex_binary_dir" ]]; then
+        gcovr_filter_paths+=("$phlex_binary_physical")
+    fi
 
-    log "Build filter (phlex_BINARY_DIR): $build_filter"
-    log "Source filter (phlex_SOURCE_DIR): $source_filter"
+    # Deduplicate while preserving order.
+    declare -A _seen_filter
+    local -a gcovr_filter_args=()
+    local filter_path
+    for filter_path in "${gcovr_filter_paths[@]}"; do
+        if [[ -z "$filter_path" || -n "${_seen_filter[$filter_path]:-}" ]]; then
+            continue
+        fi
+        _seen_filter[$filter_path]=1
+
+        local escaped_path
+        escaped_path="$(echo "$filter_path" | sed 's|[][$*.^\\]|\\&|g')"
+        gcovr_filter_args+=("--filter" "${escaped_path}/.*")
+        log "gcovr filter: ${escaped_path}/.*"
+    done
+
+    if [[ ${#gcovr_filter_args[@]} -eq 0 ]]; then
+        error "No gcovr filter paths were generated"
+        exit 1
+    fi
 
     # Workaround for GCC bug #120319: "Unexpected number of branch outcomes and line coverage for C++ programs"
     # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120319
@@ -620,15 +644,20 @@ show_summary() {
     # Filter to include only files from phlex_BINARY_DIR and phlex_SOURCE_DIR (from CMake cache)
     # Exclude test files and external dependencies (from /scratch)
     (cd "$WORKSPACE_ROOT" && gcovr --root "$WORKSPACE_ROOT" \
-          --object-directory "$BUILD_DIR" \
-          --filter "${build_filter_physical}/.*" \
-          --filter "${source_filter_physical}/.*" \
-          --exclude '.*/test/.*' \
-          --exclude '.*/external/.*' \
-          --exclude '/scratch/.*' \
-          --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
-          --gcov-ignore-errors=no_working_dir_found \
-          --print-summary)
+        --object-directory "$BUILD_DIR" \
+        "${gcovr_filter_args[@]}" \
+        --exclude '.*/test/.*' \
+        --exclude '.*/_deps/.*' \
+        --exclude '.*/external/.*' \
+        --exclude '.*/third[-_]?party/.*' \
+        --exclude '.*/boost/.*' \
+        --exclude '.*/tbb/.*' \
+        --exclude '/usr/.*' \
+        --exclude '/opt/.*' \
+        --exclude '/scratch/.*' \
+        --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
+        --gcov-ignore-errors=no_working_dir_found \
+        --print-summary)
 }
 
 view_html() {
@@ -667,6 +696,20 @@ upload_codecov() {
     fi
 
     cd "$BUILD_DIR"
+
+    log "Ensuring coverage XML paths are normalized before upload..."
+    if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
+        --repo-root "$WORKSPACE_ROOT" \
+        --coverage-root "$WORKSPACE_ROOT" \
+        --coverage-alias "$SOURCE_ROOT" \
+        --source-dir "$WORKSPACE_ROOT" \
+        "$BUILD_DIR/coverage.xml"; then
+        error "Coverage XML failed normalization. Investigate filters/excludes before uploading."
+        exit 1
+    fi
+
+    log "Coverage XML source roots after normalization:"
+    grep -o '<source>.*</source>' "$BUILD_DIR/coverage.xml" | head -5 | sed 's/^/  /'
 
     # Determine the Git repository root
     GIT_ROOT="$PROJECT_SOURCE"
