@@ -167,21 +167,51 @@ if(BUILD_TESTING)
       # Use the same root detection as for XML coverage
       if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
         set(COVERAGE_SOURCE_ROOT ${PROJECT_SOURCE_DIR})
-        set(LCOV_EXTRACT_PATTERN "${PROJECT_SOURCE_DIR}/*")
       else()
         set(COVERAGE_SOURCE_ROOT ${CMAKE_SOURCE_DIR})
-        set(LCOV_EXTRACT_PATTERN "${PROJECT_SOURCE_DIR}/*")
       endif()
+
+      set(LCOV_REMOVE_PATTERNS
+        "/usr/*"
+        "${CMAKE_BINARY_DIR}/_deps/*"
+        "*/spack*/*"
+        "*/test/*"
+        "*/boost/*"
+        "*/tbb/*"
+      )
+
+      set(_lcov_extract_paths ${PROJECT_SOURCE_DIR})
+      get_filename_component(_lcov_project_real ${PROJECT_SOURCE_DIR} REALPATH)
+      if(NOT _lcov_project_real STREQUAL ${PROJECT_SOURCE_DIR})
+        list(APPEND _lcov_extract_paths ${_lcov_project_real})
+      endif()
+
+      set(_lcov_build_dir ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
+      if(EXISTS ${_lcov_build_dir})
+        list(APPEND _lcov_extract_paths ${_lcov_build_dir})
+        get_filename_component(_lcov_build_real ${_lcov_build_dir} REALPATH)
+        if(NOT _lcov_build_real STREQUAL ${_lcov_build_dir})
+          list(APPEND _lcov_extract_paths ${_lcov_build_real})
+        endif()
+      endif()
+
+      set(LCOV_EXTRACT_PATTERNS)
+      foreach(_lcov_path IN LISTS _lcov_extract_paths)
+        list(APPEND LCOV_EXTRACT_PATTERNS "${_lcov_path}/*")
+      endforeach()
+  list(REMOVE_DUPLICATES LCOV_EXTRACT_PATTERNS)
+  string(JOIN ", " LCOV_EXTRACT_DESCRIPTION ${LCOV_EXTRACT_PATTERNS})
 
       add_custom_target(coverage-html
         COMMAND ${LCOV_EXECUTABLE} --directory . --capture --output-file coverage.info --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative --ignore-errors deprecated
-        COMMAND ${LCOV_EXECUTABLE} --remove coverage.info '/usr/*' '${CMAKE_BINARY_DIR}/_deps/*' '*/spack*/*' '*/test/*' --output-file coverage.info.cleaned --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative,unused
-        COMMAND ${LCOV_EXECUTABLE} --extract coverage.info.cleaned '${LCOV_EXTRACT_PATTERN}' --output-file coverage.info.final --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative
-        COMMAND ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.final --title "Phlex Coverage Report" --show-details --legend --branch-coverage --ignore-errors mismatch,inconsistent,negative
+        COMMAND ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS} --output-file coverage.info.cleaned --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative,unused,empty
+        COMMAND ${LCOV_EXECUTABLE} --extract coverage.info.cleaned ${LCOV_EXTRACT_PATTERNS} --output-file coverage.info.final --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative,empty,unused
+        COMMAND ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.final --title "Phlex Coverage Report" --show-details --legend --branch-coverage --ignore-errors mismatch,inconsistent,negative,empty
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating HTML coverage report with lcov (filtering: ${LCOV_EXTRACT_PATTERN})"
+        COMMENT "Generating HTML coverage report with lcov (filters: ${LCOV_EXTRACT_DESCRIPTION})"
+        VERBATIM
       )
-      message(STATUS "Added 'coverage-html' target using lcov with filter: ${LCOV_EXTRACT_PATTERN}")
+      message(STATUS "Added 'coverage-html' target using lcov with filters: ${LCOV_EXTRACT_DESCRIPTION}")
     endif()
 
     # XML coverage report using gcovr (if available)
@@ -198,13 +228,54 @@ if(BUILD_TESTING)
         set(COVERAGE_SOURCE_ROOT ${CMAKE_SOURCE_DIR})
       endif()
 
+      # Build filter arguments so gcovr only considers Phlex sources, regardless of
+      # whether the workspace root is the repository root or a multi-project workspace.
+      set(_gcovr_filter_paths ${PROJECT_SOURCE_DIR})
+      get_filename_component(_gcovr_project_real ${PROJECT_SOURCE_DIR} REALPATH)
+      if(NOT _gcovr_project_real STREQUAL ${PROJECT_SOURCE_DIR})
+        list(APPEND _gcovr_filter_paths ${_gcovr_project_real})
+      endif()
+
+      set(_gcovr_binary_dir ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
+      if(EXISTS ${_gcovr_binary_dir})
+        list(APPEND _gcovr_filter_paths ${_gcovr_binary_dir})
+        get_filename_component(_gcovr_binary_real ${_gcovr_binary_dir} REALPATH)
+        if(NOT _gcovr_binary_real STREQUAL ${_gcovr_binary_dir})
+          list(APPEND _gcovr_filter_paths ${_gcovr_binary_real})
+        endif()
+      endif()
+
+      list(REMOVE_DUPLICATES _gcovr_filter_paths)
+
+      set(GCOVR_FILTER_ARGS)
+      foreach(_gcovr_filter_path IN LISTS _gcovr_filter_paths)
+        string(REGEX REPLACE "/$" "" _gcovr_filter_trimmed "${_gcovr_filter_path}")
+        string(REGEX REPLACE "([][.^$+*?()|\\])" "\\\\\\1" _gcovr_filter_escaped "${_gcovr_filter_trimmed}")
+        list(APPEND GCOVR_FILTER_ARGS --filter "${_gcovr_filter_escaped}/.*")
+      endforeach()
+
+      # Exclude external dependencies and generated code that should not impact
+      # project coverage metrics (Boost, TBB, system headers, etc.).
+      set(GCOVR_EXCLUDE_ARGS
+        --exclude ".*/test/.*"
+        --exclude ".*/_deps/.*"
+        --exclude ".*/external/.*"
+        --exclude ".*/third[-_]?party/.*"
+        --exclude ".*/boost/.*"
+        --exclude ".*/tbb/.*"
+        --exclude "/usr/.*"
+        --exclude "/opt/.*"
+        --exclude "/scratch/.*"
+      )
+
       # Workaround for GCC bug #120319: "Unexpected number of branch outcomes and line coverage for C++ programs"
       # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120319
       # Modern GCC (15.2+) has a regression causing negative hits in gcov output for complex C++ templates
       add_custom_target(coverage-xml
         COMMAND ${GCOVR_EXECUTABLE}
           --root ${COVERAGE_SOURCE_ROOT}
-          --filter ${PROJECT_SOURCE_DIR}/
+          ${GCOVR_FILTER_ARGS}
+          ${GCOVR_EXCLUDE_ARGS}
           --xml-pretty
           --exclude-unreachable-branches
           --print-summary
@@ -213,6 +284,7 @@ if(BUILD_TESTING)
           -o coverage.xml .
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Generating XML coverage report with gcovr (root: ${COVERAGE_SOURCE_ROOT})"
+        VERBATIM
       )
       message(STATUS "Added 'coverage-xml' target using gcovr with root: ${COVERAGE_SOURCE_ROOT}")
     endif()
