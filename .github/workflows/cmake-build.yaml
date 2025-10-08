@@ -51,11 +51,11 @@ jobs:
         extra-options: ${{ inputs.cmake_options }}
 
     - name: Build
-      if: ${{ inputs.run_build != false }}
+      if: ${{ inputs.run_build }}
       uses: ./phlex-src/.github/actions/build-cmake
 
     - name: Test
-      if: ${{ inputs.run_tests != false }}
+      if: ${{ inputs.run_tests }}
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
