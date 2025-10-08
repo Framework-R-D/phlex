@@ -138,6 +138,13 @@ if(ENABLE_CLANG_TIDY)
   endif()
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE
+      RelWithDebInfo
+      CACHE STRING "Build type" FORCE
+      )
+endif()
+
 add_subdirectory(phlex)
 
 if(PHLEX_USE_FORM)
