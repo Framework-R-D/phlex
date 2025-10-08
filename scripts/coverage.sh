@@ -419,6 +419,7 @@ setup_coverage() {
             -DENABLE_COVERAGE=ON
             -DPHLEX_USE_FORM=ON
             -DFORM_USE_ROOT_STORAGE=ON
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
             -S "$SOURCE_ROOT"
             -B "$BUILD_DIR"
         )
