@@ -50,15 +50,12 @@ jobs:
         build-type: ${{ env.BUILD_TYPE }}
         extra-options: ${{ inputs.cmake_options }}
 
-    - name: Echo event name
-      run: echo "Event name is ${{ github.event_name }}"
-
     - name: Build
-      if: ${{ inputs.run_build }}
+      if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_call' && inputs.run_tests) }}
       uses: ./phlex-src/.github/actions/build-cmake
 
     - name: Test
-      if: ${{ inputs.run_tests }}
+      if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_call' && inputs.run_tests) }}
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
