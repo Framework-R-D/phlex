@@ -2,11 +2,22 @@ name: CMake Build and Test
 run-name: "${{ github.actor }} building and testing Phlex"
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      cmake_options:
+        description: 'Additional CMake configuration options'
+        required: false
+        default: ''
+      run_build:
+        description: 'Whether to run cmake --build (set to false if caller will build)'
+        required: false
+        type: boolean
+        default: true
+      run_tests:
+        description: 'Whether to run tests'
+        required: false
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       cmake_options:

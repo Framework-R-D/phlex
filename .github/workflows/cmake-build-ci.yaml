@@ -1,0 +1,11 @@
+name: CMake Build CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    uses: ./.github/workflows/cmake-build.yaml
