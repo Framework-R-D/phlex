@@ -39,6 +39,53 @@ warn() {
     echo -e "${YELLOW}[Coverage]${NC} $1"
 }
 
+GENERATED_SYMLINK_ROOT=""
+
+prepare_generated_symlinks() {
+    local build_root="${1:?build root required}"
+    local repo_root="${2:?repository root required}"
+
+    GENERATED_SYMLINK_ROOT="$repo_root/.coverage-generated"
+
+    log "Preparing symlink tree for generated sources at $GENERATED_SYMLINK_ROOT"
+
+    if [[ -d "$GENERATED_SYMLINK_ROOT" ]]; then
+        rm -rf "$GENERATED_SYMLINK_ROOT"
+    fi
+
+    mkdir -p "$GENERATED_SYMLINK_ROOT"
+
+    local -i found=0
+    while IFS= read -r -d '' src_path; do
+        found=1
+        local rel_path="${src_path#$build_root/}"
+        if [[ "$rel_path" == "$src_path" ]]; then
+            rel_path="$(basename "$src_path")"
+        fi
+
+        local dest_path="$GENERATED_SYMLINK_ROOT/$rel_path"
+        mkdir -p "$(dirname "$dest_path")"
+
+        ln -sfn "$src_path" "$dest_path"
+    done < <(
+        find "$build_root" -type f \
+            \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \
+               -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \) \
+            -print0
+    )
+
+    if [[ $found -eq 0 ]]; then
+        log "No generated C/C++ sources detected in $build_root"
+    fi
+}
+
+cleanup_generated_symlinks() {
+    if [[ -n "$GENERATED_SYMLINK_ROOT" && -d "$GENERATED_SYMLINK_ROOT" ]]; then
+        rm -rf "$GENERATED_SYMLINK_ROOT"
+    fi
+    GENERATED_SYMLINK_ROOT=""
+}
+
 # Detect build environment and set appropriate paths
 detect_build_environment() {
     # Check if we're in a multi-project structure by looking for workspace indicators
@@ -500,15 +547,29 @@ generate_xml() {
 
         # Normalize paths so tooling (e.g., Codecov, VS Code coverage gutters) can locate sources
         log "Normalizing coverage XML paths for tooling compatibility..."
+
+        prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
+
+        local -a normalize_args=(
+            --repo-root "$WORKSPACE_ROOT"
+            --coverage-root "$WORKSPACE_ROOT"
+            --coverage-alias "$SOURCE_ROOT"
+            --source-dir "$WORKSPACE_ROOT"
+        )
+
+        if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
+            normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
+        fi
+
         if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
-            --repo-root "$WORKSPACE_ROOT" \
-            --coverage-root "$WORKSPACE_ROOT" \
-            --coverage-alias "$SOURCE_ROOT" \
-            --source-dir "$WORKSPACE_ROOT" \
+            "${normalize_args[@]}" \
             "$output_file"; then
+            cleanup_generated_symlinks
             error "Failed to normalize coverage XML. Adjust filters/excludes and retry."
             exit 1
         fi
+
+        cleanup_generated_symlinks
 
         success "XML coverage report generated: $output_file"
 
@@ -699,15 +760,29 @@ upload_codecov() {
     cd "$BUILD_DIR"
 
     log "Ensuring coverage XML paths are normalized before upload..."
+
+    prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
+
+    local -a upload_normalize_args=(
+        --repo-root "$WORKSPACE_ROOT"
+        --coverage-root "$WORKSPACE_ROOT"
+        --coverage-alias "$SOURCE_ROOT"
+        --source-dir "$WORKSPACE_ROOT"
+    )
+
+    if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
+        upload_normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
+    fi
+
     if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
-        --repo-root "$WORKSPACE_ROOT" \
-        --coverage-root "$WORKSPACE_ROOT" \
-        --coverage-alias "$SOURCE_ROOT" \
-        --source-dir "$WORKSPACE_ROOT" \
+        "${upload_normalize_args[@]}" \
         "$BUILD_DIR/coverage.xml"; then
+        cleanup_generated_symlinks
         error "Coverage XML failed normalization. Investigate filters/excludes before uploading."
         exit 1
     fi
+
+    cleanup_generated_symlinks
 
     log "Coverage XML source roots after normalization:"
     grep -o '<source>.*</source>' "$BUILD_DIR/coverage.xml" | head -5 | sed 's/^/  /'

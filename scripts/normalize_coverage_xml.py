@@ -51,6 +51,7 @@ def normalize(
     coverage_root: Path | None = None,
     coverage_alias: Path | None = None,
     source_dir: Path | None = None,
+    path_maps: list[tuple[Path, Path]] | None = None,
 ) -> tuple[list[str], list[str]]:
     """Normalize filenames and <source> entries within a Cobertura XML report.
 
@@ -84,6 +85,7 @@ def normalize(
 
     missing: list[str] = []
     external: list[str] = []
+    path_maps = path_maps or []
     coverage_root = coverage_root or repo_root
     coverage_root_resolved = coverage_root.resolve()
     repo_root_resolved = repo_root.resolve()
@@ -110,6 +112,7 @@ def normalize(
 
         path = Path(filename)
         relative: Path | None = None
+        absolute_candidate: Path | None = None
 
         if not path.is_absolute():
             if alias_relative is not None:
@@ -141,6 +144,25 @@ def normalize(
                     subpath = _relative_subpath(absolute_path, coverage_root_resolved)
                 if subpath is not None:
                     relative = coverage_root_relative / subpath
+
+            if relative is None and path_maps:
+                for from_root, alias_root in path_maps:
+                    subpath = _relative_subpath(absolute_path, from_root)
+                    if subpath is None:
+                        subpath = _relative_subpath(absolute_path, from_root.resolve())
+                    if subpath is None:
+                        continue
+
+                    map_alias_relative = _relative_subpath(alias_root, repo_root)
+                    if map_alias_relative is None:
+                        map_alias_relative = _relative_subpath(
+                            alias_root.resolve(), repo_root_resolved
+                        )
+                    if map_alias_relative is None:
+                        continue
+
+                    relative = map_alias_relative / subpath
+                    break
 
             if relative is None:
                 external.append(absolute_path.as_posix())
@@ -210,6 +232,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
             "(default: same as --repo-root)"
         ),
     )
+    parser.add_argument(
+        "--path-map",
+        action="append",
+        default=[],
+        metavar="FROM=TO",
+        help=(
+            "Map files under directory FROM to a location TO within the "
+            "repository before normalization. FROM may be absolute or "
+            "relative to --repo-root; TO may be absolute or relative to "
+            "--repo-root. This option can be specified multiple times."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -225,12 +259,34 @@ def main(argv: list[str]) -> int:
     )
     source_dir = args.source_dir.absolute() if args.source_dir else repo_root
 
+    path_maps: list[tuple[Path, Path]] = []
+    for mapping in args.path_map:
+        if "=" not in mapping:
+            raise SystemExit(
+                f"Invalid --path-map '{mapping}'. Expected format FROM=TO."
+            )
+        src_raw, dst_raw = mapping.split("=", 1)
+        src_path = Path(src_raw)
+        if not src_path.is_absolute():
+            src_path = (repo_root / src_path).resolve()
+        else:
+            src_path = src_path.resolve()
+
+        dst_path = Path(dst_raw)
+        if not dst_path.is_absolute():
+            dst_path = (repo_root / dst_path).resolve()
+        else:
+            dst_path = dst_path.resolve()
+
+        path_maps.append((src_path, dst_path))
+
     missing, external = normalize(
         report,
         repo_root,
         coverage_root=coverage_root,
         coverage_alias=coverage_alias,
         source_dir=source_dir,
+        path_maps=path_maps,
     )
 
     if external:

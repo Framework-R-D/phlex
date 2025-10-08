@@ -56,6 +56,8 @@ def _is_repo_content(relative_path: Path) -> bool:
         return True
     if len(parts) >= 2 and parts[0] == "build" and parts[1] == "phlex":
         return True
+    if ".coverage-generated" in parts:
+        return True
     return False
 
 
