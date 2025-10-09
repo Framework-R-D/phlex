@@ -3,8 +3,6 @@
 
 #include "phlex/model/fwd.hpp"
 
-#include "fmt/format.h"
-
 #include <cstddef>
 #include <initializer_list>
 #include <iosfwd>

@@ -36,7 +36,7 @@ namespace {
        << " " << to_string(attrs) << ";\n";
   }
 
-  std::string zip_node(specified_labels input)
+  std::string zip_node(specified_labels const& input)
   {
     assert(not input.empty());
     auto it = input.begin();
@@ -50,7 +50,7 @@ namespace {
     return joined;
   }
 
-  std::string unzip_node(qualified_names output)
+  std::string unzip_node(qualified_names const& output)
   {
     assert(not output.empty());
     auto it = output.begin();
@@ -68,8 +68,8 @@ namespace {
 namespace phlex::experimental::dot {
 
   void data_graph::add(std::string const& function_name,
-                       specified_labels input,
-                       qualified_names output)
+                       specified_labels const& input,
+                       qualified_names const& output)
   {
     std::string source_full_name{};
     std::string source_name{};
