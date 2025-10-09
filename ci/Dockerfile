@@ -44,8 +44,11 @@ spack env activate phlex-ci
 # Display concretized solution
 spack concretize
 
-# Install almost everything
-spack install --fail-fast -j $parallelism -p 1 $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+# Install problematic dependency with special options first:
+spack --timestamp install --fail-fast -j $parallelism -n --no-add --only-concrete rust-bootstrap
+
+# Install almost everything else
+spack --timestamp install --fail-fast -j $parallelism -p 1 $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
 EOF
 
 COPY ./entrypoint.sh /
