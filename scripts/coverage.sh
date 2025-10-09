@@ -550,11 +550,10 @@ generate_xml() {
 
         prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
 
+        local repo_root="$PROJECT_SOURCE"
         local -a normalize_args=(
-            --repo-root "$WORKSPACE_ROOT"
-            --coverage-root "$WORKSPACE_ROOT"
-            --coverage-alias "$SOURCE_ROOT"
-            --source-dir "$WORKSPACE_ROOT"
+            --repo-root "$repo_root"
+            --source-dir "$repo_root"
         )
 
         if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
@@ -763,11 +762,10 @@ upload_codecov() {
 
     prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
 
+    local repo_root="$PROJECT_SOURCE"
     local -a upload_normalize_args=(
-        --repo-root "$WORKSPACE_ROOT"
-        --coverage-root "$WORKSPACE_ROOT"
-        --coverage-alias "$SOURCE_ROOT"
-        --source-dir "$WORKSPACE_ROOT"
+        --repo-root "$repo_root"
+        --source-dir "$repo_root"
     )
 
     if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
