@@ -1,26 +1,70 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.31)
 
+# ##############################################################################
+# Ensure we have access to a suitable version of Cetmodules
+include(FetchContent)
+FetchContent_Declare(
+  cetmodules
+  GIT_REPOSITORY https://github.com/FNALssi/cetmodules
+  GIT_TAG 4.01.01
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS 4.01.01
+  )
+# ... and the Catch2 unit testing framework
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG v3.10.0
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS
+  )
+# ... and Microsoft's C++ Guideline Support Library
+FetchContent_Declare(
+  GSL
+  GIT_REPOSITORY https://github.com/microsoft/GSL
+  GIT_TAG v4.2.0
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS NAMES Microsoft.GSL
+  )
+# ... and the Mimic C++ mocking framework
+FetchContent_Declare(
+  mimicpp
+  GIT_REPOSITORY https://github.com/DNKpp/mimicpp
+  GIT_TAG v8
+  GIT_SHALLOW ON
+  FIND_PACKAGE_ARGS
+  )
+
+# Make cetmodules available
+FetchContent_MakeAvailable(cetmodules)
+find_package(cetmodules 4.01.01 REQUIRED)
+
+# ##############################################################################
+# Main project declaration
 project(
   phlex
   VERSION 0.0.1
   LANGUAGES CXX
   )
+# ##############################################################################
+
+# Make tools available
+FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-# set(CMAKE_BUILD_TYPE "Debug")
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
-# GCC 14.1 issues many false positives re. array-bounds and stringop-overflow
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION
-                                            VERSION_GREATER_EQUAL "14.1"
-   )
-  add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
+     AND CMAKE_COMPILER_VERSION VERSION_LESS "15"
+     )
+    # GCC 14.1 issues many false positives re. array-bounds and
+    # stringop-overflow
+    add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
+  endif()
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -45,12 +89,15 @@ if(ENABLE_TSAN)
      )
     message(STATUS "Enabling ThreadSanitizer")
     # Add the sanitizer flag
-    add_compile_options(-fsanitize=thread -g -O1)
+    add_compile_options(
+      -fsanitize=thread
+      -g
+      -O1
+      # Ensure no optimizations interfere with TSan
+      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer
+      -fno-optimize-sibling-calls>
+      )
     add_link_options(-fsanitize=thread)
-    # Ensure no optimizations interfere with TSan
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls"
-        )
   else()
     message(
       FATAL_ERROR
@@ -67,12 +114,15 @@ if(ENABLE_ASAN)
      )
     message(STATUS "Enabling AddressSanitizer")
     # Add the sanitizer flag
-    add_compile_options(-fsanitize=address -g -O1)
+    add_compile_options(
+      -fsanitize=address
+      -g
+      -O1
+      # Ensure no optimizations interfere with ASan
+      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer
+      -fno-optimize-sibling-calls>
+      )
     add_link_options(-fsanitize=address)
-    # Ensure no optimizations interfere with TSan
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls"
-        )
   else()
     message(
       FATAL_ERROR
