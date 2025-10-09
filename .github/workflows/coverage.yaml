@@ -47,6 +47,7 @@ jobs:
         ctest -j $(nproc) --output-on-failure
 
     - name: Generate coverage reports
+      shell: bash
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
@@ -68,6 +69,7 @@ jobs:
           echo "Preparing generated sources for coverage mapping..."
           GENERATED_ROOT="$GITHUB_WORKSPACE/phlex-src/.coverage-generated"
           rm -rf "$GENERATED_ROOT"
+          mkdir -p "$GENERATED_ROOT"
           find "$GITHUB_WORKSPACE/phlex-build" -type f \
             \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \
                -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \) \
@@ -79,7 +81,7 @@ jobs:
             done
 
           echo "Normalizing coverage XML paths for Codecov..."
-          python3 "$GITHUB_WORKSPACE/phlex-src/scripts/normalize_coverage_xml.py" --repo-root "$GITHUB_WORKSPACE/phlex-src" --coverage-root "$GITHUB_WORKSPACE/phlex-src/srcs" --coverage-alias "$GITHUB_WORKSPACE/phlex-src/srcs/phlex" --source-dir "$GITHUB_WORKSPACE/phlex-src" --path-map "$GITHUB_WORKSPACE/phlex-build=$GITHUB_WORKSPACE/phlex-src/.coverage-generated" "$GITHUB_WORKSPACE/phlex-build/coverage.xml"
+          python3 "$GITHUB_WORKSPACE/phlex-src/scripts/normalize_coverage_xml.py" --repo-root "$GITHUB_WORKSPACE/phlex-src" --source-dir "$GITHUB_WORKSPACE/phlex-src" --path-map "$GITHUB_WORKSPACE/phlex-build=$GITHUB_WORKSPACE/phlex-src/.coverage-generated" "$GITHUB_WORKSPACE/phlex-build/coverage.xml"
           rm -rf "$GENERATED_ROOT"
         else
           echo "ERROR: coverage.xml not found"
