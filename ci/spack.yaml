@@ -1,12 +1,13 @@
 spack:
   specs:
-  - phlex
   - catch2
   - cmake
   - lcov
   - ninja
   - py-cmake-format
   - py-gcovr
+  - py-ruff
+  - phlex
 
   view: true
   concretizer:
