@@ -7,23 +7,6 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-  workflow_call:
-    inputs:
-      cmake_options:
-        description: 'Additional CMake configuration options'
-        required: false
-        type: string
-        default: ''
-      run_build:
-        description: 'Whether to run cmake --build (set to false if caller will build)'
-        required: false
-        type: boolean
-        default: true
-      run_tests:
-        description: 'Whether to run tests'
-        required: false
-        type: boolean
-        default: true
 
 env:
   BUILD_TYPE: Release
@@ -48,14 +31,11 @@ jobs:
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: ${{ env.BUILD_TYPE }}
-        extra-options: ${{ inputs.cmake_options }}
 
     - name: Build
-      if: ${{ inputs.run_build != false }}
       uses: ./phlex-src/.github/actions/build-cmake
 
     - name: Test
-      if: ${{ inputs.run_tests != false }}
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
