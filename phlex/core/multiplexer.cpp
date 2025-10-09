@@ -16,7 +16,7 @@ namespace {
     phlex::experimental::product_store_const_ptr store,
     phlex::experimental::specified_label const& label)
   {
-    auto const& [product_name, family, relation] = label;
+    auto const& [product_name, family] = label;
     if (family.empty()) {
       return store->store_for_product(product_name.full());
     }

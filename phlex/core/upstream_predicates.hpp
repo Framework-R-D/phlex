@@ -20,7 +20,7 @@ namespace phlex::experimental {
       if (!config) {
         return;
       }
-      registrar_.set_predicates(config->get_if_present<std::vector<std::string>>("when"));
+      registrar_.set_predicates(detail::maybe_predicates(config));
     }
 
     void when(std::vector<std::string> predicates)

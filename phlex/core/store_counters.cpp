@@ -4,8 +4,6 @@
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
-#include <cassert>
-
 namespace phlex::experimental {
 
   void store_flag::flush_received(std::size_t const original_message_id)

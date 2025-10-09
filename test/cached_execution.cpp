@@ -32,7 +32,7 @@
 #include "phlex/source.hpp"
 #include "test/cached_execution_source.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
 using namespace test;
