@@ -26,6 +26,10 @@ inputs:
     description: 'Enable FORM root storage'
     required: false
     default: 'ON'
+  form-rntuple:
+    description: 'Enable FORM RNTuple backend'
+    required: false
+    default: 'ON'
   generator:
     description: 'Specify CMake generator'
     required: false
@@ -63,4 +67,5 @@ runs:
           -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
           -DPHLEX_USE_FORM=${{ inputs.enable-form }} \
           -DFORM_USE_ROOT_STORAGE=${{ inputs.form-root-storage }} \
+          -DFORM_USE_RNTUPLE_STORAGE=${{ inputs.form-rntuple }} \
           ${{ inputs.extra-options }}
