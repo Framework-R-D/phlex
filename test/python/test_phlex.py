@@ -1,11 +1,8 @@
-import py
-from pytest import raises
 
 
 class TestPYPHLEX:
-
     def setup_class(cls):
-        import pyphlex
+        pass
 
     def test01_phlex_existence(self):
         """Test existence of the phlex namespace"""

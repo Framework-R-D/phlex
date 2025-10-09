@@ -6,4 +6,3 @@ namespace test {
 }""")
 
 add = cppyy.gbl.test.add
-

@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 99
+extend-include = ["*.py"]
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+extend-select = ["I"]
+ignore = ["E731", "E203"]
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false

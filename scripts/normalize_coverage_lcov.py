@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import argparse
-import sys
 import os
+import sys
 from pathlib import Path
 
 
@@ -97,9 +97,7 @@ def normalize(
 
     coverage_root_relative = _relative_subpath(coverage_root_path, repo_root)
     if coverage_root_relative is None:
-        coverage_root_relative = _relative_subpath(
-            coverage_root_physical, repo_root_physical
-        )
+        coverage_root_relative = _relative_subpath(coverage_root_physical, repo_root_physical)
 
     alias_symlink: Path | None = None
     alias_physical: Path | None = None
@@ -109,9 +107,7 @@ def normalize(
         alias_physical = alias_symlink.resolve()
         alias_relative = _relative_subpath(alias_symlink, repo_root)
         if alias_relative is None:
-            alias_relative = _relative_subpath(
-                alias_physical, repo_root_physical
-            )
+            alias_relative = _relative_subpath(alias_physical, repo_root_physical)
 
     missing: list[str] = []
     external: list[str] = []
@@ -124,14 +120,7 @@ def normalize(
         if not chunk:
             return
 
-        sf_index = next(
-            (
-                idx
-                for idx, value in enumerate(chunk)
-                if value.startswith("SF:")
-            ),
-            None,
-        )
+        sf_index = next((idx for idx, value in enumerate(chunk) if value.startswith("SF:")), None)
         if sf_index is None:
             rewritten.extend(chunk)
             return
@@ -185,15 +174,10 @@ def normalize(
                         relative = subpath
                     break
 
-            if (
-                relative is None
-                and coverage_root_relative is not None
-            ):
+            if relative is None and coverage_root_relative is not None:
                 subpath = _relative_subpath(candidate, coverage_root_path)
                 if subpath is None:
-                    subpath = _relative_subpath(
-                        candidate, coverage_root_physical
-                    )
+                    subpath = _relative_subpath(candidate, coverage_root_physical)
                 if subpath is not None:
                     relative = coverage_root_relative / subpath
 
@@ -237,14 +221,11 @@ def normalize(
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Normalize LCOV coverage files so that source file paths match "
-            "the repository layout."
+            "Normalize LCOV coverage files so that source file paths match the repository layout."
         )
     )
     parser.add_argument(
-        "report",
-        type=Path,
-        help="Path to the LCOV report (e.g., coverage.info.final)",
+        "report", type=Path, help="Path to the LCOV report (e.g., coverage.info.final)"
     )
     parser.add_argument(
         "--repo-root",
@@ -256,26 +237,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--coverage-root",
         type=Path,
         default=None,
-        help=(
-            "Root directory used when the report was generated (default: repo "
-            "root)"
-        ),
+        help=("Root directory used when the report was generated (default: repo root)"),
     )
     parser.add_argument(
         "--coverage-alias",
         type=Path,
         default=None,
-        help=(
-            "Alternate path inside the workspace that should map to repo root"
-        ),
+        help=("Alternate path inside the workspace that should map to repo root"),
     )
     parser.add_argument(
         "--absolute-paths",
         action="store_true",
-        help=(
-            "Emit absolute paths rooted at --repo-root instead of relative "
-            "paths"
-        ),
+        help=("Emit absolute paths rooted at --repo-root instead of relative paths"),
     )
     return parser.parse_args(argv)
 
@@ -284,12 +257,8 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     report = args.report.resolve()
     repo_root = args.repo_root.absolute()
-    coverage_root = (
-        args.coverage_root.absolute() if args.coverage_root else repo_root
-    )
-    coverage_alias = (
-        args.coverage_alias.absolute() if args.coverage_alias else None
-    )
+    coverage_root = args.coverage_root.absolute() if args.coverage_root else repo_root
+    coverage_alias = args.coverage_alias.absolute() if args.coverage_alias else None
 
     missing, external = normalize(
         report,
@@ -313,9 +282,7 @@ def main(argv: list[str]) -> int:
     if missing:
         joined = "\n".join(f"  - {path}" for path in missing)
         sys.stderr.write(
-            "LCOV report references files that do not exist inside the "
-            "repository:\n"
-            f"{joined}\n"
+            f"LCOV report references files that do not exist inside the repository:\n{joined}\n"
         )
         return 1
 
