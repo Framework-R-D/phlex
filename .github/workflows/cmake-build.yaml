@@ -2,27 +2,55 @@ name: CMake Build and Test
 run-name: "${{ github.actor }} building and testing Phlex"
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  issue_comment:
+    types: [created]
   workflow_dispatch:
 
 env:
   BUILD_TYPE: Release
 
 jobs:
+  # Check if workflow should run based on PR comment trigger
+  check-trigger:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@phlexbot build'))
+    runs-on: ubuntu-latest
+    outputs:
+      triggered: ${{ steps.check.outputs.triggered }}
+    steps:
+      - name: Check trigger condition
+        id: check
+        run: echo "triggered=true" >> $GITHUB_OUTPUT
+
   build:
+    needs: check-trigger
+    if: needs.check-trigger.outputs.triggered == 'true'
     runs-on: ubuntu-24.04
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
 
     steps:
-    - name: Check out main branch from github
+    - name: Get PR details for comment trigger
+      if: github.event_name == 'issue_comment'
+      id: pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number
+          });
+          return {
+            ref: pr.data.head.ref,
+            sha: pr.data.head.sha
+          };
+
+    - name: Check out code
       uses: actions/checkout@v4
       with:
         path: phlex-src
+        ref: ${{ github.event_name == 'issue_comment' && fromJSON(steps.pr.outputs.result).sha || github.ref }}
 
     - name: Setup build environment
       uses: ./phlex-src/.github/actions/setup-build-env
