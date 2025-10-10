@@ -1,0 +1,138 @@
+name: Detect Relevant Changes
+description: "Detect changes matching ripgrep file types between two refs"
+inputs:
+  repo-path:
+    description: "Path to the checked-out repository"
+    required: true
+  base-ref:
+    description: "Git reference or commit hash representing the diff base"
+    required: false
+    default: ""
+  head-ref:
+    description: "Git reference or commit hash representing the diff head"
+    required: false
+    default: ""
+  rg-type:
+    description: "Ripgrep type or list of types (comma or newline separated)"
+    required: true
+  rg-args:
+    description: "Additional ripgrep arguments"
+    required: false
+    default: ""
+  include-globs:
+    description: "Optional glob filters (comma or newline separated)"
+    required: false
+    default: ""
+  rg-type-add:
+    description: "Optional ripgrep --type-add definitions (comma or newline separated)"
+    required: false
+    default: ""
+outputs:
+  matched:
+    description: "true if matching files were found"
+  matched_files:
+    description: "Newline-delimited list of matching files"
+runs:
+  using: composite
+  steps:
+    - name: Verify ripgrep is available
+      shell: bash
+      run: |
+        set -euo pipefail
+        if ! command -v rg >/dev/null 2>&1; then
+          echo "::error::ripgrep (rg) is required but not installed"
+          exit 1
+        fi
+    - name: Detect matching files
+      id: detect
+      shell: bash
+      working-directory: ${{ inputs.repo-path }}
+      env:
+        BASE_REF: ${{ inputs.base-ref }}
+        HEAD_REF: ${{ inputs.head-ref }}
+        RG_TYPE: ${{ inputs.rg-type }}
+        RG_ARGS: ${{ inputs.rg-args }}
+        INCLUDE_GLOBS: ${{ inputs.include-globs }}
+        RG_TYPE_ADD: ${{ inputs.rg-type-add }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "$HEAD_REF" ]; then
+          HEAD_REF=$(git rev-parse HEAD)
+        fi
+
+        if [ -z "$BASE_REF" ]; then
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            BASE_REF=$(git rev-parse HEAD^)
+          else
+            BASE_REF=$(git rev-parse HEAD)
+          fi
+        fi
+
+        git diff --name-only "$BASE_REF" "$HEAD_REF" > "$RUNNER_TEMP/changed-files.txt"
+
+        if [ ! -s "$RUNNER_TEMP/changed-files.txt" ]; then
+          : > "$RUNNER_TEMP/matched-files.txt"
+        else
+          RG_ARGS_ARRAY=()
+          if [ -n "$RG_ARGS" ]; then
+            # shellcheck disable=SC2206
+            RG_ARGS_ARRAY=( $RG_ARGS )
+          fi
+
+          parse_list() {
+            local input="$1"
+            printf '%s' "$input" | tr ',' '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'
+          }
+
+          RG_TYPES=()
+          while IFS= read -r type; do
+            RG_TYPES+=("$type")
+          done < <(parse_list "$RG_TYPE")
+
+          if [ "${#RG_TYPES[@]}" -eq 0 ]; then
+            echo "::error::No ripgrep types specified"
+            exit 1
+          fi
+
+          RG_INCLUDE_GLOBS=()
+          while IFS= read -r glob; do
+            RG_INCLUDE_GLOBS+=("$glob")
+          done < <(parse_list "$INCLUDE_GLOBS")
+
+          RG_TYPE_ADD_ARGS=()
+          while IFS= read -r add; do
+            RG_TYPE_ADD_ARGS+=("$add")
+          done < <(parse_list "$RG_TYPE_ADD")
+
+          RG_TYPE_FILES="$RUNNER_TEMP/rg-type-files.txt"
+
+          RG_CMD=(rg --files --sort path)
+          for add in "${RG_TYPE_ADD_ARGS[@]}"; do
+            RG_CMD+=(--type-add "$add")
+          done
+          for type in "${RG_TYPES[@]}"; do
+            RG_CMD+=(--type "$type")
+          done
+          for glob in "${RG_INCLUDE_GLOBS[@]}"; do
+            RG_CMD+=(-g "$glob")
+          done
+          RG_CMD+=("${RG_ARGS_ARRAY[@]}")
+
+          "${RG_CMD[@]}" > "$RG_TYPE_FILES" || true
+
+          LC_ALL=C sort "$RUNNER_TEMP/changed-files.txt" > "$RUNNER_TEMP/changed-files-sorted.txt"
+          comm -12 "$RUNNER_TEMP/changed-files-sorted.txt" "$RG_TYPE_FILES" > "$RUNNER_TEMP/matched-files.txt" || true
+        fi
+
+        if [ -s "$RUNNER_TEMP/matched-files.txt" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "matched_files<<EOF"
+            cat "$RUNNER_TEMP/matched-files.txt"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+        else
+          echo "matched=false" >> "$GITHUB_OUTPUT"
+          echo "matched_files=" >> "$GITHUB_OUTPUT"
+        fi
