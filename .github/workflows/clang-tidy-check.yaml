@@ -22,13 +22,13 @@ jobs:
     - name: Setup build environment
       uses: ./phlex-src/.github/actions/setup-build-env
 
-    - name: Configure CMake for clang-tidy
+    - name: Configure CMake (Debug)
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: Debug
-        extra-options: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
+        extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-    - name: Build project
+    - name: Build default target
       uses: ./phlex-src/.github/actions/build-cmake
 
     - name: Run clang-tidy using CMake target
