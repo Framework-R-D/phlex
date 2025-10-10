@@ -64,7 +64,7 @@ jobs:
           echo "Applying CMake formatting..."
           
           # Find all CMake files
-          cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) ! -path "*/build/*" ! -path "*/_deps/*")
+          cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "CMakeLists.txt.in" -o -name "*.cmake" -o -name "*.cmake.in" \) ! -path "*/build/*" ! -path "*/_deps/*")
           
           if [ -z "$cmake_files" ]; then
             echo "No CMake files found to format"

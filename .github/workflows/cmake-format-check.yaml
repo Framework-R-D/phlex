@@ -7,7 +7,53 @@ on:
   workflow_dispatch:
 
 jobs:
+  detect-cmake-format-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci-rg:2025-10-10
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect CMake formatting changes
+      id: filter
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.sha }}
+        rg-type: cmake
+        rg-type-add: |
+          cmake:*.cmake.in
+          cmake:CMakeLists.txt.in
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No CMake-related changes detected; formatting check will be skipped."
+        else
+          echo "::group::CMake-related files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
   cmake-format-check:
+    needs: detect-cmake-format-changes
+    if: ${{ needs.detect-cmake-format-changes.outputs.has_changes == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -28,16 +74,14 @@ jobs:
       run: |
         cd phlex-src
         echo "Checking CMake file formatting..."
-        
-        # Find all CMake files
-        cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) ! -path "*/build/*" ! -path "*/_deps/*")
-        
+
+        cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "CMakeLists.txt.in" -o -name "*.cmake" -o -name "*.cmake.in" \) ! -path "*/build/*" ! -path "*/_deps/*")
+
         if [ -z "$cmake_files" ]; then
           echo "No CMake files found to check"
           exit 0
         fi
-        
-        # Check each file
+
         format_errors=0
         for file in $cmake_files; do
           echo "Checking $file..."
@@ -46,12 +90,21 @@ jobs:
             format_errors=$((format_errors + 1))
           fi
         done
-        
+
         if [ $format_errors -gt 0 ]; then
           echo ""
           echo "::error::Found $format_errors file(s) with formatting issues"
           echo "Run 'cmake-format -i <file>' locally or comment '@phlexbot format' on the PR to auto-fix"
           exit 1
         fi
-        
+
         echo "✓ All CMake files are properly formatted"
+
+  cmake-format-check-skipped:
+    needs: detect-cmake-format-changes
+    if: ${{ needs.detect-cmake-format-changes.outputs.has_changes != 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: No relevant CMake changes detected
+      run: echo "No CMake-related changes detected; cmake-format check skipped."

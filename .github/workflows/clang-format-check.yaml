@@ -7,15 +7,91 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  detect-clang-format-changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci-rg:2025-10-10
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect C++ formatting changes
+      id: filter
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.sha }}
+        rg-type: cpp
+        rg-type-add: |
+          cpp:*.c.in
+          cpp:*.cc.in
+          cpp:*.cpp.in
+          cpp:*.cxx.in
+          cpp:*.c++.in
+          cpp:*.h.in
+          cpp:*.hh.in
+          cpp:*.hpp.in
+          cpp:*.hxx.in
+          cpp:*.h++.in
+        include-globs: |
+          srcs/phlex/**
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No clang-format related changes detected; job will be skipped."
+        else
+          echo "::group::Clang-format relevant files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  clang-format-check:
+    needs: detect-clang-format-changes
+    if: ${{ needs.detect-clang-format-changes.outputs.has_changes == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
       with:
         path: phlex-src
 
-    - uses: DoozyX/clang-format-lint-action@v0.20
+    - name: Run clang-format lint
+      uses: DoozyX/clang-format-lint-action@v0.20
       with:
         source: "./phlex-src"
         clangFormatVersion: 20
+        extensions: |
+          .h,.hh,.hpp,.hxx,.h++,
+          .c,.cc,.cpp,.cxx,.c++,
+          .c.in,.cc.in,.cpp.in,.cxx.in,.c++.in,
+          .h.in,.hh.in,.hpp.in,.hxx.in,.h++.in
+
+  clang-format-check-skipped:
+    needs: detect-clang-format-changes
+    if: ${{ needs.detect-clang-format-changes.outputs.has_changes != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant C++ changes detected
+      run: echo "No clang-format relevant changes detected; check skipped."
