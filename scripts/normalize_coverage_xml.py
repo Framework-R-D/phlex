@@ -17,6 +17,13 @@ def _relative_subpath(path: Path, base: Path | None) -> Path | None:
     user-specified paths and their resolved physical counterparts. The function
     returns ``None`` when the relationship cannot be established without
     traversing ``..`` outside of ``base``.
+
+    Args:
+        path: The target path to evaluate.
+        base: The base path to compare against.
+
+    Returns:
+        The relative path if it exists within the base, otherwise None.
     """
 
     if base is None:
@@ -63,10 +70,11 @@ def normalize(
             symlinks). If provided, relative paths are rewritten using this
             alias when they fall outside repo_root.
         source_dir: Directory to emit inside <source>. Defaults to repo_root.
+        path_maps: List of tuples mapping paths for normalization.
 
     Returns:
-    A tuple containing missing files (relative to repo_root) and external
-    files that reside outside the repository.
+        A tuple containing missing files (relative to repo_root) and external
+        files that reside outside the repository.
     """
 
     tree = ET.parse(report_path)
@@ -182,6 +190,14 @@ def normalize(
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Args:
+        argv: List of command-line arguments.
+
+    Returns:
+        Parsed arguments as a Namespace object.
+    """
     parser = argparse.ArgumentParser(
         description=(
             "Normalize Cobertura XML output for Codecov so that file paths "
@@ -248,6 +264,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def main(argv: list[str]) -> int:
+    """Main entry point for the script.
+
+    Args:
+        argv: List of command-line arguments.
+
+    Returns:
+        Exit code indicating success or failure.
+    """
     args = parse_args(argv)
     report = args.report.resolve()
     repo_root = args.repo_root.absolute()

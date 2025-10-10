@@ -15,6 +15,13 @@ def _relative_subpath(path: Path, base: Path | None) -> Path | None:
     Attempts comparisons using both the provided paths and their resolved
     physical counterparts, falling back to :func:`os.path.relpath` while
     ensuring the result does not traverse outside *base*.
+
+    Args:
+        path: The target path to evaluate.
+        base: The base path to compare against.
+
+    Returns:
+        The relative path if it exists within the base, otherwise None.
     """
 
     if base is None:
@@ -49,7 +56,14 @@ def _relative_subpath(path: Path, base: Path | None) -> Path | None:
 
 
 def _is_repo_content(relative_path: Path) -> bool:
-    """Return True when the path should remain in the coverage report."""
+    """Determine if the path should remain in the coverage report.
+
+    Args:
+        relative_path: The relative path to evaluate.
+
+    Returns:
+        True if the path should remain, False otherwise.
+    """
 
     parts = relative_path.parts
     if len(parts) >= 2 and parts[0] == "srcs" and parts[1] == "phlex":
@@ -121,6 +135,7 @@ def normalize(
     record: list[str] = []
 
     def flush_record(chunk: list[str]) -> None:
+        """Flush the current record chunk after rewriting paths."""
         if not chunk:
             return
 
@@ -235,6 +250,14 @@ def normalize(
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Args:
+        argv: List of command-line arguments.
+
+    Returns:
+        Parsed arguments as a Namespace object.
+    """
     parser = argparse.ArgumentParser(
         description=(
             "Normalize LCOV coverage files so that source file paths match "
@@ -281,6 +304,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def main(argv: list[str]) -> int:
+    """Main entry point for the script.
+
+    Args:
+        argv: List of command-line arguments.
+
+    Returns:
+        Exit code indicating success or failure.
+    """
     args = parse_args(argv)
     report = args.report.resolve()
     repo_root = args.repo_root.absolute()
