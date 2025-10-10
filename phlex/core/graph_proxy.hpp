@@ -43,35 +43,53 @@ namespace phlex::experimental {
         config_, graph_, nodes_, std::make_shared<U>(std::forward<Args>(args)...), errors_};
     }
 
-    auto with(std::string name, auto f, concurrency c = concurrency::serial)
+    template <typename... InitArgs>
+    auto fold(std::string name,
+              is_fold_like auto f,
+              concurrency c = concurrency::serial,
+              std::string partition = "job",
+              InitArgs&&... init_args)
     {
-      return create_glue().with(std::move(name), f, c);
+      return create_glue().fold(std::move(name),
+                                std::move(f),
+                                c,
+                                std::move(partition),
+                                std::forward<InitArgs>(init_args)...);
     }
 
     auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
     {
-      return create_glue().observe(std::move(name), f, c);
+      return create_glue().observe(std::move(name), std::move(f), c);
     }
 
     auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
     {
-      return create_glue().predicate(std::move(name), f, c);
+      return create_glue().predicate(std::move(name), std::move(f), c);
+    }
+
+    auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial)
+    {
+      return create_glue().transform(std::move(name), std::move(f), c);
     }
 
     template <typename Splitter>
-    auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
+    auto unfold(std::string name,
+                is_predicate_like auto pred,
+                auto unf,
+                concurrency c = concurrency::serial)
     {
-      return unfold_glue<Splitter>(graph_, nodes_, errors_).declare_unfold(predicate, unfold, c);
+      return create_glue(false).unfold(std::move(name), std::move(pred), std::move(unf), c);
     }
 
-    auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
+    template <typename Splitter>
+    auto unfold(is_predicate_like auto pred, auto unf, concurrency c = concurrency::serial)
     {
-      return output_creator{nodes_.registrar_for<declared_output_ptr>(errors_),
-                            config_,
-                            name,
-                            graph_,
-                            delegate(bound_obj_, f),
-                            c};
+      return create_glue(false).unfold(std::move(pred), std::move(unf), c);
+    }
+
+    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
+    {
+      return create_glue().output(std::move(name), std::move(f), c);
     }
 
   private:
@@ -85,7 +103,10 @@ namespace phlex::experimental {
     {
     }
 
-    glue<T> create_glue() { return glue{graph_, nodes_, bound_obj_, errors_, config_}; }
+    glue<T> create_glue(bool use_bound_object = true)
+    {
+      return glue{graph_, nodes_, (use_bound_object ? bound_obj_ : nullptr), errors_, config_};
+    }
 
     configuration const* config_;
     tbb::flow::graph& graph_;
