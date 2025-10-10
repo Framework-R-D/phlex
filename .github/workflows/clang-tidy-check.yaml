@@ -7,7 +7,32 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci:2025-08-19a
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - name: Setup build environment
+      uses: ./phlex-src/.github/actions/setup-build-env
+
+    - name: Configure CMake (Debug)
+      uses: ./phlex-src/.github/actions/configure-cmake
+      with:
+        build-type: Debug
+        extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    - name: Build default target
+      uses: ./phlex-src/.github/actions/build-cmake
+
   clang-tidy-check:
+    needs: build
     runs-on: ubuntu-24.04
 
     container:
@@ -26,7 +51,7 @@ jobs:
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: Debug
-        extra-options: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
+        extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Build project
       uses: ./phlex-src/.github/actions/build-cmake
