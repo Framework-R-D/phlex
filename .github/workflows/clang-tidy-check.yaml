@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  clang-tidy-check:
     runs-on: ubuntu-24.04
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-08-19a
+      image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
 
     steps:
     - name: Checkout code
@@ -29,31 +29,6 @@ jobs:
         extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Build default target
-      uses: ./phlex-src/.github/actions/build-cmake
-
-  clang-tidy-check:
-    needs: build
-    runs-on: ubuntu-24.04
-
-    container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        path: phlex-src
-
-    - name: Setup build environment
-      uses: ./phlex-src/.github/actions/setup-build-env
-
-    - name: Configure CMake for clang-tidy
-      uses: ./phlex-src/.github/actions/configure-cmake
-      with:
-        build-type: Debug
-        extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-
-    - name: Build project
       uses: ./phlex-src/.github/actions/build-cmake
 
     - name: Run clang-tidy using CMake target
