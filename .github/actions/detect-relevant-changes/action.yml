@@ -14,7 +14,8 @@ inputs:
     default: ""
   rg-type:
     description: "Ripgrep type or list of types (comma or newline separated)"
-    required: true
+    required: false
+    default: ""
   rg-args:
     description: "Additional ripgrep arguments"
     required: false
@@ -90,11 +91,6 @@ runs:
             RG_TYPES+=("$type")
           done < <(parse_list "$RG_TYPE")
 
-          if [ "${#RG_TYPES[@]}" -eq 0 ]; then
-            echo "::error::No ripgrep types specified"
-            exit 1
-          fi
-
           RG_INCLUDE_GLOBS=()
           while IFS= read -r glob; do
             RG_INCLUDE_GLOBS+=("$glob")
@@ -111,9 +107,13 @@ runs:
           for add in "${RG_TYPE_ADD_ARGS[@]}"; do
             RG_CMD+=(--type-add "$add")
           done
-          for type in "${RG_TYPES[@]}"; do
-            RG_CMD+=(--type "$type")
-          done
+          if [ "${#RG_TYPES[@]}" -eq 0 ] && [ "${#RG_INCLUDE_GLOBS[@]}" -eq 0 ] && [ "${#RG_TYPE_ADD_ARGS[@]}" -eq 0 ]; then
+            echo "::warning::No ripgrep types, globs, or type-add filters specified; scanning entire repository"
+          else
+            for type in "${RG_TYPES[@]}"; do
+              RG_CMD+=(--type "$type")
+            done
+          fi
           for glob in "${RG_INCLUDE_GLOBS[@]}"; do
             RG_CMD+=(-g "$glob")
           done
