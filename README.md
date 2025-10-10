@@ -4,7 +4,16 @@
 
 [![Code Coverage](https://codecov.io/gh/Framework-R-D/phlex/branch/main/graph/badge.svg)](https://codecov.io/gh/Framework-R-D/phlex)
 
-## Development
+## Contributions
+
+_[The contribution policy is currently under development.]_
+
+Except in rare circumstances, changes to the `phlex` repository are proposed and considered through GitHub pull requests (PRs).
+
+> [!NOTE]
+>
+> - Both external contributors and framework developers are expected to abide by this contribution policy.
+> - Even if you are a contributor with merge privileges, your PR should be reviewed by someone else before being merged into the `main` branch.
 
 ### Building with Coverage
 
@@ -37,13 +46,3 @@ The coverage system:
 
 The project automatically runs coverage analysis on every PR and push to main/develop branches. Coverage reports are uploaded to [Codecov](https://codecov.io/gh/Framework-R-D/phlex) for tracking and PR integration.
 
-## Contributions
-
-_[The contribution policy is currently under development.]_
-
-Except in rare circumstances, changes to the `phlex` repository are proposed and considered through GitHub pull requests (PRs).
-
-> [!NOTE]
->
-> - Both external contributors and framework developers are expected to abide by this contribution policy.
-> - Even if you are a contributor with merge privileges, your PR should be reviewed by someone else before being merged into the `main` branch.
