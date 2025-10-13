@@ -34,3 +34,11 @@ ignore:
 
 github_checks:
   annotations: true
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: no
+      loop: no
+      method: no
+      macro: no
