@@ -550,11 +550,24 @@ generate_xml() {
 
         prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
 
+        local cmake_cache="$BUILD_DIR/CMakeCache.txt"
+        local cmake_home_dir=""
+        if [[ -f "$cmake_cache" ]]; then
+            cmake_home_dir="$(
+                grep '^CMAKE_HOME_DIRECTORY:' "$cmake_cache" \
+                    | cut -d= -f2 | head -n1 || true
+            )"
+        fi
+
         local repo_root="$PROJECT_SOURCE"
         local -a normalize_args=(
             --repo-root "$repo_root"
             --source-dir "$repo_root"
         )
+
+        if [[ -n "$cmake_home_dir" ]]; then
+            normalize_args+=(--coverage-root "$cmake_home_dir")
+        fi
 
         if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
             normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
@@ -762,11 +775,24 @@ upload_codecov() {
 
     prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
 
+    local cmake_cache="$BUILD_DIR/CMakeCache.txt"
+    local cmake_home_dir=""
+    if [[ -f "$cmake_cache" ]]; then
+        cmake_home_dir="$(
+            grep '^CMAKE_HOME_DIRECTORY:' "$cmake_cache" \
+                | cut -d= -f2 | head -n1 || true
+        )"
+    fi
+
     local repo_root="$PROJECT_SOURCE"
     local -a upload_normalize_args=(
         --repo-root "$repo_root"
         --source-dir "$repo_root"
     )
+
+    if [[ -n "$cmake_home_dir" ]]; then
+        upload_normalize_args+=(--coverage-root "$cmake_home_dir")
+    fi
 
     if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
         upload_normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
