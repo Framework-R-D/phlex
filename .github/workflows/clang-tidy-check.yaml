@@ -35,7 +35,7 @@ jobs:
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        head-ref: ${{ github.sha }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         rg-type: cpp
         rg-type-add: |
           cpp:*.c.in
