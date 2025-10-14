@@ -37,11 +37,11 @@ runs:
     - shell: bash
       run: |
         # Source the entrypoint script
-        . $GITHUB_WORKSPACE/${{ inputs.source-path }}/ci/entrypoint.sh
+        . "$GITHUB_WORKSPACE/$SOURCE_PATH/ci/entrypoint.sh"
         
-        cd $GITHUB_WORKSPACE/${{ inputs.build-path }}
+        cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         
-        SOURCE_DIR="$GITHUB_WORKSPACE/${{ inputs.source-path }}"
+        SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
 
         # Determine preset usage
         if [ -f "$SOURCE_DIR/CMakePresets.json" ]; then
@@ -54,13 +54,21 @@ runs:
 
         echo "Source directory: $SOURCE_DIR"
         echo "Build directory: $(pwd)"
-        echo "Build type: ${{ inputs.build-type }}"
-        echo "Generator: ${{ inputs.generator }}"
+        echo "Build type: $BUILD_TYPE"
+        echo "Generator: $GENERATOR"
 
         # Configure CMake with Ninja generator
         cmake $preset_arg "$SOURCE_DIR" \
-          -G ${{ inputs.generator }} \
-          -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
-          -DPHLEX_USE_FORM=${{ inputs.enable-form }} \
-          -DFORM_USE_ROOT_STORAGE=${{ inputs.form-root-storage }} \
-          ${{ inputs.extra-options }}
+          -G "$GENERATOR" \
+          -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+          -DPHLEX_USE_FORM="$ENABLE_FORM" \
+          -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE" \
+          $EXTRA_OPTIONS
+      env:
+        SOURCE_PATH: ${{ inputs.source-path }}
+        BUILD_PATH: ${{ inputs.build-path }}
+        BUILD_TYPE: ${{ inputs.build-type }}
+        EXTRA_OPTIONS: ${{ inputs.extra-options }}
+        ENABLE_FORM: ${{ inputs.enable-form }}
+        FORM_ROOT_STORAGE: ${{ inputs.form-root-storage }}
+        GENERATOR: ${{ inputs.generator }}

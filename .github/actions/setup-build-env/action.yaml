@@ -26,14 +26,17 @@ runs:
       shell: bash
       run: |
         # Source the entrypoint script
-        . $GITHUB_WORKSPACE/${{ inputs.source-path }}/ci/entrypoint.sh
+        . "$GITHUB_WORKSPACE/$SOURCE_PATH/ci/entrypoint.sh"
         
         # Create and export build directory
-        mkdir -p $GITHUB_WORKSPACE/${{ inputs.build-path }}
+        mkdir -p "$GITHUB_WORKSPACE/$BUILD_PATH"
         
         # Set outputs
-        echo "source-dir=$GITHUB_WORKSPACE/${{ inputs.source-path }}" >> $GITHUB_OUTPUT
-        echo "build-dir=$GITHUB_WORKSPACE/${{ inputs.build-path }}" >> $GITHUB_OUTPUT
+        printf 'source-dir=%s/%s\n' "$GITHUB_WORKSPACE" "$SOURCE_PATH" >> $GITHUB_OUTPUT
+        printf 'build-dir=%s/%s\n' "$GITHUB_WORKSPACE" "$BUILD_PATH" >> $GITHUB_OUTPUT
         
-        echo "Source directory: $GITHUB_WORKSPACE/${{ inputs.source-path }}"
-        echo "Build directory: $GITHUB_WORKSPACE/${{ inputs.build-path }}"
+        echo "Source directory: $GITHUB_WORKSPACE/$SOURCE_PATH"
+        echo "Build directory: $GITHUB_WORKSPACE/$BUILD_PATH"
+      env:
+        SOURCE_PATH: ${{ inputs.source-path }}
+        BUILD_PATH: ${{ inputs.build-path }}

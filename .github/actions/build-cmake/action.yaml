@@ -25,21 +25,21 @@ runs:
     - shell: bash
       run: |
         # Source the entrypoint script
-        . $GITHUB_WORKSPACE/${{ inputs.source-path }}/ci/entrypoint.sh
+        . "$GITHUB_WORKSPACE/$SOURCE_PATH/ci/entrypoint.sh"
         
-        cd $GITHUB_WORKSPACE/${{ inputs.build-path }}
+        cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         
         # Determine parallel jobs
-        if [ -n "${{ inputs.parallel-jobs }}" ]; then
-          jobs_arg="-j ${{ inputs.parallel-jobs }}"
+        if [ -n "$PARALLEL_JOBS" ]; then
+          jobs_arg="-j $PARALLEL_JOBS"
         else
           jobs_arg="-j $(nproc)"
         fi
         
         # Determine target
-        if [ -n "${{ inputs.target }}" ]; then
-          target_arg="--target ${{ inputs.target }}"
-          echo "Building target: ${{ inputs.target }}"
+        if [ -n "$TARGET" ]; then
+          target_arg="--target $TARGET"
+          echo "Building target: $TARGET"
         else
           target_arg=""
           echo "Building default target"
@@ -47,3 +47,8 @@ runs:
         
         # Build
         cmake --build . $jobs_arg $target_arg
+      env:
+        SOURCE_PATH: ${{ inputs.source-path }}
+        BUILD_PATH: ${{ inputs.build-path }}
+        TARGET: ${{ inputs.target }}
+        PARALLEL_JOBS: ${{ inputs.parallel-jobs }}
