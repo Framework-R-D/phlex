@@ -219,7 +219,9 @@ endif()
 add_subdirectory(phlex)
 
 if(PHLEX_USE_FORM)
+  set(BUILD_SHARED_LIBS OFF) # Temporary
   add_subdirectory(form)
+  unset(BUILD_SHARED_LIBS)
 endif()
 
 include(CTest)
