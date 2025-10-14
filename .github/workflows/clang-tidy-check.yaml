@@ -36,7 +36,9 @@ jobs:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        rg-type: cpp
+        rg-type: |
+          cpp
+          cmake
         rg-type-add: |
           cpp:*.c.in
           cpp:*.cc.in
@@ -48,6 +50,8 @@ jobs:
           cpp:*.hpp.in
           cpp:*.hxx.in
           cpp:*.h++.in
+          cmake:*.cmake.in
+          cmake:CMakeLists.txt.in
         include-globs: |
           srcs/phlex/**
 
