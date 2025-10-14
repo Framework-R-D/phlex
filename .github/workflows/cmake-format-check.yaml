@@ -12,11 +12,6 @@ jobs:
     permissions:
       contents: read
       packages: read
-    container:
-      image: ghcr.io/framework-r-d/phlex-ci-rg:2025-10-10
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_PULL_TOKEN }}
 
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
@@ -36,8 +31,8 @@ jobs:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        rg-type: cmake
-        rg-type-add: |
+        file-type: cmake
+        type-pattern-add: |
           cmake:*.cmake.in
           cmake:CMakeLists.txt.in
 
