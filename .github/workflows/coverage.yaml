@@ -13,11 +13,57 @@ env:
   BUILD_TYPE: Coverage
 
 jobs:
+  detect-coverage-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
+
+    steps:
+    - name: Check out source code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect coverage relevant changes
+      id: filter
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        file-type: |
+          cpp
+          cmake
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No coverage relevant changes detected; workflow will be skipped."
+        else
+          echo "::group::Coverage relevant files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
   coverage:
+    needs: detect-coverage-changes
+    if: ${{ needs.detect-coverage-changes.outputs.has_changes == 'true' }}
     runs-on: ubuntu-24.04
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
 
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -71,8 +117,7 @@ jobs:
           rm -rf "$GENERATED_ROOT"
           mkdir -p "$GENERATED_ROOT"
           find "$GITHUB_WORKSPACE/phlex-build" -type f \
-            \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \
-               -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \) \
+            \( -name '*.cpp' -o -name '*.hpp' \) \
             -print0 | while IFS= read -r -d '' src; do
               rel="${src#$GITHUB_WORKSPACE/phlex-build/}"
               dest="$GENERATED_ROOT/$rel"
@@ -112,3 +157,14 @@ jobs:
         name: coverage-html-report
         path: phlex-build/coverage-html/
         retention-days: 30
+
+  coverage-skipped:
+    needs: detect-coverage-changes
+    if: ${{ needs.detect-coverage-changes.outputs.has_changes != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant coverage changes detected
+      run: echo "No relevant C++ changes detected; coverage workflow skipped."

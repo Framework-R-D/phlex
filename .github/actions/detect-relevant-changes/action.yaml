@@ -1,0 +1,190 @@
+name: Detect Relevant Changes
+description: "Detect changes matching file type and glob filters between two refs"
+inputs:
+  repo-path:
+    description: "Path to the checked-out repository"
+    required: true
+  base-ref:
+    description: "Git reference or commit hash representing the diff base"
+    required: false
+    default: ""
+  head-ref:
+    description: "Git reference or commit hash representing the diff head"
+    required: false
+    default: ""
+  file-type:
+    description: "File type key or list of keys (comma or newline separated)"
+    required: false
+    default: ""
+  include-globs:
+    description: "Optional glob filters (comma or newline separated)"
+    required: false
+    default: ""
+  type-pattern-add:
+    description: "Additional type-to-glob mappings (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added automatically."
+    required: false
+    default: ""
+outputs:
+  matched:
+    description: "true if matching files were found"
+    value: ${{ steps.detect.outputs.matched }}
+  matched_files:
+    description: "Newline-delimited list of matching files"
+    value: ${{ steps.detect.outputs.matched_files }}
+runs:
+  using: composite
+  steps:
+    - name: Detect matching files
+      id: detect
+      shell: bash
+      working-directory: ${{ inputs.repo-path }}
+      env:
+        BASE_REF: ${{ inputs.base-ref }}
+        HEAD_REF: ${{ inputs.head-ref }}
+        FILE_TYPE: ${{ inputs.file-type }}
+        INCLUDE_GLOBS: ${{ inputs.include-globs }}
+        TYPE_PATTERN_ADD: ${{ inputs.type-pattern-add }}
+      run: |
+        set -euo pipefail
+
+        shopt -s extglob globstar nullglob
+
+        declare -A DEFAULT_TYPE_PATTERNS
+        DEFAULT_TYPE_PATTERNS[cpp]=$'*.cpp\n*.hpp'
+        DEFAULT_TYPE_PATTERNS[cmake]=$'CMakeLists.txt\n*.cmake'
+
+        parse_list() {
+          local input="$1"
+          printf '%s' "$input" | tr ',' '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'
+        }
+
+        declare -A TYPE_PATTERNS
+        for key in "${!DEFAULT_TYPE_PATTERNS[@]}"; do
+          TYPE_PATTERNS[$key]="${DEFAULT_TYPE_PATTERNS[$key]}"
+        done
+
+        while IFS= read -r add; do
+          [ -z "$add" ] && continue
+          if [[ "$add" != *:* ]]; then
+            echo "::warning::Ignoring invalid type definition '$add'"
+            continue
+          fi
+          type_name=${add%%:*}
+          pattern=${add#*:}
+          pattern=${pattern#./}
+          if [ -n "$pattern" ]; then
+            TYPE_PATTERNS[$type_name]="${TYPE_PATTERNS[$type_name]}${TYPE_PATTERNS[$type_name]:+$'\n'}$pattern"
+          fi
+        done < <(parse_list "$TYPE_PATTERN_ADD")
+
+        mapfile -t REQUESTED_TYPES < <(parse_list "$FILE_TYPE")
+        mapfile -t INCLUDE_PATTERNS < <(parse_list "$INCLUDE_GLOBS")
+
+        if [ -z "$HEAD_REF" ]; then
+          HEAD_REF=$(git rev-parse HEAD)
+        fi
+
+        if [ -z "$BASE_REF" ]; then
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            BASE_REF=$(git rev-parse HEAD^)
+          else
+            BASE_REF=$(git rev-parse HEAD)
+          fi
+        fi
+
+        git diff --name-only "$BASE_REF" "$HEAD_REF" > "$RUNNER_TEMP/changed-files.txt"
+
+        if [ ! -s "$RUNNER_TEMP/changed-files.txt" ]; then
+          : > "$RUNNER_TEMP/matched-files.txt"
+          echo "matched=false" >> "$GITHUB_OUTPUT"
+          echo "matched_files=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        declare -A PATTERN_SET=()
+
+        if [ "${#REQUESTED_TYPES[@]}" -ne 0 ]; then
+          add_pattern_variant() {
+            local base_pattern="$1"
+            [ -z "$base_pattern" ] && return
+            PATTERN_SET["$base_pattern"]=1
+            if [[ "$base_pattern" != *.in ]]; then
+              PATTERN_SET["$base_pattern.in"]=1
+            fi
+          }
+
+          for type in "${REQUESTED_TYPES[@]}"; do
+            patterns=${TYPE_PATTERNS[$type]:-}
+            if [ -z "$patterns" ]; then
+              echo "::warning::No patterns defined for type '$type'"
+              continue
+            fi
+            while IFS= read -r pattern; do
+              pattern=${pattern#./}
+              [ -z "$pattern" ] && continue
+              add_pattern_variant "$pattern"
+            done <<< "$patterns"
+          done
+        fi
+
+        declare -a ALL_PATTERNS
+        if [ "${#PATTERN_SET[@]}" -gt 0 ]; then
+          mapfile -t ALL_PATTERNS < <(printf '%s\n' "${!PATTERN_SET[@]}" | LC_ALL=C sort)
+        else
+          ALL_PATTERNS=()
+        fi
+
+        FIND_CMD=(find . -type f)
+        if [ "${#ALL_PATTERNS[@]}" -gt 0 ]; then
+          FIND_CMD+=(\()
+          first=true
+          for pattern in "${ALL_PATTERNS[@]}"; do
+            if [ "$first" = true ]; then
+              first=false
+            else
+              FIND_CMD+=(-o)
+            fi
+            FIND_CMD+=(-name "$pattern")
+          done
+          FIND_CMD+=(\))
+        fi
+
+        "${FIND_CMD[@]}" | sed 's|^\./||' | LC_ALL=C sort > "$RUNNER_TEMP/find-matches.txt"
+        LC_ALL=C sort "$RUNNER_TEMP/changed-files.txt" > "$RUNNER_TEMP/changed-files-sorted.txt"
+
+        if [ -s "$RUNNER_TEMP/find-matches.txt" ]; then
+          comm -12 "$RUNNER_TEMP/changed-files-sorted.txt" "$RUNNER_TEMP/find-matches.txt" > "$RUNNER_TEMP/initial-matched.txt" || true
+        else
+          cp "$RUNNER_TEMP/changed-files-sorted.txt" "$RUNNER_TEMP/initial-matched.txt"
+        fi
+
+        filter_by_include() {
+          local file="$1"
+          if [ "${#INCLUDE_PATTERNS[@]}" -eq 0 ]; then
+            return 0
+          fi
+          for include_pattern in "${INCLUDE_PATTERNS[@]}"; do
+            [[ "$file" == $include_pattern ]] && return 0
+          done
+          return 1
+        }
+
+        : > "$RUNNER_TEMP/matched-files.txt"
+        while IFS= read -r matched_file; do
+          [ -z "$matched_file" ] && continue
+          if filter_by_include "$matched_file"; then
+            echo "$matched_file" >> "$RUNNER_TEMP/matched-files.txt"
+          fi
+        done < "$RUNNER_TEMP/initial-matched.txt"
+
+        if [ -s "$RUNNER_TEMP/matched-files.txt" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "matched_files<<EOF"
+            cat "$RUNNER_TEMP/matched-files.txt"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+        else
+          echo "matched=false" >> "$GITHUB_OUTPUT"
+          echo "matched_files=" >> "$GITHUB_OUTPUT"
+        fi

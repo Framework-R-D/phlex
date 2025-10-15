@@ -12,14 +12,23 @@ env:
 jobs:
   # Check if workflow should run based on PR comment trigger
   check-trigger:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@phlexbot build'))
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
     outputs:
       triggered: ${{ steps.check.outputs.triggered }}
     steps:
       - name: Check trigger condition
         id: check
-        run: echo "triggered=true" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "triggered=true" >> $GITHUB_OUTPUT
+          elif echo "$COMMENT_BODY" | grep -qE '\b@phlexbot[[:space:]]+build\b'; then
+            echo "triggered=true" >> $GITHUB_OUTPUT
+          else
+            echo "triggered=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
 
   build:
     needs: check-trigger

@@ -7,11 +7,57 @@ on:
   workflow_dispatch:
 
 jobs:
+  detect-clang-tidy-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect clang-tidy relevant changes
+      id: filter
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        file-type: |
+          cpp
+          cmake
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No clang-tidy relevant changes detected; job will be skipped."
+        else
+          echo "::group::Clang-tidy relevant files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
   clang-tidy-check:
+    needs: detect-clang-tidy-changes
+    if: ${{ needs.detect-clang-tidy-changes.outputs.has_changes == 'true' }}
     runs-on: ubuntu-24.04
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
 
     steps:
     - name: Checkout code
@@ -27,9 +73,6 @@ jobs:
       with:
         build-type: Debug
         extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-
-    - name: Build default target
-      uses: ./phlex-src/.github/actions/build-cmake
 
     - name: Run clang-tidy using CMake target
       run: |
@@ -55,3 +98,14 @@ jobs:
         name: clang-tidy-log
         path: phlex-build/clang-tidy.log
         retention-days: 7
+
+  clang-tidy-check-skipped:
+    needs: detect-clang-tidy-changes
+    if: ${{ needs.detect-clang-tidy-changes.outputs.has_changes != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant clang-tidy changes detected
+      run: echo "No clang-tidy relevant changes detected; check skipped."
