@@ -55,10 +55,10 @@ jobs:
           clangFormatVersion: 20
           inplace: True
           extensions: |
-            .h,.hh,.hpp,.hxx,.h++,
-            .c,.cc,.cpp,.cxx,.c++,
-            .c.in,.cc.in,.cpp.in,.cxx.in,.c++.in,
-            .h.in,.hh.in,.hpp.in,.hxx.in,.h++.in
+            .c,.C,.cc,.cpp,.cxx,.c++,.icc,.tcc,
+            .h,.H,.hh,.hpp,.hxx,.h++,
+            .c.in,.C.in,.cc.in,.cpp.in,.cxx.in,.c++.in,.icc.in,.tcc.in,
+            .h.in,.H.in,.hh.in,.hpp.in,.hxx.in,.h++.in
 
       - uses: EndBug/add-and-commit@v9
         id: add_and_commit
