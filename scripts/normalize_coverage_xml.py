@@ -113,6 +113,23 @@ def normalize(
         coverage_root_relative = _relative_subpath(
             coverage_root_resolved, repo_root_resolved
         )
+
+    repo_relative_from_coverage = _relative_subpath(repo_root, coverage_root)
+    if repo_relative_from_coverage is None:
+        repo_relative_from_coverage = _relative_subpath(
+            repo_root_resolved, coverage_root_resolved
+        )
+
+    def _usable_prefix(prefix: Path | None) -> Path | None:
+        if prefix is None:
+            return None
+        if not prefix.parts:
+            return None
+        if prefix == Path("."):
+            return None
+        return prefix
+
+    repo_prefix = _usable_prefix(repo_relative_from_coverage)
     for cls in root.findall(".//class"):
         filename = cls.get("filename")
         if not filename:
@@ -123,13 +140,32 @@ def normalize(
         absolute_candidate: Path | None = None
 
         if not path.is_absolute():
-            if alias_relative is not None:
-                relative = alias_relative / path
-            elif coverage_root_relative is not None:
-                relative = coverage_root_relative / path
-            else:
-                relative = path
-            absolute_candidate = (repo_root_resolved / relative).resolve()
+            base_candidates: list[Path] = [path]
+
+            if repo_prefix is not None:
+                try:
+                    stripped = path.relative_to(repo_prefix)
+                    if stripped != path:
+                        base_candidates.insert(0, stripped)
+                except ValueError:
+                    pass
+
+            for base_candidate in base_candidates:
+                if alias_relative is not None:
+                    candidate_relative = alias_relative / base_candidate
+                elif coverage_root_relative is not None:
+                    candidate_relative = coverage_root_relative / base_candidate
+                else:
+                    candidate_relative = base_candidate
+
+                candidate_path = repo_root / candidate_relative
+                candidate_resolved = (repo_root_resolved / candidate_relative).resolve()
+
+                relative = candidate_relative
+                absolute_candidate = candidate_resolved
+
+                if candidate_path.exists() or candidate_resolved.exists():
+                    break
         else:
             absolute_path = path
             relative = _relative_subpath(absolute_path, repo_root)
