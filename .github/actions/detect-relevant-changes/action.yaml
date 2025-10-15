@@ -21,7 +21,7 @@ inputs:
     required: false
     default: ""
   type-pattern-add:
-    description: "Optional type to glob definitions (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added automatically."
+    description: "Additional type-to-glob mappings (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added automatically."
     required: false
     default: ""
 outputs:
