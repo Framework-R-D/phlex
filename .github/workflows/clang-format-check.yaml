@@ -32,19 +32,6 @@ jobs:
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         file-type: cpp
-        type-pattern-add: |
-          cpp:*.c.in
-          cpp:*.cc.in
-          cpp:*.cpp.in
-          cpp:*.cxx.in
-          cpp:*.c++.in
-          cpp:*.h.in
-          cpp:*.hh.in
-          cpp:*.hpp.in
-          cpp:*.hxx.in
-          cpp:*.h++.in
-        include-globs: |
-          srcs/phlex/**
 
     - name: Report detection outcome
       run: |

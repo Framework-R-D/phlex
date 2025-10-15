@@ -40,21 +40,6 @@ jobs:
         file-type: |
           cpp
           cmake
-        type-pattern-add: |
-          cpp:*.c.in
-          cpp:*.cc.in
-          cpp:*.cpp.in
-          cpp:*.cxx.in
-          cpp:*.c++.in
-          cpp:*.h.in
-          cpp:*.hh.in
-          cpp:*.hpp.in
-          cpp:*.hxx.in
-          cpp:*.h++.in
-          cmake:*.cmake.in
-          cmake:CMakeLists.txt.in
-        include-globs: |
-          srcs/phlex/**
 
     - name: Report detection outcome
       run: |
