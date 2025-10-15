@@ -52,9 +52,6 @@ jobs:
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
-    permissions:
-      contents: read
-      packages: read
 
     steps:
     - name: Checkout code
