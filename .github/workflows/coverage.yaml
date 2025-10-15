@@ -117,10 +117,7 @@ jobs:
           rm -rf "$GENERATED_ROOT"
           mkdir -p "$GENERATED_ROOT"
           find "$GITHUB_WORKSPACE/phlex-build" -type f \
-            \( -name '*.c' -o -name '*.C' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \
-               -o -name '*.c\+\+' -o -name '*.[it]cc' \
-               -o -name '*.h' -o -name '*.H' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \
-               -o -name '*.h\+\+' \) \
+            \( -name '*.cpp' -o -name '*.hpp' \) \
             -print0 | while IFS= read -r -d '' src; do
               rel="${src#$GITHUB_WORKSPACE/phlex-build/}"
               dest="$GENERATED_ROOT/$rel"

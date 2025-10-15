@@ -50,7 +50,7 @@ runs:
         shopt -s extglob globstar nullglob
 
         declare -A DEFAULT_TYPE_PATTERNS
-        DEFAULT_TYPE_PATTERNS[cpp]=$'*.c\n*.C\n*.cc\n*.cpp\n*.cxx\n*.c++\n*.[it]cc\n*.h\n*.H\n*.hh\n*.hpp\n*.hxx\n*.h++'
+        DEFAULT_TYPE_PATTERNS[cpp]=$'*.cpp\n*.hpp'
         DEFAULT_TYPE_PATTERNS[cmake]=$'CMakeLists.txt\n*.cmake'
 
         parse_list() {

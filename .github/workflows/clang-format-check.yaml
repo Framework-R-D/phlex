@@ -62,10 +62,7 @@ jobs:
         source: "./phlex-src"
         clangFormatVersion: 20
         extensions: |
-          .c,.C,.cc,.cpp,.cxx,.c++,.icc,.tcc,
-          .h,.H,.hh,.hpp,.hxx,.h++,
-          .c.in,.C.in,.cc.in,.cpp.in,.cxx.in,.c++.in,.icc.in,.tcc.in,
-          .h.in,.H.in,.hh.in,.hpp.in,.hxx.in,.h++.in
+          .cpp,.hpp,.cpp.in,.hpp.in
 
   clang-format-check-skipped:
     needs: detect-clang-format-changes
