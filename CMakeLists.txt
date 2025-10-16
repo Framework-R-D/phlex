@@ -194,9 +194,9 @@ if(ENABLE_COVERAGE)
 endif()
 
 # Configure clang-tidy integration
-if(ENABLE_CLANG_TIDY)
-  find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
+find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
 
+if(ENABLE_CLANG_TIDY)
   if(CLANG_TIDY_EXECUTABLE)
     message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXECUTABLE}")
     set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXECUTABLE}
@@ -421,9 +421,6 @@ endif()
 # ============================================================================
 # Clang-Tidy targets
 # ============================================================================
-
-# Find clang-tidy for custom targets (independent of ENABLE_CLANG_TIDY option)
-find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
 
 if(CLANG_TIDY_EXECUTABLE)
   # Get all C++ source files from the phlex target
