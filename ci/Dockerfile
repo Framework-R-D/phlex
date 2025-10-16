@@ -14,39 +14,64 @@ ARG parallelism=18
 
 RUN git clone --depth=2 https://github.com/spack/spack.git
 RUN <<EOF
-# Setup environment
-. spack/share/spack/setup-env.sh
+  # Set up and configure basic Spack installation
 
-# Add package repositories
-spack repo add https://github.com/FNALssi/fnal_art.git
-spack repo add https://github.com/Framework-R-D/phlex-spack-recipes.git
+  # Setup environment
+  . spack/share/spack/setup-env.sh
 
-# Discover compilers
-spack compiler find
+  # Add package repositories
+  spack --timestamp repo add https://github.com/FNALssi/fnal_art.git
+  spack --timestamp repo add https://github.com/Framework-R-D/phlex-spack-recipes.git
 
-# Discover externals
-# - Python is excluded because the python provided by the system does
-#   not necessarily include the Python.h header file.  We therefore
-#   need Spack to build Python.
-spack external find --exclude python
+  # Discover compilers
+  spack --timestamp compiler find
+
+  # Discover externals
+  # - Python is excluded because the python provided by the system does
+  #   not necessarily include the Python.h header file.  We therefore
+  #   need Spack to build Python.
+  spack --timestamp external find --exclude python
 EOF
 
 COPY ./spack.yaml /
 
 RUN <<EOF
-# Setup environment
-. spack/share/spack/setup-env.sh
+  # Create and prepare phlex-development environment
 
-# Create and prepare phlex-development environment
-spack env create phlex-ci spack.yaml
-spack env activate phlex-ci
+  . spack/share/spack/setup-env.sh
+  spack --timestamp env create phlex-ci spack.yaml
+  spack --timestamp env activate phlex-ci
 
-# Display concretized solution
-spack concretize
-
-# Install almost everything
-spack install --fail-fast -j $parallelism -p 1 $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+  # Display concretized solution
+  spack --timestamp concretize
 EOF
 
 COPY ./entrypoint.sh /
+
 RUN chmod +x /entrypoint.sh
+
+RUN <<EOF
+  # Install most of the tools as their own layer
+  . /entrypoint.sh
+  spack --timestamp install --fail-fast -j $parallelism -p 1 --no-add --only-concrete \
+    cmake ninja lcov py-cmake-format py-gcovr
+  # Clean up to reduce layer size
+  spack clean -dfms
+EOF
+
+RUN <<EOF
+  # Install llvm as its own layer
+  . /entrypoint.sh
+  spack --timestamp install --fail-fast -j $parallelism -p 1 --no-add --only-concrete llvm
+  # Clean up to reduce layer size
+  spack clean -dfms
+EOF
+
+RUN <<EOF
+  # Install almost everything else
+  . /entrypoint.sh
+  spack --timestamp install --fail-fast -j $parallelism -p 1 $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+  # Clean up to reduce layer size
+  spack clean -dfms
+EOF
+

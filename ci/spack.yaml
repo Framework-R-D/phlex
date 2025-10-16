@@ -7,7 +7,7 @@ spack:
   - ninja
   - py-cmake-format
   - py-gcovr
-  - llvm@20 +zstd
+  - llvm@20 +zstd +llvm_dylib +link_llvm_dylib targets=x86
 
   view: true
   concretizer:
