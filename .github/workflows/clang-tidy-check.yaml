@@ -74,13 +74,13 @@ jobs:
         cd $GITHUB_WORKSPACE/phlex-build
 
         echo "Running clang-tidy checks using CMake target..."
-
-        if ! cmake --build . --target clang-tidy-check 2>&1 | tee clang-tidy.log; then
+        { cmake --build . --target clang-tidy-check; status=$?; } 2>&1 | tee clang-tidy.log
+        if (( status )); then
           echo ""
           echo "::error::Clang-tidy found issues in the code"
           echo "Review the output above for details"
           echo "Comment '@phlexbot tidy-fix' on the PR to attempt auto-fix"
-          exit 1
+          exit $status
         fi
 
         echo "✓ No clang-tidy issues found"
