@@ -53,8 +53,9 @@ RUN chmod +x /entrypoint.sh
 RUN <<EOF
   # Install most of the tools as their own layer
   . /entrypoint.sh
-  spack --timestamp install --fail-fast -j $parallelism -p 1 --no-add --only-concrete \
-    cmake ninja lcov py-cmake-format py-gcovr
+  spack --timestamp install --fail-fast -j $parallelism -p 1 \
+    --no-add --only-concrete \
+    cmake lcov ninja py-cmake-format py-gcovr
   # Clean up to reduce layer size
   spack clean -dfms
 EOF
@@ -62,7 +63,8 @@ EOF
 RUN <<EOF
   # Install llvm as its own layer
   . /entrypoint.sh
-  spack --timestamp install --fail-fast -j $parallelism -p 1 --no-add --only-concrete llvm
+  spack --timestamp install --fail-fast -j $parallelism -p 1 \
+    --no-add --only-concrete llvm
   # Clean up to reduce layer size
   spack clean -dfms
 EOF
@@ -70,7 +72,18 @@ EOF
 RUN <<EOF
   # Install almost everything else
   . /entrypoint.sh
-  spack --timestamp install --fail-fast -j $parallelism -p 1 $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+  spack --timestamp install --fail-fast -j $parallelism -p 1 \
+    --no-add --only-concrete \
+    $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+  # Clean up to reduce layer size
+  spack clean -dfms
+EOF
+
+RUN <<EOF
+  # Install Phlex' dependencies
+  . /entrypoint.sh
+  spack --timestamp install --fail-fast -j $parallelism -p 1 \
+    --no-add --only-concrete --only dependencies phlex
   # Clean up to reduce layer size
   spack clean -dfms
 EOF
