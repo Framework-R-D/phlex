@@ -6,7 +6,6 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/multiplexer.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -61,11 +60,10 @@ namespace phlex::experimental {
                     specified_labels input_products);
     virtual ~declared_unfold();
 
+    virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
     virtual qualified_names const& output() const = 0;
-    virtual void finalize(multiplexer::head_ports_t head_ports) = 0;
     virtual std::size_t product_count() const = 0;
-    virtual multiplexer::head_ports_t const& downstream_ports() const = 0;
 
   protected:
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
@@ -99,34 +97,33 @@ namespace phlex::experimental {
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
       output_{to_qualified_names(full_name(), std::move(output_products))},
       new_level_name_{std::move(new_level_name)},
-      multiplexer_{g},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       unfold_{
         g,
         concurrency,
-        [this, p = std::move(predicate), ufold = std::move(unfold)](
-          messages_t<N> const& messages) -> tbb::flow::continue_msg {
+        [this, p = std::move(predicate), ufold = std::move(unfold)](messages_t<N> const& messages,
+                                                                    auto& output) {
           auto const& msg = most_derived(messages);
           auto const& store = msg.store;
           if (store->is_flush()) {
             flag_for(store->id()->hash()).flush_received(msg.id);
+            std::get<0>(output).try_put(msg);
           } else if (accessor a; stores_.insert(a, store->id()->hash())) {
             std::size_t const original_message_id{msg_counter_};
             generator g{msg.store, this->full_name(), new_level_name_};
             call(p, ufold, msg.store->id(), g, msg.eom, messages, std::make_index_sequence<N>{});
-            multiplexer_.try_put({g.flush_store(), msg.eom, ++msg_counter_, original_message_id});
+
+            message const flush_msg{g.flush_store(), msg.eom, ++msg_counter_, original_message_id};
+            std::get<0>(output).try_put(flush_msg);
             flag_for(store->id()->hash()).mark_as_processed();
           }
 
           if (done_with(store)) {
             stores_.erase(store->id()->hash());
           }
-          return {};
-        }},
-      to_output_{g}
+        }}
     {
       make_edge(join_, unfold_);
-      make_edge(to_output_, multiplexer_);
     }
 
     ~unfold_node() { report_cached_stores(stores_); }
@@ -138,18 +135,9 @@ namespace phlex::experimental {
     }
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
-    tbb::flow::sender<message>& to_output() override { return to_output_; }
+    tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
+    tbb::flow::sender<message>& to_output() override { return sender(); }
     qualified_names const& output() const override { return output_; }
-
-    void finalize(multiplexer::head_ports_t head_ports) override
-    {
-      multiplexer_.finalize(std::move(head_ports));
-    }
-
-    multiplexer::head_ports_t const& downstream_ports() const override
-    {
-      return multiplexer_.downstream_ports();
-    }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,
@@ -178,7 +166,8 @@ namespace phlex::experimental {
         }
         ++product_count_;
         auto child = g.make_child_for(counter++, std::move(new_products));
-        to_output_.try_put({child, eom->make_child(child->id()), ++msg_counter_});
+        message const child_msg{child, eom->make_child(child->id()), ++msg_counter_};
+        output_port<0>(unfold_).try_put(child_msg);
       }
     }
 
@@ -188,10 +177,8 @@ namespace phlex::experimental {
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
     qualified_names output_;
     std::string new_level_name_;
-    multiplexer multiplexer_;
     join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>> unfold_;
-    tbb::flow::broadcast_node<message> to_output_;
+    tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;
     tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr> stores_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
