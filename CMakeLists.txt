@@ -51,6 +51,8 @@ project(
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
+include(Modules/private/CreateClangTidyTargets.cmake)
+
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
@@ -418,48 +420,5 @@ if(BUILD_TESTING)
   endif()
 endif()
 
-# ============================================================================
-# Clang-Tidy targets
-# ============================================================================
-
-if(CLANG_TIDY_EXECUTABLE)
-  # Get all C++ source files from the phlex target
-  get_target_property(PHLEX_SOURCES phlex SOURCES)
-
-  # Filter to only C++ source files (exclude headers)
-  set(PHLEX_CXX_SOURCES)
-  foreach(source ${PHLEX_SOURCES})
-    if(source MATCHES "\\.(cpp|cxx|cc)$")
-      list(APPEND PHLEX_CXX_SOURCES ${source})
-    endif()
-  endforeach()
-
-  # Clang-tidy check target (read-only check)
-  add_custom_target(
-    clang-tidy-check
-    COMMAND
-      ${CLANG_TIDY_EXECUTABLE} --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy -p
-      ${CMAKE_BINARY_DIR} ${PHLEX_CXX_SOURCES}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Running clang-tidy checks on phlex sources"
-    VERBATIM
-    )
-
-  # Clang-tidy fix target (applies fixes)
-  add_custom_target(
-    clang-tidy-fix
-    COMMAND
-      ${CLANG_TIDY_EXECUTABLE} --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy -p
-      ${CMAKE_BINARY_DIR} --fix --fix-errors ${PHLEX_CXX_SOURCES}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Applying clang-tidy fixes to phlex sources"
-    VERBATIM
-    )
-
-  message(
-    STATUS
-      "Clang-tidy targets added: clang-tidy-check, clang-tidy-fix (using ${CLANG_TIDY_EXECUTABLE})"
-    )
-else()
-  message(STATUS "clang-tidy not found, skipping clang-tidy targets")
-endif()
+# Create clang-tidy targets
+create_clang_tidy_targets()
