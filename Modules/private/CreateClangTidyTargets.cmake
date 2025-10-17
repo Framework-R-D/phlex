@@ -266,13 +266,22 @@ function(_create_clang_tidy_targets_impl)
       string(JOIN "|" _files_regex ${_regex_parts})
       set(_files_regex "^(${_files_regex})")
 
+      # Propagate CMAKE_CXX_STANDARD to run-clang-tidy. This is required
+      # because run-clang-tidy does not (as of this writing) parse all
+      # compilation flags from the compilation database, leading to
+      # clang-tidy errors for e.g. C++23 code.
+      set(_extra_args)
+      if(CMAKE_CXX_STANDARD)
+        list(APPEND _extra_args "-extra-arg=-std=c++${CMAKE_CXX_STANDARD}")
+      endif()
+
       add_custom_target(
         clang-tidy-check
         COMMAND
           "${RUN_CLANG_TIDY_EXECUTABLE}" -p "${_phlex_compile_db_dir}"
           -clang-tidy-binary "${CLANG_TIDY_EXECUTABLE}" -config-file
-          "${_phlex_clang_tidy_config}" -source-filter "${_files_regex}"
-          -header-filter "${_files_regex}"
+          "${_phlex_clang_tidy_config}" ${_extra_args} -source-filter
+          "${_files_regex}" -header-filter "${_files_regex}"
         COMMENT "Running clang-tidy (via run-clang-tidy) on project sources"
         VERBATIM
         )
@@ -282,8 +291,8 @@ function(_create_clang_tidy_targets_impl)
         COMMAND
           "${RUN_CLANG_TIDY_EXECUTABLE}" -p "${_phlex_compile_db_dir}"
           -clang-tidy-binary "${CLANG_TIDY_EXECUTABLE}" -config-file
-          "${_phlex_clang_tidy_config}" -source-filter "${_files_regex}"
-          -header-filter "${_files_regex}" -fix
+          "${_phlex_clang_tidy_config}" ${_extra_args} -source-filter
+          "${_files_regex}" -header-filter "${_files_regex}" -fix
         COMMENT
           "Applying clang-tidy fixes (via run-clang-tidy) to project sources"
         VERBATIM
