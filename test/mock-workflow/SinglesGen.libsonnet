@@ -13,7 +13,7 @@
   },
   cosmicgenerator: {
     plugin: "MC_truth_algorithm",
-    duration_usec: 4926215,
+    duration_usec: 492, # Typical: 4926215
     inputs: ["id"],
     outputs: ["MCTruths"]
   },
