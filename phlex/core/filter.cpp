@@ -4,7 +4,6 @@
 
 #include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
 
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
@@ -71,18 +70,17 @@ namespace phlex::experimental {
       return {};
     }
 
-    if (to_boolean(filter_decision)) {
-      // FIXME: Can we get rid of this awful accessor?
-      data_map::accessor a;
-      auto const stores = data_.release_data(a, msg_id);
+    if (decision_map::accessor a; to_boolean(filter_decision) && decisions_.claim(a, msg_id)) {
+      auto const stores = data_.release_data(msg_id);
       if (empty(stores)) {
         return {};
       }
       for (std::size_t i = 0ull; i != nargs_; ++i) {
         downstream_ports_[i]->try_put({stores[i], eom, msg_id});
       }
+      // Decision must be erased while access is claimed
+      decisions_.erase(a);
     }
-    decisions_.erase(msg_id);
     return {};
   }
 }
