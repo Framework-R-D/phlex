@@ -33,6 +33,7 @@ jobs:
           gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
           echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
           echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
@@ -54,8 +55,7 @@ jobs:
           source: "./phlex-src"
           clangFormatVersion: 20
           inplace: True
-          extensions: |
-            .cpp,.hpp,.cpp.in,.hpp.in
+          extensions: cpp,hpp,cpp.in,hpp.in
 
       - uses: EndBug/add-and-commit@v9
         id: add_and_commit
