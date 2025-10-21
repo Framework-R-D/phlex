@@ -20,15 +20,10 @@ CLANG_TIDY_CONFIG="@_phlex_clang_tidy_config@"
 FILES_REGEX='@_files_regex@'
 
 DO_FIX=0
-REQUIRE_CHECKS=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fix)
       DO_FIX=1
-      shift
-      ;;
-    --require-checks)
-      REQUIRE_CHECKS=1
       shift
       ;;
     *)
@@ -44,11 +39,6 @@ if [ -n "${PHLEX_TIDY_CHECKS:-}" ]; then
   # normalize commas/spaces to a single comma-separated list
   CHECKS=$(printf "%s" "$PHLEX_TIDY_CHECKS" | tr ',' ' ' | xargs -n1 | paste -sd, -)
   CHECKS_ARG="-checks=-*,${CHECKS}"
-fi
-
-if [ "$REQUIRE_CHECKS" -eq 1 ] && [ -z "$CHECKS_ARG" ]; then
-  echo "Error: PHLEX_TIDY_CHECKS must be set when --require-checks is used." >&2
-  exit 2
 fi
 
 # Build file list (if any)

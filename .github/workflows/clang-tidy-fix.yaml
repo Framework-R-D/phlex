@@ -36,11 +36,6 @@ jobs:
             tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
           fi
 
-          # If the comment contained the token but no checks were provided, do not trigger
-          if [ "$match_result" = "match" ] && [ -z "$tidy_checks" ]; then
-            match_result="non_match"
-          fi
-
           echo "match_result=$match_result" >> $GITHUB_OUTPUT
           echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
 
@@ -85,14 +80,12 @@ jobs:
       - name: Apply clang-tidy fixes using CMake target
         env:
           PHLEX_TIDY_CHECKS: ${{ needs.check.outputs.tidy_checks }}
-          PHLEX_TIDY_REQUIRE_CHECKS: 1
         run: |
           . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
           cd $GITHUB_WORKSPACE/phlex-build
 
           echo "Applying clang-tidy fixes using CMake target..."
           cmake --build . --target clang-tidy-fix || true
-
           echo "Clang-tidy fixes applied"
 
       - name: Commit tidy fixes

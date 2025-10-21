@@ -289,8 +289,8 @@ function(_create_clang_tidy_targets_impl)
         )
 
       add_custom_target(
-        clang-tidy-fix
-        COMMAND "${_phlex_run_clang_tidy_sh}" --fix --require-checks
+        clang-tidy-fix-some
+        COMMAND "${_phlex_run_clang_tidy_sh}" --fix
         COMMENT
           "Applying clang-tidy fixes (via run-clang-tidy) to project sources"
         VERBATIM
