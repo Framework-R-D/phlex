@@ -22,7 +22,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "triggered=true" >> $GITHUB_OUTPUT
-          elif echo "$COMMENT_BODY" | grep -qE '\b@phlexbot[[:space:]]+build\b'; then
+          elif echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+build\b'; then
             echo "triggered=true" >> $GITHUB_OUTPUT
           else
             echo "triggered=false" >> $GITHUB_OUTPUT

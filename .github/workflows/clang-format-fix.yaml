@@ -25,7 +25,6 @@ jobs:
       - id: check_comment
         name: Check comment
         run: |
-          echo "Comment body: \"$COMMENT_BODY\""
           match_result=$(echo "$COMMENT_BODY" | grep -qEe '^@phlexbot[[:space:]]+format\b' && echo match || echo non_match)
           echo match_result="$match_result" >> $GITHUB_OUTPUT
 
@@ -34,7 +33,6 @@ jobs:
           gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
           echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
           echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
