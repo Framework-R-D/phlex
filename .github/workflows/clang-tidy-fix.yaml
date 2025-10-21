@@ -18,6 +18,7 @@ jobs:
 
     outputs:
       match_result: ${{ steps.check_comment.outputs.match_result }}
+      tidy_checks: ${{ steps.check_comment.outputs.tidy_checks }}
       ref_name: ${{ steps.check_comment.outputs.ref_name }}
       repo_name: ${{ steps.check_comment.outputs.repo_name }}
 
@@ -26,7 +27,22 @@ jobs:
         name: Check comment
         run: |
           match_result=$(echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+tidy-fix\b' && echo match || echo non_match)
-          echo match_result="$match_result" >> $GITHUB_OUTPUT
+
+          # Extract any tokens after 'tidy-fix' (e.g. '@phlexbot tidy-fix misc-include-cleaner')
+          checks_line=$(echo "$COMMENT_BODY" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
+          tidy_checks=""
+          if [ -n "$checks_line" ]; then
+            # Normalize separators: comma or whitespace -> single comma-separated list
+            tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
+          fi
+
+          # If the comment contained the token but no checks were provided, do not trigger
+          if [ "$match_result" = "match" ] && [ -z "$tidy_checks" ]; then
+            match_result="non_match"
+          fi
+
+          echo "match_result=$match_result" >> $GITHUB_OUTPUT
+          echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
 
           ISSUE_NUMBER=${{ github.event.issue.number }}
           REPO="${{ github.repository }}"
@@ -67,6 +83,9 @@ jobs:
         uses: ./phlex-src/.github/actions/build-cmake
 
       - name: Apply clang-tidy fixes using CMake target
+        env:
+          PHLEX_TIDY_CHECKS: ${{ needs.check.outputs.tidy_checks }}
+          PHLEX_TIDY_REQUIRE_CHECKS: 1
         run: |
           . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
           cd $GITHUB_WORKSPACE/phlex-build
