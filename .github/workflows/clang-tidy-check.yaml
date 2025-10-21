@@ -77,11 +77,12 @@ jobs:
         echo "Running clang-tidy checks using CMake target..."
 
         set -o pipefail
-        if ! cmake --build . --target clang-tidy-check 2>&1 | tee clang-tidy.log; then
+        if ! cmake --build . --target clang-tidy-check > clang-tidy.log 2>&1; then
           echo ""
           echo "::error::Clang-tidy found issues in the code"
-          echo "Review the output above for details"
-          echo "Comment '@phlexbot tidy-fix' on the PR to attempt auto-fix"
+          echo "Error count by check (full details in clang-tidy-log artifact):"
+          sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
+          echo "Comment '@phlexbot tidy-fix [<check>...]' on the PR to attempt auto-fix"
           exit 1
         fi
 
