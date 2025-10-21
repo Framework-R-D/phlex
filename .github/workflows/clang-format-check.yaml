@@ -1,5 +1,5 @@
 name: Clang-Format Check
-run-name: "${{ github.actor }} running code checks"
+run-name: "${{ github.actor }} checking code format"
 
 on:
   pull_request:
@@ -61,8 +61,7 @@ jobs:
       with:
         source: "./phlex-src"
         clangFormatVersion: 20
-        extensions: |
-          .cpp,.hpp,.cpp.in,.hpp.in
+        extensions: cpp,hpp,cpp.in,hpp.in
 
   clang-format-check-skipped:
     needs: detect-clang-format-changes
