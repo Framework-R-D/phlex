@@ -88,7 +88,7 @@ jobs:
   my-job:
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
+      image: ghcr.io/framework-r-d/phlex-ci:2025-10-16a
     
     steps:
     - name: Checkout code
