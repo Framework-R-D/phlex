@@ -69,12 +69,14 @@ jobs:
         extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Run clang-tidy using CMake target
+      shell: bash
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
 
         echo "Running clang-tidy checks using CMake target..."
 
+        set -o pipefail
         if ! cmake --build . --target clang-tidy-check 2>&1 | tee clang-tidy.log; then
           echo ""
           echo "::error::Clang-tidy found issues in the code"
