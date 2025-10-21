@@ -58,9 +58,6 @@ jobs:
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:2025-10-08
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_PULL_TOKEN }}
     permissions:
       contents: read
       packages: read
