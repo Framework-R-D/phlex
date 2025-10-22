@@ -74,9 +74,6 @@ jobs:
           build-type: Debug
           extra-options: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
 
-      - name: Build project
-        uses: ./phlex-src/.github/actions/build-cmake
-
       - name: Apply clang-tidy fixes using CMake target
         env:
           PHLEX_TIDY_CHECKS: ${{ needs.check.outputs.tidy_checks }}
