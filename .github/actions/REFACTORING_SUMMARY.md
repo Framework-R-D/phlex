@@ -4,44 +4,33 @@
 
 Refactored GitHub Actions workflows to use composite actions for better maintainability and single-point-of-maintenance of common functionality.
 
-## Created Composite Actions
+### 1. `setup-build-env`
 
-### 1. setup-build-env
+- **Location**: `.github/actions/setup-build-env/action.yaml`
+- **Purpose**: Sets up the build environment by sourcing the container entrypoint script and creating directories.
+- **Provides**:
+  - Sources `/entrypoint.sh`
+  - Creates build directory
+  - Outputs source and build directory paths
 
-**Location**: `.github/actions/setup-build-env/action.yaml`
+### 2. `configure-cmake`
 
-**Purpose**: Sets up the build environment by sourcing the container entrypoint script and creating directories
+- **Location**: `.github/actions/configure-cmake/action.yaml`
+- **Purpose**: Configures CMake with preset detection and standard options.
+- **Features**:
+  - Automatic `CMakePresets.json` detection
+  - Configurable build type and extra options
+  - Standard FORM options applied
+  - Preset usage logging
 
-**Provides**:
+### 3. `build-cmake`
 
-- Sources `/entrypoint.sh`
-- Creates build directory
-- Outputs source and build directory paths
-
-### 2. configure-cmake
-
-**Location**: `.github/actions/configure-cmake/action.yaml`
-
-**Purpose**: Configures CMake with preset detection and standard options
-
-**Features**:
-
-- Automatic CMakePresets.json detection
-- Configurable build type and extra options
-- Standard FORM options applied
-- Preset usage logging
-
-### 3. build-cmake
-
-**Location**: `.github/actions/build-cmake/action.yaml`
-
-**Purpose**: Builds the project with CMake
-
-**Features**:
-
-- Configurable target selection
-- Auto-detected or custom parallel jobs
-- Sources entrypoint for environment
+- **Location**: `.github/actions/build-cmake/action.yaml`
+- **Purpose**: Builds the project with CMake.
+- **Features**:
+  - Configurable target selection
+  - Auto-detected or custom parallel jobs
+  - Sources container entrypoint for environment
 
 ## Updated Workflows
 

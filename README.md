@@ -83,9 +83,9 @@ The coverage system handles generated C/C++ files (e.g., from code generators) b
 
 1. Creating a temporary symlink tree at `.coverage-generated/` in the repository root
 2. Mapping build-directory paths to repository-relative paths using `--path-map`
-3. Normalizing XML paths with `normalize_coverage_xml.py` before upload
+3. Normalizing XML paths with `normalize_coverage_xml.py` and LCOV paths with `normalize_coverage_lcov.py` before upload
 
-This ensures Codecov can match coverage data to the correct files in your repository.
+This ensures Codecov and local IDEs can match coverage data to the correct files in your repository.
 
 #### VS Code Integration
 
@@ -117,4 +117,3 @@ The project automatically runs coverage analysis on every PR and push to main/de
 5. Uploads to [Codecov](https://codecov.io/gh/Framework-R-D/phlex) via `codecov/codecov-action@v4`
 
 Coverage reports are uploaded to Codecov for tracking and PR integration, with automatic comments on PRs showing coverage changes.
-

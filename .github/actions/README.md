@@ -114,13 +114,18 @@ jobs:
         ctest -j $(nproc)
 ```
 
+## Prerequisites
+
+- These composite actions are designed to run in a containerized environment using the `ghcr.io/framework-r-d/phlex-ci` image.
+- The repository must be checked out to the `phlex-src` path within the `$GITHUB_WORKSPACE`.
+
 ## Benefits
 
-1. **Single Point of Maintenance**: Common logic is centralized in one place
-2. **Consistency**: All workflows use the same configuration patterns
-3. **Preset Detection**: Automatic detection and use of CMakePresets.json
-4. **Flexibility**: Customizable through inputs while maintaining defaults
-5. **Maintainability**: Easier to update container images, paths, or build options
+1. **Single Point of Maintenance**: Common logic is centralized in one place.
+2. **Consistency**: All workflows use the same configuration patterns.
+3. **Preset Detection**: Automatic detection and use of `CMakePresets.json`.
+4. **Flexibility**: Customizable through inputs while maintaining sensible defaults.
+5. **Maintainability**: Easier to update container images, paths, or build options across all workflows.
 
 ## Maintenance
 
