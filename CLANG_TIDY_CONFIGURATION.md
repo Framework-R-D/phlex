@@ -101,116 +101,105 @@ The configuration enforces consistent naming:
 
 ### Clang-Tidy Check (`clang-tidy-check.yaml`)
 
-**Purpose:** Automatically check C++ code for Core Guidelines compliance on pull requests
+**Purpose:** Automatically check C++ code for Core Guidelines compliance on pull requests.
 
 **Features:**
 
-- Runs on PR to main branch and manual trigger
-- Uses clang-tidy version 20 via CMake target
-- Configures project and builds it first (required for accurate analysis)
-- Uses CMake's `clang-tidy-check` target for consistency
-- Reports warnings and errors with detailed output
-- Uploads clang-tidy log as artifact on failure
+- Runs on pull requests to the `main` branch and can be triggered manually.
+- Uses a containerized environment with clang-tidy version 20.
+- Intelligently detects changes to C++ and CMake files to avoid unnecessary runs.
+- Configures and builds the project before running the checks to ensure accuracy.
+- Uses the `clang-tidy-check` CMake target for consistency.
+- Reports warnings and errors with detailed output, including a summary of the most common issues.
+- Uploads the full clang-tidy log as a build artifact on failure.
 
 **How it works:**
 
-1. Configure the project with `CMAKE_EXPORT_COMPILE_COMMANDS=ON`
-2. Build the project to ensure all generated files exist
-3. Run `cmake --build . --target clang-tidy-check`
-4. CMake automatically runs clang-tidy on all project source files
+1.  The workflow first checks for any changes to C++, CMake, or workflow files. If no relevant changes are detected, the job is skipped.
+2.  The project is configured with `CMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the compilation database.
+3.  The `clang-tidy-check` CMake target is executed, which runs clang-tidy on all project source files.
+4.  If clang-tidy finds any issues, the workflow fails and provides a summary of the errors.
 
 **How to use:**
 
-- Automatically runs on every pull request
-- Review the workflow output for details on any issues
-- Comment `@phlexbot tidy-fix` to attempt automatic fixes
+- The workflow runs automatically on every pull request.
+- Review the workflow output for details on any issues.
+- To attempt to automatically fix the issues, comment `@phlexbot tidy-fix` on the pull request.
 
 ### Clang-Tidy Fix (`clang-tidy-fix.yaml`)
 
-**Purpose:** Automatically apply clang-tidy fixes when triggered by comment
+**Purpose:** Automatically apply clang-tidy fixes to a pull request when triggered by a comment.
 
 **Features:**
 
-- Triggered by `@phlexbot tidy-fix` comment on PRs
-- Uses clang-tidy version 20 via CMake target
-- Builds project first, then applies fixes using CMake's `clang-tidy-fix` target
-- Commits and pushes changes automatically
-- Comments on PR with status
+- Triggered by commenting `@phlexbot tidy-fix` on a pull request.
+- Can be triggered with a specific set of checks to apply (e.g., `@phlexbot tidy-fix readability-identifier-naming`).
+- Uses the same containerized environment as the check workflow.
+- Applies fixes using the `clang-tidy-fix` CMake target.
+- Commits and pushes the changes back to the pull request branch.
+- Posts a comment on the pull request to indicate the status of the fixes.
 
 **How it works:**
 
-1. Configure and build the project
-2. Run `cmake --build . --target clang-tidy-fix`
-3. CMake runs clang-tidy with `--fix --fix-errors` on all sources
-4. Commit and push any changes
+1.  When triggered, the workflow checks out the pull request branch.
+2.  The project is configured, and the `clang-tidy-fix` CMake target is executed.
+3.  This target runs clang-tidy with the `--fix` and `--fix-errors` flags, which automatically corrects any issues that can be fixed automatically.
+4.  The changes are then committed and pushed to the branch.
 
 **Important notes:**
 
-- Not all issues can be auto-fixed (some require manual intervention)
-- The workflow will commit whatever clang-tidy can automatically fix
-- Review auto-generated changes before merging
-- Complex refactorings may need manual implementation
-
-**How to use:**
-
-1. Review clang-tidy check results
-2. Comment `@phlexbot tidy-fix` on the PR
-3. Bot will apply automatic fixes and commit
-4. Review the changes and manually fix any remaining issues
+- Not all issues can be fixed automatically. Some may require manual intervention.
+- Always review the changes made by the bot before merging the pull request.
 
 ## CMake Integration
 
-The project provides CMake targets for clang-tidy analysis:
+The project provides CMake targets for running clang-tidy locally. These targets are defined in `Modules/private/CreateClangTidyTargets.cmake`.
+
+### Source File Discovery
+
+The `CreateClangTidyTargets.cmake` script automatically discovers the C++ source files to be analyzed. It does this by recursively gathering all build system targets and then collecting the source files associated with those targets.
+
+The script includes the following features:
+
+-   **Recursive Target Discovery:** It traverses the entire directory structure to find all defined targets.
+-   **Optional Inclusion of Tests and FORM:** You can control whether to include test and FORM targets in the analysis by setting the `CLANG_TIDY_INCLUDE_TESTS` and `CLANG_TIDY_INCLUDE_FORM` CMake options.
+-   **Exclusion of Generated Files:** The script automatically excludes generated C++ files and rootcling dictionary files from the analysis.
+-   **Use of `run-clang-tidy`:** If the `run-clang-tidy` script is available, it will be used to run clang-tidy in parallel, which can significantly speed up the analysis.
 
 ### Build-Time Integration
 
-Enable clang-tidy during compilation:
+You can enable clang-tidy to run automatically on every C++ file during compilation by setting the `ENABLE_CLANG_TIDY` CMake option:
 
 ```bash
 cmake -DENABLE_CLANG_TIDY=ON /path/to/source
 cmake --build .
 ```
 
-When enabled, clang-tidy runs automatically on every C++ file during compilation, providing immediate feedback.
+This provides immediate feedback as you build, helping you to catch issues early.
 
 ### CMake Targets
 
-**`clang-tidy-check`** - Run clang-tidy on all project sources (read-only):
+The following CMake targets are available for running clang-tidy manually:
 
-```bash
-cmake --build . --target clang-tidy-check
-```
+-   **`clang-tidy-check`**: Runs clang-tidy on all project source files in read-only mode.
+    ```bash
+    cmake --build . --target clang-tidy-check
+    ```
+-   **`clang-tidy-fix`**: Applies clang-tidy fixes to all project source files.
+    ```bash
+    cmake --build . --target clang-tidy-fix
+    ```
 
-**`clang-tidy-fix`** - Apply clang-tidy fixes to all project sources:
-
-```bash
-cmake --build . --target clang-tidy-fix
-```
-
-These targets:
-
-- Use the `.clang-tidy` configuration file automatically
-- Only analyze project source files (not dependencies)
-- Work with the project's compile_commands.json
-- Are generator-independent (work with Ninja, Make, etc.)
-
-## Integration with Existing Workflows
-
-The clang-tidy workflows complement the existing formatting workflows:
-
-- **Format checks:** `@phlexbot format` - Fixes C++ and CMake formatting
-- **Tidy checks:** `@phlexbot tidy-fix` - Fixes Core Guidelines violations
-
-Both can be run independently or together as needed.
+These targets use the `.clang-tidy` configuration file automatically and work with the project's `compile_commands.json` file.
 
 ## Local Usage
 
 ### Using CMake Targets (Recommended)
 
-The project provides CMake targets for clang-tidy:
+The recommended way to run clang-tidy locally is to use the CMake targets:
 
 ```bash
-# Configure project (compile_commands.json is created automatically)
+# Configure the project
 cmake --preset=default /path/to/source
 
 # Build the project first
@@ -223,20 +212,9 @@ cmake --build . --target clang-tidy-check
 cmake --build . --target clang-tidy-fix
 ```
 
-### Build-Time Checks
-
-Enable clang-tidy to run on every file during compilation:
-
-```bash
-cmake -DENABLE_CLANG_TIDY=ON /path/to/source
-cmake --build .
-```
-
-This provides immediate feedback as you build, catching issues early.
-
 ### Manual Invocation
 
-For manual control, you can run clang-tidy directly:
+For more control, you can also run clang-tidy directly:
 
 ```bash
 # Check a specific file
@@ -244,20 +222,16 @@ clang-tidy-20 -p /path/to/build file.cpp
 
 # Apply fixes to a specific file
 clang-tidy-20 -p /path/to/build --fix file.cpp
-
-# Check all project files
-find srcs/phlex -name "*.cpp" | \
-  xargs clang-tidy-20 -p /path/to/build
 ```
 
 ## VS Code Integration
 
-The project's `.clang-tidy` configuration is automatically used by:
+The project's `.clang-tidy` configuration is automatically used by the following VS Code extensions:
 
-- **clangd** (if configured as C++ language server)
-- **C/C++ extension** with clang-tidy integration enabled
+-   **clangd** (if configured as the C++ language server)
+-   **C/C++ extension** (with clang-tidy integration enabled)
 
-To enable real-time clang-tidy feedback in VS Code, add to `.vscode/settings.json`:
+To enable real-time clang-tidy feedback in VS Code, add the following to your `.vscode/settings.json` file:
 
 ```json
 "C_Cpp.codeAnalysis.clangTidy.enabled": true,
@@ -266,17 +240,17 @@ To enable real-time clang-tidy feedback in VS Code, add to `.vscode/settings.jso
 
 ## Customization
 
-To adjust checks or settings, edit `.clang-tidy`:
+To adjust the clang-tidy checks or settings, edit the `.clang-tidy` file:
 
-1. Add/remove check categories in the `Checks:` section
-2. Modify naming conventions in `CheckOptions`
-3. Adjust complexity thresholds
-4. Enable/disable specific rules
+1.  Add or remove check categories in the `Checks:` section.
+2.  Modify naming conventions in the `CheckOptions` section.
+3.  Adjust the function complexity thresholds.
+4.  Enable or disable specific rules.
 
-After changes, test locally before committing to ensure the configuration works as expected.
+After making any changes, be sure to test them locally before committing.
 
 ## References
 
-- [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)
-- [Clang-Tidy Documentation](https://clang.llvm.org/extra/clang-tidy/)
-- [Clang-Tidy Checks List](https://clang.llvm.org/extra/clang-tidy/checks/list.html)
+-   [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)
+-   [Clang-Tidy Documentation](https://clang.llvm.org/extra/clang-tidy/)
+-   [Clang-Tidy Checks List](https://clang.llvm.org/extra/clang-tidy/checks/list.html)

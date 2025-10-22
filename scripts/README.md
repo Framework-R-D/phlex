@@ -237,6 +237,18 @@ export BUILD_DIR=/custom/build/location
 ./scripts/coverage.sh all
 ```
 
+## Coverage Report Normalization
+
+The `coverage.sh` script automatically normalizes the paths in the generated coverage reports to ensure compatibility with Codecov and local IDEs. This is done using the `normalize_coverage_xml.py` and `normalize_coverage_lcov.py` scripts.
+
+### normalize_coverage_xml.py
+
+This script normalizes the file paths in a Cobertura XML coverage report. It ensures that the paths are relative to the repository root, which is required for Codecov to correctly display the coverage information.
+
+### normalize_coverage_lcov.py
+
+This script normalizes the file paths in an LCOV coverage report. It rewrites the `SF` (source file) entries to be relative to the repository root, which allows local IDEs and tools like `genhtml` to correctly locate the source files.
+
 ## Development Workflow
 
 ### Initial Setup

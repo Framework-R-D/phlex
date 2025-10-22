@@ -71,7 +71,7 @@ cd /path/to/workspace
 
 ### Minimum Required
 
-- CMake ≥ 3.24
+- CMake ≥ 3.22
 - GCC/G++ compiler
 - Git
 
