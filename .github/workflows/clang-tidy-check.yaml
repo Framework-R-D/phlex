@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-10-16a
+      image: ghcr.io/framework-r-d/phlex-ci:2025-10-21
 
     steps:
     - name: Checkout code

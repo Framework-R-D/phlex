@@ -48,7 +48,7 @@ RUN <<EOF
   # Create and prepare phlex-development environment
 
   . spack/share/spack/setup-env.sh
-  spack versions -s llvm | grep -qEe '^[[:space:]]+21\.1\.3$' || spack checksum -ab llvm 21.1.3
+  spack versions -s llvm | grep -qEe '^[[:space:]]+21\.1\.4$' || spack checksum -ab llvm 21.1.4
   spack --timestamp env create phlex-ci spack.yaml
   spack --timestamp env activate phlex-ci
 
@@ -67,7 +67,7 @@ RUN <<EOF
     --no-add --only-concrete --no-check-signature \
     cmake lcov ninja py-cmake-format py-gcovr
   # Clean up to reduce layer size
-  spack clean -dfms
+  spack clean -dfs
 EOF
 
 RUN <<EOF
@@ -76,7 +76,7 @@ RUN <<EOF
   spack --timestamp install --fail-fast -j $parallelism -p 1 \
     --no-add --only-concrete --no-check-signature llvm
   # Clean up to reduce layer size
-  spack clean -dfms
+  spack clean -dfs
 EOF
 
 RUN <<EOF
@@ -86,7 +86,7 @@ RUN <<EOF
     --no-add --only-concrete --no-check-signature \
     $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
   # Clean up to reduce layer size
-  spack clean -dfms
+  spack clean -dfs
 EOF
 
 RUN <<EOF
@@ -96,13 +96,13 @@ RUN <<EOF
     --no-add --only-concrete --only dependencies --no-check-signature \
     phlex
   # Clean up to reduce layer size
-  spack clean -dfms
+  spack clean -dfs
 EOF
 
 RUN <<EOF
   # Write a buildcache if mounted
+  . /entrypoint.sh # Outside the if to reduce container startup time
   if [ -d "/build-cache" ]; then
-    . /entrypoint.sh
     spack --timestamp buildcache create -u --rebuild-index \
     /build-cache $(spack find --no-groups -LI | \
       sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
