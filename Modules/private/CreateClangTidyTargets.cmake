@@ -274,11 +274,17 @@ function(_create_clang_tidy_targets_impl)
           "${CMAKE_BINARY_DIR}/phlex_run_clang_tidy_fix.sh"
           )
       configure_file(
-        "${CMAKE_CURRENT_LIST_DIR}/RunClangTidyFix.sh.in"
-        "${_phlex_run_clang_tidy_sh}" @ONLY
-        )
-      execute_process(
-        COMMAND ${CMAKE_COMMAND} -E chmod +x "${_phlex_run_clang_tidy_sh}"
+        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/RunClangTidyFix.sh.in"
+        "${_phlex_run_clang_tidy_sh}"
+        @ONLY
+        FILE_PERMISSIONS
+        OWNER_READ
+        OWNER_WRITE
+        OWNER_EXECUTE
+        GROUP_READ
+        GROUP_EXECUTE
+        WORLD_READ
+        WORLD_EXECUTE
         )
 
       add_custom_target(
