@@ -148,6 +148,7 @@ jobs:
         fi
 
     - name: Upload clang-tidy report
+      if: failure()
       uses: actions/upload-artifact@v4
       with:
         name: clang-tidy-report
@@ -164,7 +165,7 @@ jobs:
 
   clang-tidy-pr-comments:
     needs: clang-tidy-check
-    if: always() && github.event_name == 'issue_comment'
+    if: failure() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -177,8 +178,8 @@ jobs:
       - name: Post clang-tidy comments
         uses: platisd/clang-tidy-pr-comments@v1
         with:
-          tidy-fixes-file: phlex-build/clang-tidy-fixes.yaml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   clang-tidy-check-skipped:
     needs: detect-clang-tidy-changes
