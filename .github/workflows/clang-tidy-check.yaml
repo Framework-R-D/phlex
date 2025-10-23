@@ -118,7 +118,7 @@ jobs:
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: Debug
-        extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
 
     - name: Run clang-tidy using CMake target
       env:
