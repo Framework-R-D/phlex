@@ -27,10 +27,12 @@ spack --timestamp compiler find
 spack --timestamp external find --exclude python
 
 # Configure a buildcache
-spack --timestamp mirror add --scope=site --type binary scisoft_phlex_ci https://www.example.com/
+spack --timestamp mirror add --scope=site --type binary scisoft_phlex_ci \
+      https://scisoft.fnal.gov/scisoft/phlex-dev-build-cache/
 
 # Create and prepare phlex-development environment
-spack versions -s llvm | grep -qEe '^[[:space:]]+21\.1\.4$' || spack checksum -ab llvm 21.1.4
+spack versions -s llvm | grep -qEe '^[[:space:]]+21\.1\.4$' ||
+  spack checksum -ab llvm 21.1.4
 spack --timestamp env create phlex-dev ci/spack.yaml
 spack --timestamp env activate phlex-dev
 
