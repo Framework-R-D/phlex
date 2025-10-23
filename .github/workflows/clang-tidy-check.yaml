@@ -66,7 +66,7 @@ jobs:
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: Debug
-        extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
+        extra-options: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Run clang-tidy using CMake target
       shell: bash
@@ -78,17 +78,6 @@ jobs:
 
         set -o pipefail
         cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1 || true
-
-    - name: Convert clang-tidy fixes to JSON
-      shell: bash
-      run: |
-        cd $GITHUB_WORKSPACE/phlex-build
-        if [ -f clang-tidy-fixes.yaml ]; then
-          yq -o=json . clang-tidy-fixes.yaml > clang-tidy-fixes.json
-        else
-          echo "No clang-tidy-fixes.yaml generated."
-          echo "{}" > clang-tidy-fixes.json
-        fi
 
     - name: Check for clang-tidy issues
       shell: bash
@@ -108,7 +97,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: clang-tidy-report
-        path: phlex-build/clang-tidy-fixes.json
+        path: phlex-build/clang-tidy-fixes.yaml
         retention-days: 7
 
     - name: Upload clang-tidy log
@@ -134,7 +123,7 @@ jobs:
       - name: Post clang-tidy comments
         uses: platisd/clang-tidy-pr-comments@v1
         with:
-          tidy-fixes-file: phlex-build/clang-tidy-fixes.json
+          tidy-fixes-file: phlex-build/clang-tidy-fixes.yaml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   clang-tidy-check-skipped:
