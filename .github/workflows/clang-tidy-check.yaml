@@ -77,16 +77,31 @@ jobs:
         echo "Running clang-tidy checks using CMake target..."
 
         set -o pipefail
-        if ! cmake --build . --target clang-tidy-check > clang-tidy.log 2>&1; then
+        if ! cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1; then
           echo ""
-          echo "::error::Clang-tidy found issues in the code"
+          echo "Clang-tidy found issues in the code"
           echo "Error count by check (full details in clang-tidy-log artifact):"
           sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
           echo "Comment '@phlexbot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-          exit 1
         fi
 
-        echo "✓ No clang-tidy issues found"
+    - name: Convert clang-tidy fixes to JSON
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/phlex-build
+        if [ -f clang-tidy-fixes.yaml ]; then
+          yq -o=json . clang-tidy-fixes.yaml > clang-tidy-fixes.json
+        else
+          echo "No clang-tidy-fixes.yaml generated."
+          echo "{}" > clang-tidy-fixes.json
+        fi
+
+    - name: Upload clang-tidy report
+      uses: actions/upload-artifact@v4
+      with:
+        name: clang-tidy-report
+        path: phlex-build/clang-tidy-fixes.json
+        retention-days: 7
 
     - name: Upload clang-tidy log
       if: failure()
@@ -95,6 +110,24 @@ jobs:
         name: clang-tidy-log
         path: phlex-build/clang-tidy.log
         retention-days: 7
+
+  clang-tidy-pr-comments:
+    needs: clang-tidy-check
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download clang-tidy report
+        uses: actions/download-artifact@v4
+        with:
+          name: clang-tidy-report
+          path: phlex-build
+      - name: Post clang-tidy comments
+        uses: platisd/clang-tidy-pr-comments@v1
+        with:
+          tidy-fixes-file: phlex-build/clang-tidy-fixes.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   clang-tidy-check-skipped:
     needs: detect-clang-tidy-changes

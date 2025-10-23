@@ -82,8 +82,26 @@ jobs:
           cd $GITHUB_WORKSPACE/phlex-build
 
           echo "Applying clang-tidy fixes using CMake target..."
-          cmake --build . --target clang-tidy-fix || true
+          cmake --build . --target clang-tidy-fix -- --export-fixes clang-tidy-fixes.yaml || true
           echo "Clang-tidy fixes applied"
+
+      - name: Convert clang-tidy fixes to JSON
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE/phlex-build
+          if [ -f clang-tidy-fixes.yaml ]; then
+            yq -o=json . clang-tidy-fixes.yaml > clang-tidy-fixes.json
+          else
+            echo "No clang-tidy-fixes.yaml generated."
+            echo "{}" > clang-tidy-fixes.json
+          fi
+
+      - name: Upload clang-tidy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-tidy-report
+          path: phlex-build/clang-tidy-fixes.json
+          retention-days: 7
 
       - name: Commit tidy fixes
         uses: EndBug/add-and-commit@v9
@@ -111,3 +129,20 @@ jobs:
             No clang-tidy fixes to apply
 
             All automatically fixable issues have been resolved. Any remaining issues require manual attention.
+
+  clang-tidy-pr-comments:
+    needs: apply_tidy_fixes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download clang-tidy report
+        uses: actions/download-artifact@v4
+        with:
+          name: clang-tidy-report
+          path: phlex-build
+      - name: Post clang-tidy comments
+        uses: platisd/clang-tidy-pr-comments@v1
+        with:
+          tidy-fixes-file: phlex-build/clang-tidy-fixes.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
