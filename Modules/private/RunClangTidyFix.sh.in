@@ -20,11 +20,16 @@ CLANG_TIDY_CONFIG="@_phlex_clang_tidy_config@"
 FILES_REGEX='@_files_regex@'
 
 DO_FIX=0
+EXPORT_FIXES_FILE=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fix)
       DO_FIX=1
       shift
+      ;;
+    --export-fixes)
+      EXPORT_FIXES_FILE="$2"
+      shift 2
       ;;
     *)
       # ignore unknown args for forward-compat
@@ -55,6 +60,7 @@ fi
 
 CMD=("$RUN_CLANG_TIDY" -p "$COMPILE_DB" -clang-tidy-binary "$CLANG_TIDY_BIN" -config-file "$CLANG_TIDY_CONFIG")
 [ -n "$CHECKS_ARG" ] && CMD+=("$CHECKS_ARG")
+[ -n "$EXPORT_FIXES_FILE" ] && CMD+=("-export-fixes=$EXPORT_FIXES_FILE")
 CMD+=("-source-filter" "$FILES_REGEX" "-header-filter" "$FILES_REGEX")
 [ "$DO_FIX" -eq 1 ] && CMD+=("-fix")
 
