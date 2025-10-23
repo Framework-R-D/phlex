@@ -72,7 +72,7 @@ jobs:
         uses: ./phlex-src/.github/actions/configure-cmake
         with:
           build-type: Debug
-          extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
+          extra-options: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
 
       - name: Apply clang-tidy fixes using CMake target
         env:
@@ -133,5 +133,5 @@ jobs:
       - name: Post clang-tidy comments
         uses: platisd/clang-tidy-pr-comments@v1
         with:
-          clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tidy-fixes-file: phlex-build/clang-tidy-fixes.yaml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
