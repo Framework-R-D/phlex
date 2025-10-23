@@ -37,11 +37,18 @@ spack --timestamp env activate phlex-dev
 # Display concretized solution
 spack --timestamp concretize
 
-# Install dependencies
 parallelism=$(nproc)
+
+# Install everything except Phlex (we'll be developing that, not
+# building it from tagged source)
 spack --timestamp install --fail-fast -j $parallelism -p 1 \
-    --no-add --only-concrete --no-check-signature
-spack clean -dfs
+    --no-add --only-concrete --no-check-signature \
+    $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+
+# Now install Phlex' dependencies
+spack --timestamp install --fail-fast -j $parallelism -p 1 \
+    --no-add --only-concrete --only dependencies --no-check-signature \
+    phlex
 
 # Generate the activation script
 cat > scripts/activate_dev_env.sh <<EOF
