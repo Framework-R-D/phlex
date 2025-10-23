@@ -77,13 +77,7 @@ jobs:
         echo "Running clang-tidy checks using CMake target..."
 
         set -o pipefail
-        if ! cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1; then
-          echo ""
-          echo "Clang-tidy found issues in the code"
-          echo "Error count by check (full details in clang-tidy-log artifact):"
-          sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
-          echo "Comment '@phlexbot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-        fi
+        cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1 || true
 
     - name: Convert clang-tidy fixes to JSON
       shell: bash
@@ -94,6 +88,20 @@ jobs:
         else
           echo "No clang-tidy-fixes.yaml generated."
           echo "{}" > clang-tidy-fixes.json
+        fi
+
+    - name: Check for clang-tidy issues
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/phlex-build
+        if [ -s clang-tidy-fixes.yaml ]; then
+          echo "::error::Clang-tidy found issues in the code"
+          echo "Error count by check (full details in clang-tidy-log artifact):"
+          sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
+          echo "Comment '@phlexbot tidy-fix [<check>...]' on the PR to attempt auto-fix"
+          exit 1
+        else
+          echo "✓ No clang-tidy issues found"
         fi
 
     - name: Upload clang-tidy report
@@ -113,7 +121,7 @@ jobs:
 
   clang-tidy-pr-comments:
     needs: clang-tidy-check
-    if: ${{ github.event_name == 'pull_request' }}
+    if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
