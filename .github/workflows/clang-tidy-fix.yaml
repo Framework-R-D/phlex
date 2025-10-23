@@ -133,5 +133,5 @@ jobs:
       - name: Post clang-tidy comments
         uses: platisd/clang-tidy-pr-comments@v1
         with:
-          tidy-fixes-file: phlex-build/clang-tidy-fixes.yaml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
+          github_token: ${{ secrets.GITHUB_TOKEN }}
