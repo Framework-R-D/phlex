@@ -2,8 +2,9 @@
 # Adjust the query packs and path excludes for your needs.
 
 queries:
-  - name: github/codeql/cpp-security-and-quality
-  - name: github/codeql/python-security-and-quality
+  - name: codeql/cpp-all
+  - name: codeql/python-all
+  - name: codeql/actions-all
 
 paths:
   include:
