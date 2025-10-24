@@ -3,6 +3,7 @@
 
 queries:
   - uses: security-extended
+  - uses: code-quality
 
 paths:
   - phlex-src/**
