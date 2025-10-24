@@ -1,0 +1,73 @@
+# -*- YAML -*-
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  specs:
+  - gcc@15.2.0 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip build_type=Release languages=c,c++,fortran,lto
+  view: false
+  concretizer:
+    reuse: true
+    targets:
+      granularity: generic
+    unify: true
+  packages:
+    all:
+      prefer:
+      - x86_64_v3
+      - spec: '%cxx=gcc'
+        when: '^cxx'
+      - spec: '%c=gcc'
+        when: '^c'
+      - spec: '%fortran=gcc'
+        when: '^fortran'
+      - spec: generator=ninja
+        when: build_system=cmake
+    binutils:
+      require:
+      - +gas+gold+headers+ld+lto+plugins
+      - '@2.44:2'
+    cmake:
+      prefer:
+      - ~ownlibs
+      - +ncurses
+      - build_type=Release
+    fftw-api:
+      require:
+      - fftw
+    fftw:
+      require:
+      - ~mpi+openmp
+    git:
+      require:
+      - '@2.45.1:'
+    hwloc:
+      require:
+      - '@2.0.1:'
+    libarchive:
+      require:
+      - crypto=openssl
+    libc:
+      require:
+      - glibc
+    openssl:
+      buildable: false
+    patchelf:
+      require:
+      - '@0.16.1:'
+    perl:
+      require:
+      - +open+opcode
+    pkgconfig:
+      require:
+      - pkg-config
+    zlib-api:
+      require:
+      - zlib
+    zstd:
+      prefer:
+      - build_system=cmake
+      - spec: build_type=Release ^cmake +ownlibs
+        when: build_system=cmake
+
