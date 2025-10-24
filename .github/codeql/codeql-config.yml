@@ -2,9 +2,7 @@
 # Adjust the query packs and path excludes for your needs.
 
 queries:
-  - uses: codeql/cpp-all
-  - uses: codeql/python-all
-  - uses: codeql/actions-all
+  - uses: security-extended
 
 paths:
   - phlex-src/**
