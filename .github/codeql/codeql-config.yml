@@ -7,9 +7,8 @@ queries:
   - uses: codeql/actions-all
 
 paths:
-  include:
-    - phlex-src/**
-  exclude:
-    - phlex-src/build/**
-    - phlex-src/doc/**
-    - phlex-src/test/**
+  - phlex-src/**
+paths-ignore:
+  - phlex-src/build/**
+  - phlex-src/doc/**
+  - phlex-src/test/**
