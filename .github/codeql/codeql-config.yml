@@ -6,15 +6,9 @@ queries:
   - name: github/codeql/python-security-and-quality
 
 paths:
+  include:
+    - phlex-src/**
   exclude:
-    - build/
-    - dist/
-    - out/
-    - third_party/
-    - vendor/
-    - extern/
-    - .venv/
-    - node_modules/
-    - docs/
-    - tests/
-    - test/
+    - phlex-src/build/**
+    - phlex-src/doc/**
+    - phlex-src/test/**

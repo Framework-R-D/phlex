@@ -15,7 +15,7 @@ permissions:
   security-events: write
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: RelWithDebInfo
 
 jobs:
   codeql:
@@ -36,8 +36,9 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: cpp, python
+          languages: cpp, python, actions
           config-file: .github/codeql/codeql-config.yml
+          autobuild: false
           # If you need extra query packs, list them here, e.g.
           # queries: security-and-quality
 
@@ -54,14 +55,30 @@ jobs:
 
       - name: Test
         run: |
-        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
-        ctest -j $(nproc) || true
+          . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+          cd $GITHUB_WORKSPACE/phlex-build
+          ctest -j $(nproc) || true
+
+      - name: Verify compile_commands.json and publish for diagnostics
+        run: |
+          set -euo pipefail
+          echo "Looking for compile_commands.json in common build locations..."
+          # Prefer phlex-src/build/compile_commands.json
+          if [ -f "$GITHUB_WORKSPACE/phlex-src/build/compile_commands.json" ]; then
+            echo "Found phlex-src/build/compile_commands.json"
+            cp "$GITHUB_WORKSPACE/phlex-src/build/compile_commands.json" "$GITHUB_WORKSPACE/compile_commands.json"
+          elif [ -f "$GITHUB_WORKSPACE/phlex-build/compile_commands.json" ]; then
+            echo "Found phlex-build/compile_commands.json"
+            cp "$GITHUB_WORKSPACE/phlex-build/compile_commands.json" "$GITHUB_WORKSPACE/compile_commands.json"
+          else
+            echo "No compile_commands.json found in phlex-src/build or phlex-build; continuing."
+          fi
+          echo "Workspace listing (for debugging):"
+          ls -la "$GITHUB_WORKSPACE" || true
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v4
         with:
           category: "CodeQL"
-          # If you want a SARIF artifact too, uncomment:
           sarif_output: codeql-results.sarif
