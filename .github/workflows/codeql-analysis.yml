@@ -14,64 +14,49 @@ permissions:
   contents: read
   security-events: write
 
+env:
+  BUILD_TYPE: Release
+
 jobs:
   codeql:
     name: Analyze with CodeQL (C++, Python)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci:2025-10-21
+    strategy:
+      fail-fast: false
     timeout-minutes: 120
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          path: phlex-src
           fetch-depth: 0
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v4
         with:
           languages: cpp, python
           config-file: .github/codeql/codeql-config.yml
           # If you need extra query packs, list them here, e.g.
           # queries: security-and-quality
 
-      # Install dependencies required for building C++ with CMake
-      - name: Install system packages (apt)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          # Common tools for CMake-based builds; adjust if your CI uses a different image
-          sudo apt-get install -y build-essential cmake ninja-build python3 python3-pip lsb-release
+      - name: Setup build environment
+        uses: ./phlex-src/.github/actions/setup-build-env
 
-      # Configure and build using CMake (explicit build so CodeQL can capture the build)
-      - name: Configure & build (CMake)
-        run: |
-          set -euo pipefail
-          # Use a separate build directory
-          mkdir -p build
-          # Prefer Ninja if CMake picks it; adjust generator or toolchain as required
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-          cmake --build build -- -j$(nproc)
+      - name: Configure CMake
+        uses: ./phlex-src/.github/actions/configure-cmake
+        with:
+          build-type: ${{ env.BUILD_TYPE }}
 
-      # Run unit tests (optional — do not make the step fatal for analysis)
-      - name: Run tests (ctest)
-        run: |
-          if [ -d build ]; then
-            cd build
-            # allow tests to fail without failing the whole job (helps triage)
-            ctest --output-on-failure || true
-          else
-            echo "No build directory found; skipping tests"
-          fi
+      - name: Build
+        uses: ./phlex-src/.github/actions/build-cmake
 
-      # If you have Python-specific setup (virtualenv, deps), run here so Python DB is accurate
-      - name: Setup Python deps (if applicable)
-        if: contains( github.event.head_commit.message, 'python' ) || always()
+      - name: Test
         run: |
-          if [ -f requirements.txt ]; then
-            python3 -m pip install --upgrade pip
-            python3 -m pip install -r requirements.txt
-          else
-            echo "No requirements.txt found, skipping python deps install"
-          fi
+        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+        ctest -j $(nproc) || true
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
@@ -79,4 +64,4 @@ jobs:
         with:
           category: "CodeQL"
           # If you want a SARIF artifact too, uncomment:
-          # sarif_output: codeql-results.sarif
+          sarif_output: codeql-results.sarif
