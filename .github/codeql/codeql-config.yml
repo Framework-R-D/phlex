@@ -2,9 +2,9 @@
 # Adjust the query packs and path excludes for your needs.
 
 queries:
-  - name: codeql/cpp-all
-  - name: codeql/python-all
-  - name: codeql/actions-all
+  - uses: codeql/cpp-all
+  - uses: codeql/python-all
+  - uses: codeql/actions-all
 
 paths:
   include:
