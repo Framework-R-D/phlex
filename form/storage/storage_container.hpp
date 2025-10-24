@@ -12,7 +12,7 @@ namespace form::detail::experimental {
 
   class Storage_Container : public IStorage_Container {
   public:
-    Storage_Container(std::string const& name);
+    Storage_Container(std::string  name);
     ~Storage_Container() = default;
 
     std::string const& name() override;

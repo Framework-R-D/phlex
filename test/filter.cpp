@@ -1,8 +1,17 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/fwd.hpp"
+#include "phlex/core/specified_label.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_vector.h"
+#include <algorithm>
+#include <atomic>
+#include <cstdlib>
+#include <initializer_list>
+#include <iterator>
+#include <ranges>
+#include <vector>
 
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
@@ -29,8 +38,8 @@ namespace {
     unsigned const max_;
   };
 
-  constexpr bool evens_only(unsigned int const value) { return value % 2u == 0u; }
-  constexpr bool odds_only(unsigned int const value) { return not evens_only(value); }
+  constexpr auto evens_only(unsigned int const value) -> bool { return value % 2u == 0u; }
+  constexpr auto odds_only(unsigned int const value) -> bool { return not evens_only(value); }
 
   // Hacky!
   struct sum_numbers {
@@ -47,7 +56,7 @@ namespace {
     ~collect_numbers()
     {
       std::vector<unsigned int> sorted_actual(std::begin(actual), std::end(actual));
-      std::sort(begin(sorted_actual), end(sorted_actual));
+      std::ranges::sort(sorted_actual);
       CHECK(expected == sorted_actual);
     }
     void collect(unsigned int const num) { actual.push_back(num); }
@@ -69,7 +78,7 @@ namespace {
     int const total;
   };
 
-  constexpr bool in_range(unsigned int const b, unsigned int const e, unsigned int const i) noexcept
+  constexpr auto in_range(unsigned int const b, unsigned int const e, unsigned int const i) noexcept -> bool
   {
     return i >= b and i < e;
   }
@@ -78,7 +87,7 @@ namespace {
     explicit not_in_range(unsigned int const b, unsigned int const e) : begin{b}, end{e} {}
     unsigned int const begin;
     unsigned int const end;
-    bool eval(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
+    [[nodiscard]] auto eval(unsigned int const i) const noexcept -> bool { return not in_range(begin, end, i); }
   };
 }
 

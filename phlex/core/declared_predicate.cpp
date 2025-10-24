@@ -1,7 +1,12 @@
 #include "phlex/core/declared_predicate.hpp"
 
-#include "fmt/std.h"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "spdlog/spdlog.h"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   declared_predicate::declared_predicate(algorithm_name name,

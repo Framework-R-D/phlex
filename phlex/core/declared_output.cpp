@@ -1,6 +1,15 @@
 #include "phlex/core/declared_output.hpp"
+#include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/detail/make_algorithm_name.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/registrar.hpp"
+#include <cstddef>
+#include <oneapi/tbb/flow_graph.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   declared_output::declared_output(algorithm_name name,
@@ -18,7 +27,7 @@ namespace phlex::experimental {
   {
   }
 
-  tbb::flow::receiver<message>& declared_output::port() noexcept { return node_; }
+  auto declared_output::port() noexcept -> tbb::flow::receiver<message>& { return node_; }
 
   output_creator::output_creator(registrar<declared_output_ptr> reg,
                                  configuration const* config,
@@ -33,7 +42,7 @@ namespace phlex::experimental {
     concurrency_{c},
     reg_{std::move(reg)}
   {
-    reg_.set_creator([this](auto) { return create(); });
+    reg_.set_creator([this](auto) -> auto { return create(); });
   }
 
 }

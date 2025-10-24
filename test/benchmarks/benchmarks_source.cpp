@@ -2,11 +2,14 @@
 // This source creates 1M events.
 // ===================================================================
 
+#include "phlex/configuration.hpp"
+#include "phlex/core/fwd.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/source.hpp"
 
-#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
+#include <cstddef>
 #include <ranges>
 
 namespace test {

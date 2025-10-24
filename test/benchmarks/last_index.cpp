@@ -4,7 +4,7 @@
 using namespace phlex::experimental;
 
 namespace {
-  int last_index(level_id const& id) { return static_cast<int>(id.number()); }
+  auto last_index(level_id const& id) -> int { return static_cast<int>(id.number()); }
 }
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)

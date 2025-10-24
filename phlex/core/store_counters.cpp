@@ -1,8 +1,11 @@
 #include "phlex/core/store_counters.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/level_counter.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include "phlex/model/level_id.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
 
 namespace phlex::experimental {
 
@@ -12,20 +15,20 @@ namespace phlex::experimental {
     original_message_id_ = original_message_id;
   }
 
-  bool store_flag::is_complete() const noexcept { return processed_ and flush_received_; }
+  auto store_flag::is_complete() const noexcept -> bool { return processed_ and flush_received_; }
 
   void store_flag::mark_as_processed() noexcept { processed_ = true; }
 
-  unsigned int store_flag::original_message_id() const noexcept { return original_message_id_; }
+  auto store_flag::original_message_id() const noexcept -> unsigned int { return original_message_id_; }
 
-  store_flag& detect_flush_flag::flag_for(level_id::hash_type const hash)
+  auto detect_flush_flag::flag_for(level_id::hash_type const hash) -> store_flag&
   {
     flag_accessor fa;
     flags_.emplace(fa, hash, std::make_unique<store_flag>());
     return *fa->second;
   }
 
-  bool detect_flush_flag::done_with(product_store_const_ptr const& store)
+  auto detect_flush_flag::done_with(product_store_const_ptr const& store) -> bool
   {
     auto const h = store->id()->hash();
     if (const_flag_accessor fa; flags_.find(fa, h) && fa->second->is_complete()) {
@@ -54,7 +57,7 @@ namespace phlex::experimental {
 
   void store_counter::increment(level_id::hash_type const level_hash) { ++counts_[level_hash]; }
 
-  bool store_counter::is_complete()
+  auto store_counter::is_complete() -> bool
   {
     if (!ready_to_flush_) {
       return false;
@@ -86,9 +89,9 @@ namespace phlex::experimental {
     return ready_to_flush_.exchange(false);
   }
 
-  unsigned int store_counter::original_message_id() const noexcept { return original_message_id_; }
+  auto store_counter::original_message_id() const noexcept -> unsigned int { return original_message_id_; }
 
-  store_counter& count_stores::counter_for(level_id::hash_type const hash)
+  auto count_stores::counter_for(level_id::hash_type const hash) -> store_counter&
   {
     counter_accessor ca;
     if (!counters_.find(ca, hash)) {
@@ -97,7 +100,7 @@ namespace phlex::experimental {
     return *ca->second;
   }
 
-  std::unique_ptr<store_counter> count_stores::done_with(level_id::hash_type const hash)
+  auto count_stores::done_with(level_id::hash_type const hash) -> std::unique_ptr<store_counter>
   {
     // Must be called after an insertion has already been performed
     counter_accessor ca;

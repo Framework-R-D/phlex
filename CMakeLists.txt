@@ -43,7 +43,7 @@ find_package(cetmodules 4.01.01 REQUIRED)
 # Main project declaration
 project(
   phlex
-  VERSION 0.0.1
+  VERSION 0.0.1.1
   LANGUAGES CXX
   )
 # ##############################################################################

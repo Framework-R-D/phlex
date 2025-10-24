@@ -24,17 +24,14 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
 #include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
@@ -47,7 +44,7 @@ TEST_CASE("Different levels of fold", "[graph]")
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  auto levels_to_process = [index_limit, number_limit](framework_driver& driver) {
+  auto levels_to_process = [index_limit, number_limit](framework_driver& driver) -> void {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
@@ -70,15 +67,15 @@ TEST_CASE("Different levels of fold", "[graph]")
   g.with("two_layer_job_add", add, concurrency::unlimited).fold("run_sum").to("two_layer_job_sum");
 
   g.observe(
-     "verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }, concurrency::unlimited)
+     "verify_run_sum", [](unsigned int actual) -> void { CHECK(actual == 10u); }, concurrency::unlimited)
     .input_family("run_sum");
   g.observe(
      "verify_two_layer_job_sum",
-     [](unsigned int actual) { CHECK(actual == 20u); },
+     [](unsigned int actual) -> void { CHECK(actual == 20u); },
      concurrency::unlimited)
     .input_family("two_layer_job_sum");
   g.observe(
-     "verify_job_sum", [](unsigned int actual) { CHECK(actual == 20u); }, concurrency::unlimited)
+     "verify_job_sum", [](unsigned int actual) -> void { CHECK(actual == 20u); }, concurrency::unlimited)
     .input_family("job_sum");
 
   g.execute();

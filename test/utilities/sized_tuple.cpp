@@ -6,7 +6,7 @@
 using namespace std;
 using namespace phlex::experimental;
 
-int main()
+auto main() -> int
 {
   static_assert(same_as<sized_tuple<int, 3>, tuple<int, int, int>>);
   static_assert(

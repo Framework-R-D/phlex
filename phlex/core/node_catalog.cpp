@@ -1,7 +1,9 @@
 #include "phlex/core/node_catalog.hpp"
+#include <cstddef>
+#include <string>
 
 namespace phlex::experimental {
-  std::size_t node_catalog::execution_counts(std::string const& node_name) const
+  auto node_catalog::execution_counts(std::string const& node_name) const -> std::size_t
   {
     // FIXME: Yuck!
     if (auto node = predicates.get(node_name)) {
@@ -22,7 +24,7 @@ namespace phlex::experimental {
     return -1u;
   }
 
-  std::size_t node_catalog::product_counts(std::string const& node_name) const
+  auto node_catalog::product_counts(std::string const& node_name) const -> std::size_t
   {
     // FIXME: Yuck!
     if (auto node = folds.get(node_name)) {

@@ -1,10 +1,14 @@
 #include "phlex/core/dot/data_graph.hpp"
 #include "phlex/core/dot/attributes.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/qualified_name.hpp"
 
 #include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <ostream>
+#include <string>
+#include <utility>
 
 using std::quoted;
 using namespace phlex::experimental;
@@ -36,7 +40,7 @@ namespace {
        << " " << to_string(attrs) << ";\n";
   }
 
-  std::string zip_node(specified_labels const& input)
+  auto zip_node(specified_labels const& input) -> std::string
   {
     assert(not input.empty());
     auto it = input.begin();
@@ -50,7 +54,7 @@ namespace {
     return joined;
   }
 
-  std::string unzip_node(qualified_names const& output)
+  auto unzip_node(qualified_names const& output) -> std::string
   {
     assert(not output.empty());
     auto it = output.begin();

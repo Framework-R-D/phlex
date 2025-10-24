@@ -1,7 +1,12 @@
 #include "phlex/core/declared_transform.hpp"
 
-#include "fmt/std.h"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "spdlog/spdlog.h"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   declared_transform::declared_transform(algorithm_name name,

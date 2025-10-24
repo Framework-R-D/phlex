@@ -1,4 +1,5 @@
 #include "test/mock-workflow/timed_busy.hpp"
+#include <chrono>
 
 void phlex::experimental::test::timed_busy(std::chrono::microseconds const& duration)
 {

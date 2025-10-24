@@ -1,6 +1,10 @@
 // Copyright (C) 2025 ...
 
 #include "storage_associative_container.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_container.hpp"
+#include <memory>
+#include <string>
 
 using namespace form::detail::experimental;
 
@@ -19,9 +23,9 @@ Storage_Associative_Container::Storage_Associative_Container(std::string const& 
 
 Storage_Associative_Container::~Storage_Associative_Container() = default;
 
-std::string const& Storage_Associative_Container::top_name() { return m_tName; }
+auto Storage_Associative_Container::top_name() -> std::string const& { return m_tName; }
 
-std::string const& Storage_Associative_Container::col_name() { return m_cName; }
+auto Storage_Associative_Container::col_name() -> std::string const& { return m_cName; }
 
 void Storage_Associative_Container::setParent(std::shared_ptr<IStorage_Container> parent)
 {

@@ -2,7 +2,10 @@
 #include "phlex/model/algorithm_name.hpp"
 
 #include <algorithm>
-#include <regex>
+#include <iterator>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   qualified_name::qualified_name() = default;
@@ -15,7 +18,7 @@ namespace phlex::experimental {
   {
   }
 
-  std::string qualified_name::full() const
+  auto qualified_name::full() const -> std::string
   {
     auto const qualifier = qualifier_.full();
     if (qualifier.empty()) {
@@ -24,21 +27,21 @@ namespace phlex::experimental {
     return qualifier + "/" + name_;
   }
 
-  bool qualified_name::operator==(qualified_name const& other) const
+  auto qualified_name::operator==(qualified_name const& other) const -> bool
   {
     return std::tie(qualifier_, name_) == std::tie(other.qualifier_, other.name_);
   }
 
-  bool qualified_name::operator!=(qualified_name const& other) const { return !operator==(other); }
+  auto qualified_name::operator!=(qualified_name const& other) const -> bool { return !operator==(other); }
 
-  bool qualified_name::operator<(qualified_name const& other) const
+  auto qualified_name::operator<(qualified_name const& other) const -> bool
   {
     return std::tie(qualifier_, name_) < std::tie(other.qualifier_, other.name_);
   }
 
-  qualified_name qualified_name::create(char const* c) { return create(std::string{c}); }
+  auto qualified_name::create(char const* c) -> qualified_name { return create(std::string{c}); }
 
-  qualified_name qualified_name::create(std::string const& s)
+  auto qualified_name::create(std::string const& s) -> qualified_name
   {
     auto forward_slash = s.find("/");
     if (forward_slash != std::string::npos) {
@@ -47,8 +50,8 @@ namespace phlex::experimental {
     return {algorithm_name::create(""), s};
   }
 
-  qualified_names to_qualified_names(std::string const& name,
-                                     std::vector<std::string> output_labels)
+  auto to_qualified_names(std::string const& name,
+                                     std::vector<std::string> output_labels) -> qualified_names
   {
     qualified_names outputs;
     outputs.reserve(output_labels.size());

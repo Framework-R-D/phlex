@@ -1,11 +1,12 @@
 #include "phlex/core/dot/attributes.hpp"
+#include <string>
 
 namespace {
-  std::string maybe_comma(std::string const& result) { return result.empty() ? "" : ", "; }
+  auto maybe_comma(std::string const& result) -> std::string { return result.empty() ? "" : ", "; }
 }
 
 namespace phlex::experimental::dot {
-  std::string to_string(attributes const& attrs)
+  auto to_string(attributes const& attrs) -> std::string
   {
     std::string result{};
     if (not attrs.color.empty()) {
@@ -29,5 +30,5 @@ namespace phlex::experimental::dot {
     return "[" + result + "]";
   }
 
-  std::string parenthesized(std::string const& n) { return "(" + n + ")"; }
+  auto parenthesized(std::string const& n) -> std::string { return "(" + n + ")"; }
 }

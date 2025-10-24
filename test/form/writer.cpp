@@ -7,8 +7,11 @@
 #include "mock_phlex/phlex_toy_core.hpp" // toy of phlex core components
 #include "toy_tracker.hpp"
 
+#include <cstdio>
 #include <cstdlib>  // For rand() and srand()
+#include <ctime>
 #include <iostream> // For cout
+#include <memory>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
@@ -30,10 +33,10 @@ void generate(std::vector<float>& vrand, int size)
   }
 }
 
-int main(int /*argc*/, char** /* argv[]*/)
+auto main(int /*argc*/, char** /* argv[]*/) -> int
 {
   std::cout << "In main" << std::endl;
-  srand(time(0));
+  srand(time(nullptr));
 
   std::shared_ptr<mock_phlex::product_type_names> type_map = mock_phlex::createTypeMap();
 
@@ -76,7 +79,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       std::vector<mock_phlex::product_base> batch;
       std::string const creator = "Toy_Tracker";
       mock_phlex::product_base pb = {
-        "trackStart", seg_id_text, &track_start_x, std::type_index{typeid(std::vector<float>)}};
+        .label="trackStart", .id=seg_id_text, .data=&track_start_x, .type=std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
       batch.push_back(pb);
 
@@ -90,7 +93,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << std::endl;
       mock_phlex::product_base pb_int = {
-        "trackNumberHits", seg_id_text, &track_n_hits, std::type_index{typeid(std::vector<int>)}};
+        .label="trackNumberHits", .id=seg_id_text, .data=&track_n_hits, .type=std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
       batch.push_back(pb_int);
 
@@ -101,10 +104,10 @@ int main(int /*argc*/, char** /* argv[]*/)
         checkPoints += point;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", checkPoints = " << checkPoints << std::endl;
-      mock_phlex::product_base pb_points = {"trackStartPoints",
-                                            seg_id_text,
-                                            &start_points,
-                                            std::type_index{typeid(std::vector<TrackStart>)}};
+      mock_phlex::product_base pb_points = {.label="trackStartPoints",
+                                            .id=seg_id_text,
+                                            .data=&start_points,
+                                            .type=std::type_index{typeid(std::vector<TrackStart>)}};
       type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
       batch.push_back(pb_points);
 
@@ -125,7 +128,7 @@ int main(int /*argc*/, char** /* argv[]*/)
     sprintf(evt_id_text, evt_id, nevent);
     std::string const creator = "Toy_Tracker_Event";
     mock_phlex::product_base pb = {
-      "trackStartX", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};
+      .label="trackStartX", .id=evt_id_text, .data=&track_x, .type=std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << std::endl;

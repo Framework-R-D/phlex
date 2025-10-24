@@ -6,7 +6,9 @@
 #include "mock_phlex/phlex_toy_config.hpp"
 #include "mock_phlex/phlex_toy_core.hpp" // toy of phlex core components
 
+#include <cstdio>
 #include <iostream> // For cout
+#include <memory>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
@@ -15,7 +17,7 @@ static int const NUMBER_SEGMENT = 15;
 static char const* const evt_id = "[EVENT=%08X]";
 static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
 
-int main(int /* argc*/, char** /* argv[]*/)
+auto main(int /* argc*/, char** /* argv[]*/) -> int
 {
   std::cout << "In main" << std::endl;
 
@@ -46,23 +48,23 @@ int main(int /* argc*/, char** /* argv[]*/)
       sprintf(seg_id_text, seg_id, nevent, nseg);
       std::string const creator = "Toy_Tracker";
       mock_phlex::product_base pb = {
-        "trackStart", seg_id_text, track_start_x, std::type_index{typeid(std::vector<float>)}};
+        .label="trackStart", .id=seg_id_text, .data=track_start_x, .type=std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
       form.read(creator, pb);
       track_start_x =
         static_cast<std::vector<float> const*>(pb.data); //FIXME: Can this be done by FORM?
       std::vector<int> const* track_n_hits = nullptr;
       mock_phlex::product_base pb_int = {
-        "trackNumberHits", seg_id_text, track_n_hits, std::type_index{typeid(std::vector<int>)}};
+        .label="trackNumberHits", .id=seg_id_text, .data=track_n_hits, .type=std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
       form.read(creator, pb_int);
       track_n_hits = static_cast<std::vector<int> const*>(pb_int.data);
 
       std::vector<TrackStart> const* start_points = nullptr;
-      mock_phlex::product_base pb_points = {"trackStartPoints",
-                                            seg_id_text,
-                                            start_points,
-                                            std::type_index{typeid(std::vector<TrackStart>)}};
+      mock_phlex::product_base pb_points = {.label="trackStartPoints",
+                                            .id=seg_id_text,
+                                            .data=start_points,
+                                            .type=std::type_index{typeid(std::vector<TrackStart>)}};
       type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
       form.read(creator, pb_points);
       start_points = static_cast<std::vector<TrackStart> const*>(pb_points.data);
@@ -90,7 +92,7 @@ int main(int /* argc*/, char** /* argv[]*/)
     sprintf(evt_id_text, evt_id, nevent);
     std::string const creator = "Toy_Tracker_Event";
     mock_phlex::product_base pb = {
-      "trackStartX", evt_id_text, track_x, std::type_index{typeid(std::vector<float>)}};
+      .label="trackStartX", .id=evt_id_text, .data=track_x, .type=std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     form.read(creator, pb);
     track_x = static_cast<std::vector<float> const*>(pb.data); //FIXME: Can this be done by FORM?

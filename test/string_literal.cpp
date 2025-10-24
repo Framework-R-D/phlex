@@ -5,7 +5,7 @@
 using namespace phlex::experimental;
 using namespace std::string_view_literals;
 
-int main()
+auto main() -> int
 {
   constexpr string_literal s{"Check, please"};
   static_assert(std::string_view{s} == "Check, please"sv);

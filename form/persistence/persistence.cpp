@@ -1,16 +1,25 @@
 // Copyright (C) 2025 ...
 
 #include "persistence.hpp"
+#include "core/placement.hpp"
+#include "core/token.hpp"
+#include "form/config.hpp"
+#include "persistence/ipersistence.hpp"
+#include "storage/istorage.hpp"
 
 #include <algorithm>
-#include <cstring>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 using namespace form::detail::experimental;
 
 // Factory function implementation
 namespace form::detail::experimental {
-  std::unique_ptr<IPersistence> createPersistence() { return std::make_unique<Persistence>(); }
+  auto createPersistence() -> std::unique_ptr<IPersistence> { return std::make_unique<Persistence>(); }
 } // namespace form::detail::experimental
 
 Persistence::Persistence() :
@@ -71,8 +80,8 @@ void Persistence::read(std::string const& creator,
   return;
 }
 
-form::experimental::config::PersistenceItem const* Persistence::findConfigItem(
-  std::string const& label) const
+auto Persistence::findConfigItem(
+  std::string const& label) const -> form::experimental::config::PersistenceItem const*
 {
   auto const& items = m_output_items.getItems();
   if (label == "index")
@@ -81,13 +90,13 @@ form::experimental::config::PersistenceItem const* Persistence::findConfigItem(
              : &(*items
                     .begin()); //emulate how FORM did this before Phlex PR #22.  Will be fixed in a future FORM update.
 
-  auto it = std::find_if(
-    items.begin(), items.end(), [&label](auto const& item) { return item.product_name == label; });
+  auto it = std::ranges::find_if(
+    items, [&label](auto const& item) -> auto { return item.product_name == label; });
 
   return (it != items.end()) ? &(*it) : nullptr;
 }
 
-std::string Persistence::buildFullLabel(std::string_view creator, std::string_view label) const
+auto Persistence::buildFullLabel(std::string_view creator, std::string_view label) const -> std::string
 {
   std::string result;
   result.reserve(creator.size() + 1 + label.size());
@@ -97,8 +106,8 @@ std::string Persistence::buildFullLabel(std::string_view creator, std::string_vi
   return result;
 }
 
-std::unique_ptr<Placement> Persistence::getPlacement(std::string const& creator,
-                                                     std::string const& label)
+auto Persistence::getPlacement(std::string const& creator,
+                                                     std::string const& label) -> std::unique_ptr<Placement>
 {
   auto const* config_item = findConfigItem(label);
 
@@ -111,9 +120,9 @@ std::unique_ptr<Placement> Persistence::getPlacement(std::string const& creator,
   return std::make_unique<Placement>(config_item->file_name, full_label, config_item->technology);
 }
 
-std::unique_ptr<Token> Persistence::getToken(std::string const& creator,
+auto Persistence::getToken(std::string const& creator,
                                              std::string const& label,
-                                             std::string const& id)
+                                             std::string const& id) -> std::unique_ptr<Token>
 {
   auto const* config_item = findConfigItem(label);
 

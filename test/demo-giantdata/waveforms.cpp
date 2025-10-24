@@ -1,7 +1,9 @@
 #include "waveforms.hpp"
 #include "log_record.hpp"
+#include <cstddef>
+#include <utility>
 
-std::size_t demo::Waveforms::size() const { return waveforms.size(); }
+auto demo::Waveforms::size() const -> std::size_t { return waveforms.size(); }
 
 demo::Waveforms::Waveforms(
   std::size_t n, double val, int run_id, int subrun_id, int spill_id, int apa_id) :
@@ -22,7 +24,7 @@ demo::Waveforms::Waveforms(Waveforms&& other) :
   log_record("wsmove", 0, 0, spill_id, apa_id, this, waveforms.size(), &other);
 }
 
-demo::Waveforms& demo::Waveforms::operator=(Waveforms const& other)
+auto demo::Waveforms::operator=(Waveforms const& other) -> demo::Waveforms&
 {
   waveforms = other.waveforms;
   spill_id = other.spill_id;
@@ -31,7 +33,7 @@ demo::Waveforms& demo::Waveforms::operator=(Waveforms const& other)
   return *this;
 }
 
-demo::Waveforms& demo::Waveforms::operator=(Waveforms&& other)
+auto demo::Waveforms::operator=(Waveforms&& other) -> demo::Waveforms&
 {
   waveforms = std::move(other.waveforms);
   spill_id = other.spill_id;
