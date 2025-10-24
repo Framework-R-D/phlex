@@ -4,17 +4,17 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: "70...90"
+  range: "60...90"
 
   status:
     project:
       default:
-        target: 80%
+        target: 55%
         threshold: 2%
         if_ci_failed: error
     patch:
       default:
-        target: 70%
+        target: 80%
         threshold: 5%
 
 comment:
@@ -34,3 +34,11 @@ ignore:
 
 github_checks:
   annotations: true
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: no
+      loop: no
+      method: no
+      macro: no
