@@ -79,12 +79,10 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
 {
   framework_graph g{levels_to_process};
 
-  g.with("run_add", add, concurrency::unlimited)
-    .fold("number")
-    .partitioned_by("run")
-    .to("run_sum")
-    .initialized_with(0u);
-  g.with("job_add", add, concurrency::unlimited).fold("number").to("job_sum");
+  g.fold("run_add", add, concurrency::unlimited, "run", 0u)
+    .input_family("number")
+    .output_products("run_sum");
+  g.fold("job_add", add, concurrency::unlimited).input_family("number").output_products("job_sum");
 
   g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
     .input_family("run_sum");
