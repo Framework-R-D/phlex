@@ -1,0 +1,20 @@
+# CodeQL configuration tuned for this repository (C++ + Python).
+# Adjust the query packs and path excludes for your needs.
+
+queries:
+  - name: github/codeql/cpp-security-and-quality
+  - name: github/codeql/python-security-and-quality
+
+paths:
+  exclude:
+    - build/
+    - dist/
+    - out/
+    - third_party/
+    - vendor/
+    - extern/
+    - .venv/
+    - node_modules/
+    - docs/
+    - tests/
+    - test/
