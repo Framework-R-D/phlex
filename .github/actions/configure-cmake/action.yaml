@@ -30,6 +30,10 @@ inputs:
     description: 'Specify CMake generator'
     required: false
     default: 'Ninja'
+  cpp-compiler:
+    description: 'The C++ compiler to use'
+    required: false
+    default: 'g++'
 
 runs:
   using: 'composite'
@@ -56,10 +60,12 @@ runs:
         echo "Build directory: $(pwd)"
         echo "Build type: $BUILD_TYPE"
         echo "Generator: $GENERATOR"
+        echo "C++ compiler: $CPP_COMPILER"
 
         # Configure CMake with Ninja generator
         cmake $preset_arg "$SOURCE_DIR" \
           -G "$GENERATOR" \
+          -DCMAKE_CXX_COMPILER=g++ \
           -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
           -DPHLEX_USE_FORM="$ENABLE_FORM" \
           -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE" \
@@ -72,3 +78,4 @@ runs:
         ENABLE_FORM: ${{ inputs.enable-form }}
         FORM_ROOT_STORAGE: ${{ inputs.form-root-storage }}
         GENERATOR: ${{ inputs.generator }}
+        CPP_COMPILER: ${{ inputs.cpp-compiler }}
