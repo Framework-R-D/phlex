@@ -33,17 +33,15 @@ jobs:
           path: phlex-src
           fetch-depth: 0
 
+      - name: Setup build environment
+        uses: ./phlex-src/.github/actions/setup-build-env
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: cpp, python, actions
-          config-file: .github/codeql/codeql-config.yml
-          autobuild: false
-          # If you need extra query packs, list them here, e.g.
-          # queries: security-and-quality
-
-      - name: Setup build environment
-        uses: ./phlex-src/.github/actions/setup-build-env
+          config-file: phlex-src/.github/codeql/codeql-config.yml
+          build-mode: none
 
       - name: Configure CMake
         uses: ./phlex-src/.github/actions/configure-cmake
