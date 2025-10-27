@@ -117,7 +117,7 @@ function(_phlex_create_coverage_targets_impl)
         COMMAND
           sh -c "find . -name '*.profraw' | xargs ${LLVM_PROFDATA_EXECUTABLE} merge -sparse -o coverage.profdata"
         COMMAND
-          ${LLVM_COV_EXECUTABLE} show -format=html -output-dir=coverage-html -filename-equivalence
+          ${LLVM_COV_EXECUTABLE} show -format=html -output-dir=coverage-html
           -show-line-counts-or-regions -show-instantiations
           -path-equivalence=/,${CMAKE_SOURCE_DIR}
           ${LLVM_COV_OBJECT_ARGS}
