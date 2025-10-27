@@ -91,6 +91,22 @@ cleanup_generated_symlinks() {
 
 # Detect build environment and set appropriate paths
 detect_build_environment() {
+    # Check for phlex-ci container environment first
+    if [[ -f "/entrypoint.sh" ]]; then
+        log "Sourcing /entrypoint.sh for container environment"
+        # shellcheck source=/dev/null
+        . /entrypoint.sh
+        # In the container, the workspace is the root and the source is conventional
+        WORKSPACE_ROOT="/"
+        SOURCE_ROOT="/phlex-src"
+        BUILD_DIR="${BUILD_DIR:-/phlex-build}"
+        log "Detected phlex-ci container environment"
+        log "Workspace root: $WORKSPACE_ROOT"
+        log "Source root: $SOURCE_ROOT"
+        log "Build directory: $BUILD_DIR"
+        return 0
+    fi
+
     # Check if we're in a multi-project structure by looking for workspace indicators
     local workspace_candidate="$(dirname "$(dirname "$PROJECT_SOURCE")")"
 
