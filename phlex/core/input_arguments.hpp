@@ -4,15 +4,11 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/specified_label.hpp"
 
-#include "fmt/format.h"
-
-#include <algorithm>
-#include <array>
 #include <cstddef>
-#include <set>
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   template <typename T, std::size_t JoinNodePort>
@@ -39,35 +35,23 @@ namespace phlex::experimental {
   using input_retriever_types = typename input_retriever_types_impl<InputTypes>::type;
 
   template <typename InputTypes, std::size_t... Is>
-  auto form_input_arguments_impl(std::array<specified_label, sizeof...(Is)> args,
-                                 std::index_sequence<Is...>)
+  auto form_input_arguments_impl(specified_labels const& args, std::index_sequence<Is...>)
   {
     return std::make_tuple(
       retriever<std::tuple_element_t<Is, InputTypes>, Is>{std::move(args[Is])}...);
   }
 
-  template <typename InputTypes, std::size_t N>
-  auto form_input_arguments(std::string const& algorithm_name, std::array<specified_label, N> args)
-  {
-    auto sorted = args;
-    std::sort(begin(sorted), end(sorted));
-    std::set unique_and_sorted(begin(sorted), end(sorted));
-    std::vector<specified_label> duplicates;
-    std::set_difference(begin(sorted),
-                        end(sorted),
-                        begin(unique_and_sorted),
-                        end(unique_and_sorted),
-                        std::back_inserter(duplicates));
-    if (not empty(duplicates)) {
-      std::string error =
-        fmt::format("Algorithm '{}' uses the following products more than once:\n", algorithm_name);
-      for (auto const& label : duplicates) {
-        error += fmt::format(" - '{}'\n", label.to_string());
-      }
-      throw std::runtime_error(error);
-    }
+  namespace detail {
+    void verify_no_duplicate_input_products(std::string const& algorithm_name,
+                                            specified_labels to_sort);
+  }
 
-    return form_input_arguments_impl<InputTypes>(std::move(args), std::make_index_sequence<N>{});
+  template <typename InputTypes>
+  auto form_input_arguments(std::string const& algorithm_name, specified_labels const& args)
+  {
+    constexpr auto N = std::tuple_size_v<InputTypes>;
+    detail::verify_no_duplicate_input_products(algorithm_name, args);
+    return form_input_arguments_impl<InputTypes>(args, std::make_index_sequence<N>{});
   }
 }
 

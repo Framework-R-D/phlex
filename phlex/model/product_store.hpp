@@ -6,7 +6,6 @@
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/products.hpp"
 
-#include <array>
 #include <cstddef>
 #include <map>
 #include <memory>

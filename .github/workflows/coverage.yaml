@@ -1,0 +1,164 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Code Coverage
+run-name: "${{ github.actor }} running code coverage for Phlex"
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Coverage
+
+jobs:
+  detect-coverage-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
+
+    steps:
+    - name: Check out source code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect coverage relevant changes
+      id: filter
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        file-type: |
+          cpp
+          cmake
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No coverage relevant changes detected; workflow will be skipped."
+        else
+          echo "::group::Coverage relevant files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  coverage:
+    needs: detect-coverage-changes
+    if: ${{ needs.detect-coverage-changes.outputs.has_changes == 'true' }}
+    runs-on: ubuntu-24.04
+
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci:2025-10-21
+
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    steps:
+    - name: Check out source code
+      uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - name: Setup build environment
+      uses: ./phlex-src/.github/actions/setup-build-env
+
+    - name: Configure CMake with coverage
+      uses: ./phlex-src/.github/actions/configure-cmake
+      with:
+        build-type: ${{ env.BUILD_TYPE }}
+        extra-options: '-DCMAKE_CXX_COMPILER=g++ -DENABLE_COVERAGE=ON'
+
+    - name: Build with coverage instrumentation
+      uses: ./phlex-src/.github/actions/build-cmake
+
+    - name: Run tests with coverage
+      run: |
+        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+        ctest -j $(nproc) --output-on-failure
+
+    - name: Generate coverage reports
+      shell: bash
+      run: |
+        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+
+        echo "Generating coverage reports using CMake targets..."
+        echo "Build directory: $(pwd)"
+
+        # Generate XML coverage report using CMake target
+        echo "Generating XML coverage report..."
+        cmake --build . --target coverage-xml
+
+        # Verify coverage.xml was generated and show some info about it
+        if [ -f coverage.xml ]; then
+          echo "Coverage XML generated successfully"
+          echo "Coverage XML size: $(wc -c < coverage.xml) bytes"
+          echo "Source paths in coverage.xml:"
+          grep -o '<source>.*</source>' coverage.xml | head -5
+
+          echo "Preparing generated sources for coverage mapping..."
+          GENERATED_ROOT="$GITHUB_WORKSPACE/phlex-src/.coverage-generated"
+          rm -rf "$GENERATED_ROOT"
+          mkdir -p "$GENERATED_ROOT"
+          find "$GITHUB_WORKSPACE/phlex-build" -type f \
+            \( -name '*.cpp' -o -name '*.hpp' \) \
+            -print0 | while IFS= read -r -d '' src; do
+              rel="${src#$GITHUB_WORKSPACE/phlex-build/}"
+              dest="$GENERATED_ROOT/$rel"
+              mkdir -p "$(dirname "$dest")"
+              cp "$src" "$dest"
+            done
+
+          echo "Normalizing coverage XML paths for Codecov..."
+          python3 "$GITHUB_WORKSPACE/phlex-src/scripts/normalize_coverage_xml.py" --repo-root "$GITHUB_WORKSPACE/phlex-src" --source-dir "$GITHUB_WORKSPACE/phlex-src" --path-map "$GITHUB_WORKSPACE/phlex-build=$GITHUB_WORKSPACE/phlex-src/.coverage-generated" "$GITHUB_WORKSPACE/phlex-build/coverage.xml"
+          rm -rf "$GENERATED_ROOT"
+        else
+          echo "ERROR: coverage.xml not found"
+          ls -la *.xml || echo "No XML files found"
+          exit 1
+        fi
+
+        # Also generate HTML report for artifact upload using CMake target
+        echo "Generating HTML coverage report..."
+        cmake --build . --target coverage-html || echo "HTML coverage generation failed (lcov issues), continuing..."
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ../phlex-build/coverage.xml
+        flags: unittests
+        name: phlex-coverage
+        fail_ci_if_error: true
+        verbose: true
+        working-directory: ${{ github.workspace }}/phlex-src
+        root_dir: .
+        token: ${{ env.CODECOV_TOKEN }}
+
+    - name: Upload HTML coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-html-report
+        path: phlex-build/coverage-html/
+        retention-days: 30
+
+  coverage-skipped:
+    needs: detect-coverage-changes
+    if: ${{ needs.detect-coverage-changes.outputs.has_changes != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant coverage changes detected
+      run: echo "No relevant C++ changes detected; coverage workflow skipped."

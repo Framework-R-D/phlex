@@ -21,3 +21,10 @@ bool Storage_Container::read(int /* id*/, void const** /*data*/, std::string& /*
 {
   return false;
 }
+
+void Storage_Container::setAttribute(std::string const& /*name*/, std::string const& /*value*/)
+{
+  throw std::runtime_error(
+    "Storage_Container::setAttribute does not accept any attributes for a container named " +
+    m_name);
+}

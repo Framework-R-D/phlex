@@ -1,8 +1,15 @@
 spack:
   specs:
   - phlex
-  - cmake
   - catch2
+  - cmake
+  - lcov
+  - ninja
+  - py-cmake-format
+  - py-gcovr
+  - |
+      llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib targets=x86
+
   view: true
   concretizer:
     unify: true

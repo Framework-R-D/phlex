@@ -3,8 +3,8 @@
 
 #include "phlex/model/algorithm_name.hpp"
 
-#include <span>
 #include <string>
+#include <vector>
 
 namespace phlex::experimental {
   class qualified_name {
@@ -32,7 +32,7 @@ namespace phlex::experimental {
     std::string name_;
   };
 
-  using qualified_names = std::span<qualified_name const, std::dynamic_extent>;
+  using qualified_names = std::vector<qualified_name>;
 
   class to_qualified_name {
   public:
@@ -45,6 +45,9 @@ namespace phlex::experimental {
   private:
     algorithm_name const& qualifier_;
   };
+
+  qualified_names to_qualified_names(std::string const& name,
+                                     std::vector<std::string> output_labels);
 }
 
 #endif // phlex_model_qualified_name_hpp

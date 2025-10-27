@@ -2,16 +2,16 @@
 #define phlex_core_glue_hpp
 
 #include "phlex/concurrency.hpp"
-#include "phlex/core/bound_function.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/double_bound_function.hpp"
-#include "phlex/core/node_catalog.hpp"
 #include "phlex/core/registrar.hpp"
+#include "phlex/core/registration_api.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/utilities/stripped_name.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -19,6 +19,7 @@
 
 namespace phlex::experimental {
   class configuration;
+  struct node_catalog;
 
   namespace detail {
     void verify_name(std::string const& name, configuration const* config);
@@ -49,23 +50,26 @@ namespace phlex::experimental {
     auto observe(std::string name, FT f, concurrency c = concurrency::serial)
     {
       detail::verify_name(name, config_);
-      return make_registration<observer>(
-        config_, std::move(name), algorithm_bits{bound_obj_, f}, c, graph_, nodes_, errors_);
+      return make_registration<observer_node>(config_,
+                                              std::move(name),
+                                              algorithm_bits{bound_obj_, std::move(f)},
+                                              c,
+                                              graph_,
+                                              nodes_,
+                                              errors_);
     }
 
     template <typename FT>
     auto predicate(std::string name, FT f, concurrency c = concurrency::serial)
     {
       detail::verify_name(name, config_);
-      return make_registration<
-        phlex::experimental::predicate>( // Disambiguate from function template name
-        config_,
-        std::move(name),
-        algorithm_bits{bound_obj_, f},
-        c,
-        graph_,
-        nodes_,
-        errors_);
+      return make_registration<predicate_node>(config_,
+                                               std::move(name),
+                                               algorithm_bits{bound_obj_, std::move(f)},
+                                               c,
+                                               graph_,
+                                               nodes_,
+                                               errors_);
     }
 
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)

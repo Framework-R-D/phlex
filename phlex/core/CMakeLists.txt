@@ -8,36 +8,41 @@ add_library(
   declared_fold.cpp
   declared_unfold.cpp
   declared_transform.cpp
+  detail/make_algorithm_name.cpp
+  detail/maybe_predicates.cpp
   detail/filter_impl.cpp
   dot/attributes.cpp
   dot/data_graph.cpp
   dot/function_graph.cpp
   edge_creation_policy.cpp
-  edge_maker.cpp
   end_of_message.cpp
   filter.cpp
   framework_graph.cpp
   glue.cpp
+  input_arguments.cpp
   message.cpp
   message_sender.cpp
   node_catalog.cpp
   multiplexer.cpp
   products_consumer.cpp
+  registrar.cpp
   specified_label.cpp
   store_counters.cpp
   )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
 
 # AppleClang 15.0 still treats std::views::join as experimental
-if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
-    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.5"
-    )
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION
+                                                   VERSION_GREATER_EQUAL "14.5"
+   )
   target_compile_options(phlex_core PRIVATE "-fexperimental-library")
-endif ()
+endif()
 
 target_link_libraries(
-  phlex_core PRIVATE TBB::tbb phlex::graph phlex::metaprogramming phlex::model
-                     phlex::utilities Boost::json PUBLIC spdlog::spdlog
+  phlex_core
+  PRIVATE TBB::tbb phlex::graph phlex::metaprogramming phlex::model
+          phlex::utilities Boost::json
+  PUBLIC spdlog::spdlog
   )
 
 # Interface library

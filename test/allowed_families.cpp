@@ -2,7 +2,7 @@
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <iostream>
 

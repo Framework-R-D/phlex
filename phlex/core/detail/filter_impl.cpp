@@ -1,5 +1,6 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
+#include <cassert>
 #include <string>
 
 namespace {
@@ -42,11 +43,17 @@ namespace phlex::experimental {
     return 0u;
   }
 
-  void decision_map::erase(std::size_t const msg_id) { results_.erase(msg_id); }
-
-  data_map::data_map(specified_labels const product_names) :
-    product_names_{product_names}, nargs_{product_names_.size()}
+  bool decision_map::claim(accessor& a, std::size_t const msg_id)
   {
+    return results_.find(a, msg_id);
+  }
+
+  void decision_map::erase(accessor& a) { results_.erase(a); }
+
+  data_map::data_map(specified_labels const& product_names) :
+    product_names_{&product_names}, nargs_{product_names.size()}
+  {
+    assert(nargs_ > 0);
   }
 
   data_map::data_map(for_output_t) : data_map{for_output_only} {}
@@ -68,7 +75,7 @@ namespace phlex::experimental {
 
     // Fill slots in the order of the input arguments to the downstream node.
     for (std::size_t i = 0; i != nargs_; ++i) {
-      if (elem[i] or not store->contains_product(product_names_[i].name.full()))
+      if (elem[i] or not store->contains_product((*product_names_)[i].name.full()))
         continue;
       elem[i] = store;
     }
@@ -83,10 +90,10 @@ namespace phlex::experimental {
     return false;
   }
 
-  std::vector<product_store_const_ptr> data_map::release_data(accessor& a, std::size_t const msg_id)
+  std::vector<product_store_const_ptr> data_map::release_data(std::size_t const msg_id)
   {
     std::vector<product_store_const_ptr> result;
-    if (stores_.find(a, msg_id)) {
+    if (decltype(stores_)::accessor a; stores_.find(a, msg_id)) {
       result = std::move(a->second);
       stores_.erase(a);
     }

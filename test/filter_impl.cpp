@@ -1,6 +1,6 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
 
@@ -13,24 +13,31 @@ TEST_CASE("Filter values", "[filtering]")
 
 TEST_CASE("Filter decision", "[filtering]")
 {
+  // This test does not exercise erasure of cached filter decisions
   decision_map decisions{2};
-  decisions.update({nullptr, 1, false});
+
+  SECTION("Test short-circuiting if false predicate result")
   {
-    auto const value = decisions.value(1);
-    CHECK(is_complete(value));
-    CHECK(to_boolean(value) == false);
-    decisions.erase(1);
+    decisions.update({nullptr, 1, false});
+    {
+      auto const value = decisions.value(1);
+      CHECK(is_complete(value));
+      CHECK(to_boolean(value) == false);
+    }
   }
-  decisions.update({nullptr, 3, true});
+
+  SECTION("Verify once a complete decision is made")
   {
-    auto const value = decisions.value(3);
-    CHECK(not is_complete(value));
-  }
-  decisions.update({nullptr, 3, true});
-  {
-    auto const value = decisions.value(3);
-    CHECK(is_complete(value));
-    CHECK(to_boolean(value) == true);
-    decisions.erase(3);
+    decisions.update({nullptr, 3, true});
+    {
+      auto const value = decisions.value(3);
+      CHECK(not is_complete(value));
+    }
+    decisions.update({nullptr, 3, true});
+    {
+      auto const value = decisions.value(3);
+      CHECK(is_complete(value));
+      CHECK(to_boolean(value) == true);
+    }
   }
 }

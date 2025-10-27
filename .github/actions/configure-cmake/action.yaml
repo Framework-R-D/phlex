@@ -1,0 +1,81 @@
+name: 'Configure CMake'
+description: 'Configures CMake with preset detection and customizable options'
+
+inputs:
+  source-path:
+    description: 'Path where source code is checked out'
+    required: false
+    default: 'phlex-src'
+  build-path:
+    description: 'Path for build directory'
+    required: false
+    default: 'phlex-build'
+  build-type:
+    description: 'CMake build type (Release, Debug, etc.)'
+    required: false
+    default: 'Release'
+  extra-options:
+    description: 'Additional CMake configuration options'
+    required: false
+    default: ''
+  enable-form:
+    description: 'Enable FORM support'
+    required: false
+    default: 'ON'
+  form-root-storage:
+    description: 'Enable FORM root storage'
+    required: false
+    default: 'ON'
+  generator:
+    description: 'Specify CMake generator'
+    required: false
+    default: 'Ninja'
+  cpp-compiler:
+    description: 'The C++ compiler to use'
+    required: false
+    default: 'g++'
+
+runs:
+  using: 'composite'
+  steps:
+    - shell: bash
+      run: |
+        # Source the entrypoint script
+        . "$GITHUB_WORKSPACE/$SOURCE_PATH/ci/entrypoint.sh"
+        
+        cd "$GITHUB_WORKSPACE/$BUILD_PATH"
+        
+        SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
+
+        # Determine preset usage
+        if [ -f "$SOURCE_DIR/CMakePresets.json" ]; then
+          echo "Configuring with CMake presets"
+          preset_arg="--preset=default"
+        else
+          echo "Configuring without presets"
+          unset preset_arg
+        fi
+
+        echo "Source directory: $SOURCE_DIR"
+        echo "Build directory: $(pwd)"
+        echo "Build type: $BUILD_TYPE"
+        echo "Generator: $GENERATOR"
+        echo "C++ compiler: $CPP_COMPILER"
+
+        # Configure CMake with Ninja generator
+        cmake $preset_arg "$SOURCE_DIR" \
+          -G "$GENERATOR" \
+          -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
+          -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+          -DPHLEX_USE_FORM="$ENABLE_FORM" \
+          -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE" \
+          $EXTRA_OPTIONS
+      env:
+        SOURCE_PATH: ${{ inputs.source-path }}
+        BUILD_PATH: ${{ inputs.build-path }}
+        BUILD_TYPE: ${{ inputs.build-type }}
+        EXTRA_OPTIONS: ${{ inputs.extra-options }}
+        ENABLE_FORM: ${{ inputs.enable-form }}
+        FORM_ROOT_STORAGE: ${{ inputs.form-root-storage }}
+        GENERATOR: ${{ inputs.generator }}
+        CPP_COMPILER: ${{ inputs.cpp-compiler }}

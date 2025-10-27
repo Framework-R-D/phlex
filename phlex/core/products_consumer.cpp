@@ -2,8 +2,10 @@
 
 namespace phlex::experimental {
 
-  products_consumer::products_consumer(algorithm_name name, std::vector<std::string> predicates) :
-    consumer{std::move(name), std::move(predicates)}
+  products_consumer::products_consumer(algorithm_name name,
+                                       std::vector<std::string> predicates,
+                                       specified_labels input_products) :
+    consumer{std::move(name), std::move(predicates)}, input_products_{std::move(input_products)}
   {
   }
 
@@ -16,4 +18,5 @@ namespace phlex::experimental {
     return port_for(product_label);
   }
 
+  specified_labels const& products_consumer::input() const noexcept { return input_products_; }
 }

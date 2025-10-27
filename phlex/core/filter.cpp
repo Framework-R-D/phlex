@@ -2,6 +2,7 @@
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/products_consumer.hpp"
 
+#include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
 
 using namespace phlex::experimental;
@@ -44,8 +45,6 @@ namespace phlex::experimental {
     unsigned int msg_id{};
     if (t.is_a<message>()) {
       auto const& msg = t.cast_to<message>();
-      data_.update(msg.id, msg.store);
-      msg_id = msg.id;
       if (msg.store->is_flush()) {
         // All flush messages are automatically forwarded to downstream ports.
         for (std::size_t i = 0ull; i != nargs_; ++i) {
@@ -53,6 +52,8 @@ namespace phlex::experimental {
         }
         return {};
       }
+      msg_id = msg.id;
+      data_.update(msg.id, msg.store);
     } else {
       auto const& result = t.cast_to<predicate_result>();
       decisions_.update(result);
@@ -69,18 +70,17 @@ namespace phlex::experimental {
       return {};
     }
 
-    if (to_boolean(filter_decision)) {
-      // FIXME: Can we get rid of this awful accessor?
-      data_map::accessor a;
-      auto const stores = data_.release_data(a, msg_id);
+    if (decision_map::accessor a; to_boolean(filter_decision) && decisions_.claim(a, msg_id)) {
+      auto const stores = data_.release_data(msg_id);
       if (empty(stores)) {
         return {};
       }
       for (std::size_t i = 0ull; i != nargs_; ++i) {
         downstream_ports_[i]->try_put({stores[i], eom, msg_id});
       }
+      // Decision must be erased while access is claimed
+      decisions_.erase(a);
     }
-    decisions_.erase(msg_id);
     return {};
   }
 }

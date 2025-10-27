@@ -19,3 +19,5 @@ Storage_Association::Storage_Association(std::string const& name) :
   Storage_Container::Storage_Container(maybe_remove_suffix(name))
 {
 }
+
+void Storage_Association::setAttribute(std::string const& /*key*/, std::string const& /*value*/) {}

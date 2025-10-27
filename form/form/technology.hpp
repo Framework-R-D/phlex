@@ -2,7 +2,7 @@
 #define __TECHNOLOGY_HPP__
 
 namespace form {
-  namespace Technology {
+  namespace technology {
     // Helper constants - make these constexpr too
     constexpr int ROOT_MAJOR = 1;
     constexpr int ROOT_TTREE_MINOR = 1;

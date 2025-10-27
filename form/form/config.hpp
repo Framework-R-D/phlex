@@ -1,9 +1,11 @@
-#ifndef __FORM_PARSE_CONFIG_HPP__
-#define __FORM_PARSE_CONFIG_HPP__
+#ifndef __FORM_CONFIG_HPP__
+#define __FORM_CONFIG_HPP__
 
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace form::experimental::config {
@@ -21,10 +23,10 @@ namespace form::experimental::config {
     }
   };
 
-  class parse_config {
+  class output_item_config {
   public:
-    parse_config() = default;
-    ~parse_config() = default;
+    output_item_config() = default;
+    ~output_item_config() = default;
 
     // Add a configuration item
     void addItem(std::string const& product_name, std::string const& file_name, int technology);
@@ -37,6 +39,16 @@ namespace form::experimental::config {
 
   private:
     std::vector<PersistenceItem> m_items;
+  };
+
+  struct tech_setting_config {
+    using table_t = std::vector<std::pair<std::string, std::string>>;
+    using map_t = std::map<int, std::unordered_map<std::string, table_t>>;
+    map_t file_settings;
+    map_t container_settings;
+
+    table_t getFileTable(int const technology, std::string const& fileName) const;
+    table_t getContainerTable(int const technology, std::string const& containerName) const;
   };
 
 } // namespace form::experimental::config

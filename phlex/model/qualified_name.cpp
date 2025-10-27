@@ -1,6 +1,7 @@
 #include "phlex/model/qualified_name.hpp"
 #include "phlex/model/algorithm_name.hpp"
 
+#include <algorithm>
 #include <regex>
 
 namespace phlex::experimental {
@@ -46,4 +47,12 @@ namespace phlex::experimental {
     return {algorithm_name::create(""), s};
   }
 
+  qualified_names to_qualified_names(std::string const& name,
+                                     std::vector<std::string> output_labels)
+  {
+    qualified_names outputs;
+    outputs.reserve(output_labels.size());
+    std::ranges::transform(output_labels, std::back_inserter(outputs), to_qualified_name{name});
+    return outputs;
+  }
 }

@@ -1,0 +1,75 @@
+name: Clang-Format Check
+run-name: "${{ github.actor }} checking code format"
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  detect-clang-format-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect C++ formatting changes
+      id: filter
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        file-type: cpp
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No clang-format related changes detected; job will be skipped."
+        else
+          echo "::group::Clang-format relevant files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  clang-format-check:
+    needs: detect-clang-format-changes
+    if: ${{ needs.detect-clang-format-changes.outputs.has_changes == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - name: Run clang-format lint
+      uses: DoozyX/clang-format-lint-action@v0.20
+      with:
+        source: "./phlex-src"
+        clangFormatVersion: 20
+        extensions: cpp,hpp,cpp.in,hpp.in
+
+  clang-format-check-skipped:
+    needs: detect-clang-format-changes
+    if: ${{ needs.detect-clang-format-changes.outputs.has_changes != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant C++ changes detected
+      run: echo "No clang-format relevant changes detected; check skipped."

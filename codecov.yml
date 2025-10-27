@@ -1,0 +1,44 @@
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "60...90"
+
+  status:
+    project:
+      default:
+        target: 55%
+        threshold: 2%
+        if_ci_failed: error
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+
+comment:
+  layout: "header, diff, flags, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+ignore:
+  - "test/**/*"           # Ignore test files
+  - "**/CMakeFiles/**"    # Ignore CMake generated files
+  - "build/**"            # Ignore build directories
+  - "ci/**"               # Ignore CI scripts
+  - "docs/**"             # Ignore documentation
+  - "examples/**"         # Ignore example code
+
+github_checks:
+  annotations: true
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: no
+      loop: no
+      method: no
+      macro: no

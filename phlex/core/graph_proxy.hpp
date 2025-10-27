@@ -2,7 +2,6 @@
 #define phlex_core_graph_proxy_hpp
 
 #include "phlex/concurrency.hpp"
-#include "phlex/configuration.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/node_catalog.hpp"
@@ -14,12 +13,11 @@
 #include <concepts>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
 namespace phlex::experimental {
-
+  class configuration;
   // ==============================================================================
   // Registering user functions
 
