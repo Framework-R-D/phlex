@@ -115,6 +115,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* args)
 
 static PyMappingMethods pcm_as_mapping = {nullptr, (binaryfunc)pcm_subscript, nullptr};
 
+// clang-format off
 PyTypeObject phlex::experimental::PhlexConfig_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
   (char*) "pyphlex.configuration",                   // tp_name
@@ -180,3 +181,4 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   , 0                                                // tp_versions_used
 #endif
 };
+// clang-format on

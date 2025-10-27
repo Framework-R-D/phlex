@@ -36,20 +36,20 @@ PyObject* phlex::experimental::wrap_module(phlex_module_t* module_)
 namespace {
 
   // callable object managing the callback
-  template<size_t N>
+  template <size_t N>
   struct py_callback {
     PyObject const* m_callable; // borrowed
 
-    template<typename... Args>
-    intptr_t call(Args... args) {
+    template <typename... Args>
+    intptr_t call(Args... args)
+    {
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
 
       // call the Python function
-      PyObject* result = PyObject_CallFunctionObjArgs(
-        (PyObject*)m_callable, (PyObject*)args..., nullptr
-      );
+      PyObject* result =
+        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
 
       // decrement all reference counts
       decref_all(args...);
@@ -58,8 +58,9 @@ namespace {
     }
 
   private:
-    template<typename... Args>
-    void decref_all(Args... args) {
+    template <typename... Args>
+    void decref_all(Args... args)
+    {
       (Py_DECREF((PyObject*)args), ...);
     }
   };
@@ -67,19 +68,16 @@ namespace {
   // use explicit instatiations to ensure that the function signature can
   // be derived by the graph builder
   struct py_callback_1 : public py_callback<1> {
-    intptr_t operator()(intptr_t arg0) {
-      return call(arg0);
-    }
+    intptr_t operator()(intptr_t arg0) { return call(arg0); }
   };
 
   struct py_callback_2 : public py_callback<2> {
-    intptr_t operator()(intptr_t arg0, intptr_t arg1) {
-      return call(arg0, arg1);
-    }
+    intptr_t operator()(intptr_t arg0, intptr_t arg1) { return call(arg0, arg1); }
   };
 
   struct py_callback_3 : public py_callback<3> {
-    intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) {
+    intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2)
+    {
       return call(arg0, arg1, arg2);
     }
   };
@@ -196,6 +194,7 @@ static PyMethodDef md_methods[] = {
   {(char*)"register", (PyCFunction)md_register, METH_VARARGS, (char*)"register a Python algorithm"},
   {(char*)nullptr, nullptr, 0, nullptr}};
 
+// clang-format off
 PyTypeObject phlex::experimental::PhlexModule_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
   (char*)"pyphlex.module",       // tp_name
@@ -261,3 +260,4 @@ PyTypeObject phlex::experimental::PhlexModule_Type = {
   , 0                            // tp_versions_used
 #endif
 };
+// clang-format on
