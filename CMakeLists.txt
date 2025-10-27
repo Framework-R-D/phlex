@@ -144,28 +144,51 @@ if(ENABLE_COVERAGE)
      )
     message(STATUS "Enabling code coverage instrumentation")
 
-    # Use CMake's built-in coverage flags Force these into the cache to override
-    # any empty defaults
-    set(CMAKE_CXX_FLAGS_COVERAGE
-        "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
-        CACHE STRING "C++ flags for Coverage build" FORCE
-        )
-    set(CMAKE_C_FLAGS_COVERAGE
-        "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
-        CACHE STRING "C flags for Coverage build" FORCE
-        )
-    set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
-        "--coverage"
-        CACHE STRING "Executable linker flags for Coverage build" FORCE
-        )
-    set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
-        "--coverage"
-        CACHE STRING "Shared library linker flags for Coverage build" FORCE
-        )
-    set(CMAKE_MODULE_LINKER_FLAGS_COVERAGE
-        "--coverage"
-        CACHE STRING "Module linker flags for Coverage build" FORCE
-        )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
+      set(CMAKE_CXX_FLAGS_COVERAGE
+          "-g -O0 -fprofile-instr-generate -fcoverage-mapping"
+          CACHE STRING "C++ flags for Clang Coverage build" FORCE
+          )
+      set(CMAKE_C_FLAGS_COVERAGE
+          "-g -O0 -fprofile-instr-generate -fcoverage-mapping"
+          CACHE STRING "C flags for Clang Coverage build" FORCE
+          )
+      set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
+          "-fprofile-instr-generate"
+          CACHE STRING "Executable linker flags for Clang Coverage build" FORCE
+          )
+      set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
+          "-fprofile-instr-generate"
+          CACHE STRING "Shared library linker flags for Clang Coverage build" FORCE
+          )
+      set(CMAKE_MODULE_LINKER_FLAGS_COVERAGE
+          "-fprofile-instr-generate"
+          CACHE STRING "Module linker flags for Clang Coverage build" FORCE
+          )
+    else() # GNU
+      # Use CMake's built-in coverage flags Force these into the cache to
+      # override any empty defaults
+      set(CMAKE_CXX_FLAGS_COVERAGE
+          "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
+          CACHE STRING "C++ flags for Coverage build" FORCE
+          )
+      set(CMAKE_C_FLAGS_COVERAGE
+          "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
+          CACHE STRING "C flags for Coverage build" FORCE
+          )
+      set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
+          "--coverage"
+          CACHE STRING "Executable linker flags for Coverage build" FORCE
+          )
+      set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
+          "--coverage"
+          CACHE STRING "Shared library linker flags for Coverage build" FORCE
+          )
+      set(CMAKE_MODULE_LINKER_FLAGS_COVERAGE
+          "--coverage"
+          CACHE STRING "Module linker flags for Coverage build" FORCE
+          )
+    endif()
 
     # Set the build type to Coverage if not specified
     if(NOT CMAKE_BUILD_TYPE)
@@ -235,6 +258,15 @@ if(BUILD_TESTING)
     find_program(GENHTML_EXECUTABLE genhtml)
     find_program(GCOVR_EXECUTABLE gcovr)
 
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      # For clang, we need llvm-profdata and llvm-cov
+      find_program(LLVM_PROFDATA_EXECUTABLE llvm-profdata)
+      find_program(LLVM_COV_EXECUTABLE llvm-cov)
+      if(NOT LLVM_PROFDATA_EXECUTABLE OR NOT LLVM_COV_EXECUTABLE)
+        message(FATAL_ERROR "llvm-profdata and llvm-cov are required for clang coverage")
+      endif()
+    endif()
+
     # Simple coverage target that just generates XML and HTML reports
     add_custom_target(
       coverage
@@ -279,30 +311,46 @@ if(BUILD_TESTING)
       list(REMOVE_DUPLICATES LCOV_EXTRACT_PATTERNS)
       string(JOIN ", " LCOV_EXTRACT_DESCRIPTION ${LCOV_EXTRACT_PATTERNS})
 
-      add_custom_target(
-        coverage-html
-        COMMAND
-          ${LCOV_EXECUTABLE} --directory . --capture --output-file coverage.info
-          --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative
-          --ignore-errors deprecated
-        COMMAND
-          ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS}
-          --output-file coverage.info.cleaned --rc branch_coverage=1
-          --ignore-errors mismatch,inconsistent,negative,unused,empty
-        COMMAND
-          ${LCOV_EXECUTABLE} --extract coverage.info.cleaned
-          ${LCOV_EXTRACT_PATTERNS} --output-file coverage.info.final --rc
-          branch_coverage=1 --ignore-errors
-          mismatch,inconsistent,negative,empty,unused
-        COMMAND
-          ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.final --title
-          "Phlex Coverage Report" --show-details --legend --branch-coverage
-          --ignore-errors mismatch,inconsistent,negative,empty
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT
-          "Generating HTML coverage report with lcov (filters: ${LCOV_EXTRACT_DESCRIPTION})"
-        VERBATIM
-        )
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_custom_target(
+          coverage-html
+          COMMAND
+            ${LLVM_PROFDATA_EXECUTABLE} merge -sparse default.profraw -o coverage.profdata
+          COMMAND
+            ${LLVM_COV_EXECUTABLE} show -format=html -output-dir=coverage-html -filename-equivalence
+            -show-line-counts-or-regions -show-instantiations
+            -path-equivalence=/,${CMAKE_SOURCE_DIR}
+            -object=${CMAKE_BINARY_DIR}/lib/libphlex.so
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT "Generating HTML coverage report with llvm-cov"
+          VERBATIM
+          )
+      else()
+        add_custom_target(
+          coverage-html
+          COMMAND
+            ${LCOV_EXECUTABLE} --directory . --capture --output-file coverage.info
+            --rc branch_coverage=1 --ignore-errors mismatch,inconsistent,negative
+            --ignore-errors deprecated
+          COMMAND
+            ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS}
+            --output-file coverage.info.cleaned --rc branch_coverage=1
+            --ignore-errors mismatch,inconsistent,negative,unused,empty
+          COMMAND
+            ${LCOV_EXECUTABLE} --extract coverage.info.cleaned
+            ${LCOV_EXTRACT_PATTERNS} --output-file coverage.info.final --rc
+            branch_coverage=1 --ignore-errors
+            mismatch,inconsistent,negative,empty,unused
+          COMMAND
+            ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.final --title
+            "Phlex Coverage Report" --show-details --legend --branch-coverage
+            --ignore-errors mismatch,inconsistent,negative,empty
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT
+            "Generating HTML coverage report with lcov (filters: ${LCOV_EXTRACT_DESCRIPTION})"
+          VERBATIM
+          )
+      endif()
       message(
         STATUS
           "Added 'coverage-html' target using lcov with filters: ${LCOV_EXTRACT_DESCRIPTION}"
@@ -382,19 +430,43 @@ if(BUILD_TESTING)
       # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120319 Modern GCC (15.2+)
       # has a regression causing negative hits in gcov output for complex C++
       # templates
-      add_custom_target(
-        coverage-xml
-        COMMAND
-          ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
-          ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS} --xml-pretty
-          --exclude-unreachable-branches --print-summary
-          --gcov-ignore-parse-errors=negative_hits.warn_once_per_file
-          --gcov-ignore-errors=no_working_dir_found -o coverage.xml .
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT
-          "Generating XML coverage report with gcovr (root: ${COVERAGE_SOURCE_ROOT})"
-        VERBATIM
-        )
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_custom_target(
+          coverage-xml
+          COMMAND
+            ${LLVM_PROFDATA_EXECUTABLE} merge -sparse default.profraw -o coverage.profdata
+          COMMAND
+            ${LLVM_COV_EXECUTABLE} export -format=lcov -instr-profile=coverage.profdata
+            -object=${CMAKE_BINARY_DIR}/lib/libphlex.so > coverage.info
+          COMMAND
+            ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS}
+            --output-file coverage.info.cleaned --rc branch_coverage=1
+            --ignore-errors mismatch,inconsistent,negative,unused,empty
+          COMMAND
+            ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
+            ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS} --xml-pretty
+            --exclude-unreachable-branches --print-summary
+            -o coverage.xml coverage.info.cleaned
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT
+            "Generating XML coverage report with llvm-cov and gcovr"
+          VERBATIM
+          )
+      else()
+        add_custom_target(
+          coverage-xml
+          COMMAND
+            ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
+            ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS} --xml-pretty
+            --exclude-unreachable-branches --print-summary
+            --gcov-ignore-parse-errors=negative_hits.warn_once_per_file
+            --gcov-ignore-errors=no_working_dir_found -o coverage.xml .
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT
+            "Generating XML coverage report with gcovr (root: ${COVERAGE_SOURCE_ROOT})"
+          VERBATIM
+          )
+      endif()
       message(
         STATUS
           "Added 'coverage-xml' target using gcovr with root: ${COVERAGE_SOURCE_ROOT}"

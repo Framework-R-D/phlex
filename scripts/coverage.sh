@@ -12,6 +12,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+COMPILER="g++"
 COVERAGE_TESTS_READY=0
 LAST_STALE_SOURCE=""
 LAST_STALE_GCNO=""
@@ -164,6 +165,9 @@ usage() {
     echo "  upload    Upload coverage to Codecov"
     echo "  all       Run setup, test, and generate all reports"
     echo "  help      Show this help message"
+    echo ""
+    echo "Options:"
+    echo "  --compiler <g++|clang++>  Specify the C++ compiler (default: ${COMPILER})"
     echo ""
     echo "Important: Coverage data workflow"
     echo "  1. After modifying source code, you MUST rebuild before generating reports:"
@@ -469,6 +473,7 @@ setup_coverage() {
             -DPHLEX_USE_FORM=ON
             -DFORM_USE_ROOT_STORAGE=ON
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            -DCMAKE_CXX_COMPILER="$COMPILER"
             -S "$SOURCE_ROOT"
             -B "$BUILD_DIR"
         )
@@ -605,10 +610,18 @@ generate_html() {
     cd "$BUILD_DIR"
 
     # Check if coverage data files exist
-    if ! find "$BUILD_DIR" -name "*.gcda" | head -1 | grep -q .; then
-        error "Expected coverage data files after ensuring tests, but none were found."
-        error "This indicates coverage tests failed to produce data."
-        exit 1
+    if [[ "$COMPILER" == "clang++" ]]; then
+        if ! find "$BUILD_DIR" -name "*.profraw" | head -1 | grep -q .; then
+            error "Expected coverage data files after ensuring tests, but none were found."
+            error "This indicates coverage tests failed to produce data."
+            exit 1
+        fi
+    else
+        if ! find "$BUILD_DIR" -name "*.gcda" | head -1 | grep -q .; then
+            error "Expected coverage data files after ensuring tests, but none were found."
+            error "This indicates coverage tests failed to produce data."
+            exit 1
+        fi
     fi
 
     cmake --build "$BUILD_DIR" --target coverage-html || warn "HTML generation failed (lcov issues), but continuing..."
@@ -647,13 +660,25 @@ show_summary() {
     cd "$BUILD_DIR"
 
     # Check if coverage data files exist
-    if ! find "$BUILD_DIR" -name "*.gcda" | head -1 | grep -q .; then
-        error "Expected coverage data files after ensuring tests, but none were found."
-        exit 1
+    if [[ "$COMPILER" == "clang++" ]]; then
+        if ! find "$BUILD_DIR" -name "*.profraw" | head -1 | grep -q .; then
+            error "Expected coverage data files after ensuring tests, but none were found."
+            exit 1
+        fi
+    else
+        if ! find "$BUILD_DIR" -name "*.gcda" | head -1 | grep -q .; then
+            error "Expected coverage data files after ensuring tests, but none were found."
+            exit 1
+        fi
     fi
 
     # Use gcovr directly for terminal-friendly summary output
     # (The CMake targets use gcovr/lcov for XML/HTML reports)
+    if [[ "$COMPILER" == "clang++" ]]; then
+        log "Using llvm-cov to generate coverage summary..."
+        llvm-cov report -instr-profile=coverage.profdata -object=lib/libphlex.so
+        return
+    fi
     log "Using gcovr to generate coverage summary..."
 
     # Extract phlex-specific paths from CMake cache for accurate filtering
@@ -936,6 +961,15 @@ fi
 # Parse options
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --compiler)
+            if [[ -n "$2" && "$2" != -* ]]; then
+                COMPILER="$2"
+                shift 2
+            else
+                error "Error: --compiler requires a value (e.g., g++ or clang++)"
+                exit 1
+            fi
+            ;;
         --help|-h|help)
             usage
             exit 0
