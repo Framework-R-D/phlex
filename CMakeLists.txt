@@ -315,7 +315,7 @@ if(BUILD_TESTING)
         add_custom_target(
           coverage-html
           COMMAND
-            ${LLVM_PROFDATA_EXECUTABLE} merge -sparse default.profraw -o coverage.profdata
+            sh -c '${LLVM_PROFDATA_EXECUTABLE} merge -sparse $(find . -name "*.profraw") -o coverage.profdata'
           COMMAND
             ${LLVM_COV_EXECUTABLE} show -format=html -output-dir=coverage-html -filename-equivalence
             -show-line-counts-or-regions -show-instantiations
@@ -434,7 +434,7 @@ if(BUILD_TESTING)
         add_custom_target(
           coverage-xml
           COMMAND
-            ${LLVM_PROFDATA_EXECUTABLE} merge -sparse default.profraw -o coverage.profdata
+            sh -c '${LLVM_PROFDATA_EXECUTABLE} merge -sparse $(find . -name "*.profraw") -o coverage.profdata'
           COMMAND
             ${LLVM_COV_EXECUTABLE} export -format=lcov -instr-profile=coverage.profdata
             -object=${CMAKE_BINARY_DIR}/lib/libphlex.so > coverage.info
@@ -452,6 +452,28 @@ if(BUILD_TESTING)
             "Generating XML coverage report with llvm-cov and gcovr"
           VERBATIM
           )
+
+        add_custom_target(
+          coverage-summary
+          COMMAND
+            sh -c '${LLVM_PROFDATA_EXECUTABLE} merge -sparse $(find . -name "*.profraw") -o coverage.profdata'
+          COMMAND
+            ${LLVM_COV_EXECUTABLE} export -format=lcov -instr-profile=coverage.profdata
+            -object=${CMAKE_BINARY_DIR}/lib/libphlex.so > coverage.info
+          COMMAND
+            ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS}
+            --output-file coverage.info.cleaned --rc branch_coverage=1
+            --ignore-errors mismatch,inconsistent,negative,unused,empty
+          COMMAND
+            ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
+            ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS}
+            --exclude-unreachable-branches --print-summary
+            coverage.info.cleaned
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT
+            "Generating coverage summary with llvm-cov and gcovr"
+          VERBATIM
+          )
       else()
         add_custom_target(
           coverage-xml
@@ -464,6 +486,20 @@ if(BUILD_TESTING)
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           COMMENT
             "Generating XML coverage report with gcovr (root: ${COVERAGE_SOURCE_ROOT})"
+          VERBATIM
+          )
+
+        add_custom_target(
+          coverage-summary
+          COMMAND
+            ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
+            ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS}
+            --exclude-unreachable-branches --print-summary
+            --gcov-ignore-parse-errors=negative_hits.warn_once_per_file
+            --gcov-ignore-errors=no_working_dir_found .
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT
+            "Generating coverage summary with gcovr (root: ${COVERAGE_SOURCE_ROOT})"
           VERBATIM
           )
       endif()
