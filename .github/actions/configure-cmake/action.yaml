@@ -65,7 +65,7 @@ runs:
         # Configure CMake with Ninja generator
         cmake $preset_arg "$SOURCE_DIR" \
           -G "$GENERATOR" \
-          -DCMAKE_CXX_COMPILER=g++ \
+          -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
           -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
           -DPHLEX_USE_FORM="$ENABLE_FORM" \
           -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE" \
