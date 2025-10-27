@@ -41,6 +41,15 @@ function(add_unit_test BASENAME)
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BASENAME}.d
     )
   set_tests_properties(${BASENAME} PROPERTIES ENVIRONMENT SPDLOG_LEVEL=debug)
+
+  # Register the test executable for tool analysis
+  if(ENABLE_CLANG_TIDY)
+    phlex_add_target_for_tool(CLANG_TIDY ${BASENAME})
+  endif()
+
+  if(ENABLE_COVERAGE)
+    phlex_add_target_for_tool(COVERAGE ${BASENAME})
+  endif()
 endfunction()
 
 function(add_catch_test BASENAME)

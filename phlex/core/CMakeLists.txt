@@ -64,4 +64,13 @@ target_link_libraries(
 
 add_library(phlex::core ALIAS phlex_core_int)
 
+# Register the core library for tool analysis
+if(ENABLE_CLANG_TIDY)
+  phlex_add_target_for_tool(CLANG_TIDY phlex_core)
+endif()
+
+if(ENABLE_COVERAGE)
+  phlex_add_target_for_tool(COVERAGE phlex_core)
+endif()
+
 install(TARGETS phlex_core)

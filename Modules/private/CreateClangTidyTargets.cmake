@@ -2,8 +2,7 @@
 #
 # Adds clang-tidy targets for the project with:
 #
-# * Recursive target discovery via DIRECTORY properties (BUILDSYSTEM_TARGETS,
-#   SUBDIRECTORIES)
+# * Target registration via phlex_add_target_for_tool()
 # * Optional inclusion of tests and FORM targets
 # * Robust absolute source path resolution (SOURCE_DIR, BINARY_DIR)
 # * Exclusion of generated .cxx under PROJECT_BINARY_DIR and common rootcling
@@ -23,6 +22,10 @@
 # ----------------------------------------------------------------------------
 
 include_guard()
+
+# Include the common target registration module
+include(Modules/private/TargetRegistration.cmake)
+
 option(CLANG_TIDY_INCLUDE_TESTS
        "Include test sources/targets in clang-tidy (requires BUILD_TESTING=ON)"
        ON
@@ -80,35 +83,6 @@ endif()
 # Internal helpers
 # ----------------------------------------------------------------------------
 
-# Recursively gather all build system targets starting from a source directory
-function(_phlex_gather_targets_recursive out_var directory)
-
-  # Targets defined in this directory scope
-  get_directory_property(
-    _this_dir_targets DIRECTORY "${directory}" BUILDSYSTEM_TARGETS
-    )
-  if(_this_dir_targets)
-    list(APPEND _collected ${_this_dir_targets})
-  endif()
-
-  # Recurse into subdirectories created by add_subdirectory()
-  get_directory_property(_subs DIRECTORY "${directory}" SUBDIRECTORIES)
-  foreach(_sd IN LISTS _subs)
-    _phlex_gather_targets_recursive(_child "${_sd}")
-    if(_child)
-      list(APPEND _collected ${_child})
-    endif()
-  endforeach()
-
-  if(_collected)
-    list(REMOVE_DUPLICATES _collected)
-  endif()
-  set(${out_var}
-      "${_collected}"
-      PARENT_SCOPE
-      )
-endfunction()
-
 # Collect absolute source files for clang-tidy
 #
 # * honors CLANG_TIDY_INCLUDE_TESTS/FORM
@@ -116,8 +90,8 @@ endfunction()
 # * excludes generated .cxx under PROJECT_BINARY_DIR and rootcling dictionary
 #   patterns
 function(_phlex_collect_clang_tidy_sources out_var)
-  # Traverse the tree from the current directory
-  _phlex_gather_targets_recursive(_all_targets "${CMAKE_CURRENT_BINARY_DIR}")
+  # Get the list of registered targets from the global property
+  get_property(_all_targets GLOBAL PROPERTY PHLEX_TOOL_TARGETS_CLANG_TIDY)
 
   # Precompute an escaped PROJECT_BINARY_DIR for regex checks
   set(_proj_bin_dir_re "${PROJECT_BINARY_DIR}")
