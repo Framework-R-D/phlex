@@ -6,11 +6,9 @@
 
 #include "wrap.hpp"
 
-
 using namespace phlex::experimental;
 
 static bool initialize();
-
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
@@ -62,7 +60,6 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 
   PyEval_SaveThread();
 }
-
 
 static bool initialize()
 {
@@ -116,4 +113,3 @@ static bool initialize()
 
   return true;
 }
-
