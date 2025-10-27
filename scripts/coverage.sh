@@ -549,20 +549,13 @@ generate_xml() {
     check_build_dir
     log "Generating XML coverage report..."
     cd "$BUILD_DIR"
-
+    local raw_ext="gcda"
+    [[ "$COMPILER" == "clang++" ]] && raw_text="profraw"
     # Check if coverage data files exist
-    if [[ "$COMPILER" == "clang++" ]]; then
-        if ! find "$BUILD_DIR" -name "*.profraw" | head -1 | grep -q .; then
-            error "Expected coverage data files after ensuring tests, but none were found."
-            error "This indicates coverage tests failed to produce data."
-            exit 1
-        fi
-    else
-        if ! find "$BUILD_DIR" -name "*.gcda" | head -1 | grep -q .; then
-            error "Expected coverage data files after ensuring tests, but none were found."
-            error "This indicates coverage tests failed to produce data."
-            exit 1
-        fi
+    if ! find "$BUILD_DIR" -name "*.$raw_ext" | head -1 | grep -q .; then
+      error "Missing expected coverage data files (*.$raw_ext) after tests."
+      error "This indicates coverage tests failed to produce data."
+      exit 1
     fi
 
     # Use CMake target to generate XML report
