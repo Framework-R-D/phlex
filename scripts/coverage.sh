@@ -442,6 +442,14 @@ setup_coverage() {
                 warn "CMake not configured for coverage (BUILD_TYPE=$build_type, ENABLE_COVERAGE=$coverage_enabled)"
                 needs_reconfigure=true
                 needs_clean=true
+            else
+                # Check if the compiler has changed
+                local cached_compiler=$(grep "CMAKE_CXX_COMPILER:FILEPATH=" "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2)
+                if [[ -n "$cached_compiler" && "$(basename "$cached_compiler")" != "$COMPILER" ]]; then
+                    warn "Compiler has changed from $(basename "$cached_compiler") to $COMPILER. Forcing clean rebuild."
+                    needs_reconfigure=true
+                    needs_clean=true
+                fi
             fi
         else
             warn "CMakeCache.txt not found - needs configuration"
