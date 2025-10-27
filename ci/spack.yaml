@@ -2,6 +2,7 @@ spack:
   specs:
   - phlex
   - catch2
+  - cetmodules
   - cmake
   - lcov
   - ninja

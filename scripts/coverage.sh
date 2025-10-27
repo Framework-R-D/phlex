@@ -16,6 +16,9 @@ COVERAGE_TESTS_READY=0
 LAST_STALE_SOURCE=""
 LAST_STALE_GCNO=""
 
+# Default build directory for coverage runs
+DEFAULT_COVERAGE_BUILD_DIR="build-coverage"
+
 # Function definitions
 
 # Get absolute path (preserving symlinks - DO NOT resolve them)
@@ -39,55 +42,6 @@ warn() {
     echo -e "${YELLOW}[Coverage]${NC} $1"
 }
 
-GENERATED_SYMLINK_ROOT=""
-
-prepare_generated_symlinks() {
-    local build_root="${1:?build root required}"
-    local repo_root="${2:?repository root required}"
-
-    GENERATED_SYMLINK_ROOT="$repo_root/.coverage-generated"
-
-    log "Preparing symlink tree for generated sources at $GENERATED_SYMLINK_ROOT"
-
-    if [[ -d "$GENERATED_SYMLINK_ROOT" ]]; then
-        rm -rf "$GENERATED_SYMLINK_ROOT"
-    fi
-
-    mkdir -p "$GENERATED_SYMLINK_ROOT"
-
-    local -i found=0
-    while IFS= read -r -d '' src_path; do
-        found=1
-        local rel_path="${src_path#$build_root/}"
-        if [[ "$rel_path" == "$src_path" ]]; then
-            rel_path="$(basename "$src_path")"
-        fi
-
-        local dest_path="$GENERATED_SYMLINK_ROOT/$rel_path"
-        mkdir -p "$(dirname "$dest_path")"
-
-        ln -sfn "$src_path" "$dest_path"
-    done < <(
-        find "$build_root" -type f \
-            \( -name '*.c' -o -name '*.C' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \
-               -o -name '*.c\+\+' -o -name '*.[it]cc' \
-               -o -name '*.h' -o -name '*.H' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \
-               -o -name '*.h\+\+' \) \
-            -print0
-    )
-
-    if [[ $found -eq 0 ]]; then
-        log "No generated C/C++ sources detected in $build_root"
-    fi
-}
-
-cleanup_generated_symlinks() {
-    if [[ -n "$GENERATED_SYMLINK_ROOT" && -d "$GENERATED_SYMLINK_ROOT" ]]; then
-        rm -rf "$GENERATED_SYMLINK_ROOT"
-    fi
-    GENERATED_SYMLINK_ROOT=""
-}
-
 # Detect build environment and set appropriate paths
 detect_build_environment() {
     # Check if we're in a multi-project structure by looking for workspace indicators
@@ -101,7 +55,7 @@ detect_build_environment() {
         # Multi-project mode - phlex is part of a larger project
         SOURCE_ROOT="$(dirname "$PROJECT_SOURCE")"  # srcs directory
         WORKSPACE_ROOT="$(get_absolute_path "$workspace_candidate")"
-        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/build}"
+        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/$DEFAULT_COVERAGE_BUILD_DIR}"
         log "Detected multi-project build mode"
         log "Multi-project source root: $SOURCE_ROOT"
         log "Project source: $PROJECT_SOURCE"
@@ -110,7 +64,7 @@ detect_build_environment() {
         # Standalone mode - building phlex directly
         SOURCE_ROOT="$PROJECT_SOURCE"
         WORKSPACE_ROOT="$(get_absolute_path "$(dirname "$PROJECT_SOURCE")")"
-        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/build}"
+        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/$DEFAULT_COVERAGE_BUILD_DIR}"
         log "Detected standalone build mode"
         log "Project source: $PROJECT_SOURCE"
         log "Workspace root: $WORKSPACE_ROOT"
@@ -118,7 +72,7 @@ detect_build_environment() {
         # Fallback to original logic
         WORKSPACE_ROOT="$(get_absolute_path "$(dirname "$(dirname "$PROJECT_SOURCE")")")"
         SOURCE_ROOT="$PROJECT_SOURCE"
-        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/build}"
+        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/$DEFAULT_COVERAGE_BUILD_DIR}"
         warn "Could not detect build mode, using fallback paths"
     fi
 
@@ -164,6 +118,10 @@ usage() {
     echo "  upload    Upload coverage to Codecov"
     echo "  all       Run setup, test, and generate all reports"
     echo "  help      Show this help message"
+    echo ""
+    echo "Notes:"
+    echo "  - The coverage-clang preset generates LLVM text summaries via 'report', 'summary', 'view', and 'all'."
+    echo "  - Commands 'xml', 'html', and 'upload' require GCC instrumentation (coverage-gcc preset)."
     echo ""
     echo "Important: Coverage data workflow"
     echo "  1. After modifying source code, you MUST rebuild before generating reports:"
@@ -245,7 +203,7 @@ ensure_coverage_configured() {
         if [[ "$build_type" != "Coverage" || "$coverage_enabled" != "ON" ]]; then
             warn "Coverage build cache not configured correctly (BUILD_TYPE=$build_type, ENABLE_COVERAGE=$coverage_enabled)"
             need_setup=1
-        else
+        elif [[ "$COVERAGE_PRESET" != "coverage-clang" ]]; then
             find_stale_instrumentation "$BUILD_DIR" "$PROJECT_SOURCE"
             local instrumentation_status=$?
             if [[ $instrumentation_status -eq 1 ]]; then
@@ -289,6 +247,15 @@ run_tests_internal() {
 
 ensure_tests_current() {
     if [[ "${COVERAGE_TESTS_READY:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+        ensure_coverage_configured
+        if [[ "${COVERAGE_TESTS_READY:-0}" != "1" ]]; then
+            run_tests_internal "auto"
+        fi
+        COVERAGE_TESTS_READY=1
         return 0
     fi
 
@@ -461,32 +428,17 @@ setup_coverage() {
     if [[ "$needs_reconfigure" == "true" ]]; then
         log "Configuring CMake for coverage build..."
 
-        # Common CMake configuration flags
-        CMAKE_COMMON_FLAGS=(
-            -G Ninja
-            -DCMAKE_BUILD_TYPE=Coverage
-            -DENABLE_COVERAGE=ON
-            -DPHLEX_USE_FORM=ON
-            -DFORM_USE_ROOT_STORAGE=ON
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-            -S "$SOURCE_ROOT"
-            -B "$BUILD_DIR"
-        )
-
-        # Check if we have CMake presets available
-        if [[ -f "$SOURCE_ROOT/CMakePresets.json" ]]; then
-            log "Using CMake presets with Ninja generator..."
-            cmake --preset default "${CMAKE_COMMON_FLAGS[@]}" || {
-                error "CMake configuration failed"
-                exit 1
-            }
-        else
-            log "Configuring CMake with Ninja generator..."
-            cmake "${CMAKE_COMMON_FLAGS[@]}" || {
-                error "CMake configuration failed"
-                exit 1
-            }
-        fi
+        local preset_name="${COVERAGE_PRESET:-coverage-gcc}"
+        log "Using CMake coverage preset: $preset_name"
+        cmake --preset "$preset_name" \
+            -G Ninja \
+            -DPHLEX_USE_FORM=ON \
+            -DFORM_USE_ROOT_STORAGE=ON \
+            -S "$SOURCE_ROOT" \
+            -B "$BUILD_DIR" || {
+            error "CMake configuration failed"
+            exit 1
+        }
     else
         log "CMake already configured for coverage - skipping reconfiguration"
     fi
@@ -506,6 +458,16 @@ clean_coverage() {
     cd "$BUILD_DIR"
 
     cmake --build "$BUILD_DIR" --target coverage-clean
+
+    if ! cmake --build "$BUILD_DIR" --target coverage-symlink-clean; then
+        warn "coverage-symlink-clean target unavailable or failed; .coverage-generated may remain."
+    fi
+
+    local artifact_dir="$WORKSPACE_ROOT/coverage-artifacts"
+    if [[ -d "$artifact_dir" ]]; then
+        log "Removing coverage artifact bundle: $artifact_dir"
+        rm -rf "$artifact_dir"
+    fi
 
     success "Coverage data cleaned!"
 }
@@ -547,49 +509,13 @@ generate_xml() {
         log "Source paths in coverage.xml:"
         grep -o '<source>.*</source>' "$output_file" | head -5 | sed 's/^/  /'
 
-        # Normalize paths so tooling (e.g., Codecov, VS Code coverage gutters) can locate sources
         log "Normalizing coverage XML paths for tooling compatibility..."
-
-        prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
-
-        local cmake_cache="$BUILD_DIR/CMakeCache.txt"
-        local cmake_home_dir=""
-        if [[ -f "$cmake_cache" ]]; then
-            cmake_home_dir="$(
-                grep '^CMAKE_HOME_DIRECTORY:' "$cmake_cache" \
-                    | cut -d= -f2 | head -n1 || true
-            )"
-        fi
-
-        local repo_root="$PROJECT_SOURCE"
-        local -a normalize_args=(
-            --repo-root "$repo_root"
-            --source-dir "$repo_root"
-        )
-
-        if [[ -n "$cmake_home_dir" ]]; then
-            normalize_args+=(--coverage-root "$cmake_home_dir")
-        fi
-
-        if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
-            normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
-        fi
-
-        if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
-            "${normalize_args[@]}" \
-            "$output_file"; then
-            cleanup_generated_symlinks
+        if ! cmake --build "$BUILD_DIR" --target coverage-xml-normalize; then
             error "Failed to normalize coverage XML. Adjust filters/excludes and retry."
             exit 1
         fi
-
-        cleanup_generated_symlinks
-
-        success "XML coverage report generated: $output_file"
-
-        # Optionally copy to workspace root for easier access
-        cp "$output_file" "$WORKSPACE_ROOT/coverage.xml"
-        log "Coverage XML also available at: $WORKSPACE_ROOT/coverage.xml"
+    success "XML coverage report generated: $output_file"
+    copy_gcov_artifacts_to_workspace
     else
         error "Failed to generate XML coverage report"
         error "coverage.xml not found in $BUILD_DIR"
@@ -619,121 +545,81 @@ generate_html() {
         # Normalize and copy the final .info file for VS Code Coverage Gutters
         if [[ -f coverage.info.final ]]; then
             log "Normalizing LCOV coverage paths for editor tooling..."
-            if ! python3 "$SCRIPT_DIR/normalize_coverage_lcov.py" \
-                --repo-root "$WORKSPACE_ROOT" \
-                --coverage-root "$WORKSPACE_ROOT" \
-                --coverage-alias "$PROJECT_SOURCE" \
-                "$BUILD_DIR/coverage.info.final"; then
+            if ! cmake --build "$BUILD_DIR" --target coverage-html-normalize; then
                 error "Failed to normalize LCOV coverage report. Adjust filters/excludes and retry."
                 exit 1
             fi
-
-            log "Copying lcov.info to workspace root for VS Code Coverage Gutters..."
-            cp coverage.info.final "$WORKSPACE_ROOT/lcov.info"
-            success "Coverage info file available at: $WORKSPACE_ROOT/lcov.info"
-
-            # Maintain legacy coverage.info for downstream tooling (e.g., Codecov uploads)
-            cp coverage.info.final "$WORKSPACE_ROOT/coverage.info"
+            copy_gcov_artifacts_to_workspace
         fi
     else
         warn "HTML coverage report not available (lcov dependency issues)"
     fi
 }
 
+copy_gcov_artifacts_to_workspace() {
+    local xml_path="$BUILD_DIR/coverage.xml"
+    if [[ -f "$xml_path" ]]; then
+        cp "$xml_path" "$WORKSPACE_ROOT/coverage.xml"
+        log "Coverage XML also available at: $WORKSPACE_ROOT/coverage.xml"
+    fi
+
+    local info_path="$BUILD_DIR/coverage.info.final"
+    if [[ -f "$info_path" ]]; then
+        log "Copying lcov.info to workspace root for VS Code Coverage Gutters..."
+        cp "$info_path" "$WORKSPACE_ROOT/lcov.info"
+        success "Coverage info file available at: $WORKSPACE_ROOT/lcov.info"
+        cp "$info_path" "$WORKSPACE_ROOT/coverage.info"
+    fi
+}
+
+generate_llvm_report() {
+    if [[ "$COVERAGE_PRESET" != "coverage-clang" ]]; then
+        error "LLVM coverage reports are only available with the coverage-clang preset"
+        exit 1
+    fi
+
+    detect_build_environment
+
+    if [[ ! -d "$BUILD_DIR" ]] || [[ ! -f "$BUILD_DIR/CMakeCache.txt" ]]; then
+        setup_coverage
+    fi
+
+    local profraw_found
+    profraw_found=$(find "$BUILD_DIR" -name "*.profraw" -type f -size +0c -print -quit 2>/dev/null || true)
+    if [[ -z "$profraw_found" ]]; then
+        warn "No LLVM profile data found; running tests to generate profiles..."
+        run_tests_internal "auto"
+        profraw_found=$(find "$BUILD_DIR" -name "*.profraw" -type f -size +0c -print -quit 2>/dev/null || true)
+        if [[ -z "$profraw_found" ]]; then
+            error "LLVM profile data is still missing after running tests"
+            exit 1
+        fi
+    fi
+
+    log "Generating LLVM coverage summary..."
+    if ! cmake --build "$BUILD_DIR" --target coverage-llvm; then
+        error "Failed to generate LLVM coverage summary"
+        exit 1
+    fi
+
+    local summary_path="$BUILD_DIR/coverage-llvm.txt"
+    if [[ -f "$summary_path" ]]; then
+        success "LLVM coverage summary generated: $summary_path"
+        if [[ -n "${WORKSPACE_ROOT:-}" ]]; then
+            cp "$summary_path" "$WORKSPACE_ROOT/coverage-llvm.txt"
+            log "Coverage summary also available at: $WORKSPACE_ROOT/coverage-llvm.txt"
+        fi
+    else
+        error "Expected LLVM coverage summary not found at $summary_path"
+        exit 1
+    fi
+}
+
 show_summary() {
     ensure_tests_current
     check_build_dir
-    log "Generating coverage summary..."
-    cd "$BUILD_DIR"
-
-    # Check if coverage data files exist
-    if ! find "$BUILD_DIR" -name "*.gcda" | head -1 | grep -q .; then
-        error "Expected coverage data files after ensuring tests, but none were found."
-        exit 1
-    fi
-
-    # Use gcovr directly for terminal-friendly summary output
-    # (The CMake targets use gcovr/lcov for XML/HTML reports)
-    log "Using gcovr to generate coverage summary..."
-
-    # Extract phlex-specific paths from CMake cache for accurate filtering
-    local cmake_cache="$BUILD_DIR/CMakeCache.txt"
-    if [[ ! -f "$cmake_cache" ]]; then
-        error "CMake cache not found: $cmake_cache"
-        error "Run '$0 setup' first to configure the build"
-        exit 1
-    fi
-
-    local phlex_binary_dir="$(grep '^phlex_BINARY_DIR:' "$cmake_cache" | cut -d= -f2)"
-    local phlex_source_dir="$(grep '^phlex_SOURCE_DIR:' "$cmake_cache" | cut -d= -f2)"
-
-    if [[ -z "$phlex_binary_dir" || -z "$phlex_source_dir" ]]; then
-        error "Could not extract phlex paths from CMake cache"
-        error "CMake cache may be incomplete or from a different project"
-        exit 1
-    fi
-
-    # Resolve CMake paths to physical paths (they may contain symlinks)
-    local phlex_binary_physical="$(cd "$phlex_binary_dir" && pwd -P)"
-    local phlex_source_physical="$(cd "$phlex_source_dir" && pwd -P)"
-
-    # Build up the same filter set used by the CMake coverage target so manual
-    # summaries match CI and IDE overlays. Capture both the logical paths that
-    # CMake reports (which may include workspace symlinks) and the physical
-    # paths that gcov emits after resolving symlinks.
-    local -a gcovr_filter_paths=("$phlex_source_dir" "$phlex_binary_dir")
-
-    if [[ "$phlex_source_physical" != "$phlex_source_dir" ]]; then
-        gcovr_filter_paths+=("$phlex_source_physical")
-    fi
-
-    if [[ "$phlex_binary_physical" != "$phlex_binary_dir" ]]; then
-        gcovr_filter_paths+=("$phlex_binary_physical")
-    fi
-
-    # Deduplicate while preserving order.
-    declare -A _seen_filter
-    local -a gcovr_filter_args=()
-    local filter_path
-    for filter_path in "${gcovr_filter_paths[@]}"; do
-        if [[ -z "$filter_path" || -n "${_seen_filter[$filter_path]:-}" ]]; then
-            continue
-        fi
-        _seen_filter[$filter_path]=1
-
-        local escaped_path
-        escaped_path="$(echo "$filter_path" | sed 's|[][$*.^\\]|\\&|g')"
-        gcovr_filter_args+=("--filter" "${escaped_path}/.*")
-        log "gcovr filter: ${escaped_path}/.*"
-    done
-
-    if [[ ${#gcovr_filter_args[@]} -eq 0 ]]; then
-        error "No gcovr filter paths were generated"
-        exit 1
-    fi
-
-    # Workaround for GCC bug #120319: "Unexpected number of branch outcomes and line coverage for C++ programs"
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120319
-    # Modern GCC (15.2+) has a regression causing negative hits in gcov output for complex C++ templates
-    # Use WORKSPACE_ROOT (symlink) for --root to generate relative paths
-    # Use physical filters because gcovr internally resolves paths to physical
-    # Filter to include only files from phlex_BINARY_DIR and phlex_SOURCE_DIR (from CMake cache)
-    # Exclude test files and external dependencies (from /scratch)
-    (cd "$WORKSPACE_ROOT" && gcovr --root "$WORKSPACE_ROOT" \
-        --object-directory "$BUILD_DIR" \
-        "${gcovr_filter_args[@]}" \
-        --exclude '.*/test/.*' \
-        --exclude '.*/_deps/.*' \
-        --exclude '.*/external/.*' \
-        --exclude '.*/third[-_]?party/.*' \
-        --exclude '.*/boost/.*' \
-        --exclude '.*/tbb/.*' \
-        --exclude '/usr/.*' \
-        --exclude '/opt/.*' \
-        --exclude '/scratch/.*' \
-        --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
-        --gcov-ignore-errors=no_working_dir_found \
-        --print-summary)
+    log "Generating coverage summary via CMake target..."
+    cmake --build "$BUILD_DIR" --target coverage-summary
 }
 
 view_html() {
@@ -774,42 +660,10 @@ upload_codecov() {
     cd "$BUILD_DIR"
 
     log "Ensuring coverage XML paths are normalized before upload..."
-
-    prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
-
-    local cmake_cache="$BUILD_DIR/CMakeCache.txt"
-    local cmake_home_dir=""
-    if [[ -f "$cmake_cache" ]]; then
-        cmake_home_dir="$(
-            grep '^CMAKE_HOME_DIRECTORY:' "$cmake_cache" \
-                | cut -d= -f2 | head -n1 || true
-        )"
-    fi
-
-    local repo_root="$PROJECT_SOURCE"
-    local -a upload_normalize_args=(
-        --repo-root "$repo_root"
-        --source-dir "$repo_root"
-    )
-
-    if [[ -n "$cmake_home_dir" ]]; then
-        upload_normalize_args+=(--coverage-root "$cmake_home_dir")
-    fi
-
-    if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
-        upload_normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
-    fi
-
-    if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
-        "${upload_normalize_args[@]}" \
-        "$BUILD_DIR/coverage.xml"; then
-        cleanup_generated_symlinks
+    if ! cmake --build "$BUILD_DIR" --target coverage-xml-normalize; then
         error "Coverage XML failed normalization. Investigate filters/excludes before uploading."
         exit 1
     fi
-
-    cleanup_generated_symlinks
-
     log "Coverage XML source roots after normalization:"
     grep -o '<source>.*</source>' "$BUILD_DIR/coverage.xml" | head -5 | sed 's/^/  /'
 
@@ -869,16 +723,34 @@ upload_codecov() {
 run_all() {
     setup_coverage
     run_tests
-    generate_xml
-    generate_html
-    show_summary
+    if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+        generate_llvm_report
+        success "Complete LLVM coverage analysis finished!"
+        log "Summary report: $BUILD_DIR/coverage-llvm.txt"
+    else
+        check_build_dir
+        log "Generating GCC coverage report bundle..."
+        if ! cmake --build "$BUILD_DIR" --target coverage-gcov; then
+            error "Failed to generate GCC coverage reports during run_all"
+            exit 1
+        fi
+        copy_gcov_artifacts_to_workspace
 
-    success "Complete coverage analysis finished!"
-    log "XML report: $BUILD_DIR/coverage.xml"
-    if [[ -d "$BUILD_DIR/coverage-html" ]]; then
-        log "HTML report: $BUILD_DIR/coverage-html/index.html"
+        success "Complete coverage analysis finished!"
+        log "XML report: $BUILD_DIR/coverage.xml"
+        if [[ -d "$BUILD_DIR/coverage-html" ]]; then
+            log "HTML report: $BUILD_DIR/coverage-html/index.html"
+        fi
     fi
 }
+
+
+# Select coverage preset: coverage-gcc (default) or coverage-clang
+COVERAGE_PRESET="${COVERAGE_PRESET:-coverage-gcc}"
+if [[ "$1" == "--preset" && -n "$2" ]]; then
+    COVERAGE_PRESET="$2"
+    shift 2
+fi
 
 # Execute a single command
 execute_command() {
@@ -894,22 +766,55 @@ execute_command() {
             run_tests
             ;;
         report)
-            generate_xml
-            generate_html
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+                generate_llvm_report
+            else
+                ensure_tests_current
+                check_build_dir
+                log "Generating GCC coverage report bundle..."
+                if ! cmake --build "$BUILD_DIR" --target coverage-gcov; then
+                    error "Failed to generate GCC coverage reports"
+                    exit 1
+                fi
+                copy_gcov_artifacts_to_workspace
+                success "GCC coverage reports generated successfully!"
+            fi
             ;;
         xml)
-            generate_xml
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+                error "XML report generation is not supported with the coverage-clang preset. Use 'report' or switch to coverage-gcc."
+                exit 1
+            else
+                generate_xml
+            fi
             ;;
         html)
-            generate_html
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+                error "HTML report generation is not supported with the coverage-clang preset. Use 'report' or switch to coverage-gcc."
+                exit 1
+            else
+                generate_html
+            fi
             ;;
         view)
-            view_html
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+                generate_llvm_report
+            else
+                view_html
+            fi
             ;;
         summary)
-            show_summary
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+                generate_llvm_report
+            else
+                show_summary
+            fi
             ;;
         upload)
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+                error "Codecov upload currently supports GCC/gcov outputs. Switch to coverage-gcc to upload XML coverage."
+                exit 1
+            fi
             upload_codecov
             ;;
         all)
