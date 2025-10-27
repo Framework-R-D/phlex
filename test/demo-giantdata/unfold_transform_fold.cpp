@@ -1,7 +1,12 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/async_driver.hpp"
+#include "test/demo-giantdata/summed_clamped_waveforms.hpp"
+#include "test/demo-giantdata/waveforms.hpp"
 #include "test/products_for_output.hpp"
 
 #include "test/demo-giantdata/log_record.hpp"
@@ -9,7 +14,7 @@
 #include "test/demo-giantdata/waveform_generator.hpp"
 #include "test/demo-giantdata/waveform_generator_input.hpp"
 
-#include <algorithm>
+#include <cstddef>
 #include <ranges>
 #include <string>
 #include <vector>
@@ -19,32 +24,32 @@ using namespace phlex::experimental;
 
 // Call the program as follows:
 // ./unfold_transform_fold [number of spills [APAs per spill]]
-int main(int argc, char* argv[])
+auto main(int argc, char* argv[]) -> int
 {
 
   std::vector<std::string> const args(argv + 1, argv + argc);
-  std::size_t const n_runs = [&args]() {
+  std::size_t const n_runs = [&args]() -> unsigned long {
     if (args.size() > 1) {
       return std::stoul(args[0]);
     }
     return 1ul;
   }();
 
-  std::size_t const n_subruns = [&args]() {
+  std::size_t const n_subruns = [&args]() -> unsigned long {
     if (args.size() > 2) {
       return std::stoul(args[1]);
     }
     return 1ul;
   }();
 
-  std::size_t const n_spills = [&args]() {
+  std::size_t const n_spills = [&args]() -> unsigned long {
     if (args.size() > 2) {
       return std::stoul(args[1]);
     }
     return 1ul;
   }();
 
-  int const apas_per_spill = [&args]() {
+  int const apas_per_spill = [&args]() -> int {
     if (args.size() > 3) {
       return std::stoi(args[2]);
     }
@@ -57,7 +62,7 @@ int main(int argc, char* argv[])
   // We may or may not want to create pre-generated data set categories like this.
   // Each data set category gets an index number in the hierarchy.
 
-  auto source = [n_runs, n_subruns, n_spills, wires_per_spill](framework_driver& driver) {
+  auto source = [n_runs, n_subruns, n_spills, wires_per_spill](framework_driver& driver) -> void {
     auto job_store = product_store::base();
     driver.yield(job_store);
 
@@ -115,7 +120,7 @@ int main(int argc, char* argv[])
 
     g.with<demo::WaveformGenerator>(
        &demo::WaveformGenerator::predicate,
-       [](demo::WaveformGenerator const& wg, std::size_t running_value) {
+       [](demo::WaveformGenerator const& wg, std::size_t running_value) -> std::pair<std::size_t, Waveforms> {
          return wg.op(running_value, chunksize);
        },
        concurrency::unlimited)
@@ -126,7 +131,7 @@ int main(int argc, char* argv[])
 
     // Add the transform node to the graph.
     demo::log_record("add_transform");
-    auto wrapped_user_function = [](phlex::experimental::handle<demo::Waveforms> hwf) {
+    auto wrapped_user_function = [](phlex::experimental::handle<demo::Waveforms> hwf) -> Waveforms {
       auto apa_id = hwf.level_id().number();
       auto spill_id = hwf.level_id().parent()->number();
       auto subrun_id = hwf.level_id().parent()->parent()->number();
@@ -145,7 +150,7 @@ int main(int argc, char* argv[])
     demo::log_record("add_fold");
     g.with(
        "accum_for_spill",
-       [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) {
+       [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) -> void {
          auto apa_id = hwf.level_id().number();
          auto spill_id = hwf.level_id().parent()->number();
          auto subrun_id = hwf.level_id().parent()->parent()->number();

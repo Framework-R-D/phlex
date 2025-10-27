@@ -1,4 +1,5 @@
 #include "phlex_toy_config.hpp"
+#include <string>
 
 namespace mock_phlex::config {
 
@@ -9,7 +10,7 @@ namespace mock_phlex::config {
     m_items.emplace_back(product_name, file_name, technology);
   }
 
-  PersistenceItem const* parse_config::findItem(std::string const& product_name) const
+  auto parse_config::findItem(std::string const& product_name) const -> PersistenceItem const*
   {
     for (auto const& item : m_items) {
       if (item.product_name == product_name) {

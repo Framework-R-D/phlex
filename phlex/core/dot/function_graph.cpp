@@ -1,8 +1,11 @@
 #include "phlex/core/dot/function_graph.hpp"
 #include "phlex/core/dot/attributes.hpp"
+#include "phlex/core/multiplexer.hpp"
 
 #include <fstream>
 #include <iomanip>
+#include <ostream>
+#include <string>
 
 using std::quoted;
 

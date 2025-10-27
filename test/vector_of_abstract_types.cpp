@@ -1,21 +1,27 @@
 #include "phlex/core/framework_graph.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+#include "phlex/core/fwd.hpp"
+#include "phlex/model/product_store.hpp"
 
+#include <functional>
+#include <memory>
 #include <numeric>
+#include <ranges>
+#include <vector>
 
 using namespace phlex::experimental;
 
 namespace types {
   struct Abstract {
-    virtual int value() const = 0;
+    [[nodiscard]] virtual auto value() const -> int = 0;
     virtual ~Abstract() = default;
   };
   struct DerivedA : Abstract {
-    int value() const override { return 1; }
+    [[nodiscard]] auto value() const -> int override { return 1; }
   };
   struct DerivedB : Abstract {
-    int value() const override { return 2; }
+    [[nodiscard]] auto value() const -> int override { return 2; }
   };
 }
 
@@ -29,7 +35,7 @@ namespace {
     return vec;
   }
 
-  int read_abstract(std::vector<std::unique_ptr<types::Abstract>> const& vec)
+  auto read_abstract(std::vector<std::unique_ptr<types::Abstract>> const& vec) -> int
   {
     return std::transform_reduce(
       vec.begin(), vec.end(), 0, std::plus{}, [](auto const& ptr) -> int { return ptr->value(); });
@@ -62,7 +68,7 @@ TEST_CASE("Test vector of abstract types")
   framework_graph g{source{1u}};
   g.with("read_thing", read_abstract).transform("thing").to("sum");
   g.observe(
-     "verify_sum", [](int sum) { CHECK(sum == 3); }, concurrency::serial)
+     "verify_sum", [](int sum) -> void { CHECK(sum == 3); }, concurrency::serial)
     .input_family("sum");
   g.execute();
 

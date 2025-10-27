@@ -1,8 +1,9 @@
 #include "phlex/utilities/resource_usage.hpp"
 
-#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
+#include <bits/types/struct_rusage.h>
+#include <chrono>
 #include <sys/resource.h>
 
 using namespace std::chrono;
@@ -19,7 +20,7 @@ namespace {
     double max_rss;
   };
 
-  metrics get_rusage() noexcept
+  auto get_rusage() noexcept -> metrics
   {
     rusage used;
     getrusage(RUSAGE_SELF, &used);

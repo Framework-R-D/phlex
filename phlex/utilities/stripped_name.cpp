@@ -1,6 +1,7 @@
 #include "phlex/utilities/stripped_name.hpp"
 
 #include <regex>
+#include <string>
 
 namespace {
   std::regex const keep_up_to_paren_right_before_function_params{R"((.*\w)\(.*)"};
@@ -8,7 +9,7 @@ namespace {
 
 namespace phlex::experimental::detail {
 
-  std::string stripped_name(std::string full_name)
+  auto stripped_name(std::string full_name) -> std::string
   {
     full_name = std::regex_replace(full_name, keep_up_to_paren_right_before_function_params, "$1");
     // Remove any upfront qualifiers

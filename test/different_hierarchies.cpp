@@ -27,16 +27,14 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
 #include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
@@ -86,10 +84,10 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
     .initialized_with(0u);
   g.with("job_add", add, concurrency::unlimited).fold("number").to("job_sum");
 
-  g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
+  g.observe("verify_run_sum", [](unsigned int actual) -> void { CHECK(actual == 10u); })
     .input_family("run_sum");
   g.observe("verify_job_sum",
-            [](unsigned int actual) {
+            [](unsigned int actual) -> void {
               CHECK(actual == 20u + 45u); // 20u from events, 45u from trigger primitives
             })
     .input_family("job_sum");

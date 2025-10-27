@@ -3,6 +3,11 @@
 #include "root_tfile.hpp"
 
 #include "TFile.h"
+#include "storage/storage_file.hpp"
+#include <Compression.h>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
 using namespace form::detail::experimental;
 ROOT_TFileImp::ROOT_TFileImp(std::string const& name, char mode) :
@@ -41,4 +46,4 @@ void ROOT_TFileImp::setAttribute(std::string const& key, std::string const& valu
   }
 }
 
-std::shared_ptr<TFile> ROOT_TFileImp::getTFile() { return m_file; }
+auto ROOT_TFileImp::getTFile() -> std::shared_ptr<TFile> { return m_file; }

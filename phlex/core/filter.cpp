@@ -1,9 +1,13 @@
 #include "phlex/core/filter.hpp"
 #include "phlex/core/declared_output.hpp"
+#include "phlex/core/detail/filter_impl.hpp"
+#include "phlex/core/fwd.hpp"
+#include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
 
-#include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
+#include <cstddef>
+#include <iterator>
 
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
@@ -14,7 +18,7 @@ namespace phlex::experimental {
     decisions_{static_cast<unsigned int>(consumer.when().size())},
     data_{consumer.input()},
     indexer_{g},
-    filter_{g, flow::unlimited, [this](tag_t const& t) { return execute(t); }},
+    filter_{g, flow::unlimited, [this](tag_t const& t) -> oneapi::tbb::flow::continue_msg { return execute(t); }},
     downstream_ports_{consumer.ports()},
     nargs_{size(downstream_ports_)}
   {
@@ -28,7 +32,7 @@ namespace phlex::experimental {
     decisions_{static_cast<unsigned int>(output.when().size())},
     data_{data_map::for_output},
     indexer_{g},
-    filter_{g, flow::unlimited, [this](tag_t const& t) { return execute(t); }},
+    filter_{g, flow::unlimited, [this](tag_t const& t) -> oneapi::tbb::flow::continue_msg { return execute(t); }},
     downstream_ports_{&output.port()},
     nargs_{size(downstream_ports_)}
   {
@@ -37,7 +41,7 @@ namespace phlex::experimental {
                        output_ports_type{filter_});
   }
 
-  flow::continue_msg filter::execute(tag_t const& t)
+  auto filter::execute(tag_t const& t) -> flow::continue_msg
   {
     // FIXME: This implementation is horrible!  Because there are two data structures that
     //        have to work together.
@@ -76,7 +80,7 @@ namespace phlex::experimental {
         return {};
       }
       for (std::size_t i = 0ull; i != nargs_; ++i) {
-        downstream_ports_[i]->try_put({stores[i], eom, msg_id});
+        downstream_ports_[i]->try_put({.store=stores[i], .eom=eom, .id=msg_id});
       }
       // Decision must be erased while access is claimed
       decisions_.erase(a);

@@ -1,7 +1,14 @@
 #include "phlex/model/level_counter.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/level_id.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include <cassert>
+#include <cstddef>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <utility>
 
 namespace phlex::experimental {
 
@@ -26,7 +33,7 @@ namespace phlex::experimental {
     }
   }
 
-  level_counter level_counter::make_child(std::string const& level_name)
+  auto level_counter::make_child(std::string const& level_name) -> level_counter
   {
     return {this, level_name};
   }
@@ -54,7 +61,7 @@ namespace phlex::experimental {
     counters_[id->hash()] = std::make_shared<level_counter>(parent_counter, id->level_name());
   }
 
-  flush_counts flush_counters::extract(level_id_ptr const id)
+  auto flush_counters::extract(level_id_ptr const id) -> flush_counts
   {
     auto counter = counters_.extract(id->hash());
     return counter.mapped()->result();

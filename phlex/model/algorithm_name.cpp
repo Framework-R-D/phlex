@@ -2,7 +2,9 @@
 
 #include <cassert>
 #include <regex>
+#include <stdexcept>
 #include <tuple>
+#include <utility>
 
 namespace {
   std::regex const algorithm_name_re{R"((\w+)?(:)?(\w+)?)"};
@@ -21,7 +23,7 @@ namespace phlex::experimental {
   {
   }
 
-  std::string algorithm_name::full() const
+  auto algorithm_name::full() const -> std::string
   {
     std::string result{plugin_};
     if (not plugin_.empty()) {
@@ -31,7 +33,7 @@ namespace phlex::experimental {
     return result;
   }
 
-  bool algorithm_name::match(algorithm_name const& other) const
+  auto algorithm_name::match(algorithm_name const& other) const -> bool
   {
     switch (other.fields_) {
     case specified_fields::neither: {
@@ -57,20 +59,20 @@ namespace phlex::experimental {
 
   auto algorithm_name::cmp_tuple() const { return std::tie(plugin_, algorithm_, fields_); }
 
-  bool algorithm_name::operator==(algorithm_name const& other) const
+  auto algorithm_name::operator==(algorithm_name const& other) const -> bool
   {
     return cmp_tuple() == other.cmp_tuple();
   }
 
-  bool algorithm_name::operator!=(algorithm_name const& other) const { return !operator==(other); }
+  auto algorithm_name::operator!=(algorithm_name const& other) const -> bool { return !operator==(other); }
 
-  bool algorithm_name::operator<(algorithm_name const& other) const
+  auto algorithm_name::operator<(algorithm_name const& other) const -> bool
   {
     return cmp_tuple() < other.cmp_tuple();
   }
 
-  algorithm_name algorithm_name::create(char const* spec) { return create(std::string{spec}); }
-  algorithm_name algorithm_name::create(std::string const& spec)
+  auto algorithm_name::create(char const* spec) -> algorithm_name { return create(std::string{spec}); }
+  auto algorithm_name::create(std::string const& spec) -> algorithm_name
   {
     if (std::smatch matches; std::regex_match(spec, matches, algorithm_name_re)) {
       assert(matches.size() == 4ull);

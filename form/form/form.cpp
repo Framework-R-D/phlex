@@ -1,13 +1,23 @@
 // Copyright (C) 2025 ...
 
 #include "form.hpp"
+#include "form/config.hpp"
+#include "mock_phlex/phlex_toy_config.hpp"
+#include "mock_phlex/phlex_toy_core.hpp"
+#include "persistence/ipersistence.hpp"
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace form::experimental {
 
   // Accept and store config
   form_interface::form_interface(std::shared_ptr<mock_phlex::product_type_names> tm,
                                  mock_phlex::config::parse_config const& config) :
-    m_pers(nullptr), m_type_map(tm)
+    m_pers(nullptr), m_type_map(std::move(tm))
   {
     // Convert phlex config to form config
     form::experimental::config::output_item_config output_items;

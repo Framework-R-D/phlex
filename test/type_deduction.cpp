@@ -1,17 +1,19 @@
 #include "phlex/metaprogramming/type_deduction.hpp"
+#include <tuple>
+#include <type_traits>
 
 using namespace phlex::experimental;
 
 namespace {
-  int transform [[maybe_unused]] (double&) { return 1; };
+  auto transform [[maybe_unused]] (double&) -> int { return 1; };
   void observe [[maybe_unused]] (int) {}
-  void only_void_param [[maybe_unused]] (void) {}
-  std::tuple<> still_no_output [[maybe_unused]] () { return {}; }
-  std::tuple<int, double> two_output_objects [[maybe_unused]] (int, double) { return {}; }
+  void only_void_param [[maybe_unused]] () {}
+  auto still_no_output [[maybe_unused]] () -> std::tuple<> { return {}; }
+  auto two_output_objects [[maybe_unused]] (int, double) -> std::tuple<int, double> { return {}; }
   auto closure [[maybe_unused]] = [](int) -> double { return 2.; };
 }
 
-int main()
+auto main() -> int
 {
   static_assert(std::is_same<return_type<decltype(transform)>, int>{});
   static_assert(std::is_same<return_type<decltype(observe)>, void>{});

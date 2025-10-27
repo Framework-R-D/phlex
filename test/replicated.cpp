@@ -1,11 +1,11 @@
 #include "phlex/utilities/thread_counter.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-#include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
+#include <cstddef>
+#include <tuple>
 #include <vector>
 
 using namespace phlex::experimental;
@@ -41,7 +41,7 @@ namespace {
                          // a reserve will invalidate anything that's already cached.
       for (auto& module : modules_) {
         auto& node = nodes_.emplace_back(
-          g, flow::serial, [&module, ft](unsigned int i) { return (module.*ft)(i); });
+          g, flow::serial, [&module, ft](unsigned int i) -> auto { return (module.*ft)(i); });
         make_edge(buffer_, node);
         make_edge(node, broadcast_);
       }
@@ -62,7 +62,7 @@ TEST_CASE("Replicated function calls", "[multithreading]")
 {
   constexpr unsigned int total_messages{10u};
   flow::graph g;
-  flow::input_node src{g, [i = 0u](flow_control& fc) mutable {
+  flow::input_node src{g, [i = 0u](flow_control& fc) mutable -> unsigned int {
                          if (i < total_messages) {
                            return ++i;
                          }

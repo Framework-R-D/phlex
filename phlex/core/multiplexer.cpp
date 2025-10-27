@@ -1,20 +1,29 @@
 #include "phlex/core/multiplexer.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/core/fwd.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/fwd.hpp"
 
-#include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 
-#include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <fmt/core.h>
+#include <functional>
+#include <iterator>
 #include <ranges>
 #include <stdexcept>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 using namespace std::chrono;
 
 namespace {
-  phlex::experimental::product_store_const_ptr store_for(
+  auto store_for(
     phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::specified_label const& label)
+    phlex::experimental::specified_label const& label) -> phlex::experimental::product_store_const_ptr
   {
     auto const& [product_name, family] = label;
     if (family.empty()) {
@@ -39,13 +48,13 @@ namespace {
     phlex::experimental::product_store_const_ptr store;
     void operator()(phlex::experimental::end_of_message_ptr eom, std::size_t message_id) const
     {
-      port->try_put({store, eom, message_id});
+      port->try_put({.store=store, .eom=eom, .id=message_id});
     }
   };
 
-  std::vector<sender_slot> senders_for(
+  auto senders_for(
     phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::multiplexer::named_input_ports_t const& ports)
+    phlex::experimental::multiplexer::named_input_ports_t const& ports) -> std::vector<sender_slot>
   {
     std::vector<sender_slot> result;
     result.reserve(ports.size());
@@ -77,7 +86,7 @@ namespace phlex::experimental {
 
   void multiplexer::finalize(head_ports_t head_ports) { head_ports_ = std::move(head_ports); }
 
-  tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
+  auto multiplexer::multiplex(message const& msg) -> tbb::flow::continue_msg
   {
     ++received_messages_;
     auto const& [store, eom, message_id] = std::tie(msg.store, msg.eom, msg.id);
