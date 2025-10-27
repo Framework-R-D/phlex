@@ -315,7 +315,7 @@ if(BUILD_TESTING)
         add_custom_target(
           coverage-html
           COMMAND
-            sh -c '${LLVM_PROFDATA_EXECUTABLE} merge -sparse $(find . -name "*.profraw") -o coverage.profdata'
+            sh -c "find . -name '*.profraw' | xargs ${LLVM_PROFDATA_EXECUTABLE} merge -sparse -o coverage.profdata"
           COMMAND
             ${LLVM_COV_EXECUTABLE} show -format=html -output-dir=coverage-html -filename-equivalence
             -show-line-counts-or-regions -show-instantiations
@@ -434,7 +434,7 @@ if(BUILD_TESTING)
         add_custom_target(
           coverage-xml
           COMMAND
-            sh -c '${LLVM_PROFDATA_EXECUTABLE} merge -sparse $(find . -name "*.profraw") -o coverage.profdata'
+            sh -c "find . -name '*.profraw' | xargs ${LLVM_PROFDATA_EXECUTABLE} merge -sparse -o coverage.profdata"
           COMMAND
             ${LLVM_COV_EXECUTABLE} export -format=lcov -instr-profile=coverage.profdata
             -object=${CMAKE_BINARY_DIR}/lib/libphlex.so > coverage.info
@@ -456,7 +456,7 @@ if(BUILD_TESTING)
         add_custom_target(
           coverage-summary
           COMMAND
-            sh -c '${LLVM_PROFDATA_EXECUTABLE} merge -sparse $(find . -name "*.profraw") -o coverage.profdata'
+            sh -c "find . -name '*.profraw' | xargs ${LLVM_PROFDATA_EXECUTABLE} merge -sparse -o coverage.profdata"
           COMMAND
             ${LLVM_COV_EXECUTABLE} export -format=lcov -instr-profile=coverage.profdata
             -object=${CMAKE_BINARY_DIR}/lib/libphlex.so > coverage.info
