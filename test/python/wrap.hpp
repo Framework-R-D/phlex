@@ -21,7 +21,6 @@
 #include "phlex/configuration.hpp"
 #include "phlex/module.hpp"
 
-
 namespace phlex::experimental {
 
   // Create dict-like access to the configuration from Python.
