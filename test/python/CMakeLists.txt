@@ -76,7 +76,7 @@ except ImportError:
     target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
 
     # Phlex module to run Python algorithms
-    add_library(pymodule MODULE pymodule.cpp)
+    add_library(pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp)
     include_directories(pymodule, ${Python_INCLUDE_DIRS})
     target_link_libraries(
       pymodule
