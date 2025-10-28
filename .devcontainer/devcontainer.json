@@ -1,0 +1,73 @@
+{
+    "name": "Phlex CI Dev Container",
+    "image": "ghcr.io/framework-r-d/phlex-dev:latest",
+    "workspaceFolder": "/workspaces/phlex",
+    "containerEnv": {
+        "GH_CONFIG_DIR": "/home/vscode/.config/gh"
+    },
+    "mounts": [
+        "source=${env:XDG_RUNTIME_DIR}/podman/podman.sock,target=/var/run/docker.sock,type=bind",
+        "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
+    ],
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "cmake.generator": "Ninja",
+                "C_Cpp.default.cStandard": "c17",
+                "C_Cpp.default.cppStandard": "c++20",
+                "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+                "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+                "python.languageServer": "Pylance",
+                "python.analysis.typeCheckingMode": "basic",
+                "python.analysis.diagnosticMode": "workspace"
+            },
+            "extensions": [
+                "charliermarsh.ruff",
+                "cheshirekow.cmake-format",
+                "chrisjsewell.myst-tml-syntax",
+                "codecov.codecov",
+                "codeium.codeium",
+                "codeium.windsurf-cpptools",
+                "codeium.windsurfpyright",
+                "davidanson.vscode-markdownlint",
+                "donjayamanne.githistory",
+                "dotjoshjohnson.xml",
+                "eamodio.gitlens",
+                "github.copilot",
+                "github.copilot-chat",
+                "github.vscode-github-actions",
+                "github.vscode-pull-request-github",
+                "jebbs.plantuml",
+                "lextudio.iis",
+                "lextudio.restructuredtext",
+                "lextudio.restructuredtext-pack",
+                "lfs.vscode-emacs-friendly",
+                "links-req-tracer.links-requirement-tracer",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "ms-python.debugpy",
+                "ms-python.mypy-type-checker",
+                "ms-python.pylint",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.vscode-python-envs",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cpptools-themes",
+                "ms-vscode.hexeditor",
+                "ms-vscode.live-server",
+                "ms-vscode.makefile-tools",
+                "ms-vscode.vscode-websearchforcopilot",
+                "redhat.vscode-yaml",
+                "saoudrizwan.claude-dev",
+                "shd101wyy.markdown-preview-enhanced",
+                "swyddfa.esbonio",
+                "trond-snekvik.simple-rst",
+                "twxs.cmake",
+                "vadimcn.vscode-lldb",
+                "wequick.coverage-gutters",
+                "xaver.clang-format"
+            ]
+        }
+    }
+}
