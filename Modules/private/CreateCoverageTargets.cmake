@@ -43,6 +43,7 @@ function(_phlex_create_coverage_targets_impl)
   find_program(LCOV_EXECUTABLE lcov)
   find_program(GENHTML_EXECUTABLE genhtml)
   find_program(GCOVR_EXECUTABLE gcovr)
+  find_program(PYTHON_EXECUTABLE python3)
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # For clang, we need llvm-profdata and llvm-cov
@@ -117,13 +118,23 @@ function(_phlex_create_coverage_targets_impl)
         COMMAND
           sh -c "find . -name '*.profraw' | xargs ${LLVM_PROFDATA_EXECUTABLE} merge -sparse -o coverage.profdata"
         COMMAND
-          ${LLVM_COV_EXECUTABLE} show -format=html -output-dir=coverage-html
-          -instr-profile=coverage.profdata
-          -show-line-counts-or-regions -show-instantiations
-          -path-equivalence=/,${CMAKE_SOURCE_DIR}
-          ${LLVM_COV_OBJECT_ARGS}
+          ${LLVM_COV_EXECUTABLE} export -format=lcov -instr-profile=coverage.profdata
+          ${LLVM_COV_OBJECT_ARGS} > coverage.info
+        COMMAND
+          ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS}
+          --output-file coverage.info.cleaned --rc branch_coverage=1
+          --ignore-errors mismatch,inconsistent,negative,unused,empty
+        COMMAND
+          ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
+          --repo-root ${PROJECT_SOURCE_DIR}
+          --coverage-root ${CMAKE_BINARY_DIR}
+          coverage.info.cleaned
+        COMMAND
+          ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.cleaned --title
+          "Phlex Coverage Report" --show-details --legend --branch-coverage
+          --ignore-errors mismatch,inconsistent,negative,empty
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating HTML coverage report with llvm-cov"
+        COMMENT "Generating HTML coverage report with llvm-cov, lcov, and genhtml"
         VERBATIM
         )
     else()
@@ -244,8 +255,12 @@ function(_phlex_create_coverage_targets_impl)
           --output-file coverage.info.cleaned --rc branch_coverage=1
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
-          ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
-          ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS} --xml-pretty
+          ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
+          --repo-root ${PROJECT_SOURCE_DIR}
+          --coverage-root ${CMAKE_BINARY_DIR}
+          coverage.info.cleaned
+        COMMAND
+          ${GCOVR_EXECUTABLE} --xml-pretty
           --exclude-unreachable-branches --print-summary
           -o coverage.xml coverage.info.cleaned
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -266,8 +281,12 @@ function(_phlex_create_coverage_targets_impl)
           --output-file coverage.info.cleaned --rc branch_coverage=1
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
-          ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
-          ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS}
+          ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
+          --repo-root ${PROJECT_SOURCE_DIR}
+          --coverage-root ${CMAKE_BINARY_DIR}
+          coverage.info.cleaned
+        COMMAND
+          ${GCOVR_EXECUTABLE}
           --exclude-unreachable-branches --print-summary
           coverage.info.cleaned
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -279,7 +298,7 @@ function(_phlex_create_coverage_targets_impl)
       add_custom_target(
         coverage-xml
         COMMAND
-          ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
+          ${GCOVR_EXECUTABLE} --root ${PROJECT_SOURCE_DIR}
           ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS} --xml-pretty
           --exclude-unreachable-branches --print-summary
           --gcov-ignore-parse-errors=negative_hits.warn_once_per_file
@@ -293,7 +312,7 @@ function(_phlex_create_coverage_targets_impl)
       add_custom_target(
         coverage-summary
         COMMAND
-          ${GCOVR_EXECUTABLE} --root ${COVERAGE_SOURCE_ROOT}
+          ${GCOVR_EXECUTABLE} --root ${PROJECT_SOURCE_DIR}
           ${GCOVR_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS}
           --exclude-unreachable-branches --print-summary
           --gcov-ignore-parse-errors=negative_hits.warn_once_per_file
