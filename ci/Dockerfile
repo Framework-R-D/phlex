@@ -6,6 +6,8 @@
 #   $ podman build --tag phlex-ci:<tag> [-v <local-buildcache>:/build-cache] .
 #   $ podman login ghcr.io --username <username> -p <token>
 #   $ podman push phlex-ci:<tag> ghcr.io/framework-r-d/phlex-ci:<tag>
+# ... and optionally:
+#   $ podman push phlex-ci:<tag> ghcr.io/framework-r-d/phlex-ci:latest
 #
 # where <tag> is the date (e.g. "2025-08-12").
 
