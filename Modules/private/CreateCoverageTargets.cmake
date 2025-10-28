@@ -43,7 +43,7 @@ function(_phlex_create_coverage_targets_impl)
   find_program(LCOV_EXECUTABLE lcov)
   find_program(GENHTML_EXECUTABLE genhtml)
   find_program(GCOVR_EXECUTABLE gcovr)
-  find_program(PYTHON_EXECUTABLE python3)
+  find_program(PYTHON_EXECUTABLE NAMES python3 python)
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # For clang, we need llvm-profdata and llvm-cov
@@ -126,8 +126,9 @@ function(_phlex_create_coverage_targets_impl)
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
           ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root ${PROJECT_SOURCE_DIR}
+          --repo-root ${COVERAGE_SOURCE_ROOT}
           --coverage-root ${CMAKE_BINARY_DIR}
+          --coverage-alias ${PROJECT_SOURCE_DIR}
           coverage.info.cleaned
         COMMAND
           ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.cleaned --title
@@ -256,8 +257,9 @@ function(_phlex_create_coverage_targets_impl)
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
           ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root ${PROJECT_SOURCE_DIR}
+          --repo-root ${COVERAGE_SOURCE_ROOT}
           --coverage-root ${CMAKE_BINARY_DIR}
+          --coverage-alias ${PROJECT_SOURCE_DIR}
           coverage.info.cleaned
         COMMAND
           ${GCOVR_EXECUTABLE} --xml-pretty
@@ -282,8 +284,9 @@ function(_phlex_create_coverage_targets_impl)
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
           ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root ${PROJECT_SOURCE_DIR}
+          --repo-root ${COVERAGE_SOURCE_ROOT}
           --coverage-root ${CMAKE_BINARY_DIR}
+          --coverage-alias ${PROJECT_SOURCE_DIR}
           coverage.info.cleaned
         COMMAND
           ${GCOVR_EXECUTABLE}

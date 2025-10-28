@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 COMPILER="g++"
 COVERAGE_TESTS_READY=0
 LAST_STALE_SOURCE=""
-LAST_STALE_GCNO=""
+LAST_STALE_INSTRUMENTATION_FILE=""
 
 # Function definitions
 
@@ -189,8 +189,8 @@ usage() {
     echo "  1. After modifying source code, you MUST rebuild before generating reports:"
     echo "       $0 setup test html        # Rebuild → test → generate HTML"
     echo "       $0 all                    # Complete workflow (recommended)"
-    echo "  2. Coverage data (.gcda/.gcno files) become stale when source files change."
-    echo "  3. Stale data causes 'source file is newer than notes file' errors."
+    echo "  2. Coverage data becomes stale when source files change."
+    echo "  3. Stale data can cause errors or inaccurate reports."
     echo ""
     echo "Multiple commands can be specified and will be executed in sequence:"
     echo "  $0 setup test summary"
@@ -218,37 +218,54 @@ check_build_dir() {
     fi
 }
 
-# Determine whether coverage instrumentation (.gcno files) is missing or stale
+# Determine whether coverage instrumentation is missing or stale
 find_stale_instrumentation() {
     local build_dir="${1:-$BUILD_DIR}"
     local source_dir="${2:-$PROJECT_SOURCE}"
 
     LAST_STALE_SOURCE=""
-    LAST_STALE_GCNO=""
+    LAST_STALE_INSTRUMENTATION_FILE=""
 
     if [[ ! -d "$build_dir" ]]; then
-        return 2
+        return 2 # Build directory doesn't exist
     fi
 
-    local gcno_found=0
-    while IFS= read -r gcno_file; do
-        gcno_found=1
+    # Determine which instrumentation files to look for
+    local extension
+    if [[ "$COMPILER" == "clang++" ]]; then
+        # For Clang, we check for the final merged profdata as an indicator of freshness.
+        # While individual .profraw files exist, their timestamps are less reliable.
+        extension="profdata"
+    else
+        extension="gcno"
+    fi
+
+    local instrumentation_files
+    instrumentation_files=$(find "$build_dir" -name "*.$extension" -type f 2>/dev/null)
+
+    if [[ -z "$instrumentation_files" ]]; then
+        return 2 # No instrumentation files found
+    fi
+
+    local instrumentation_found=0
+    while IFS= read -r instrumentation_file; do
+        instrumentation_found=1
         local base_name
-        base_name=$(basename "$gcno_file" .gcno)
+        base_name=$(basename "$instrumentation_file" ."$extension")
         local source_file
         source_file=$(find -L "$source_dir" -type f -name "$base_name" 2>/dev/null | head -1)
-        if [[ -n "$source_file" && -f "$source_file" && "$source_file" -nt "$gcno_file" ]]; then
+        if [[ -n "$source_file" && -f "$source_file" && "$source_file" -nt "$instrumentation_file" ]]; then
             LAST_STALE_SOURCE="$source_file"
-            LAST_STALE_GCNO="$gcno_file"
-            return 1
+            LAST_STALE_INSTRUMENTATION_FILE="$instrumentation_file"
+            return 1 # Stale instrumentation
         fi
-    done < <(find "$build_dir" -name "*.gcno" -type f 2>/dev/null)
+    done <<< "$instrumentation_files"
 
-    if [[ $gcno_found -eq 0 ]]; then
-        return 2
+    if [[ $instrumentation_found -eq 0 ]]; then
+        return 2 # Should be redundant, but for safety
     fi
 
-    return 0
+    return 0 # Instrumentation is fresh
 }
 
 ensure_coverage_configured() {
@@ -272,7 +289,7 @@ ensure_coverage_configured() {
                 warn "Coverage instrumentation is stale; rebuilding before continuing"
                 need_setup=1
             elif [[ $instrumentation_status -eq 2 ]]; then
-                warn "No coverage instrumentation (.gcno) files detected; running setup"
+                warn "No coverage instrumentation files detected; running setup"
                 need_setup=1
             fi
         fi
@@ -350,62 +367,70 @@ ensure_tests_current() {
     COVERAGE_TESTS_READY=1
 }
 
-# Check if coverage instrumentation is stale (source files newer than .gcno files)
-# .gcno files are generated at compile-time, so if sources are newer, we need to rebuild
+# Check if coverage instrumentation and data are fresh
 check_coverage_freshness() {
     local source_dir="${1:-$PROJECT_SOURCE}"
     local build_dir="${2:-$BUILD_DIR}"
 
-    # Check if any .gcno files exist (compile-time coverage instrumentation)
-    local gcno_count=$(find "$build_dir" -name "*.gcno" -type f 2>/dev/null | wc -l)
-    if [[ $gcno_count -eq 0 ]]; then
-        warn "No coverage instrumentation files (.gcno) found in $build_dir"
+    local instrumentation_ext
+    local data_ext
+    if [[ "$COMPILER" == "clang++" ]]; then
+        instrumentation_ext="profraw"
+        data_ext="profraw"
+    else
+        instrumentation_ext="gcno"
+        data_ext="gcda"
+    fi
+
+    # Check if any instrumentation files exist
+    local instrumentation_count
+    instrumentation_count=$(find "$build_dir" -name "*.$instrumentation_ext" -type f 2>/dev/null | wc -l)
+    if [[ $instrumentation_count -eq 0 ]]; then
+        warn "No coverage instrumentation files (*.$instrumentation_ext) found in $build_dir"
         warn "Coverage commands will configure and rebuild instrumentation automatically."
         return 1
     fi
 
-    # Check if any .gcda files exist (runtime coverage data)
-    local gcda_count=$(find "$build_dir" -name "*.gcda" -type f 2>/dev/null | wc -l)
-    if [[ $gcda_count -eq 0 ]]; then
-        warn "No coverage data files (.gcda) found in $build_dir"
+    # Check if any data files exist (runtime coverage data)
+    local data_count
+    data_count=$(find "$build_dir" -name "*.$data_ext" -type f 2>/dev/null | wc -l)
+    if [[ $data_count -eq 0 ]]; then
+        warn "No coverage data files (*.$data_ext) found in $build_dir"
         warn "Coverage commands will run the test suite automatically to populate data."
         return 1
     fi
 
-    # Find source files that are newer than their corresponding .gcno files
-    # This indicates the source was modified after compilation
+    # Find source files that are newer than their corresponding instrumentation files
     local stale_count=0
     local stale_example=""
-    local stale_example_gcno=""
+    local stale_example_instrumentation=""
 
-    while IFS= read -r gcno_file; do
-        # Get the source file path from .gcno file
-        # .gcno files are named like: path/to/CMakeFiles/target.dir/source.cpp.gcno
-        local base_name=$(basename "$gcno_file" .gcno)
-
-        # Try to find the corresponding source file
-        # Follow symlinks in source dir to handle symlinked source trees
-        local source_file=$(find -L "$source_dir" -type f -name "$base_name" 2>/dev/null | head -1)
+    while IFS= read -r instrumentation_file; do
+        local base_name
+        base_name=$(basename "$instrumentation_file" ."$instrumentation_ext")
+        local source_file
+        source_file=$(find -L "$source_dir" -type f -name "$base_name" 2>/dev/null | head -1)
 
         if [[ -n "$source_file" && -f "$source_file" ]]; then
-            # Check if source file is newer than .gcno file (compile-time instrumentation)
-            if [[ "$source_file" -nt "$gcno_file" ]]; then
+            if [[ "$source_file" -nt "$instrumentation_file" ]]; then
                 stale_count=$((stale_count + 1))
                 if [[ -z "$stale_example" ]]; then
                     stale_example="$source_file"
-                    stale_example_gcno="$gcno_file"
+                    stale_example_instrumentation="$instrumentation_file"
                 fi
             fi
         fi
-    done < <(find "$build_dir" -name "*.gcno" -type f 2>/dev/null)
+    done < <(find "$build_dir" -name "*.$instrumentation_ext" -type f 2>/dev/null)
 
     if [[ $stale_count -gt 0 ]]; then
-        local source_time=$(stat -c %Y "$stale_example" 2>/dev/null || stat -f %m "$stale_example" 2>/dev/null)
-        local gcno_time=$(stat -c %Y "$stale_example_gcno" 2>/dev/null || stat -f %m "$stale_example_gcno" 2>/dev/null)
+        local source_time
+        source_time=$(stat -c %Y "$stale_example" 2>/dev/null || stat -f %m "$stale_example" 2>/dev/null)
+        local instrumentation_time
+        instrumentation_time=$(stat -c %Y "$stale_example_instrumentation" 2>/dev/null || stat -f %m "$stale_example_instrumentation" 2>/dev/null)
         warn "Coverage instrumentation is STALE! $stale_count source file(s) modified since last build."
         warn "Example modified file: $stale_example"
-        warn "  Source timestamp:       $(date -d @${source_time} '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r ${source_time} '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo 'unknown')"
-        warn "  Instrumentation timestamp: $(date -d @${gcno_time} '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r ${gcno_time} '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo 'unknown')"
+        warn "  Source timestamp:       $(date -d @"${source_time}" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "${source_time}" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo 'unknown')"
+        warn "  Instrumentation timestamp: $(date -d @"${instrumentation_time}" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "${instrumentation_time}" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo 'unknown')"
         return 2
     fi
 
@@ -435,8 +460,10 @@ setup_coverage() {
     if [[ -d "$BUILD_DIR" ]]; then
         # Check if CMake is configured correctly for coverage
         if [[ -f "$BUILD_DIR/CMakeCache.txt" ]]; then
-            local build_type=$(grep "^CMAKE_BUILD_TYPE:" "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2)
-            local coverage_enabled=$(grep "^ENABLE_COVERAGE:" "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2)
+            local build_type
+            build_type=$(grep "^CMAKE_BUILD_TYPE:" "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2)
+            local coverage_enabled
+            coverage_enabled=$(grep "^ENABLE_COVERAGE:" "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2)
 
             if [[ "$build_type" != "Coverage" ]] || [[ "$coverage_enabled" != "ON" ]]; then
                 warn "CMake not configured for coverage (BUILD_TYPE=$build_type, ENABLE_COVERAGE=$coverage_enabled)"
@@ -444,7 +471,8 @@ setup_coverage() {
                 needs_clean=true
             else
                 # Check if the compiler has changed
-                local cached_compiler=$(grep "CMAKE_CXX_COMPILER:FILEPATH=" "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2)
+                local cached_compiler
+                cached_compiler=$(grep "CMAKE_CXX_COMPILER:FILEPATH=" "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2)
                 if [[ -n "$cached_compiler" && "$(basename "$cached_compiler")" != "$COMPILER" ]]; then
                     warn "Compiler has changed from $(basename "$cached_compiler") to $COMPILER. Forcing clean rebuild."
                     needs_reconfigure=true
@@ -456,20 +484,15 @@ setup_coverage() {
             needs_reconfigure=true
         fi
 
-        # Check if any source files are newer than their .gcno files (stale instrumentation)
-        # Always check this, regardless of whether CMake config is correct
-        local gcno_count=$(find "$BUILD_DIR" -name "*.gcno" -type f 2>/dev/null | wc -l)
-        log "Found $gcno_count .gcno files to check for staleness"
-        if [[ $gcno_count -gt 0 ]]; then
-            find_stale_instrumentation "$BUILD_DIR" "$PROJECT_SOURCE"
-            local instrumentation_status=$?
-            if [[ $instrumentation_status -eq 1 ]]; then
-                warn "Detected source file newer than instrumentation: $LAST_STALE_SOURCE"
-                needs_clean=true
-                needs_reconfigure=true
-            fi
-            log "Staleness check complete (needs_clean=$needs_clean)"
+        # Check for stale instrumentation
+        find_stale_instrumentation "$BUILD_DIR" "$PROJECT_SOURCE"
+        local instrumentation_status=$?
+        if [[ $instrumentation_status -eq 1 ]]; then
+            warn "Detected source file newer than instrumentation: $LAST_STALE_SOURCE"
+            needs_clean=true
+            needs_reconfigure=true
         fi
+
     else
         log "Build directory does not exist - will create"
         needs_reconfigure=true
