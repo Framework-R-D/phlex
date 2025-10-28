@@ -15,6 +15,7 @@
 FROM gcc:15.2.0 AS base
 ARG parallelism=18
 
+ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV SPACK_USER_CONFIG_PATH=/dev/null
@@ -72,8 +73,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN <<'CONFIGURE_SPACK_DEFAULTS'
 set -euo pipefail
 
-. /spack/share/spack/setup-env.sh
-
 SPACK_REPO_ROOT=/opt/spack-repos
 rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes"
 mkdir -p "$SPACK_REPO_ROOT"
@@ -83,12 +82,11 @@ chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
-spack --timestamp repo remove phlex >/dev/null 2>&1 || true
-spack --timestamp repo remove fnal_art >/dev/null 2>&1 || true
-spack --timestamp repo add --scope site /opt/spack-repos/phlex-spack-recipes/spack_repo/phlex
-spack --timestamp repo add --scope site /opt/spack-repos/fnal_art/spack_repo/fnal_art
-spack --timestamp repo set --scope site --destination /spack/var/spack/repos/builtin builtin
+. /spack/share/spack/setup-env.sh
 
+spack --timestamp repo add --scope site $SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex
+spack --timestamp repo add --scope site $SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art
+spack --timestamp repo set --scope site --destination $SPACK_REPO_ROOT builtin
 spack --timestamp compiler find
 
 
