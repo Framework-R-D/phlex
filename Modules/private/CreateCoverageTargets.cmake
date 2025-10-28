@@ -125,12 +125,6 @@ function(_phlex_create_coverage_targets_impl)
           --output-file coverage.info.cleaned --rc branch_coverage=1
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
-          ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root /
-          --coverage-root /
-          --coverage-alias ${PROJECT_SOURCE_DIR}
-          coverage.info.cleaned
-        COMMAND
           ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.cleaned --title
           "Phlex Coverage Report" --show-details --legend --branch-coverage
           --ignore-errors mismatch,inconsistent,negative,empty
@@ -256,12 +250,6 @@ function(_phlex_create_coverage_targets_impl)
           --output-file coverage.info.cleaned --rc branch_coverage=1
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
-          ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root /
-          --coverage-root /
-          --coverage-alias ${PROJECT_SOURCE_DIR}
-          coverage.info.cleaned
-        COMMAND
           ${GCOVR_EXECUTABLE} --xml-pretty
           --exclude-unreachable-branches --print-summary
           -o coverage.xml coverage.info.cleaned
@@ -282,12 +270,6 @@ function(_phlex_create_coverage_targets_impl)
           ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS}
           --output-file coverage.info.cleaned --rc branch_coverage=1
           --ignore-errors mismatch,inconsistent,negative,unused,empty
-        COMMAND
-          ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root /
-          --coverage-root /
-          --coverage-alias ${PROJECT_SOURCE_DIR}
-          coverage.info.cleaned
         COMMAND
           ${GCOVR_EXECUTABLE}
           --exclude-unreachable-branches --print-summary

@@ -581,14 +581,36 @@ generate_xml() {
       exit 1
     fi
 
-    # Use CMake target to generate XML report
-    log "Generating XML coverage report using CMake target..."
+    # Use CMake target to generate the raw LCOV file
+    log "Generating raw coverage data using CMake target..."
     cd "$BUILD_DIR"
 
+    # For both gcc and clang, the `coverage-xml` target now just produces `coverage.info.cleaned`
     cmake --build "$BUILD_DIR" --target coverage-xml || {
-        error "Failed to generate XML coverage report"
+        error "Failed to generate raw coverage data"
         exit 1
     }
+
+    local lcov_file="$BUILD_DIR/coverage.info.cleaned"
+
+    if [[ ! -f "$lcov_file" ]]; then
+        error "Raw LCOV file '$lcov_file' not found after running CMake target."
+        exit 1
+    fi
+
+    log "Normalizing LCOV paths..."
+    local -a normalize_args=(
+        --repo-root "$WORKSPACE_ROOT"
+        --coverage-root "$WORKSPACE_ROOT"
+        --coverage-alias "$PROJECT_SOURCE"
+    )
+    if ! python3 "$SCRIPT_DIR/normalize_coverage_lcov.py" "${normalize_args[@]}" "$lcov_file"; then
+        error "Failed to normalize LCOV coverage report."
+        exit 1
+    fi
+
+    log "Generating final XML report with gcovr..."
+    gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml "$lcov_file"
 
     # Path to the generated XML file (CMake target outputs to BUILD_DIR)
     local output_file="$BUILD_DIR/coverage.xml"
@@ -599,46 +621,6 @@ generate_xml() {
         log "Coverage XML size: $(wc -c < "$output_file") bytes"
         log "Source paths in coverage.xml:"
         grep -o '<source>.*</source>' "$output_file" | head -5 | sed 's/^/  /'
-
-        # Normalize paths so tooling (e.g., Codecov, VS Code coverage gutters) can locate sources
-        log "Normalizing coverage XML paths for tooling compatibility..."
-
-        prepare_generated_symlinks "$BUILD_DIR" "$PROJECT_SOURCE"
-
-        local cmake_cache="$BUILD_DIR/CMakeCache.txt"
-        local cmake_home_dir=""
-        if [[ -f "$cmake_cache" ]]; then
-            cmake_home_dir="$(
-                grep '^CMAKE_HOME_DIRECTORY:' "$cmake_cache" \
-                    | cut -d= -f2 | head -n1 || true
-            )"
-        fi
-
-        local repo_root="$PROJECT_SOURCE"
-        local -a normalize_args=(
-            --repo-root "$repo_root"
-            --source-dir "$repo_root"
-        )
-
-        if [[ -n "$cmake_home_dir" ]]; then
-            normalize_args+=(--coverage-root "$cmake_home_dir")
-        fi
-
-        if [[ -n "$GENERATED_SYMLINK_ROOT" ]]; then
-            normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
-        fi
-
-        if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
-            "${normalize_args[@]}" \
-            "$output_file"; then
-            cleanup_generated_symlinks
-            error "Failed to normalize coverage XML. Adjust filters/excludes and retry."
-            exit 1
-        fi
-
-        cleanup_generated_symlinks
-
-        success "XML coverage report generated: $output_file"
 
         # Optionally copy to workspace root for easier access
         cp "$output_file" "$WORKSPACE_ROOT/coverage.xml"
@@ -674,28 +656,29 @@ generate_html() {
 
     cmake --build "$BUILD_DIR" --target coverage-html || warn "HTML generation failed (lcov issues), but continuing..."
 
+    local lcov_file_to_normalize="$BUILD_DIR/coverage.info.cleaned"
+    if [[ -f "$lcov_file_to_normalize" ]]; then
+        log "Normalizing LCOV coverage paths for editor tooling..."
+        local -a normalize_args=(
+            --repo-root "$WORKSPACE_ROOT"
+            --coverage-root "$WORKSPACE_ROOT"
+            --coverage-alias "$PROJECT_SOURCE"
+        )
+        if ! python3 "$SCRIPT_DIR/normalize_coverage_lcov.py" "${normalize_args[@]}" "$lcov_file_to_normalize"; then
+            error "Failed to normalize LCOV coverage report. Adjust filters/excludes and retry."
+            exit 1
+        fi
+
+        log "Copying lcov.info to workspace root for VS Code Coverage Gutters..."
+        cp "$lcov_file_to_normalize" "$WORKSPACE_ROOT/lcov.info"
+        success "Coverage info file available at: $WORKSPACE_ROOT/lcov.info"
+
+        # Maintain legacy coverage.info for downstream tooling (e.g., Codecov uploads)
+        cp "$lcov_file_to_normalize" "$WORKSPACE_ROOT/coverage.info"
+    fi
+
     if [[ -d coverage-html ]]; then
         success "HTML coverage report generated: $BUILD_DIR/coverage-html/"
-
-        # Normalize and copy the final .info file for VS Code Coverage Gutters
-        if [[ -f coverage.info.final ]]; then
-            log "Normalizing LCOV coverage paths for editor tooling..."
-            if ! python3 "$SCRIPT_DIR/normalize_coverage_lcov.py" \
-                --repo-root "$WORKSPACE_ROOT" \
-                --coverage-root "$WORKSPACE_ROOT" \
-                --coverage-alias "$PROJECT_SOURCE" \
-                "$BUILD_DIR/coverage.info.final"; then
-                error "Failed to normalize LCOV coverage report. Adjust filters/excludes and retry."
-                exit 1
-            fi
-
-            log "Copying lcov.info to workspace root for VS Code Coverage Gutters..."
-            cp coverage.info.final "$WORKSPACE_ROOT/lcov.info"
-            success "Coverage info file available at: $WORKSPACE_ROOT/lcov.info"
-
-            # Maintain legacy coverage.info for downstream tooling (e.g., Codecov uploads)
-            cp coverage.info.final "$WORKSPACE_ROOT/coverage.info"
-        fi
     else
         warn "HTML coverage report not available (lcov dependency issues)"
     fi
