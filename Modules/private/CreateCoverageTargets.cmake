@@ -126,8 +126,8 @@ function(_phlex_create_coverage_targets_impl)
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
           ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root ${COVERAGE_SOURCE_ROOT}
-          --coverage-root ${CMAKE_BINARY_DIR}
+          --repo-root /
+          --coverage-root /
           --coverage-alias ${PROJECT_SOURCE_DIR}
           coverage.info.cleaned
         COMMAND
@@ -257,8 +257,8 @@ function(_phlex_create_coverage_targets_impl)
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
           ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root ${COVERAGE_SOURCE_ROOT}
-          --coverage-root ${CMAKE_BINARY_DIR}
+          --repo-root /
+          --coverage-root /
           --coverage-alias ${PROJECT_SOURCE_DIR}
           coverage.info.cleaned
         COMMAND
@@ -284,8 +284,8 @@ function(_phlex_create_coverage_targets_impl)
           --ignore-errors mismatch,inconsistent,negative,unused,empty
         COMMAND
           ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py
-          --repo-root ${COVERAGE_SOURCE_ROOT}
-          --coverage-root ${CMAKE_BINARY_DIR}
+          --repo-root /
+          --coverage-root /
           --coverage-alias ${PROJECT_SOURCE_DIR}
           coverage.info.cleaned
         COMMAND
