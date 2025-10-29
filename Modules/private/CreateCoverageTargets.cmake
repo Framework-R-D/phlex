@@ -82,15 +82,26 @@ function(_create_coverage_targets_impl)
     --exclude ".*\.hh$"
     --exclude ".*\.hxx$"
   )
-  # Clang/llvm-cov coverage stub target (to be expanded)
+  # Clang/llvm-cov coverage target
   if(LLVM_COV_EXECUTABLE AND LLVM_PROFDATA_EXECUTABLE)
+    # Find all .profraw files in the build directory
+    file(GLOB_RECURSE LLVM_PROFRAW_FILES RELATIVE ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/*.profraw)
+    set(LLVM_PROFDATA_OUTPUT ${CMAKE_BINARY_DIR}/coverage.profdata)
+    set(LLVM_COV_OUTPUT ${CMAKE_BINARY_DIR}/coverage-llvm.txt)
+    # Find all built executables (for demonstration, glob in build dir)
+    file(GLOB_RECURSE LLVM_COV_EXECUTABLES RELATIVE ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/*)
+    list(FILTER LLVM_COV_EXECUTABLES INCLUDE REGEX ".*[^/]+$")
+    # Exclusion regex for llvm-cov (same as gcovr)
+    set(LLVM_COV_EXCLUDE_REGEX ".*/test/.*|.*/_deps/.*|.*/external/.*|.*/third[-_]?party/.*|.*/boost/.*|.*/tbb/.*|/usr/.*|/opt/.*|/scratch/.*|.*\\.cxx$|.*\\.hh$|.*\\.hxx$")
     add_custom_target(
-      coverage-llvm-stub
-      COMMAND ${CMAKE_COMMAND} -E echo "LLVM coverage tools detected: llvm-cov, llvm-profdata. Full integration pending."
+      coverage-llvm
+      COMMAND ${LLVM_PROFDATA_EXECUTABLE} merge -sparse ${LLVM_PROFRAW_FILES} -o ${LLVM_PROFDATA_OUTPUT}
+      COMMAND ${LLVM_COV_EXECUTABLE} report ${LLVM_COV_EXECUTABLES} -instr-profile=${LLVM_PROFDATA_OUTPUT} -ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX} > ${LLVM_COV_OUTPUT}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      COMMENT "Stub: LLVM/Clang coverage target (to be implemented)"
+      COMMENT "Generating coverage report with llvm-cov (summary: coverage-llvm.txt)"
+      VERBATIM
     )
-    message(STATUS "LLVM coverage tools detected; stub target 'coverage-llvm-stub' added.")
+    message(STATUS "LLVM coverage tools detected; 'coverage-llvm' target added.")
   endif()
   # Coverage summary target (prints summary to terminal)
   if(GCOVR_EXECUTABLE)
