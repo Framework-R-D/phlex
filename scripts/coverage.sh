@@ -767,6 +767,15 @@ run_all() {
     fi
 }
 
+LLVM_COV_MODE=0
+if [[ -n "$CMAKE_CXX_COMPILER" ]]; then
+    if [[ "$CMAKE_CXX_COMPILER" == *"clang++"* ]]; then
+        LLVM_COV_MODE=1
+    fi
+elif command -v clang++ >/dev/null 2>&1; then
+    LLVM_COV_MODE=1
+fi
+
 # Execute a single command
 execute_command() {
     local cmd="$1"
@@ -781,20 +790,45 @@ execute_command() {
             run_tests
             ;;
         report)
-            generate_xml
-            generate_html
+            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+                cmake --build "$BUILD_DIR" --target coverage-llvm
+                cmake --build "$BUILD_DIR" --target coverage-llvm-normalize
+                cmake --build "$BUILD_DIR" --target coverage-llvm-summary
+            else
+                generate_xml
+                generate_html
+            fi
             ;;
         xml)
-            generate_xml
+            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+                cmake --build "$BUILD_DIR" --target coverage-llvm
+                cmake --build "$BUILD_DIR" --target coverage-llvm-normalize
+            else
+                generate_xml
+            fi
             ;;
         html)
-            generate_html
+            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+                cmake --build "$BUILD_DIR" --target coverage-llvm
+                cmake --build "$BUILD_DIR" --target coverage-llvm-normalize
+            else
+                generate_html
+            fi
             ;;
         view)
-            view_html
+            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+                log "Viewing llvm-cov coverage report: $BUILD_DIR/coverage-llvm.txt"
+                cat "$BUILD_DIR/coverage-llvm.txt"
+            else
+                view_html
+            fi
             ;;
         summary)
-            show_summary
+            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+                cmake --build "$BUILD_DIR" --target coverage-llvm-summary
+            else
+                show_summary
+            fi
             ;;
         upload)
             upload_codecov
