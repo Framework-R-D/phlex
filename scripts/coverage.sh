@@ -461,32 +461,16 @@ setup_coverage() {
     if [[ "$needs_reconfigure" == "true" ]]; then
         log "Configuring CMake for coverage build..."
 
-        # Common CMake configuration flags
-        CMAKE_COMMON_FLAGS=(
-            -G Ninja
-            -DCMAKE_BUILD_TYPE=Coverage
-            -DENABLE_COVERAGE=ON
-            -DPHLEX_USE_FORM=ON
-            -DFORM_USE_ROOT_STORAGE=ON
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-            -S "$SOURCE_ROOT"
-            -B "$BUILD_DIR"
-        )
-
-        # Check if we have CMake presets available
-        if [[ -f "$SOURCE_ROOT/CMakePresets.json" ]]; then
-            log "Using CMake presets with Ninja generator..."
-            cmake --preset default "${CMAKE_COMMON_FLAGS[@]}" || {
-                error "CMake configuration failed"
-                exit 1
-            }
-        else
-            log "Configuring CMake with Ninja generator..."
-            cmake "${CMAKE_COMMON_FLAGS[@]}" || {
-                error "CMake configuration failed"
-                exit 1
-            }
-        fi
+        log "Using CMake coverage preset with explicit overrides..."
+        cmake --preset coverage \
+            -G Ninja \
+            -DPHLEX_USE_FORM=ON \
+            -DFORM_USE_ROOT_STORAGE=ON \
+            -S "$SOURCE_ROOT" \
+            -B "$BUILD_DIR" || {
+            error "CMake configuration failed"
+            exit 1
+        }
     else
         log "CMake already configured for coverage - skipping reconfiguration"
     fi

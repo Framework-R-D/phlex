@@ -1,3 +1,7 @@
+  preset:
+    description: 'CMake preset to use (e.g., coverage, default)'
+    required: false
+    default: 'default'
 name: 'Configure CMake'
 description: 'Configures CMake with preset detection and customizable options'
 
@@ -48,28 +52,19 @@ runs:
         SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
 
         # Determine preset usage
-        if [ -f "$SOURCE_DIR/CMakePresets.json" ]; then
-          echo "Configuring with CMake presets"
-          preset_arg="--preset=default"
-        else
-          echo "Configuring without presets"
-          unset preset_arg
-        fi
-
-        echo "Source directory: $SOURCE_DIR"
-        echo "Build directory: $(pwd)"
-        echo "Build type: $BUILD_TYPE"
-        echo "Generator: $GENERATOR"
-        echo "C++ compiler: $CPP_COMPILER"
-
-        # Configure CMake with Ninja generator
-        cmake $preset_arg "$SOURCE_DIR" \
+        echo "Configuring with CMake preset: $PRESET"
+        cmake --preset="$PRESET" "$SOURCE_DIR" \
           -G "$GENERATOR" \
           -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
           -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
           -DPHLEX_USE_FORM="$ENABLE_FORM" \
           -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE" \
           $EXTRA_OPTIONS
+        echo "Source directory: $SOURCE_DIR"
+        echo "Build directory: $(pwd)"
+        echo "Build type: $BUILD_TYPE"
+        echo "Generator: $GENERATOR"
+        echo "C++ compiler: $CPP_COMPILER"
       env:
         SOURCE_PATH: ${{ inputs.source-path }}
         BUILD_PATH: ${{ inputs.build-path }}
@@ -79,3 +74,4 @@ runs:
         FORM_ROOT_STORAGE: ${{ inputs.form-root-storage }}
         GENERATOR: ${{ inputs.generator }}
         CPP_COMPILER: ${{ inputs.cpp-compiler }}
+        PRESET: ${{ inputs.preset }}

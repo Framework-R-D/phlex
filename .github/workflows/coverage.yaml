@@ -75,7 +75,7 @@ jobs:
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: ${{ env.BUILD_TYPE }}
-        extra-options: '-DCMAKE_CXX_COMPILER=g++ -DENABLE_COVERAGE=ON'
+        preset: coverage
 
     - name: Build with coverage instrumentation
       uses: ./phlex-src/.github/actions/build-cmake

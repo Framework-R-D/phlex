@@ -13,6 +13,7 @@
         },
         {
             "name": "coverage",
+            "inherits": "default",
             "displayName": "Coverage (GCC/Clang)",
             "description": "Enable code coverage instrumentation and reporting.",
             "cacheVariables": {
