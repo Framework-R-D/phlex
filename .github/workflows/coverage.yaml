@@ -8,6 +8,11 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      phlex-coverage-compiler:
+        description: 'Compiler to use for coverage build (gcc or clang)'
+        required: false
+        default: 'ethel'
 
 env:
   BUILD_TYPE: Coverage
@@ -61,6 +66,7 @@ jobs:
 
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      PHLEX_COVERAGE_COMPILER: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.phlex-coverage-compiler || secrets.PHLEX_COVERAGE_COMPILER || 'ethel' }}
 
     steps:
     - name: Check out source code
@@ -72,16 +78,24 @@ jobs:
       uses: ./phlex-src/.github/actions/setup-build-env
 
     - name: Configure CMake with GCC coverage
-      if: ${{ !contains(github.event.head_commit.message, '[clang]') }}
+      id: configure_gcc
+      if: ${{ env.PHLEX_COVERAGE_COMPILER == 'gcc' }}
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         preset: coverage-gcc
 
     - name: Configure CMake with Clang coverage
-      if: ${{ contains(github.event.head_commit.message, '[clang]') }}
+      id: configure_clang
+      if: ${{ env.PHLEX_COVERAGE_COMPILER == 'clang' }}
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         preset: coverage-clang
+
+    - name: Unknown Compiler Error
+      if: ${{ always() && steps.configure_gcc.outcome == 'skipped' && steps.configure_clang.outcome == 'skipped' }}
+      run: |
+        echo "ERROR: Unknown compiler '${PHLEX_COVERAGE_COMPILER}'. Must be 'gcc' or 'clang'."
+        exit 1
 
     - name: Build with coverage instrumentation
       uses: ./phlex-src/.github/actions/build-cmake
@@ -93,7 +107,8 @@ jobs:
         ctest -j $(nproc) --output-on-failure
 
     - name: Generate coverage reports (GCC)
-      if: ${{ !contains(github.event.head_commit.message, '[clang]') }}
+      id: report_gcc
+      if: ${{ env.PHLEX_COVERAGE_COMPILER == 'gcc' }}
       shell: bash
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
@@ -129,7 +144,8 @@ jobs:
         cmake --build . --target coverage-html || echo "HTML coverage generation failed (lcov issues), continuing..."
 
     - name: Generate coverage reports (Clang)
-      if: ${{ contains(github.event.head_commit.message, '[clang]') }}
+      id: report_clang
+      if: ${{ env.PHLEX_COVERAGE_COMPILER == 'clang' }}
       shell: bash
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
@@ -145,6 +161,12 @@ jobs:
           ls -la *.txt || echo "No LLVM coverage summary found"
           exit 1
         fi
+
+    - name: Unknown Coverage Report Error
+      if: ${{ always() && steps.report_gcc.outcome == 'skipped' && steps.report_clang.outcome == 'skipped' }}
+      run: |
+        echo "ERROR: No coverage report was generated. Must run either GCC or Clang coverage report step."
+        exit 1
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
