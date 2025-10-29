@@ -108,7 +108,7 @@ jobs:
 
           echo "Preparing generated sources for coverage mapping..."
           GENERATED_ROOT="$GITHUB_WORKSPACE/phlex-src/.coverage-generated"
-          rm -rf "$GENERATED_ROOT"
+          cmake --build "$GITHUB_WORKSPACE/phlex-build" --target coverage-symlink-clean
           mkdir -p "$GENERATED_ROOT"
           find "$GITHUB_WORKSPACE/phlex-build" -type f \
             \( -name '*.cpp' -o -name '*.hpp' \) \
@@ -119,8 +119,8 @@ jobs:
               cp "$src" "$dest"
             done
 
-          echo "Normalizing coverage XML paths for Codecov..."
-          python3 "$GITHUB_WORKSPACE/phlex-src/scripts/normalize_coverage_xml.py" --repo-root "$GITHUB_WORKSPACE/phlex-src" --source-dir "$GITHUB_WORKSPACE/phlex-src" --path-map "$GITHUB_WORKSPACE/phlex-build=$GITHUB_WORKSPACE/phlex-src/.coverage-generated" "$GITHUB_WORKSPACE/phlex-build/coverage.xml"
+          echo "Normalizing coverage XML paths for Codecov via CMake target..."
+          cmake --build "$GITHUB_WORKSPACE/phlex-build" --target coverage-xml-normalize
           rm -rf "$GENERATED_ROOT"
         else
           echo "ERROR: coverage.xml not found"

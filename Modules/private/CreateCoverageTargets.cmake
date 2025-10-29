@@ -20,6 +20,10 @@ find_program(LCOV_EXECUTABLE lcov)
 find_program(GENHTML_EXECUTABLE genhtml)
 find_program(GCOVR_EXECUTABLE gcovr)
 
+
+# Find Python3 and normalization scripts
+find_package(Python3 COMPONENTS Interpreter)
+
 # Find CTest coverage tool
 find_program(CTEST_COVERAGE_COMMAND NAMES gcov llvm-cov DOC "Coverage tool for CTest" CACHE)
 if(CTEST_COVERAGE_COMMAND)
@@ -60,6 +64,18 @@ function(_create_coverage_targets_impl)
     return()
   endif()
   set_property(GLOBAL PROPERTY _PHLEX_COVERAGE_TARGETS_DEFINED TRUE)
+
+  add_custom_target(
+      coverage-symlink-prepare
+      COMMAND ${CMAKE_COMMAND} -E rm -rf "${PROJECT_SOURCE_DIR}/.coverage-generated"
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_SOURCE_DIR}/.coverage-generated"
+      # NOTE: Actual symlink creation logic should be implemented here if needed (e.g., via a script)
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Preparing generated symlink tree (.coverage-generated)"
+  )
+  
+  set(_normalize_xml_script "${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_xml.py")
+  set(_normalize_lcov_script "${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py")
 
   add_custom_target(
     coverage
@@ -110,8 +126,28 @@ function(_create_coverage_targets_impl)
       COMMENT "Generating HTML coverage report with lcov (filters: ${LCOV_EXTRACT_DESCRIPTION})"
       VERBATIM
     )
-    
     add_dependencies(coverage coverage-html)
+
+    # HTML normalization target (depends on symlink preparation)
+    if(Python3_FOUND AND EXISTS "${_normalize_lcov_script}")
+      add_custom_target(
+        coverage-html-normalize
+        COMMAND ${Python3_EXECUTABLE} "${_normalize_lcov_script}" --repo-root "${PROJECT_SOURCE_DIR}" --coverage-root "${PROJECT_SOURCE_DIR}" --coverage-alias "${PROJECT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/coverage.info.final"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Normalizing LCOV HTML coverage report for editor/CI tooling"
+        VERBATIM
+      )
+      add_dependencies(coverage-html-normalize coverage-symlink-prepare)
+    else()
+      add_custom_target(
+        coverage-html-normalize
+        COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Python3 or normalize_coverage_lcov.py not found. Cannot normalize HTML coverage report."
+        COMMAND exit 1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Failed to normalize LCOV HTML coverage report"
+      )
+    endif()
+    add_dependencies(coverage-html-normalize coverage-html)
     message(STATUS "Added 'coverage-html' target using lcov with filters: ${LCOV_EXTRACT_DESCRIPTION}")
   endif()
 
@@ -166,9 +202,37 @@ function(_create_coverage_targets_impl)
       COMMENT "Generating XML coverage report with gcovr (root: ${COVERAGE_SOURCE_ROOT})"
       VERBATIM
     )
-    
     add_dependencies(coverage coverage-xml)
+
+    # XML normalization target (depends on symlink preparation)
+    if(Python3_FOUND AND EXISTS "${_normalize_xml_script}")
+      add_custom_target(
+        coverage-xml-normalize
+        COMMAND ${Python3_EXECUTABLE} "${_normalize_xml_script}" --repo-root "${PROJECT_SOURCE_DIR}" --source-dir "${PROJECT_SOURCE_DIR}" --path-map "${CMAKE_BINARY_DIR}=${PROJECT_SOURCE_DIR}/.coverage-generated" "${CMAKE_BINARY_DIR}/coverage.xml"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Normalizing XML coverage report for editor/CI tooling"
+        VERBATIM
+      )
+      add_dependencies(coverage-xml-normalize coverage-symlink-prepare)
+    else()
+      add_custom_target(
+        coverage-xml-normalize
+        COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Python3 or normalize_coverage_xml.py not found. Cannot normalize XML coverage report."
+        COMMAND exit 1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Failed to normalize XML coverage report"
+      )
+    endif()
+    add_dependencies(coverage-xml-normalize coverage-xml)
     message(STATUS "Added 'coverage-xml' target using gcovr with root: ${COVERAGE_SOURCE_ROOT}")
+    
+    # Symlink cleanup target (can be used independently)
+    add_custom_target(
+      coverage-symlink-clean
+      COMMAND ${CMAKE_COMMAND} -E rm -rf "${PROJECT_SOURCE_DIR}/.coverage-generated"
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Cleaning up generated symlink tree (.coverage-generated)"
+    )
   endif()
 
   add_custom_target(

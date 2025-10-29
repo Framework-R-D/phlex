@@ -82,8 +82,8 @@ prepare_generated_symlinks() {
 }
 
 cleanup_generated_symlinks() {
-    if [[ -n "$GENERATED_SYMLINK_ROOT" && -d "$GENERATED_SYMLINK_ROOT" ]]; then
-        rm -rf "$GENERATED_SYMLINK_ROOT"
+    if [[ -n "$BUILD_DIR" ]]; then
+        cmake --build "$BUILD_DIR" --target coverage-symlink-clean
     fi
     GENERATED_SYMLINK_ROOT=""
 }
@@ -575,10 +575,7 @@ generate_xml() {
             normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
         fi
 
-        if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
-            "${normalize_args[@]}" \
-            "$output_file"; then
-            cleanup_generated_symlinks
+        if ! cmake --build "$BUILD_DIR" --target coverage-xml-normalize; then
             error "Failed to normalize coverage XML. Adjust filters/excludes and retry."
             exit 1
         fi
@@ -619,14 +616,12 @@ generate_html() {
         # Normalize and copy the final .info file for VS Code Coverage Gutters
         if [[ -f coverage.info.final ]]; then
             log "Normalizing LCOV coverage paths for editor tooling..."
-            if ! python3 "$SCRIPT_DIR/normalize_coverage_lcov.py" \
-                --repo-root "$WORKSPACE_ROOT" \
-                --coverage-root "$WORKSPACE_ROOT" \
-                --coverage-alias "$PROJECT_SOURCE" \
-                "$BUILD_DIR/coverage.info.final"; then
+            if ! cmake --build "$BUILD_DIR" --target coverage-html-normalize; then
                 error "Failed to normalize LCOV coverage report. Adjust filters/excludes and retry."
                 exit 1
             fi
+
+            cleanup_generated_symlinks
 
             log "Copying lcov.info to workspace root for VS Code Coverage Gutters..."
             cp coverage.info.final "$WORKSPACE_ROOT/lcov.info"
@@ -800,10 +795,7 @@ upload_codecov() {
         upload_normalize_args+=(--path-map "$BUILD_DIR=$GENERATED_SYMLINK_ROOT")
     fi
 
-    if ! python3 "$SCRIPT_DIR/normalize_coverage_xml.py" \
-        "${upload_normalize_args[@]}" \
-        "$BUILD_DIR/coverage.xml"; then
-        cleanup_generated_symlinks
+    if ! cmake --build "$BUILD_DIR" --target coverage-xml-normalize; then
         error "Coverage XML failed normalization. Investigate filters/excludes before uploading."
         exit 1
     fi
