@@ -1,11 +1,11 @@
-  preset:
-    description: 'CMake preset to use (e.g., coverage, default)'
-    required: false
-    default: 'default'
 name: 'Configure CMake'
 description: 'Configures CMake with preset detection and customizable options'
 
 inputs:
+  preset:
+    description: 'CMake preset to use (e.g., coverage, default)'
+    required: false
+    default: 'default'
   source-path:
     description: 'Path where source code is checked out'
     required: false
