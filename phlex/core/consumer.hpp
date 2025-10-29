@@ -1,5 +1,5 @@
-#ifndef phlex_core_consumer_hpp
-#define phlex_core_consumer_hpp
+#ifndef PHLEX_CORE_CONSUMER_HPP
+#define PHLEX_CORE_CONSUMER_HPP
 
 #include "phlex/model/algorithm_name.hpp"
 
@@ -22,4 +22,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_consumer_hpp
+#endif // PHLEX_CORE_CONSUMER_HPP

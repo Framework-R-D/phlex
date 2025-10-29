@@ -1,5 +1,5 @@
-#ifndef phlex_metaprogramming_detail_parameter_types_hpp
-#define phlex_metaprogramming_detail_parameter_types_hpp
+#ifndef PHLEX_METAPROGRAMMING_DETAIL_PARAMETER_TYPES_HPP
+#define PHLEX_METAPROGRAMMING_DETAIL_PARAMETER_TYPES_HPP
 
 #include "phlex/metaprogramming/detail/basic_concepts.hpp"
 
@@ -29,4 +29,4 @@ namespace phlex::experimental::detail {
   auto parameter_types_impl(T&&) -> decltype(parameter_types_impl(&T::operator()));
 }
 
-#endif // phlex_metaprogramming_detail_parameter_types_hpp
+#endif // PHLEX_METAPROGRAMMING_DETAIL_PARAMETER_TYPES_HPP

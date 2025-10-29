@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_sized_tuple_hpp
-#define phlex_utilities_sized_tuple_hpp
+#ifndef PHLEX_UTILITIES_SIZED_TUPLE_HPP
+#define PHLEX_UTILITIES_SIZED_TUPLE_HPP
 
 #include <cstddef>
 #include <tuple>
@@ -24,4 +24,4 @@ namespace phlex::experimental {
   using concatenated_tuples = decltype(std::tuple_cat(std::declval<T>()...));
 }
 
-#endif // phlex_utilities_sized_tuple_hpp
+#endif // PHLEX_UTILITIES_SIZED_TUPLE_HPP

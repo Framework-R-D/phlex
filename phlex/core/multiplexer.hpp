@@ -1,5 +1,5 @@
-#ifndef phlex_core_multiplexer_hpp
-#define phlex_core_multiplexer_hpp
+#ifndef PHLEX_CORE_MULTIPLEXER_HPP
+#define PHLEX_CORE_MULTIPLEXER_HPP
 
 #include "phlex/core/message.hpp"
 #include "phlex/model/level_id.hpp"
@@ -45,4 +45,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_multiplexer_hpp
+#endif // PHLEX_CORE_MULTIPLEXER_HPP

@@ -1,6 +1,6 @@
 // This is the data product created by our fold node.
-#ifndef test_demo_giantdata_summed_clamped_waveforms_hpp
-#define test_demo_giantdata_summed_clamped_waveforms_hpp
+#ifndef TEST_DEMO_GIANTDATA_SUMMED_CLAMPED_WAVEFORMS_HPP
+#define TEST_DEMO_GIANTDATA_SUMMED_CLAMPED_WAVEFORMS_HPP
 
 #include <cstddef>
 
@@ -13,4 +13,4 @@ namespace demo {
 
 } // namespace demo
 
-#endif // test_demo_giantdata_summed_clamped_waveforms_hpp
+#endif // TEST_DEMO_GIANTDATA_SUMMED_CLAMPED_WAVEFORMS_HPP

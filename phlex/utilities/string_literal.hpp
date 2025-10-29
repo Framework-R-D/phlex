@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_string_literal_hpp
-#define phlex_utilities_string_literal_hpp
+#ifndef PHLEX_UTILITIES_STRING_LITERAL_HPP
+#define PHLEX_UTILITIES_STRING_LITERAL_HPP
 
 #include <algorithm>
 #include <array>
@@ -28,4 +28,4 @@ namespace phlex::experimental {
   concept are_unique = detail::unique<Resources...>();
 }
 
-#endif // phlex_utilities_string_literal_hpp
+#endif // PHLEX_UTILITIES_STRING_LITERAL_HPP

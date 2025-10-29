@@ -1,5 +1,5 @@
-#ifndef phlex_metaprogramming_detail_return_type_hpp
-#define phlex_metaprogramming_detail_return_type_hpp
+#ifndef PHLEX_METAPROGRAMMING_DETAIL_RETURN_TYPE_HPP
+#define PHLEX_METAPROGRAMMING_DETAIL_RETURN_TYPE_HPP
 
 #include "phlex/metaprogramming/detail/basic_concepts.hpp"
 
@@ -28,4 +28,4 @@ namespace phlex::experimental::detail {
   auto return_type_impl(T&&) -> decltype(return_type_impl(&T::operator()));
 }
 
-#endif // phlex_metaprogramming_detail_return_type_hpp
+#endif // PHLEX_METAPROGRAMMING_DETAIL_RETURN_TYPE_HPP

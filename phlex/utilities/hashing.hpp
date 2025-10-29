@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_hashing_hpp
-#define phlex_utilities_hashing_hpp
+#ifndef PHLEX_UTILITIES_HASHING_HPP
+#define PHLEX_UTILITIES_HASHING_HPP
 
 #include <cstdint>
 #include <string>
@@ -16,4 +16,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // phlex_utilities_hashing_hpp
+#endif // PHLEX_UTILITIES_HASHING_HPP

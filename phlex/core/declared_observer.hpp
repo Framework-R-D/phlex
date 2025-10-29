@@ -1,5 +1,5 @@
-#ifndef phlex_core_declared_observer_hpp
-#define phlex_core_declared_observer_hpp
+#ifndef PHLEX_CORE_DECLARED_OBSERVER_HPP
+#define PHLEX_CORE_DECLARED_OBSERVER_HPP
 
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
@@ -125,4 +125,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_declared_observer_hpp
+#endif // PHLEX_CORE_DECLARED_OBSERVER_HPP

@@ -1,5 +1,5 @@
-#ifndef phlex_module_hpp
-#define phlex_module_hpp
+#ifndef PHLEX_MODULE_HPP
+#define PHLEX_MODULE_HPP
 
 #include "boost/dll/alias.hpp"
 #include "phlex/concurrency.hpp"
@@ -29,4 +29,4 @@ namespace phlex::experimental::detail {
   BOOST_DLL_ALIAS(create, create_module)                                                           \
   SELECT_SIGNATURE(__VA_ARGS__)
 
-#endif // phlex_module_hpp
+#endif // PHLEX_MODULE_HPP

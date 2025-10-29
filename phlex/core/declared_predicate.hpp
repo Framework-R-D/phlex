@@ -1,5 +1,5 @@
-#ifndef phlex_core_declared_predicate_hpp
-#define phlex_core_declared_predicate_hpp
+#ifndef PHLEX_CORE_DECLARED_PREDICATE_HPP
+#define PHLEX_CORE_DECLARED_PREDICATE_HPP
 
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/detail/filter_impl.hpp"
@@ -129,4 +129,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_declared_predicate_hpp
+#endif // PHLEX_CORE_DECLARED_PREDICATE_HPP

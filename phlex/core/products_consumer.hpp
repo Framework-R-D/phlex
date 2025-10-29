@@ -1,5 +1,5 @@
-#ifndef phlex_core_products_consumer_hpp
-#define phlex_core_products_consumer_hpp
+#ifndef PHLEX_CORE_PRODUCTS_CONSUMER_HPP
+#define PHLEX_CORE_PRODUCTS_CONSUMER_HPP
 
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
@@ -44,4 +44,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_products_consumer_hpp
+#endif // PHLEX_CORE_PRODUCTS_CONSUMER_HPP

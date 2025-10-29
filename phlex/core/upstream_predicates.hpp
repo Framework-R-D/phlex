@@ -1,5 +1,5 @@
-#ifndef phlex_core_upstream_predicates_hpp
-#define phlex_core_upstream_predicates_hpp
+#ifndef PHLEX_CORE_UPSTREAM_PREDICATES_HPP
+#define PHLEX_CORE_UPSTREAM_PREDICATES_HPP
 
 #include "phlex/core/detail/maybe_predicates.hpp"
 #include "phlex/core/registrar.hpp"
@@ -58,4 +58,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_upstream_predicates_hpp
+#endif // PHLEX_CORE_UPSTREAM_PREDICATES_HPP

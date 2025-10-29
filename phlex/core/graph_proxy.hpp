@@ -1,5 +1,5 @@
-#ifndef phlex_core_graph_proxy_hpp
-#define phlex_core_graph_proxy_hpp
+#ifndef PHLEX_CORE_GRAPH_PROXY_HPP
+#define PHLEX_CORE_GRAPH_PROXY_HPP
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
@@ -116,4 +116,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_graph_proxy_hpp
+#endif // PHLEX_CORE_GRAPH_PROXY_HPP

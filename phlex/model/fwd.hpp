@@ -1,5 +1,5 @@
-#ifndef phlex_model_fwd_hpp
-#define phlex_model_fwd_hpp
+#ifndef PHLEX_MODEL_FWD_HPP
+#define PHLEX_MODEL_FWD_HPP
 
 #include <memory>
 
@@ -16,4 +16,4 @@ namespace phlex::experimental {
   enum class stage { process, flush };
 }
 
-#endif // phlex_model_fwd_hpp
+#endif // PHLEX_MODEL_FWD_HPP

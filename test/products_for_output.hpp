@@ -1,5 +1,5 @@
-#ifndef test_products_for_output_hpp
-#define test_products_for_output_hpp
+#ifndef TEST_PRODUCTS_FOR_OUTPUT_HPP
+#define TEST_PRODUCTS_FOR_OUTPUT_HPP
 
 #include "phlex/model/product_store.hpp"
 
@@ -23,4 +23,4 @@ namespace phlex::experimental::test {
 
 }
 
-#endif // test_products_for_output_hpp
+#endif // TEST_PRODUCTS_FOR_OUTPUT_HPP

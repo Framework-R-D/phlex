@@ -1,5 +1,5 @@
-#ifndef phlex_metaprogramming_detail_number_parameters_hpp
-#define phlex_metaprogramming_detail_number_parameters_hpp
+#ifndef PHLEX_METAPROGRAMMING_DETAIL_NUMBER_PARAMETERS_HPP
+#define PHLEX_METAPROGRAMMING_DETAIL_NUMBER_PARAMETERS_HPP
 
 #include "phlex/metaprogramming/detail/basic_concepts.hpp"
 
@@ -37,4 +37,4 @@ namespace phlex::experimental::detail {
   constexpr std::size_t number_parameters_impl<R(Args...) noexcept> = sizeof...(Args);
 }
 
-#endif // phlex_metaprogramming_detail_number_parameters_hpp
+#endif // PHLEX_METAPROGRAMMING_DETAIL_NUMBER_PARAMETERS_HPP

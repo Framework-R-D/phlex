@@ -1,5 +1,5 @@
-#ifndef phlex_core_declared_output_hpp
-#define phlex_core_declared_output_hpp
+#ifndef PHLEX_CORE_DECLARED_OUTPUT_HPP
+#define PHLEX_CORE_DECLARED_OUTPUT_HPP
 
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
@@ -38,4 +38,4 @@ namespace phlex::experimental {
   using declared_outputs = simple_ptr_map<declared_output_ptr>;
 }
 
-#endif // phlex_core_declared_output_hpp
+#endif // PHLEX_CORE_DECLARED_OUTPUT_HPP

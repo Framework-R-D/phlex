@@ -1,5 +1,5 @@
-#ifndef phlex_core_declared_fold_hpp
-#define phlex_core_declared_fold_hpp
+#ifndef PHLEX_CORE_DECLARED_FOLD_HPP
+#define PHLEX_CORE_DECLARED_FOLD_HPP
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
@@ -185,4 +185,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_declared_fold_hpp
+#endif // PHLEX_CORE_DECLARED_FOLD_HPP

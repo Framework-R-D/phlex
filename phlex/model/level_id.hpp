@@ -1,5 +1,5 @@
-#ifndef phlex_model_level_id_hpp
-#define phlex_model_level_id_hpp
+#ifndef PHLEX_MODEL_LEVEL_ID_HPP
+#define PHLEX_MODEL_LEVEL_ID_HPP
 
 #include "phlex/model/fwd.hpp"
 
@@ -62,4 +62,4 @@ namespace std {
   };
 }
 
-#endif // phlex_model_level_id_hpp
+#endif // PHLEX_MODEL_LEVEL_ID_HPP

@@ -1,5 +1,5 @@
-#ifndef phlex_core_detail_make_algorithm_name_hpp
-#define phlex_core_detail_make_algorithm_name_hpp
+#ifndef PHLEX_CORE_DETAIL_MAKE_ALGORITHM_NAME_HPP
+#define PHLEX_CORE_DETAIL_MAKE_ALGORITHM_NAME_HPP
 
 // This simple utility is placed in an implementation file to avoid including the
 // phlex/configuration.hpp in framework code.
@@ -15,4 +15,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif
+#endif // PHLEX_CORE_DETAIL_MAKE_ALGORITHM_NAME_HPP

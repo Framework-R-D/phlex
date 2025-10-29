@@ -1,8 +1,8 @@
-#ifndef test_plugins_add_hpp
-#define test_plugins_add_hpp
+#ifndef TEST_PLUGINS_ADD_HPP
+#define TEST_PLUGINS_ADD_HPP
 
 namespace test {
   constexpr int add(int i, int j) { return i + j; }
 }
 
-#endif // test_plugins_add_hpp
+#endif // TEST_PLUGINS_ADD_HPP

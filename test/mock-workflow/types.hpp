@@ -1,5 +1,5 @@
-#ifndef test_mock_workflow_types_hpp
-#define test_mock_workflow_types_hpp
+#ifndef TEST_MOCK_WORKFLOW_TYPES_HPP
+#define TEST_MOCK_WORKFLOW_TYPES_HPP
 
 namespace phlex::experimental {
   template <typename A, typename B, typename D = void>
@@ -30,4 +30,4 @@ namespace simb {
 
 #undef DATA_PRODUCT
 
-#endif // test_mock_workflow_types_hpp
+#endif // TEST_MOCK_WORKFLOW_TYPES_HPP

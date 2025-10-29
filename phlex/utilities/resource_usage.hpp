@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_resource_usage_hpp
-#define phlex_utilities_resource_usage_hpp
+#ifndef PHLEX_UTILITIES_RESOURCE_USAGE_HPP
+#define PHLEX_UTILITIES_RESOURCE_USAGE_HPP
 
 // =======================================================================================
 // The resource_usage class tracks the CPU time and real time during the lifetime of a
@@ -20,4 +20,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_utilities_resource_usage_hpp
+#endif // PHLEX_UTILITIES_RESOURCE_USAGE_HPP

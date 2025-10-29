@@ -1,5 +1,5 @@
-#ifndef phlex_core_glue_hpp
-#define phlex_core_glue_hpp
+#ifndef PHLEX_CORE_GLUE_HPP
+#define PHLEX_CORE_GLUE_HPP
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
@@ -142,4 +142,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_glue_hpp
+#endif // PHLEX_CORE_GLUE_HPP

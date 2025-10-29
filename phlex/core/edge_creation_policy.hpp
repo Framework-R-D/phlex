@@ -1,5 +1,5 @@
-#ifndef phlex_core_edge_creation_policy_hpp
-#define phlex_core_edge_creation_policy_hpp
+#ifndef PHLEX_CORE_EDGE_CREATION_POLICY_HPP
+#define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 
 #include "phlex/core/message.hpp"
 #include "phlex/model/qualified_name.hpp"
@@ -59,4 +59,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // phlex_core_edge_creation_policy_hpp
+#endif // PHLEX_CORE_EDGE_CREATION_POLICY_HPP

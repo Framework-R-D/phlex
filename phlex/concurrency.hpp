@@ -1,5 +1,5 @@
-#ifndef phlex_concurrency_hpp
-#define phlex_concurrency_hpp
+#ifndef PHLEX_CONCURRENCY_HPP
+#define PHLEX_CONCURRENCY_HPP
 
 #include <cstddef>
 
@@ -12,4 +12,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_concurrency_hpp
+#endif // PHLEX_CONCURRENCY_HPP

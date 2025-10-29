@@ -1,5 +1,5 @@
-#ifndef test_mock_workflow_algorithm_hpp
-#define test_mock_workflow_algorithm_hpp
+#ifndef TEST_MOCK_WORKFLOW_ALGORITHM_HPP
+#define TEST_MOCK_WORKFLOW_ALGORITHM_HPP
 
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
@@ -76,4 +76,4 @@ namespace phlex::experimental::test {
   }
 }
 
-#endif // test_mock_workflow_algorithm_hpp
+#endif // TEST_MOCK_WORKFLOW_ALGORITHM_HPP

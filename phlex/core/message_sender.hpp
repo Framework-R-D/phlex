@@ -1,5 +1,5 @@
-#ifndef phlex_core_message_sender_hpp
-#define phlex_core_message_sender_hpp
+#ifndef PHLEX_CORE_MESSAGE_SENDER_HPP
+#define PHLEX_CORE_MESSAGE_SENDER_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
@@ -32,4 +32,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_message_sender_hpp
+#endif // PHLEX_CORE_MESSAGE_SENDER_HPP

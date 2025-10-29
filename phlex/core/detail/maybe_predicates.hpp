@@ -1,5 +1,5 @@
-#ifndef phlex_core_detail_maybe_predicates_hpp
-#define phlex_core_detail_maybe_predicates_hpp
+#ifndef PHLEX_CORE_DETAIL_MAYBE_PREDICATES_HPP
+#define PHLEX_CORE_DETAIL_MAYBE_PREDICATES_HPP
 
 // This simple utility is placed in an implementation file to avoid including the
 // phlex/configuration.hpp in framework code.
@@ -16,4 +16,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif
+#endif // PHLEX_CORE_DETAIL_MAYBE_PREDICATES_HPP

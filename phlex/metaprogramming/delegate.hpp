@@ -1,5 +1,5 @@
-#ifndef phlex_metaprogramming_delegate_hpp
-#define phlex_metaprogramming_delegate_hpp
+#ifndef PHLEX_METAPROGRAMMING_DELEGATE_HPP
+#define PHLEX_METAPROGRAMMING_DELEGATE_HPP
 
 #include "phlex/metaprogramming/type_deduction.hpp"
 
@@ -59,4 +59,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_metaprogramming_delegate_hpp
+#endif // PHLEX_METAPROGRAMMING_DELEGATE_HPP

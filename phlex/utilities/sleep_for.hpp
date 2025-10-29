@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_sleep_for_hpp
-#define phlex_utilities_sleep_for_hpp
+#ifndef PHLEX_UTILITIES_SLEEP_FOR_HPP
+#define PHLEX_UTILITIES_SLEEP_FOR_HPP
 
 #include <chrono>
 #include <thread>
@@ -23,4 +23,4 @@ namespace phlex::experimental {
   using namespace std::chrono_literals;
 }
 
-#endif // phlex_utilities_sleep_for_hpp
+#endif // PHLEX_UTILITIES_SLEEP_FOR_HPP

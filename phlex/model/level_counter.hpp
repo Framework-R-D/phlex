@@ -1,5 +1,5 @@
-#ifndef phlex_model_level_counter_hpp
-#define phlex_model_level_counter_hpp
+#ifndef PHLEX_MODEL_LEVEL_COUNTER_HPP
+#define PHLEX_MODEL_LEVEL_COUNTER_HPP
 
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/level_id.hpp"
@@ -68,4 +68,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_model_level_counter_hpp
+#endif // PHLEX_MODEL_LEVEL_COUNTER_HPP

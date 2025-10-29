@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_thread_counter_hpp
-#define phlex_utilities_thread_counter_hpp
+#ifndef PHLEX_UTILITIES_THREAD_COUNTER_HPP
+#define PHLEX_UTILITIES_THREAD_COUNTER_HPP
 
 #include <atomic>
 #include <stdexcept>
@@ -27,4 +27,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_utilities_thread_counter_hpp
+#endif // PHLEX_UTILITIES_THREAD_COUNTER_HPP
