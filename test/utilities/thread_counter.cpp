@@ -1,7 +1,9 @@
 #include "phlex/utilities/thread_counter.hpp"
 #include "phlex/utilities/sleep_for.hpp"
 
-#include "catch2/catch_all.hpp"
+#include "catch2/catch_test_macros.hpp"
+#include "catch2/matchers/catch_matchers.hpp"
+#include "catch2/matchers/catch_matchers_string.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
 using namespace phlex::experimental;

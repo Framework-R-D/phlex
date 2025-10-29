@@ -50,9 +50,10 @@ namespace phlex::experimental {
   template <typename InputTypes>
   auto form_input_arguments(std::string const& algorithm_name, specified_labels const& args)
   {
-    constexpr auto N = std::tuple_size_v<InputTypes>;
+    constexpr auto number_input_types = std::tuple_size_v<InputTypes>;
     detail::verify_no_duplicate_input_products(algorithm_name, args);
-    return form_input_arguments_impl<InputTypes>(args, std::make_index_sequence<N>{});
+    return form_input_arguments_impl<InputTypes>(args,
+                                                 std::make_index_sequence<number_input_types>{});
   }
 }
 

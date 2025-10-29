@@ -1,4 +1,9 @@
 #include "phlex/core/consumer.hpp"
+#include "phlex/model/algorithm_name.hpp"
+
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   consumer::consumer(algorithm_name name, std::vector<std::string> predicates) :

@@ -5,11 +5,12 @@
 #include "test/products_for_output.hpp"
 
 #include "test/demo-giantdata/log_record.hpp"
+#include "test/demo-giantdata/summed_clamped_waveforms.hpp"
 #include "test/demo-giantdata/user_algorithms.hpp"
 #include "test/demo-giantdata/waveform_generator.hpp"
 #include "test/demo-giantdata/waveform_generator_input.hpp"
 
-#include <algorithm>
+#include <cstddef>
 #include <ranges>
 #include <string>
 #include <vector>
@@ -21,7 +22,6 @@ using namespace phlex::experimental;
 // ./unfold_transform_fold [number of spills [APAs per spill]]
 int main(int argc, char* argv[])
 {
-
   std::vector<std::string> const args(argv + 1, argv + argc);
   std::size_t const n_runs = [&args]() {
     if (args.size() > 1) {
@@ -62,15 +62,15 @@ int main(int argc, char* argv[])
     driver.yield(job_store);
 
     // job -> run -> subrun -> spill levels
-    for (unsigned runno : std::views::iota(0u, n_runs)) {
+    for (unsigned int const runno : std::views::iota(0u, n_runs)) {
       auto run_store = job_store->make_child(runno, "run");
       driver.yield(run_store);
 
-      for (unsigned subrunno : std::views::iota(0u, n_subruns)) {
+      for (unsigned int const subrunno : std::views::iota(0u, n_subruns)) {
         auto subrun_store = run_store->make_child(subrunno, "subrun");
         driver.yield(subrun_store);
 
-        for (unsigned spillno : std::views::iota(0u, n_spills)) {
+        for (unsigned int const spillno : std::views::iota(0u, n_spills)) {
 
           auto spill_store = subrun_store->make_child(spillno, "spill");
 
@@ -106,13 +106,13 @@ int main(int argc, char* argv[])
     framework_graph g{source};
 
     // Add the unfold node to the graph. We do not yet know how to provide the chunksize
-    // to the constructor of the WaveformGenerator, so we will use the default value.
+    // to the constructor of the waveform_generator, so we will use the default value.
     demo::log_record("add_unfold");
     auto const chunksize = 256LL; // this could be read from a configuration file
 
-    g.unfold<demo::WaveformGenerator>(
-       &demo::WaveformGenerator::predicate,
-       [](demo::WaveformGenerator const& wg, std::size_t running_value) {
+    g.unfold<demo::waveform_generator>(
+       &demo::waveform_generator::predicate,
+       [](demo::waveform_generator const& wg, std::size_t running_value) {
          return wg.op(running_value, chunksize);
        },
        concurrency::unlimited,
@@ -122,12 +122,12 @@ int main(int argc, char* argv[])
 
     // Add the transform node to the graph.
     demo::log_record("add_transform");
-    auto wrapped_user_function = [](phlex::experimental::handle<demo::Waveforms> hwf) {
+    auto wrapped_user_function = [](phlex::experimental::handle<demo::waveforms> hwf) {
       auto apa_id = hwf.level_id().number();
       auto spill_id = hwf.level_id().parent()->number();
       auto subrun_id = hwf.level_id().parent()->parent()->number();
       auto run_id = hwf.level_id().parent()->parent()->parent()->number();
-      return demo::clampWaveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
+      return demo::clamp_waveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
     };
 
     g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
@@ -138,12 +138,12 @@ int main(int argc, char* argv[])
     demo::log_record("add_fold");
     g.fold(
        "accum_for_spill",
-       [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) {
+       [](demo::summed_clamped_waveforms& scw, phlex::experimental::handle<demo::waveforms> hwf) {
          auto apa_id = hwf.level_id().number();
          auto spill_id = hwf.level_id().parent()->number();
          auto subrun_id = hwf.level_id().parent()->parent()->number();
          auto run_id = hwf.level_id().parent()->parent()->parent()->number();
-         demo::accumulateSCW(scw, *hwf, run_id, subrun_id, spill_id, apa_id);
+         demo::accumulate_scw(scw, *hwf, run_id, subrun_id, spill_id, apa_id);
        },
        concurrency::unlimited,
        "spill" // partition the output by the spill

@@ -11,6 +11,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <utility>
 
 namespace phlex::experimental {
   level_sentry::level_sentry(flush_counters& counters,
@@ -40,9 +41,9 @@ namespace phlex::experimental {
   }
 
   // FIXME: The algorithm below should support user-specified flush stores.
-  framework_graph::framework_graph(detail::next_store_t next_store, int const max_parallelism) :
+  framework_graph::framework_graph(detail::next_store_t f, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
-    driver_{std::move(next_store)},
+    driver_{std::move(f)},
     src_{graph_,
          [this](tbb::flow_control& fc) mutable -> message {
            auto item = driver_();

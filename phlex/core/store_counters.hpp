@@ -44,7 +44,7 @@ namespace phlex::experimental {
 
   class store_counter {
   public:
-    void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
+    void set_flush_value(product_store_const_ptr const& store, std::size_t original_message_id);
     void increment(level_id::hash_type level_hash);
     bool is_complete();
     unsigned int original_message_id() const noexcept;
@@ -52,7 +52,7 @@ namespace phlex::experimental {
   private:
     using counts_t2 = tbb::concurrent_unordered_map<level_id::hash_type, std::atomic<std::size_t>>;
 
-    counts_t2 counts_{};
+    counts_t2 counts_;
 #ifdef __cpp_lib_atomic_shared_ptr
     std::atomic<flush_counts_ptr> flush_counts_{nullptr};
 #else

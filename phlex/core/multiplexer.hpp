@@ -20,11 +20,11 @@ namespace phlex::experimental {
     using base = tbb::flow::function_node<message>;
 
   public:
-    ~multiplexer();
+    ~multiplexer() final;
 
     struct named_input_port {
       specified_label product_label;
-      tbb::flow::receiver<message>* port;
+      tbb::flow::receiver<message>* port{nullptr};
     };
     using named_input_ports_t = std::vector<named_input_port>;
     using head_ports_t = std::map<std::string, named_input_ports_t>;
@@ -39,7 +39,7 @@ namespace phlex::experimental {
   private:
     head_ports_t head_ports_;
     bool debug_;
-    std::atomic<std::size_t> received_messages_{};
+    std::atomic<std::size_t> received_messages_;
     std::chrono::duration<float, std::chrono::microseconds::period> execution_time_{};
   };
 

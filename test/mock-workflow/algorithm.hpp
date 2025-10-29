@@ -13,6 +13,7 @@
 #include <concepts>
 #include <string>
 #include <tuple>
+#include <utility>
 
 namespace phlex::experimental::test {
   template <typename T>
@@ -40,8 +41,8 @@ namespace phlex::experimental::test {
   template <typename... Inputs, std::default_initializable Outputs>
   class algorithm<std::tuple<Inputs...>, Outputs> {
   public:
-    explicit algorithm(std::string const& label, unsigned const duration) :
-      label_{label}, duration_{duration}
+    explicit algorithm(std::string label, unsigned const duration) :
+      label_{std::move(label)}, duration_{duration}
     {
     }
 

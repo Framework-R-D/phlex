@@ -1,10 +1,9 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-
-#include <iostream>
 
 using namespace phlex::experimental;
 using namespace oneapi::tbb;

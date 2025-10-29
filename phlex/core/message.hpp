@@ -20,19 +20,24 @@ namespace phlex::experimental {
   struct message {
     product_store_const_ptr store;
     end_of_message_ptr eom;
-    std::size_t id;
+    std::size_t id{};
     std::size_t original_id{-1ull}; // Used during flush
   };
 
   template <std::size_t N>
   using messages_t = sized_tuple<message, N>;
 
-  struct MessageHasher {
+  struct message_hasher {
     std::size_t operator()(message const& msg) const noexcept;
   };
 
   // Overload for use with most_derived
   message const& more_derived(message const& a, message const& b);
+
+  // Delete overloads that can result in dangling reference
+  message const& more_derived(message&&, message&&) = delete;
+  message const& more_derived(message const&, message&&) = delete;
+  message const& more_derived(message&&, message const&) = delete;
 
   namespace detail {
     template <std::size_t N>
@@ -41,7 +46,7 @@ namespace phlex::experimental {
       tbb::flow::function_node<message, messages_t<1ull>, tbb::flow::lightweight>;
 
     struct no_join : no_join_base_t {
-      no_join(tbb::flow::graph& g, MessageHasher);
+      no_join(tbb::flow::graph& g, message_hasher);
     };
   }
 
@@ -51,7 +56,7 @@ namespace phlex::experimental {
   template <std::size_t... Is>
   auto make_join_or_none(tbb::flow::graph& g, std::index_sequence<Is...>)
   {
-    return join_or_none_t<sizeof...(Is)>{g, type_t<MessageHasher, Is>{}...};
+    return join_or_none_t<sizeof...(Is)>{g, type_t<message_hasher, Is>{}...};
   }
 
   template <std::size_t N>

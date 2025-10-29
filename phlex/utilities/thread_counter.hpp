@@ -21,8 +21,15 @@ namespace phlex::experimental {
     }
     ~thread_counter() { --counter_; }
 
+    // Copying and moving not intended
+    thread_counter(thread_counter const&) = delete;
+    thread_counter(thread_counter&&) = delete;
+
+    thread_counter& operator=(thread_counter const&) = delete;
+    thread_counter& operator=(thread_counter&&) = delete;
+
   private:
-    counter_type& counter_;
+    counter_type& counter_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     value_type max_;
   };
 }

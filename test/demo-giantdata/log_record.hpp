@@ -11,9 +11,10 @@
 static_assert(static_cast<int>(-1ULL) == -1, "static_cast<int>(-1ULL) is not -1");
 
 namespace demo {
-  inline int constexpr convert_to_int(std::size_t value) { return static_cast<int>(value); }
+  constexpr int convert_to_int(std::size_t value) { return static_cast<int>(value); }
 
-  std::size_t const EVENT_NAME_SIZE = 16;
+  constexpr std::size_t event_name_size = 16;
+
   struct record {
     record(char const* event,
            std::size_t run_id,
@@ -37,8 +38,8 @@ namespace demo {
       double const ts =
         static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t).count());
       timestamp = ts * 1.0e-6;
-      std::strncpy(this->event, event, EVENT_NAME_SIZE);
-      this->event[EVENT_NAME_SIZE - 1] = '\0'; // ensure null-termination
+      std::strncpy(this->event, event, event_name_size);
+      this->event[event_name_size - 1] = '\0'; // ensure null-termination
     }
 
     int run_id;
@@ -49,7 +50,7 @@ namespace demo {
     int data;
     void const* orig;
     double timestamp;
-    char event[EVENT_NAME_SIZE];
+    char event[event_name_size];
     int thread_index;
   };
 
@@ -74,9 +75,10 @@ namespace demo {
                          std::size_t data = 0,
                          void const* orig = nullptr)
   {
-    record r(event, run_id, subrun_id, spill_id, apa_id, active, data, orig);
+    record const r(event, run_id, subrun_id, spill_id, apa_id, active, data, orig);
     global_queue.push(r);
   }
+
   inline void write_log(std::string const& filename)
   {
     std::ofstream log_file(filename, std::ios_base::out | std::ios_base::trunc);

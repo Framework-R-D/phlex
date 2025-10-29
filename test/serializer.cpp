@@ -31,7 +31,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
 
   serial_node<unsigned int, 1> node1{
     g, serialized_resources.get("ROOT"), [&root_counter](unsigned int const i) {
-      thread_counter c{root_counter};
+      thread_counter const c{root_counter};
       debug("Processing from node 1 {}", i);
       return i;
     }};
@@ -39,15 +39,15 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   serial_node<unsigned int, 2> node2{g,
                                      serialized_resources.get("ROOT", "GENIE"),
                                      [&root_counter, &genie_counter](unsigned int const i) {
-                                       thread_counter c1{root_counter};
-                                       thread_counter c2{genie_counter};
+                                       thread_counter const c1{root_counter};
+                                       thread_counter const c2{genie_counter};
                                        debug("Processing from node 2 {}", i);
                                        return i;
                                      }};
 
   serial_node<unsigned int, 1> node3{
     g, serialized_resources.get("GENIE"), [&genie_counter](unsigned int const i) {
-      thread_counter c{genie_counter};
+      thread_counter const c{genie_counter};
       debug("Processing from node 3 {}", i);
       return i;
     }};
@@ -102,7 +102,7 @@ TEST_CASE("Serialize functions in unfold/merge graph", "[multithreading]")
   auto serial_node_for = [&root_resource, &root_counter](auto& g, int label) {
     return serial_node<unsigned int, 1>{
       g, root_resource, [&root_counter, label](unsigned int const i) {
-        thread_counter c{root_counter};
+        thread_counter const c{root_counter};
         debug("Processing from node {} {}", label, i);
         return i;
       }};

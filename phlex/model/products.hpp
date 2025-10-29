@@ -30,7 +30,7 @@ namespace phlex::experimental {
     explicit product(T&& prod) : obj{std::move(prod)} {}
 
     void const* address() const final { return &obj; }
-    virtual std::type_index type() const { return std::type_index{typeid(T)}; }
+    std::type_index type() const final { return std::type_index{typeid(T)}; }
     std::remove_cvref_t<T> obj;
   };
 
@@ -63,9 +63,9 @@ namespace phlex::experimental {
     void add_all(qualified_names const& names, std::tuple<Ts...> ts)
     {
       assert(names.size() == sizeof...(Ts));
-      [this, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
-        (this->add(names[Is].name(), std::get<Is>(ts)), ...);
-      }(ts, std::index_sequence_for<Ts...>{});
+      [this, &names]<std::size_t... Is>(auto ts, std::index_sequence<Is...>) {
+        (this->add(names[Is].name(), std::move(std::get<Is>(ts))), ...);
+      }(std::move(ts), std::index_sequence_for<Ts...>{});
     }
 
     template <typename T>
@@ -85,8 +85,9 @@ namespace phlex::experimental {
       // Unfortunately, this doesn't work well whenever products are inserted across
       // modules and shared object libraries.
 
-      auto available_product = it->second.get();
+      auto const* available_product = it->second.get();
       if (std::strcmp(typeid(T).name(), available_product->type().name()) == 0) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<product<T> const*>(available_product)->obj;
       }
 

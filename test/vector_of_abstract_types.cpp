@@ -1,20 +1,25 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/fwd.hpp" // FIXME:  If framework_driver is public API, it should live in an easy-to-find place.
+#include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
+#include <functional>
+#include <memory>
 #include <numeric>
+#include <vector>
 
 using namespace phlex::experimental;
 
 namespace types {
-  struct Abstract {
+  struct abstract {
     virtual int value() const = 0;
-    virtual ~Abstract() = default;
+    virtual ~abstract() = default;
   };
-  struct DerivedA : Abstract {
+  struct derived_a : abstract {
     int value() const override { return 1; }
   };
-  struct DerivedB : Abstract {
+  struct derived_b : abstract {
     int value() const override { return 2; }
   };
 }
@@ -22,14 +27,14 @@ namespace types {
 namespace {
   auto make_derived_as_abstract()
   {
-    std::vector<std::unique_ptr<types::Abstract>> vec;
+    std::vector<std::unique_ptr<types::abstract>> vec;
     vec.reserve(2);
-    vec.push_back(std::make_unique<types::DerivedA>());
-    vec.push_back(std::make_unique<types::DerivedB>());
+    vec.push_back(std::make_unique<types::derived_a>());
+    vec.push_back(std::make_unique<types::derived_b>());
     return vec;
   }
 
-  int read_abstract(std::vector<std::unique_ptr<types::Abstract>> const& vec)
+  int read_abstract(std::vector<std::unique_ptr<types::abstract>> const& vec)
   {
     return std::transform_reduce(
       vec.begin(), vec.end(), 0, std::plus{}, [](auto const& ptr) -> int { return ptr->value(); });
@@ -39,12 +44,12 @@ namespace {
   public:
     explicit source(unsigned const max_n) : max_{max_n} {}
 
-    void operator()(framework_driver& driver)
+    void operator()(framework_driver& driver) const
     {
       auto job_store = phlex::experimental::product_store::base();
       driver.yield(job_store);
 
-      for (unsigned int i : std::views::iota(1u, max_ + 1)) {
+      for (unsigned int const i : std::views::iota(1u, max_ + 1)) {
         auto store = job_store->make_child(i, "event");
         store->add_product("thing", make_derived_as_abstract());
         driver.yield(store);
@@ -52,7 +57,7 @@ namespace {
     }
 
   private:
-    unsigned const max_;
+    unsigned max_;
   };
 
 }

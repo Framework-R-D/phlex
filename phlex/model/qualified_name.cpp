@@ -2,13 +2,16 @@
 #include "phlex/model/algorithm_name.hpp"
 
 #include <algorithm>
-#include <regex>
+#include <iterator>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   qualified_name::qualified_name() = default;
 
   qualified_name::qualified_name(char const* name) : qualified_name{std::string{name}} {}
-  qualified_name::qualified_name(std::string name) { *this = create(name); }
+  qualified_name::qualified_name(std::string const& name) { *this = create(name); }
 
   qualified_name::qualified_name(algorithm_name qualifier, std::string name) :
     qualifier_{std::move(qualifier)}, name_{std::move(name)}
@@ -40,7 +43,7 @@ namespace phlex::experimental {
 
   qualified_name qualified_name::create(std::string const& s)
   {
-    auto forward_slash = s.find("/");
+    auto forward_slash = s.find('/');
     if (forward_slash != std::string::npos) {
       return {algorithm_name::create(s.substr(0, forward_slash)), s.substr(forward_slash + 1)};
     }
