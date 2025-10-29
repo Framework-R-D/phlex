@@ -71,11 +71,19 @@ jobs:
     - name: Setup build environment
       uses: ./phlex-src/.github/actions/setup-build-env
 
-    - name: Configure CMake with coverage
+    - name: Configure CMake with GCC coverage
+      if: ${{ !contains(github.event.head_commit.message, '[clang]') }}
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: ${{ env.BUILD_TYPE }}
-        preset: coverage
+        preset: coverage-gcc
+
+    - name: Configure CMake with Clang coverage
+      if: ${{ contains(github.event.head_commit.message, '[clang]') }}
+      uses: ./phlex-src/.github/actions/configure-cmake
+      with:
+        build-type: ${{ env.BUILD_TYPE }}
+        preset: coverage-clang
 
     - name: Build with coverage instrumentation
       uses: ./phlex-src/.github/actions/build-cmake
@@ -86,63 +94,58 @@ jobs:
         cd $GITHUB_WORKSPACE/phlex-build
         ctest -j $(nproc) --output-on-failure
 
-    - name: Generate coverage reports
+    - name: Generate coverage reports (GCC)
+      if: ${{ !contains(github.event.head_commit.message, '[clang]') }}
       shell: bash
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
-
-        echo "Detecting compiler for coverage targets..."
-        CXX_COMPILER=$(cmake -LA -N . | grep CMAKE_CXX_COMPILER: | cut -d= -f2)
-        if [[ "$CXX_COMPILER" == *"clang++"* ]]; then
-          echo "Using Clang/llvm-cov coverage targets."
-          cmake --build . --target coverage-llvm
-          cmake --build . --target coverage-llvm-normalize
-          cmake --build . --target coverage-llvm-summary
-          if [ -f coverage-llvm.txt ]; then
-            echo "LLVM coverage summary:" && cat coverage-llvm.txt | head -20
-          else
-            echo "ERROR: coverage-llvm.txt not found"
-            ls -la *.txt || echo "No LLVM coverage summary found"
-            exit 1
-          fi
+        echo "Using GCC/gcovr/lcov coverage targets."
+        cmake --build . --target coverage-xml
+        if [ -f coverage.xml ]; then
+          echo "Coverage XML generated successfully"
+          echo "Coverage XML size: $(wc -c < coverage.xml) bytes"
+          echo "Source paths in coverage.xml:"
+          grep -o '<source>.*</source>' coverage.xml | head -5
+          echo "Preparing generated sources for coverage mapping..."
+          GENERATED_ROOT="$GITHUB_WORKSPACE/phlex-src/.coverage-generated"
+          cmake --build "$GITHUB_WORKSPACE/phlex-build" --target coverage-symlink-clean
+          mkdir -p "$GENERATED_ROOT"
+          find "$GITHUB_WORKSPACE/phlex-build" -type f \
+            \( -name '*.cpp' -o -name '*.hpp' \) \
+            -print0 | while IFS= read -r -d '' src; do
+              rel="${src#$GITHUB_WORKSPACE/phlex-build/}"
+              dest="$GENERATED_ROOT/$rel"
+              mkdir -p "$(dirname "$dest")"
+              cp "$src" "$dest"
+            done
+          echo "Normalizing coverage XML paths for Codecov via CMake target..."
+          cmake --build "$GITHUB_WORKSPACE/phlex-build" --target coverage-xml-normalize
+          rm -rf "$GENERATED_ROOT"
         else
-          echo "Using GCC/gcovr/lcov coverage targets."
-          # Generate XML coverage report using CMake target
-          echo "Generating XML coverage report..."
-          cmake --build . --target coverage-xml
+          echo "ERROR: coverage.xml not found"
+          ls -la *.xml || echo "No XML files found"
+          exit 1
+        fi
+        echo "Generating HTML coverage report..."
+        cmake --build . --target coverage-html || echo "HTML coverage generation failed (lcov issues), continuing..."
 
-          if [ -f coverage.xml ]; then
-            echo "Coverage XML generated successfully"
-            echo "Coverage XML size: $(wc -c < coverage.xml) bytes"
-            echo "Source paths in coverage.xml:"
-            grep -o '<source>.*</source>' coverage.xml | head -5
-
-            echo "Preparing generated sources for coverage mapping..."
-            GENERATED_ROOT="$GITHUB_WORKSPACE/phlex-src/.coverage-generated"
-            cmake --build "$GITHUB_WORKSPACE/phlex-build" --target coverage-symlink-clean
-            mkdir -p "$GENERATED_ROOT"
-            find "$GITHUB_WORKSPACE/phlex-build" -type f \
-              \( -name '*.cpp' -o -name '*.hpp' \) \
-              -print0 | while IFS= read -r -d '' src; do
-                rel="${src#$GITHUB_WORKSPACE/phlex-build/}"
-                dest="$GENERATED_ROOT/$rel"
-                mkdir -p "$(dirname "$dest")"
-                cp "$src" "$dest"
-              done
-
-            echo "Normalizing coverage XML paths for Codecov via CMake target..."
-            cmake --build "$GITHUB_WORKSPACE/phlex-build" --target coverage-xml-normalize
-            rm -rf "$GENERATED_ROOT"
-          else
-            echo "ERROR: coverage.xml not found"
-            ls -la *.xml || echo "No XML files found"
-            exit 1
-          fi
-
-          # Also generate HTML report for artifact upload using CMake target
-          echo "Generating HTML coverage report..."
-          cmake --build . --target coverage-html || echo "HTML coverage generation failed (lcov issues), continuing..."
+    - name: Generate coverage reports (Clang)
+      if: ${{ contains(github.event.head_commit.message, '[clang]') }}
+      shell: bash
+      run: |
+        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+        echo "Using Clang/llvm-cov coverage targets."
+        cmake --build . --target coverage-llvm
+        cmake --build . --target coverage-llvm-normalize
+        cmake --build . --target coverage-llvm-summary
+        if [ -f coverage-llvm.txt ]; then
+          echo "LLVM coverage summary:" && cat coverage-llvm.txt | head -20
+        else
+          echo "ERROR: coverage-llvm.txt not found"
+          ls -la *.txt || echo "No LLVM coverage summary found"
+          exit 1
         fi
 
     - name: Upload coverage to Codecov
