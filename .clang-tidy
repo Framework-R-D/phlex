@@ -33,7 +33,7 @@ Checks: >
 
 WarningsAsErrors: ''
 
-HeaderFilterRegex: '.*\.(h|hpp)$'
+HeaderFilterRegex: '.*/(phlex|form)/.*\.(h|hpp)$'
 
 CheckOptions:
   # Naming conventions

@@ -61,7 +61,7 @@ fi
 CMD=("$RUN_CLANG_TIDY" -p "$COMPILE_DB" -clang-tidy-binary "$CLANG_TIDY_BIN" -config-file "$CLANG_TIDY_CONFIG")
 [ -n "$CHECKS_ARG" ] && CMD+=("$CHECKS_ARG")
 [ -n "$EXPORT_FIXES_FILE" ] && CMD+=("-export-fixes=$EXPORT_FIXES_FILE")
-CMD+=("-source-filter" "$FILES_REGEX" "-header-filter" "$FILES_REGEX")
+CMD+=("-source-filter" "$FILES_REGEX")
 [ "$DO_FIX" -eq 1 ] && CMD+=("-fix")
 
 if [ ${#FILES_ARG_LIST[@]} -gt 0 ]; then
