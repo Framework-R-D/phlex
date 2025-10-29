@@ -102,6 +102,37 @@ function(_create_coverage_targets_impl)
       VERBATIM
     )
     message(STATUS "LLVM coverage tools detected; 'coverage-llvm' target added.")
+
+    # Normalization target for llvm-cov output (if Python script exists)
+    set(_normalize_llvm_script "${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py")
+    if(Python3_FOUND AND EXISTS "${_normalize_llvm_script}")
+      add_custom_target(
+        coverage-llvm-normalize
+        COMMAND ${Python3_EXECUTABLE} "${_normalize_llvm_script}" --repo-root "${PROJECT_SOURCE_DIR}" --coverage-root "${PROJECT_SOURCE_DIR}" --coverage-alias "${PROJECT_SOURCE_DIR}" "${LLVM_COV_OUTPUT}"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Normalizing LLVM coverage report for editor/CI tooling"
+        VERBATIM
+      )
+      add_dependencies(coverage-llvm-normalize coverage-llvm)
+    else()
+      add_custom_target(
+        coverage-llvm-normalize
+        COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Python3 or normalize_coverage_lcov.py not found. Cannot normalize LLVM coverage report."
+        COMMAND exit 1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Failed to normalize LLVM coverage report"
+      )
+    endif()
+
+    # Summary target for llvm-cov output
+    add_custom_target(
+      coverage-llvm-summary
+      COMMAND cat "${LLVM_COV_OUTPUT}"
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Printing LLVM coverage summary to terminal"
+      VERBATIM
+    )
+    add_dependencies(coverage-llvm-summary coverage-llvm)
   endif()
   # Coverage summary target (prints summary to terminal)
   if(GCOVR_EXECUTABLE)
