@@ -75,14 +75,12 @@ jobs:
       if: ${{ !contains(github.event.head_commit.message, '[clang]') }}
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
-        build-type: ${{ env.BUILD_TYPE }}
         preset: coverage-gcc
 
     - name: Configure CMake with Clang coverage
       if: ${{ contains(github.event.head_commit.message, '[clang]') }}
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
-        build-type: ${{ env.BUILD_TYPE }}
         preset: coverage-clang
 
     - name: Build with coverage instrumentation
