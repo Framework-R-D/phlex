@@ -12,18 +12,34 @@
             }
         },
         {
-            "name": "coverage",
+            "name": "coverage-gcc",
             "inherits": "default",
-            "displayName": "Coverage (GCC/Clang)",
-            "description": "Enable code coverage instrumentation and reporting.",
+            "displayName": "Coverage (GCC/gcov/lcov)",
+            "description": "Enable code coverage instrumentation and reporting with GCC/gcov/lcov.",
             "cacheVariables": {
                 "ENABLE_COVERAGE": "ON",
                 "CMAKE_BUILD_TYPE": "Coverage",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
                 "CMAKE_CXX_FLAGS_COVERAGE": "-g -O0 --coverage -fprofile-arcs -ftest-coverage",
                 "CMAKE_C_FLAGS_COVERAGE": "-g -O0 --coverage -fprofile-arcs -ftest-coverage",
                 "CMAKE_EXE_LINKER_FLAGS_COVERAGE": "--coverage",
                 "CMAKE_SHARED_LINKER_FLAGS_COVERAGE": "--coverage",
                 "CMAKE_MODULE_LINKER_FLAGS_COVERAGE": "--coverage"
+            }
+        },
+        {
+            "name": "coverage-clang",
+            "inherits": "default",
+            "displayName": "Coverage (Clang/llvm-cov)",
+            "description": "Enable code coverage instrumentation and reporting with Clang/llvm-cov.",
+            "cacheVariables": {
+                "ENABLE_COVERAGE": "ON",
+                "CMAKE_BUILD_TYPE": "Coverage",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_FLAGS_COVERAGE": "-g -O0 -fprofile-instr-generate -fcoverage-mapping",
+                "CMAKE_C_FLAGS_COVERAGE": "-g -O0 -fprofile-instr-generate -fcoverage-mapping"
             }
         }
     ],
