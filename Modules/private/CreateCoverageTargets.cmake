@@ -65,6 +65,50 @@ function(_create_coverage_targets_impl)
   endif()
   set_property(GLOBAL PROPERTY _PHLEX_COVERAGE_TARGETS_DEFINED TRUE)
 
+  # Shared gcovr exclusion arguments for all coverage targets
+  set(GCOVR_EXCLUDE_ARGS
+    --exclude ".*/test/.*"
+    --exclude ".*/_deps/.*"
+    --exclude ".*/external/.*"
+    --exclude ".*/third[-_]?party/.*"
+    --exclude ".*/boost/.*"
+    --exclude ".*/tbb/.*"
+    --exclude "/usr/.*"
+    --exclude "/opt/.*"
+    --exclude "/scratch/.*"
+  )
+  # Coverage summary target (prints summary to terminal)
+  if(GCOVR_EXECUTABLE)
+    set(_gcovr_summary_filter_paths ${PROJECT_SOURCE_DIR})
+    get_filename_component(_gcovr_summary_project_real ${PROJECT_SOURCE_DIR} REALPATH)
+    if(NOT _gcovr_summary_project_real STREQUAL ${PROJECT_SOURCE_DIR})
+      list(APPEND _gcovr_summary_filter_paths ${_gcovr_summary_project_real})
+    endif()
+    set(_gcovr_summary_binary_dir ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
+    if(EXISTS ${_gcovr_summary_binary_dir})
+      list(APPEND _gcovr_summary_filter_paths ${_gcovr_summary_binary_dir})
+      get_filename_component(_gcovr_summary_binary_real ${_gcovr_summary_binary_dir} REALPATH)
+      if(NOT _gcovr_summary_binary_real STREQUAL ${_gcovr_summary_binary_dir})
+        list(APPEND _gcovr_summary_filter_paths ${_gcovr_summary_binary_real})
+      endif()
+    endif()
+    list(REMOVE_DUPLICATES _gcovr_summary_filter_paths)
+    set(GCOVR_SUMMARY_FILTER_ARGS)
+    foreach(_gcovr_summary_filter_path IN LISTS _gcovr_summary_filter_paths)
+      string(REGEX REPLACE "/$" "" _gcovr_summary_filter_trimmed "${_gcovr_summary_filter_path}")
+      string(REGEX REPLACE "([][.^$+*?()|\\])" "\\\\\\1" _gcovr_summary_filter_escaped "${_gcovr_summary_filter_trimmed}")
+      list(APPEND GCOVR_SUMMARY_FILTER_ARGS --filter "${_gcovr_summary_filter_escaped}/.*")
+    endforeach()
+    add_custom_target(
+      coverage-summary
+      COMMAND ${GCOVR_EXECUTABLE} --root ${PROJECT_SOURCE_DIR} ${GCOVR_SUMMARY_FILTER_ARGS} ${GCOVR_EXCLUDE_ARGS} --gcov-ignore-parse-errors=negative_hits.warn_once_per_file --gcov-ignore-errors=no_working_dir_found --print-summary
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Printing code coverage summary to terminal (gcovr)"
+      VERBATIM
+    )
+    message(STATUS "Added 'coverage-summary' target for terminal summary output.")
+  endif()
+
   add_custom_target(
       coverage-symlink-prepare
       COMMAND ${CMAKE_COMMAND} -E rm -rf "${PROJECT_SOURCE_DIR}/.coverage-generated"
@@ -182,18 +226,6 @@ function(_create_coverage_targets_impl)
       string(REGEX REPLACE "([][.^$+*?()|\\])" "\\\\\\1" _gcovr_filter_escaped "${_gcovr_filter_trimmed}")
       list(APPEND GCOVR_FILTER_ARGS --filter "${_gcovr_filter_escaped}/.*")
     endforeach()
-
-    set(GCOVR_EXCLUDE_ARGS
-      --exclude ".*/test/.*"
-      --exclude ".*/_deps/.*"
-      --exclude ".*/external/.*"
-      --exclude ".*/third[-_]?party/.*"
-      --exclude ".*/boost/.*"
-      --exclude ".*/tbb/.*"
-      --exclude "/usr/.*"
-      --exclude "/opt/.*"
-      --exclude "/scratch/.*"
-    )
 
     add_custom_target(
       coverage-xml
