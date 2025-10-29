@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace phlex::experimental {
@@ -31,13 +32,13 @@ namespace phlex::experimental {
     product_store_ptr make_flush() const;
     product_store_ptr make_continuation(std::string_view source, products new_products = {}) const;
     product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_level_name,
+                                 std::string_view new_level_name,
                                  std::string_view source,
                                  products new_products);
     product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_level_name,
+                                 std::string_view new_level_name,
                                  std::string_view source = {},
-                                 stage st = stage::process);
+                                 stage processing_stage = stage::process);
     level_id_ptr const& id() const noexcept;
     bool is_flush() const noexcept;
 
@@ -65,12 +66,12 @@ namespace phlex::experimental {
                            products new_products = {});
     explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
-                           std::string const& new_level_name,
+                           std::string_view new_level_name,
                            std::string_view source,
                            products new_products);
     explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
-                           std::string const& new_level_name,
+                           std::string_view new_level_name,
                            std::string_view source,
                            stage processing_stage);
 
@@ -83,11 +84,16 @@ namespace phlex::experimental {
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
 
+  // Delete overloads that result in dangling reference
+  product_store_ptr const& more_derived(product_store_ptr&&, product_store_ptr&&) = delete;
+  product_store_ptr const& more_derived(product_store_ptr&&, product_store_ptr const&) = delete;
+  product_store_ptr const& more_derived(product_store_ptr const&, product_store_ptr&&) = delete;
+
   template <std::size_t I, typename Tuple, typename Element>
   Element const& get_most_derived(Tuple const& tup, Element const& element)
   {
-    constexpr auto N = std::tuple_size_v<Tuple>;
-    if constexpr (I == N - 1) {
+    constexpr auto n_stores = std::tuple_size_v<Tuple>;
+    if constexpr (I == n_stores - 1) {
       return more_derived(element, std::get<I>(tup));
     } else {
       return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
@@ -97,9 +103,9 @@ namespace phlex::experimental {
   template <typename Tuple>
   auto const& most_derived(Tuple const& tup)
   {
-    constexpr auto N = std::tuple_size_v<Tuple>;
-    static_assert(N > 0ull);
-    if constexpr (N == 1ull) {
+    constexpr auto n_stores = std::tuple_size_v<Tuple>;
+    static_assert(n_stores > 0ull);
+    if constexpr (n_stores == 1ull) {
       return std::get<0>(tup);
     } else {
       return get_most_derived<1ull>(tup, std::get<0>(tup));

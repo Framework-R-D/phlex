@@ -14,6 +14,13 @@ namespace phlex::experimental {
     end_of_message_ptr make_child(level_id_ptr id);
     ~end_of_message();
 
+    // Default copy/move constructors and assignment operators are adequate
+    end_of_message(end_of_message const&) = default;
+    end_of_message(end_of_message&&) = default;
+
+    end_of_message& operator=(end_of_message const&) = default;
+    end_of_message& operator=(end_of_message&&) = default;
+
   private:
     end_of_message(end_of_message_ptr parent, level_hierarchy* hierarchy, level_id_ptr id);
 

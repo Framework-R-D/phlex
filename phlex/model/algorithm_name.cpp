@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <regex>
+#include <stdexcept>
 #include <tuple>
 
 namespace {
@@ -11,8 +12,8 @@ namespace {
 namespace phlex::experimental {
   algorithm_name::algorithm_name() = default;
 
-  algorithm_name::algorithm_name(char const* name) : algorithm_name{std::string{name}} {}
-  algorithm_name::algorithm_name(std::string name) { *this = create(name); }
+  algorithm_name::algorithm_name(char const* spec) : algorithm_name{std::string{spec}} {}
+  algorithm_name::algorithm_name(std::string const& spec) { *this = create(spec); }
 
   algorithm_name::algorithm_name(std::string plugin,
                                  std::string algorithm,

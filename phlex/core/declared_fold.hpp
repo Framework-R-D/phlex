@@ -38,7 +38,7 @@ namespace phlex::experimental {
     declared_fold(algorithm_name name,
                   std::vector<std::string> predicates,
                   specified_labels input_products);
-    virtual ~declared_fold();
+    ~declared_fold() override;
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
@@ -55,10 +55,10 @@ namespace phlex::experimental {
   class fold_node : public declared_fold, private count_stores {
     using all_parameter_types = typename AlgorithmBits::input_parameter_types;
     using input_parameter_types = skip_first_type<all_parameter_types>; // Skip fold object
-    static constexpr auto N = std::tuple_size_v<input_parameter_types>;
-    using R = std::decay_t<std::tuple_element_t<0, all_parameter_types>>;
+    static constexpr auto number_inputs = std::tuple_size_v<input_parameter_types>;
+    using result_type = std::decay_t<std::tuple_element_t<0, all_parameter_types>>;
 
-    static constexpr std::size_t M = 1; // hard-coded for now
+    static constexpr std::size_t number_output_products = 1; // hard-coded for now
     using function_t = typename AlgorithmBits::bound_type;
 
   public:
@@ -75,10 +75,11 @@ namespace phlex::experimental {
       initializer_{std::move(initializer)},
       output_{to_qualified_names(full_name(), std::move(output))},
       partition_{std::move(partition)},
-      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
+      join_{make_join_or_none(g, std::make_index_sequence<number_inputs>{})},
       fold_{g,
             concurrency,
-            [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto& outputs) {
+            [this, ft = alg.release_algorithm()](messages_t<number_inputs> const& messages,
+                                                 auto& outputs) {
               // N.B. The assumption is that a fold will *never* need to cache
               //      the product store it creates.  Any flush messages *do not* need
               //      to be propagated to downstream nodes.
@@ -104,13 +105,13 @@ namespace phlex::experimental {
               if (store->is_flush()) {
                 counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
               } else {
-                call(ft, messages, std::make_index_sequence<N>{});
+                call(ft, messages, std::make_index_sequence<number_inputs>{});
                 counter_for(id_hash_for_counter).increment(store->id()->level_hash());
               }
 
               if (auto counter = done_with(id_hash_for_counter)) {
                 auto parent = fold_store->make_continuation(this->full_name());
-                commit_(*parent);
+                commit(*parent);
                 ++product_count_;
                 // FIXME: This msg.eom value may be wrong!
                 get<0>(outputs).try_put({parent, msg.eom, counter->original_message_id()});
@@ -123,17 +124,22 @@ namespace phlex::experimental {
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label);
+      return receiver_for<number_inputs>(join_, input(), product_label);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<number_inputs>(join_);
+    }
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(fold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
     qualified_names const& output() const override { return output_; }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft,
+              messages_t<number_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
       auto const& parent_id = *most_derived(messages).store->id()->parent(partition_);
       // FIXME: Not the safest approach!
@@ -142,8 +148,7 @@ namespace phlex::experimental {
         it =
           results_
             .insert({parent_id,
-                     initialized_object(std::move(initializer_),
-                                        std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
+                     initialized_object(std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
             .first;
       }
       ++calls_;
@@ -154,13 +159,12 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     template <size_t... Is>
-    auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
+    auto initialized_object(std::index_sequence<Is...>) const
     {
-      return std::unique_ptr<R>{
-        new R{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
+      return std::unique_ptr<result_type>{new result_type{std::get<Is>(initializer_)...}};
     }
 
-    void commit_(product_store& store)
+    void commit(product_store& store)
     {
       auto& result = results_.at(*store.id());
       if constexpr (requires { send(*result); }) {
@@ -177,9 +181,9 @@ namespace phlex::experimental {
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     qualified_names output_;
     std::string partition_;
-    join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;
-    tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
+    join_or_none_t<number_inputs> join_;
+    tbb::flow::multifunction_node<messages_t<number_inputs>, messages_t<1>> fold_;
+    tbb::concurrent_unordered_map<level_id, std::unique_ptr<result_type>> results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;
   };

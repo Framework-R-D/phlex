@@ -6,20 +6,20 @@
 
 #include <cstddef>
 
-demo::WaveformGenerator::WaveformGenerator(WGI const& wgi) :
+demo::waveform_generator::waveform_generator(WGI const& wgi) :
   maxsize_{wgi.size}, spill_id_(wgi.spill_id)
 {
   log_record("wgctor", -1, -1, spill_id_, -1, this, sizeof(*this), nullptr);
 }
 
-demo::WaveformGenerator::~WaveformGenerator()
+demo::waveform_generator::~waveform_generator()
 {
   log_record("wgdtor", -1, -1, spill_id_, -1, this, sizeof(*this), nullptr);
 }
 
-std::size_t demo::WaveformGenerator::initial_value() const { return 0; }
+std::size_t demo::waveform_generator::initial_value() const { return 0; }
 
-bool demo::WaveformGenerator::predicate(std::size_t made_so_far) const
+bool demo::waveform_generator::predicate(std::size_t made_so_far) const
 {
   log_record("start_pred", -1, -1, spill_id_, -1, this, made_so_far, nullptr);
   bool const result = made_so_far < maxsize_;
@@ -27,14 +27,14 @@ bool demo::WaveformGenerator::predicate(std::size_t made_so_far) const
   return result;
 }
 
-std::pair<std::size_t, demo::Waveforms> demo::WaveformGenerator::op(std::size_t made_so_far,
-                                                                    std::size_t chunksize) const
+std::pair<std::size_t, demo::waveforms> demo::waveform_generator::op(std::size_t made_so_far,
+                                                                     std::size_t chunksize) const
 {
   // How many waveforms should go into this chunk?
   log_record("start_op", -1, -1, spill_id_, -1, this, chunksize, nullptr);
   std::size_t const newsize = std::min(chunksize, maxsize_ - made_so_far);
   auto result =
-    std::make_pair(made_so_far + newsize, Waveforms{newsize, 1.0 * made_so_far, -1, -1, -1, -1});
+    std::make_pair(made_so_far + newsize, waveforms{newsize, 1.0 * made_so_far, -1, -1, -1, -1});
   log_record("end_op", -1, -1, spill_id_, -1, this, newsize, nullptr);
   return result;
 }

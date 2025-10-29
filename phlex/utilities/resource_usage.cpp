@@ -3,6 +3,7 @@
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
+#include <chrono>
 #include <sys/resource.h>
 
 using namespace std::chrono;
@@ -24,7 +25,7 @@ namespace {
     rusage used;
     getrusage(RUSAGE_SELF, &used);
     auto const [secs, microsecs] = used.ru_utime;
-    return {.elapsed_time = secs + microsecs / 1e6, .max_rss = used.ru_maxrss / mem_denominator};
+    return {.elapsed_time = secs + (microsecs / 1e6), .max_rss = used.ru_maxrss / mem_denominator};
   }
 }
 
@@ -46,4 +47,10 @@ namespace phlex::experimental {
                  cpu_time / real_time * 100);
     spdlog::info("Max. RSS: {:.3f} MB", max_rss);
   }
+
+  resource_usage::resource_usage(resource_usage const&) = default;
+  resource_usage& resource_usage::operator=(resource_usage const&) = default;
+
+  resource_usage::resource_usage(resource_usage&&) = default;
+  resource_usage& resource_usage::operator=(resource_usage&&) = default;
 }

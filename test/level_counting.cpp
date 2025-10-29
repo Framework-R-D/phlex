@@ -1,10 +1,11 @@
 #include "phlex/model/level_counter.hpp"
 #include "phlex/model/level_hierarchy.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+
+#include <cstddef>
 
 using namespace phlex::experimental;
 
@@ -14,7 +15,7 @@ namespace {
 
 TEST_CASE("Counter with nothing processed", "[data model]")
 {
-  level_counter job_counter{};
+  level_counter const job_counter{};
   CHECK(job_counter.result().empty());
 }
 

@@ -3,11 +3,8 @@
 
 #include <string>
 
-namespace phlex::experimental {
-  namespace detail {
-
-    std::string stripped_name(std::string full_name);
-  }
+namespace phlex::experimental::detail {
+  std::string stripped_name(std::string full_name);
 }
 
 #endif // PHLEX_UTILITIES_STRIPPED_NAME_HPP

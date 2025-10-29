@@ -36,7 +36,7 @@ namespace phlex::experimental {
          std::shared_ptr<T> bound_obj,
          std::vector<std::string>& errors,
          configuration const* config = nullptr) :
-      graph_{g}, nodes_{nodes}, bound_obj_{std::move(bound_obj)}, errors_{errors}, config_{config}
+      graph_{g}, nodes_{nodes}, errors_{errors}, bound_obj_{std::move(bound_obj)}, config_{config}
     {
     }
 
@@ -135,10 +135,12 @@ namespace phlex::experimental {
     }
 
   private:
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     tbb::flow::graph& graph_;
     node_catalog& nodes_;
-    std::shared_ptr<T> bound_obj_;
     std::vector<std::string>& errors_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::shared_ptr<T> bound_obj_;
     configuration const* config_;
   };
 }

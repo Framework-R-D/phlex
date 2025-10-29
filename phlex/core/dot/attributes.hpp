@@ -13,7 +13,7 @@ namespace phlex::experimental::dot {
     std::string style;
   };
 
-  inline std::string const default_fontsize{"12"};
+  constexpr std::string default_fontsize() { return "12"; }
 
   std::string to_string(attributes const& attrs);
   std::string parenthesized(std::string const& n);
