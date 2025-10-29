@@ -16,6 +16,9 @@ COVERAGE_TESTS_READY=0
 LAST_STALE_SOURCE=""
 LAST_STALE_GCNO=""
 
+# Default build directory for coverage runs
+DEFAULT_COVERAGE_BUILD_DIR="build-coverage"
+
 # Function definitions
 
 # Get absolute path (preserving symlinks - DO NOT resolve them)
@@ -101,7 +104,7 @@ detect_build_environment() {
         # Multi-project mode - phlex is part of a larger project
         SOURCE_ROOT="$(dirname "$PROJECT_SOURCE")"  # srcs directory
         WORKSPACE_ROOT="$(get_absolute_path "$workspace_candidate")"
-        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/build}"
+        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/$DEFAULT_COVERAGE_BUILD_DIR}"
         log "Detected multi-project build mode"
         log "Multi-project source root: $SOURCE_ROOT"
         log "Project source: $PROJECT_SOURCE"
@@ -110,7 +113,7 @@ detect_build_environment() {
         # Standalone mode - building phlex directly
         SOURCE_ROOT="$PROJECT_SOURCE"
         WORKSPACE_ROOT="$(get_absolute_path "$(dirname "$PROJECT_SOURCE")")"
-        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/build}"
+        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/$DEFAULT_COVERAGE_BUILD_DIR}"
         log "Detected standalone build mode"
         log "Project source: $PROJECT_SOURCE"
         log "Workspace root: $WORKSPACE_ROOT"
@@ -118,7 +121,7 @@ detect_build_environment() {
         # Fallback to original logic
         WORKSPACE_ROOT="$(get_absolute_path "$(dirname "$(dirname "$PROJECT_SOURCE")")")"
         SOURCE_ROOT="$PROJECT_SOURCE"
-        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/build}"
+        BUILD_DIR="${BUILD_DIR:-$WORKSPACE_ROOT/$DEFAULT_COVERAGE_BUILD_DIR}"
         warn "Could not detect build mode, using fallback paths"
     fi
 
