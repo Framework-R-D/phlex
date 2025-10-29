@@ -76,6 +76,9 @@ function(_create_coverage_targets_impl)
     --exclude "/usr/.*"
     --exclude "/opt/.*"
     --exclude "/scratch/.*"
+    --exclude ".*\.cxx$"
+    --exclude ".*\.hh$"
+    --exclude ".*\.hxx$"
   )
   # Coverage summary target (prints summary to terminal)
   if(GCOVR_EXECUTABLE)
