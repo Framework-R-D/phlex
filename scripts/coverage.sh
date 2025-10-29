@@ -461,8 +461,9 @@ setup_coverage() {
     if [[ "$needs_reconfigure" == "true" ]]; then
         log "Configuring CMake for coverage build..."
 
-        log "Using CMake coverage preset with explicit overrides..."
-        cmake --preset coverage \
+        local preset_name="${COVERAGE_PRESET:-coverage-gcc}"
+        log "Using CMake coverage preset: $preset_name"
+        cmake --preset "$preset_name" \
             -G Ninja \
             -DPHLEX_USE_FORM=ON \
             -DFORM_USE_ROOT_STORAGE=ON \
@@ -767,13 +768,12 @@ run_all() {
     fi
 }
 
-LLVM_COV_MODE=0
-if [[ -n "$CMAKE_CXX_COMPILER" ]]; then
-    if [[ "$CMAKE_CXX_COMPILER" == *"clang++"* ]]; then
-        LLVM_COV_MODE=1
-    fi
-elif command -v clang++ >/dev/null 2>&1; then
-    LLVM_COV_MODE=1
+
+# Select coverage preset: coverage-gcc (default) or coverage-clang
+COVERAGE_PRESET="${COVERAGE_PRESET:-coverage-gcc}"
+if [[ "$1" == "--preset" && -n "$2" ]]; then
+    COVERAGE_PRESET="$2"
+    shift 2
 fi
 
 # Execute a single command
@@ -790,7 +790,7 @@ execute_command() {
             run_tests
             ;;
         report)
-            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
                 cmake --build "$BUILD_DIR" --target coverage-llvm
                 cmake --build "$BUILD_DIR" --target coverage-llvm-normalize
                 cmake --build "$BUILD_DIR" --target coverage-llvm-summary
@@ -800,7 +800,7 @@ execute_command() {
             fi
             ;;
         xml)
-            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
                 cmake --build "$BUILD_DIR" --target coverage-llvm
                 cmake --build "$BUILD_DIR" --target coverage-llvm-normalize
             else
@@ -808,7 +808,7 @@ execute_command() {
             fi
             ;;
         html)
-            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
                 cmake --build "$BUILD_DIR" --target coverage-llvm
                 cmake --build "$BUILD_DIR" --target coverage-llvm-normalize
             else
@@ -816,7 +816,7 @@ execute_command() {
             fi
             ;;
         view)
-            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
                 log "Viewing llvm-cov coverage report: $BUILD_DIR/coverage-llvm.txt"
                 cat "$BUILD_DIR/coverage-llvm.txt"
             else
@@ -824,7 +824,7 @@ execute_command() {
             fi
             ;;
         summary)
-            if [[ $LLVM_COV_MODE -eq 1 ]]; then
+            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
                 cmake --build "$BUILD_DIR" --target coverage-llvm-summary
             else
                 show_summary
