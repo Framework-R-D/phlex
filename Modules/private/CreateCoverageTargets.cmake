@@ -26,6 +26,8 @@ find_package(Python3 COMPONENTS Interpreter)
 
 # Find CTest coverage tool
 find_program(CTEST_COVERAGE_COMMAND NAMES gcov llvm-cov DOC "Coverage tool for CTest" CACHE)
+find_program(LLVM_COV_EXECUTABLE NAMES llvm-cov DOC "LLVM coverage tool")
+find_program(LLVM_PROFDATA_EXECUTABLE NAMES llvm-profdata DOC "LLVM profdata tool")
 if(CTEST_COVERAGE_COMMAND)
     message(STATUS "Found coverage tool for CTest: ${CTEST_COVERAGE_COMMAND}")
 else()
@@ -80,6 +82,16 @@ function(_create_coverage_targets_impl)
     --exclude ".*\.hh$"
     --exclude ".*\.hxx$"
   )
+  # Clang/llvm-cov coverage stub target (to be expanded)
+  if(LLVM_COV_EXECUTABLE AND LLVM_PROFDATA_EXECUTABLE)
+    add_custom_target(
+      coverage-llvm-stub
+      COMMAND ${CMAKE_COMMAND} -E echo "LLVM coverage tools detected: llvm-cov, llvm-profdata. Full integration pending."
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Stub: LLVM/Clang coverage target (to be implemented)"
+    )
+    message(STATUS "LLVM coverage tools detected; stub target 'coverage-llvm-stub' added.")
+  endif()
   # Coverage summary target (prints summary to terminal)
   if(GCOVR_EXECUTABLE)
     set(_gcovr_summary_filter_paths ${PROJECT_SOURCE_DIR})
