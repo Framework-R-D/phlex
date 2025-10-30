@@ -28,11 +28,6 @@ find_package(Python3 COMPONENTS Interpreter)
 
 # Find CTest coverage tool
 find_program(
-  CTEST_COVERAGE_COMMAND
-  NAMES gcov llvm-cov
-  DOC "Coverage tool for CTest" CACHE
-  )
-find_program(
   LLVM_COV_EXECUTABLE
   NAMES llvm-cov
   DOC "LLVM coverage tool"
@@ -42,15 +37,6 @@ find_program(
   NAMES llvm-profdata
   DOC "LLVM profdata tool"
   )
-if(CTEST_COVERAGE_COMMAND)
-  message(STATUS "Found coverage tool for CTest: ${CTEST_COVERAGE_COMMAND}")
-else()
-  message(
-    WARNING
-      "Coverage tool for CTest not found - coverage reports may not work with CTest."
-    )
-endif()
-
 if(NOT LCOV_EXECUTABLE)
   message(
     WARNING "lcov not found; HTML coverage reports will not be available."

@@ -137,29 +137,6 @@ if(ENABLE_COVERAGE)
      )
     message(STATUS "Enabling code coverage instrumentation")
 
-    # Use CMake's built-in coverage flags Force these into the cache to override
-    # any empty defaults
-    set(CMAKE_CXX_FLAGS_COVERAGE
-        "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
-        CACHE STRING "C++ flags for Coverage build" FORCE
-        )
-    set(CMAKE_C_FLAGS_COVERAGE
-        "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
-        CACHE STRING "C flags for Coverage build" FORCE
-        )
-    set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
-        "--coverage"
-        CACHE STRING "Executable linker flags for Coverage build" FORCE
-        )
-    set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
-        "--coverage"
-        CACHE STRING "Shared library linker flags for Coverage build" FORCE
-        )
-    set(CMAKE_MODULE_LINKER_FLAGS_COVERAGE
-        "--coverage"
-        CACHE STRING "Module linker flags for Coverage build" FORCE
-        )
-
     # Set the build type to Coverage if not specified
     if(NOT CMAKE_BUILD_TYPE)
       set(CMAKE_BUILD_TYPE
@@ -167,20 +144,6 @@ if(ENABLE_COVERAGE)
           CACHE STRING "Build type" FORCE
           )
     endif()
-
-    # Configure CTest to find coverage tools automatically
-    find_program(
-      CTEST_COVERAGE_COMMAND
-      NAMES gcov llvm-cov
-      DOC "Coverage tool for CTest"
-      )
-
-    if(CTEST_COVERAGE_COMMAND)
-      message(STATUS "Found coverage tool: ${CTEST_COVERAGE_COMMAND}")
-    else()
-      message(WARNING "Coverage tool not found - coverage reports may not work")
-    endif()
-
   else()
     message(
       FATAL_ERROR "Code coverage is not supported with ${CMAKE_CXX_COMPILER_ID}"

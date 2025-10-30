@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-10-21
+      image: phlex-ci:2025-10-30
 
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -82,6 +82,7 @@ jobs:
       if: ${{ env.PHLEX_COVERAGE_COMPILER == 'gcc' }}
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
+        cpp-compiler: g++
         preset: coverage-gcc
 
     - name: Configure CMake with Clang coverage
@@ -89,6 +90,7 @@ jobs:
       if: ${{ env.PHLEX_COVERAGE_COMPILER == 'clang' }}
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
+        cpp-compiler: clang++
         preset: coverage-clang
 
     - name: Unknown Compiler Error
@@ -151,9 +153,9 @@ jobs:
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
         echo "Using Clang/llvm-cov coverage targets."
-        cmake --build . --target coverage-llvm
-        cmake --build . --target coverage-llvm-normalize
-        cmake --build . --target coverage-llvm-summary
+        cmake --build . --target coverage-llvm -v
+        cmake --build . --target coverage-llvm-normalize -v
+        cmake --build . --target coverage-llvm-summary -v
         if [ -f coverage-llvm.txt ]; then
           echo "LLVM coverage summary:" && cat coverage-llvm.txt | head -20
         else
