@@ -78,6 +78,11 @@ except ImportError:
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       )
 
+    set_property(
+      TEST py:phlex PROPERTY ENVIRONMENT
+                             "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+      )
+
   endif()
 
   # C++ helper to provide a driver
@@ -104,11 +109,6 @@ except ImportError:
     set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH})
   endif()
   set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
-
-  set_property(
-    TEST py:phlex PROPERTY ENVIRONMENT
-                           "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-    )
 
   set_property(
     TEST py:add
