@@ -105,24 +105,20 @@ int main(int argc, char* argv[])
   {
     framework_graph g{source};
 
-    // g.with<X> is "registration code" as implemented in phlex.
-    // Each call to g.with<> creates a new CHOF in the graph.
-
     // Add the unfold node to the graph. We do not yet know how to provide the chunksize
     // to the constructor of the WaveformGenerator, so we will use the default value.
     demo::log_record("add_unfold");
     auto const chunksize = 256LL; // this could be read from a configuration file
 
-    g.with<demo::WaveformGenerator>(
+    g.unfold<demo::WaveformGenerator>(
        &demo::WaveformGenerator::predicate,
        [](demo::WaveformGenerator const& wg, std::size_t running_value) {
          return wg.op(running_value, chunksize);
        },
-       concurrency::unlimited)
-      .unfold("wgen"_in("spill")) // the type of node to create
-      .into("waves_in_apa")       // label the chunks we create as "waves_in_apa"
-      .within_family("APA")       // put the chunks into a data set category called "APA"
-      ;
+       concurrency::unlimited,
+       "APA")
+      .input_family("wgen"_in("spill"))
+      .output_products("waves_in_apa");
 
     // Add the transform node to the graph.
     demo::log_record("add_transform");
@@ -134,16 +130,13 @@ int main(int argc, char* argv[])
       return demo::clampWaveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
     };
 
-    // Because we are using a closure here, we have to provide a node name;
-    // the framework is unable to deduce the name of the "function".
-    g.with("clamp_node", wrapped_user_function, concurrency::unlimited)
-      .transform("waves_in_apa"_in("APA")) // the type of node to create, and the label of the input
-      .to("clamped_waves")                 // label the chunks we create as "clamped_waves"
-      ;
+    g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
+      .input_family("waves_in_apa"_in("APA"))
+      .output_products("clamped_waves");
 
     // Add the fold node to the graph.
     demo::log_record("add_fold");
-    g.with(
+    g.fold(
        "accum_for_spill",
        [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) {
          auto apa_id = hwf.level_id().number();
@@ -152,14 +145,14 @@ int main(int argc, char* argv[])
          auto run_id = hwf.level_id().parent()->parent()->parent()->number();
          demo::accumulateSCW(scw, *hwf, run_id, subrun_id, spill_id, apa_id);
        },
-       concurrency::unlimited)
-      .fold("clamped_waves"_in("APA"))
-      .to("summed_waveforms")
-      .partitioned_by("spill") // partition the output by the spill
-      ;
+       concurrency::unlimited,
+       "spill" // partition the output by the spill
+       )
+      .input_family("clamped_waves"_in("APA"))
+      .output_products("summed_waveforms");
 
     demo::log_record("add_output");
-    g.make<test::products_for_output>().output_with(
+    g.make<test::products_for_output>().output(
       "save", &test::products_for_output::save, concurrency::serial);
 
     // Execute the graph.

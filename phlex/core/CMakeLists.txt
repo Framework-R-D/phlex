@@ -26,6 +26,7 @@ add_library(
   multiplexer.cpp
   products_consumer.cpp
   registrar.cpp
+  registration_api.cpp
   specified_label.cpp
   store_counters.cpp
   )

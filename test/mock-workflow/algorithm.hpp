@@ -70,9 +70,9 @@ namespace phlex::experimental::test {
     concurrency const j{c.get<unsigned>("concurrency", concurrency::unlimited.value)};
     m.template make<algorithm_t>(c.get<std::string>("module_label"),
                                  c.get<unsigned>("duration_usec"))
-      .with("execute", &algorithm_t::execute, j)
-      .transform(c.get<typename algorithm_t::inputs>("inputs"))
-      .to(c.get<typename algorithm_t::outputs>("outputs"));
+      .transform("execute", &algorithm_t::execute, j)
+      .input_family(c.get<typename algorithm_t::inputs>("inputs"))
+      .output_products(c.get<typename algorithm_t::outputs>("outputs"));
   }
 }
 
