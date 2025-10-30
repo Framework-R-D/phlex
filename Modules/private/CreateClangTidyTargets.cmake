@@ -165,7 +165,7 @@ function(_create_clang_tidy_targets_impl)
       set(_regex_parts)
       foreach(_f IN LISTS PHLEX_ALL_CXX_SOURCES)
         # Escape regex metacharacters
-        string(REGEX REPLACE "([][.^$+*?()|\\])" "\\\\\\1" _f_escaped "${_f}")
+        string(REGEX REPLACE "([][.^$+*?()|\\\\])" "\\\\\\1" _f_escaped "${_f}")
         list(APPEND _regex_parts "${_f_escaped}")
       endforeach()
       string(JOIN "|" _files_regex ${_regex_parts})

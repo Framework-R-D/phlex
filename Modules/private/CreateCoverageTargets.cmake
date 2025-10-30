@@ -457,11 +457,11 @@ function(_create_coverage_targets_impl)
 
   add_custom_target(
     coverage-clean
-    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
-    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcno" -delete
-    COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.info*
-    COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.xml
-    COMMAND rm -rf ${CMAKE_BINARY_DIR}/coverage_html
+    COMMAND sh -c "find . -name '*.gcda' -delete"
+    COMMAND sh -c "find . -name '*.gcno' -delete"
+    COMMAND sh -c "rm -f coverage.info*"
+    COMMAND rm -f coverage.xml
+    COMMAND rm -rf coverage-html
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Cleaning coverage data files"
     )
