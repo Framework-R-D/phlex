@@ -71,51 +71,51 @@ except ImportError:
       set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
     endif()
 
-    # C++ helper to provide a driver
-    add_library(py_cppdriver MODULE driver.cpp)
-    target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
-
-    # Phlex module to run Python algorithms
-    add_library(pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp)
-    include_directories(pymodule, ${Python_INCLUDE_DIRS})
-    target_link_libraries(
-      pymodule
-      PRIVATE phlex::module ${Python_LIBRARIES}
-      PUBLIC Python::Python
-      )
-
-    # tests of the python support modules
+    # tests of the python support modules (relies on cppyy)
     add_test(
       NAME py:phlex
       COMMAND ${PYTHON_TEST_EXECUTABLE} -m pytest test_phlex.py
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       )
 
-    # phlex-based tests
-    add_test(NAME py:add
-             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet -g
-                     pyadd.gv
-             )
+  endif()
 
-    set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
-    if(DEFINED ENV{VIRTUAL_ENV})
-      set(TEST_PYTHONPATH
-          ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH}
-          )
-    endif()
-    set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
+  # C++ helper to provide a driver
+  add_library(py_cppdriver MODULE driver.cpp)
+  target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
 
-    set_property(
-      TEST py:phlex PROPERTY ENVIRONMENT
-                             "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-      )
+  # Phlex module to run Python algorithms
+  add_library(pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp)
+  include_directories(pymodule, ${Python_INCLUDE_DIRS})
+  target_link_libraries(
+    pymodule
+    PRIVATE phlex::module ${Python_LIBRARIES}
+    PUBLIC Python::Python
+    )
 
-    set_property(
-      TEST py:add
-      PROPERTY
-        ENVIRONMENT
-        "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-      )
+  # phlex-based tests (no cppyy dependency)
+  add_test(NAME py:add
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet -g
+                   pyadd.gv
+           )
 
-  endif() # cppyy available
+  set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
+  if(DEFINED ENV{VIRTUAL_ENV})
+    set(TEST_PYTHONPATH
+        ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH}
+        )
+  endif()
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
+
+  set_property(
+    TEST py:phlex PROPERTY ENVIRONMENT
+                           "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+    )
+
+  set_property(
+    TEST py:add
+    PROPERTY
+      ENVIRONMENT
+      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+    )
 endif() # Python available
