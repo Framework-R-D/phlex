@@ -1,0 +1,114 @@
+{
+    "folders": [
+        {
+            "name": "Phlex",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "files.associations": {
+            "*.yml": "yaml",
+            "*.yaml": "yaml",
+            "codecov.yml": "plaintext"
+        },
+        "files.exclude": {
+            "**/local/.*/**": true,
+            "**/local/*/": true
+        },
+        "search.exclude": {
+            "**/local/.*/**": true,
+            "**/local/*/": true,
+            "**/build/_deps/**": true,
+            "**/build/CMakeFiles/**": true
+        },
+        "files.watcherExclude": {
+            "**/local/.*/**": true,
+            "**/local/*/": true,
+            "**/build/_deps/**": true,
+            "**/build/CMakeFiles/**": true
+        },
+        "cmake.sourceDirectory": "${workspaceFolder}",
+        "cmake.buildDirectory": "${workspaceFolder}/build",
+        "cmake.useCMakePresets": "always",
+        "cmake.generator": "Ninja",
+        "C_Cpp.default.cStandard": "c17",
+        "C_Cpp.default.cppStandard": "c++23",
+        "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+        "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+        "C_Cpp.exclusionPolicy": "checkFolders",
+        "C_Cpp.files.exclude": {
+            "**/local/.*/**": true,
+            "**/local/*/": true,
+            "**/build/_deps/**": true,
+            "**/build/CMakeFiles/**": true
+        },
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+            "bash": {
+                "path": "/bin/bash",
+                "args": [],
+                "env": {
+                    "BASH_ENV": "/entrypoint.sh"
+                }
+            }
+        },
+        "python.languageServer": "Pylance",
+        "python.analysis.typeCheckingMode": "basic",
+        "python.analysis.diagnosticMode": "workspace",
+        "python.analysis.exclude": [
+            "**/local/.*/**",
+            "**/local/*/",
+            "**/build/_deps/**",
+            "**/build/CMakeFiles/**"
+        ],
+        "python.analysis.ignore": [
+            "**/local/.*/**",
+            "**/local/*/",
+            "**/build/_deps/**",
+            "**/build/CMakeFiles/**"
+        ],
+        "flake8.enabled": false,
+        "[python]": {
+            "editor.formatOnSave": true,
+            "editor.defaultFormatter": "charliermarsh.ruff",
+            "editor.codeActionsOnSave": {
+                "source.organizeImports.ruff": "explicit",
+                "source.fixAll.ruff": "explicit"
+            }
+        },
+        "yaml.schemas": {
+            "https://json.schemastore.org/github-workflow.json": "./.github/workflows/*"
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-vscode.cmake-tools",
+            "ms-vscode.cpptools",
+            "ms-vscode.cpptools-extension-pack",
+            "twxs.cmake",
+            "ms-vscode.vscode-json",
+            "redhat.vscode-yaml",
+            "charliermarsh.ruff",
+            "github.vscode-actions",
+            "github.copilot",
+            "github.copilot-chat",
+            "github.vscode-pull-request-github",
+            "ms-vscode.hexeditor"
+        ],
+        "unwantedRecommendations": [
+            "reditorsupport.r",
+            "ms-vscode.r",
+            "ikuyadeu.r",
+            "ms-vscode.r-debugger",
+            "vscjava.vscode-java-pack",
+            "redhat.java",
+            "vscjava.vscode-java-debug",
+            "vscjava.vscode-java-test",
+            "vscjava.vscode-maven",
+            "vscjava.vscode-gradle",
+            "ms-python.python",
+            "ms-toolsai.jupyter",
+            "ms-python.flake8"
+        ]
+    }
+}
