@@ -99,43 +99,61 @@ function(_create_coverage_targets_impl)
       --exclude ".*\.hxx$"
       # cmake-format: on
       )
-  # Clang/llvm-cov coverage target
-  if(LLVM_COV_EXECUTABLE AND LLVM_PROFDATA_EXECUTABLE)
-    # Find all .profraw files in the build directory
-    file(
-      GLOB_RECURSE LLVM_PROFRAW_FILES
-      RELATIVE ${CMAKE_BINARY_DIR}
-      ${CMAKE_BINARY_DIR}/*.profraw
-      )
-    set(LLVM_PROFDATA_OUTPUT ${CMAKE_BINARY_DIR}/coverage.profdata)
-    set(LLVM_COV_OUTPUT ${CMAKE_BINARY_DIR}/coverage-llvm.txt)
-    # Find all built executables (for demonstration, glob in build dir)
-    file(
-      GLOB_RECURSE LLVM_COV_EXECUTABLES
-      RELATIVE ${CMAKE_BINARY_DIR}
-      ${CMAKE_BINARY_DIR}/*
-      )
-    list(FILTER LLVM_COV_EXECUTABLES INCLUDE REGEX ".*[^/]+$")
-    # Exclusion regex for llvm-cov (same as gcovr)
-    set(LLVM_COV_EXCLUDE_REGEX
-        ".*/test/.*|.*/_deps/.*|.*/external/.*|.*/third[-_]?party/.*|.*/boost/.*|.*/tbb/.*|/usr/.*|/opt/.*|/scratch/.*|.*\\.cxx$|.*\\.hh$|.*\\.hxx$"
-        )
-    add_custom_target(
-      coverage-llvm
-      COMMAND ${LLVM_PROFDATA_EXECUTABLE} merge -sparse ${LLVM_PROFRAW_FILES} -o
-              ${LLVM_PROFDATA_OUTPUT}
-      COMMAND
-        ${LLVM_COV_EXECUTABLE} report ${LLVM_COV_EXECUTABLES}
-        -instr-profile=${LLVM_PROFDATA_OUTPUT}
-        -ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX} > ${LLVM_COV_OUTPUT}
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      COMMENT
-        "Generating coverage report with llvm-cov (summary: coverage-llvm.txt)"
-      VERBATIM
-      )
-    message(
-      STATUS "LLVM coverage tools detected; 'coverage-llvm' target added."
-      )
+   # Clang/llvm-cov coverage target
+   if(LLVM_COV_EXECUTABLE AND LLVM_PROFDATA_EXECUTABLE)
+     # Find all .profraw files in the build directory
+     file(
+       GLOB_RECURSE LLVM_PROFRAW_FILES
+       RELATIVE ${CMAKE_BINARY_DIR}
+       ${CMAKE_BINARY_DIR}/test/**/*.profraw
+       )
+     set(LLVM_PROFDATA_OUTPUT ${CMAKE_BINARY_DIR}/coverage.profdata)
+     set(LLVM_COV_OUTPUT ${CMAKE_BINARY_DIR}/coverage-llvm.txt)
+
+     # Use PhlexTargetUtils to get test executables and libraries
+     phlex_collect_targets_by_type(PHLEX_TEST_EXECUTABLES "EXECUTABLE")
+     set(LLVM_COV_EXECUTABLES)
+     foreach(_t IN LISTS PHLEX_TEST_EXECUTABLES)
+       get_target_property(_t_src_dir ${_t} SOURCE_DIR)
+       if(_t_src_dir AND _t_src_dir MATCHES "([/\\]|^)test([/\\]|$)")
+         get_target_property(_t_location ${_t} LOCATION)
+         if(_t_location)
+           list(APPEND LLVM_COV_EXECUTABLES ${_t_location})
+         endif()
+       endif()
+     endforeach()
+
+     # Get all libraries for coverage
+     phlex_collect_targets_by_type(PHLEX_LIBRARIES "STATIC_LIBRARY")
+     phlex_collect_targets_by_type(PHLEX_SHARED_LIBRARIES "SHARED_LIBRARY")
+     set(LLVM_COV_LIBRARIES)
+     foreach(_t IN LISTS PHLEX_LIBRARIES PHLEX_SHARED_LIBRARIES)
+       get_target_property(_t_location ${_t} LOCATION)
+       if(_t_location)
+         list(APPEND LLVM_COV_LIBRARIES ${_t_location})
+       endif()
+     endforeach()
+
+     # Exclusion regex for llvm-cov (same as gcovr)
+     set(LLVM_COV_EXCLUDE_REGEX
+         ".*/test/.*|.*/_deps/.*|.*/external/.*|.*/third[-_]?party/.*|.*/boost/.*|.*/tbb/.*|/usr/.*|/opt/.*|/scratch/.*|.*\.cxx$|.*\.hh$|.*\.hxx$"
+         )
+     add_custom_target(
+       coverage-llvm
+       COMMAND ${LLVM_PROFDATA_EXECUTABLE} merge -sparse ${LLVM_PROFRAW_FILES} -o
+               ${LLVM_PROFDATA_OUTPUT}
+       COMMAND
+         ${LLVM_COV_EXECUTABLE} report ${LLVM_COV_EXECUTABLES} ${LLVM_COV_LIBRARIES}
+         -instr-profile=${LLVM_PROFDATA_OUTPUT}
+         -ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX} > ${LLVM_COV_OUTPUT}
+       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+       COMMENT
+         "Generating coverage report with llvm-cov (summary: coverage-llvm.txt)"
+       VERBATIM
+       )
+     message(
+       STATUS "LLVM coverage tools detected; 'coverage-llvm' target added."
+       )
 
     # Normalization target for llvm-cov output (if Python script exists)
     set(_normalize_llvm_script
