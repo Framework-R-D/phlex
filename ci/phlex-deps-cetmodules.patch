@@ -1,0 +1,12 @@
+diff --git a/spack_repo/phlex/packages/phlex/package.py b/spack_repo/phlex/packages/phlex/package.py
+index 0d3b17c..cf51876 100644
+--- a/spack_repo/phlex/packages/phlex/package.py
++++ b/spack_repo/phlex/packages/phlex/package.py
+@@ -25,6 +25,7 @@ class Phlex(CMakePackage, FnalGithubPackage):
+     variant("form", default=False, description="Build with experimental FORM integration")
+ 
+     depends_on("cxx", type="build")
++    depends_on("cetmodules@4.01.01:", type="build")
+ 
+     depends_on("boost@1.75.0: +json+program_options+stacktrace")
+     depends_on("fmt@:9")

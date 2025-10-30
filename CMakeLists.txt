@@ -1,16 +1,9 @@
 cmake_minimum_required(VERSION 3.31)
 
 # ##############################################################################
-# Ensure we have access to a suitable version of Cetmodules
+# Ensure we have access to ...
 include(FetchContent)
-FetchContent_Declare(
-  cetmodules
-  GIT_REPOSITORY https://github.com/FNALssi/cetmodules
-  GIT_TAG 4.01.01
-  GIT_SHALLOW ON
-  FIND_PACKAGE_ARGS 4.01.01
-  )
-# ... and the Catch2 unit testing framework
+# ... the Catch2 unit testing framework
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
@@ -18,7 +11,7 @@ FetchContent_Declare(
   GIT_SHALLOW ON
   FIND_PACKAGE_ARGS
   )
-# ... and Microsoft's C++ Guideline Support Library
+# ... Microsoft's C++ Guideline Support Library
 FetchContent_Declare(
   GSL
   GIT_REPOSITORY https://github.com/microsoft/GSL
@@ -26,7 +19,7 @@ FetchContent_Declare(
   GIT_SHALLOW ON
   FIND_PACKAGE_ARGS NAMES Microsoft.GSL
   )
-# ... and the Mimic C++ mocking framework
+# ... the Mimic C++ mocking framework
 FetchContent_Declare(
   mimicpp
   GIT_REPOSITORY https://github.com/DNKpp/mimicpp
@@ -35,8 +28,7 @@ FetchContent_Declare(
   FIND_PACKAGE_ARGS
   )
 
-# Make cetmodules available
-FetchContent_MakeAvailable(cetmodules)
+# Need Cetmodules _before_ first project() declaration
 find_package(cetmodules 4.01.01 REQUIRED)
 
 # ##############################################################################
