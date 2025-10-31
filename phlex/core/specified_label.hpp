@@ -1,5 +1,5 @@
-#ifndef phlex_core_specified_label_hpp
-#define phlex_core_specified_label_hpp
+#ifndef PHLEX_CORE_SPECIFIED_LABEL_HPP
+#define PHLEX_CORE_SPECIFIED_LABEL_HPP
 
 #include "phlex/model/qualified_name.hpp"
 
@@ -48,4 +48,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_specified_label_hpp
+#endif // PHLEX_CORE_SPECIFIED_LABEL_HPP

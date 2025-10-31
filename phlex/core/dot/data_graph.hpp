@@ -1,5 +1,5 @@
-#ifndef phlex_core_dot_data_graph_hpp
-#define phlex_core_dot_data_graph_hpp
+#ifndef PHLEX_CORE_DOT_DATA_GRAPH_HPP
+#define PHLEX_CORE_DOT_DATA_GRAPH_HPP
 
 #include "phlex/core/dot/attributes.hpp"
 #include "phlex/core/specified_label.hpp"
@@ -33,4 +33,4 @@ namespace phlex::experimental::dot {
     std::vector<product_node> nodes_;
   };
 }
-#endif // phlex_core_dot_data_graph_hpp
+#endif // PHLEX_CORE_DOT_DATA_GRAPH_HPP

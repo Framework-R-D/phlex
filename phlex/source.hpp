@@ -1,5 +1,5 @@
-#ifndef phlex_source_hpp
-#define phlex_source_hpp
+#ifndef PHLEX_SOURCE_HPP
+#define PHLEX_SOURCE_HPP
 
 #include "boost/dll/alias.hpp"
 
@@ -66,4 +66,4 @@ namespace phlex::experimental::detail {
 #define PHLEX_EXPERIMENTAL_REGISTER_SOURCE(source)                                                 \
   BOOST_DLL_ALIAS(phlex::experimental::detail::create_next<source>, create_source)
 
-#endif // phlex_source_hpp
+#endif // PHLEX_SOURCE_HPP

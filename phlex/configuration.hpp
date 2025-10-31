@@ -1,5 +1,5 @@
-#ifndef phlex_configuration_hpp
-#define phlex_configuration_hpp
+#ifndef PHLEX_CONFIGURATION_HPP
+#define PHLEX_CONFIGURATION_HPP
 
 #include "boost/json.hpp"
 
@@ -38,4 +38,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_configuration_hpp
+#endif // PHLEX_CONFIGURATION_HPP

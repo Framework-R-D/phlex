@@ -1,5 +1,5 @@
-#ifndef phlex_graph_serial_node_hpp
-#define phlex_graph_serial_node_hpp
+#ifndef PHLEX_GRAPH_SERIAL_NODE_HPP
+#define PHLEX_GRAPH_SERIAL_NODE_HPP
 
 #include "phlex/graph/serializer_node.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
@@ -79,4 +79,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_graph_serial_node_hpp
+#endif // PHLEX_GRAPH_SERIAL_NODE_HPP

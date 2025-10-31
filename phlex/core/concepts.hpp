@@ -1,5 +1,5 @@
-#ifndef phlex_core_concepts_hpp
-#define phlex_core_concepts_hpp
+#ifndef PHLEX_CORE_CONCEPTS_HPP
+#define PHLEX_CORE_CONCEPTS_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
@@ -69,4 +69,4 @@ namespace phlex::experimental {
   concept is_transform_like = at_least_one_input_parameter<T> && at_least_one_output_object<T>;
 }
 
-#endif // phlex_core_concepts_hpp
+#endif // PHLEX_CORE_CONCEPTS_HPP

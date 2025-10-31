@@ -1,5 +1,5 @@
-#ifndef phlex_model_handle_hpp
-#define phlex_model_handle_hpp
+#ifndef PHLEX_MODEL_HANDLE_HPP
+#define PHLEX_MODEL_HANDLE_HPP
 
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/products.hpp"
@@ -107,4 +107,4 @@ namespace phlex::experimental {
   using handle_for = typename handle_<T>::type;
 }
 
-#endif // phlex_model_handle_hpp
+#endif // PHLEX_MODEL_HANDLE_HPP

@@ -1,5 +1,5 @@
-#ifndef phlex_metaprogramming_type_deduction_hpp
-#define phlex_metaprogramming_type_deduction_hpp
+#ifndef PHLEX_METAPROGRAMMING_TYPE_DEDUCTION_HPP
+#define PHLEX_METAPROGRAMMING_TYPE_DEDUCTION_HPP
 
 #include "phlex/metaprogramming/detail/ctor_reflect_types.hpp"
 #include "phlex/metaprogramming/detail/number_output_objects.hpp"
@@ -61,4 +61,4 @@ namespace phlex::experimental {
   struct is_non_const_lvalue_reference<T const&> : std::false_type {};
 }
 
-#endif // phlex_metaprogramming_type_deduction_hpp
+#endif // PHLEX_METAPROGRAMMING_TYPE_DEDUCTION_HPP

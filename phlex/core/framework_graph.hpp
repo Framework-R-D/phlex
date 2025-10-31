@@ -1,5 +1,5 @@
-#ifndef phlex_core_framework_graph_hpp
-#define phlex_core_framework_graph_hpp
+#ifndef PHLEX_CORE_FRAMEWORK_GRAPH_HPP
+#define PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_unfold.hpp"
@@ -152,4 +152,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_framework_graph_hpp
+#endif // PHLEX_CORE_FRAMEWORK_GRAPH_HPP

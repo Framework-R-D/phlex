@@ -1,5 +1,5 @@
-#ifndef phlex_core_detail_filter_impl_hpp
-#define phlex_core_detail_filter_impl_hpp
+#ifndef PHLEX_CORE_DETAIL_FILTER_IMPL_HPP
+#define PHLEX_CORE_DETAIL_FILTER_IMPL_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/specified_label.hpp"
@@ -70,4 +70,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_detail_filter_impl_hpp
+#endif // PHLEX_CORE_DETAIL_FILTER_IMPL_HPP

@@ -1,5 +1,5 @@
-#ifndef phlex_core_fold_send_hpp
-#define phlex_core_fold_send_hpp
+#ifndef PHLEX_CORE_FOLD_SEND_HPP
+#define PHLEX_CORE_FOLD_SEND_HPP
 
 // =======================================================================================
 // Phlex requires fold results to be "sendable", where the result can be represented
@@ -22,4 +22,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // phlex_core_fold_send_hpp
+#endif // PHLEX_CORE_FOLD_SEND_HPP

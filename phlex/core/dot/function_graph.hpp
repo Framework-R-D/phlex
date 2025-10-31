@@ -1,5 +1,5 @@
-#ifndef phlex_core_dot_function_graph_hpp
-#define phlex_core_dot_function_graph_hpp
+#ifndef PHLEX_CORE_DOT_FUNCTION_GRAPH_HPP
+#define PHLEX_CORE_DOT_FUNCTION_GRAPH_HPP
 
 #include "phlex/core/dot/attributes.hpp"
 #include "phlex/core/multiplexer.hpp"
@@ -36,4 +36,4 @@ namespace phlex::experimental::dot {
     std::vector<function_edge> edges_;
   };
 }
-#endif // phlex_core_dot_function_graph_hpp
+#endif // PHLEX_CORE_DOT_FUNCTION_GRAPH_HPP

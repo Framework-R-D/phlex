@@ -1,5 +1,5 @@
-#ifndef phlex_core_declared_unfold_hpp
-#define phlex_core_declared_unfold_hpp
+#ifndef PHLEX_CORE_DECLARED_UNFOLD_HPP
+#define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/end_of_message.hpp"
@@ -199,4 +199,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_declared_unfold_hpp
+#endif // PHLEX_CORE_DECLARED_UNFOLD_HPP

@@ -1,5 +1,5 @@
-#ifndef test_cached_execution_source_hpp
-#define test_cached_execution_source_hpp
+#ifndef TEST_CACHED_EXECUTION_SOURCE_HPP
+#define TEST_CACHED_EXECUTION_SOURCE_HPP
 
 // ===================================================================
 // This source creates:
@@ -48,4 +48,4 @@ namespace test {
   };
 }
 
-#endif // test_cached_execution_source_hpp
+#endif // TEST_CACHED_EXECUTION_SOURCE_HPP

@@ -1,5 +1,5 @@
-#ifndef phlex_core_fwd_hpp
-#define phlex_core_fwd_hpp
+#ifndef PHLEX_CORE_FWD_HPP
+#define PHLEX_CORE_FWD_HPP
 
 #include "phlex/model/fwd.hpp"
 #include "phlex/utilities/async_driver.hpp"
@@ -21,7 +21,7 @@ namespace phlex::experimental {
   using framework_driver = async_driver<product_store_ptr>;
 }
 
-#endif // phlex_core_fwd_hpp
+#endif // PHLEX_CORE_FWD_HPP
 
 // Local Variables:
 // mode: c++

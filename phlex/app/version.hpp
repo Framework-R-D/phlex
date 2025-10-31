@@ -1,7 +1,7 @@
-#ifndef phlex_app_version_hpp
-#define phlex_app_version_hpp
+#ifndef PHLEX_APP_VERSION_HPP
+#define PHLEX_APP_VERSION_HPP
 
 namespace phlex::experimental {
   char const* version();
 }
-#endif // phlex_app_version_hpp
+#endif // PHLEX_APP_VERSION_HPP

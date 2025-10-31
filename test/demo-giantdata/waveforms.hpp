@@ -1,6 +1,6 @@
 // waveforms.hpp
-#ifndef test_demo_giantdata_waveforms_hpp
-#define test_demo_giantdata_waveforms_hpp
+#ifndef TEST_DEMO_GIANTDATA_WAVEFORMS_HPP
+#define TEST_DEMO_GIANTDATA_WAVEFORMS_HPP
 
 #include <array>
 #include <vector>
@@ -33,4 +33,4 @@ namespace demo {
   };
 
 } // namespace demo
-#endif // test_demo_giantdata_waveforms_hpp
+#endif // TEST_DEMO_GIANTDATA_WAVEFORMS_HPP

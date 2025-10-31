@@ -1,5 +1,5 @@
-#ifndef phlex_core_registrar_hpp
-#define phlex_core_registrar_hpp
+#ifndef PHLEX_CORE_REGISTRAR_HPP
+#define PHLEX_CORE_REGISTRAR_HPP
 
 // =======================================================================================
 //
@@ -124,4 +124,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_registrar_hpp
+#endif // PHLEX_CORE_REGISTRAR_HPP

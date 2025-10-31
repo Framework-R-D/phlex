@@ -1,5 +1,5 @@
-#ifndef test_benchmarks_fibonacci_numbers_hpp
-#define test_benchmarks_fibonacci_numbers_hpp
+#ifndef TEST_BENCHMARKS_FIBONACCI_NUMBERS_HPP
+#define TEST_BENCHMARKS_FIBONACCI_NUMBERS_HPP
 
 #include <vector>
 
@@ -14,4 +14,4 @@ namespace test {
   };
 }
 
-#endif // test_benchmarks_fibonacci_numbers_hpp
+#endif // TEST_BENCHMARKS_FIBONACCI_NUMBERS_HPP

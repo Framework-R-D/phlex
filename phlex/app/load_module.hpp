@@ -1,5 +1,5 @@
-#ifndef phlex_app_load_module_hpp
-#define phlex_app_load_module_hpp
+#ifndef PHLEX_APP_LOAD_MODULE_HPP
+#define PHLEX_APP_LOAD_MODULE_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/source.hpp"
@@ -13,4 +13,4 @@ namespace phlex::experimental {
   detail::next_store_t load_source(boost::json::object const& config);
 }
 
-#endif // phlex_app_load_module_hpp
+#endif // PHLEX_APP_LOAD_MODULE_HPP

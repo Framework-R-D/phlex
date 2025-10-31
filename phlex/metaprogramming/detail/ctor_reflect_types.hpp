@@ -1,5 +1,5 @@
-#ifndef phlex_metaprogramming_detail_ctor_reflect_types_hpp
-#define phlex_metaprogramming_detail_ctor_reflect_types_hpp
+#ifndef PHLEX_METAPROGRAMMING_DETAIL_CTOR_REFLECT_TYPES_HPP
+#define PHLEX_METAPROGRAMMING_DETAIL_CTOR_REFLECT_TYPES_HPP
 
 #include "boost/predef.h"
 
@@ -122,4 +122,4 @@ namespace refl {
 #pragma GCC diagnostic pop
 #endif
 
-#endif // phlex_metaprogramming_detail_ctor_reflect_types_hpp
+#endif // PHLEX_METAPROGRAMMING_DETAIL_CTOR_REFLECT_TYPES_HPP

@@ -1,5 +1,5 @@
-#ifndef phlex_core_node_catalog_hpp
-#define phlex_core_node_catalog_hpp
+#ifndef PHLEX_CORE_NODE_CATALOG_HPP
+#define PHLEX_CORE_NODE_CATALOG_HPP
 
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_observer.hpp"
@@ -35,4 +35,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_node_catalog_hpp
+#endif // PHLEX_CORE_NODE_CATALOG_HPP
