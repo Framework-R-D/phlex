@@ -193,17 +193,6 @@ namespace phlex::experimental {
     (head_ports.merge(edges(filters, cons)), ...);
 
     // Create head nodes for unfolds
-    auto get_consumed_products = [](auto const& cons, auto& products) {
-      for (auto const& [key, consumer] : cons.data) {
-        for (auto const& product_name : consumer->input() | std::views::transform(to_name)) {
-          products[product_name].push_back(key);
-        }
-      }
-    };
-
-    std::map<std::string, std::vector<std::string>> consumed_products;
-    (get_consumed_products(cons, consumed_products), ...);
-
     std::set<std::string> remove_ports_for_products;
     for (auto const& [name, unfold] : unfolds.data) {
       multiplexer::head_ports_t heads;
