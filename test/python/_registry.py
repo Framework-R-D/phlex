@@ -8,8 +8,14 @@ def register(m, config, concurrency=None):
     pymod_name = config["pymodule"]
     pyalg_name = config["pyalg"]
 
+    # inputs must exist
     inputs = config["input", str, True]
-    outputs = config["output", str, True]
+
+    # outputs are optional
+    try:
+        outputs = config["output", str, True]
+    except TypeError:
+        outputs = []
 
     try:
         pymod = _registered_modules[pymod_name]

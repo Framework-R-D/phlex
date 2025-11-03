@@ -5,16 +5,6 @@
 
 using namespace phlex::experimental;
 
-namespace {
-  class PyGILRAII {
-    PyGILState_STATE m_GILState;
-
-  public:
-    PyGILRAII() : m_GILState(PyGILState_Ensure()) {}
-    ~PyGILRAII() { PyGILState_Release(m_GILState); }
-  };
-}
-
 // Simple phlex module wrapper
 struct phlex::experimental::py_phlex_module {
   PyObject_HEAD phlex_module_t* ph_module;
@@ -47,20 +37,39 @@ namespace {
 
       PyGILRAII gil;
 
-      // call the Python function
       PyObject* result =
         PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
 
-      // decrement all reference counts
       decref_all(args...);
 
+      if (!result)
+        throw_runtime_error_from_py_error(false);
+
       return (intptr_t)result;
+    }
+
+    template <typename... Args>
+    void callv(Args... args)
+    {
+      static_assert(sizeof...(Args) == N, "Argument count mismatch");
+
+      PyGILRAII gil;
+
+      PyObject* result =
+        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
+      Py_XDECREF(result);
+
+      decref_all(args...);
+
+      if (!result)
+        throw_runtime_error_from_py_error(false);
     }
 
   private:
     template <typename... Args>
     void decref_all(Args... args)
     {
+      // helper to decrement reference counts of N arguments
       (Py_DECREF((PyObject*)args), ...);
     }
   };
@@ -80,6 +89,18 @@ namespace {
     {
       return call(arg0, arg1, arg2);
     }
+  };
+
+  struct py_callback_1v : public py_callback<1> {
+    void operator()(intptr_t arg0) { callv(arg0); }
+  };
+
+  struct py_callback_2v : public py_callback<2> {
+    void operator()(intptr_t arg0, intptr_t arg1) { callv(arg0, arg1); }
+  };
+
+  struct py_callback_3v : public py_callback<3> {
+    void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
   };
 
   static std::vector<std::string> cseq(PyObject* coll)
@@ -210,7 +231,7 @@ namespace {
 #define INSERT_INPUT_CONVERTER(name, inp)                                                          \
   mod->ph_module->with("py" #name "_" + inp, name##_to_py, concurrency::serial)                    \
     .transform(inp)                                                                                \
-    .to("py" + inp)
+    .to(inp + "py")
 
 #define INSERT_OUTPUT_CONVERTER(name, outp)                                                        \
   mod->ph_module->with(#name "py_" + outp, py_to_##name, concurrency::serial)                      \
@@ -263,23 +284,24 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
   std::string output_type; // TODO: accept a tuple (see also above)
 
   PyObject* annot = PyObject_GetAttrString(callable, "__annotations__");
-  if (annot && PyDict_Check(annot) && 1 < PyDict_Size(annot)) {
+  if (annot && PyDict_Check(annot) && PyDict_Size(annot)) {
     PyObject* ret = PyDict_GetItemString(annot, "return");
-
-    if (ret) {
+    if (ret)
       output_type = annotation_as_text(ret);
 
-      PyObject* values = PyDict_Values(annot);
-      for (Py_ssize_t i = 0; i < (PyList_GET_SIZE(values) - 1); ++i) {
-        PyObject* item = PyList_GET_ITEM(values, i);
-        input_types.emplace_back(annotation_as_text(item));
-      }
-      Py_DECREF(values);
+    // dictionary is ordered with return last if provide (note: the keys here
+    // could be used as input labels, instead of the ones from the configuration,
+    // but that is probably not practical in actual use, so they are ignored)
+    PyObject* values = PyDict_Values(annot);
+    for (Py_ssize_t i = 0; i < (PyList_GET_SIZE(values) - (ret ? 1 : 0)); ++i) {
+      PyObject* item = PyList_GET_ITEM(values, i);
+      input_types.emplace_back(annotation_as_text(item));
     }
+    Py_DECREF(values);
   }
   Py_XDECREF(annot);
 
-  if (output_type.empty() or input_types.size() != cinputs.size()) {
+  if (input_types.size() != cinputs.size()) {
     PyErr_SetString(PyExc_TypeError, "annotions not found or unknown formatting");
     return nullptr;
   }
@@ -309,41 +331,60 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
 
   // register Python algorithm
   if (cinputs.size() == 1) {
-    auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
-    mod->ph_module->with(cname, *pyc, concurrency::serial)
-      .transform("py" + cinputs[0])
-      .to("py" + output);
+    if (!output_type.empty()) {
+      auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
+      mod->ph_module->with(cname, *pyc, concurrency::serial)
+        .transform(cinputs[0] + "py")
+        .to("py" + output);
+    } else {
+      auto* pyc = new py_callback_1v{callable}; // id.
+      mod->ph_module->observe(cname, *pyc, concurrency::serial).input_family(cinputs[0] + "py");
+    }
   } else if (cinputs.size() == 2) {
-    auto* pyc = new py_callback_2{callable}; // TODO: id.
-    mod->ph_module->with(cname, *pyc, concurrency::serial)
-      .transform("py" + cinputs[0], "py" + cinputs[1])
-      .to("py" + output);
+    if (!output_type.empty()) {
+      auto* pyc = new py_callback_2{callable};
+      mod->ph_module->with(cname, *pyc, concurrency::serial)
+        .transform(cinputs[0] + "py", cinputs[1] + "py")
+        .to("py" + output);
+    } else {
+      auto* pyc = new py_callback_2v{callable};
+      mod->ph_module->observe(cname, *pyc, concurrency::serial)
+        .input_family(cinputs[0] + "py", cinputs[1] + "py");
+    }
   } else if (cinputs.size() == 3) {
-    auto* pyc = new py_callback_3{callable}; // TODO: id
-    mod->ph_module->with(cname, *pyc, concurrency::serial)
-      .transform("py" + cinputs[0], "py" + cinputs[1], "py" + cinputs[2])
-      .to("py" + output);
+    if (!output_type.empty()) {
+      auto* pyc = new py_callback_3{callable};
+      mod->ph_module->with(cname, *pyc, concurrency::serial)
+        .transform(cinputs[0] + "py", cinputs[1] + "py", cinputs[2] + "py")
+        .to("py" + output);
+    } else {
+      auto* pyc = new py_callback_3v{callable};
+      mod->ph_module->observe(cname, *pyc, concurrency::serial)
+        .input_family(cinputs[0] + "py", cinputs[1] + "py", cinputs[2] + "py");
+    }
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     return nullptr;
   }
 
-  // insert output converter node into the graph (TODO: same as above; these
-  // are explicit b/c of the templates only)
-  if (output_type == "bool")
-    INSERT_OUTPUT_CONVERTER(bool, output);
-  else if (output_type == "int")
-    INSERT_OUTPUT_CONVERTER(int, output);
-  else if (output_type == "unsigned int")
-    INSERT_OUTPUT_CONVERTER(uint, output);
-  else if (output_type == "long")
-    INSERT_OUTPUT_CONVERTER(long, output);
-  else if (output_type == "unsigned long")
-    INSERT_OUTPUT_CONVERTER(ulong, output);
-  else if (output_type == "float")
-    INSERT_OUTPUT_CONVERTER(float, output);
-  else if (output_type == "double")
-    INSERT_OUTPUT_CONVERTER(double, output);
+  if (!output_type.empty()) {
+    // insert output converter node into the graph (TODO: same as above; these
+    // are explicit b/c of the templates only)
+    if (output_type == "bool")
+      INSERT_OUTPUT_CONVERTER(bool, output);
+    else if (output_type == "int")
+      INSERT_OUTPUT_CONVERTER(int, output);
+    else if (output_type == "unsigned int")
+      INSERT_OUTPUT_CONVERTER(uint, output);
+    else if (output_type == "long")
+      INSERT_OUTPUT_CONVERTER(long, output);
+    else if (output_type == "unsigned long")
+      INSERT_OUTPUT_CONVERTER(ulong, output);
+    else if (output_type == "float")
+      INSERT_OUTPUT_CONVERTER(float, output);
+    else if (output_type == "double")
+      INSERT_OUTPUT_CONVERTER(double, output);
+  }
 
   Py_RETURN_NONE;
 }
