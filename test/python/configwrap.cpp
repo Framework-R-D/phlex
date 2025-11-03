@@ -67,30 +67,52 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* args)
   // typed conversion if provided
   if (type == (PyObject*)&PyUnicode_Type) {
     if (!coll) {
-      auto const& cvalue = pycmap->ph_config->get<std::string>(cname);
-      pyvalue = PyUnicode_FromString(cvalue.c_str());
+      try {
+        auto const& cvalue = pycmap->ph_config->get<std::string>(cname);
+        pyvalue = PyUnicode_FromString(cvalue.c_str());
+      } catch (...) {
+        PyErr_Format(PyExc_TypeError, "property \"%s\" is not a string", cname.c_str());
+      }
     } else {
-      auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(cname);
-      pyvalue = PyTuple_New(cvalue.size());
-      for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-        PyObject* item = PyUnicode_FromString(cvalue[i].c_str());
-        PyTuple_SetItem(pyvalue, i, item);
+      try {
+        auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(cname);
+        pyvalue = PyTuple_New(cvalue.size());
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+          PyObject* item = PyUnicode_FromString(cvalue[i].c_str());
+          PyTuple_SetItem(pyvalue, i, item);
+        }
+      } catch (...) {
+        PyErr_Format(
+          PyExc_TypeError, "property \"%s\" is not a collection of strings", cname.c_str());
       }
     }
   } else if (type == (PyObject*)&PyLong_Type) {
     if (!coll) {
-      auto const& cvalue = pycmap->ph_config->get<long>(cname);
-      pyvalue = PyLong_FromLong(cvalue);
-      return pyvalue;
+      try {
+        auto const& cvalue = pycmap->ph_config->get<long>(cname);
+        pyvalue = PyLong_FromLong(cvalue);
+      } catch (...) {
+        PyErr_Format(PyExc_TypeError, "property \"%s\" is not an integer", cname.c_str());
+      }
     } else {
-      auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(cname);
-      pyvalue = PyTuple_New(cvalue.size());
-      for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-        PyObject* item = PyLong_FromString(cvalue[i].c_str(), nullptr, 10);
-        PyTuple_SetItem(pyvalue, i, item);
+      try {
+        auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(cname);
+        pyvalue = PyTuple_New(cvalue.size());
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+          PyObject* item = PyLong_FromString(cvalue[i].c_str(), nullptr, 10);
+          PyTuple_SetItem(pyvalue, i, item);
+        }
+      } catch (...) {
+        PyErr_Format(
+          PyExc_TypeError, "property \"%s\" is not a collection of integers", cname.c_str());
       }
     }
+  } else if (type) {
+    PyErr_SetString(PyExc_TypeError, "requested type not supported");
   }
+
+  if (type)
+    return pyvalue; // may be nullptr
 
   // untyped (guess) conversion
   if (!pyvalue) {
