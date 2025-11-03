@@ -1,3 +1,4 @@
+#include <atomic>
 #include <dlfcn.h>
 #include <stdexcept>
 #include <string>
@@ -13,6 +14,8 @@ static bool initialize();
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
   initialize();
+
+  PyGILRAII g;
 
   PyObject* registry = PyImport_ImportModule("_registry");
   if (registry) {
@@ -31,34 +34,8 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
     Py_DECREF(registry);
   }
 
-  if (PyErr_Occurred()) {
-    std::string msg;
-#if PY_VERSION_HEX < 0x30c000000
-    PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
-    PyErr_Fetch(&type, &value, &traceback);
-    if (value) {
-      PyObject* pymsg = PyObject_Str(value);
-      msg = PyUnicode_AsUTF8(pymsg);
-      Py_DECREF(pymsg);
-    } else {
-      msg = "unknown Python error occurred";
-    }
-    Py_XDECREF(traceback);
-    Py_XDECREF(value);
-    Py_XDECREF(type);
-#else
-    PyObject* exc = PyErr_GetRaisedException();
-    if (exc) {
-      PyObject* pymsg = PyObject_Str(exc);
-      msg = PyUnicode_AsString(pymsg);
-      Py_DECREF(pymsg);
-      Py_DECREF(exc);
-    }
-#endif
-    throw std::runtime_error(msg.c_str());
-  }
-
-  PyEval_SaveThread();
+  if (PyErr_Occurred())
+    throw_runtime_error_from_py_error(false /* check_error */);
 }
 
 static bool initialize()
@@ -110,6 +87,15 @@ static bool initialize()
   // add custom types
   PyType_Ready(&PhlexConfig_Type);
   PyType_Ready(&PhlexModule_Type);
+
+  // TODO: the GIL should first be released on the main thread and this seems
+  // to be the only place to do it. However, there is no equivalent place to
+  // re-acquire it after the TBB runs are done, so normal shutdown of the
+  // Python interpreter will not happen atm.
+  static std::atomic<bool> gil_released{false};
+  if (!gil_released.exchange(true)) {
+    (void)PyEval_SaveThread(); // state not saved, as no place to restore
+  }
 
   return true;
 }
