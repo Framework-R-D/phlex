@@ -11,7 +11,7 @@ void phlex::experimental::throw_runtime_error_from_py_error(bool check_error)
 
   if (check_error) {
     if (!PyErr_Occurred())
-      return
+      return;
   }
 
   std::string msg;
