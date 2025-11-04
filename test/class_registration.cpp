@@ -94,5 +94,5 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   // The following is invoked for *each* section above
   g.observe("verify_results", verify_results, concurrency::unlimited).input_family(product_names);
 
-  g.execute("class_component_t");
+  g.execute();
 }

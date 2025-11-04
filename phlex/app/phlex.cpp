@@ -32,9 +32,7 @@ int main(int argc, char* argv[])
     ("parallel,j",
        bpo::value<int>()->default_value(max_concurrency),
        "Maximum parallelism requested for the program")
-    ("version", ("Print phlex version ("s + phlex::experimental::version() + ")").c_str())
-    ("dot-file,g",
-       bpo::value<std::string>(), "Produce DOT file representing graph of framework nodes");
+    ("version", ("Print phlex version ("s + phlex::experimental::version() + ")").c_str());
   // clang-format on
 
   // Parse the command line.
@@ -68,16 +66,6 @@ int main(int argc, char* argv[])
     return 2;
   }
 
-  std::optional<std::string> dot_file{};
-  if (vm.count("dot-file")) {
-    auto filename = vm["dot-file"].as<std::string>();
-    if (std::empty(filename)) {
-      std::cerr << "Error: The 'dot-file|g' option cannot use an empty filename.\n";
-      return 3;
-    }
-    dot_file = make_optional(std::move(filename));
-  }
-
   jsonnet::Jsonnet j;
   if (not j.init()) {
     std::cerr << "Error: Could not initialize Jsonnet parser.\n";
@@ -104,5 +92,5 @@ int main(int argc, char* argv[])
   if (not vm["parallel"].defaulted()) {
     max_concurrency = vm["parallel"].as<int>();
   }
-  phlex::experimental::run(configurations, std::move(dot_file), max_concurrency);
+  phlex::experimental::run(configurations, max_concurrency);
 }

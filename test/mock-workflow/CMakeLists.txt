@@ -26,12 +26,10 @@ set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME}.d)
 file(MAKE_DIRECTORY ${TEST_DIR})
 add_test(
   NAME ${TEST_NAME}
-  COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.jsonnet -g
-          ${TEST_NAME}
+  COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.jsonnet
   WORKING_DIRECTORY ${TEST_DIR}
   )
 set_tests_properties(
   ${TEST_NAME} PROPERTIES ENVIRONMENT
                           PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
   )
-dot_test(${TEST_NAME})

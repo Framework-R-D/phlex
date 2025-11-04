@@ -85,11 +85,10 @@ namespace phlex::experimental {
     return nodes_.product_counts(node_name);
   }
 
-  void framework_graph::execute(std::string const& dot_file_prefix)
+  void framework_graph::execute()
   {
-    finalize(dot_file_prefix);
+    finalize();
     run();
-    // post_data_graph(dot_file_prefix);
   }
 
   void framework_graph::run()
@@ -125,7 +124,7 @@ namespace phlex::experimental {
     }
   }
 
-  void framework_graph::finalize(std::string const& dot_file_prefix)
+  void framework_graph::finalize()
   {
     if (not empty(registration_errors_)) {
       std::string error_msg{"\nConfiguration errors:\n"};
@@ -142,23 +141,16 @@ namespace phlex::experimental {
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.unfolds));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.transforms));
 
-    edge_maker make_edges{dot_file_prefix, nodes_.transforms, nodes_.folds, nodes_.unfolds};
+    edge_maker make_edges{nodes_.transforms, nodes_.folds, nodes_.unfolds};
     make_edges(src_,
                multiplexer_,
                filters_,
                nodes_.outputs,
-               consumers{nodes_.predicates, {.shape = "box"}},
-               consumers{nodes_.observers, {.shape = "box"}},
-               consumers{nodes_.folds, {.shape = "invtrapezium"}},
-               consumers{nodes_.unfolds, {.shape = "trapezium"}},
-               consumers{nodes_.transforms, {.shape = "box"}});
-
-    if (auto data_graph = make_edges.release_data_graph()) {
-      data_graph->to_file(dot_file_prefix);
-    }
-    if (auto function_graph = make_edges.release_function_graph()) {
-      function_graph->to_file(dot_file_prefix);
-    }
+               nodes_.predicates,
+               nodes_.observers,
+               nodes_.folds,
+               nodes_.unfolds,
+               nodes_.transforms);
   }
 
   product_store_ptr framework_graph::accept(product_store_ptr store)

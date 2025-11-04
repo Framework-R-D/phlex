@@ -8,7 +8,6 @@ add_library(source MODULE source.cpp)
 target_link_libraries(source PRIVATE Boost::json phlex::core)
 
 add_test(NAME job:add COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/add.jsonnet
-                              -g add.gv
          )
 
 set_tests_properties(
