@@ -281,12 +281,14 @@ jobs:
       run: |
         set -euo pipefail
         files=()
-        if [ "${{ needs.coverage.outputs.has_coverage_xml }}" = "true" ]; then
+        if [ -f coverage-artifacts/coverage.xml ]; then
           files+=("coverage-artifacts/coverage.xml")
         fi
-        if [ "${{ needs.coverage.outputs.has_coverage_llvm_info }}" = "true" ]; then
+        if [ -f coverage-artifacts/coverage-llvm.info ]; then
           files+=("coverage-artifacts/coverage-llvm.info")
         fi
+
+        ls -al coverage-artifacts || true
 
         if [ "${#files[@]}" -eq 0 ]; then
           echo "No coverage files detected; skipping Codecov upload." >&2
