@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_max_allowed_parallelism_hpp
-#define phlex_utilities_max_allowed_parallelism_hpp
+#ifndef PHLEX_UTILITIES_MAX_ALLOWED_PARALLELISM_HPP
+#define PHLEX_UTILITIES_MAX_ALLOWED_PARALLELISM_HPP
 
 #include "oneapi/tbb/global_control.h"
 
@@ -24,4 +24,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_utilities_max_allowed_parallelism_hpp
+#endif // PHLEX_UTILITIES_MAX_ALLOWED_PARALLELISM_HPP

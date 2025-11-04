@@ -1,5 +1,5 @@
-#ifndef test_demo_giantdata_waveform_generator_input_hpp
-#define test_demo_giantdata_waveform_generator_input_hpp
+#ifndef TEST_DEMO_GIANTDATA_WAVEFORM_GENERATOR_INPUT_HPP
+#define TEST_DEMO_GIANTDATA_WAVEFORM_GENERATOR_INPUT_HPP
 
 #include <cstddef>
 
@@ -29,4 +29,4 @@ namespace demo {
   inline std::size_t mysize(WaveformGeneratorInput const& w) { return sizeof(w); }
 } // namespace demo
 
-#endif // test_demo_giantdata_waveform_generator_input_hpp
+#endif // TEST_DEMO_GIANTDATA_WAVEFORM_GENERATOR_INPUT_HPP

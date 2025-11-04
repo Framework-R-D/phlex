@@ -1,5 +1,5 @@
-#ifndef phlex_core_input_arguments_hpp
-#define phlex_core_input_arguments_hpp
+#ifndef PHLEX_CORE_INPUT_ARGUMENTS_HPP
+#define PHLEX_CORE_INPUT_ARGUMENTS_HPP
 
 #include "phlex/core/message.hpp"
 #include "phlex/core/specified_label.hpp"
@@ -55,4 +55,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // phlex_core_input_arguments_hpp
+#endif // PHLEX_CORE_INPUT_ARGUMENTS_HPP

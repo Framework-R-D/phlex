@@ -1,9 +1,9 @@
-#ifndef phlex_metaprogramming_detail_basic_concepts_hpp
-#define phlex_metaprogramming_detail_basic_concepts_hpp
+#ifndef PHLEX_METAPROGRAMMING_DETAIL_BASIC_CONCEPTS_HPP
+#define PHLEX_METAPROGRAMMING_DETAIL_BASIC_CONCEPTS_HPP
 
 namespace phlex::experimental::detail {
   template <typename T>
   concept has_call_operator = requires { &T::operator(); };
 }
 
-#endif // phlex_metaprogramming_detail_basic_concepts_hpp
+#endif // PHLEX_METAPROGRAMMING_DETAIL_BASIC_CONCEPTS_HPP

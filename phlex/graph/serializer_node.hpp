@@ -1,5 +1,5 @@
-#ifndef phlex_graph_serializer_node_hpp
-#define phlex_graph_serializer_node_hpp
+#ifndef PHLEX_GRAPH_SERIALIZER_NODE_HPP
+#define PHLEX_GRAPH_SERIALIZER_NODE_HPP
 
 #include "phlex/utilities/sized_tuple.hpp"
 
@@ -53,4 +53,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_graph_serializer_node_hpp
+#endif // PHLEX_GRAPH_SERIALIZER_NODE_HPP

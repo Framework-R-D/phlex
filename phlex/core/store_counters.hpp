@@ -1,5 +1,5 @@
-#ifndef phlex_core_store_counters_hpp
-#define phlex_core_store_counters_hpp
+#ifndef PHLEX_CORE_STORE_COUNTERS_HPP
+#define PHLEX_CORE_STORE_COUNTERS_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/model/level_counter.hpp"
@@ -76,4 +76,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_store_counters_hpp
+#endif // PHLEX_CORE_STORE_COUNTERS_HPP

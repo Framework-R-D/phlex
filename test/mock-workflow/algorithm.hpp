@@ -1,5 +1,5 @@
-#ifndef test_mock_workflow_algorithm_hpp
-#define test_mock_workflow_algorithm_hpp
+#ifndef TEST_MOCK_WORKFLOW_ALGORITHM_HPP
+#define TEST_MOCK_WORKFLOW_ALGORITHM_HPP
 
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
@@ -70,10 +70,10 @@ namespace phlex::experimental::test {
     concurrency const j{c.get<unsigned>("concurrency", concurrency::unlimited.value)};
     m.template make<algorithm_t>(c.get<std::string>("module_label"),
                                  c.get<unsigned>("duration_usec"))
-      .with("execute", &algorithm_t::execute, j)
-      .transform(c.get<typename algorithm_t::inputs>("inputs"))
-      .to(c.get<typename algorithm_t::outputs>("outputs"));
+      .transform("execute", &algorithm_t::execute, j)
+      .input_family(c.get<typename algorithm_t::inputs>("inputs"))
+      .output_products(c.get<typename algorithm_t::outputs>("outputs"));
   }
 }
 
-#endif // test_mock_workflow_algorithm_hpp
+#endif // TEST_MOCK_WORKFLOW_ALGORITHM_HPP

@@ -1,5 +1,5 @@
-#ifndef phlex_core_edge_maker_hpp
-#define phlex_core_edge_maker_hpp
+#ifndef PHLEX_CORE_EDGE_MAKER_HPP
+#define PHLEX_CORE_EDGE_MAKER_HPP
 
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/declared_unfold.hpp"
@@ -246,4 +246,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // phlex_core_edge_maker_hpp
+#endif // PHLEX_CORE_EDGE_MAKER_HPP

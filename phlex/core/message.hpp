@@ -1,5 +1,5 @@
-#ifndef phlex_core_message_hpp
-#define phlex_core_message_hpp
+#ifndef PHLEX_CORE_MESSAGE_HPP
+#define PHLEX_CORE_MESSAGE_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/specified_label.hpp"
@@ -105,4 +105,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_message_hpp
+#endif // PHLEX_CORE_MESSAGE_HPP

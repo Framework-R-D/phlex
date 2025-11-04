@@ -1,5 +1,5 @@
-#ifndef phlex_core_framework_graph_hpp
-#define phlex_core_framework_graph_hpp
+#ifndef PHLEX_CORE_FRAMEWORK_GRAPH_HPP
+#define PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_unfold.hpp"
@@ -68,35 +68,62 @@ namespace phlex::experimental {
     // N.B. declare_output() is not directly accessible through framework_graph.  Is this
     //      right?
 
-    auto with(std::string name, auto f, concurrency c = concurrency::serial)
+    template <typename... InitArgs>
+    auto fold(std::string name,
+              is_fold_like auto f,
+              concurrency c = concurrency::serial,
+              std::string partition = "job",
+              InitArgs&&... init_args)
     {
-      return proxy().with(std::move(name), f, c);
+      return make_glue().fold(std::move(name),
+                              std::move(f),
+                              c,
+                              std::move(partition),
+                              std::forward<InitArgs>(init_args)...);
     }
 
     template <typename T>
-    auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
+    auto unfold(is_predicate_like auto pred,
+                auto unf,
+                concurrency c,
+                std::string destination_data_layer)
     {
-      return unfold_proxy<T>().declare_unfold(predicate, unfold, c);
+      return make_glue<T, false>().unfold(
+        std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
     auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
     {
-      return proxy().observe(std::move(name), f, c);
+      return make_glue().observe(std::move(name), std::move(f), c);
     }
 
     auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
     {
-      return proxy().predicate(std::move(name), f, c);
+      return make_glue().predicate(std::move(name), std::move(f), c);
+    }
+
+    auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial)
+    {
+      return make_glue().transform(std::move(name), std::move(f), c);
     }
 
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
-      return {
-        graph_, nodes_, std::make_shared<T>(std::forward<Args>(args)...), registration_errors_};
+      return make_glue<T>(std::forward<Args>(args)...);
     }
 
   private:
+    template <typename T = void_tag, bool Construct = true, typename... Args>
+    glue<T> make_glue(Args&&... args)
+    {
+      std::shared_ptr<T> bound_object{nullptr};
+      if constexpr (!std::same_as<T, void_tag> && Construct) {
+        bound_object = std::make_shared<T>(std::forward<Args>(args)...);
+      }
+      return {graph_, nodes_, std::move(bound_object), registration_errors_};
+    }
+
     void run();
     void finalize(std::string const& dot_file_prefix);
     void post_data_graph(std::string const& dot_file_prefix);
@@ -104,14 +131,6 @@ namespace phlex::experimental {
     product_store_ptr accept(product_store_ptr store);
     void drain();
     std::size_t original_message_id(product_store_ptr const& store);
-
-    glue<void_tag> proxy() { return {graph_, nodes_, nullptr, registration_errors_}; }
-
-    template <typename T>
-    unfold_glue<T> unfold_proxy()
-    {
-      return {graph_, nodes_, registration_errors_};
-    }
 
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;
@@ -133,4 +152,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_framework_graph_hpp
+#endif // PHLEX_CORE_FRAMEWORK_GRAPH_HPP

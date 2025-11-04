@@ -1,5 +1,5 @@
-#ifndef phlex_core_dot_attributes_hpp
-#define phlex_core_dot_attributes_hpp
+#ifndef PHLEX_CORE_DOT_ATTRIBUTES_HPP
+#define PHLEX_CORE_DOT_ATTRIBUTES_HPP
 
 #include <string>
 
@@ -19,4 +19,4 @@ namespace phlex::experimental::dot {
   std::string parenthesized(std::string const& n);
 }
 
-#endif // phlex_core_dot_attributes_hpp
+#endif // PHLEX_CORE_DOT_ATTRIBUTES_HPP

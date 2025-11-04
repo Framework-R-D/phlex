@@ -1,5 +1,5 @@
-#ifndef phlex_core_end_of_message_hpp
-#define phlex_core_end_of_message_hpp
+#ifndef PHLEX_CORE_END_OF_MESSAGE_HPP
+#define PHLEX_CORE_END_OF_MESSAGE_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/model/fwd.hpp"
@@ -24,4 +24,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_end_of_message_hpp
+#endif // PHLEX_CORE_END_OF_MESSAGE_HPP

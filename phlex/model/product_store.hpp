@@ -1,5 +1,5 @@
-#ifndef phlex_model_product_store_hpp
-#define phlex_model_product_store_hpp
+#ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
+#define PHLEX_MODEL_PRODUCT_STORE_HPP
 
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
@@ -132,4 +132,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // phlex_model_product_store_hpp
+#endif // PHLEX_MODEL_PRODUCT_STORE_HPP

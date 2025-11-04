@@ -1,5 +1,5 @@
-#ifndef phlex_core_registrar_hpp
-#define phlex_core_registrar_hpp
+#ifndef PHLEX_CORE_REGISTRAR_HPP
+#define PHLEX_CORE_REGISTRAR_HPP
 
 // =======================================================================================
 //
@@ -7,11 +7,11 @@
 // statement.  For example:
 //
 //   g.make<MyTransform>()
-//     .with("name", &MyTransform::transform, concurrency{n})
+//     .transform("name", &MyTransform::transform, concurrency{n})
+//     .input_family(...)
 //     .when(...)
-//     .transform(...)
-//     .to(...);
-//             ^ Registration happens at the completion of the full statement.
+//     .output_products(...);
+//                          ^ Registration occurs at the completion of the full statement.
 //
 // This is achieved by creating a registrar class object (internally during any of the
 // declare* calls), which is then passed along through each successive function call
@@ -35,8 +35,8 @@
 //
 // Consider the case of two output nodes:
 //
-//   g.make<MyOutput>().output_with("all_slow", &MyOutput::output);
-//   g.make<MyOutput>().output_with("some_slow", &MyOutput::output).when(...);
+//   g.make<MyOutput>().output("all_slow", &MyOutput::output);
+//   g.make<MyOutput>().output("some_slow", &MyOutput::output).when(...);
 //
 // Either of the above registration statements are valid, but how the functions are
 // registered with the framework depends on the function call-chain.  If the registration
@@ -64,7 +64,7 @@ namespace phlex::experimental {
   template <typename Ptr>
   class registrar {
     using Nodes = simple_ptr_map<Ptr>;
-    using Creator = std::function<Ptr(std::vector<std::string>)>;
+    using node_creator = std::function<Ptr(std::vector<std::string>, std::vector<std::string>)>;
 
   public:
     explicit registrar(Nodes& nodes, std::vector<std::string>& errors) :
@@ -78,18 +78,24 @@ namespace phlex::experimental {
     registrar(registrar&&) = default;
     registrar& operator=(registrar&&) = default;
 
-    void set_creator(Creator creator) { creator_ = std::move(creator); }
+    bool has_predicates() const { return predicates_.has_value(); }
+
+    void set_creator(node_creator creator) { creator_ = std::move(creator); }
     void set_predicates(std::optional<std::vector<std::string>> predicates)
     {
       predicates_ = std::move(predicates);
     }
 
-    bool has_predicates() const { return predicates_.has_value(); }
+    void set_output_products(std::vector<std::string> output_products)
+    {
+      create_node(std::move(output_products));
+      creator_ = nullptr;
+    }
 
     ~registrar() noexcept(false)
     {
       if (creator_) {
-        create_node();
+        create_node(std::move(output_products_));
       }
     }
 
@@ -99,10 +105,10 @@ namespace phlex::experimental {
       return std::move(predicates_).value_or(std::vector<std::string>{});
     }
 
-    void create_node()
+    void create_node(std::vector<std::string> output_product_labels)
     {
       assert(creator_);
-      auto ptr = creator_(release_predicates());
+      auto ptr = creator_(release_predicates(), std::move(output_product_labels));
       auto name = ptr->full_name();
       auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
       if (not inserted) {
@@ -112,9 +118,10 @@ namespace phlex::experimental {
 
     Nodes* nodes_;
     std::vector<std::string>* errors_;
-    Creator creator_{};
+    node_creator creator_{};
     std::optional<std::vector<std::string>> predicates_;
+    std::vector<std::string> output_products_{};
   };
 }
 
-#endif // phlex_core_registrar_hpp
+#endif // PHLEX_CORE_REGISTRAR_HPP

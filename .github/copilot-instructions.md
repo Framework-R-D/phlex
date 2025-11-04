@@ -90,11 +90,12 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 
 ## Markdown Rules
 
-Follow these markdownlint rules:
+All Markdown files must strictly follow these markdownlint rules:
 
-- **MD012**: No multiple consecutive blank lines
-- **MD031**: Blank lines before/after fenced code blocks
-- **MD032**: Blank lines before/after lists (even after headings/code blocks)
-- **MD034**: No bare URLs (use `<https://...>` or `[text](https://...)`)
-- **MD036**: Use `#` headings, not `**Bold:**` for titles
-- **MD040**: Always specify code block language (` ```bash `, ` ```python `, ` ```text `, etc.)
+- **MD012**: No multiple consecutive blank lines (never more than one blank line in a row, anywhere)
+- **MD022**: Headings must be surrounded by exactly one blank line before and after
+- **MD031**: Fenced code blocks must be surrounded by exactly one blank line before and after
+- **MD032**: Lists must be surrounded by exactly one blank line before and after (including after headings and code blocks)
+- **MD034**: No bare URLs (for example, use a markdown link like `[text](destination)` instead of a plain URL)
+- **MD036**: Use # headings, not **Bold:** for titles
+- **MD040**: Always specify code block language (for example, use '```bash', '```python', '```text', etc.)

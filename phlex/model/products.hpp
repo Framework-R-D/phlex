@@ -1,5 +1,5 @@
-#ifndef phlex_model_products_hpp
-#define phlex_model_products_hpp
+#ifndef PHLEX_MODEL_PRODUCTS_HPP
+#define PHLEX_MODEL_PRODUCTS_HPP
 
 #include "phlex/model/qualified_name.hpp"
 
@@ -105,4 +105,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_model_products_hpp
+#endif // PHLEX_MODEL_PRODUCTS_HPP

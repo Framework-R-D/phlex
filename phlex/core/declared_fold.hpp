@@ -1,5 +1,5 @@
-#ifndef phlex_core_declared_fold_hpp
-#define phlex_core_declared_fold_hpp
+#ifndef PHLEX_CORE_DECLARED_FOLD_HPP
+#define PHLEX_CORE_DECLARED_FOLD_HPP
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
@@ -8,7 +8,6 @@
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
-#include "phlex/core/registrar.hpp"
 #include "phlex/core/specified_label.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -52,8 +51,8 @@ namespace phlex::experimental {
 
   // =====================================================================================
 
-  template <typename AlgorithmBits>
-  class pre_fold {
+  template <typename AlgorithmBits, typename InitTuple>
+  class fold_node : public declared_fold, private count_stores {
     using all_parameter_types = typename AlgorithmBits::input_parameter_types;
     using input_parameter_types = skip_first_type<all_parameter_types>; // Skip fold object
     static constexpr auto N = std::tuple_size_v<input_parameter_types>;
@@ -62,146 +61,61 @@ namespace phlex::experimental {
     static constexpr std::size_t M = 1; // hard-coded for now
     using function_t = typename AlgorithmBits::bound_type;
 
-    template <typename InitTuple>
-    class total_fold;
-
   public:
-    pre_fold(registrar<declared_fold_ptr> reg,
-             algorithm_name name,
-             std::size_t concurrency,
-             std::vector<std::string> predicates,
-             tbb::flow::graph& g,
-             AlgorithmBits alg,
-             specified_labels input_products) :
-      name_{std::move(name)},
-      concurrency_{concurrency},
-      predicates_{std::move(predicates)},
-      graph_{g},
-      ft_{alg.release_algorithm()},
-      product_labels_{std::move(input_products)},
-      reg_{std::move(reg)}
-    {
-    }
-
-    template <std::size_t Msize>
-    auto& to(std::array<std::string, Msize> output_keys)
-    {
-      static_assert(
-        M == Msize,
-        "The number of function parameters is not the same as the number of returned output "
-        "objects.");
-      std::ranges::transform(output_keys, output_names_.begin(), to_qualified_name{name_});
-      reg_.set_creator([this](auto) { return create(std::make_tuple()); });
-      return *this;
-    }
-
-    auto& to(std::convertible_to<std::string> auto&&... ts)
-    {
-      static_assert(
-        M == sizeof...(ts),
-        "The number of function parameters is not the same as the number of returned output "
-        "objects.");
-      return to(std::array<std::string, M>{std::forward<decltype(ts)>(ts)...});
-    }
-
-    auto& partitioned_by(std::string const& level_name)
-    {
-      partition_ = level_name;
-      return *this;
-    }
-
-    auto& initialized_with(auto&&... ts)
-    {
-      reg_.set_creator([this, init = std::tuple{ts...}](auto) { return create(std::move(init)); });
-      return *this;
-    }
-
-  private:
-    template <typename T>
-    declared_fold_ptr create(T init)
-    {
-      if (empty(partition_)) {
-        throw std::runtime_error("The fold range must be specified using the 'over(...)' syntax.");
-      }
-      return std::make_unique<total_fold<decltype(init)>>(std::move(name_),
-                                                          concurrency_,
-                                                          std::move(predicates_),
-                                                          graph_,
-                                                          std::move(ft_),
-                                                          std::move(init),
-                                                          std::move(product_labels_),
-                                                          std::move(output_names_),
-                                                          std::move(partition_));
-    }
-
-    algorithm_name name_;
-    std::size_t concurrency_;
-    std::vector<std::string> predicates_;
-    tbb::flow::graph& graph_;
-    function_t ft_;
-    specified_labels product_labels_;
-    std::string partition_{level_id::base().level_name()};
-    std::array<qualified_name, M> output_names_;
-    registrar<declared_fold_ptr> reg_;
-  };
-
-  template <typename AlgorithmBits>
-  template <typename InitTuple>
-  class pre_fold<AlgorithmBits>::total_fold : public declared_fold, private count_stores {
-  public:
-    total_fold(algorithm_name name,
-               std::size_t concurrency,
-               std::vector<std::string> predicates,
-               tbb::flow::graph& g,
-               function_t&& f,
-               InitTuple initializer,
-               specified_labels input_products,
-               std::array<qualified_name, M> output,
-               std::string partition) :
-      declared_fold{std::move(name), std::move(predicates), std::move(input_products)},
+    fold_node(algorithm_name name,
+              std::size_t concurrency,
+              std::vector<std::string> predicates,
+              tbb::flow::graph& g,
+              AlgorithmBits alg,
+              InitTuple initializer,
+              specified_labels product_labels,
+              std::vector<std::string> output,
+              std::string partition) :
+      declared_fold{std::move(name), std::move(predicates), std::move(product_labels)},
       initializer_{std::move(initializer)},
-      output_(output.begin(), output.end()),
+      output_{to_qualified_names(full_name(), std::move(output))},
       partition_{std::move(partition)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      fold_{
-        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& outputs) {
-          // N.B. The assumption is that a fold will *never* need to cache
-          //      the product store it creates.  Any flush messages *do not* need
-          //      to be propagated to downstream nodes.
-          auto const& msg = most_derived(messages);
-          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+      fold_{g,
+            concurrency,
+            [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto& outputs) {
+              // N.B. The assumption is that a fold will *never* need to cache
+              //      the product store it creates.  Any flush messages *do not* need
+              //      to be propagated to downstream nodes.
+              auto const& msg = most_derived(messages);
+              auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
 
-          if (not store->is_flush() and not store->id()->parent(partition_)) {
-            return;
-          }
+              if (not store->is_flush() and not store->id()->parent(partition_)) {
+                return;
+              }
 
-          if (store->is_flush()) {
-            // Downstream nodes always get the flush.
-            get<0>(outputs).try_put(msg);
-            if (store->id()->level_name() != partition_) {
-              return;
-            }
-          }
+              if (store->is_flush()) {
+                // Downstream nodes always get the flush.
+                get<0>(outputs).try_put(msg);
+                if (store->id()->level_name() != partition_) {
+                  return;
+                }
+              }
 
-          auto const& fold_store = store->is_flush() ? store : store->parent(partition_);
-          assert(fold_store);
-          auto const& id_hash_for_counter = fold_store->id()->hash();
+              auto const& fold_store = store->is_flush() ? store : store->parent(partition_);
+              assert(fold_store);
+              auto const& id_hash_for_counter = fold_store->id()->hash();
 
-          if (store->is_flush()) {
-            counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
-          } else {
-            call(ft, messages, std::make_index_sequence<N>{});
-            counter_for(id_hash_for_counter).increment(store->id()->level_hash());
-          }
+              if (store->is_flush()) {
+                counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
+              } else {
+                call(ft, messages, std::make_index_sequence<N>{});
+                counter_for(id_hash_for_counter).increment(store->id()->level_hash());
+              }
 
-          if (auto counter = done_with(id_hash_for_counter)) {
-            auto parent = fold_store->make_continuation(this->full_name());
-            commit_(*parent);
-            ++product_count_;
-            // FIXME: This msg.eom value may be wrong!
-            get<0>(outputs).try_put({parent, msg.eom, counter->original_message_id()});
-          }
-        }}
+              if (auto counter = done_with(id_hash_for_counter)) {
+                auto parent = fold_store->make_continuation(this->full_name());
+                commit_(*parent);
+                ++product_count_;
+                // FIXME: This msg.eom value may be wrong!
+                get<0>(outputs).try_put({parent, msg.eom, counter->original_message_id()});
+              }
+            }}
     {
       make_edge(join_, fold_);
     }
@@ -271,4 +185,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_declared_fold_hpp
+#endif // PHLEX_CORE_DECLARED_FOLD_HPP

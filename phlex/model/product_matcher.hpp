@@ -1,5 +1,5 @@
-#ifndef phlex_model_product_matcher_hpp
-#define phlex_model_product_matcher_hpp
+#ifndef PHLEX_MODEL_PRODUCT_MATCHER_HPP
+#define PHLEX_MODEL_PRODUCT_MATCHER_HPP
 
 // =======================================================================================
 // The full specification of a matcher looks like:
@@ -35,7 +35,7 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_model_product_matcher_hpp
+#endif // PHLEX_MODEL_PRODUCT_MATCHER_HPP
 
 // Local Variables:
 // mode: c++

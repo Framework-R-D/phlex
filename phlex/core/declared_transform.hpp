@@ -1,5 +1,5 @@
-#ifndef phlex_core_declared_transform_hpp
-#define phlex_core_declared_transform_hpp
+#ifndef PHLEX_CORE_DECLARED_TRANSFORM_HPP
+#define PHLEX_CORE_DECLARED_TRANSFORM_HPP
 
 // FIXME: Add comments explaining the process.  For each implementation, explain what part
 //        of the process a given section of code is addressing.
@@ -9,7 +9,6 @@
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
-#include "phlex/core/registrar.hpp"
 #include "phlex/core/specified_label.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
@@ -25,14 +24,12 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <algorithm>
-#include <array>
 #include <concepts>
 #include <cstddef>
 #include <functional>
 #include <iterator>
 #include <memory>
 #include <ranges>
-#include <span>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -66,96 +63,25 @@ namespace phlex::experimental {
   // =====================================================================================
 
   template <typename AlgorithmBits>
-  class pre_transform {
+  class transform_node : public declared_transform, private detect_flush_flag {
     using function_t = typename AlgorithmBits::bound_type;
     using input_parameter_types = typename AlgorithmBits::input_parameter_types;
 
     static constexpr auto N = AlgorithmBits::number_inputs;
     static constexpr auto M = number_output_objects<function_t>;
 
-    class total_transform;
-
   public:
-    pre_transform(registrar<declared_transform_ptr> reg,
-                  algorithm_name name,
-                  std::size_t concurrency,
-                  std::vector<std::string> predicates,
-                  tbb::flow::graph& g,
-                  AlgorithmBits alg,
-                  specified_labels input) :
-      name_{std::move(name)},
-      concurrency_{concurrency},
-      predicates_{std::move(predicates)},
-      graph_{g},
-      alg_{std::move(alg)},
-      input_{std::move(input)},
-      reg_{std::move(reg)}
-    {
-    }
+    using node_ptr_type = declared_transform_ptr;
+    static constexpr auto number_output_products = M;
 
-    template <std::size_t Msize>
-    auto& to(std::array<std::string, Msize> output_keys)
-    {
-      static_assert(
-        M == Msize,
-        "The number of function parameters is not the same as the number of returned output "
-        "objects.");
-
-      reg_.set_creator([this, out = std::move(output_keys)](auto) {
-        return create(std::vector(out.begin(), out.end()));
-      });
-      return *this;
-    }
-
-    auto& to(std::convertible_to<std::string> auto&&... ts)
-    {
-      static_assert(
-        M == sizeof...(ts),
-        "The number of function parameters is not the same as the number of returned output "
-        "objects.");
-      return to(std::array<std::string, M>{std::forward<decltype(ts)>(ts)...});
-    }
-
-  private:
-    declared_transform_ptr create(std::vector<std::string> outputs)
-    {
-      return std::make_unique<total_transform>(std::move(name_),
-                                               concurrency_,
-                                               std::move(predicates_),
-                                               graph_,
-                                               std::move(alg_),
-                                               std::move(input_),
-                                               std::move(outputs));
-    }
-
-    algorithm_name name_;
-    std::size_t concurrency_;
-    std::vector<std::string> predicates_;
-    tbb::flow::graph& graph_;
-    AlgorithmBits alg_;
-    specified_labels input_;
-    registrar<declared_transform_ptr> reg_;
-  };
-
-  // =====================================================================================
-
-  template <typename AlgorithmBits>
-  class pre_transform<AlgorithmBits>::total_transform :
-    public declared_transform,
-    private detect_flush_flag {
-    using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
-    using accessor = stores_t::accessor;
-    using const_accessor = stores_t::const_accessor;
-
-  public:
-    total_transform(algorithm_name name,
-                    std::size_t concurrency,
-                    std::vector<std::string> predicates,
-                    tbb::flow::graph& g,
-                    AlgorithmBits alg,
-                    specified_labels input,
-                    std::vector<std::string> output) :
-      declared_transform{std::move(name), std::move(predicates), std::move(input)},
+    transform_node(algorithm_name name,
+                   std::size_t concurrency,
+                   std::vector<std::string> predicates,
+                   tbb::flow::graph& g,
+                   AlgorithmBits alg,
+                   specified_labels input_products,
+                   std::vector<std::string> output) :
+      declared_transform{std::move(name), std::move(predicates), std::move(input_products)},
       output_{to_qualified_names(full_name(), std::move(output))},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       transform_{g,
@@ -197,7 +123,7 @@ namespace phlex::experimental {
       make_edge(join_, transform_);
     }
 
-    ~total_transform() { report_cached_stores(stores_); }
+    ~transform_node() { report_cached_stores(stores_); }
 
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
@@ -238,4 +164,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_declared_transform_hpp
+#endif // PHLEX_CORE_DECLARED_TRANSFORM_HPP

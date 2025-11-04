@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_simple_ptr_map_hpp
-#define phlex_utilities_simple_ptr_map_hpp
+#ifndef PHLEX_UTILITIES_SIMPLE_PTR_MAP_HPP
+#define PHLEX_UTILITIES_SIMPLE_PTR_MAP_HPP
 
 // ==================================================================================
 // The type simple_ptr_map<Ptr> is nearly equivalent to the type:
@@ -61,4 +61,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_utilities_simple_ptr_map_hpp
+#endif // PHLEX_UTILITIES_SIMPLE_PTR_MAP_HPP

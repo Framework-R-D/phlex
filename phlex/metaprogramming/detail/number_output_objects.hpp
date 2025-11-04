@@ -1,5 +1,5 @@
-#ifndef phlex_metaprogramming_detail_number_output_objects_hpp
-#define phlex_metaprogramming_detail_number_output_objects_hpp
+#ifndef PHLEX_METAPROGRAMMING_DETAIL_NUMBER_OUTPUT_OBJECTS_HPP
+#define PHLEX_METAPROGRAMMING_DETAIL_NUMBER_OUTPUT_OBJECTS_HPP
 
 #include "phlex/metaprogramming/detail/basic_concepts.hpp"
 
@@ -60,4 +60,4 @@ namespace phlex::experimental::detail {
     number_types_not_void<R>();
 }
 
-#endif // phlex_metaprogramming_detail_number_output_objects_hpp
+#endif // PHLEX_METAPROGRAMMING_DETAIL_NUMBER_OUTPUT_OBJECTS_HPP

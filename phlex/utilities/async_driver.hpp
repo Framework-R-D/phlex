@@ -1,5 +1,5 @@
-#ifndef phlex_utilities_async_driver_hpp
-#define phlex_utilities_async_driver_hpp
+#ifndef PHLEX_UTILITIES_ASYNC_DRIVER_HPP
+#define PHLEX_UTILITIES_ASYNC_DRIVER_HPP
 
 #include <atomic>
 #include <condition_variable>
@@ -60,4 +60,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_utilities_async_driver_hpp
+#endif // PHLEX_UTILITIES_ASYNC_DRIVER_HPP

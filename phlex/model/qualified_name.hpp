@@ -1,5 +1,5 @@
-#ifndef phlex_model_qualified_name_hpp
-#define phlex_model_qualified_name_hpp
+#ifndef PHLEX_MODEL_QUALIFIED_NAME_HPP
+#define PHLEX_MODEL_QUALIFIED_NAME_HPP
 
 #include "phlex/model/algorithm_name.hpp"
 
@@ -50,4 +50,4 @@ namespace phlex::experimental {
                                      std::vector<std::string> output_labels);
 }
 
-#endif // phlex_model_qualified_name_hpp
+#endif // PHLEX_MODEL_QUALIFIED_NAME_HPP

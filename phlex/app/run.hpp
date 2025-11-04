@@ -1,5 +1,5 @@
-#ifndef phlex_app_run_hpp
-#define phlex_app_run_hpp
+#ifndef PHLEX_APP_RUN_HPP
+#define PHLEX_APP_RUN_HPP
 
 #include "boost/json.hpp"
 
@@ -11,4 +11,4 @@ namespace phlex::experimental {
            int max_parallelism);
 }
 
-#endif // phlex_app_run_hpp
+#endif // PHLEX_APP_RUN_HPP

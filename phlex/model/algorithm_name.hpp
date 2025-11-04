@@ -1,5 +1,5 @@
-#ifndef phlex_model_algorithm_name_hpp
-#define phlex_model_algorithm_name_hpp
+#ifndef PHLEX_MODEL_ALGORITHM_NAME_HPP
+#define PHLEX_MODEL_ALGORITHM_NAME_HPP
 
 #include <string>
 
@@ -37,4 +37,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_model_algorithm_name_hpp
+#endif // PHLEX_MODEL_ALGORITHM_NAME_HPP

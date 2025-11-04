@@ -1,5 +1,5 @@
-#ifndef phlex_core_cached_product_stores_hpp
-#define phlex_core_cached_product_stores_hpp
+#ifndef PHLEX_CORE_CACHED_PRODUCT_STORES_HPP
+#define PHLEX_CORE_CACHED_PRODUCT_STORES_HPP
 
 // FIXME: only intended to be used in a single-threaded context as std::map is not
 //        thread-safe.
@@ -38,4 +38,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // phlex_core_cached_product_stores_hpp
+#endif // PHLEX_CORE_CACHED_PRODUCT_STORES_HPP

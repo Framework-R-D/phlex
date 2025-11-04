@@ -1,5 +1,5 @@
-#ifndef phlex_core_filter_hpp
-#define phlex_core_filter_hpp
+#ifndef PHLEX_CORE_FILTER_HPP
+#define PHLEX_CORE_FILTER_HPP
 
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
@@ -38,4 +38,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // phlex_core_filter_hpp
+#endif // PHLEX_CORE_FILTER_HPP
