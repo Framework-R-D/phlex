@@ -219,11 +219,14 @@ jobs:
       if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
       shell: bash
       run: |
-        if [ -n "${ACTIONS_RUNTIME_TOKEN:-}" ]; then
+        if [ "${GITHUB_ACTOR}" = "nektos/act" ]; then
+          echo "::notice::Artifact upload disabled for nektos/act executions."
+          echo "available=false" >> "$GITHUB_OUTPUT"
+        elif [ -z "${ACTIONS_RUNTIME_TOKEN:-}" ]; then
+          echo "::warning::ACTIONS_RUNTIME_TOKEN missing; continuing and trusting actions/upload-artifact to handle authentication."
           echo "available=true" >> "$GITHUB_OUTPUT"
         else
-          echo "::notice::ACTIONS_RUNTIME_TOKEN not available; artifact upload will be skipped."
-          echo "available=false" >> "$GITHUB_OUTPUT"
+          echo "available=true" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Install Node.js runtime for artifact publishing
