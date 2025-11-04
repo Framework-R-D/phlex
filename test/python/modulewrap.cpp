@@ -229,14 +229,14 @@ namespace {
 } // unnamed namespace
 
 #define INSERT_INPUT_CONVERTER(name, inp)                                                          \
-  mod->ph_module->with("py" #name "_" + inp, name##_to_py, concurrency::serial)                    \
-    .transform(inp)                                                                                \
-    .to(inp + "py")
+  mod->ph_module->transform("py" #name "_" + inp, name##_to_py, concurrency::serial)               \
+    .input_family(inp)                                                                             \
+    .output_products(inp + "py")
 
 #define INSERT_OUTPUT_CONVERTER(name, outp)                                                        \
-  mod->ph_module->with(#name "py_" + outp, py_to_##name, concurrency::serial)                      \
-    .transform("py" + output)                                                                      \
-    .to(output)
+  mod->ph_module->transform(#name "py_" + outp, py_to_##name, concurrency::serial)                 \
+    .input_family("py" + output)                                                                   \
+    .output_products(output)
 
 static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*kwds*/)
 {
@@ -333,9 +333,9 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
   if (cinputs.size() == 1) {
     if (!output_type.empty()) {
       auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
-      mod->ph_module->with(cname, *pyc, concurrency::serial)
-        .transform(cinputs[0] + "py")
-        .to("py" + output);
+      mod->ph_module->transform(cname, *pyc, concurrency::serial)
+        .input_family(cinputs[0] + "py")
+        .output_products("py" + output);
     } else {
       auto* pyc = new py_callback_1v{callable}; // id.
       mod->ph_module->observe(cname, *pyc, concurrency::serial).input_family(cinputs[0] + "py");
@@ -343,9 +343,9 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
   } else if (cinputs.size() == 2) {
     if (!output_type.empty()) {
       auto* pyc = new py_callback_2{callable};
-      mod->ph_module->with(cname, *pyc, concurrency::serial)
-        .transform(cinputs[0] + "py", cinputs[1] + "py")
-        .to("py" + output);
+      mod->ph_module->transform(cname, *pyc, concurrency::serial)
+        .input_family(cinputs[0] + "py", cinputs[1] + "py")
+        .output_products("py" + output);
     } else {
       auto* pyc = new py_callback_2v{callable};
       mod->ph_module->observe(cname, *pyc, concurrency::serial)
@@ -354,9 +354,9 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
   } else if (cinputs.size() == 3) {
     if (!output_type.empty()) {
       auto* pyc = new py_callback_3{callable};
-      mod->ph_module->with(cname, *pyc, concurrency::serial)
-        .transform(cinputs[0] + "py", cinputs[1] + "py", cinputs[2] + "py")
-        .to("py" + output);
+      mod->ph_module->transform(cname, *pyc, concurrency::serial)
+        .input_family(cinputs[0] + "py", cinputs[1] + "py", cinputs[2] + "py")
+        .output_products("py" + output);
     } else {
       auto* pyc = new py_callback_3v{callable};
       mod->ph_module->observe(cname, *pyc, concurrency::serial)
