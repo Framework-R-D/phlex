@@ -141,12 +141,17 @@ function(_create_coverage_targets_impl)
         "[Coverage] Merging profile data files listed in ${PROFRAW_LIST_FILE}"
       COMMAND
         bash -c
-        "set -euo pipefail; mapfile -t profs < ${PROFRAW_LIST_FILE}; \
-                 if [ \${#profs[@]} -eq 0 ]; then \
-                   echo 'No profile data files were generated. Ensure tests were run with coverage instrumentation.' >&2; \
-                   exit 1; \
-                 fi; \
-                 \"${LLVM_PROFDATA_EXECUTABLE}\" merge --failure-mode=warn -sparse \"\${profs[@]}\" -o \"${LLVM_PROFDATA_OUTPUT}\""
+        [=[set -euo pipefail
+mapfile -t profs < ${PROFRAW_LIST_FILE}
+if [ ${#profs[@]} -eq 0 ]; then
+  echo 'No profile data files were generated. Ensure tests were run with coverage instrumentation.' >&2
+  exit 1
+fi
+echo "[Coverage] Found ${#profs[@]} LLVM profile data files:"
+printf '  %s
+' "${profs[@]}"
+"${LLVM_PROFDATA_EXECUTABLE}" merge --failure-mode=warn -sparse "${profs[@]}" -o "${LLVM_PROFDATA_OUTPUT}"
+]=]
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       BYPRODUCTS ${PROFRAW_LIST_FILE}
       COMMENT "Collecting and merging coverage profile data files"
