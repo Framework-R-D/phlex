@@ -237,8 +237,8 @@ jobs:
       if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
       shell: bash
       run: |
-        if [ "${GITHUB_ACTOR}" = "nektos/act" ]; then
-          echo "::notice::Artifact upload disabled for nektos/act executions."
+        if [ "${GITHUB_ACTOR}" = "nektos/act" ] || [ "${ACT:-}" = "true" ]; then
+          echo "::notice::Artifact upload disabled for local act executions."
           echo "available=false" >> "$GITHUB_OUTPUT"
         elif [ -z "${ACTIONS_RUNTIME_TOKEN:-}" ]; then
           echo "::warning::ACTIONS_RUNTIME_TOKEN missing; continuing and trusting actions/upload-artifact to handle authentication."

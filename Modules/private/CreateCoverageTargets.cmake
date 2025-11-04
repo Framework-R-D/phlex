@@ -167,56 +167,23 @@ function(_create_coverage_targets_impl)
       VERBATIM COMMAND_EXPAND_LISTS
       )
 
-    if(Python3_FOUND)
-      set(_python_export_script [=[
-import pathlib, subprocess, sys
-out = pathlib.Path(sys.argv[1])
-cmd = sys.argv[2:]
-out.parent.mkdir(parents=True, exist_ok=True)
-with out.open('w', encoding='utf-8') as fh:
-    subprocess.run(cmd, check=True, stdout=fh, text=True)
-]=])
-
-      add_custom_command(
-        OUTPUT ${LLVM_COV_LCOV_OUTPUT}
-        DEPENDS ${LLVM_PROFDATA_OUTPUT}
-        COMMAND
-          ${CMAKE_COMMAND} -E echo
-          "[Coverage] Exporting LLVM coverage data to LCOV (${LLVM_COV_LCOV_OUTPUT})"
-        COMMAND
-          ${Python3_EXECUTABLE} -c "${_python_export_script}"
-          ${LLVM_COV_LCOV_OUTPUT} ${LLVM_COV_EXECUTABLE} export
-          ${LLVM_COV_OBJECTS}
-          -instr-profile=${LLVM_PROFDATA_OUTPUT}
-          "-ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX}"
-          --format=lcov
-        COMMENT "Exporting LLVM coverage data to LCOV"
-        VERBATIM COMMAND_EXPAND_LISTS
+    set(LLVM_COV_EXPORT_SCRIPT
+        "${PROJECT_SOURCE_DIR}/scripts/export_llvm_lcov.py"
         )
-    else()
-      set(LLVM_COV_OBJECTS_QUOTED)
-      foreach(_cov_arg IN LISTS LLVM_COV_OBJECTS)
-        string(REPLACE "\"" "\\\"" _cov_arg_escaped "${_cov_arg}")
-        list(APPEND LLVM_COV_OBJECTS_QUOTED "\"${_cov_arg_escaped}\"")
-      endforeach()
-      list(JOIN LLVM_COV_OBJECTS_QUOTED " " LLVM_COV_OBJECTS_SHELL)
-
-      set(
-        _llvm_cov_export_command
-        "set -euo pipefail; \"${LLVM_COV_EXECUTABLE}\" export ${LLVM_COV_OBJECTS_SHELL} -instr-profile=\"${LLVM_PROFDATA_OUTPUT}\" \"-ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX}\" --format=lcov > \"${LLVM_COV_LCOV_OUTPUT}\""
-        )
-
-      add_custom_command(
-        OUTPUT ${LLVM_COV_LCOV_OUTPUT}
-        DEPENDS ${LLVM_PROFDATA_OUTPUT}
-        COMMAND
-          ${CMAKE_COMMAND} -E echo
-          "[Coverage] Exporting LLVM coverage data to LCOV (${LLVM_COV_LCOV_OUTPUT})"
-        COMMAND bash -c "${_llvm_cov_export_command}"
-        COMMENT "Exporting LLVM coverage data to LCOV"
-        VERBATIM COMMAND_EXPAND_LISTS
-        )
-    endif()
+    add_custom_command(
+      OUTPUT ${LLVM_COV_LCOV_OUTPUT}
+      DEPENDS ${LLVM_PROFDATA_OUTPUT}
+      COMMAND
+        ${CMAKE_COMMAND} -E echo
+        "[Coverage] Exporting LLVM coverage data to LCOV (${LLVM_COV_LCOV_OUTPUT})"
+      COMMAND
+        ${Python3_EXECUTABLE} "${LLVM_COV_EXPORT_SCRIPT}"
+        ${LLVM_COV_LCOV_OUTPUT} ${LLVM_COV_EXECUTABLE} export
+        ${LLVM_COV_OBJECTS} -instr-profile=${LLVM_PROFDATA_OUTPUT}
+        "-ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX}" --format=lcov
+      COMMENT "Exporting LLVM coverage data to LCOV"
+      VERBATIM COMMAND_EXPAND_LISTS
+      )
 
     add_custom_target(coverage-llvm-lcov DEPENDS ${LLVM_COV_LCOV_OUTPUT})
 
