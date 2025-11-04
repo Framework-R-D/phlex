@@ -105,8 +105,9 @@ function(_create_coverage_targets_impl)
   # Clang/llvm-cov coverage target
   if(LLVM_COV_EXECUTABLE AND LLVM_PROFDATA_EXECUTABLE)
     set(PROFRAW_LIST_FILE ${CMAKE_BINARY_DIR}/profraw_list.txt)
-    set(LLVM_PROFDATA_OUTPUT ${CMAKE_BINARY_DIR}/coverage.profdata)
-    set(LLVM_COV_OUTPUT ${CMAKE_BINARY_DIR}/coverage-llvm.txt)
+  set(LLVM_PROFDATA_OUTPUT ${CMAKE_BINARY_DIR}/coverage.profdata)
+  set(LLVM_COV_OUTPUT ${CMAKE_BINARY_DIR}/coverage-llvm.txt)
+  set(LLVM_COV_LCOV_OUTPUT ${CMAKE_BINARY_DIR}/coverage-llvm.info)
 
     # Collect all executables and libraries for coverage
     phlex_collect_targets_by_type(PHLEX_EXECUTABLES "EXECUTABLE")
@@ -166,6 +167,22 @@ function(_create_coverage_targets_impl)
       VERBATIM COMMAND_EXPAND_LISTS
       )
 
+    add_custom_command(
+      OUTPUT ${LLVM_COV_LCOV_OUTPUT}
+      DEPENDS ${LLVM_PROFDATA_OUTPUT}
+      COMMAND ${CMAKE_COMMAND} -E echo
+              "[Coverage] Exporting LLVM coverage data to LCOV (${LLVM_COV_LCOV_OUTPUT})"
+      COMMAND
+        ${LLVM_COV_EXECUTABLE} export ${LLVM_COV_OBJECTS}
+        -instr-profile=${LLVM_PROFDATA_OUTPUT}
+        "-ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX}" --format=lcov
+        -o ${LLVM_COV_LCOV_OUTPUT}
+      COMMENT "Exporting LLVM coverage data to LCOV"
+      VERBATIM COMMAND_EXPAND_LISTS
+      )
+
+    add_custom_target(coverage-llvm-lcov DEPENDS ${LLVM_COV_LCOV_OUTPUT})
+
     # Normalization target for llvm-cov output (if Python script exists)
     set(_normalize_llvm_script
         "${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py"
@@ -206,7 +223,7 @@ function(_create_coverage_targets_impl)
     # Orchestrate generation, normalization, and summary presentation
     add_custom_target(
       coverage-llvm
-      DEPENDS ${_coverage_llvm_primary_dependency}
+      DEPENDS ${_coverage_llvm_primary_dependency} coverage-llvm-lcov
       COMMAND ${CMAKE_COMMAND} -E echo "[Coverage] LLVM coverage summary:"
       COMMAND
         bash -c
@@ -214,6 +231,9 @@ function(_create_coverage_targets_impl)
       COMMAND
         ${CMAKE_COMMAND} -E echo
         "[Coverage] Full LLVM coverage report available at ${LLVM_COV_OUTPUT}"
+      COMMAND
+        ${CMAKE_COMMAND} -E echo
+        "[Coverage] LLVM LCOV export available at ${LLVM_COV_LCOV_OUTPUT}"
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMENT "Generating LLVM coverage report"
       VERBATIM USES_TERMINAL

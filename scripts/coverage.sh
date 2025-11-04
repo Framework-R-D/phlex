@@ -613,6 +613,16 @@ generate_llvm_report() {
         error "Expected LLVM coverage summary not found at $summary_path"
         exit 1
     fi
+
+    local lcov_path="$BUILD_DIR/coverage-llvm.info"
+    if [[ -f "$lcov_path" ]]; then
+        if [[ -n "${WORKSPACE_ROOT:-}" ]]; then
+            cp "$lcov_path" "$WORKSPACE_ROOT/coverage-llvm.info"
+            log "Coverage LCOV export also available at: $WORKSPACE_ROOT/coverage-llvm.info"
+        fi
+    else
+        warn "Expected LLVM LCOV export not found at $lcov_path"
+    fi
 }
 
 show_summary() {

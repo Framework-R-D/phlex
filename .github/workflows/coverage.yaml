@@ -70,6 +70,8 @@ jobs:
 
     outputs:
       has_coverage_xml: ${{ steps.coverage_outputs.outputs.has_coverage_xml }}
+      has_coverage_html: ${{ steps.coverage_outputs.outputs.has_coverage_html }}
+      has_coverage_llvm_info: ${{ steps.coverage_outputs.outputs.has_coverage_llvm_info }}
       artifact_upload_available: ${{ steps.artifact_runtime.outputs.available }}
 
     steps:
@@ -191,6 +193,16 @@ jobs:
         else
           echo "has_coverage_xml=false" >> "$GITHUB_OUTPUT"
         fi
+        if [ -d coverage-html ]; then
+          echo "has_coverage_html=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_coverage_html=false" >> "$GITHUB_OUTPUT"
+        fi
+        if [ -f coverage-llvm.info ]; then
+          echo "has_coverage_llvm_info=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_coverage_llvm_info=false" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Unknown Coverage Report Error
       if: ${{ always() && steps.report_gcc.outcome == 'skipped' && steps.report_clang.outcome == 'skipped' }}
@@ -207,11 +219,17 @@ jobs:
         rm -rf "$ARTIFACT_DIR"
         mkdir -p "$ARTIFACT_DIR"
         cd "$GITHUB_WORKSPACE/phlex-build"
-        if [ -f coverage-llvm.txt ]; then cp coverage-llvm.txt "$ARTIFACT_DIR/"; fi
-        if [ -f coverage.profdata ]; then cp coverage.profdata "$ARTIFACT_DIR/"; fi
-        if [ -f coverage.xml ]; then cp coverage.xml "$ARTIFACT_DIR/"; fi
-        if [ -f coverage.info ]; then cp coverage.info "$ARTIFACT_DIR/"; fi
-        if [ -f coverage.info.final ]; then cp coverage.info.final "$ARTIFACT_DIR/"; fi
+        for file in \
+          coverage-llvm.txt \
+          coverage-llvm.info \
+          coverage.profdata \
+          coverage.xml \
+          coverage.info \
+          coverage.info.final; do
+          if [ -f "$file" ]; then
+            cp "$file" "$ARTIFACT_DIR/"
+          fi
+        done
         if [ -d coverage-html ]; then cp -R coverage-html "$ARTIFACT_DIR/"; fi
 
     - name: Detect artifact upload availability
@@ -259,10 +277,10 @@ jobs:
         path: coverage-artifacts
 
     - name: Upload coverage to Codecov
-      if: ${{ needs.coverage.outputs.has_coverage_xml == 'true' }}
+      if: ${{ needs.coverage.outputs.has_coverage_xml == 'true' || needs.coverage.outputs.has_coverage_llvm_info == 'true' }}
       uses: codecov/codecov-action@v4
       with:
-        file: coverage-artifacts/coverage.xml
+        files: "${{ (needs.coverage.outputs.has_coverage_xml == 'true' && needs.coverage.outputs.has_coverage_llvm_info == 'true') && 'coverage-artifacts/coverage.xml,coverage-artifacts/coverage-llvm.info' || (needs.coverage.outputs.has_coverage_xml == 'true' && 'coverage-artifacts/coverage.xml' || 'coverage-artifacts/coverage-llvm.info') }}"
         flags: unittests
         name: phlex-coverage
         fail_ci_if_error: true
@@ -271,7 +289,7 @@ jobs:
         token: ${{ env.CODECOV_TOKEN }}
 
     - name: Publish HTML coverage report
-      if: always()
+      if: ${{ needs.coverage.outputs.has_coverage_html == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: coverage-html-report
