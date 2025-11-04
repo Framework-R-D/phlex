@@ -31,12 +31,12 @@ find_package(Python3 COMPONENTS Interpreter)
 # Find CTest coverage tool
 find_program(
   LLVM_COV_EXECUTABLE
-  NAMES llvm-cov
+  NAMES llvm-cov-21 llvm-cov
   DOC "LLVM coverage tool"
   )
 find_program(
   LLVM_PROFDATA_EXECUTABLE
-  NAMES llvm-profdata
+  NAMES llvm-profdata-21 llvm-profdata
   DOC "LLVM profdata tool"
   )
 if(NOT LCOV_EXECUTABLE)
@@ -167,16 +167,24 @@ function(_create_coverage_targets_impl)
       VERBATIM COMMAND_EXPAND_LISTS
       )
 
+    set(LLVM_COV_OBJECTS_QUOTED)
+    foreach(_cov_arg IN LISTS LLVM_COV_OBJECTS)
+      string(REPLACE "\"" "\\\"" _cov_arg_escaped "${_cov_arg}")
+      list(APPEND LLVM_COV_OBJECTS_QUOTED "\"${_cov_arg_escaped}\"")
+    endforeach()
+    list(JOIN LLVM_COV_OBJECTS_QUOTED " " LLVM_COV_OBJECTS_SHELL)
+
+    set(
+      _llvm_cov_export_command
+      "set -euo pipefail; \"${LLVM_COV_EXECUTABLE}\" export ${LLVM_COV_OBJECTS_SHELL} -instr-profile=\"${LLVM_PROFDATA_OUTPUT}\" \"-ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX}\" --format=lcov > \"${LLVM_COV_LCOV_OUTPUT}\""
+      )
+
     add_custom_command(
       OUTPUT ${LLVM_COV_LCOV_OUTPUT}
       DEPENDS ${LLVM_PROFDATA_OUTPUT}
       COMMAND ${CMAKE_COMMAND} -E echo
               "[Coverage] Exporting LLVM coverage data to LCOV (${LLVM_COV_LCOV_OUTPUT})"
-      COMMAND
-        ${LLVM_COV_EXECUTABLE} export ${LLVM_COV_OBJECTS}
-        -instr-profile=${LLVM_PROFDATA_OUTPUT}
-        "-ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX}" --format=lcov
-        -o ${LLVM_COV_LCOV_OUTPUT}
+      COMMAND bash -c "${_llvm_cov_export_command}"
       COMMENT "Exporting LLVM coverage data to LCOV"
       VERBATIM COMMAND_EXPAND_LISTS
       )
