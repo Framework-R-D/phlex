@@ -26,8 +26,8 @@ jobs:
       packages: read
 
     outputs:
-      has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
+      has_changes: ${{ steps.act_force.outputs.matched == 'true' && 'true' || steps.filter.outputs.matched }}
+      changed_files: ${{ steps.act_force.outputs.matched == 'true' && steps.act_force.outputs.matched_files || steps.filter.outputs.matched_files }}
 
     steps:
     - name: Check out source code
@@ -36,8 +36,25 @@ jobs:
         fetch-depth: 0
         path: phlex-src
 
+    - name: Detect act environment
+      id: detect_act
+      run: |
+        if [ "${GITHUB_ACTOR}" = "nektos/act" ] || [ "${ACT:-}" = "true" ] || [ "${ACT:-}" = "1" ]; then
+          echo "is_act=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "is_act=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Force coverage execution when running under act
+      id: act_force
+      if: ${{ steps.detect_act.outputs.is_act == 'true' }}
+      run: |
+        echo "matched=true" >> "$GITHUB_OUTPUT"
+        echo "matched_files=act-run: forced coverage execution" >> "$GITHUB_OUTPUT"
+
     - name: Detect coverage relevant changes
       id: filter
+      if: ${{ steps.detect_act.outputs.is_act != 'true' }}
       uses: ./phlex-src/.github/actions/detect-relevant-changes
       with:
         repo-path: phlex-src
@@ -48,12 +65,23 @@ jobs:
           cmake
 
     - name: Report detection outcome
+      env:
+        IS_ACT: ${{ steps.detect_act.outputs.is_act }}
+        ACT_MATCHED: ${{ steps.act_force.outputs.matched }}
+        ACT_FILES: ${{ steps.act_force.outputs.matched_files }}
+        FILTER_MATCHED: ${{ steps.filter.outputs.matched }}
+        FILTER_FILES: ${{ steps.filter.outputs.matched_files }}
       run: |
-        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+        if [ "${IS_ACT}" = "true" ]; then
+          echo "::notice::Running under act; forcing coverage workflow to execute."
+          if [ -n "${ACT_FILES}" ]; then
+            printf '%s\n' "${ACT_FILES}"
+          fi
+        elif [ "${FILTER_MATCHED}" != "true" ]; then
           echo "::notice::No coverage relevant changes detected; workflow will be skipped."
         else
           echo "::group::Coverage relevant files"
-          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          printf '%s\n' "${FILTER_FILES}"
           echo "::endgroup::"
         fi
 

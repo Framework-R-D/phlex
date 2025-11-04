@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mapfile -t profs < "@PROFRAW_LIST_FILE@"
+if [ "${#profs[@]}" -eq 0 ]; then
+  echo 'No profile data files were generated. Ensure tests were run with coverage instrumentation.' >&2
+  exit 1
+fi
+
+echo "[Coverage] Found ${#profs[@]} LLVM profile data files:"
+for prof in "${profs[@]}"; do
+  echo "  ${prof}"
+done
+"@LLVM_PROFDATA_EXECUTABLE@" merge --failure-mode=warn -sparse "${profs[@]}" -o "@LLVM_PROFDATA_OUTPUT@"

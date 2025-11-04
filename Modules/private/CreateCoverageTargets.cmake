@@ -20,6 +20,8 @@ include_guard()
 
 include(${CMAKE_CURRENT_LIST_DIR}/PhlexTargetUtils.cmake)
 
+set(_PHLEX_COVERAGE_PRIVATE_DIR ${CMAKE_CURRENT_LIST_DIR})
+
 # Find coverage report generation tools
 find_program(LCOV_EXECUTABLE lcov)
 find_program(GENHTML_EXECUTABLE genhtml)
@@ -113,6 +115,7 @@ function(_create_coverage_targets_impl)
     phlex_collect_targets_by_type(PHLEX_EXECUTABLES "EXECUTABLE")
     phlex_collect_targets_by_type(PHLEX_LIBRARIES "STATIC_LIBRARY")
     phlex_collect_targets_by_type(PHLEX_SHARED_LIBRARIES "SHARED_LIBRARY")
+    phlex_collect_targets_by_type(PHLEX_MODULE_LIBRARIES "MODULE_LIBRARY")
 
     set(LLVM_COV_OBJECTS)
     foreach(_exe IN LISTS PHLEX_EXECUTABLES)
@@ -121,11 +124,28 @@ function(_create_coverage_targets_impl)
     foreach(_lib IN LISTS PHLEX_LIBRARIES PHLEX_SHARED_LIBRARIES)
       list(APPEND LLVM_COV_OBJECTS "-object" "$<TARGET_FILE:${_lib}>")
     endforeach()
+    # Include loadable module targets so their profile data maps back cleanly.
+    foreach(_module IN LISTS PHLEX_MODULE_LIBRARIES)
+      list(APPEND LLVM_COV_OBJECTS "-object" "$<TARGET_FILE:${_module}>")
+    endforeach()
+    foreach(_module IN LISTS PHLEX_MODULE_LIBRARIES)
+      list(APPEND LLVM_COV_OBJECTS "-object" "$<TARGET_FILE:${_module}>")
+    endforeach()
 
     # Exclusion regex for llvm-cov (same as gcovr)
     set(LLVM_COV_EXCLUDE_REGEX
         [=[.*/test/.*|.*/_deps/.*|.*/external/.*|.*/third[-_]?party/.*|.*/boost/.*|.*/tbb/.*|.*/spack/.*|/usr/.*|/opt/.*|/scratch/.*|.*\.cxx$|.*\.hh$|.*\.hxx$]=]
         )
+
+  set(LLVM_PROFDATA_MERGE_SCRIPT ${CMAKE_BINARY_DIR}/merge-profraw.sh)
+  set(_LLVM_PROFDATA_MERGE_TEMPLATE
+    ${_PHLEX_COVERAGE_PRIVATE_DIR}/merge-profraw.sh.in)
+    configure_file(
+      ${_LLVM_PROFDATA_MERGE_TEMPLATE}
+      ${LLVM_PROFDATA_MERGE_SCRIPT}
+      @ONLY
+      NEWLINE_STYLE UNIX
+      )
 
     # 1. Merge all valid .profraw files into coverage.profdata
     add_custom_command(
@@ -140,20 +160,10 @@ function(_create_coverage_targets_impl)
         ${CMAKE_COMMAND} -E echo
         "[Coverage] Merging profile data files listed in ${PROFRAW_LIST_FILE}"
       COMMAND
-        bash -c
-        [=[set -euo pipefail
-mapfile -t profs < ${PROFRAW_LIST_FILE}
-if [ ${#profs[@]} -eq 0 ]; then
-  echo 'No profile data files were generated. Ensure tests were run with coverage instrumentation.' >&2
-  exit 1
-fi
-echo "[Coverage] Found ${#profs[@]} LLVM profile data files:"
-printf '  %s
-' "${profs[@]}"
-"${LLVM_PROFDATA_EXECUTABLE}" merge --failure-mode=warn -sparse "${profs[@]}" -o "${LLVM_PROFDATA_OUTPUT}"
-]=]
+        bash ${LLVM_PROFDATA_MERGE_SCRIPT}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       BYPRODUCTS ${PROFRAW_LIST_FILE}
+      DEPENDS ${LLVM_PROFDATA_MERGE_SCRIPT}
       COMMENT "Collecting and merging coverage profile data files"
       VERBATIM
       )

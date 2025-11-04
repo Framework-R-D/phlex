@@ -228,18 +228,13 @@ run_tests_internal() {
 
     check_build_dir
 
-    local profile_root="$BUILD_DIR/test/profraw"
-    log "Preparing LLVM profile directory: $profile_root"
-    rm -rf "$profile_root"
-    mkdir -p "$profile_root"
-
     if [[ "$mode" == "auto" ]]; then
         log "Coverage data missing or stale; running tests automatically..."
     else
         log "Running tests with coverage..."
     fi
 
-    (cd "$BUILD_DIR" && LLVM_PROFILE_FILE="$profile_root/%m-%p.profraw" ctest -j "$(nproc)" --output-on-failure)
+    (cd "$BUILD_DIR" && ctest -j "$(nproc)" --output-on-failure)
 
     if [[ "$mode" == "auto" ]]; then
         success "Automatic test run completed!"
