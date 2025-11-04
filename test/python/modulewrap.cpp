@@ -277,7 +277,7 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
     PyErr_SetString(PyExc_TypeError, "only a single output supported");
     return nullptr;
   }
-  std::string const& output = coutputs[0];
+  std::string output = coutputs.empty() ? "" : coutputs[0];
 
   std::vector<std::string> input_types;
   input_types.reserve(cinputs.size());
@@ -331,7 +331,7 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
 
   // register Python algorithm
   if (cinputs.size() == 1) {
-    if (!output_type.empty()) {
+    if (!output.empty()) {
       auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
       mod->ph_module->transform(cname, *pyc, concurrency::serial)
         .input_family(cinputs[0] + "py")
@@ -341,7 +341,7 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
       mod->ph_module->observe(cname, *pyc, concurrency::serial).input_family(cinputs[0] + "py");
     }
   } else if (cinputs.size() == 2) {
-    if (!output_type.empty()) {
+    if (!output.empty()) {
       auto* pyc = new py_callback_2{callable};
       mod->ph_module->transform(cname, *pyc, concurrency::serial)
         .input_family(cinputs[0] + "py", cinputs[1] + "py")
@@ -352,7 +352,7 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
         .input_family(cinputs[0] + "py", cinputs[1] + "py");
     }
   } else if (cinputs.size() == 3) {
-    if (!output_type.empty()) {
+    if (!output.empty()) {
       auto* pyc = new py_callback_3{callable};
       mod->ph_module->transform(cname, *pyc, concurrency::serial)
         .input_family(cinputs[0] + "py", cinputs[1] + "py", cinputs[2] + "py")
