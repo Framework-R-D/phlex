@@ -130,6 +130,11 @@ jobs:
       run: |
         . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
+        PROFILE_ROOT="$GITHUB_WORKSPACE/phlex-build/test/profraw"
+        echo "Cleaning LLVM profile directory: $PROFILE_ROOT"
+        rm -rf "$PROFILE_ROOT"
+        mkdir -p "$PROFILE_ROOT"
+        export LLVM_PROFILE_FILE="$PROFILE_ROOT/%m-%p.profraw"
         ctest -j $(nproc) --output-on-failure
 
     - name: Generate coverage reports (GCC)
