@@ -276,11 +276,34 @@ jobs:
         name: coverage-generated
         path: coverage-artifacts
 
+    - name: Determine coverage files for Codecov
+      id: codecov_targets
+      run: |
+        set -euo pipefail
+        files=()
+        if [ "${{ needs.coverage.outputs.has_coverage_xml }}" = "true" ]; then
+          files+=("coverage-artifacts/coverage.xml")
+        fi
+        if [ "${{ needs.coverage.outputs.has_coverage_llvm_info }}" = "true" ]; then
+          files+=("coverage-artifacts/coverage-llvm.info")
+        fi
+
+        if [ "${#files[@]}" -eq 0 ]; then
+          echo "No coverage files detected; skipping Codecov upload." >&2
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "files=" >> "$GITHUB_OUTPUT"
+        else
+          file_csv=$(IFS=,; printf '%s' "${files[*]}")
+          echo "Codecov upload targets: ${files[*]}"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "files=${file_csv}" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Upload coverage to Codecov
-      if: ${{ needs.coverage.outputs.has_coverage_xml == 'true' || needs.coverage.outputs.has_coverage_llvm_info == 'true' }}
+      if: ${{ steps.codecov_targets.outputs.found == 'true' }}
       uses: codecov/codecov-action@v4
       with:
-        files: "${{ (needs.coverage.outputs.has_coverage_xml == 'true' && needs.coverage.outputs.has_coverage_llvm_info == 'true') && 'coverage-artifacts/coverage.xml,coverage-artifacts/coverage-llvm.info' || (needs.coverage.outputs.has_coverage_xml == 'true' && 'coverage-artifacts/coverage.xml' || 'coverage-artifacts/coverage-llvm.info') }}"
+        files: ${{ steps.codecov_targets.outputs.files }}
         flags: unittests
         name: phlex-coverage
         fail_ci_if_error: true
