@@ -23,6 +23,16 @@ def register(m, config, concurrency=None):
         pymod = __import__(pymod_name)
         _registered_modules[pymod_name] = pymod
 
+    # TODO: figure out the best way of passing the configuration, since contrary to
+    # C++, there is no custom-written registration per Python algorithm. For now,
+    # call an optional callback, passing in the configuration.
+
+    try:
+        cconf = getattr(pymod, "configure")
+        cconf(config)
+    except AttributeError:
+        pass
+
     pyalg = getattr(pymod, pyalg_name)
 
     m.register(pyalg, inputs, outputs, concurrency)
