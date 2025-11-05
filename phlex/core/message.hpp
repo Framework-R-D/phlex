@@ -95,14 +95,6 @@ namespace phlex::experimental {
       return join;
     }
   }
-
-  template <typename T>
-  auto get_handle_for(message const& msg, std::string const& product_label)
-  {
-    using handle_arg_t = typename handle_for<T>::value_type;
-    return msg.store->get_handle<handle_arg_t>(product_label);
-  }
-
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP
