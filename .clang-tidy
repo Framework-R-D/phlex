@@ -91,8 +91,6 @@ CheckOptions:
     value: '50'
   - key: readability-function-size.BranchThreshold
     value: '10'
-  - key: readability-function-size.ParameterThreshold
-    value: '6'
 
   # Performance settings
   - key: performance-move-const-arg.CheckTriviallyCopyableMove
