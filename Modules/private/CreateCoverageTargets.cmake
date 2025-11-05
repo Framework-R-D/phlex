@@ -212,14 +212,14 @@ function(_create_coverage_targets_impl)
     if(Python3_FOUND AND EXISTS "${_normalize_llvm_script}")
       add_custom_command(
         OUTPUT ${LLVM_COV_NORMALIZED_STAMP}
-        DEPENDS ${LLVM_COV_OUTPUT}
+        DEPENDS ${LLVM_COV_LCOV_OUTPUT}
         COMMAND
           ${Python3_EXECUTABLE} "${_normalize_llvm_script}" --repo-root
           "${PROJECT_SOURCE_DIR}" --coverage-root "${PROJECT_SOURCE_DIR}"
-          --coverage-alias "${PROJECT_SOURCE_DIR}" "${LLVM_COV_OUTPUT}"
+          --coverage-alias "${PROJECT_SOURCE_DIR}" "${LLVM_COV_LCOV_OUTPUT}"
         COMMAND ${CMAKE_COMMAND} -E touch ${LLVM_COV_NORMALIZED_STAMP}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Normalizing LLVM coverage report for editor/CI tooling"
+        COMMENT "Normalizing LLVM LCOV coverage report for editor/CI tooling"
         VERBATIM
         )
       add_custom_target(
@@ -242,7 +242,7 @@ function(_create_coverage_targets_impl)
     # Orchestrate generation, normalization, and summary presentation
     add_custom_target(
       coverage-llvm
-      DEPENDS ${_coverage_llvm_primary_dependency} coverage-llvm-lcov
+      DEPENDS ${_coverage_llvm_primary_dependency} coverage-llvm-lcov ${LLVM_COV_OUTPUT}
       COMMAND ${CMAKE_COMMAND} -E echo "[Coverage] LLVM coverage summary:"
       COMMAND
         bash -c

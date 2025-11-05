@@ -303,6 +303,11 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
+    - name: Check out source code for Codecov mapping
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Download coverage bundle
       uses: actions/download-artifact@v4
       with:
