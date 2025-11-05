@@ -283,7 +283,19 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
   input_types.reserve(cinputs.size());
   std::string output_type; // TODO: accept a tuple (see also above)
 
-  PyObject* annot = PyObject_GetAttrString(callable, "__annotations__");
+  PyObject* sann = PyUnicode_FromString("__annotations__");
+  PyObject* annot = PyObject_GetAttr(callable, sann);
+  if (!annot) {
+    // the callable may be an instance with a __call__ method
+    PyErr_Clear();
+    PyObject* callm = PyObject_GetAttrString(callable, "__call__");
+    if (callm) {
+      annot = PyObject_GetAttr(callm, sann);
+      Py_DECREF(callm);
+    }
+  }
+  Py_DECREF(sann);
+
   if (annot && PyDict_Check(annot) && PyDict_Size(annot)) {
     PyObject* ret = PyDict_GetItemString(annot, "return");
     if (ret)

@@ -7,7 +7,7 @@
     pyadd: {
       pymodule: 'adder',
       pyalg: 'add',
-      hof: 'transform',
+      #hof: 'transform',
       input: ['i', 'j'],
       output: ['sum'],
       plugin: 'pymodule',
@@ -15,9 +15,10 @@
     pyverify: {
       pymodule: 'verify',
       pyalg: 'assert_sum',
-      hof: 'observe',
+      #hof: 'observe',
       input: ['sum'],
       plugin: 'pymodule',
+      sum_total: 1,
     },
   },
 }
