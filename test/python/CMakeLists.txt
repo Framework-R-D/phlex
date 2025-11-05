@@ -106,15 +106,20 @@ except ImportError:
                    pyadd.gv
            )
 
+  add_test(NAME py:vec
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet -g
+                   pyvec.gv
+           )
+
   set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
   if(DEFINED ENV{VIRTUAL_ENV})
     set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH})
   endif()
   set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
 
-  set_property(
-    TEST py:add
-    PROPERTY
+  set_tests_properties(
+    py:add py:vec
+    PROPERTIES
       ENVIRONMENT
       "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
     )

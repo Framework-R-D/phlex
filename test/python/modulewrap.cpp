@@ -2,6 +2,8 @@
 #include "wrap.hpp"
 
 #include <functional>
+#include <memory>
+#include <vector>
 
 using namespace phlex::experimental;
 
@@ -226,6 +228,34 @@ namespace {
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
+  static intptr_t vint_to_py(std::shared_ptr<std::vector<int>> const& v)
+  {
+    PyGILRAII gil;
+    // TODO: will want numpy array here, but that requires properly setting that
+    // up as a dependency. For now, stick with a basic memory copy for testing, as
+    // that also prevents ownership issues (the framework doesn't know the view,
+    // which is passed on, needs the original object alive).
+
+    // create empty array
+    PyObject* array_module = PyImport_ImportModule("array");
+    PyObject* array_class = PyObject_GetAttrString(array_module, "array");
+    Py_DECREF(array_module);
+
+    PyObject* atype = PyUnicode_FromString("i");
+    PyObject* array_obj = PyObject_CallOneArg(array_class, atype);
+    Py_DECREF(atype);
+    Py_DECREF(array_class);
+
+    // extend array with vector data using a bytes object (note that this causes
+    // there to be 2 copies, but it's faster b/c there's no loop Python-side)
+    PyObject* array_bytes = PyBytes_FromStringAndSize((char*)v->data(), v->size() * sizeof(int));
+    PyObject* res = PyObject_CallMethod(array_obj, "frombytes", "O", array_bytes);
+    Py_DECREF(array_bytes);
+    Py_XDECREF(res);
+
+    return (intptr_t)array_obj;
+  }
+
 } // unnamed namespace
 
 #define INSERT_INPUT_CONVERTER(name, inp)                                                          \
@@ -339,6 +369,22 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
       INSERT_INPUT_CONVERTER(float, inp);
     else if (inp_type == "double")
       INSERT_INPUT_CONVERTER(double, inp);
+    else if (inp_type.compare(0, 7, "ndarray") == 0) {
+      if (inp_type.compare(8, std::string::npos, "int]") == 0) {
+        // TODO: this is a hard-coded std::vector <-> numpy array mapping, which is
+        // way too simplistic for real use. It only exists for demonstration purposes,
+        // until we have an IDL.
+        mod->ph_module->transform("pyvint_" + inp, vint_to_py, concurrency::serial)
+          .input_family(inp)
+          .output_products(inp + "py");
+      } else {
+        PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
+        return nullptr;
+      }
+    } else {
+      PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
+      return nullptr;
+    }
   }
 
   // register Python algorithm
@@ -396,6 +442,10 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
       INSERT_OUTPUT_CONVERTER(float, output);
     else if (output_type == "double")
       INSERT_OUTPUT_CONVERTER(double, output);
+    else {
+      PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output.c_str());
+      return nullptr;
+    }
   }
 
   Py_RETURN_NONE;

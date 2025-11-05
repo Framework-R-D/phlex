@@ -2,6 +2,7 @@
   source: {
     plugin: 'py_cppdriver',
     max_numbers: 10,
+    as_collection: false,
   },
   modules: {
     pyadd: {
