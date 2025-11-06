@@ -137,13 +137,12 @@ function(_create_coverage_targets_impl)
         [=[.*/test/.*|.*/_deps/.*|.*/external/.*|.*/third[-_]?party/.*|.*/boost/.*|.*/tbb/.*|.*/spack/.*|/usr/.*|/opt/.*|/scratch/.*|.*\.cxx$|.*\.hh$|.*\.hxx$]=]
         )
 
-  set(LLVM_PROFDATA_MERGE_SCRIPT ${CMAKE_BINARY_DIR}/merge-profraw.sh)
-  set(_LLVM_PROFDATA_MERGE_TEMPLATE
-    ${_PHLEX_COVERAGE_PRIVATE_DIR}/merge-profraw.sh.in)
+    set(LLVM_PROFDATA_MERGE_SCRIPT ${CMAKE_BINARY_DIR}/merge-profraw.sh)
+    set(_LLVM_PROFDATA_MERGE_TEMPLATE
+        ${_PHLEX_COVERAGE_PRIVATE_DIR}/merge-profraw.sh.in
+        )
     configure_file(
-      ${_LLVM_PROFDATA_MERGE_TEMPLATE}
-      ${LLVM_PROFDATA_MERGE_SCRIPT}
-      @ONLY
+      ${_LLVM_PROFDATA_MERGE_TEMPLATE} ${LLVM_PROFDATA_MERGE_SCRIPT} @ONLY
       NEWLINE_STYLE UNIX
       )
 
@@ -159,8 +158,7 @@ function(_create_coverage_targets_impl)
       COMMAND
         ${CMAKE_COMMAND} -E echo
         "[Coverage] Merging profile data files listed in ${PROFRAW_LIST_FILE}"
-      COMMAND
-        bash ${LLVM_PROFDATA_MERGE_SCRIPT}
+      COMMAND bash ${LLVM_PROFDATA_MERGE_SCRIPT}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       BYPRODUCTS ${PROFRAW_LIST_FILE}
       DEPENDS ${LLVM_PROFDATA_MERGE_SCRIPT}
@@ -242,7 +240,8 @@ function(_create_coverage_targets_impl)
     # Orchestrate generation, normalization, and summary presentation
     add_custom_target(
       coverage-llvm
-      DEPENDS ${_coverage_llvm_primary_dependency} coverage-llvm-lcov ${LLVM_COV_OUTPUT}
+      DEPENDS ${_coverage_llvm_primary_dependency} coverage-llvm-lcov
+              ${LLVM_COV_OUTPUT}
       COMMAND ${CMAKE_COMMAND} -E echo "[Coverage] LLVM coverage summary:"
       COMMAND
         bash -c
