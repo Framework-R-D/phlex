@@ -1,3 +1,6 @@
+from phlex.registry import register
+
+
 # TODO: consider direct support for numpy.typing, the string representations
 # of which are more complicated. Eg. `numpy.typing.NDArray[int]`stringifies
 # into: `numpy.ndarray[tuple[int, ...], numpy.dtype[int]]`. This simpler type
@@ -5,4 +8,8 @@
 # what maps to `std::vector<int>` data products.
 def sum_coll(coll: 'ndarray[int]') -> int:
     return sum(coll)
+
+
+def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+    register(sum_coll, m, config)
 

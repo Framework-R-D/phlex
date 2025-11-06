@@ -6,19 +6,15 @@
   },
   modules: {
     pyadd: {
+      plugin: 'pymodule',
       pymodule: 'adder',
-      pyalg: 'add',
-      #hof: 'transform',
       input: ['i', 'j'],
       output: ['sum'],
-      plugin: 'pymodule',
     },
     pyverify: {
-      pymodule: 'verify',
-      pyalg: 'assert_sum',
-      #hof: 'observe',
-      input: ['sum'],
       plugin: 'pymodule',
+      pymodule: 'verify',
+      input: ['sum'],
       sum_total: 1,
     },
   },

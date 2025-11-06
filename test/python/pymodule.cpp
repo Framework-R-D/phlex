@@ -17,9 +17,10 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 
   PyGILRAII g;
 
-  PyObject* registry = PyImport_ImportModule("_registry");
-  if (registry) {
-    PyObject* reg = PyObject_GetAttrString(registry, "register");
+  std::string modname = config.get<std::string>("pymodule");
+  PyObject* mod = PyImport_ImportModule(modname.c_str());
+  if (mod) {
+    PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS");
     if (reg) {
       PyObject* pym = wrap_module(&m);
       PyObject* pyconfig = wrap_configuration(&config);
@@ -31,7 +32,7 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
       Py_XDECREF(pym);
       Py_DECREF(reg);
     }
-    Py_DECREF(registry);
+    Py_DECREF(mod);
   }
 
   if (PyErr_Occurred())

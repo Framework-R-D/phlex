@@ -6,19 +6,15 @@
   },
   modules: {
     pysum: {
+      plugin: 'pymodule',
       pymodule: 'sumit',
-      pyalg: 'sum_coll',
-      #hof: 'transform',
       input: ['coll_of_i'],
       output: ['sum'],
-      plugin: 'pymodule',
     },
     pyverify: {
-      pymodule: 'verify',
-      pyalg: 'assert_sum',
-      #hof: 'observe',
-      input: ['sum'],
       plugin: 'pymodule',
+      pymodule: 'verify',
+      input: ['sum'],
       sum_total: 55,
     },
   },
