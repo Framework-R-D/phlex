@@ -30,7 +30,23 @@ namespace {
   // callable object managing the callback
   template <size_t N>
   struct py_callback {
-    PyObject const* m_callable; // borrowed
+    PyObject const* m_callable; // owned
+
+    py_callback(PyObject const* callable) {
+      Py_INCREF(callable);
+      m_callable = callable;
+    }
+    py_callback(const py_callback& pc) {
+      Py_INCREF(pc.m_callable);
+      m_callable = pc.m_callable;
+    }
+    py_callback& operator=(const py_callback& pc) {
+      if (this != &pc) {
+        Py_INCREF(pc.m_callable);
+        m_callable = pc.m_callable;
+      }
+    }
+    ~py_callback() { Py_DECREF(m_callable); }
 
     template <typename... Args>
     intptr_t call(Args... args)
