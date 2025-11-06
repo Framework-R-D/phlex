@@ -7,13 +7,13 @@
   modules: {
     pysum: {
       plugin: 'pymodule',
-      pymodule: 'sumit',
+      pyplugin: 'sumit',
       input: ['coll_of_i'],
       output: ['sum'],
     },
     pyverify: {
       plugin: 'pymodule',
-      pymodule: 'verify',
+      pyplugin: 'verify',
       input: ['sum'],
       sum_total: 55,
     },

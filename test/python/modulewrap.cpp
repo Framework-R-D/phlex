@@ -32,15 +32,18 @@ namespace {
   struct py_callback {
     PyObject const* m_callable; // owned
 
-    py_callback(PyObject const* callable) {
+    py_callback(PyObject const* callable)
+    {
       Py_INCREF(callable);
       m_callable = callable;
     }
-    py_callback(const py_callback& pc) {
+    py_callback(py_callback const& pc)
+    {
       Py_INCREF(pc.m_callable);
       m_callable = pc.m_callable;
     }
-    py_callback& operator=(const py_callback& pc) {
+    py_callback& operator=(py_callback const& pc)
+    {
       if (this != &pc) {
         Py_INCREF(pc.m_callable);
         m_callable = pc.m_callable;

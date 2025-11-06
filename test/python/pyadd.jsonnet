@@ -7,13 +7,13 @@
   modules: {
     pyadd: {
       plugin: 'pymodule',
-      pymodule: 'adder',
+      pyplugin: 'adder',
       input: ['i', 'j'],
       output: ['sum'],
     },
     pyverify: {
       plugin: 'pymodule',
-      pymodule: 'verify',
+      pyplugin: 'verify',
       input: ['sum'],
       sum_total: 1,
     },

@@ -17,7 +17,7 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 
   PyGILRAII g;
 
-  std::string modname = config.get<std::string>("pymodule");
+  std::string modname = config.get<std::string>("pyplugin");
   PyObject* mod = PyImport_ImportModule(modname.c_str());
   if (mod) {
     PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS");
