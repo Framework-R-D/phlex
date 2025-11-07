@@ -7,6 +7,7 @@ spack:
   - ninja
   - py-cmake-format
   - py-gcovr
+  - py-pip # Needed temporarily for ruff installation
   - |
       llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib targets=x86
 
@@ -18,6 +19,11 @@ spack:
     all:
       target:
       - x86_64_v3
+
+    cmake:
+      require:
+      - "~qtgui"
+      - "@4:"
 
     phlex:
       require:

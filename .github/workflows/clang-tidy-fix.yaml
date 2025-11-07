@@ -55,7 +55,7 @@ jobs:
     if: ${{ needs.check.outputs.match_result == 'match' }}
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-10-21
+      image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
       - name: Checkout code

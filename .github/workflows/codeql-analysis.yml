@@ -22,7 +22,7 @@ jobs:
     name: Analyze with CodeQL (C++, Python)
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-10-21
+      image: ghcr.io/framework-r-d/phlex-ci:latest
     strategy:
       fail-fast: false
     timeout-minutes: 120
