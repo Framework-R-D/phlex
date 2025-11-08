@@ -1,4 +1,5 @@
-name: "CodeQL - Analyze (C++/CMake + Python)"
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: "CodeQL - Analyze (C++, Python, Actions)"
 
 on:
   push:
@@ -19,12 +20,14 @@ env:
 
 jobs:
   codeql:
-    name: Analyze with CodeQL (C++, Python)
+    name: Analyze with CodeQL
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
     strategy:
       fail-fast: false
+      matrix: # Necessry to disable yaml-language-server warning
+        single-run: [ true ]
     timeout-minutes: 120
     steps:
       - name: Checkout repository
@@ -41,6 +44,7 @@ jobs:
         with:
           languages: cpp, python, actions
           config-file: phlex-src/.github/codeql/codeql-config.yml
+          source-root: phlex-src
           build-mode: none
 
       - name: Configure CMake
