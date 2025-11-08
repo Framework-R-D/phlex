@@ -10,11 +10,11 @@ Refactored GitHub Actions workflows to use composite actions for better maintain
 
 **Location**: `.github/actions/setup-build-env/action.yaml`
 
-**Purpose**: Sets up the build environment by sourcing entrypoint script and creating directories
+**Purpose**: Sets up the build environment by sourcing the container entrypoint script and creating directories
 
 **Provides**:
 
-- Sources `ci/entrypoint.sh`
+- Sources `/entrypoint.sh`
 - Creates build directory
 - Outputs source and build directory paths
 

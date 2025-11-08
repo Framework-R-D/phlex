@@ -125,7 +125,7 @@ jobs:
         PHLEX_TIDY_CHECKS: ${{ needs.check_comment_trigger.outputs.tidy_checks }}
       shell: bash
       run: |
-        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
 
         echo "Running clang-tidy checks using CMake target..."
