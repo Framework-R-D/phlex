@@ -78,7 +78,7 @@ jobs:
         env:
           PHLEX_TIDY_CHECKS: ${{ needs.check.outputs.tidy_checks }}
         run: |
-          . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+          . /entrypoint.sh
           cd $GITHUB_WORKSPACE/phlex-build
 
           echo "Applying clang-tidy fixes using CMake target..."

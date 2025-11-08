@@ -24,8 +24,8 @@ runs:
   steps:
     - shell: bash
       run: |
-        # Source the entrypoint script
-        . "$GITHUB_WORKSPACE/$SOURCE_PATH/ci/entrypoint.sh"
+        # Source the container entrypoint script
+        . /entrypoint.sh
         
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         
