@@ -71,16 +71,16 @@ cd /path/to/workspace
 
 ### Minimum Required
 
-- CMake ≥ 3.22
-- GCC/G++ compiler
+- CMake ≥ 3.24
+- GCC/G++ or Clang/Clang++ compiler toolchain
 - Git
 
 ### Recommended
 
 - Ninja (for faster builds)
-- gcov (for code coverage)
+- gcov and gcovr (for GCC coverage workflows)
 - lcov (for HTML coverage reports)
-- gcovr (for XML coverage reports)
+- llvm-profdata and llvm-cov (for Clang coverage workflows)
 
 ### Installation Examples
 

@@ -6,7 +6,7 @@ This directory contains reusable composite actions for Phlex CI/CD workflows.
 
 ### setup-build-env
 
-Sets up the Phlex build environment by sourcing the entrypoint script and creating build directories.
+Sets up the Phlex build environment by sourcing the container entrypoint script and creating build directories.
 
 **Inputs:**
 
@@ -41,7 +41,7 @@ Configures CMake with automatic preset detection and customizable options.
 **Features:**
 
 - Automatically detects and uses `CMakePresets.json` if present
-- Sources the entrypoint script
+- Sources the container entrypoint script to ensure Spack toolchains are available
 - Applies standard project options (`PHLEX_USE_FORM`, `FORM_USE_ROOT_STORAGE`)
 
 **Example:**
@@ -116,8 +116,8 @@ jobs:
 
 ## Prerequisites
 
-- These composite actions are designed to run in a containerized environment using the `ghcr.io/framework-r-d/phlex-ci` image.
-- The repository must be checked out to the `phlex-src` path within the `$GITHUB_WORKSPACE`.
+- These composite actions are designed to run in a containerized environment (for example `ghcr.io/framework-r-d/phlex-ci`) that provides `/entrypoint.sh`.
+- The repository must be checked out to the `phlex-src` path within the `$GITHUB_WORKSPACE` so the composite actions can locate sources and presets.
 
 ## Benefits
 

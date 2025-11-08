@@ -17,30 +17,30 @@ Except in rare circumstances, changes to the `phlex` repository are proposed and
 
 ### Building with Coverage
 
-Phlex supports comprehensive code coverage measurement using CMake's built-in coverage support:
+Phlex ships CMake presets for both GCC (`coverage-gcc`) and Clang (`coverage-clang`) coverage flows. Each preset enables instrumentation, selects the appropriate compiler, and ensures reports are generated in a dedicated build tree.
 
 ```bash
-# Configure with coverage enabled
-cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_COVERAGE=ON /path/to/phlex/source
+# Configure (choose coverage-gcc or coverage-clang)
+cmake --preset coverage-gcc -S . -B build-coverage
 
 # Build and run tests
-cmake --build . -j $(nproc)
-ctest -j $(nproc)
+cmake --build build-coverage -j $(nproc)
+ctest --test-dir build-coverage -j $(nproc)
 
-# Generate coverage reports
-ninja coverage-xml    # XML report for CI/Codecov
-ninja coverage-html   # HTML report for local viewing
-ninja coverage        # Basic coverage info via ctest
-ninja coverage-clean  # Clean coverage data files
+# Generate reports
+cmake --build build-coverage --target coverage-gcov      # GCC XML + HTML bundle
+cmake --build build-coverage --target coverage-llvm      # Clang text summary
+cmake --build build-coverage --target coverage-html      # HTML (if lcov available)
+cmake --build build-coverage --target coverage-xml       # XML for CI/Codecov
+cmake --build build-coverage --target coverage-clean     # Remove coverage artefacts
 ```
 
-The coverage system:
+Highlights:
 
-- Uses GCC's built-in `gcov` for instrumentation
-- Generates reports with `gcovr` (XML) and `lcov` (HTML)
-- Automatically filters to project sources only
-- Handles known GCC coverage bugs gracefully
-- Integrates with VS Code coverage extensions
+- GCC flows rely on `gcov`, `gcovr`, and `lcov` for instrumentation and reporting.
+- Clang flows use `llvm-profdata`/`llvm-cov` and produce both text and LCOV outputs.
+- Generated files are normalised so downstream tools (Codecov, IDE plug-ins) can resolve repository paths correctly.
+- The default preset location `build-coverage` matches the layout expected by the helper scripts and CI workflows.
 
 #### Using the Coverage Script
 
@@ -72,7 +72,8 @@ For convenience, the `scripts/coverage.sh` script automates the entire coverage 
 The script automatically:
 
 - Detects standalone vs. multi-project build configurations
-- Sources environment setup scripts (`setup-env.sh`)
+- Sources the appropriate `setup-env.sh`
+- Chooses the correct preset (GCC or Clang) for the requested coverage mode
 - Detects stale instrumentation and rebuilds when needed
 - Handles generated source files via temporary symlink trees
 - Normalizes coverage paths for Codecov compatibility
@@ -108,12 +109,12 @@ The upload command uses the Codecov CLI and automatically normalizes paths for r
 
 ### Coverage in CI
 
-The project automatically runs coverage analysis on every PR and push to main/develop branches. The workflow:
+The GitHub Actions workflow (`.github/workflows/coverage.yaml`) runs on every PR and on pushes to `main`/`develop` when relevant files change. It:
 
-1. Builds with `-DCMAKE_BUILD_TYPE=Coverage -DENABLE_COVERAGE=ON`
-2. Runs all tests via `ctest`
-3. Generates XML coverage report using `cmake --build . --target coverage-xml`
-4. Normalizes paths for generated files using `normalize_coverage_xml.py`
-5. Uploads to [Codecov](https://codecov.io/gh/Framework-R-D/phlex) via `codecov/codecov-action@v4`
+1. Selects GCC or Clang coverage presets based on workflow inputs.
+2. Configures and builds inside the `phlex-ci` container using the composite actions (`setup-build-env`, `configure-cmake`, `build-cmake`).
+3. Executes the test suite with coverage instrumentation.
+4. Generates reports (`coverage-gcov` for GCC or `coverage-llvm` for Clang) and normalises them for Codecov.
+5. Publishes artefacts and uploads results via `codecov/codecov-action@v4` when credentials are available.
 
-Coverage reports are uploaded to Codecov for tracking and PR integration, with automatic comments on PRs showing coverage changes.
+Codecov annotates pull requests with coverage deltas and retains the historical coverage dashboard.
