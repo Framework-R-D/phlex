@@ -6,6 +6,10 @@ on:
     types: [created]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 env:
   BUILD_TYPE: Release
 

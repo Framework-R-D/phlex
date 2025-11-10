@@ -1,6 +1,10 @@
 name: Clang-Format Check
 run-name: "${{ github.actor }} checking code format"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 on:
   pull_request:
     branches: [ main ]

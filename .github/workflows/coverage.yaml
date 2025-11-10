@@ -18,6 +18,10 @@ on:
         required: false
         default: 'ON'
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   detect-coverage-changes:
     runs-on: ubuntu-latest
