@@ -156,7 +156,7 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
         PROFILE_ROOT="$GITHUB_WORKSPACE/phlex-build/test/profraw"
         echo "Cleaning LLVM profile directory: $PROFILE_ROOT"
@@ -170,7 +170,7 @@ jobs:
       if: ${{ steps.coverage_options.outputs.compiler == 'gcc' }}
       shell: bash
       run: |
-        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
         echo "Using GCC/gcovr/lcov bundled coverage target."
         cmake --build . --target coverage-gcov -v
@@ -198,7 +198,7 @@ jobs:
       if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
       shell: bash
       run: |
-        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
         echo "Using Clang/llvm-cov coverage targets."
         cmake --build . --target coverage-llvm -v

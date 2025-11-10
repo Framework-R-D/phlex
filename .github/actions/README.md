@@ -109,7 +109,7 @@ jobs:
     
     - name: Run tests
       run: |
-        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
         ctest -j $(nproc)
 ```
