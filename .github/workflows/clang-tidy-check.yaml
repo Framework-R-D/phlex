@@ -1,6 +1,10 @@
 name: Clang-Tidy Check
 'run-name': "${{ github.actor }} running clang-tidy check"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 on:
   pull_request:
     branches: [ main ]

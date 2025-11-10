@@ -1,6 +1,10 @@
 name: CMake Format Check
 run-name: "${{ github.actor }} running CMake format check"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 on:
   pull_request:
     branches: [ main ]
