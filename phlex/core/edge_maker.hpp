@@ -2,7 +2,6 @@
 #define PHLEX_CORE_EDGE_MAKER_HPP
 
 #include "phlex/core/declared_output.hpp"
-#include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/dot/attributes.hpp"
 #include "phlex/core/dot/data_graph.hpp"
 #include "phlex/core/dot/function_graph.hpp"
@@ -166,8 +165,6 @@ namespace phlex::experimental {
     make_edge(source, multi);
 
     // Create edges to outputs
-    auto& unfolds = std::get<consumers<declared_unfolds>&>(std::tie(cons...));
-
     for (auto const& [output_name, output_node] : outputs) {
       make_edge(source, output_node->port());
       if (function_graph_) {
@@ -180,54 +177,15 @@ namespace phlex::experimental {
           function_graph_->edge(named_port.node.full(), output_name, {.color = "gray"});
         }
       }
-      for (auto const& [unfold_name, unfold] : unfolds.data) {
-        make_edge(unfold->to_output(), output_node->port());
-        if (function_graph_) {
-          function_graph_->edge(unfold_name, output_name, {.color = "gray"});
-        }
-      }
     }
 
     // Create normal edges
     multiplexer::head_ports_t head_ports;
     (head_ports.merge(edges(filters, cons)), ...);
 
-    // Create head nodes for unfolds
-    std::set<std::string> remove_ports_for_products;
-    for (auto const& [name, unfold] : unfolds.data) {
-      multiplexer::head_ports_t heads;
-      for (auto const& product_name : unfold->output()) {
-        // There can be multiple head nodes that require the same product.
-        remove_ports_for_products.insert(product_name.full());
-        for (auto const& [node_name, ports] : head_ports) {
-          for (auto const& port : ports) {
-            if (to_name(port.product_label) != product_name.name()) {
-              continue;
-            }
-            heads[node_name].push_back(port);
-          }
-        }
-      }
-      unfold->finalize(std::move(heads));
-    }
-
-    // Remove head nodes claimed by unfolds
-    for (auto const& key : remove_ports_for_products) {
-      for (auto& ports : head_ports | std::views::values) {
-        std::erase_if(ports,
-                      [&key](auto const& port) { return to_name(port.product_label) == key; });
-      }
-    }
-
     multi.finalize(std::move(head_ports));
 
     if (function_graph_) {
-      for (auto const& [name, unfold] : unfolds.data) {
-        for (auto const& [node_name, ports] : unfold->downstream_ports()) {
-          function_graph_->edges_for(name, node_name, ports);
-        }
-      }
-
       for (auto const& [node_name, ports] : multi.downstream_ports()) {
         function_graph_->edges_for("Source", node_name, ports);
       }
