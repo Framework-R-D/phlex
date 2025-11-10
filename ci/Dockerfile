@@ -72,7 +72,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN <<'CONFIGURE_SPACK_DEFAULTS'
 set -euo pipefail
 
-# Configure Spack defaults, repositories, and external toolchain metadata
 . /spack/share/spack/setup-env.sh
 
 SPACK_REPO_ROOT=/opt/spack-repos
@@ -91,6 +90,13 @@ spack --timestamp repo add --scope site /opt/spack-repos/fnal_art/spack_repo/fna
 spack --timestamp repo set --scope site --destination /spack/var/spack/repos/builtin builtin
 
 spack --timestamp compiler find
+
+
+# Discover externals
+#
+# - Python is excluded because the python provided by the system does
+#   not necessarily include the Python.h header file.  We therefore need
+#   Spack to build Python.
 spack --timestamp external find --exclude python
 
 spack config --scope defaults rm config:build_stage || true
