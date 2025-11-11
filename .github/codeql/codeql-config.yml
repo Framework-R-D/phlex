@@ -6,7 +6,7 @@ queries:
   - uses: code-quality
 
 paths-ignore:
-  - ./*-build/**
-  - ./build/**
-  - ./doc/**
-  - ./test/**
+  - *-build/**
+  - build/**
+  - doc/**
+  - test/**
