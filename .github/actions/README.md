@@ -6,7 +6,7 @@ This directory contains reusable composite actions for Phlex CI/CD workflows.
 
 ### setup-build-env
 
-Sets up the Phlex build environment by sourcing the entrypoint script and creating build directories.
+Verifies the container build environment and creates build directories.
 
 **Inputs:**
 

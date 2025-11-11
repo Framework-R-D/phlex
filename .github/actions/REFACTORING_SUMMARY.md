@@ -10,11 +10,10 @@ Refactored GitHub Actions workflows to use composite actions for better maintain
 
 **Location**: `.github/actions/setup-build-env/action.yaml`
 
-**Purpose**: Sets up the build environment by sourcing the container entrypoint script and creating directories
+**Purpose**: Verifies the Spack build environment and creates build directories
 
 **Provides**:
 
-- Sources `/entrypoint.sh`
 - Creates build directory
 - Outputs source and build directory paths
 
@@ -41,7 +40,6 @@ Refactored GitHub Actions workflows to use composite actions for better maintain
 
 - Configurable target selection
 - Auto-detected or custom parallel jobs
-- Sources entrypoint for environment
 
 ## Updated Workflows
 
