@@ -52,8 +52,11 @@ jobs:
         with:
           build-type: ${{ env.BUILD_TYPE }}
 
-      - name: Build
-        uses: ./phlex-src/.github/actions/build-cmake
+      - name: Generate compilation database
+        run: |
+          . /entrypoint.sh
+          cd $GITHUB_WORKSPACE/phlex-build
+          ninja -t compdb
 
       - name: Verify compile_commands.json and publish for diagnostics
         run: |
