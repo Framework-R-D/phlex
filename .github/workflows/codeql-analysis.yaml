@@ -18,6 +18,7 @@ permissions:
 env:
   BUILD_TYPE: RelWithDebInfo
   CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/compile_commands.json
+  CODEQL_ACTION_RUN_AUTOBUILD: false
 
 jobs:
   codeql:
@@ -46,7 +47,7 @@ jobs:
           languages: cpp, python, actions
           config-file: phlex-src/.github/codeql/codeql-config.yml
           source-root: phlex-src
-          build-mode: none
+          build-mode: manual
 
       - name: Configure CMake
         uses: ./phlex-src/.github/actions/configure-cmake
