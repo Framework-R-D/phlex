@@ -48,7 +48,7 @@ jobs:
           languages: cpp, python, actions
           config-file: phlex-src/.github/codeql/codeql-config.yml
           source-root: phlex-src
-          build-mode: manual
+          build-mode: none
 
       - name: Capture CodeQL compiler wrapper
         shell: bash
