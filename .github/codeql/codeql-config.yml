@@ -6,8 +6,9 @@ queries:
   - uses: code-quality
 
 paths:
-  - phlex-src/**
+  - ./**
 paths-ignore:
-  - phlex-src/build/**
-  - phlex-src/doc/**
-  - phlex-src/test/**
+  - ./*-build/**
+  - ./build/**
+  - ./doc/**
+  - ./test/**

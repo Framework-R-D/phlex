@@ -55,12 +55,6 @@ jobs:
       - name: Build
         uses: ./phlex-src/.github/actions/build-cmake
 
-      - name: Test
-        run: |
-          . /entrypoint.sh
-          cd $GITHUB_WORKSPACE/phlex-build
-          ctest -j $(nproc) || true
-
       - name: Verify compile_commands.json and publish for diagnostics
         run: |
           set -euo pipefail
