@@ -17,6 +17,7 @@ permissions:
 
 env:
   BUILD_TYPE: RelWithDebInfo
+  CPP_COMPILER: g++
   CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/compile_commands.json
   CODEQL_ACTION_RUN_AUTOBUILD: false
 
@@ -49,10 +50,21 @@ jobs:
           source-root: phlex-src
           build-mode: manual
 
+      - name: Capture CodeQL compiler wrapper
+        shell: bash
+        run: |
+          if [ -n "${CODEQL_EXTRACTOR_CPP_CC:-}" ]; then
+            echo "Using CodeQL compiler wrapper: ${CODEQL_EXTRACTOR_CPP_CC}"
+            echo "CPP_COMPILER=${CODEQL_EXTRACTOR_CPP_CC}" >> "$GITHUB_ENV"
+          else
+            echo "CODEQL_EXTRACTOR_CPP_CC not set; keeping default compiler: ${CPP_COMPILER:-g++}"
+          fi
+
       - name: Configure CMake
         uses: ./phlex-src/.github/actions/configure-cmake
         with:
           build-type: ${{ env.BUILD_TYPE }}
+          cpp-compiler: ${{ env.CPP_COMPILER }}
 
       - name: Build
         uses: ./phlex-src/.github/actions/build-cmake
