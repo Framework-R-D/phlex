@@ -72,11 +72,11 @@ jobs:
           else
             echo "No compile_commands.json found in phlex-src/build or phlex-build; continuing."
           fi
-          if [ -f "$GITHUB_WORKSPACE/phlex-src/compile-commands.json" ]; then
+          if [ -f "$GITHUB_WORKSPACE/phlex-src/compile_commands.json" ]; then
             echo "Beginning of \$GITHUB_WORKSPACE/phlex-src/compile_commands.json (for debugging):"
             head -n 20 "$GITHUB_WORKSPACE/phlex-src/compile_commands.json"
           else
-            echo "compile_commands.json not found!"
+            echo " \$GITHUB_WORKSPACE/phlex-src/compile_commands.json not found!"
             echo "Workspace listing:"
             ls -la "$GITHUB_WORKSPACE" || true
             echo "Attempting to locate compile_commands.json for debug:"
