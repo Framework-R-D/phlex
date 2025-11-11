@@ -45,10 +45,9 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: cpp, python, actions
+          languages: ${{ matrix.language }}
           config-file: phlex-src/.github/codeql/codeql-config.yml
-          source-root: phlex-src
-          build-mode: none
+          working-directory: phlex-src
 
       - name: Configure CMake (C++ only)
         if: matrix.language == 'cpp'
