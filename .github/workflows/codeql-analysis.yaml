@@ -18,6 +18,7 @@ permissions:
 env:
   BUILD_TYPE: RelWithDebInfo
   CPP_COMPILER: g++
+  CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/phlex-build/compile_commands.json
 
 jobs:
   codeql:
@@ -48,28 +49,117 @@ jobs:
           languages: ${{ matrix.language }}
           config-file: phlex-src/.github/codeql/codeql-config.yml
           source-root: phlex-src
-          build-mode: ${{ matrix.language == 'cpp' && 'manual' || 'none' }}
+          build-mode: none
 
-      - name: Configure and build (C++ only)
+      - name: Produce compile_commands.json (C++ only)
+        if: matrix.language == 'cpp'
+        uses: ./phlex-src/.github/actions/configure-cmake
+        with:
+          build-type: ${{ env.BUILD_TYPE }}
+
+      - name: Verify compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
         run: |
-          . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/phlex-build"
-          # For reasons unknown, CodeQL's choice of LD_PRELOAD needs to
-          # be corrected
-          export LD_PRELOAD="$SEMMLE_PRELOAD_libtrace64"
-          echo "LD_PRELOAD=$LD_PRELOAD"
-          cmake --preset=default -S "$GITHUB_WORKSPACE/phlex-src" \
-            -B "$GITHUB_WORKSPACE/phlex-build" -GNinja \
-            -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-            -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
-            -DPHLEX_USE_FORM=TRUE \
-            -DFORM_USE_ROOT_STORAGE=TRUE || exit
-          cmake --build . || exit
+          set -euo pipefail
+          if [ ! -f "$CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE" ]; then
+            echo "Expected compile_commands.json at $CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE" >&2
+            exit 1
+          fi
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
           checkout_path: phlex-src
+          output: results
           category: ${{ matrix.language }}
+
+      - name: Upload SARIF results
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: results
+          retention-days: 7
+
+  codeql-report:
+    name: Aggregate CodeQL alerts
+    needs: codeql
+    runs-on: ubuntu-24.04
+    if: needs.codeql.result == 'success'
+    permissions:
+      contents: read
+      issues: write
+    env:
+      CODEQL_MIN_LEVEL: warning
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download CodeQL SARIF artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: codeql-sarif-*
+          path: sarif
+          merge-multiple: true
+
+      - name: Check CodeQL SARIF for new or resolved alerts
+        id: check_codeql
+        run: |
+          set -euo pipefail
+          python3 scripts/check_codeql_alerts.py \
+            --sarif "$GITHUB_WORKSPACE/sarif" \
+            --min-level "${CODEQL_MIN_LEVEL}"
+
+      - name: Comment on PR with CodeQL alert changes
+        if: >-
+          github.event_name == 'pull_request' &&
+          (steps.check_codeql.outputs.new_alerts == 'true' ||
+           steps.check_codeql.outputs.fixed_alerts == 'true')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- codeql-alerts -->';
+            const legacyMarker = '<!-- codeql-new-alerts -->';
+            const commentPath = '${{ steps.check_codeql.outputs.comment_path }}';
+
+            if (!commentPath) {
+              core.setFailed('check_codeql did not emit a comment_path output.');
+              return;
+            }
+
+            const body = fs.readFileSync(commentPath, 'utf8');
+            const finalBody = body.includes(marker) ? body : `${body}\n${marker}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+
+            const existing = comments.find(comment => comment.body.includes(marker) || comment.body.includes(legacyMarker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: finalBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: finalBody,
+              });
+            }
+
+      - name: Fail workflow due to new CodeQL alerts
+        if: github.event_name == 'pull_request' && steps.check_codeql.outputs.new_alerts == 'true'
+        run: |
+          echo "New CodeQL alerts detected; failing job."
+          exit 1
