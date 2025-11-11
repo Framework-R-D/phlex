@@ -47,7 +47,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           config-file: phlex-src/.github/codeql/codeql-config.yml
-          working-directory: phlex-src
+          source-root: phlex-src
 
       - name: Configure CMake (C++ only)
         if: matrix.language == 'cpp'
@@ -67,4 +67,5 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
+          checkout_path: phlex-src
           category: ${{ matrix.language }}
