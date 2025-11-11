@@ -18,19 +18,17 @@ permissions:
 env:
   BUILD_TYPE: RelWithDebInfo
   CPP_COMPILER: g++
-  CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/compile_commands.json
-  CODEQL_ACTION_RUN_AUTOBUILD: false
 
 jobs:
   codeql:
-    name: Analyze with CodeQL
+    name: Analyze ${{ matrix.language }} with CodeQL
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
     strategy:
       fail-fast: false
       matrix: # Necessry to disable yaml-language-server warning
-        single-run: [ true ]
+        language: ['cpp', 'python', 'actions']
     timeout-minutes: 120
     steps:
       - name: Checkout repository
@@ -41,6 +39,8 @@ jobs:
 
       - name: Setup build environment
         uses: ./phlex-src/.github/actions/setup-build-env
+        with:
+          build-path: phlex-build
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -50,54 +50,22 @@ jobs:
           source-root: phlex-src
           build-mode: none
 
-      - name: Capture CodeQL compiler wrapper
-        shell: bash
-        run: |
-          if [ -n "${CODEQL_EXTRACTOR_CPP_CC:-}" ]; then
-            echo "Using CodeQL compiler wrapper: ${CODEQL_EXTRACTOR_CPP_CC}"
-            echo "CPP_COMPILER=${CODEQL_EXTRACTOR_CPP_CC}" >> "$GITHUB_ENV"
-          else
-            echo "CODEQL_EXTRACTOR_CPP_CC not set; keeping default compiler: ${CPP_COMPILER:-g++}"
-          fi
-
-      - name: Configure CMake
+      - name: Configure CMake (C++ only)
+        if: matrix.language == 'cpp'
         uses: ./phlex-src/.github/actions/configure-cmake
         with:
           build-type: ${{ env.BUILD_TYPE }}
           cpp-compiler: ${{ env.CPP_COMPILER }}
+          build-path: phlex-build
 
-      - name: Build
+      - name: Build C++ code (C++ only)
+        if: matrix.language == 'cpp'
         uses: ./phlex-src/.github/actions/build-cmake
-
-      - name: Verify compile_commands.json and publish for diagnostics
-        run: |
-          set -euo pipefail
-          echo "Looking for compile_commands.json in common build locations..."
-          # Prefer phlex-src/build/compile_commands.json
-          if [ -f "$GITHUB_WORKSPACE/phlex-src/build/compile_commands.json" ]; then
-            echo "Found phlex-src/build/compile_commands.json"
-            cp "$GITHUB_WORKSPACE/phlex-src/build/compile_commands.json" "$GITHUB_WORKSPACE/"
-          elif [ -f "$GITHUB_WORKSPACE/phlex-build/compile_commands.json" ]; then
-            echo "Found phlex-build/compile_commands.json"
-            cp "$GITHUB_WORKSPACE/phlex-build/compile_commands.json" "$GITHUB_WORKSPACE/"
-          else
-            echo "No compile_commands.json found in phlex-src/build or phlex-build; continuing."
-          fi
-          if [ -f "$GITHUB_WORKSPACE/compile_commands.json" ]; then
-            echo "Beginning of \$GITHUB_WORKSPACE/compile_commands.json (for debugging):"
-            head -n 20 "$GITHUB_WORKSPACE/compile_commands.json"
-          else
-            echo " \$GITHUB_WORKSPACE/compile_commands.json not found!"
-            echo "Workspace listing:"
-            ls -la "$GITHUB_WORKSPACE" || true
-            echo "Attempting to locate compile_commands.json for debug:"
-            find "$GITHUB_WORKSPACE" -type f -name compile_commands.json
-            exit 1
-          fi
+        with:
+          build-path: phlex-build
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
-          category: "CodeQL"
-          output: codeql-results.sarif
+          category: ${{ matrix.language }}
