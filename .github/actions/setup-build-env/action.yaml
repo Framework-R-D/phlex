@@ -23,11 +23,12 @@ runs:
   using: 'composite'
   steps:
     - id: setup
-      shell: bash
       run: |
-        # Source the container entrypoint script
-        . /entrypoint.sh
-        
+        if ! type -f spack; then
+          echo "Spack environment is not available"
+          exit 1
+        fi
+
         # Create and export build directory
         mkdir -p "$GITHUB_WORKSPACE/$BUILD_PATH"
         
