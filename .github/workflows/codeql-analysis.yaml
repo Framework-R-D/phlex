@@ -50,27 +50,18 @@ jobs:
           source-root: phlex-src
           build-mode: ${{ matrix.language == 'cpp' && 'manual' || 'none' }}
 
-      - name: Environment diagnostics (C++ only)
+      - name: Configure and build (C++ only)
         if: matrix.language == 'cpp'
         run: |
-          echo "Available trace libraries:"
-          find /__t/CodeQL/2.23.3/x64/codeql/tools/ -name '*trace.so*' -ls
-          echo "Environment dump:"
-          printenv
-
-      - name: Configure CMake (C++ only)
-        if: matrix.language == 'cpp'
-        uses: ./phlex-src/.github/actions/configure-cmake
-        with:
-          build-type: ${{ env.BUILD_TYPE }}
-          cpp-compiler: ${{ env.CPP_COMPILER }}
-          build-path: phlex-build
-
-      - name: Build C++ code (C++ only)
-        if: matrix.language == 'cpp'
-        uses: ./phlex-src/.github/actions/build-cmake
-        with:
-          build-path: phlex-build
+        # Inline rather than using actions to avoid LD_PRELOAD shenannigans
+        cd "$GITHUB_WORKSPACE/phlex-build"
+        cmake --preset=default -S "$GITHUB_WORKSPACE/phlex-src" \
+          -B "$GITHUB_WORKSPACE/phlex-build" -GNinja \
+          -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+          -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
+          -DPHLEX_USE_FORM=TRUE \
+          -DUSE_ROOT_STORAGE=TRUE || exit
+        cmake --build .
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
