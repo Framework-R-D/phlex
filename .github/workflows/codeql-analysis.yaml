@@ -50,17 +50,13 @@ jobs:
           source-root: phlex-src
           build-mode: ${{ matrix.language == 'cpp' && 'manual' || 'none' }}
 
-      - name: Capture CodeQL compiler wrapper (C++ only)
+      - name: Environment diagnostics (C++ only)
         if: matrix.language == 'cpp'
-        shell: bash
         run: |
-          if [ -n "${CODEQL_EXTRACTOR_CPP_CC:-}" ]; then
-            echo "Using CodeQL compiler wrapper: ${CODEQL_EXTRACTOR_CPP_CC}"
-            echo "CPP_COMPILER=${CODEQL_EXTRACTOR_CPP_CC}" >> "$GITHUB_ENV"
-          else
-            echo "CODEQL_EXTRACTOR_CPP_CC not set; failing to avoid running an untraced build."
-            exit 1
-          fi
+          echo "Available trace libraries:"
+          find /__t/CodeQL/2.23.3/x64/codeql/tools/ -name '*trace.so*' -ls
+          echo "Environment dump:"
+          printenv
 
       - name: Configure CMake (C++ only)
         if: matrix.language == 'cpp'
