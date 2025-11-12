@@ -53,8 +53,9 @@ jobs:
       - name: Configure and build (C++ only)
         if: matrix.language == 'cpp'
         run: |
-          # Inline rather than using actions to avoid LD_PRELOAD shenannigans
+          . /entrypoint.sh
           cd "$GITHUB_WORKSPACE/phlex-build"
+          export LD_PRELOAD="$SEMMLE_PRELOAD_libtrace64"
           cmake --preset=default -S "$GITHUB_WORKSPACE/phlex-src" \
             -B "$GITHUB_WORKSPACE/phlex-build" -GNinja \
             -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
