@@ -24,9 +24,6 @@ runs:
   steps:
     - shell: bash
       run: |
-        # Source the container entrypoint script
-        . /entrypoint.sh
-        
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         
         # Determine parallel jobs
