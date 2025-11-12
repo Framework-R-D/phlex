@@ -53,15 +53,15 @@ jobs:
       - name: Configure and build (C++ only)
         if: matrix.language == 'cpp'
         run: |
-        # Inline rather than using actions to avoid LD_PRELOAD shenannigans
-        cd "$GITHUB_WORKSPACE/phlex-build"
-        cmake --preset=default -S "$GITHUB_WORKSPACE/phlex-src" \
-          -B "$GITHUB_WORKSPACE/phlex-build" -GNinja \
-          -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-          -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
-          -DPHLEX_USE_FORM=TRUE \
-          -DUSE_ROOT_STORAGE=TRUE || exit
-        cmake --build .
+          # Inline rather than using actions to avoid LD_PRELOAD shenannigans
+          cd "$GITHUB_WORKSPACE/phlex-build"
+          cmake --preset=default -S "$GITHUB_WORKSPACE/phlex-src" \
+            -B "$GITHUB_WORKSPACE/phlex-build" -GNinja \
+            -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+            -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
+            -DPHLEX_USE_FORM=TRUE \
+            -DUSE_ROOT_STORAGE=TRUE || exit
+          cmake --build .
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
