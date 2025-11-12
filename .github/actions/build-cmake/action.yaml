@@ -22,7 +22,8 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - run: |
+    - shell: bash
+      run: |
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         
         # Determine parallel jobs

@@ -23,6 +23,7 @@ runs:
   using: 'composite'
   steps:
     - id: setup
+      shell: bash
       run: |
         if ! type -f spack; then
           echo "Spack environment is not available"
