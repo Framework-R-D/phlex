@@ -44,8 +44,12 @@ runs:
   steps:
     - shell: bash
       run: |
+        # Preserve CodeQL's LD_PRELOAD across the sourcing of the entrypoint script,
+        # which would otherwise overwrite it.
+        _LD_PRELOAD_OLD="$LD_PRELOAD"
         # Source the container entrypoint script
         . /entrypoint.sh
+        export LD_PRELOAD="$_LD_PRELOAD_OLD"
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
         echo "Configuring with CMake preset: $PRESET"
