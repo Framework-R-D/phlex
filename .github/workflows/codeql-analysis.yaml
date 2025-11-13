@@ -89,8 +89,10 @@ jobs:
     permissions:
       contents: read
       issues: write
+      security-events: read
     env:
       CODEQL_MIN_LEVEL: warning
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -108,9 +110,11 @@ jobs:
         id: check_codeql
         run: |
           set -euo pipefail
-          python3 scripts/check_codeql_alerts.py \
-            --sarif "$GITHUB_WORKSPACE/sarif" \
-            --min-level "${CODEQL_MIN_LEVEL}"
+          ARGS=(--sarif "$GITHUB_WORKSPACE/sarif" --min-level "${CODEQL_MIN_LEVEL}")
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ARGS+=(--ref "refs/pull/${{ github.event.pull_request.number }}/merge")
+          fi
+          python3 scripts/check_codeql_alerts.py "${ARGS[@]}"
 
       - name: Comment on PR with CodeQL alert changes
         if: >-
