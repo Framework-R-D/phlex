@@ -1,14 +1,76 @@
-#include "phlex/module.hpp"
-
-#include <Python.h>
+#include <atomic>
 #include <dlfcn.h>
+#include <stdexcept>
+#include <string>
+
+#include "phlex/core/framework_graph.hpp"
+
+#include "wrap.hpp"
+
+#ifdef PHLEX_HAVE_NUMPY
+#define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
+#include <numpy/arrayobject.h>
+#endif
+
+#include <iostream>
+#include <vector>
 
 using namespace phlex::experimental;
 
-static bool Initialize()
+static bool initialize();
+
+PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
-  if (Py_IsInitialized())
+  initialize();
+
+  PyGILRAII g;
+
+  std::string modname = config.get<std::string>("pyplugin");
+  PyObject* mod = PyImport_ImportModule(modname.c_str());
+  if (mod) {
+    PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS");
+    if (reg) {
+      PyObject* pym = wrap_module(&m);
+      PyObject* pyconfig = wrap_configuration(&config);
+      if (pym && pyconfig) {
+        PyObject* res = PyObject_CallFunctionObjArgs(reg, pym, pyconfig, nullptr);
+        Py_XDECREF(res);
+      }
+      Py_XDECREF(pyconfig);
+      Py_XDECREF(pym);
+      Py_DECREF(reg);
+    }
+    Py_DECREF(mod);
+  }
+
+  if (PyErr_Occurred())
+    throw_runtime_error_from_py_error(false /* check_error */);
+}
+
+#ifdef PHLEX_HAVE_NUMPY
+static void import_numpy(bool control_interpreter)
+{
+  static std::atomic<bool> numpy_imported{false};
+  if (!numpy_imported.exchange(true)) {
+    std::cerr << "NOW IMPORTINT NUMPY " << std::endl;
+    if (_import_array() < 0) {
+      PyErr_Print();
+      if (control_interpreter)
+        Py_Finalize();
+      throw std::runtime_error("build with numpy support, but numpy not importable");
+    }
+  }
+}
+#endif
+
+static bool initialize()
+{
+  if (Py_IsInitialized()) {
+#ifdef PHLEX_HAVE_NUMPY
+    import_numpy(false);
+#endif
     return true;
+  }
 
   // TODO: the Python library is already loaded (b/c it's linked with
   // this module), but its symbols need to be exposed globally to Python
@@ -23,8 +85,6 @@ static bool Initialize()
       throw std::runtime_error("unable to determine linked libpython");
     }
     dlopen(info.dli_fname, RTLD_GLOBAL | RTLD_NOW);
-  } else {
-    throw std::runtime_error("can not locate linked libpython");
   }
 
 #if PY_VERSION_HEX < 0x03020000
@@ -43,7 +103,6 @@ static bool Initialize()
   PyEval_InitThreads();
 #endif
 #endif
-
   // try again to see if the interpreter is now initialized
   if (!Py_IsInitialized())
     throw std::runtime_error("Python can not be initialized");
@@ -54,57 +113,24 @@ static bool Initialize()
   PySys_SetArgv(sizeof(argv) / sizeof(argv[0]), argv);
 #endif
 
+  // add custom types
+  PyType_Ready(&PhlexConfig_Type);
+  PyType_Ready(&PhlexModule_Type);
+  PyType_Ready(&PhlexLifeline_Type);
+
+  // load numpy (see also above, if already initialized)
+#ifdef PHLEX_HAVE_NUMPY
+  import_numpy(true);
+#endif
+
+  // TODO: the GIL should first be released on the main thread and this seems
+  // to be the only place to do it. However, there is no equivalent place to
+  // re-acquire it after the TBB runs are done, so normal shutdown of the
+  // Python interpreter will not happen atm.
+  static std::atomic<bool> gil_released{false};
+  if (!gil_released.exchange(true)) {
+    (void)PyEval_SaveThread(); // state not saved, as no place to restore
+  }
+
   return true;
 }
-
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
-{
-  Initialize();
-
-  PyObject* registry = PyImport_ImportModule("registry");
-  if (registry) {
-    PyObject* reg = PyObject_GetAttrString(registry, "register");
-    if (reg) {
-      PyObject* pym = PyCapsule_New(&m, nullptr, nullptr);
-      PyObject* pyconfig = PyCapsule_New((void*)&config, nullptr, nullptr);
-      PyObject* res = PyObject_CallFunctionObjArgs(reg, pym, pyconfig, nullptr);
-      Py_XDECREF(res);
-      Py_DECREF(pyconfig);
-      Py_DECREF(pym);
-      Py_DECREF(reg);
-    }
-    Py_DECREF(registry);
-  }
-
-  if (PyErr_Occurred()) {
-    std::string msg;
-#if PY_VERSION_HEX < 0x30c000000
-    PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
-    PyErr_Fetch(&type, &value, &traceback);
-    if (value) {
-      PyObject* pymsg = PyObject_Str(value);
-      msg = PyUnicode_AsUTF8(pymsg);
-      Py_DECREF(pymsg);
-    } else {
-      msg = "unknown Python error occurred";
-    }
-    Py_XDECREF(traceback);
-    Py_XDECREF(value);
-    Py_XDECREF(type);
-#else
-    PyObject* exc = PyErr_GetRaisedException();
-    if (exc) {
-      PyObject* pymsg = PyObject_Str(exc);
-      msg = PyUnicode_AsString(pymsg);
-      Py_DECREF(pymsg);
-      Py_DECREF(exc);
-    }
-#endif
-    throw std::runtime_error(msg.c_str());
-  }
-}
-
-// dict-like construct to access configuration from Python
-
-// TODO: the current implementation of the configuration hides the iteration
-// over the underlying object, thus preventing nice printout etc.

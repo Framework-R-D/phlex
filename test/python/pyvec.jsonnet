@@ -2,20 +2,20 @@
   source: {
     plugin: 'py_cppdriver',
     max_numbers: 10,
-    as_collection: false,
+    as_collection: true,
   },
   modules: {
-    pyadd: {
+    pysum: {
       plugin: 'pymodule',
-      pyplugin: 'adder',
-      input: ['i', 'j'],
+      pyplugin: 'sumit',
+      input: ['coll_of_i'],
       output: ['sum'],
     },
     pyverify: {
       plugin: 'pymodule',
       pyplugin: 'verify',
       input: ['sum'],
-      sum_total: 1,
+      sum_total: 55,
     },
   },
 }

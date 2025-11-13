@@ -57,6 +57,7 @@ except ImportError:
 
   check_python_module_version("cppyy" "3.6.0" HAS_CPPYY)
   check_python_module_version("numba" "0.61.0" HAS_NUMBA)
+  check_python_module_version("numpy" "2.0.0" HAS_NUMPY)
 
   if(HAS_CPPYY)
 
@@ -71,51 +72,83 @@ except ImportError:
       set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
     endif()
 
-    # C++ helper to provide a driver
-    add_library(py_cppdriver MODULE driver.cpp)
-    target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
-
-    # Phlex module to run Python algorithms
-    add_library(pymodule MODULE pymodule.cpp)
-    include_directories(pymodule, ${Python_INCLUDE_DIRS})
-    target_link_libraries(
-      pymodule
-      PRIVATE phlex::module ${Python_LIBRARIES}
-      PUBLIC Python::Python
-      )
-
-    # tests of the python support modules
+    # tests of the python support modules (relies on cppyy)
     add_test(
       NAME py:phlex
       COMMAND ${PYTHON_TEST_EXECUTABLE} -m pytest test_phlex.py
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       )
 
-    # phlex-based tests
-    add_test(NAME py:add
-             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet -g
-                     pyadd.gv
-             )
-
-    set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
-    if(DEFINED ENV{VIRTUAL_ENV})
-      set(TEST_PYTHONPATH
-          ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH}
-          )
-    endif()
-    set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
-
     set_property(
       TEST py:phlex PROPERTY ENVIRONMENT
                              "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
       )
 
-    set_property(
-      TEST py:add
-      PROPERTY
-        ENVIRONMENT
-        "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+  endif()
+
+  set(ACTIVE_PY_CPHLEX_TESTS "")
+
+  # C++ helper to provide a driver
+  add_library(py_cppdriver MODULE driver.cpp)
+  target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
+
+  # Phlex module to run Python algorithms
+  add_library(
+    pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp lifelinewrap.cpp
+                    errorwrap.cpp
+    )
+  include_directories(pymodule, ${Python_INCLUDE_DIRS})
+  target_link_libraries(
+    pymodule
+    PRIVATE phlex::module ${Python_LIBRARIES}
+    PUBLIC Python::Python
+    )
+
+  # numpy support if installed
+  if(HAS_NUMPY)
+
+    # locate numpy's header directory
+    execute_process(
+      COMMAND "${Python_EXECUTABLE}" -c
+              "import numpy; print(numpy.get_include(), end='')"
+      RESULT_VARIABLE NUMPY_RESULT
+      OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
       )
 
-  endif() # cppyy available
+    if(NUMPY_RESULT EQUAL 0)
+      include_directories(pymodule PRIVATE ${NUMPY_INCLUDE_DIR})
+      target_compile_definitions(
+        pymodule PRIVATE PHLEX_HAVE_NUMPY=1
+                         NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION
+        )
+    endif()
+
+    # phlex-based tests that require numpy support
+    add_test(NAME py:vec
+             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet -g
+                     pyvec.gv
+             )
+    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
+  endif()
+
+  # phlex-based tests (no cppyy dependency)
+  add_test(NAME py:add
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet -g
+                   pyadd.gv
+           )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
+
+  set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
+  if(DEFINED ENV{VIRTUAL_ENV})
+    set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH})
+  endif()
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
+
+  set_tests_properties(
+    ${ACTIVE_PY_CPHLEX_TESTS}
+    PROPERTIES
+      ENVIRONMENT
+      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+    )
 endif() # Python available

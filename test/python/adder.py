@@ -1,9 +1,10 @@
-import cppyy
+from phlex.registry import register
 
-cppyy.cppdef("""\
-namespace test {
-  int add(int i, int j) { return i + j; }
-}""")
 
-add = cppyy.gbl.test.add
+def add(i: int, j: int) -> int:
+    return i + j
+
+
+def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+    register(add, m, config)
 
