@@ -270,11 +270,7 @@ namespace {
     std::shared_ptr<T> m_dataobj;
   };
 
-  static intptr_t vint_to_py(std::shared_ptr<std::vector<int>> const&
-#ifdef PHLEX_HAVE_NUMPY
-                               v
-#endif
-  )
+  static intptr_t vint_to_py(std::shared_ptr<std::vector<int>> const& v)
   {
     PyGILRAII gil;
 
@@ -306,8 +302,11 @@ namespace {
     return (intptr_t)pyll;
 
 #else
+    // TODO: this is just to make code coverage happy; in the end, these preprocessor
+    // directives will all go away with Numpy being properly installed with spack
+    intptr_t result = (intptr_t)(v->size() - v->size());
     PyErr_SetString(PyExc_SystemError, "vector data products are not supported without numpy");
-    return (intptr_t)nullptr;
+    return (intptr_t)result;
 #endif
   }
 
