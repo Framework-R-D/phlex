@@ -47,9 +47,10 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
     throw_runtime_error_from_py_error(false /* check_error */);
 }
 
+
+#ifdef PHLEX_HAVE_NUMPY
 static void import_numpy(bool control_interpreter)
 {
-#ifdef PHLEX_HAVE_NUMPY
   static std::atomic<bool> numpy_imported{false};
   if (!numpy_imported.exchange(true)) {
     std::cerr << "NOW IMPORTINT NUMPY " << std::endl;
@@ -60,13 +61,15 @@ static void import_numpy(bool control_interpreter)
       throw std::runtime_error("build with numpy support, but numpy not importable");
     }
   }
-#endif
 }
+#endif
 
 static bool initialize()
 {
   if (Py_IsInitialized()) {
+#ifdef PHLEX_HAVE_NUMPY
     import_numpy(false);
+#endif
     return true;
   }
 
@@ -117,7 +120,9 @@ static bool initialize()
   PyType_Ready(&PhlexLifeline_Type);
 
   // load numpy (see also above, if already initialized)
+#ifdef PHLEX_HAVE_NUMPY
   import_numpy(true);
+#endif
 
   // TODO: the GIL should first be released on the main thread and this seems
   // to be the only place to do it. However, there is no equivalent place to
