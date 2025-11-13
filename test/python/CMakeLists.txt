@@ -92,9 +92,8 @@ except ImportError:
       )
 
     # phlex-based tests
-    add_test(NAME py:add
-             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet -g
-                     pyadd.gv
+    add_test(NAME py:add COMMAND phlex -c
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet
              )
 
     set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
