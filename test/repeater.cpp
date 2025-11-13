@@ -1,23 +1,23 @@
-// =============================  //
+// ===========================================================  //
 // This test is used to determine whether "repeaters" can work. //
-//                                //
-//     (1) input                  //
-//           |                    //
-//     (2) router                 //
-//        /      \                //
-//       |        \               //
-//       |         \              //
-// (3) I(run)      I(spill) (4)   //
-//       |         /|             //
-//       |        / |             //
-// (5) expo      /  |             //
-//       |      /   |             //
-//        \    /    |             //
-//  (7) repeater   number (6)     //
-//          \      /              //
-//           \    /               //
-//       (8) consume              //
-// ============================== //
+//                                                              //
+//   * source                                                   //
+//   *-.   router                                               //
+//   |\ \                                                       //
+//   * | | I(run)                                               //
+//   | * | E(run)                                               //
+//   | | *   I(spill)                                           //
+//   | | |\                                                     //
+//   | | |/                                                     //
+//   | |/|                                                      //
+//   * | | exponent                                             //
+//   |/ /                                                       //
+//   | * number                                                 //
+//   * | repeater                                               //
+//   |/                                                         //
+//   * consume                                                  //
+//                                                              //
+// ============================================================ //
 
 #include "catch2/catch_test_macros.hpp"
 #include "fmt/ranges.h"
@@ -27,6 +27,7 @@
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 
+#include <atomic>
 #include <cassert>
 #include <map>
 #include <memory>
@@ -50,6 +51,11 @@ namespace {
   using product_t = double;
   using product_ptr_t = std::shared_ptr<product_t>;
 
+  struct end_token {
+    int count;
+    id_t cell_id;
+  };
+
   struct data_cell_id {
     int msg_id;
     id_t cell_id;
@@ -60,14 +66,16 @@ namespace {
     product_ptr_t product;
   };
 
-  using repeater_node_input = std::tuple<message, data_cell_id>;
+  using repeater_node_input = std::tuple<message, end_token, data_cell_id>;
   class repeater_node : public flow::composite_node<repeater_node_input, std::tuple<message>> {
     using base_t = flow::composite_node<repeater_node_input, std::tuple<message>>;
-    using tagged_repeater_msg = flow::tagged_msg<std::size_t, message, data_cell_id>;
+    using tagged_repeater_msg = flow::tagged_msg<std::size_t, message, end_token, data_cell_id>;
 
     struct cached_product {
       product_ptr_t product{};
       concurrent_queue<int> msg_ids{};
+      std::atomic<int> counter;
+      std::atomic_flag flush_received{false};
     };
 
     using cached_products_t = concurrent_hash_map<int, cached_product>;
@@ -81,41 +89,56 @@ namespace {
       repeater_{g,
                 flow::unlimited,
                 [this](tagged_repeater_msg const& tagged, auto& outputs) -> flow::continue_msg {
+                  cached_product* entry{nullptr};
                   int key = -1;
                   if (tagged.tag() == 0ull) {
                     auto const& msg = tagged.cast_to<message>();
                     key = msg.id.cell_id[0];
                     accessor a;
                     std::ignore = cached_products_.insert(a, key);
-                    a->second.product = msg.product;
+                    entry = &a->second;
+                    entry->product = msg.product;
+                  } else if (tagged.tag() == 1ull) {
+                    auto const [count, cell_id] = tagged.cast_to<end_token>();
+                    key = cell_id[0];
+                    accessor a;
+                    std::ignore = cached_products_.insert(a, key);
+                    entry = &a->second;
+                    entry->counter -= count;
+                    std::ignore = entry->flush_received.test_and_set();
                   } else {
                     auto const [msg_id, cell_id] = tagged.cast_to<data_cell_id>();
                     key = cell_id[0];
                     accessor a;
                     std::ignore = cached_products_.insert(a, key);
-                    a->second.msg_ids.push(msg_id);
+                    entry = &a->second;
+                    entry->msg_ids.push(msg_id);
                   }
 
-                  accessor ca;
-                  bool const result [[maybe_unused]] = cached_products_.find(ca, key);
-                  assert(result);
                   int new_msg_id{};
                   auto& output = std::get<0>(outputs);
-                  while (ca->second.product and ca->second.msg_ids.try_pop(new_msg_id)) {
+                  while (entry->product and entry->msg_ids.try_pop(new_msg_id)) {
                     output.try_put({.id = data_cell_id{.msg_id = new_msg_id, .cell_id = {key}},
-                                    .product = ca->second.product});
+                                    .product = entry->product});
+                    ++entry->counter;
+                  }
+
+                  // Cleanup
+                  if (entry->flush_received.test() and entry->counter == 0) {
+                    cached_products_.erase(key);
                   }
                   return {};
                 }}
     {
-      base_t::set_external_ports(
-        base_t::input_ports_type{input_port<0>(indexer_), input_port<1>(indexer_)},
-        base_t::output_ports_type{output_port<0>(repeater_)});
+      base_t::set_external_ports(base_t::input_ports_type{input_port<0>(indexer_),
+                                                          input_port<1>(indexer_),
+                                                          input_port<2>(indexer_)},
+                                 base_t::output_ports_type{output_port<0>(repeater_)});
       make_edge(indexer_, repeater_);
     }
 
   private:
-    flow::indexer_node<message, data_cell_id> indexer_;
+    flow::indexer_node<message, end_token, data_cell_id> indexer_;
     flow::multifunction_node<tagged_repeater_msg, std::tuple<message>> repeater_;
     concurrent_hash_map<int, cached_product> cached_products_; // FIXME: int should be the ID itself
   };
@@ -130,32 +153,50 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
 
   // 1. input
   int i{};
-  flow::input_node src{g, [&i](flow_control& fc) -> data_cell_id {
-                         if (i == num_messages) {
+  bool flush_run{false};
+  flow::input_node src{g,
+                       [&i, &flush_run](flow_control& fc) -> std::variant<data_cell_id, end_token> {
+                         if (i == num_messages and not flush_run) {
                            fc.stop();
                            return {};
                          }
 
-                         auto const [remainder, quotient] = std::div(i++, 10);
-                         if (quotient == 0) {
-                           return {.msg_id = i, .cell_id = {remainder}};
+                         auto const [quotient, remainder] = std::div(i, 10);
+                         if (remainder == 0 and flush_run) {
+                           flush_run = false;
+                           return end_token{.count = spills_per_run, .cell_id = {quotient}};
                          }
-                         return {.msg_id = i, .cell_id = {remainder, quotient}};
+
+                         ++i;
+                         if (remainder == 0) {
+                           return data_cell_id{.msg_id = i, .cell_id = {quotient}};
+                         }
+                         flush_run = true;
+                         return data_cell_id{.msg_id = i, .cell_id = {quotient, remainder}};
                        }};
 
   flow::broadcast_node<data_cell_id> run_index_set{g};   // 3. I(run)
   flow::broadcast_node<data_cell_id> spill_index_set{g}; // 4. I(spill)
+  flow::broadcast_node<end_token> end_run{g};
 
   // 2. router
-  flow::function_node<data_cell_id> router{
+  flow::function_node<std::variant<data_cell_id, end_token>> router{
     g,
     flow::unlimited,
-    [&run_index_set, &spill_index_set](data_cell_id const& id) -> flow::continue_msg {
-      auto const& [_, cell_id] = id;
+    [&run_index_set, &end_run, &spill_index_set](
+      std::variant<data_cell_id, end_token> const& src_token) -> flow::continue_msg {
+      auto const* id = std::get_if<data_cell_id>(&src_token);
+      if (!id) {
+        auto const& end_run_token = std::get<end_token>(src_token);
+        end_run.try_put(end_run_token);
+        return {};
+      }
+
+      auto const& [_, cell_id] = *id;
       if (cell_id.size() == 1ull) {
-        run_index_set.try_put(id);
+        run_index_set.try_put(*id);
       } else {
-        spill_index_set.try_put(id);
+        spill_index_set.try_put(*id);
       }
       return {};
     }};
@@ -180,7 +221,8 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   // 7. repeater
   repeater_node repeater{g};
   make_edge(exponent_provider, input_port<0>(repeater));
-  make_edge(spill_index_set, input_port<1>(repeater));
+  make_edge(end_run, input_port<1>(repeater));
+  make_edge(spill_index_set, input_port<2>(repeater));
 
   auto use_message_id = [](message const& msg) { return msg.id.msg_id; };
   flow::join_node<std::tuple<message, message>, flow::tag_matching> join_layers{
