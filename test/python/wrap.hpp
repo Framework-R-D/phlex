@@ -18,6 +18,8 @@
 
 #include "Python.h"
 
+#include <memory>
+
 #include "phlex/configuration.hpp"
 #include "phlex/module.hpp"
 
@@ -37,6 +39,16 @@ namespace phlex::experimental {
   // Python wrapper for Phlex modules
   extern PyTypeObject PhlexModule_Type;
   struct py_phlex_module;
+
+  // Python wrapper for Phlex handles
+  extern PyTypeObject PhlexLifeline_Type;
+  // clang-format off
+  typedef struct py_lifeline {
+    PyObject_HEAD
+    PyObject* m_view;
+    std::shared_ptr<void> m_source;
+  } py_lifeline_t;
+  // clang-format on
 
   // Error reporting helper.
   void throw_runtime_error_from_py_error(bool check_error);
