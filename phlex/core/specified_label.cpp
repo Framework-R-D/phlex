@@ -2,14 +2,17 @@
 
 #include "fmt/format.h"
 
+#include <cstddef>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <tuple>
+#include <utility>
 
 namespace phlex::experimental {
   specified_label specified_label::operator()(std::string family) &&
   {
-    return {std::move(name), std::move(family)};
+    return {.name = std::move(name), .family = std::move(family)};
   }
 
   std::string specified_label::to_string() const
@@ -50,7 +53,7 @@ namespace phlex::experimental {
 
   specified_label specified_label::create(std::string const& s)
   {
-    return {qualified_name::create(s)};
+    return {.name = qualified_name::create(s)};
   }
 
   specified_label specified_label::create(specified_label l) { return l; }

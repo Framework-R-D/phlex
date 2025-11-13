@@ -32,7 +32,7 @@ namespace phlex::experimental {
                 node_catalog& nodes,
                 std::vector<std::string>& errors)
       requires(std::same_as<T, void_tag>)
-      : config_{&config}, graph_{g}, nodes_{nodes}, errors_{errors}
+      : graph_{g}, nodes_{nodes}, errors_{errors}, config_{&config}
     {
     }
 
@@ -99,7 +99,7 @@ namespace phlex::experimental {
                 std::shared_ptr<T> bound_obj,
                 std::vector<std::string>& errors)
       requires(not std::same_as<T, void_tag>)
-      : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{bound_obj}, errors_{errors}
+      : graph_{g}, nodes_{nodes}, errors_{errors}, bound_obj_{std::move(bound_obj)}, config_{config}
     {
     }
 
@@ -108,11 +108,13 @@ namespace phlex::experimental {
       return glue{graph_, nodes_, (use_bound_object ? bound_obj_ : nullptr), errors_, config_};
     }
 
-    configuration const* config_;
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     tbb::flow::graph& graph_;
     node_catalog& nodes_;
-    std::shared_ptr<T> bound_obj_;
     std::vector<std::string>& errors_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::shared_ptr<T> bound_obj_;
+    configuration const* config_;
   };
 }
 

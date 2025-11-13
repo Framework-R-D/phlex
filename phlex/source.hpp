@@ -64,6 +64,8 @@ namespace phlex::experimental::detail {
 }
 
 #define PHLEX_EXPERIMENTAL_REGISTER_SOURCE(source)                                                 \
-  BOOST_DLL_ALIAS(phlex::experimental::detail::create_next<source>, create_source)
+  /* NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables) */                            \
+  BOOST_DLL_ALIAS(phlex::experimental::detail::create_next<source>, create_source)                 \
+  /* NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables) */
 
 #endif // PHLEX_SOURCE_HPP

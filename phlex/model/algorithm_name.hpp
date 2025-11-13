@@ -1,17 +1,18 @@
 #ifndef PHLEX_MODEL_ALGORITHM_NAME_HPP
 #define PHLEX_MODEL_ALGORITHM_NAME_HPP
 
+#include <cstdint>
 #include <string>
 
 namespace phlex::experimental {
   class algorithm_name {
-    enum specified_fields { neither, either, both };
+    enum specified_fields : std::uint8_t { neither, either, both };
 
   public:
     algorithm_name();
 
     algorithm_name(char const* spec);
-    algorithm_name(std::string spec);
+    algorithm_name(std::string const& spec);
     algorithm_name(std::string plugin,
                    std::string algorithm,
                    specified_fields fields = specified_fields::both);

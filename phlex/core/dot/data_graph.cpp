@@ -124,12 +124,12 @@ namespace phlex::experimental::dot {
         edge(out,
              source_name,
              target_name,
-             attributes{.color = "\"#a9a9a9\"", .fontsize = default_fontsize, .style = "dotted"});
+             attributes{.color = "\"#a9a9a9\"", .fontsize = default_fontsize(), .style = "dotted"});
       } else {
         edge(out,
              source_name,
              target_name,
-             attributes{.color = "blue", .fontsize = default_fontsize, .label = edge_name});
+             attributes{.color = "blue", .fontsize = default_fontsize(), .label = edge_name});
       }
     }
 

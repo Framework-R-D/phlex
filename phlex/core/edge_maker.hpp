@@ -100,7 +100,7 @@ namespace phlex::experimental {
         function_graph_->edge(sender.node.full(),
                               receiver_node_name,
                               {.color = "blue",
-                               .fontsize = dot::default_fontsize,
+                               .fontsize = dot::default_fontsize(),
                                .label = dot::parenthesized(product_name)});
       }
     }

@@ -4,10 +4,10 @@
 #include "boost/algorithm/string.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
 #include <map>
 #include <numeric>
-#include <stdexcept>
 
 namespace {
 
@@ -46,7 +46,7 @@ namespace phlex::experimental {
   level_id const& level_id::base() { return *base_ptr(); }
   level_id_ptr level_id::base_ptr()
   {
-    static phlex::experimental::level_id_ptr base_id{new level_id};
+    static phlex::experimental::level_id_ptr const base_id{new level_id};
     return base_id;
   }
 
@@ -127,9 +127,9 @@ namespace phlex::experimental {
   std::string level_id::to_string() const
   {
     // FIXME: prefix needs to be adjusted esp. if a root name can be supplied by the user.
-    std::string prefix{"["}; //"root: ["};
+    std::string const prefix{"["}; //"root: ["};
     std::string result;
-    std::string suffix{"]"};
+    std::string const suffix{"]"};
 
     if (number_ != -1ull) {
       result = to_string_this_level();

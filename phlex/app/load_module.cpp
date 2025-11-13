@@ -8,7 +8,10 @@
 #include "boost/dll/import.hpp"
 #include "boost/json.hpp"
 
+#include <cstdlib>
+#include <filesystem>
 #include <functional>
+#include <stdexcept>
 #include <string>
 
 using namespace std::string_literals;
@@ -21,12 +24,13 @@ namespace phlex::experimental {
     std::vector<std::function<detail::module_creator_t>> create_module;
     std::function<detail::source_creator_t> create_source;
 
-    template <typename creator_t>
-    std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
+    template <typename CreatorT>
+    std::function<CreatorT> plugin_loader(std::string const& spec, std::string const& symbol_name)
     {
       char const* plugin_path_ptr = std::getenv("PHLEX_PLUGIN_PATH");
-      if (!plugin_path_ptr)
+      if (!plugin_path_ptr) {
         throw std::runtime_error("PHLEX_PLUGIN_PATH has not been set.");
+      }
 
       using namespace boost;
       std::vector<std::string> subdirs;
@@ -37,7 +41,7 @@ namespace phlex::experimental {
         std::filesystem::path shared_library_path{subdir};
         shared_library_path /= "lib" + spec + ".so";
         if (exists(shared_library_path)) {
-          return dll::import_alias<creator_t>(shared_library_path, symbol_name);
+          return dll::import_alias<CreatorT>(shared_library_path, symbol_name);
         }
       }
       throw std::runtime_error("Could not locate library with specification '"s + spec +

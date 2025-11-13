@@ -57,7 +57,7 @@ namespace phlex::experimental::dot {
       edge(source_name,
            target_name,
            {.color = "blue",
-            .fontsize = default_fontsize,
+            .fontsize = default_fontsize(),
             .label = parenthesized(head_port.product_label.to_string()),
             .style = "dashed"});
     }

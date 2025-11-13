@@ -63,11 +63,11 @@ namespace phlex::experimental {
 
   template <typename Ptr>
   class registrar {
-    using Nodes = simple_ptr_map<Ptr>;
+    using nodes_t = simple_ptr_map<Ptr>;
     using node_creator = std::function<Ptr(std::vector<std::string>, std::vector<std::string>)>;
 
   public:
-    explicit registrar(Nodes& nodes, std::vector<std::string>& errors) :
+    explicit registrar(nodes_t& nodes, std::vector<std::string>& errors) :
       nodes_{&nodes}, errors_{&errors}
     {
     }
@@ -116,11 +116,11 @@ namespace phlex::experimental {
       }
     }
 
-    Nodes* nodes_;
+    nodes_t* nodes_;
     std::vector<std::string>* errors_;
     node_creator creator_{};
     std::optional<std::vector<std::string>> predicates_;
-    std::vector<std::string> output_products_{};
+    std::vector<std::string> output_products_;
   };
 }
 
