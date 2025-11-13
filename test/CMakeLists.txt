@@ -31,22 +31,16 @@ add_unit_test(string_literal LIBRARIES phlex::utilities)
 add_unit_test(type_deduction LIBRARIES phlex::metaprogramming)
 add_unit_test(yielding_driver LIBRARIES phlex::core TBB::tbb)
 
-add_catch_test(
-  allowed_families LIBRARIES phlex::core Boost::json
-  )
+add_catch_test(allowed_families LIBRARIES phlex::core Boost::json)
 add_catch_test(vector_of_abstract_types LIBRARIES phlex::core)
-add_catch_test(
-  cached_execution LIBRARIES phlex::core Boost::json
-  )
+add_catch_test(cached_execution LIBRARIES phlex::core Boost::json)
 add_catch_test(cached_product_stores LIBRARIES phlex::core)
 add_catch_test(class_registration LIBRARIES phlex::core Boost::json)
 add_catch_test(different_hierarchies LIBRARIES phlex::core)
 add_catch_test(filter_impl LIBRARIES phlex::core)
 add_catch_test(filter LIBRARIES phlex::core Boost::json)
 add_catch_test(function_registration LIBRARIES phlex::core Boost::json)
-add_catch_test(
-  hierarchical_nodes LIBRARIES Boost::json TBB::tbb phlex::core
-  )
+add_catch_test(hierarchical_nodes LIBRARIES Boost::json TBB::tbb phlex::core)
 add_catch_test(multiple_function_registration LIBRARIES Boost::json phlex::core)
 add_catch_test(level_counting LIBRARIES phlex::model phlex::utilities)
 add_catch_test(level_id LIBRARIES phlex::model)
