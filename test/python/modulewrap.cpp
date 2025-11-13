@@ -270,7 +270,11 @@ namespace {
     std::shared_ptr<T> m_dataobj;
   };
 
-  static intptr_t vint_to_py(std::shared_ptr<std::vector<int>> const& v)
+  static intptr_t vint_to_py(std::shared_ptr<std::vector<int>> const&
+#ifdef PHLEX_HAVE_NUMPY
+                               v
+#endif
+  )
   {
     PyGILRAII gil;
 
