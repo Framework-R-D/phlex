@@ -89,9 +89,15 @@ jobs:
     permissions:
       contents: read
       issues: write
+      pull-requests: write
+      security-events: read
     env:
       CODEQL_MIN_LEVEL: warning
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Set log file path
+        id: set_log_path
+        run: echo "path=$RUNNER_TEMP/codeql-alerts.log" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -108,13 +114,49 @@ jobs:
         id: check_codeql
         run: |
           set -euo pipefail
-          python3 scripts/check_codeql_alerts.py \
-            --sarif "$GITHUB_WORKSPACE/sarif" \
+          ARGS=(
+            --sarif "$GITHUB_WORKSPACE/sarif"
             --min-level "${CODEQL_MIN_LEVEL}"
+            --log-path "${{ steps.set_log_path.outputs.path }}"
+          )
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ARGS+=(--ref "refs/pull/${{ github.event.pull_request.number }}/merge")
+          fi
+          python3 scripts/check_codeql_alerts.py "${ARGS[@]}"
+
+      - name: Upload CodeQL alerts debug log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-alerts-debug-log
+          path: ${{ steps.set_log_path.outputs.path }}
+          retention-days: 3
+
+      - name: "Debug: PR head and repo info (no-op for non-PR runs)"
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "github.repository: ${{ github.repository }}"
+          echo "pr.head.repo.full_name: ${{ github.event.pull_request.head.repo.full_name }}"
+          echo "pr.head.repo.owner.login: ${{ github.event.pull_request.head.repo.owner.login }}"
+          echo "pr.base.repo.full_name: ${{ github.event.pull_request.base.repo.full_name }}"
+          echo "actor: ${{ github.actor }}"
+          echo "Available step outputs from check_codeql:"
+          echo "  new_alerts=${{ steps.check_codeql.outputs.new_alerts }}"
+          echo "  fixed_alerts=${{ steps.check_codeql.outputs.fixed_alerts }}"
+          echo "Event payload head/type (first 200 chars):"
+          if [ -n "$GITHUB_EVENT_PATH" ]; then
+            jq -c . < "$GITHUB_EVENT_PATH" | cut -c-200 || true
+          fi
 
       - name: Comment on PR with CodeQL alert changes
+        # Only attempt to post comments on pull requests that originate from
+        # the same repository. GitHub's `GITHUB_TOKEN` cannot create comments
+        # on pull requests originating from forks (Resource not accessible
+        # by integration). For forked PRs, maintainers can inspect the
+        # uploaded log/artifact instead.
         if: >-
           github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
           (steps.check_codeql.outputs.new_alerts == 'true' ||
            steps.check_codeql.outputs.fixed_alerts == 'true')
         uses: actions/github-script@v7
@@ -159,7 +201,13 @@ jobs:
             }
 
       - name: Fail workflow due to new CodeQL alerts
-        if: github.event_name == 'pull_request' && steps.check_codeql.outputs.new_alerts == 'true'
+        # Only fail the job for PRs from the same repository where the
+        # action has permission to comment / act. Forked PR runs cannot
+        # reliably perform repo-write actions with `GITHUB_TOKEN`.
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          steps.check_codeql.outputs.new_alerts == 'true'
         run: |
           echo "New CodeQL alerts detected; failing job."
           exit 1
