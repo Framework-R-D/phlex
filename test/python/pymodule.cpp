@@ -47,7 +47,6 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
     throw_runtime_error_from_py_error(false /* check_error */);
 }
 
-
 #ifdef PHLEX_HAVE_NUMPY
 static void import_numpy(bool control_interpreter)
 {
