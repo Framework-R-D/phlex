@@ -57,6 +57,7 @@ except ImportError:
 
   check_python_module_version("cppyy" "3.6.0" HAS_CPPYY)
   check_python_module_version("numba" "0.61.0" HAS_NUMBA)
+  check_python_module_version("numpy" "2.0.0" HAS_NUMPY)
 
   if(HAS_CPPYY)
 
@@ -91,7 +92,8 @@ except ImportError:
 
   # Phlex module to run Python algorithms
   add_library(
-    pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp errorwrap.cpp
+    pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp lifelinewrap.cpp
+                    errorwrap.cpp
     )
   include_directories(pymodule, ${Python_INCLUDE_DIRS})
   target_link_libraries(
@@ -100,15 +102,37 @@ except ImportError:
     PUBLIC Python::Python
     )
 
+  # numpy support if installed
+  if(HAS_NUMPY)
+
+    # locate numpy's header directory
+    execute_process(
+      COMMAND "${Python_EXECUTABLE}" -c
+              "import numpy; print(numpy.get_include(), end='')"
+      RESULT_VARIABLE NUMPY_RESULT
+      OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+
+    if(NUMPY_RESULT EQUAL 0)
+      include_directories(pymodule PRIVATE ${NUMPY_INCLUDE_DIR})
+      target_compile_definitions(
+        pymodule PRIVATE PHLEX_HAVE_NUMPY=1
+                         NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION
+        )
+    endif()
+
+    # phlex-based tests that require numpy support
+    add_test(NAME py:vec
+             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet -g
+                     pyvec.gv
+             )
+  endif()
+
   # phlex-based tests (no cppyy dependency)
   add_test(NAME py:add
            COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet -g
                    pyadd.gv
-           )
-
-  add_test(NAME py:vec
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet -g
-                   pyvec.gv
            )
 
   set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
