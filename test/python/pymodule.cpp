@@ -7,6 +7,14 @@
 
 #include "wrap.hpp"
 
+#ifdef PHLEX_HAVE_NUMPY
+#define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
+#include <numpy/arrayobject.h>
+#endif
+
+#include <iostream>
+#include <vector>
+
 using namespace phlex::experimental;
 
 static bool initialize();
@@ -39,10 +47,28 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
     throw_runtime_error_from_py_error(false /* check_error */);
 }
 
+static void import_numpy(bool control_interpreter)
+{
+#ifdef PHLEX_HAVE_NUMPY
+  static std::atomic<bool> numpy_imported{false};
+  if (!numpy_imported.exchange(true)) {
+    std::cerr << "NOW IMPORTINT NUMPY " << std::endl;
+    if (_import_array() < 0) {
+      PyErr_Print();
+      if (control_interpreter)
+        Py_Finalize();
+      throw std::runtime_error("build with numpy support, but numpy not importable");
+    }
+  }
+#endif
+}
+
 static bool initialize()
 {
-  if (Py_IsInitialized())
+  if (Py_IsInitialized()) {
+    import_numpy(false);
     return true;
+  }
 
   // TODO: the Python library is already loaded (b/c it's linked with
   // this module), but its symbols need to be exposed globally to Python
@@ -88,6 +114,10 @@ static bool initialize()
   // add custom types
   PyType_Ready(&PhlexConfig_Type);
   PyType_Ready(&PhlexModule_Type);
+  PyType_Ready(&PhlexLifeline_Type);
+
+  // load numpy (see also above, if already initialized)
+  import_numpy(true);
 
   // TODO: the GIL should first be released on the main thread and this seems
   // to be the only place to do it. However, there is no equivalent place to

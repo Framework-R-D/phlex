@@ -5,12 +5,21 @@
 #include <memory>
 #include <vector>
 
+#ifdef PHLEX_HAVE_NUMPY
+#define NO_IMPORT_ARRAY
+#define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
+#include <numpy/arrayobject.h>
+#endif
+
 using namespace phlex::experimental;
 
 // Simple phlex module wrapper
+// clang-format off
 struct phlex::experimental::py_phlex_module {
-  PyObject_HEAD phlex_module_t* ph_module;
+  PyObject_HEAD
+  phlex_module_t* ph_module;
 };
+// clang-format on
 
 PyObject* phlex::experimental::wrap_module(phlex_module_t* module_)
 {
@@ -26,6 +35,14 @@ PyObject* phlex::experimental::wrap_module(phlex_module_t* module_)
 }
 
 namespace {
+
+  static inline PyObject* lifeline_transform(intptr_t arg)
+  {
+    if (Py_TYPE((PyObject*)arg) == &PhlexLifeline_Type) {
+      return ((py_lifeline_t*)arg)->m_view;
+    }
+    return (PyObject*)arg;
+  }
 
   // callable object managing the callback
   template <size_t N>
@@ -59,7 +76,7 @@ namespace {
       PyGILRAII gil;
 
       PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
+        PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args)..., nullptr);
 
       decref_all(args...);
 
@@ -247,32 +264,47 @@ namespace {
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
+  template <class T>
+  struct LifeLine {
+    PyObject* m_pyobject;
+    std::shared_ptr<T> m_dataobj;
+  };
+
   static intptr_t vint_to_py(std::shared_ptr<std::vector<int>> const& v)
   {
     PyGILRAII gil;
-    // TODO: will want numpy array here, but that requires properly setting that
-    // up as a dependency. For now, stick with a basic memory copy for testing, as
-    // that also prevents ownership issues (the framework doesn't know the view,
-    // which is passed on, needs the original object alive).
 
-    // create empty array
-    PyObject* array_module = PyImport_ImportModule("array");
-    PyObject* array_class = PyObject_GetAttrString(array_module, "array");
-    Py_DECREF(array_module);
+#ifdef PHLEX_HAVE_NUMPY
+    // use a numpy view with the shared pointer tied up in a lifeline object (note: this
+    // is just a demonstrator; alternatives are still being considered)
+    npy_intp dims[] = {static_cast<npy_intp>(v->size())};
 
-    PyObject* atype = PyUnicode_FromString("i");
-    PyObject* array_obj = PyObject_CallOneArg(array_class, atype);
-    Py_DECREF(atype);
-    Py_DECREF(array_class);
+    PyObject* np_view = PyArray_SimpleNewFromData(1,        // ndims
+                                                  dims,     // dim sizes
+                                                  NPY_INT,  // C type matching int
+                                                  v->data() // raw buffer
+    );
 
-    // extend array with vector data using a bytes object (note that this causes
-    // there to be 2 copies, but it's faster b/c there's no loop Python-side)
-    PyObject* array_bytes = PyBytes_FromStringAndSize((char*)v->data(), v->size() * sizeof(int));
-    PyObject* res = PyObject_CallMethod(array_obj, "frombytes", "O", array_bytes);
-    Py_DECREF(array_bytes);
-    Py_XDECREF(res);
+    if (!np_view)
+      return (intptr_t)nullptr;
 
-    return (intptr_t)array_obj;
+    // make the date read-only by not making it writable
+    PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);
+
+    // create a lifeline object to tie this array and the original handle together; note
+    // that the callback code needs to pick the data member out of the lifeline object,
+    // when passing it to the registered Python function
+    py_lifeline_t* pyll =
+      (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);
+    pyll->m_view = np_view; // steals reference
+    pyll->m_source = v;
+
+    return (intptr_t)pyll;
+
+#else
+    PyErr_SetString(PyExc_SystemError, "vector data products are not supported without numpy");
+    return (intptr_t)nullptr;
+#endif
   }
 
 } // unnamed namespace
