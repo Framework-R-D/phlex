@@ -6,9 +6,12 @@
 using namespace phlex::experimental;
 
 // Create a dict-like access to the configuration from Python.
+// clang-format off
 struct phlex::experimental::py_config_map {
-  PyObject_HEAD phlex::experimental::configuration const* ph_config;
+  PyObject_HEAD
+  phlex::experimental::configuration const* ph_config;
 };
+// clang-format on
 
 PyObject* phlex::experimental::wrap_configuration(configuration const* config)
 {
