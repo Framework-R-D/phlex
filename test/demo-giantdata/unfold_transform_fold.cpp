@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
 
     // Execute the graph.
     demo::log_record("execute_graph");
-    g.execute("unfold_transform_fold");
+    g.execute();
     demo::log_record("end_graph");
   }
   demo::log_record("graph_destroyed");

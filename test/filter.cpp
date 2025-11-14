@@ -96,7 +96,7 @@ TEST_CASE("Two predicates", "[filtering]")
     .input_family("num"_in("event"))
     .when("odds_only");
 
-  g.execute("two_independent_predicates_t");
+  g.execute();
 
   CHECK(g.execution_counts("add_evens") == 5);
   CHECK(g.execution_counts("add_odds") == 5);
@@ -114,7 +114,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
     .input_family("num")
     .when("odds_only");
 
-  g.execute("two_predicates_in_series_t");
+  g.execute();
 
   CHECK(g.execution_counts("add") == 0);
 }
@@ -129,7 +129,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
     .input_family("num")
     .when("odds_only", "evens_only");
 
-  g.execute("two_predicates_in_parallel_t");
+  g.execute();
 
   CHECK(g.execution_counts("add") == 0);
 }
@@ -160,7 +160,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
     .input_family("num")
     .when(predicate_names);
 
-  g.execute("three_predicates_in_parallel_t");
+  g.execute();
 
   CHECK(g.execution_counts("collect") == 3);
 }
@@ -180,7 +180,7 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
     .input_family("other_num", "num") // <= Note input order
     .when("odds_only");
 
-  g.execute("two_predicates_in_parallel_multiarg_t");
+  g.execute();
 
   CHECK(g.execution_counts("check_odds") == 5);
   CHECK(g.execution_counts("check_evens") == 5);

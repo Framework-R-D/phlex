@@ -6,15 +6,13 @@
 using namespace std::string_literals;
 
 namespace phlex::experimental {
-  void run(boost::json::object const& configurations,
-           std::optional<std::string> dot_file,
-           int const max_parallelism)
+  void run(boost::json::object const& configurations, int const max_parallelism)
   {
     framework_graph g{load_source(configurations.at("source").as_object()), max_parallelism};
     auto const module_configs = configurations.at("modules").as_object();
     for (auto const& [key, value] : module_configs) {
       load_module(g, key, value.as_object());
     }
-    g.execute(dot_file.value_or(""s));
+    g.execute();
   }
 }
