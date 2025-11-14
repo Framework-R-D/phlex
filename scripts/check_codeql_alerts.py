@@ -168,41 +168,49 @@ def _paginate_alerts_api(owner: str, repo: str, *, state: str = "open", ref: Opt
         page += 1
 
 
+def _format_physical_location(phys: Dict[str, Any]) -> Optional[str]:
+    """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation dict, or None."""
+    if not phys:
+        return None
+    artifact = phys.get("artifactLocation") or {}
+    uri = artifact.get("uri") or artifact.get("uriBaseId")
+    if not uri:
+        return None
+    uri = str(uri)
+    region = phys.get("region") or {}
+    start_line = region.get("startLine")
+    start_column = region.get("startColumn")
+    if start_line is not None:
+        loc = f"{uri}:{start_line}"
+        if start_column is not None:
+            loc = f"{loc}:{start_column}"
+        return loc
+    return uri
+
+
 def _to_alert_api(raw: dict) -> Alert:
     """Convert a raw code-scanning alert object from the API into Alert dataclass."""
     rule = raw.get("rule") or {}
     rule_id = str(rule.get("id") or "(rule id unavailable)")
     instance = raw.get("most_recent_instance") or {}
     loc = instance.get("location") or {}
-    path = None
+    location = "(location unavailable)"
     if loc:
         phys = loc.get("physicalLocation") or {}
-        artifact = phys.get("artifactLocation") or {}
-        path = artifact.get("uri") or artifact.get("uriBaseId")
-        region = phys.get("region") or {}
-        start_line = region.get("startLine")
-        if start_line is not None and path:
-            location = f"{path}:{start_line}"
-        elif path:
-            location = str(path)
-        else:
-            location = "(location unavailable)"
+        formatted = _format_physical_location(phys)
+        if formatted:
+            location = formatted
     else:
-        location = "(location unavailable)"
         # If the API instance has no physical location, try to locate using other instances
         # (some alerts expose locations in 'instances' or other fields)
         other_instances = raw.get("instances") or []
         for inst in other_instances:
             inst_loc = inst.get("location") or {}
             phys = inst_loc.get("physicalLocation") or {}
-            artifact = phys.get("artifactLocation") or {}
-            path2 = artifact.get("uri") or artifact.get("uriBaseId")
-            region2 = phys.get("region") or {}
-            start_line2 = region2.get("startLine")
-            if path2:
-                if start_line2 is not None:
-                    return f"{path2}:{start_line2}"
-                return str(path2)
+            formatted = _format_physical_location(phys)
+            if formatted:
+                location = formatted
+                break
 
     # The API doesn't always include a textual message; use rule name if present
     rule_name = rule.get("name")
