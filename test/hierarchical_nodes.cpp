@@ -102,31 +102,26 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 {
   framework_graph g{levels_to_process};
 
-  g.transform("get_the_time", strtime, concurrency::unlimited)
-    .input_family("time")
-    .when()
-    .output_products("strtime");
-  g.transform("square", square, concurrency::unlimited)
-    .input_family("number")
-    .output_products("squared_number");
+  g.transform("get_the_time", strtime).input_family("time").when().output_products("strtime");
+  g.transform("square", square).input_family("number").output_products("squared_number");
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
     .input_family("squared_number")
     .when()
     .output_products("added_data");
 
-  g.transform("scale", scale, concurrency::unlimited)
-    .input_family("added_data")
-    .output_products("result");
-  g.observe("print_result", print_result, concurrency::unlimited).input_family("result", "strtime");
+  g.transform("scale", scale).input_family("added_data").output_products("result");
+  g.observe("print_result", print_result).input_family("result", "strtime");
 
-  g.make<test::products_for_output>().output("save", &test::products_for_output::save).when();
+  g.make<test::products_for_output>()
+    .output("save", &test::products_for_output::save, concurrency::serial)
+    .when();
 
   g.execute();
 
   CHECK(g.execution_counts("square") == index_limit * number_limit);
   CHECK(g.execution_counts("add") == index_limit * number_limit);
-  CHECK(g.execution_counts("get_the_time") >= index_limit);
+  CHECK(g.execution_counts("get_the_time") == index_limit);
   CHECK(g.execution_counts("scale") == index_limit);
   CHECK(g.execution_counts("print_result") == index_limit);
 }
