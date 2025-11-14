@@ -280,7 +280,7 @@ def _to_alert_api(raw: dict) -> Alert:
             if inst_props.get(key):
                 security_severity = str(inst_props.get(key))
                 break
-    return Alert(
+    alert = Alert(
         number=(int(raw.get("number")) if raw.get("number") is not None else None),
         html_url=raw.get("html_url"),
         rule_id=rule_id,
@@ -305,6 +305,7 @@ def _to_alert_api(raw: dict) -> Alert:
             _log(f"Unknown API alert location: {json.dumps(snippet, default=str)[:4000]}")
         except Exception:
             pass
+    return alert
 
 
 def _load_sarif_file(path: Path) -> Dict[str, Any]:
