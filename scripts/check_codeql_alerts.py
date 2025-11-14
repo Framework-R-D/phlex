@@ -295,16 +295,18 @@ def _to_alert_api(raw: dict) -> Alert:
     )
     # If location couldn't be determined, log the raw API alert for inspection
     if location == "(location unavailable)":
-        try:
-            snippet = {
-                "number": raw.get("number"),
-                "rule": raw.get("rule"),
-                "most_recent_instance": raw.get("most_recent_instance"),
-                "instances": raw.get("instances"),
-            }
-            _log(f"Unknown API alert location: {json.dumps(snippet, default=str)[:4000]}")
-        except Exception:
-            pass
+                try:
+                    snippet = {
+                        "number": raw.get("number"),
+                        "rule": raw.get("rule"),
+                        "most_recent_instance": raw.get("most_recent_instance"),
+                        "instances": raw.get("instances"),
+                    }
+                    _log(f"Unknown API alert location: {json.dumps(snippet, default=str)[:4000]}")
+                except (TypeError, OSError) as exc:
+                    # Best-effort logging failed; print a short message in debug mode.
+                    if DEBUG:
+                        print(f"Failed to write API unknown-location snippet: {exc}", file=sys.stderr)
     return alert
 
 
@@ -499,10 +501,10 @@ def collect_alerts(
                         "relatedLocations": result.get("relatedLocations"),
                     }
                     _log(f"Unknown SARIF location for result: {json.dumps(snippet, default=str)[:4000]}")
-                except Exception:
-                    # best-effort logging
-                    pass
-            buckets[baseline_state].append(alert)
+                except (TypeError, OSError) as exc:
+                    if DEBUG:
+                        print(f"Failed to write SARIF unknown-location snippet: {exc}", file=sys.stderr)
+                buckets[baseline_state].append(alert)
     return buckets
 
 

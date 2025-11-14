@@ -1,0 +1,138 @@
+# Triggered after the CodeQL analysis workflow completes. This job runs in the
+# repository context (not the PR head) and posts the uploaded CodeQL comment
+# artifact to the pull request. It avoids the "Resource not accessible by
+# integration" problem by running in the base-repo context.
+
+name: "CodeQL - Post Comment (from artifact)"
+
+on:
+  workflow_run:
+    workflows: ["CodeQL - Analyze (C++, Python, Actions)"]
+    types: [completed]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  post-comment:
+    name: Post CodeQL comment from artifact
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run.pull_requests != '' }}
+    steps:
+      - name: Prepare environment
+        run: |
+          set -euxo pipefail
+          apt-get update -y
+          apt-get install -y --no-install-recommends jq unzip curl
+          RUN_ID=${{ github.event.workflow_run.id }}
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+
+      - name: Fetch artifact id
+        id: fetch-artifact
+        run: |
+          set -euxo pipefail
+          RUN_ID=${RUN_ID}
+          # Triggered after the CodeQL analysis workflow completes. This job runs in the
+          # repository context (not the PR head) and posts the uploaded CodeQL comment
+          # artifact to the pull request. It avoids the "Resource not accessible by
+          # integration" problem by running in the base-repo context.
+
+          name: "CodeQL - Post Comment (from artifact)"
+
+          on:
+            workflow_run:
+              workflows: ["CodeQL - Analyze (C++, Python, Actions)"]
+              types: [completed]
+
+          permissions:
+            issues: write
+            contents: read
+
+          jobs:
+            post-comment:
+              name: Post CodeQL comment from artifact
+              runs-on: ubuntu-24.04
+              if: ${{ github.event.workflow_run.pull_requests != '' }}
+              steps:
+                - name: Prepare environment
+                  run: |
+                    set -euxo pipefail
+                    apt-get update -y
+                    apt-get install -y --no-install-recommends jq unzip curl
+                    RUN_ID=${{ github.event.workflow_run.id }}
+                    echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+
+                - name: Fetch artifact id
+                  id: fetch-artifact
+                  run: |
+                    set -euxo pipefail
+                    RUN_ID=${RUN_ID}
+                    OWNER=${{ github.repository_owner }}
+                    REPO=${{ github.event.repository.name }}
+                    ARTIFACTS_URL="https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/artifacts"
+                    echo "Listing artifacts for run ${RUN_ID}..."
+                    RESP=$(curl -sS -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$ARTIFACTS_URL")
+                    ART_ID=$(echo "$RESP" | jq -r '.artifacts[] | select(.name=="codeql-alerts-md") | .id')
+                    if [ -z "$ART_ID" ] || [ "$ART_ID" = "null" ]; then
+                      echo "No codeql-alerts-md artifact found; nothing to post." >&2
+                      echo "artifact_id=" >> $GITHUB_OUTPUT
+                      exit 0
+                    fi
+                    echo "artifact_id=$ART_ID" >> $GITHUB_OUTPUT
+
+                - name: Download and extract artifact
+                  if: steps.fetch-artifact.outputs.artifact_id != ''
+                  run: |
+                    set -euxo pipefail
+                    ART_ID=${{ steps.fetch-artifact.outputs.artifact_id }}
+                    OWNER=${{ github.repository_owner }}
+                    REPO=${{ github.event.repository.name }}
+                    ZIP_URL="https://api.github.com/repos/${OWNER}/${REPO}/actions/artifacts/${ART_ID}/zip"
+                    curl -sL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o /tmp/art.zip "$ZIP_URL"
+                    unzip -q /tmp/art.zip -d /tmp/art || true
+                    ls -la /tmp/art
+
+                - name: Post comment to PR
+                  if: steps.fetch-artifact.outputs.artifact_id != ''
+                  uses: actions/github-script@v7
+                  with:
+                    script: |
+                      const fs = require('fs');
+                      const prs = github.context.payload.workflow_run.pull_requests || [];
+                      if (!prs.length) {
+                        console.log('No pull request found for this workflow run; skipping.');
+                        return;
+                      }
+                      const pr = prs[0];
+                      const mdPath = '/tmp/art/codeql-alerts.md';
+                      if (!fs.existsSync(mdPath)) {
+                        console.log('No uploaded comment file found in artifact; skipping.');
+                        return;
+                      }
+                      const body = fs.readFileSync(mdPath, 'utf8');
+                      // Upsert comment (try to find existing marker)
+                      const marker = '<!-- codeql-alerts -->';
+                      const legacyMarker = '<!-- codeql-new-alerts -->';
+                      const { data: comments } = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: pr.number,
+                        per_page: 100,
+                      });
+                      const existing = comments.find(c => c.body.includes(marker) || c.body.includes(legacyMarker));
+                      if (existing) {
+                        await github.rest.issues.updateComment({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          comment_id: existing.id,
+                          body,
+                        });
+                      } else {
+                        await github.rest.issues.createComment({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: pr.number,
+                          body,
+                        });
+                      }
