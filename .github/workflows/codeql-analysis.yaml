@@ -94,8 +94,10 @@ jobs:
     env:
       CODEQL_MIN_LEVEL: warning
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CODEQL_ALERTS_LOG_PATH: ${{ runner.temp }}/codeql-alerts.log
     steps:
+      - name: Set log file path
+        id: set_log_path
+        run: echo "path=$RUNNER_TEMP/codeql-alerts.log" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -115,7 +117,7 @@ jobs:
           ARGS=(
             --sarif "$GITHUB_WORKSPACE/sarif"
             --min-level "${CODEQL_MIN_LEVEL}"
-            --log-path "${CODEQL_ALERTS_LOG_PATH}"
+            --log-path "${{ steps.set_log_path.outputs.path }}"
           )
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             ARGS+=(--ref "refs/pull/${{ github.event.pull_request.number }}/merge")
@@ -127,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: codeql-alerts-debug-log
-          path: ${{ env.CODEQL_ALERTS_LOG_PATH }}
+          path: ${{ steps.set_log_path.outputs.path }}
           retention-days: 3
 
       - name: "Debug: PR head and repo info (no-op for non-PR runs)"
