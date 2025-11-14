@@ -624,6 +624,28 @@ def write_summary(
             handle.write("\n")
 
 
+def _print_summary(
+    *,
+    new_alerts: Sequence[Alert],
+    fixed_alerts: Sequence[Alert],
+    matched_alerts: Sequence[Alert],
+    matched_available: bool,
+) -> None:
+    """Print a concise summary of new, fixed, and matched alerts to stdout."""
+    highest_new = highest_severity_level_title(new_alerts)
+    highest_fixed = highest_severity_level_title(fixed_alerts)
+    highest_matched = highest_severity_level_title(matched_alerts) if matched_alerts else None
+
+    print("CodeQL Summary:")
+    print(f"- New (unfiltered): {len(new_alerts)}{f' (Highest: {highest_new})' if highest_new else ''}")
+    print(f"- Fixed (unfiltered): {len(fixed_alerts)}{f' (Highest: {highest_fixed})' if highest_fixed else ''}")
+    if matched_available:
+        print(f"- Matched (preexisting): {len(matched_alerts)}{f' (Highest: {highest_matched})' if highest_matched else ''}")
+    else:
+        print("- Matched (preexisting): N/A (no API comparison)")
+    print("")
+
+
 def set_outputs(
     *,
     new_alerts: Sequence[Alert],
@@ -823,17 +845,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         main_total = len(fixed_all)
 
     # Print summary to stdout (always)
-    highest_new_all = highest_severity_level_title(new_all)
-    highest_fixed_all = highest_severity_level_title(fixed_all)
-    highest_matched = highest_severity_level_title(matched_all) if matched_all else None
-    print("CodeQL Summary:")
-    print(f"- New (unfiltered): {len(new_all)}{f' (Highest: {highest_new_all})' if highest_new_all else ''}")
-    print(f"- Fixed (unfiltered): {len(fixed_all)}{f' (Highest: {highest_fixed_all})' if highest_fixed_all else ''}")
-    if matched_available:
-        print(f"- Matched (preexisting): {len(matched_all)}{f' (Highest: {highest_matched})' if highest_matched else ''}")
-    else:
-        print("- Matched (preexisting): N/A (no API comparison)")
-    print("")
+    _print_summary(
+        new_alerts=new_all,
+        fixed_alerts=fixed_all,
+        matched_alerts=matched_all,
+        matched_available=matched_available,
+    )
 
     if new_alerts or fixed_alerts or ('new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev)) or ('new_vs_base' in locals() and (new_vs_base or fixed_vs_base)):
         repo_str = os.environ.get("GITHUB_REPOSITORY")
@@ -847,61 +864,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         summary_lines.append(f"- Matched alerts: {matched_by_ak} by fingerprint, {matched_by_rl} by composite (rule+location)")
         summary_lines.append("")
         lines.extend(summary_lines)
-
-        # Main comparison block
-        lines.append(build_comment(
-            new_alerts=new_alerts,
-            fixed_alerts=fixed_alerts,
-            repo=repo_str,
-            max_results=args.max_results,
-            threshold=min_level,
-        ).strip())
-
-        # --- Print a concise summary to stdout for reviewers/CI ---
-        # For SARIF-only mode we may have used a threshold; compute unfiltered counts when possible
-        try:
-            # If we have API dictionaries, use them to compute unfiltered new/fixed lists
-            pr_keys = set(pr_alerts) if 'pr_alerts' in locals() else set()
-            main_keys = set(main_alerts) if 'main_alerts' in locals() else set()
-        except NameError:
-            # pr_alerts/main_alerts not defined
-            _debug("API alert dictionaries not present; skipping API-based unfiltered summary")
-            pr_keys = set()
-            main_keys = set()
-
-        # Determine new/fixed lists for summary (unfiltered where possible)
-        if 'pr_alerts' in locals() and 'main_alerts' in locals():
-            # API mode: use the dicts we built
-            new_all = [pr_alerts[k] for k in sorted(pr_keys - main_keys)]
-            fixed_all = [main_alerts[k] for k in sorted(main_keys - pr_keys)]
-            matched_all = [pr_alerts[k] for k in sorted(pr_keys & main_keys)]
-            matched_available = True
-        else:
-            # SARIF-only mode: derive unfiltered buckets by re-collecting with min_level='none'
-            try:
-                buckets_all = collect_alerts(sarif, min_level='none')
-                new_all = buckets_all.get('new', [])
-                fixed_all = buckets_all.get('absent', [])
-            except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-                _debug(f"Re-collecting SARIF without threshold (second attempt) failed: {exc}; falling back")
-                new_all = new_alerts
-                fixed_all = fixed_alerts
-            matched_all = []
-            matched_available = False
-
-        highest_new_all = highest_severity_level_title(new_all)
-        highest_fixed_all = highest_severity_level_title(fixed_all)
-        highest_matched = highest_severity_level_title(matched_all) if matched_all else None
-
-        # Always print a short summary on stdout for CI reviewers
-        print("CodeQL Summary:")
-        print(f"- New (unfiltered): {len(new_all)}{f' (Highest: {highest_new_all})' if highest_new_all else ''}")
-        print(f"- Fixed (unfiltered): {len(fixed_all)}{f' (Highest: {highest_fixed_all})' if highest_fixed_all else ''}")
-        if matched_available:
-            print(f"- Matched (preexisting): {len(matched_all)}{f' (Highest: {highest_matched})' if highest_matched else ''}")
-        else:
-            print("- Matched (preexisting): N/A (no API comparison)")
-        print("")
 
         # Add previous-commit comparison if available
         if 'new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev):
@@ -924,6 +886,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 lines.append(f"## ✅ {len(fixed_vs_base)} CodeQL alert{'s' if len(fixed_vs_base) != 1 else ''} resolved since the branch point")
                 lines.extend(_format_section(fixed_vs_base, max_results=args.max_results, bullet_prefix=":white_check_mark:"))
                 lines.append("")
+
+        if repo_str:
+            code_scanning_url = f"https://github.com/{repo_str}/security/code-scanning"
+            lines.append(f"Review the [full CodeQL report]({code_scanning_url}) for details.")
+        else:
+            lines.append("Review the CodeQL report in the Security tab for full details.")
 
         comment_body = "\n".join(line for line in lines if line).strip() + "\n"
         comment_path = Path(os.environ.get("RUNNER_TEMP", ".")) / "codeql-alerts.md"
