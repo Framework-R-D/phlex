@@ -116,6 +116,14 @@ jobs:
           fi
           python3 scripts/check_codeql_alerts.py "${ARGS[@]}"
 
+      - name: Upload CodeQL alerts log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-alerts-log
+          path: ${{ steps.check_codeql.outputs.log_path }}
+          retention-days: 3
+
       - name: Comment on PR with CodeQL alert changes
         if: >-
           github.event_name == 'pull_request' &&

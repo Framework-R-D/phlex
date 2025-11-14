@@ -13,6 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from datetime import datetime
 
 
 class GitHubAPIError(RuntimeError):
@@ -49,13 +50,16 @@ def _api_request(
 
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
+        _debug(f"GitHub API request: {method} {url}")
         with urllib.request.urlopen(req) as resp:
             content = resp.read().decode("utf-8")
+            _debug(f"GitHub API response: {method} {url} (len={len(content)})")
             if not content:
                 return None
             return json.loads(content)
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
+        _debug(f"GitHub API HTTPError {exc.code} for {url}: {body[:200]}")
         raise GitHubAPIError(f"GitHub API {method} {url} failed with {exc.code}: {body}") from exc
 
 LEVEL_ORDER = {"none": 0, "note": 1, "warning": 2, "error": 3}
@@ -147,8 +151,51 @@ DEBUG = False
 
 
 def _debug(msg: str) -> None:
+    # Always write debug records to a file for later inspection. When --debug
+    # is active, also echo to stderr for immediate visibility.
+    try:
+        _log(msg)
+    except Exception:
+        # Never fail the whole run due to logging problems
+        pass
     if DEBUG:
         print(msg, file=sys.stderr)
+
+
+_LOG_PATH = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "codeql-alerts.log"
+
+
+def _log(msg: str) -> None:
+    """Append a timestamped message to the persistent log file.
+
+    This is intentionally lightweight and best-effort: logging failures are
+    swallowed to avoid affecting the main script flow.
+    """
+    try:
+        _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        # Use timezone-aware UTC timestamp to avoid deprecation warnings.
+        ts = datetime.now(datetime.timezone.utc).isoformat()
+        with open(_LOG_PATH, "a", encoding="utf-8") as fh:
+            fh.write(f"{ts} {msg}\n")
+    except Exception:
+        # swallow logging errors
+        return
+
+
+def _init_log() -> None:
+    """Ensure the persistent log file exists and is truncated for a fresh run.
+
+    This makes it straightforward to upload the single log file as a CI artifact
+    for a short lifetime after the run completes.
+    """
+    try:
+        _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(datetime.timezone.utc).isoformat()
+        with open(_LOG_PATH, "w", encoding="utf-8") as fh:
+            fh.write(f"{ts} CodeQL alerts helper log (truncated for new run)\n")
+    except Exception:
+        # Best-effort only; don't fail the run due to logging setup
+        return
 
 
 def _paginate_alerts_api(owner: str, repo: str, *, state: str = "open", ref: Optional[str] = None) -> Iterator[dict]:
@@ -246,6 +293,18 @@ def _to_alert_api(raw: dict) -> Alert:
         dismissed_reason=(str(dismissed_reason) if dismissed_reason is not None else None),
         analysis_key=(instance.get("analysis_key") or raw.get("analysis_key") or raw.get("fingerprint")),
     )
+    # If location couldn't be determined, log the raw API alert for inspection
+    if location == "(location unavailable)":
+        try:
+            snippet = {
+                "number": raw.get("number"),
+                "rule": raw.get("rule"),
+                "most_recent_instance": raw.get("most_recent_instance"),
+                "instances": raw.get("instances"),
+            }
+            _log(f"Unknown API alert location: {json.dumps(snippet, default=str)[:4000]}")
+        except Exception:
+            pass
 
 
 def _load_sarif_file(path: Path) -> Dict[str, Any]:
@@ -428,6 +487,20 @@ def collect_alerts(
                 help_uri=(rule or {}).get("helpUri"),
                 security_severity=extract_security_severity(result),
             )
+            # If we couldn't determine a physical location, log SARIF snippet for later analysis
+            if alert.location == "(location unavailable)":
+                try:
+                    snippet = {
+                        "ruleId": rule_id,
+                        "level": level,
+                        "message": alert.message,
+                        "locations": result.get("locations"),
+                        "relatedLocations": result.get("relatedLocations"),
+                    }
+                    _log(f"Unknown SARIF location for result: {json.dumps(snippet, default=str)[:4000]}")
+                except Exception:
+                    # best-effort logging
+                    pass
             buckets[baseline_state].append(alert)
     return buckets
 
@@ -557,6 +630,12 @@ def set_outputs(
             handle.write(f"comment_path={comment_path}\n")
         else:
             handle.write("comment_path=\n")
+        # Expose the persistent log file path so workflows can upload it as
+        # a short-lived artifact for debugging if desired.
+        try:
+            handle.write(f"log_path={_LOG_PATH}\n")
+        except Exception:
+            handle.write("log_path=\n")
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -564,6 +643,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     # set global debug flag
     global DEBUG
     DEBUG = bool(getattr(args, "debug", False))
+    # Recreate/truncate the persistent debug log for this run so CI can
+    # upload the single artifact if desired.
+    _init_log()
     sarif = load_sarif(args.sarif)
     min_level = severity(args.min_level)
 
@@ -571,10 +653,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     buckets = collect_alerts(sarif, min_level=min_level)
     new_alerts = buckets.get("new", [])
     fixed_alerts = buckets.get("absent", [])
+    _debug(f"SARIF baseline results: new={len(new_alerts)}, fixed={len(fixed_alerts)}")
 
     # If user supplied a ref and we found no SARIF baseline info, query the API
     # to compare alerts for the given ref against the repository state.
     if args.ref and not (new_alerts or fixed_alerts):
+        _debug("No SARIF baselineState results found; switching to API comparison mode")
         # Determine owner/repo
         owner = args.owner
         repo = args.repo
@@ -606,7 +690,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     commits = _api_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_num}/commits") or []
                     if isinstance(commits, list) and len(commits) >= 2:
                         prev_commit_ref = commits[-2].get("sha")
-                except Exception:
+                except (ValueError, GitHubAPIError, IndexError, KeyError, TypeError) as exc:
+                    # Malformed ref, API error, or unexpected response structure — treat as unavailable
+                    _debug(f"Could not determine PR base/previous commit for ref {args.ref}: {exc}")
                     base_ref = None
                     prev_commit_ref = None
 
@@ -714,7 +800,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             buckets_all = collect_alerts(sarif, min_level='none')
             new_all = buckets_all.get('new', [])
             fixed_all = buckets_all.get('absent', [])
-        except Exception:
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            # If re-collection fails (malformed SARIF or unexpected structure), fall back to thresholded lists
+            _debug(f"Re-collecting SARIF without threshold failed: {exc}; falling back to thresholded lists")
             new_all = new_alerts
             fixed_all = fixed_alerts
         matched_all = []
@@ -763,7 +851,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             # If we have API dictionaries, use them to compute unfiltered new/fixed lists
             pr_keys = set(pr_alerts) if 'pr_alerts' in locals() else set()
             main_keys = set(main_alerts) if 'main_alerts' in locals() else set()
-        except Exception:
+        except NameError:
+            # pr_alerts/main_alerts not defined
+            _debug("API alert dictionaries not present; skipping API-based unfiltered summary")
             pr_keys = set()
             main_keys = set()
 
@@ -780,7 +870,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 buckets_all = collect_alerts(sarif, min_level='none')
                 new_all = buckets_all.get('new', [])
                 fixed_all = buckets_all.get('absent', [])
-            except Exception:
+            except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                _debug(f"Re-collecting SARIF without threshold (second attempt) failed: {exc}; falling back")
                 new_all = new_alerts
                 fixed_all = fixed_alerts
             matched_all = []
