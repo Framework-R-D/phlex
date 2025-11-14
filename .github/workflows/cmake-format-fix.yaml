@@ -44,14 +44,14 @@ jobs:
     if: ${{ needs.check.outputs.match_result == 'match' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           path: phlex-src
           ref: ${{ needs.check.outputs.ref_name }}
           repository: ${{ needs.check.outputs.repo_name }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
         with:
           python-version: '3.x'
 
@@ -78,7 +78,7 @@ jobs:
           done
 
       - name: Commit formatting changes
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
         id: add_and_commit
         with:
           cwd: phlex-src
@@ -88,14 +88,14 @@ jobs:
 
       - name: Formatting changes committed and pushed
         if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
         with:
           message: |
             CMake formatting changes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
 
       - name: No formatting changes to make
         if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
         with:
           message: |
             No CMake formatting changes to make
