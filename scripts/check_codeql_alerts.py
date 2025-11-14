@@ -143,6 +143,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Enable debug output to stderr (prints API query info)",
     )
+    parser.add_argument(
+        "--log-path",
+        type=Path,
+        default=Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "codeql-alerts.log",
+        help="Path to write the persistent debug log file.",
+    )
     return parser.parse_args(argv)
 
 
@@ -162,8 +168,7 @@ def _debug(msg: str) -> None:
         print(msg, file=sys.stderr)
 
 
-_LOG_PATH = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "codeql-alerts.log"
-
+_LOG_PATH: Optional[Path] = None
 
 def _log(msg: str) -> None:
     """Append a timestamped message to the persistent log file.
@@ -171,6 +176,8 @@ def _log(msg: str) -> None:
     This is intentionally lightweight and best-effort: logging failures are
     swallowed to avoid affecting the main script flow.
     """
+    if not _LOG_PATH:
+        return
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         # Use timezone-aware UTC timestamp to avoid deprecation warnings.
@@ -182,12 +189,14 @@ def _log(msg: str) -> None:
         return
 
 
-def _init_log() -> None:
+def _init_log(log_path: Path) -> None:
     """Ensure the persistent log file exists and is truncated for a fresh run.
 
     This makes it straightforward to upload the single log file as a CI artifact
     for a short lifetime after the run completes.
     """
+    global _LOG_PATH
+    _LOG_PATH = log_path
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         ts = datetime.now(datetime.timezone.utc).isoformat()
@@ -635,9 +644,9 @@ def set_outputs(
             handle.write("comment_path=\n")
         # Expose the persistent log file path so workflows can upload it as
         # a short-lived artifact for debugging if desired.
-        try:
+        if _LOG_PATH:
             handle.write(f"log_path={_LOG_PATH}\n")
-        except Exception:
+        else:
             handle.write("log_path=\n")
 
 
@@ -648,7 +657,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     DEBUG = bool(getattr(args, "debug", False))
     # Recreate/truncate the persistent debug log for this run so CI can
     # upload the single artifact if desired.
-    _init_log()
+    _init_log(args.log_path)
     sarif = load_sarif(args.sarif)
     min_level = severity(args.min_level)
 

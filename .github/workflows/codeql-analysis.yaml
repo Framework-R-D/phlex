@@ -94,6 +94,7 @@ jobs:
     env:
       CODEQL_MIN_LEVEL: warning
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CODEQL_ALERTS_LOG_PATH: ${{ runner.temp }}/codeql-alerts.log
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -111,29 +112,22 @@ jobs:
         id: check_codeql
         run: |
           set -euo pipefail
-          ARGS=(--sarif "$GITHUB_WORKSPACE/sarif" --min-level "${CODEQL_MIN_LEVEL}")
+          ARGS=(
+            --sarif "$GITHUB_WORKSPACE/sarif"
+            --min-level "${CODEQL_MIN_LEVEL}"
+            --log-path "${CODEQL_ALERTS_LOG_PATH}"
+          )
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             ARGS+=(--ref "refs/pull/${{ github.event.pull_request.number }}/merge")
           fi
           python3 scripts/check_codeql_alerts.py "${ARGS[@]}"
 
-      - name: Upload CodeQL alerts log
+      - name: Upload CodeQL alerts debug log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: codeql-alerts-log
-          path: ${{ steps.check_codeql.outputs.log_path }}
-          retention-days: 3
-
-      - name: Upload CodeQL alerts log (fallback)
-        # Best-effort fallback upload of the persistent log file from the
-        # runner temp directory. Useful when `log_path` was empty or pointed
-        # to a non-existent location in some runner configurations.
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: codeql-alerts-log-fallback
-          path: ${{ runner.temp }}/codeql-alerts.log
+          name: codeql-alerts-debug-log
+          path: ${{ env.CODEQL_ALERTS_LOG_PATH }}
           retention-days: 3
 
       - name: "Debug: PR head and repo info (no-op for non-PR runs)"
