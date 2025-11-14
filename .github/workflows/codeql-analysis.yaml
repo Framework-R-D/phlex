@@ -89,6 +89,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      pull-requests: write
       security-events: read
     env:
       CODEQL_MIN_LEVEL: warning
@@ -115,26 +116,6 @@ jobs:
             ARGS+=(--ref "refs/pull/${{ github.event.pull_request.number }}/merge")
           fi
           python3 scripts/check_codeql_alerts.py "${ARGS[@]}"
-
-      - name: Upload CodeQL comment file
-        if: ${{ steps.check_codeql.outputs.comment_path != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: codeql-alerts-md
-          path: ${{ steps.check_codeql.outputs.comment_path }}
-          retention-days: 3
-
-      - name: Upload CodeQL comment file (fallback)
-        # Fallback to uploading from the runner temp directory in case the
-        # `comment_path` output was not set or the file was written to a
-        # different path. This is best-effort; if no file exists we'll get a
-        # non-fatal "No files were found" warning but at least we've tried.
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: codeql-alerts-md-fallback
-          path: ${{ runner.temp }}/codeql-alerts.md
-          retention-days: 3
 
       - name: Upload CodeQL alerts log
         if: always()
