@@ -857,13 +857,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         # Start with a matching-summary header followed by the main comparison
         lines: List[str] = []
         # Matching summary (always include in PR comment)
-        summary_lines: List[str] = []
-        summary_lines.append("**Alert Matching Summary:**")
-        summary_lines.append(f"- PR alerts: {pr_total} (fingerprint: {pr_ak_count}, composite: {pr_rl_count})")
-        summary_lines.append(f"- Repo alerts: {main_total} (fingerprint: {main_ak_count}, composite: {main_rl_count})")
-        summary_lines.append(f"- Matched alerts: {matched_by_ak} by fingerprint, {matched_by_rl} by composite (rule+location)")
-        summary_lines.append("")
-        lines.extend(summary_lines)
+        if 'new_vs_base' in locals() and (new_vs_base or fixed_vs_base):
+            lines.append(f"{len(fixed_vs_base)} fixed, {len(new_vs_base)} new since branch point ({base_sha[:7] if base_sha else 'unknown'})")
+        if 'new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev):
+            lines.append(f"{len(fixed_vs_prev)} fixed, {len(new_vs_prev)} new since previous report on PR ({prev_commit_ref[:7] if prev_commit_ref else 'unknown'})")
+        lines.append("")
 
         # Add previous-commit comparison if available
         if 'new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev):
