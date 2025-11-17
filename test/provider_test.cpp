@@ -8,13 +8,21 @@
 
 using namespace phlex::experimental;
 
+namespace toy {
+  struct VertexCollection {
+    unsigned data;
+  };
+}
+
 namespace {
   // Provider algorithms
  // int give_me_an_a(data_cell_index) { return 1; };
 }
 
 namespace {
-  unsigned pass_on(unsigned number) { spdlog::info("pass_on({})", number); return number; }
+  unsigned pass_on(toy::VertexCollection const& vertices) {
+     return vertices.data;
+  }
 }
 
 TEST_CASE("provider_test")
@@ -30,7 +38,7 @@ TEST_CASE("provider_test")
 
     for (unsigned int i : std::views::iota(1u, max_events + 1)) {
       auto store = job_store->make_child(i, "spill", "Source");
-      store->add_product("number", i);
+      store->add_product("happy_vertices", toy::VertexCollection{i});
       spdlog::info("store: is about to be yielded");
       driver.yield(store);
     }
@@ -38,14 +46,13 @@ TEST_CASE("provider_test")
 
   framework_graph g{levels_to_process};
 
-//  g.provider(give_me_an_a).input_indices("spill").output_product("Gauss:number");
 
-  g.transform("pass_on", pass_on, concurrency::unlimited)
-    .input_family("number"_in("spill"))
-    .output_products("different");
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family("happy_vertices"_in("spill"))
+    .output_products("vertex_data");
 
   g.execute();
-  CHECK(g.execution_counts("pass_on") == max_events);
+  CHECK(g.execution_counts("passer") == max_events);
 }
 
 /*
@@ -53,6 +60,7 @@ TEST_CASE("provider_test")
 Planned development flow:
 
 [x] Get initial test working.
+[ ] Make the data product be a simple struct not a fundamental type.
 [ ] Introduce stub `provider` that takes product_store_ptr as input and returns a product_store_ptr.
     Wire the provider into the graph.
 [ ] Modify the `provider` to take data_cell_index as input.
@@ -63,4 +71,5 @@ Planned development flow:
     This will mean `framework_driver` will have to emit data_cell_index instead of product_store.
 
 Then we're done.
+
 */
