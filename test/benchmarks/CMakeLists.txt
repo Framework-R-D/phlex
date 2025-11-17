@@ -57,13 +57,11 @@ foreach(
   file(MAKE_DIRECTORY ${TEST_DIR})
   add_test(
     NAME ${test_name}
-    COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet -g
-            benchmark-${I}
+    COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet
     WORKING_DIRECTORY ${TEST_DIR}
     )
   set_tests_properties(
     ${test_name} PROPERTIES ENVIRONMENT
                             PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
     )
-  dot_test(benchmark-${I})
 endforeach()

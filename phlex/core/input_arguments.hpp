@@ -3,6 +3,7 @@
 
 #include "phlex/core/message.hpp"
 #include "phlex/core/specified_label.hpp"
+#include "phlex/model/handle.hpp"
 
 #include <cstddef>
 #include <string>
@@ -13,7 +14,7 @@
 namespace phlex::experimental {
   template <typename T, std::size_t JoinNodePort>
   struct retriever {
-    using handle_arg_t = typename handle_for<T>::value_type;
+    using handle_arg_t = detail::handle_value_type<T>;
     specified_label label;
     auto retrieve(auto const& messages) const
     {

@@ -11,9 +11,6 @@ add_library(
   detail/make_algorithm_name.cpp
   detail/maybe_predicates.cpp
   detail/filter_impl.cpp
-  dot/attributes.cpp
-  dot/data_graph.cpp
-  dot/function_graph.cpp
   edge_creation_policy.cpp
   end_of_message.cpp
   filter.cpp

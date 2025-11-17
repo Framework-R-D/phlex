@@ -8,6 +8,7 @@
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/utilities/stripped_name.hpp"
 
+#include "boost/core/demangle.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>

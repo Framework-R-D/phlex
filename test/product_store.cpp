@@ -21,12 +21,9 @@ TEST_CASE("Product store insertion", "[data model]")
     Catch::Matchers::ContainsSubstring(
       "Cannot get product 'number' with type 'double' -- must specify type 'int'."));
 
-  auto invalid_handle = store->get_handle<int>("wrong_key");
-  CHECK(!invalid_handle);
   auto const matcher =
     Catch::Matchers::ContainsSubstring("No product exists with the name 'wrong_key'.");
-  CHECK_THROWS_WITH(*invalid_handle, matcher);
-  CHECK_THROWS_WITH(invalid_handle.operator->(), matcher);
+  CHECK_THROWS_WITH(store->get_handle<int>("wrong_key"), matcher);
 
   CHECK(store->get_product<int>("number") == number);
 

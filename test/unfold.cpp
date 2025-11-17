@@ -117,7 +117,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.make<test::products_for_output>().output(
     "save", &test::products_for_output::save, concurrency::serial);
 
-  g.execute("unfold_t");
+  g.execute();
 
   CHECK(g.execution_counts("iota") == index_limit);
   CHECK(g.execution_counts("add") == 30);

@@ -57,7 +57,7 @@ TEST_CASE("Testing families", "[data model]")
   g.observe("rs", check_two_ids).input_family("id"_in("run"), "id"_in("subrun"));
   g.observe("rse", check_three_ids)
     .input_family("id"_in("run"), "id"_in("subrun"), "id"_in("event"));
-  g.execute("allowed_families_t");
+  g.execute();
 
   CHECK(g.execution_counts("se") == 1ull);
   CHECK(g.execution_counts("rs") == 1ull);

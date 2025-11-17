@@ -67,7 +67,7 @@ TEST_CASE("Cached function calls", "[data model]")
     .input_family("used_two"_in("subrun"), "still"_in("event"))
     .output_products("three");
 
-  g.execute("cached_execution_t");
+  g.execute();
 
   // FIXME: Need to improve the synchronization to supply strict equality
   CHECK(g.execution_counts("A1") >= n_runs);

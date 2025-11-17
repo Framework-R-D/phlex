@@ -69,17 +69,17 @@ namespace phlex::experimental {
     }
 
     template <typename T>
-    std::variant<T const*, std::string> get(std::string const& product_name) const
+    T const& get(std::string const& product_name) const
     {
       auto it = products_.find(product_name);
       if (it == cend(products_)) {
-        return "No product exists with the name '" + product_name + "'.";
+        throw std::runtime_error("No product exists with the name '" + product_name + "'.");
       }
 
       // Should be able to use dynamic_cast a la:
       //
       //   if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
-      //     return &t->obj;
+      //     return t->obj;
       //   }
       //
       // Unfortunately, this doesn't work well whenever products are inserted across
@@ -87,9 +87,10 @@ namespace phlex::experimental {
 
       auto available_product = it->second.get();
       if (std::strcmp(typeid(T).name(), available_product->type().name()) == 0) {
-        return &reinterpret_cast<product<T> const*>(available_product)->obj;
+        return reinterpret_cast<product<T> const*>(available_product)->obj;
       }
-      return error_message(product_name, typeid(T).name(), available_product->type().name());
+
+      throw_mismatched_type(product_name, typeid(T).name(), available_product->type().name());
     }
 
     bool contains(std::string const& product_name) const;
@@ -97,9 +98,9 @@ namespace phlex::experimental {
     const_iterator end() const noexcept;
 
   private:
-    static std::string error_message(std::string const& product_name,
-                                     char const* requested_type,
-                                     char const* available_type);
+    static void throw_mismatched_type [[noreturn]] (std::string const& product_name,
+                                                    char const* requested_type,
+                                                    char const* available_type);
 
     collection_t products_;
   };

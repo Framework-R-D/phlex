@@ -53,7 +53,7 @@ namespace phlex::experimental {
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
 
-    void execute(std::string const& dot_prefix = {});
+    void execute();
 
     std::size_t execution_counts(std::string const& node_name) const;
     std::size_t product_counts(std::string const& node_name) const;
@@ -125,8 +125,7 @@ namespace phlex::experimental {
     }
 
     void run();
-    void finalize(std::string const& dot_file_prefix);
-    void post_data_graph(std::string const& dot_file_prefix);
+    void finalize();
 
     product_store_ptr accept(product_store_ptr store);
     void drain();
