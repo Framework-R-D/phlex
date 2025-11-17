@@ -29,6 +29,7 @@ endfunction()
 add_unit_test(concepts LIBRARIES phlex::core)
 add_unit_test(string_literal LIBRARIES phlex::utilities)
 add_unit_test(type_deduction LIBRARIES phlex::metaprogramming)
+add_unit_test(type_id LIBRARIES phlex::model)
 add_unit_test(yielding_driver LIBRARIES phlex::core TBB::tbb)
 
 add_catch_test(allowed_families LIBRARIES phlex::core Boost::json)
