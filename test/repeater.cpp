@@ -29,6 +29,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <string>
@@ -37,11 +38,12 @@
 
 using namespace oneapi::tbb;
 using namespace spdlog;
+using namespace std::chrono;
 
 namespace {
 
   constexpr int num_runs = 5;
-  constexpr int messages_per_run = 10;
+  constexpr int messages_per_run = 1000;
   constexpr int num_messages = num_runs * messages_per_run;
 
   constexpr int spills_per_run = messages_per_run - 1;
@@ -91,36 +93,44 @@ namespace {
                 [this](tagged_repeater_msg const& tagged, auto& outputs) -> flow::continue_msg {
                   cached_product* entry{nullptr};
                   int key = -1;
-                  if (tagged.tag() == 0ull) {
+                  auto& output = std::get<0>(outputs);
+
+                  auto drain = [&output](int const key, cached_product* entry) -> int {
+                    assert(entry->product);
+                    int counter{};
+                    int new_msg_id{};
+                    while (entry->msg_ids.try_pop(new_msg_id)) {
+                      output.try_put({.id = data_cell_id{.msg_id = new_msg_id, .cell_id = {key}},
+                                      .product = entry->product});
+                      ++counter;
+                    }
+                    return counter;
+                  };
+
+                  if (tagged.is_a<message>()) {
                     auto const& msg = tagged.cast_to<message>();
                     key = msg.id.cell_id[0];
-                    accessor a;
-                    std::ignore = cached_products_.insert(a, key);
-                    entry = &a->second;
+                    entry = entry_for(key);
                     entry->product = msg.product;
-                  } else if (tagged.tag() == 1ull) {
+                    entry->counter += drain(key, entry);
+
+                  } else if (tagged.is_a<end_token>()) {
                     auto const [count, cell_id] = tagged.cast_to<end_token>();
                     key = cell_id[0];
-                    accessor a;
-                    std::ignore = cached_products_.insert(a, key);
-                    entry = &a->second;
+                    entry = entry_for(key);
                     entry->counter -= count;
                     std::ignore = entry->flush_received.test_and_set();
                   } else {
                     auto const [msg_id, cell_id] = tagged.cast_to<data_cell_id>();
                     key = cell_id[0];
-                    accessor a;
-                    std::ignore = cached_products_.insert(a, key);
-                    entry = &a->second;
-                    entry->msg_ids.push(msg_id);
-                  }
-
-                  int new_msg_id{};
-                  auto& output = std::get<0>(outputs);
-                  while (entry->product and entry->msg_ids.try_pop(new_msg_id)) {
-                    output.try_put({.id = data_cell_id{.msg_id = new_msg_id, .cell_id = {key}},
-                                    .product = entry->product});
-                    ++entry->counter;
+                    entry = entry_for(key);
+                    if (entry->product) {
+                      output.try_put({.id = data_cell_id{.msg_id = msg_id, .cell_id = {key}},
+                                      .product = entry->product});
+                      ++entry->counter;
+                    } else {
+                      entry->msg_ids.push(msg_id);
+                    }
                   }
 
                   // Cleanup
@@ -138,6 +148,13 @@ namespace {
     }
 
   private:
+    cached_product* entry_for(int key)
+    {
+      accessor a;
+      std::ignore = cached_products_.insert(a, key);
+      return &a->second;
+    }
+
     flow::indexer_node<message, end_token, data_cell_id> indexer_;
     flow::multifunction_node<tagged_repeater_msg, std::tuple<message>> repeater_;
     concurrent_hash_map<int, cached_product> cached_products_; // FIXME: int should be the ID itself
@@ -161,7 +178,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
                            return {};
                          }
 
-                         auto const [quotient, remainder] = std::div(i, 10);
+                         auto const [quotient, remainder] = std::div(i, messages_per_run);
                          if (remainder == 0 and flush_run) {
                            flush_run = false;
                            return end_token{.count = spills_per_run, .cell_id = {quotient}};
@@ -243,8 +260,11 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
     }};
   make_edge(join_layers, consume);
 
+  auto start_time = steady_clock::now();
   src.activate();
   g.wait_for_all();
+  spdlog::info("Total execution time: {} microseconds",
+               duration_cast<microseconds>(steady_clock::now() - start_time).count());
 
   CHECK(run_counter == num_runs);
   CHECK(spill_counter == num_spills);
