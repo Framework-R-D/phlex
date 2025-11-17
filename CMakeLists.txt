@@ -53,12 +53,14 @@ FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
 include(Modules/private/CreateClangTidyTargets.cmake)
 include(Modules/private/CreateCoverageTargets.cmake)
+include(Modules/private/EnableGccAnalyzer.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
+option(ENABLE_GCC_ANALYZER "Enable GCC static analyzer" OFF)
 
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 

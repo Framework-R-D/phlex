@@ -1,0 +1,89 @@
+name: GCC Static Analyzer Check
+'run-name': "${{ github.actor }} running GCC static analyzer check"
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  detect-gcc-analyzer-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect GCC analyzer relevant changes
+      id: filter
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event.pull_request.base.sha }}
+        head-ref: ${{ github.event.pull_request.head.sha }}
+        file-type: |
+          cpp
+          cmake
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No C++ or CMake changes detected; job will be skipped."
+        else
+          echo "::group::GCC analyzer relevant files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  gcc-analyzer-check:
+    needs: detect-gcc-analyzer-changes
+    if: needs.detect-gcc-analyzer-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-24.04
+
+    container:
+      image: ghcr.io/framework-r-d/phlex-ci:latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        path: phlex-src
+
+    - name: Setup build environment
+      uses: ./phlex-src/.github/actions/setup-build-env
+
+    - name: Configure CMake
+      uses: ./phlex-src/.github/actions/configure-cmake
+      with:
+        build-type: Debug
+        compiler: g++
+        extra-options: "-DENABLE_GCC_ANALYZER=ON"
+
+    - name: Run GCC static analyzer build
+      shell: bash
+      run: |
+        . /entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+        echo "Running build with GCC static analyzer..."
+        cmake --build .
+
+  gcc-analyzer-check-skipped:
+    needs: detect-gcc-analyzer-changes
+    if: needs.detect-gcc-analyzer-changes.outputs.has_changes != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant C++ or CMake changes detected
+      run: echo "No C++ or CMake changes detected; check skipped."
