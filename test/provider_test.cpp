@@ -47,3 +47,20 @@ TEST_CASE("provider_test")
   g.execute();
   CHECK(g.execution_counts("pass_on") == max_events);
 }
+
+/*
+
+Planned development flow:
+
+[x] Get initial test working.
+[ ] Introduce stub `provider` that takes product_store_ptr as input and returns a product_store_ptr.
+    Wire the provider into the graph.
+[ ] Modify the `provider` to take level_id as input.
+    The `multiplexer` will then need to emit level_id, stripped from the `product_store` it currently returns.
+[ ] Modify the `multiplexer` to accept level_id as input.
+    The Input will then need to emit level_id, stripped from the `product_store` it currently returns.
+[ ] Modify `Input` to accept level_id is input.
+    This will mean `framework_driver` will have to emit level_id instead of product_store.
+
+Then we're done.
+*/
