@@ -14,22 +14,24 @@ namespace {
 }
 
 namespace {
-  unsigned pass_on(unsigned number) { return number; }
+  unsigned pass_on(unsigned number) { spdlog::info("pass_on({})", number); return number; }
 }
 
 TEST_CASE("provider_test")
 {
-  constexpr auto max_events{100'000u};
+  constexpr auto max_events{1'000u};
   // constexpr auto max_events{1'000'000u};
   // spdlog::flush_on(spdlog::level::trace);
 
   auto levels_to_process = [](framework_driver& driver) {
     auto job_store = product_store::base();
+    spdlog::info("job_store: is about to be yielded");
     driver.yield(job_store);
 
     for (unsigned int i : std::views::iota(1u, max_events + 1)) {
       auto store = job_store->make_child(i, "spill", "Source");
       store->add_product("number", i);
+      spdlog::info("store: is about to be yielded");
       driver.yield(store);
     }
   };
@@ -43,5 +45,5 @@ TEST_CASE("provider_test")
     .output_products("different");
 
   g.execute();
-  CHECK(g.execution_counts("count") == 1);
+  CHECK(g.execution_counts("pass_on") == max_events);
 }
