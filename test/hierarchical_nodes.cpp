@@ -43,11 +43,11 @@ namespace {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run");
+      auto run_store = job_store->make_child(i, "run", "levels_to_process");
       run_store->add_product<std::time_t>("time", std::time(nullptr));
       driver.yield(run_store);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event");
+        auto event_store = run_store->make_child(j, "event", "levels_to_process");
         event_store->add_product("number", i + j);
         driver.yield(event_store);
       }
