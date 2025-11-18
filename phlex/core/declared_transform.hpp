@@ -82,7 +82,7 @@ namespace phlex::experimental {
                    specified_labels input_products,
                    std::vector<std::string> output) :
       declared_transform{std::move(name), std::move(predicates), std::move(input_products)},
-      output_{to_qualified_names(full_name(), std::move(output))},
+      output_{to_qualified_names(full_name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       transform_{g,
                  concurrency,
