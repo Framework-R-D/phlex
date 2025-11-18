@@ -48,6 +48,7 @@ jobs:
           path: phlex-src
           ref: ${{ needs.check.outputs.ref_name }}
           repository: ${{ needs.check.outputs.repo_name }}
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
         with:
@@ -59,6 +60,7 @@ jobs:
       - uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
         id: add_and_commit
         with:
+          token: ${{ secrets.WORKFLOW_PAT }}
           cwd: phlex-src
           author_name: "github-actions[bot]"
           author_email: "41898282+github-actions[bot]@users.noreply.github.com"
