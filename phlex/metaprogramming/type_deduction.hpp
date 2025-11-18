@@ -7,7 +7,10 @@
 #include "phlex/metaprogramming/detail/parameter_types.hpp"
 #include "phlex/metaprogramming/detail/return_type.hpp"
 
+#include <atomic>
+#include <iterator>
 #include <tuple>
+#include <type_traits>
 
 namespace phlex::experimental {
   template <typename T>
@@ -33,6 +36,9 @@ namespace phlex::experimental {
   namespace detail {
     template <typename Head, typename... Tail>
     std::tuple<Tail...> skip_first_type_impl(std::tuple<Head, Tail...> const&);
+
+    template <typename Head, typename... Tail>
+    std::tuple<Tail...> skip_first_type_impl(std::pair<Head, Tail...> const&);
   }
 
   template <typename Tuple>
@@ -59,6 +65,34 @@ namespace phlex::experimental {
 
   template <typename T>
   struct is_non_const_lvalue_reference<T const&> : std::false_type {};
+
+  template <typename T>
+  class remove_atomic {
+  public:
+    using type = T;
+  };
+
+  template <typename T>
+  class remove_atomic<std::atomic<T>> {
+  public:
+    using type = T;
+  };
+
+  template <typename T>
+  using remove_atomic_t = remove_atomic<T>::type;
+
+  template <typename T>
+  concept container = requires {
+    // NB: Just a few basics, not the full set of requirements of the Container named requirement
+    typename T::iterator;
+    typename T::value_type;
+  };
+
+  template <typename T>
+  concept contiguous_container = requires {
+    requires container<T>;
+    requires std::contiguous_iterator<typename T::iterator>;
+  };
 }
 
 #endif // PHLEX_METAPROGRAMMING_TYPE_DEDUCTION_HPP

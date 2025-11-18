@@ -1,14 +1,20 @@
 #ifndef PHLEX_MODE_TYPE_ID_HPP
 #define PHLEX_MODE_TYPE_ID_HPP
 
-#include <iterator>
+#include "phlex/metaprogramming/type_deduction.hpp"
+
+#include <boost/pfr/traits.hpp>
 #include <type_traits>
+#include <vector>
+
+#include <boost/pfr/core.hpp>
 
 // This is a type_id class to store the "product concept"
 // Using our own class means we can treat, for example, all "List"s the same
 namespace phlex::experimental {
   class type_id {
   public:
+    // Least significant nibble will store the fundamental type
     enum class builtin : unsigned char {
       void_v = 0, // For completeness
       bool_v = 1,
@@ -21,23 +27,47 @@ namespace phlex::experimental {
       double_v = 8
     };
 
-    consteval bool is_unsigned() const { return id_ & 0x10; }
+    constexpr bool valid() const { return not(id_ == 0xFF); }
 
-    consteval bool is_list() const { return id_ & 0x20; }
+    constexpr bool is_unsigned() const { return valid() && (id_ & 0x10); }
 
-    consteval builtin fundamental() const { return static_cast<builtin>(id_ & 0x0F); }
+    constexpr bool is_list() const { return valid() && (id_ & 0x20); }
 
-    consteval bool operator==(type_id const& rhs) const { return id_ == rhs.id_; }
-    consteval bool operator!=(type_id const& rhs) const = default;
+    constexpr bool has_children() const { return valid() && (id_ & 0x40); }
+
+    constexpr builtin fundamental() const { return static_cast<builtin>(id_ & 0x0F); }
+
+    constexpr std::strong_ordering operator<=>(type_id const& rhs) const
+    {
+      // This ordering is arbitrary but defined
+      std::strong_ordering cmp_ids = id_ <=> rhs.id_;
+      if (cmp_ids == std::strong_ordering::equal) {
+        if (!this->has_children()) {
+          return std::strong_ordering::equal;
+        }
+        return children_ <=> rhs.children_;
+      }
+      return cmp_ids;
+    }
+
+    constexpr bool operator==(type_id const& rhs) const
+    {
+      return (*this <=> rhs) == std::strong_ordering::equal;
+    };
 
     template <typename T>
-    friend consteval type_id make_type_id();
+    friend constexpr type_id make_type_id();
 
   private:
     unsigned char id_ = 0xFF;
+
+    // This is used only if the product type is a struct
+    std::vector<type_id> children_;
   };
 
-  namespace details {
+  using type_ids = std::vector<type_id>;
+
+  namespace detail {
     template <typename T>
     consteval unsigned char make_type_id_helper_integral()
     {
@@ -70,7 +100,8 @@ namespace phlex::experimental {
         return id;
       } else {
         // If we got here, something went wrong
-        static_assert(false, "Taking type_id of an unsupported type");
+        // This condition is always false, but makes the error message more useful
+        static_assert(std::is_same_v<T, void>, "Taking type_id of an unsupported fundamental type");
       }
     }
 
@@ -89,35 +120,126 @@ namespace phlex::experimental {
         return make_type_id_helper_integral<T>();
       }
     }
+
+    template <typename A>
+      requires(std::is_aggregate_v<A>)
+    class aggregate_to_plain_tuple {
+    private:
+      template <std::size_t... Is>
+      static constexpr auto get_tuple(std::index_sequence<Is...>) -> auto
+      {
+        // Atomics are why we can't just use boost::pfr::structure_to_tuple
+        return std::tuple<
+          remove_atomic_t<std::remove_cvref_t<boost::pfr::tuple_element_t<Is, A>>>...>{};
+      }
+
+    public:
+      using type = decltype(get_tuple(std::make_index_sequence<boost::pfr::tuple_size_v<A>>()));
+    };
+
+    template <typename A>
+    using aggregate_to_plain_tuple_t = aggregate_to_plain_tuple<A>::type;
   }
 
+  // Forward declaration
+  template <typename T1, typename... Ts>
+  type_ids make_type_ids();
+
   template <typename T>
-  consteval type_id make_type_id()
+  constexpr type_id make_type_id()
   {
     type_id result{};
-    using basic = std::remove_cvref_t<T>;
+    using basic = remove_atomic_t<std::remove_cvref_t<T>>;
     if constexpr (std::is_fundamental_v<basic>) {
-      result.id_ = details::make_type_id_helper_fundamental<basic>();
+      result.id_ = detail::make_type_id_helper_fundamental<basic>();
       return result;
     }
 
-    // arrays and vectors
+    // builtin arrays
     else if constexpr (std::is_array_v<basic>) {
       result = make_type_id<std::remove_all_extents_t<basic>>();
       result.id_ |= 0x20;
       return result;
     }
 
-    else if constexpr (std::is_class_v<basic> &&
-                       std::contiguous_iterator<typename basic::iterator>) {
-      result = make_type_id<typename basic::value_type>();
-      result.id_ |= 0x20;
-      return result;
-    } else {
+    // classes (both containers and "simple" aggregates)
+    else if constexpr (std::is_class_v<basic>) {
+      if constexpr (contiguous_container<basic>) {
+        result = make_type_id<typename basic::value_type>();
+        result.id_ |= 0x20;
+        return result;
+      } else if constexpr (std::is_aggregate_v<basic>) {
+        // This case isn't evaluable at compile time because vector uses operator new
+        using child_tuple = detail::aggregate_to_plain_tuple_t<basic>;
+        result.id_ = 0x40; // has_children
+        result.children_ = make_type_ids<child_tuple>();
+        return result;
+      } else {
+        // // If we got here, something went wrong
+        // // This condition is always false, but makes the error message more useful
+        // static_assert(contiguous_container<basic> || std::is_aggregate_v<basic>,
+        //               "Taking type_id of an unsupported class type");
+        //
+        result.id_ = 0xFF;
+        return result;
+      }
+    }
+
+    else {
       // If we got here, something went wrong
-      static_assert(false, "Taking type_id of an unsupported type");
+      // This condition is always false, but makes the error message more useful
+      static_assert(std::is_fundamental_v<basic> || std::is_array_v<basic> ||
+                      std::is_class_v<basic>,
+                    "Taking type_id of an unsupported type");
     }
   }
+
+  namespace detail {
+    template <typename T>
+    class tuple_type_ids {
+    public:
+      static type_ids const value;
+    };
+
+    // Might as well do something reasonable
+    template <typename T>
+    type_ids const tuple_type_ids<T>::value{make_type_id<T>()};
+
+    template <typename... Ts>
+    class tuple_type_ids<std::tuple<Ts...>> {
+    public:
+      static type_ids const value;
+    };
+
+    template <typename... Ts>
+    type_ids const tuple_type_ids<std::tuple<Ts...>>::value{make_type_id<Ts>()...};
+
+    template <typename... Ts>
+    class tuple_type_ids<std::pair<Ts...>> {
+    public:
+      static type_ids const value;
+    };
+
+    template <typename... Ts>
+    type_ids const tuple_type_ids<std::pair<Ts...>>::value{make_type_id<Ts>()...};
+  }
+
+  template <typename T1, typename... Ts>
+  type_ids make_type_ids()
+  {
+    if constexpr (sizeof...(Ts) == 0) {
+      return detail::tuple_type_ids<T1>::value;
+    } else {
+      return type_ids{make_type_id<T1>(), make_type_id<Ts>()...};
+    }
+  }
+
+  template <typename F>
+  type_ids make_output_type_ids()
+  {
+    return make_type_ids<return_type<F>>();
+  }
+
 }
 
 #endif // PHLEX_MODE_TYPE_ID_HPP
