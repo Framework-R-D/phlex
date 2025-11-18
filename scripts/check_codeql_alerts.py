@@ -228,7 +228,7 @@ def _format_physical_location(phys: Dict[str, Any]) -> Optional[str]:
     """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation dict, or None."""
     if not phys:
         return None
-    artifact = phys.get("artifactLocation") or {}
+    artifact = phys.get("artifactLocation", default={})
     uri = artifact.get("uri") or artifact.get("uriBaseId")
     if not uri:
         return None
