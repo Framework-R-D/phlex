@@ -17,7 +17,7 @@ namespace phlex::experimental {
   class product_store : public std::enable_shared_from_this<product_store> {
   public:
     ~product_store();
-    static product_store_ptr base();
+    static product_store_ptr base(std::string base_name="Source");
 
     product_store_const_ptr store_for_product(std::string const& product_name) const;
 

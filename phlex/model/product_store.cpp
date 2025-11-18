@@ -46,7 +46,7 @@ namespace phlex::experimental {
 
   product_store::~product_store() = default;
 
-  product_store_ptr product_store::base() { return product_store_ptr{new product_store}; }
+  product_store_ptr product_store::base(std::string base_name) { return product_store_ptr{new product_store{nullptr, level_id::base_ptr(), std::move(base_name)}}; }
 
   product_store_const_ptr product_store::parent(std::string const& level_name) const noexcept
   {
