@@ -2,16 +2,17 @@
 """Summarize CodeQL SARIF results for newly introduced or resolved alerts."""
 
 import argparse
+import collections.abc
 import json
 import os
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 
 class GitHubAPIError(RuntimeError):
@@ -22,8 +23,8 @@ def _api_request(
     method: str,
     path: str,
     *,
-    params: Optional[dict] = None,
-    payload: Optional[dict] = None,
+    params: dict | None = None,
+    payload: dict | None = None,
 ) -> Any:
     API_ROOT = "https://api.github.com"
     API_VERSION = "2022-11-28"
@@ -72,17 +73,17 @@ LEVEL_ICONS = {
 @dataclass
 class Alert:
     """Represents a CodeQL alert extracted from SARIF."""
-    number: Optional[int]
-    html_url: Optional[str]
+    number: int | None
+    html_url: str | None
     rule_id: str
     level: str
     message: str
     location: str
-    rule_name: Optional[str] = None
-    help_uri: Optional[str] = None
-    security_severity: Optional[str] = None
-    dismissed_reason: Optional[str] = None
-    analysis_key: Optional[str] = None
+    rule_name: str | None = None
+    help_uri: str | None = None
+    security_severity: str | None = None
+    dismissed_reason: str | None = None
+    analysis_key: str | None = None
 
     def icon(self) -> str:
         return LEVEL_ICONS.get(self.level, ":grey_question:")
@@ -101,7 +102,7 @@ class Alert:
         return ""
 
 
-def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
+def parse_args(argv: collections.abc.Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--sarif",
@@ -166,7 +167,7 @@ def _debug(msg: str) -> None:
         print(msg, file=sys.stderr)
 
 
-_LOG_PATH: Optional[Path] = None
+_LOG_PATH: Path | None = None
 
 def _log(msg: str) -> None:
     """Append a timestamped message to the persistent log file.
@@ -205,7 +206,7 @@ def _init_log(log_path: Path) -> None:
         return
 
 
-def _paginate_alerts_api(owner: str, repo: str, *, state: str = "open", ref: Optional[str] = None) -> Iterator[dict]:
+def _paginate_alerts_api(owner: str, repo: str, *, state: str = "open", ref: str | None = None) -> collections.abc.Iterator[dict]:
     """Paginate Code Scanning alerts from the GitHub API for given repo and ref."""
     page = 1
     while True:
@@ -222,7 +223,7 @@ def _paginate_alerts_api(owner: str, repo: str, *, state: str = "open", ref: Opt
         page += 1
 
 
-def _format_physical_location(phys: Dict[str, Any]) -> Optional[str]:
+def _format_physical_location(phys: dict[str, Any]) -> str | None:
     """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation dict, or None."""
     if not phys:
         return None
@@ -317,7 +318,7 @@ def _to_alert_api(raw: dict) -> Alert:
     return alert
 
 
-def _load_sarif_file(path: Path) -> Dict[str, Any]:
+def _load_sarif_file(path: Path) -> dict[str, Any]:
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -328,13 +329,13 @@ def _load_sarif_file(path: Path) -> Dict[str, Any]:
         raise ValueError(f"Failed to parse SARIF JSON: {exc}") from exc
 
 
-def load_sarif(path: Path) -> Dict[str, Any]:
+def load_sarif(path: Path) -> dict[str, Any]:
     if path.is_dir():
         sarif_files = sorted(p for p in path.rglob("*.sarif") if p.is_file())
         if not sarif_files:
             raise FileNotFoundError(f"No SARIF files found under directory: {path}")
         documents = [_load_sarif_file(file_path) for file_path in sarif_files]
-        combined_runs: List[Dict[str, Any]] = []
+        combined_runs: list[dict[str, Any]] = []
         for document in documents:
             combined_runs.extend(document.get("runs") or [])
         base = documents[0]
@@ -346,7 +347,7 @@ def load_sarif(path: Path) -> Dict[str, Any]:
     return _load_sarif_file(path)
 
 
-def severity(level: Optional[str]) -> str:
+def severity(level: str | None) -> str:
     if not level:
         return "warning"
     normalized = level.lower()
@@ -359,7 +360,7 @@ def severity_reaches_threshold(level: str, threshold: str) -> bool:
     return LEVEL_ORDER.get(level, 0) >= LEVEL_ORDER.get(threshold, 0)
 
 
-def sanitize_message(message: Optional[str]) -> str:
+def sanitize_message(message: str | None) -> str:
     if not message:
         return "(no message provided)"
     flattened = " ".join(message.split())
@@ -368,7 +369,7 @@ def sanitize_message(message: Optional[str]) -> str:
     return flattened
 
 
-def extract_message(result: Dict[str, Any]) -> str:
+def extract_message(result: dict[str, Any]) -> str:
     message = result.get("message") or {}
     text = message.get("markdown") or message.get("text")
     if not text and isinstance(message, dict):
@@ -378,8 +379,8 @@ def extract_message(result: Dict[str, Any]) -> str:
     return sanitize_message(text)
 
 
-def extract_location(result: Dict[str, Any]) -> str:
-    locations: Iterable[Dict[str, Any]] = result.get("locations") or []
+def extract_location(result: dict[str, Any]) -> str:
+    locations: collections.abc.Iterable[dict[str, Any]] = result.get("locations") or []
     for location in locations:
         phys = location.get("physicalLocation") or {}
         artifact = phys.get("artifactLocation") or {}
@@ -398,7 +399,7 @@ def extract_location(result: Dict[str, Any]) -> str:
             location_str = uri
         return location_str
     # Try relatedLocations as a fallback
-    related_locations: Iterable[Dict[str, Any]] = result.get("relatedLocations") or []
+    related_locations: collections.abc.Iterable[dict[str, Any]] = result.get("relatedLocations") or []
     for location in related_locations:
         phys = location.get("physicalLocation") or {}
         artifact = phys.get("artifactLocation") or {}
@@ -417,7 +418,7 @@ def extract_location(result: Dict[str, Any]) -> str:
             location_str = uri
         return location_str
 
-    logical_locations: Iterable[Dict[str, Any]] = result.get("logicalLocations") or []
+    logical_locations: collections.abc.Iterable[dict[str, Any]] = result.get("logicalLocations") or []
     for logical in logical_locations:
         fq_name = logical.get("fullyQualifiedName") or logical.get("name")
         if fq_name:
@@ -447,8 +448,8 @@ def extract_location(result: Dict[str, Any]) -> str:
     return "(location unavailable)"
 
 
-def rule_lookup_map(run: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    rules: Dict[str, Dict[str, Any]] = {}
+def rule_lookup_map(run: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rules: dict[str, dict[str, Any]] = {}
     tool = run.get("tool") or {}
     driver = tool.get("driver") or {}
     for rule in driver.get("rules", []) or []:
@@ -458,7 +459,7 @@ def rule_lookup_map(run: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     return rules
 
 
-def extract_security_severity(result: Dict[str, Any]) -> Optional[str]:
+def extract_security_severity(result: dict[str, Any]) -> str | None:
     props = result.get("properties") or {}
     for key in ("security-severity", "problem.severity", "problemSeverity"):
         value = props.get(key)
@@ -468,15 +469,15 @@ def extract_security_severity(result: Dict[str, Any]) -> Optional[str]:
 
 
 def collect_alerts(
-    sarif: Dict[str, Any],
+    sarif: dict[str, Any],
     *,
     min_level: str,
-) -> Dict[str, List[Alert]]:
-    buckets: Dict[str, List[Alert]] = {"new": [], "absent": []}
-    runs: Iterable[Dict[str, Any]] = sarif.get("runs") or []
+) -> dict[str, list[Alert]]:
+    buckets: dict[str, list[Alert]] = {"new": [], "absent": []}
+    runs: collections.abc.Iterable[dict[str, Any]] = sarif.get("runs") or []
     for run in runs:
         rules_by_id = rule_lookup_map(run)
-        results: Iterable[Dict[str, Any]] = run.get("results") or []
+        results: collections.abc.Iterable[dict[str, Any]] = run.get("results") or []
         for result in results:
             baseline_state = (result.get("baselineState") or "").lower()
             if baseline_state not in {"new", "absent"}:
@@ -516,12 +517,12 @@ def collect_alerts(
 
 
 def _format_section(
-    alerts: Sequence[Alert],
+    alerts: collections.abc.Sequence[Alert],
     *,
     max_results: int,
     bullet_prefix: str,
-) -> List[str]:
-    lines: List[str] = []
+) -> list[str]:
+    lines: list[str] = []
     display = list(alerts[:max_results])
     remaining = max(0, len(alerts) - len(display))
     for alert in display:
@@ -545,14 +546,14 @@ def _format_section(
 
 def build_comment(
     *,
-    new_alerts: Sequence[Alert],
-    fixed_alerts: Sequence[Alert],
-    repo: Optional[str],
+    new_alerts: collections.abc.Sequence[Alert],
+    fixed_alerts: collections.abc.Sequence[Alert],
+    repo: str | None,
     max_results: int,
     threshold: str,
 ) -> str:
-    lines: List[str] = []
-    def _highest_severity(alerts: Sequence[Alert]) -> Optional[str]:
+    lines: list[str] = []
+    def _highest_severity(alerts: collections.abc.Sequence[Alert]) -> str | None:
         if not alerts:
             return None
         # map level to order and pick highest
@@ -583,7 +584,7 @@ def build_comment(
     return "\n".join(lines).strip() + "\n"
 
 
-def highest_severity_level_title(alerts: Sequence[Alert]) -> Optional[str]:
+def highest_severity_level_title(alerts: collections.abc.Sequence[Alert]) -> str | None:
     if not alerts:
         return None
     best = max(alerts, key=lambda a: LEVEL_ORDER.get(a.level, 0))
@@ -592,8 +593,8 @@ def highest_severity_level_title(alerts: Sequence[Alert]) -> Optional[str]:
 
 def write_summary(
     *,
-    new_alerts: Sequence[Alert],
-    fixed_alerts: Sequence[Alert],
+    new_alerts: collections.abc.Sequence[Alert],
+    fixed_alerts: collections.abc.Sequence[Alert],
     max_results: int,
     threshold: str,
 ) -> None:
@@ -624,9 +625,9 @@ def write_summary(
 
 def _print_summary(
     *,
-    new_alerts: Sequence[Alert],
-    fixed_alerts: Sequence[Alert],
-    matched_alerts: Sequence[Alert],
+    new_alerts: collections.abc.Sequence[Alert],
+    fixed_alerts: collections.abc.Sequence[Alert],
+    matched_alerts: collections.abc.Sequence[Alert],
     matched_available: bool,
 ) -> None:
     """Print a concise summary of new, fixed, and matched alerts to stdout."""
@@ -646,9 +647,9 @@ def _print_summary(
 
 def set_outputs(
     *,
-    new_alerts: Sequence[Alert],
-    fixed_alerts: Sequence[Alert],
-    comment_path: Optional[Path],
+    new_alerts: collections.abc.Sequence[Alert],
+    fixed_alerts: collections.abc.Sequence[Alert],
+    comment_path: Path | None,
 ) -> None:
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
@@ -670,7 +671,7 @@ def set_outputs(
             handle.write("log_path=\n")
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: collections.abc.Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     # set global debug flag
     global DEBUG
@@ -744,18 +745,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"GitHub API error: {exc}", file=sys.stderr)
             return 2
 
-        def alert_key(a: Alert) -> Tuple[str, str]:
+        def alert_key(a: Alert) -> tuple[str, str]:
             # Prefer analysis_key/fingerprint when available; otherwise use rule+location
             if a.analysis_key:
                 return ("ak", str(a.analysis_key))
             return ("rl", f"{a.rule_id}::{a.location or '(location unavailable)'}")
 
-        pr_alerts: Dict[Tuple[str, str], Alert] = {}
+        pr_alerts: dict[tuple[str, str], Alert] = {}
         for raw in pr_alerts_raw:
             alert_obj = _to_alert_api(raw)
             pr_alerts[alert_key(alert_obj)] = alert_obj
 
-        main_alerts: Dict[Tuple[str, str], Alert] = {}
+        main_alerts: dict[tuple[str, str], Alert] = {}
         for raw in main_alerts_raw:
             alert_obj = _to_alert_api(raw)
             main_alerts[alert_key(alert_obj)] = alert_obj
@@ -788,12 +789,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         new_alerts = [pr_alerts[rid] for rid in sorted(new_ids)]
 
         # Build comparisons against previous PR commit and branch point if available
-        prev_alerts: Dict[Tuple[str, str], Alert] = {}
+        prev_alerts: dict[tuple[str, str], Alert] = {}
         for raw in (prev_alerts_raw or []):
             alert_obj = _to_alert_api(raw)
             prev_alerts[alert_key(alert_obj)] = alert_obj
 
-        base_alerts: Dict[Tuple[str, str], Alert] = {}
+        base_alerts: dict[tuple[str, str], Alert] = {}
         for raw in (base_alerts_raw or []):
             alert_obj = _to_alert_api(raw)
             base_alerts[alert_key(alert_obj)] = alert_obj
@@ -854,7 +855,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if new_alerts or fixed_alerts or ('new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev)) or ('new_vs_base' in locals() and (new_vs_base or fixed_vs_base)):
         repo_str = os.environ.get("GITHUB_REPOSITORY")
         # Start with a matching-summary header followed by the main comparison
-        lines: List[str] = []
+        lines: list[str] = []
         # Matching summary (always include in PR comment)
         if 'new_vs_base' in locals() and (new_vs_base or fixed_vs_base):
             lines.append(f"{len(fixed_vs_base)} fixed, {len(new_vs_base)} new since branch point ({base_sha[:7] if base_sha else 'unknown'})")
