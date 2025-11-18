@@ -676,7 +676,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     # set global debug flag
     global DEBUG
-    DEBUG = bool(getattr(args, "debug", False))
+    DEBUG = getattr(args, "debug", False)
     # Recreate/truncate the persistent debug log for this run so CI can
     # upload the single artifact if desired.
     _init_log(args.log_path)
