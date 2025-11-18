@@ -687,6 +687,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     fixed_alerts = buckets.get("absent", [])
     _debug(f"SARIF baseline results: new={len(new_alerts)}, fixed={len(fixed_alerts)}")
 
+    pr_alerts = main_alerts = None
     # If user supplied a ref and we found no SARIF baseline info, query the API
     # to compare alerts for the given ref against the repository state.
     if args.ref and not (new_alerts or fixed_alerts):
@@ -817,7 +818,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     # Compute unfiltered new/fixed and matched summaries for stdout
     # If API-mode was used, pr_alerts/main_alerts dicts are available; otherwise fall back to SARIF unfiltered buckets
-    if 'pr_alerts' in locals() and 'main_alerts' in locals():
+    if pr_alerts is not None and main_alerts is not None:
         pr_keys = set(pr_alerts)
         main_keys = set(main_alerts)
         new_all = [pr_alerts[k] for k in sorted(pr_keys - main_keys)]
