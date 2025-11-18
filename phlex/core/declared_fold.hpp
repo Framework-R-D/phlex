@@ -73,7 +73,7 @@ namespace phlex::experimental {
               std::string partition) :
       declared_fold{std::move(name), std::move(predicates), std::move(product_labels)},
       initializer_{std::move(initializer)},
-      output_{to_qualified_names(full_name(), std::move(output))},
+      output_{to_qualified_names(full_name(), std::move(output), make_type_ids<R>())},
       partition_{std::move(partition)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       fold_{g,

@@ -95,7 +95,9 @@ namespace phlex::experimental {
                 std::vector<std::string> output_products,
                 std::string new_level_name) :
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
-      output_{to_qualified_names(full_name(), std::move(output_products))},
+      output_{to_qualified_names(full_name(),
+                                 std::move(output_products),
+                                 make_type_ids<skip_first_type<return_type<Unfold>>>())},
       new_level_name_{std::move(new_level_name)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       unfold_{

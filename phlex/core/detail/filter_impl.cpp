@@ -4,8 +4,10 @@
 #include <string>
 
 namespace {
-  phlex::experimental::specified_label const output_dummy{phlex::experimental::qualified_name{
-    phlex::experimental::algorithm_name{"for_output_only", ""}, "for_output_only"}};
+  phlex::experimental::specified_label const output_dummy{
+    phlex::experimental::qualified_name{phlex::experimental::algorithm_name{"for_output_only", ""},
+                                        "for_output_only",
+                                        phlex::experimental::type_id{}}};
   std::vector<phlex::experimental::specified_label> const for_output_only{output_dummy};
 }
 
