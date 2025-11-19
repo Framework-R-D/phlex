@@ -77,7 +77,8 @@ namespace phlex::experimental {
     product_store_const_ptr parent_{nullptr};
     products products_{};
     level_id_ptr id_;
-    std::string source_;  // FIXME: Should not have to copy the string (the source should outlive the product store)
+    std::string
+      source_; // FIXME: Should not have to copy the string (the source should outlive the product store)
     stage stage_;
   };
 
