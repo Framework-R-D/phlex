@@ -8,13 +8,13 @@ namespace phlex::experimental {
 
   product_store::product_store(product_store_const_ptr parent,
                                level_id_ptr id,
-                               std::string_view source,
+                               std::string source,
                                stage processing_stage,
                                products new_products) :
     parent_{std::move(parent)},
     products_{std::move(new_products)},
     id_{std::move(id)},
-    source_{source},
+    source_{std::move(source)},
     stage_{processing_stage}
   {
   }
@@ -22,12 +22,12 @@ namespace phlex::experimental {
   product_store::product_store(product_store_const_ptr parent,
                                std::size_t new_level_number,
                                std::string const& new_level_name,
-                               std::string_view source,
+                               std::string source,
                                products new_products) :
     parent_{parent},
     products_{std::move(new_products)},
     id_{parent->id()->make_child(new_level_number, new_level_name)},
-    source_{source},
+    source_{std::move(source)},
     stage_{stage::process}
   {
   }
@@ -35,18 +35,22 @@ namespace phlex::experimental {
   product_store::product_store(product_store_const_ptr parent,
                                std::size_t new_level_number,
                                std::string const& new_level_name,
-                               std::string_view source,
+                               std::string source,
                                stage processing_stage) :
     parent_{parent},
     id_{parent->id()->make_child(new_level_number, new_level_name)},
-    source_{source},
+    source_{std::move(source)},
     stage_{processing_stage}
   {
   }
 
   product_store::~product_store() = default;
 
-  product_store_ptr product_store::base() { return product_store_ptr{new product_store}; }
+  product_store_ptr product_store::base(std::string base_name)
+  {
+    return product_store_ptr{
+      new product_store{nullptr, level_id::base_ptr(), std::move(base_name)}};
+  }
 
   product_store_const_ptr product_store::parent(std::string const& level_name) const noexcept
   {
@@ -77,33 +81,36 @@ namespace phlex::experimental {
     return product_store_ptr{new product_store{parent_, id_, "[inserted]", stage::flush}};
   }
 
-  product_store_ptr product_store::make_continuation(std::string_view source,
+  product_store_ptr product_store::make_continuation(std::string source,
                                                      products new_products) const
   {
     return product_store_ptr{
-      new product_store{parent_, id_, source, stage::process, std::move(new_products)}};
+      new product_store{parent_, id_, std::move(source), stage::process, std::move(new_products)}};
   }
 
   product_store_ptr product_store::make_child(std::size_t new_level_number,
                                               std::string const& new_level_name,
-                                              std::string_view source,
+                                              std::string source,
                                               products new_products)
   {
-    return product_store_ptr{new product_store{
-      shared_from_this(), new_level_number, new_level_name, source, std::move(new_products)}};
+    return product_store_ptr{new product_store{shared_from_this(),
+                                               new_level_number,
+                                               new_level_name,
+                                               std::move(source),
+                                               std::move(new_products)}};
   }
 
   product_store_ptr product_store::make_child(std::size_t new_level_number,
                                               std::string const& new_level_name,
-                                              std::string_view source,
+                                              std::string source,
                                               stage processing_stage)
   {
     return product_store_ptr{new product_store{
-      shared_from_this(), new_level_number, new_level_name, source, processing_stage}};
+      shared_from_this(), new_level_number, new_level_name, std::move(source), processing_stage}};
   }
 
   std::string const& product_store::level_name() const noexcept { return id_->level_name(); }
-  std::string_view product_store::source() const noexcept { return source_; }
+  std::string const& product_store::source() const noexcept { return source_; }
   product_store_const_ptr product_store::parent() const noexcept { return parent_; }
   level_id_ptr const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }

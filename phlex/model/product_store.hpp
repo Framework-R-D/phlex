@@ -17,7 +17,7 @@ namespace phlex::experimental {
   class product_store : public std::enable_shared_from_this<product_store> {
   public:
     ~product_store();
-    static product_store_ptr base();
+    static product_store_ptr base(std::string base_name = "Source");
 
     product_store_const_ptr store_for_product(std::string const& product_name) const;
 
@@ -25,18 +25,18 @@ namespace phlex::experimental {
     auto end() const noexcept { return products_.end(); }
 
     std::string const& level_name() const noexcept;
-    std::string_view source() const noexcept; // FIXME: Think carefully of using std::string_view
+    std::string const& source() const noexcept;
     product_store_const_ptr parent(std::string const& level_name) const noexcept;
     product_store_const_ptr parent() const noexcept;
     product_store_ptr make_flush() const;
-    product_store_ptr make_continuation(std::string_view source, products new_products = {}) const;
+    product_store_ptr make_continuation(std::string source, products new_products = {}) const;
     product_store_ptr make_child(std::size_t new_level_number,
                                  std::string const& new_level_name,
-                                 std::string_view source,
+                                 std::string source,
                                  products new_products);
     product_store_ptr make_child(std::size_t new_level_number,
                                  std::string const& new_level_name,
-                                 std::string_view source = {},
+                                 std::string source = {},
                                  stage st = stage::process);
     level_id_ptr const& id() const noexcept;
     bool is_flush() const noexcept;
@@ -58,26 +58,27 @@ namespace phlex::experimental {
     void add_product(std::string const& key, std::unique_ptr<product<T>>&& t);
 
   private:
-    explicit product_store(product_store_const_ptr parent = nullptr,
-                           level_id_ptr id = level_id::base_ptr(),
-                           std::string_view source = {},
+    explicit product_store(product_store_const_ptr parent,
+                           level_id_ptr id,
+                           std::string source,
                            stage processing_stage = stage::process,
                            products new_products = {});
     explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
                            std::string const& new_level_name,
-                           std::string_view source,
+                           std::string source,
                            products new_products);
     explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
                            std::string const& new_level_name,
-                           std::string_view source,
+                           std::string source,
                            stage processing_stage);
 
     product_store_const_ptr parent_{nullptr};
     products products_{};
     level_id_ptr id_;
-    std::string_view source_;
+    std::string
+      source_; // FIXME: Should not have to copy the string (the source should outlive the product store)
     stage stage_;
   };
 

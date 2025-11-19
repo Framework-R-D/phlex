@@ -8,10 +8,10 @@
 namespace phlex::experimental {
 
   generator::generator(product_store_const_ptr const& parent,
-                       std::string const& node_name,
+                       std::string node_name,
                        std::string const& new_level_name) :
     parent_{std::const_pointer_cast<product_store>(parent)},
-    node_name_{node_name},
+    node_name_{std::move(node_name)},
     new_level_name_{new_level_name}
   {
   }
