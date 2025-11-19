@@ -30,7 +30,7 @@ jobs:
 
     - name: Detect C++ formatting changes
       id: filter
-      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}

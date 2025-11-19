@@ -71,7 +71,7 @@ jobs:
 
     - name: Detect clang-tidy relevant changes
       id: filter
-      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -116,10 +116,10 @@ jobs:
         repository: ${{ needs.check_comment_trigger.outputs.repo_name }}
 
     - name: Setup build environment
-      uses: ./phlex-src/.github/actions/setup-build-env
+      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
     - name: Configure CMake (Debug)
-      uses: ./phlex-src/.github/actions/configure-cmake
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         build-type: Debug
         extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"

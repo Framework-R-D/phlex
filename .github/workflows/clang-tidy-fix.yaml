@@ -66,10 +66,10 @@ jobs:
           repository: ${{ needs.check.outputs.repo_name }}
 
       - name: Setup build environment
-        uses: ./phlex-src/.github/actions/setup-build-env
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
       - name: Configure CMake for clang-tidy
-        uses: ./phlex-src/.github/actions/configure-cmake
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
         with:
           build-type: Debug
           extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"

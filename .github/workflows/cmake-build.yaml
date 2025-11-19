@@ -66,15 +66,15 @@ jobs:
         ref: ${{ github.event_name == 'issue_comment' && fromJSON(steps.pr.outputs.result).sha || github.ref }}
 
     - name: Setup build environment
-      uses: ./phlex-src/.github/actions/setup-build-env
+      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
     - name: Configure CMake
-      uses: ./phlex-src/.github/actions/configure-cmake
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         build-type: ${{ env.BUILD_TYPE }}
 
     - name: Build
-      uses: ./phlex-src/.github/actions/build-cmake
+      uses: Framework-R-D/phlex/.github/actions/build-cmake@main
 
     - name: Test
       run: |

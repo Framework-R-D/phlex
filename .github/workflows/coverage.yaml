@@ -59,7 +59,7 @@ jobs:
     - name: Detect coverage relevant changes
       id: filter
       if: ${{ steps.detect_act.outputs.is_act != 'true' }}
-      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -127,12 +127,12 @@ jobs:
         path: phlex-src
 
     - name: Setup build environment
-      uses: ./phlex-src/.github/actions/setup-build-env
+      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
     - name: Configure CMake with GCC coverage
       id: configure_gcc
       if: ${{ steps.coverage_options.outputs.compiler == 'gcc' }}
-      uses: ./phlex-src/.github/actions/configure-cmake
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         cpp-compiler: g++
         preset: coverage-gcc
@@ -142,7 +142,7 @@ jobs:
     - name: Configure CMake with Clang coverage
       id: configure_clang
       if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
-      uses: ./phlex-src/.github/actions/configure-cmake
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         cpp-compiler: clang++
         preset: coverage-clang
@@ -156,7 +156,7 @@ jobs:
         exit 1
 
     - name: Build with coverage instrumentation
-      uses: ./phlex-src/.github/actions/build-cmake
+      uses: Framework-R-D/phlex/.github/actions/build-cmake@main
 
     - name: Run tests with coverage
       run: |
