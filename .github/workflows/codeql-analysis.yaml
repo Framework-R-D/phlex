@@ -28,7 +28,7 @@ jobs:
       image: ghcr.io/framework-r-d/phlex-ci:latest
     strategy:
       fail-fast: false
-      matrix: # Necessry to disable yaml-language-server warning
+      matrix:
         language: ['cpp', 'python', 'actions']
     timeout-minutes: 120
     steps:
