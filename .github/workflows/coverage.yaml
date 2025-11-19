@@ -18,6 +18,10 @@ on:
         required: false
         default: 'ON'
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   detect-coverage-changes:
     runs-on: ubuntu-latest
@@ -31,7 +35,7 @@ jobs:
 
     steps:
     - name: Check out source code
-      uses: actions/checkout@v4
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         fetch-depth: 0
         path: phlex-src
@@ -55,7 +59,7 @@ jobs:
     - name: Detect coverage relevant changes
       id: filter
       if: ${{ steps.detect_act.outputs.is_act != 'true' }}
-      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -118,17 +122,17 @@ jobs:
         echo "enable_form=$form" >> "$GITHUB_OUTPUT"
 
     - name: Check out source code
-      uses: actions/checkout@v4
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         path: phlex-src
 
     - name: Setup build environment
-      uses: ./phlex-src/.github/actions/setup-build-env
+      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
     - name: Configure CMake with GCC coverage
       id: configure_gcc
       if: ${{ steps.coverage_options.outputs.compiler == 'gcc' }}
-      uses: ./phlex-src/.github/actions/configure-cmake
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         cpp-compiler: g++
         preset: coverage-gcc
@@ -138,7 +142,7 @@ jobs:
     - name: Configure CMake with Clang coverage
       id: configure_clang
       if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
-      uses: ./phlex-src/.github/actions/configure-cmake
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         cpp-compiler: clang++
         preset: coverage-clang
@@ -152,7 +156,7 @@ jobs:
         exit 1
 
     - name: Build with coverage instrumentation
-      uses: ./phlex-src/.github/actions/build-cmake
+      uses: Framework-R-D/phlex/.github/actions/build-cmake@main
 
     - name: Run tests with coverage
       run: |
@@ -289,7 +293,7 @@ jobs:
 
     - name: Upload coverage bundle
       if: ${{ (steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped') && steps.artifact_runtime.outputs.available == 'true' && github.actor != 'nektos/act' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
       with:
         name: coverage-generated
         path: coverage-artifacts/
@@ -304,12 +308,12 @@ jobs:
 
     steps:
     - name: Check out source code for Codecov mapping
-      uses: actions/checkout@v4
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         fetch-depth: 0
 
     - name: Download coverage bundle
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
       with:
         name: coverage-generated
         path: coverage-artifacts
@@ -341,7 +345,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ steps.codecov_targets.outputs.found == 'true' }}
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
       with:
         files: ${{ steps.codecov_targets.outputs.files }}
         flags: unittests
@@ -353,7 +357,7 @@ jobs:
 
     - name: Publish HTML coverage report
       if: ${{ needs.coverage.outputs.has_coverage_html == 'true' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
       with:
         name: coverage-html-report
         path: coverage-artifacts/coverage-html/

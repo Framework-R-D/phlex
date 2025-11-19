@@ -7,8 +7,8 @@ on:
       - created
 
 permissions:
-   pull-requests: write
-   contents: write
+  pull-requests: write
+  contents: write
 
 jobs:
   check:
@@ -52,24 +52,24 @@ jobs:
     runs-on: ubuntu-24.04
     name: Apply clang-tidy fixes
     needs: check
-    if: ${{ needs.check.outputs.match_result == 'match' }}
+    if: ${{ needs.check.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           path: phlex-src
           ref: ${{ needs.check.outputs.ref_name }}
           repository: ${{ needs.check.outputs.repo_name }}
 
       - name: Setup build environment
-        uses: ./phlex-src/.github/actions/setup-build-env
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
       - name: Configure CMake for clang-tidy
-        uses: ./phlex-src/.github/actions/configure-cmake
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
         with:
           build-type: Debug
           extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
@@ -86,14 +86,14 @@ jobs:
           echo "Clang-tidy fixes applied"
 
       - name: Upload clang-tidy report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: clang-tidy-report
           path: phlex-build/clang-tidy-fixes.yaml
           retention-days: 7
 
       - name: Commit tidy fixes
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
         id: add_and_commit
         with:
           cwd: phlex-src
@@ -103,7 +103,7 @@ jobs:
 
       - name: Tidy fixes committed and pushed
         if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
         with:
           message: |
             Clang-tidy fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
@@ -112,7 +112,7 @@ jobs:
 
       - name: No tidy fixes to apply
         if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
         with:
           message: |
             No clang-tidy fixes to apply
@@ -126,12 +126,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Download clang-tidy report
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: clang-tidy-report
           path: phlex-build
       - name: Post clang-tidy comments
-        uses: platisd/clang-tidy-pr-comments@v1
+        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}

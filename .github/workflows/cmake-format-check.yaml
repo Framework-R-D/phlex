@@ -1,6 +1,10 @@
 name: CMake Format Check
 run-name: "${{ github.actor }} running CMake format check"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 on:
   pull_request:
     branches: [ main ]
@@ -19,14 +23,14 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         fetch-depth: 0
         path: phlex-src
 
     - name: Detect CMake formatting changes
       id: filter
-      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -50,12 +54,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         path: phlex-src
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
       with:
         python-version: '3.x'
 
