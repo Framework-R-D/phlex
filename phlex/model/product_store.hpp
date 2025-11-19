@@ -58,9 +58,9 @@ namespace phlex::experimental {
     void add_product(std::string const& key, std::unique_ptr<product<T>>&& t);
 
   private:
-    explicit product_store(product_store_const_ptr parent = nullptr,
-                           level_id_ptr id = level_id::base_ptr(),
-                           std::string source = {},
+    explicit product_store(product_store_const_ptr parent,
+                           level_id_ptr id,
+                           std::string source,
                            stage processing_stage = stage::process,
                            products new_products = {});
     explicit product_store(product_store_const_ptr parent,
