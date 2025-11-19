@@ -48,7 +48,7 @@ TEST_CASE("provider_test")
 
   framework_graph g{levels_to_process};
 
-  g.provider("happy_vertices", give_me_vertices, concurrency::unlimited);
+  g.provide("happy_vertices", give_me_vertices, concurrency::unlimited);
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family("happy_vertices"_in("spill"))
     .output_products("vertex_data");
