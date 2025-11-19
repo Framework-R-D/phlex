@@ -46,7 +46,11 @@ namespace phlex::experimental {
 
   product_store::~product_store() = default;
 
-  product_store_ptr product_store::base(std::string base_name) { return product_store_ptr{new product_store{nullptr, level_id::base_ptr(), std::move(base_name)}}; }
+  product_store_ptr product_store::base(std::string base_name)
+  {
+    return product_store_ptr{
+      new product_store{nullptr, level_id::base_ptr(), std::move(base_name)}};
+  }
 
   product_store_const_ptr product_store::parent(std::string const& level_name) const noexcept
   {
@@ -80,8 +84,8 @@ namespace phlex::experimental {
   product_store_ptr product_store::make_continuation(std::string source,
                                                      products new_products) const
   {
-    return product_store_ptr{new product_store{
-      parent_, id_, std::move(source), stage::process, std::move(new_products)}};
+    return product_store_ptr{
+      new product_store{parent_, id_, std::move(source), stage::process, std::move(new_products)}};
   }
 
   product_store_ptr product_store::make_child(std::size_t new_level_number,
@@ -101,11 +105,8 @@ namespace phlex::experimental {
                                               std::string source,
                                               stage processing_stage)
   {
-    return product_store_ptr{new product_store{shared_from_this(),
-                                               new_level_number,
-                                               new_level_name,
-                                               std::move(source),
-                                               processing_stage}};
+    return product_store_ptr{new product_store{
+      shared_from_this(), new_level_number, new_level_name, std::move(source), processing_stage}};
   }
 
   std::string const& product_store::level_name() const noexcept { return id_->level_name(); }

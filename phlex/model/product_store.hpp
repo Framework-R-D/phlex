@@ -17,7 +17,7 @@ namespace phlex::experimental {
   class product_store : public std::enable_shared_from_this<product_store> {
   public:
     ~product_store();
-    static product_store_ptr base(std::string base_name="Source");
+    static product_store_ptr base(std::string base_name = "Source");
 
     product_store_const_ptr store_for_product(std::string const& product_name) const;
 
@@ -77,7 +77,7 @@ namespace phlex::experimental {
     product_store_const_ptr parent_{nullptr};
     products products_{};
     level_id_ptr id_;
-    std::string source_;
+    std::string source_;  // FIXME: Should not have to copy the string (the source should outlive the product store)
     stage stage_;
   };
 
