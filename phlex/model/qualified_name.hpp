@@ -22,7 +22,7 @@ namespace phlex::experimental {
     std::string const& name() const noexcept { return name_; }
     type_id type() const noexcept { return type_id_; }
 
-    void set_type(type_id type) { type_id_ = type; }
+    void set_type(type_id&& type) { type_id_ = std::move(type); }
 
     bool operator==(qualified_name const& other) const;
     bool operator!=(qualified_name const& other) const;
