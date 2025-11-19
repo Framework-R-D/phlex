@@ -36,7 +36,7 @@ jobs:
 
   build:
     needs: check-trigger
-    if: needs.check-trigger.outputs.triggered == 'true'
+    if: needs.check-trigger.outputs.triggered == 'true' && (github.event_name == 'workflow_dispatch' || github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-24.04
 
     container:

@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-24.04
     name: Apply clang-tidy fixes
     needs: check
-    if: ${{ needs.check.outputs.match_result == 'match' }}
+    if: ${{ needs.check.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
