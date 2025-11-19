@@ -10,13 +10,15 @@ using namespace phlex::experimental;
 
 namespace toy {
   struct VertexCollection {
-    unsigned data;
+    std::size_t data;
   };
 }
 
 namespace {
   // Provider algorithms
- // int give_me_an_a(data_cell_index) { return 1; };
+  toy::VertexCollection give_me_vertices(data_cell_index const& id) {
+    return toy::VertexCollection{id.number()};
+  }
 }
 
 namespace {
@@ -46,7 +48,7 @@ TEST_CASE("provider_test")
 
   framework_graph g{levels_to_process};
 
-
+  g.provider("happy_vertices", give_me_vertices, concurrency::unlimited);
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family("happy_vertices"_in("spill"))
     .output_products("vertex_data");
@@ -60,7 +62,7 @@ TEST_CASE("provider_test")
 Planned development flow:
 
 [x] Get initial test working.
-[ ] Make the data product be a simple struct not a fundamental type.
+[x] Make the data product be a simple struct not a fundamental type.
 [ ] Introduce stub `provider` that takes product_store_ptr as input and returns a product_store_ptr.
     Wire the provider into the graph.
 [ ] Modify the `provider` to take data_cell_index as input.
