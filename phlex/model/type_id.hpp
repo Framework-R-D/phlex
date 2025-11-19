@@ -5,8 +5,6 @@
 #include "phlex/model/handle.hpp"
 
 #include "fmt/format.h"
-#include "fmt/ranges.h"
-#include <boost/core/demangle.hpp>
 #include <boost/pfr/core.hpp>
 #include <boost/pfr/traits.hpp>
 
@@ -62,7 +60,7 @@ namespace phlex::experimental {
 
     template <typename T>
     friend constexpr type_id make_type_id();
-    friend auto format_as(type_id);
+    friend struct fmt::formatter<type_id>;
 
   private:
     unsigned char id_ = 0xFF;
@@ -70,57 +68,6 @@ namespace phlex::experimental {
     // This is used only if the product type is a struct
     std::vector<type_id> children_;
   };
-
-  inline auto format_as(type_id type)
-  {
-    using namespace std::string_literals;
-    if (!type.valid()) {
-      return "INVALID / EMPTY"s;
-    }
-    if (type.has_children()) {
-      return fmt::format("STRUCT {{{}}}", fmt::join(type.children_, ", "));
-    }
-
-    std::string fundamental = "void"s;
-    switch (type.fundamental()) {
-    case type_id::builtin::void_v:
-      fundamental = "void"s;
-      break;
-    case type_id::builtin::bool_v:
-      fundamental = "bool"s;
-      break;
-    case type_id::builtin::char_v:
-      fundamental = "char"s;
-      break;
-    case type_id::builtin::int_v:
-      fundamental = "int"s;
-      break;
-
-    case type_id::builtin::short_v:
-      fundamental = "short"s;
-      break;
-
-    case type_id::builtin::long_v:
-      fundamental = "long"s;
-      break;
-
-    case type_id::builtin::long_long_v:
-      fundamental = "long long"s;
-      break;
-
-    case type_id::builtin::float_v:
-      fundamental = "float"s;
-      break;
-
-    case type_id::builtin::double_v:
-      fundamental = "double"s;
-      break;
-    }
-    return fmt::format("{}{}{}",
-                       type.is_list() ? "LIST "s : ""s,
-                       type.is_unsigned() ? "unsigned "s : ""s,
-                       fundamental);
-  }
 
   using type_ids = std::vector<type_id>;
 
@@ -297,4 +244,8 @@ namespace phlex::experimental {
 
 }
 
+template <>
+struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
+  auto format(phlex::experimental::type_id type, format_context& ctx) const;
+};
 #endif // PHLEX_MODE_TYPE_ID_HPP
