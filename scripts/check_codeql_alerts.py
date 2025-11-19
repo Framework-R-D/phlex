@@ -15,6 +15,21 @@ from pathlib import Path
 from typing import Any
 
 
+@dataclass
+class APIAlertComparison:
+    """Holds the results of comparing alerts between refs via the API."""
+
+    new_alerts: list[Alert]
+    fixed_alerts: list[Alert]
+    matched_alerts: list[Alert]
+    new_vs_prev: list[Alert]
+    fixed_vs_prev: list[Alert]
+    new_vs_base: list[Alert]
+    fixed_vs_base: list[Alert]
+    base_sha: str | None
+    prev_commit_ref: str | None
+
+
 class GitHubAPIError(RuntimeError):
     """Raised when the GitHub API returns an unexpected response."""
 
@@ -36,7 +51,7 @@ def _api_request(
     if params:
         url = f"{url}?{urllib.parse.urlencode(params)}"
 
-    data: Optional[bytes] = None
+    data: bytes | None = None
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
@@ -227,7 +242,7 @@ def _format_physical_location(phys: dict[str, Any]) -> str | None:
     """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation dict, or None."""
     if not phys:
         return None
-    artifact = phys.get("artifactLocation", default={})
+    artifact = phys.get("artifactLocation", {})
     uri = artifact.get("uri") or artifact.get("uriBaseId")
     if not uri:
         return None
@@ -671,6 +686,175 @@ def set_outputs(
             handle.write("log_path=\n")
 
 
+def _compare_alerts_via_api(owner: str, repo: str, ref: str) -> APIAlertComparison:
+    """Compare alerts between a ref and the main branch using the GitHub API."""
+    # Fetch alerts for the PR merge ref (fixed) and for the repo default state (open)
+    pr_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=ref))
+    _debug(f"Fetched {len(pr_alerts_raw)} alerts for ref={ref}")
+    main_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=None))
+    _debug(f"Fetched {len(main_alerts_raw)} alerts for repo (main)")
+
+    # Also fetch alerts at the PR base (branch point) when possible
+    base_ref: str | None = None
+    prev_commit_ref: str | None = None
+    base_sha: str | None = None
+    if ref.startswith("refs/pull/"):
+        try:
+            pr_num = int(ref.split("/")[2])
+            pr_info = _api_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_num}")
+            base_ref = pr_info.get("base", {}).get("ref")
+            base_sha = pr_info.get("base", {}).get("sha")
+            # Determine previous commit on PR if available
+            commits = _api_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_num}/commits") or []
+            if isinstance(commits, list) and len(commits) >= 2:
+                prev_commit_ref = commits[-2].get("sha")
+        except (ValueError, GitHubAPIError, IndexError, KeyError, TypeError) as exc:
+            # Malformed ref, API error, or unexpected response structure — treat as unavailable
+            _debug(f"Could not determine PR base/previous commit for ref {ref}: {exc}")
+            base_ref = None
+            prev_commit_ref = None
+
+        base_alerts_raw: list[dict] = []
+        if base_ref or base_sha:
+            # prefer base SHA if available
+            base_target = base_sha or base_ref
+            base_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=base_target))
+            _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
+
+    prev_alerts_raw: list[dict] = []
+    if prev_commit_ref:
+        prev_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref))
+        _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
+
+    def alert_key(a: Alert) -> tuple[str, str]:
+        # Prefer analysis_key/fingerprint when available; otherwise use rule+location
+        if a.analysis_key:
+            return ("ak", str(a.analysis_key))
+        return ("rl", f"{a.rule_id}::{a.location or '(location unavailable)'}")
+
+    pr_alerts: dict[tuple[str, str], Alert] = {}
+    for raw in pr_alerts_raw:
+        alert_obj = _to_alert_api(raw)
+        pr_alerts[alert_key(alert_obj)] = alert_obj
+
+    main_alerts: dict[tuple[str, str], Alert] = {}
+    for raw in main_alerts_raw:
+        alert_obj = _to_alert_api(raw)
+        main_alerts[alert_key(alert_obj)] = alert_obj
+
+    # Alerts present in main but not in PR are 'fixed' (resolved vs main)
+    pr_keys = set(pr_alerts)
+    main_keys = set(main_alerts)
+
+    fixed_ids = main_keys - pr_keys
+    # Alerts present in PR but not in main are 'new' (introduced by PR)
+    new_ids = pr_keys - main_keys
+
+    # Matching statistics
+    pr_total = len(pr_keys)
+    main_total = len(main_keys)
+    pr_ak_count = sum(1 for k in pr_keys if k[0] == "ak")
+    main_ak_count = sum(1 for k in main_keys if k[0] == "ak")
+    pr_rl_count = pr_total - pr_ak_count
+    main_rl_count = main_total - main_ak_count
+
+    matched_keys = pr_keys & main_keys
+    matched_by_ak = sum(1 for k in matched_keys if k[0] == "ak")
+    matched_by_rl = sum(1 for k in matched_keys if k[0] == "rl")
+
+    _debug(f"PR alerts: total={pr_total}, ak={pr_ak_count}, rl={pr_rl_count}")
+    _debug(f"Main alerts: total={main_total}, ak={main_ak_count}, rl={main_rl_count}")
+    _debug(f"Matched: by_ak={matched_by_ak}, by_rl={matched_by_rl}")
+
+    # Build comparisons against previous PR commit and branch point if available
+    prev_alerts: dict[tuple[str, str], Alert] = {}
+    for raw in prev_alerts_raw or []:
+        alert_obj = _to_alert_api(raw)
+        prev_alerts[alert_key(alert_obj)] = alert_obj
+
+    base_alerts: dict[tuple[str, str], Alert] = {}
+    for raw in base_alerts_raw or []:
+        alert_obj = _to_alert_api(raw)
+        base_alerts[alert_key(alert_obj)] = alert_obj
+
+    # Changes vs previous commit (if present)
+    new_vs_prev: list[Alert] = []
+    fixed_vs_prev: list[Alert] = []
+    if prev_alerts:
+        new_vs_prev_ids = set(pr_alerts) - set(prev_alerts)
+        fixed_vs_prev_ids = set(prev_alerts) - set(pr_alerts)
+        new_vs_prev = [pr_alerts[rid] for rid in sorted(new_vs_prev_ids)]
+        fixed_vs_prev = [prev_alerts[rid] for rid in sorted(fixed_vs_prev_ids)]
+
+    # Changes vs branch point (base)
+    new_vs_base: list[Alert] = []
+    fixed_vs_base: list[Alert] = []
+    if base_alerts:
+        new_vs_base_ids = set(pr_alerts) - set(base_alerts)
+        fixed_vs_base_ids = set(base_alerts) - set(pr_alerts)
+        new_vs_base = [pr_alerts[rid] for rid in sorted(new_vs_base_ids)]
+        fixed_vs_base = [base_alerts[rid] for rid in sorted(fixed_vs_base_ids)]
+
+    return APIAlertComparison(
+        new_alerts=[pr_alerts[rid] for rid in sorted(new_ids)],
+        fixed_alerts=[main_alerts[rid] for rid in sorted(fixed_ids)],
+        matched_alerts=[pr_alerts[rid] for rid in sorted(pr_keys & main_keys)],
+        new_vs_prev=new_vs_prev,
+        fixed_vs_prev=fixed_vs_prev,
+        new_vs_base=new_vs_base,
+        fixed_vs_base=fixed_vs_base,
+        base_sha=base_sha,
+        prev_commit_ref=prev_commit_ref,
+    )
+
+
+def _build_multi_section_comment(
+    api_comp: APIAlertComparison,
+    max_results: int,
+) -> str:
+    """Build a detailed PR comment when multiple comparisons have been made."""
+    lines: list[str] = []
+    # Matching summary (always include in PR comment)
+    if api_comp.new_vs_base or api_comp.fixed_vs_base:
+        lines.append(
+            f"{len(api_comp.fixed_vs_base)} fixed, {len(api_comp.new_vs_base)} new since branch point ({api_comp.base_sha[:7] if api_comp.base_sha else 'unknown'})"
+        )
+    if api_comp.new_vs_prev or api_comp.fixed_vs_prev:
+        lines.append(
+            f"{len(api_comp.fixed_vs_prev)} fixed, {len(api_comp.new_vs_prev)} new since previous report on PR ({api_comp.prev_commit_ref[:7] if api_comp.prev_commit_ref else 'unknown'})"
+        )
+    lines.append("")
+
+    # Add previous-commit comparison if available
+    if api_comp.new_vs_prev:
+        lines.append(f"## ❌ {len(api_comp.new_vs_prev)} new CodeQL alert{'s' if len(api_comp.new_vs_prev) != 1 else ''} since the previous PR commit")
+        lines.extend(_format_section(api_comp.new_vs_prev, max_results=max_results, bullet_prefix=":x:"))
+        lines.append("")
+    if api_comp.fixed_vs_prev:
+        lines.append(f"## ✅ {len(api_comp.fixed_vs_prev)} CodeQL alert{'s' if len(api_comp.fixed_vs_prev) != 1 else ''} resolved since the previous PR commit")
+        lines.extend(_format_section(api_comp.fixed_vs_prev, max_results=max_results, bullet_prefix=":white_check_mark:"))
+        lines.append("")
+
+    # Add branch-point comparison if available
+    if api_comp.new_vs_base:
+        lines.append(f"## ❌ {len(api_comp.new_vs_base)} new CodeQL alert{'s' if len(api_comp.new_vs_base) != 1 else ''} since the branch point")
+        lines.extend(_format_section(api_comp.new_vs_base, max_results=max_results, bullet_prefix=":x:"))
+        lines.append("")
+    if api_comp.fixed_vs_base:
+        lines.append(f"## ✅ {len(api_comp.fixed_vs_base)} CodeQL alert{'s' if len(api_comp.fixed_vs_base) != 1 else ''} resolved since the branch point")
+        lines.extend(_format_section(api_comp.fixed_vs_base, max_results=max_results, bullet_prefix=":white_check_mark:"))
+        lines.append("")
+
+    repo_str = os.environ.get("GITHUB_REPOSITORY")
+    if repo_str:
+        code_scanning_url = f"https://github.com/{repo_str}/security/code-scanning"
+        lines.append(f"Review the [full CodeQL report]({code_scanning_url}) for details.")
+    else:
+        lines.append("Review the CodeQL report in the Security tab for full details.")
+
+    return "\n".join(line for line in lines if line).strip() + "\n"
+
+
 def main(argv: collections.abc.Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     # set global debug flag
@@ -688,7 +872,8 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
     fixed_alerts = buckets.get("absent", [])
     _debug(f"SARIF baseline results: new={len(new_alerts)}, fixed={len(fixed_alerts)}")
 
-    pr_alerts = main_alerts = None
+    # Initialize API comparison variables
+    api_comp = None
     # If user supplied a ref and we found no SARIF baseline info, query the API
     # to compare alerts for the given ref against the repository state.
     if args.ref and not (new_alerts or fixed_alerts):
@@ -702,132 +887,21 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
                 print("GITHUB_REPOSITORY not set; please provide --owner and --repo", file=sys.stderr)
                 return 2
             owner, repo = repo_full.split("/", 1)
-
         try:
-            # Fetch alerts for the PR merge ref (fixed) and for the repo default state (open)
-            pr_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=args.ref))
-            _debug(f"Fetched {len(pr_alerts_raw)} alerts for ref={args.ref}")
-            main_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=None))
-            _debug(f"Fetched {len(main_alerts_raw)} alerts for repo (main)")
-
-            # Also fetch alerts at the PR base (branch point) when possible
-            base_ref = None
-            prev_commit_ref = None
-            base_sha = None
-            if args.ref and args.ref.startswith("refs/pull/"):
-                try:
-                    pr_num = int(args.ref.split("/")[2])
-                    pr_info = _api_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_num}")
-                    base_ref = pr_info.get("base", {}).get("ref")
-                    base_sha = pr_info.get("base", {}).get("sha")
-                    # Determine previous commit on PR if available
-                    commits = _api_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_num}/commits") or []
-                    if isinstance(commits, list) and len(commits) >= 2:
-                        prev_commit_ref = commits[-2].get("sha")
-                except (ValueError, GitHubAPIError, IndexError, KeyError, TypeError) as exc:
-                    # Malformed ref, API error, or unexpected response structure — treat as unavailable
-                    _debug(f"Could not determine PR base/previous commit for ref {args.ref}: {exc}")
-                    base_ref = None
-                    prev_commit_ref = None
-
-                base_alerts_raw = []
-                if base_ref or base_sha:
-                    # prefer base SHA if available
-                    base_target = base_sha or base_ref
-                    base_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=base_target))
-                    _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
-
-            prev_alerts_raw = []
-            if prev_commit_ref:
-                prev_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref))
-                _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
+            api_comp = _compare_alerts_via_api(owner, repo, args.ref)
+            new_alerts = api_comp.new_alerts
+            fixed_alerts = api_comp.fixed_alerts
         except GitHubAPIError as exc:
             print(f"GitHub API error: {exc}", file=sys.stderr)
             return 2
 
-        def alert_key(a: Alert) -> tuple[str, str]:
-            # Prefer analysis_key/fingerprint when available; otherwise use rule+location
-            if a.analysis_key:
-                return ("ak", str(a.analysis_key))
-            return ("rl", f"{a.rule_id}::{a.location or '(location unavailable)'}")
-
-        pr_alerts: dict[tuple[str, str], Alert] = {}
-        for raw in pr_alerts_raw:
-            alert_obj = _to_alert_api(raw)
-            pr_alerts[alert_key(alert_obj)] = alert_obj
-
-        main_alerts: dict[tuple[str, str], Alert] = {}
-        for raw in main_alerts_raw:
-            alert_obj = _to_alert_api(raw)
-            main_alerts[alert_key(alert_obj)] = alert_obj
-
-        # Alerts present in main but not in PR are 'fixed' (resolved vs main)
-        pr_keys = set(pr_alerts)
-        main_keys = set(main_alerts)
-
-        fixed_ids = main_keys - pr_keys
-        # Alerts present in PR but not in main are 'new' (introduced by PR)
-        new_ids = pr_keys - main_keys
-
-        # Matching statistics
-        pr_total = len(pr_keys)
-        main_total = len(main_keys)
-        pr_ak_count = sum(1 for k in pr_keys if k[0] == "ak")
-        main_ak_count = sum(1 for k in main_keys if k[0] == "ak")
-        pr_rl_count = pr_total - pr_ak_count
-        main_rl_count = main_total - main_ak_count
-
-        matched_keys = pr_keys & main_keys
-        matched_by_ak = sum(1 for k in matched_keys if k[0] == "ak")
-        matched_by_rl = sum(1 for k in matched_keys if k[0] == "rl")
-
-        _debug(f"PR alerts: total={pr_total}, ak={pr_ak_count}, rl={pr_rl_count}")
-        _debug(f"Main alerts: total={main_total}, ak={main_ak_count}, rl={main_rl_count}")
-        _debug(f"Matched: by_ak={matched_by_ak}, by_rl={matched_by_rl}")
-
-        fixed_alerts = [main_alerts[rid] for rid in sorted(fixed_ids)]
-        new_alerts = [pr_alerts[rid] for rid in sorted(new_ids)]
-
-        # Build comparisons against previous PR commit and branch point if available
-        prev_alerts: dict[tuple[str, str], Alert] = {}
-        for raw in (prev_alerts_raw or []):
-            alert_obj = _to_alert_api(raw)
-            prev_alerts[alert_key(alert_obj)] = alert_obj
-
-        base_alerts: dict[tuple[str, str], Alert] = {}
-        for raw in (base_alerts_raw or []):
-            alert_obj = _to_alert_api(raw)
-            base_alerts[alert_key(alert_obj)] = alert_obj
-
-        # Changes vs previous commit (if present)
-        new_vs_prev = []
-        fixed_vs_prev = []
-        if prev_alerts:
-            new_vs_prev_ids = set(pr_alerts) - set(prev_alerts)
-            fixed_vs_prev_ids = set(prev_alerts) - set(pr_alerts)
-            new_vs_prev = [pr_alerts[rid] for rid in sorted(new_vs_prev_ids)]
-            fixed_vs_prev = [prev_alerts[rid] for rid in sorted(fixed_vs_prev_ids)]
-
-        # Changes vs branch point (base)
-        new_vs_base = []
-        fixed_vs_base = []
-        if base_alerts:
-            new_vs_base_ids = set(pr_alerts) - set(base_alerts)
-            fixed_vs_base_ids = set(base_alerts) - set(pr_alerts)
-            new_vs_base = [pr_alerts[rid] for rid in sorted(new_vs_base_ids)]
-            fixed_vs_base = [base_alerts[rid] for rid in sorted(fixed_vs_base_ids)]
-
     # Compute unfiltered new/fixed and matched summaries for stdout
     # If API-mode was used, pr_alerts/main_alerts dicts are available; otherwise fall back to SARIF unfiltered buckets
-    if pr_alerts is not None and main_alerts is not None:
-        pr_keys = set(pr_alerts)
-        main_keys = set(main_alerts)
-        new_all = [pr_alerts[k] for k in sorted(pr_keys - main_keys)]
-        fixed_all = [main_alerts[k] for k in sorted(main_keys - pr_keys)]
-        matched_all = [pr_alerts[k] for k in sorted(pr_keys & main_keys)]
+    if api_comp is not None:
+        new_all = api_comp.new_alerts
+        fixed_all = api_comp.fixed_alerts
+        matched_all = api_comp.matched_alerts
         matched_available = True
-        pr_total = len(pr_keys)
-        main_total = len(main_keys)
     else:
         # SARIF-only mode: re-collect without threshold to get unfiltered counts
         try:
@@ -841,8 +915,6 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
             fixed_all = fixed_alerts
         matched_all = []
         matched_available = False
-        pr_total = len(new_all)
-        main_total = len(fixed_all)
 
     # Print summary to stdout (always)
     _print_summary(
@@ -852,49 +924,24 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
         matched_available=matched_available,
     )
 
-    if new_alerts or fixed_alerts or ('new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev)) or ('new_vs_base' in locals() and (new_vs_base or fixed_vs_base)):
+    if new_alerts or fixed_alerts or (api_comp and (api_comp.new_vs_prev or api_comp.fixed_vs_prev or api_comp.new_vs_base or api_comp.fixed_vs_base)):
         repo_str = os.environ.get("GITHUB_REPOSITORY")
-        # Start with a matching-summary header followed by the main comparison
-        lines: list[str] = []
-        # Matching summary (always include in PR comment)
-        if 'new_vs_base' in locals() and (new_vs_base or fixed_vs_base):
-            lines.append(f"{len(fixed_vs_base)} fixed, {len(new_vs_base)} new since branch point ({base_sha[:7] if base_sha else 'unknown'})")
-        if 'new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev):
-            lines.append(f"{len(fixed_vs_prev)} fixed, {len(new_vs_prev)} new since previous report on PR ({prev_commit_ref[:7] if prev_commit_ref else 'unknown'})")
-        lines.append("")
-
-        # Add previous-commit comparison if available
-        if 'new_vs_prev' in locals() and (new_vs_prev or fixed_vs_prev):
-            if new_vs_prev:
-                lines.append(f"## ❌ {len(new_vs_prev)} new CodeQL alert{'s' if len(new_vs_prev) != 1 else ''} since the previous PR commit")
-                lines.extend(_format_section(new_vs_prev, max_results=args.max_results, bullet_prefix=":x:"))
-                lines.append("")
-            if fixed_vs_prev:
-                lines.append(f"## ✅ {len(fixed_vs_prev)} CodeQL alert{'s' if len(fixed_vs_prev) != 1 else ''} resolved since the previous PR commit")
-                lines.extend(_format_section(fixed_vs_prev, max_results=args.max_results, bullet_prefix=":white_check_mark:"))
-                lines.append("")
-
-        # Add branch-point comparison if available
-        if 'new_vs_base' in locals() and (new_vs_base or fixed_vs_base):
-            if new_vs_base:
-                lines.append(f"## ❌ {len(new_vs_base)} new CodeQL alert{'s' if len(new_vs_base) != 1 else ''} since the branch point")
-                lines.extend(_format_section(new_vs_base, max_results=args.max_results, bullet_prefix=":x:"))
-                lines.append("")
-            if fixed_vs_base:
-                lines.append(f"## ✅ {len(fixed_vs_base)} CodeQL alert{'s' if len(fixed_vs_base) != 1 else ''} resolved since the branch point")
-                lines.extend(_format_section(fixed_vs_base, max_results=args.max_results, bullet_prefix=":white_check_mark:"))
-                lines.append("")
-
-        if repo_str:
-            code_scanning_url = f"https://github.com/{repo_str}/security/code-scanning"
-            lines.append(f"Review the [full CodeQL report]({code_scanning_url}) for details.")
+        comment_body = ""
+        if api_comp:
+            comment_body = _build_multi_section_comment(api_comp, args.max_results)
         else:
-            lines.append("Review the CodeQL report in the Security tab for full details.")
+            comment_body = build_comment(
+                new_alerts=new_alerts,
+                fixed_alerts=fixed_alerts,
+                repo=repo_str,
+                max_results=args.max_results,
+                threshold=min_level,
+            )
 
-        comment_body = "\n".join(line for line in lines if line).strip() + "\n"
         comment_path = Path(os.environ.get("RUNNER_TEMP", ".")) / "codeql-alerts.md"
         comment_path.parent.mkdir(parents=True, exist_ok=True)
         comment_path.write_text(comment_body, encoding="utf-8")
+
         write_summary(
             new_alerts=new_alerts,
             fixed_alerts=fixed_alerts,
