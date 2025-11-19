@@ -19,14 +19,14 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         fetch-depth: 0
         path: phlex-src
 
     - name: Detect GCC analyzer relevant changes
       id: filter
-      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event.pull_request.base.sha }}
@@ -49,21 +49,23 @@ jobs:
     needs: detect-gcc-analyzer-changes
     if: needs.detect-gcc-analyzer-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         path: phlex-src
 
     - name: Setup build environment
-      uses: ./phlex-src/.github/actions/setup-build-env
+      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
     - name: Configure CMake
-      uses: ./phlex-src/.github/actions/configure-cmake
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         build-type: Debug
         compiler: g++
