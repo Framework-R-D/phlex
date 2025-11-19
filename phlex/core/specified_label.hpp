@@ -46,6 +46,33 @@ namespace phlex::experimental {
     return labels;
   }
 
+  // C is a container of specified_labels
+  template <typename C, typename>
+    requires(std::is_same_v<typename C::value_type, specified_label>)
+  class specified_labels_type_setter {};
+  template <typename C, typename... Ts>
+  class specified_labels_type_setter<C, std::tuple<Ts...>> {
+  private:
+    std::size_t index_ = 0;
+
+    template <typename T>
+    void set_type(C& container)
+    {
+      container.at(index_).name.set_type(make_type_id<T>());
+      ++index_;
+    }
+
+  public:
+    void operator()(C& container)
+    {
+      if (container.size() != sizeof...(Ts)) {
+        throw std::logic_error(
+          "Number of input product names does not match number of input products");
+      }
+
+      (set_type<Ts>(container), ...);
+    }
+  };
 }
 
 #endif // PHLEX_CORE_SPECIFIED_LABEL_HPP

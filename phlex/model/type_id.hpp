@@ -2,12 +2,17 @@
 #define PHLEX_MODE_TYPE_ID_HPP
 
 #include "phlex/metaprogramming/type_deduction.hpp"
+#include "phlex/model/handle.hpp"
 
+#include "fmt/format.h"
+#include "fmt/ranges.h"
+#include <boost/core/demangle.hpp>
+#include <boost/pfr/core.hpp>
 #include <boost/pfr/traits.hpp>
+
+#include <string>
 #include <type_traits>
 #include <vector>
-
-#include <boost/pfr/core.hpp>
 
 // This is a type_id class to store the "product concept"
 // Using our own class means we can treat, for example, all "List"s the same
@@ -57,6 +62,7 @@ namespace phlex::experimental {
 
     template <typename T>
     friend constexpr type_id make_type_id();
+    friend auto format_as(type_id);
 
   private:
     unsigned char id_ = 0xFF;
@@ -64,6 +70,57 @@ namespace phlex::experimental {
     // This is used only if the product type is a struct
     std::vector<type_id> children_;
   };
+
+  inline auto format_as(type_id type)
+  {
+    using namespace std::string_literals;
+    if (!type.valid()) {
+      return "INVALID / EMPTY"s;
+    }
+    if (type.has_children()) {
+      return fmt::format("STRUCT {{{}}}", fmt::join(type.children_, ", "));
+    }
+
+    std::string fundamental = "void"s;
+    switch (type.fundamental()) {
+    case type_id::builtin::void_v:
+      fundamental = "void"s;
+      break;
+    case type_id::builtin::bool_v:
+      fundamental = "bool"s;
+      break;
+    case type_id::builtin::char_v:
+      fundamental = "char"s;
+      break;
+    case type_id::builtin::int_v:
+      fundamental = "int"s;
+      break;
+
+    case type_id::builtin::short_v:
+      fundamental = "short"s;
+      break;
+
+    case type_id::builtin::long_v:
+      fundamental = "long"s;
+      break;
+
+    case type_id::builtin::long_long_v:
+      fundamental = "long long"s;
+      break;
+
+    case type_id::builtin::float_v:
+      fundamental = "float"s;
+      break;
+
+    case type_id::builtin::double_v:
+      fundamental = "double"s;
+      break;
+    }
+    return fmt::format("{}{}{}",
+                       type.is_list() ? "LIST "s : ""s,
+                       type.is_unsigned() ? "unsigned "s : ""s,
+                       fundamental);
+  }
 
   using type_ids = std::vector<type_id>;
 
@@ -139,6 +196,12 @@ namespace phlex::experimental {
 
     template <typename A>
     using aggregate_to_plain_tuple_t = aggregate_to_plain_tuple<A>::type;
+
+    template <typename T>
+    class is_handle : public std::false_type {};
+
+    template <typename T>
+    class is_handle<handle<T>> : public std::true_type {};
   }
 
   // Forward declaration
@@ -148,18 +211,21 @@ namespace phlex::experimental {
   template <typename T>
   constexpr type_id make_type_id()
   {
+    // First deal with handles
+    if constexpr (detail::is_handle<T>::value) {
+      return make_type_id<typename T::value_type>();
+    }
+
     type_id result{};
-    using basic = remove_atomic_t<std::remove_cvref_t<T>>;
+    using basic = remove_atomic_t<std::remove_cvref_t<std::remove_pointer_t<T>>>;
     if constexpr (std::is_fundamental_v<basic>) {
       result.id_ = detail::make_type_id_helper_fundamental<basic>();
-      return result;
     }
 
     // builtin arrays
     else if constexpr (std::is_array_v<basic>) {
       result = make_type_id<std::remove_all_extents_t<basic>>();
       result.id_ |= 0x20;
-      return result;
     }
 
     // classes (both containers and "simple" aggregates)
@@ -167,21 +233,18 @@ namespace phlex::experimental {
       if constexpr (contiguous_container<basic>) {
         result = make_type_id<typename basic::value_type>();
         result.id_ |= 0x20;
-        return result;
       } else if constexpr (std::is_aggregate_v<basic>) {
         // This case isn't evaluable at compile time because vector uses operator new
         using child_tuple = detail::aggregate_to_plain_tuple_t<basic>;
         result.id_ = 0x40; // has_children
         result.children_ = make_type_ids<child_tuple>();
-        return result;
       } else {
         // // If we got here, something went wrong
         // // This condition is always false, but makes the error message more useful
         // static_assert(contiguous_container<basic> || std::is_aggregate_v<basic>,
         //               "Taking type_id of an unsupported class type");
-        //
+        // FIXME
         result.id_ = 0xFF;
-        return result;
       }
     }
 
@@ -192,43 +255,35 @@ namespace phlex::experimental {
                       std::is_class_v<basic>,
                     "Taking type_id of an unsupported type");
     }
+
+    return result;
   }
 
   namespace detail {
     template <typename T>
     class tuple_type_ids {
     public:
-      static type_ids const value;
+      static type_ids get() { return {make_type_id<T>()}; }
     };
-
-    // Might as well do something reasonable
-    template <typename T>
-    type_ids const tuple_type_ids<T>::value{make_type_id<T>()};
 
     template <typename... Ts>
     class tuple_type_ids<std::tuple<Ts...>> {
     public:
-      static type_ids const value;
+      static type_ids get() { return {make_type_id<Ts>()...}; }
     };
-
-    template <typename... Ts>
-    type_ids const tuple_type_ids<std::tuple<Ts...>>::value{make_type_id<Ts>()...};
 
     template <typename... Ts>
     class tuple_type_ids<std::pair<Ts...>> {
     public:
-      static type_ids const value;
+      static type_ids get() { return {make_type_id<Ts>()...}; }
     };
-
-    template <typename... Ts>
-    type_ids const tuple_type_ids<std::pair<Ts...>>::value{make_type_id<Ts>()...};
   }
 
   template <typename T1, typename... Ts>
   type_ids make_type_ids()
   {
     if constexpr (sizeof...(Ts) == 0) {
-      return detail::tuple_type_ids<T1>::value;
+      return detail::tuple_type_ids<T1>::get();
     } else {
       return type_ids{make_type_id<T1>(), make_type_id<Ts>()...};
     }
