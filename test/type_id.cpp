@@ -1,11 +1,20 @@
 #include "phlex/model/type_id.hpp"
 
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <functional>
 #include <vector>
 
 using namespace phlex::experimental;
+
+struct A {
+  int a;
+  int b;
+  char c;
+
+  std::atomic<int> d;
+};
 
 int main()
 {
@@ -29,6 +38,9 @@ int main()
 
   static_assert(make_type_id<std::array<unsigned long, 5>>().is_unsigned());
   static_assert(make_type_id<std::array<unsigned long, 5>>().is_list());
+
+  static_assert(make_type_id<char>() < make_type_id<long>());
+  static_assert(make_type_id<int>() == make_type_id<const int&>());
 
   std::function test_fn = [](int a, float b) -> std::tuple<int, float> { return {a, b}; };
   type_ids test_fn_out{make_type_id<int>(), make_type_id<float>()};
@@ -55,4 +67,10 @@ int main()
 
   assert((make_type_id<std::array<unsigned long, 5>>().is_unsigned()));
   assert((make_type_id<std::array<unsigned long, 5>>().is_list()));
+
+  assert(make_type_id<A>().has_children());
+  assert(not make_type_id<char>().has_children());
+  assert(make_type_id<A>() > make_type_id<bool>());
+  assert(make_type_id<char>() < make_type_id<long>());
+  assert(make_type_id<int>() == make_type_id<const int&>());
 }
