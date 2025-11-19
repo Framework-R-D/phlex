@@ -15,21 +15,6 @@ from pathlib import Path
 from typing import Any
 
 
-@dataclass
-class APIAlertComparison:
-    """Holds the results of comparing alerts between refs via the API."""
-
-    new_alerts: list[Alert]
-    fixed_alerts: list[Alert]
-    matched_alerts: list[Alert]
-    new_vs_prev: list[Alert]
-    fixed_vs_prev: list[Alert]
-    new_vs_base: list[Alert]
-    fixed_vs_base: list[Alert]
-    base_sha: str | None
-    prev_commit_ref: str | None
-
-
 class GitHubAPIError(RuntimeError):
     """Raised when the GitHub API returns an unexpected response."""
 
@@ -115,6 +100,21 @@ class Alert:
         if self.security_severity:
             return f" ({self.security_severity})"
         return ""
+
+
+@dataclass
+class APIAlertComparison:
+    """Holds the results of comparing alerts between refs via the API."""
+
+    new_alerts: list[Alert]
+    fixed_alerts: list[Alert]
+    matched_alerts: list[Alert]
+    new_vs_prev: list[Alert]
+    fixed_vs_prev: list[Alert]
+    new_vs_base: list[Alert]
+    fixed_vs_base: list[Alert]
+    base_sha: str | None
+    prev_commit_ref: str | None
 
 
 def parse_args(argv: collections.abc.Sequence[str] | None = None) -> argparse.Namespace:
