@@ -47,8 +47,9 @@ namespace phlex::experimental {
       for (auto const& product_name : node->output()) {
         if (empty(product_name.name()))
           continue;
-        result.emplace(product_name.name(),
-                       named_output_port{node_name, &node->sender(), &node->to_output(), product_name.type()});
+        result.emplace(
+          product_name.name(),
+          named_output_port{node_name, &node->sender(), &node->to_output(), product_name.type()});
       }
     }
     return result;
