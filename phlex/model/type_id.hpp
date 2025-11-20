@@ -131,7 +131,7 @@ namespace phlex::experimental {
     class aggregate_to_plain_tuple {
     private:
       template <std::size_t... Is>
-      static constexpr auto get_tuple(std::index_sequence<Is...>) -> auto
+      static consteval auto get_tuple(std::index_sequence<Is...>) -> auto
       {
         // Atomics are why we can't just use boost::pfr::structure_to_tuple
         return std::tuple<
