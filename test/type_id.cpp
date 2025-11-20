@@ -1,5 +1,7 @@
 #include "phlex/model/type_id.hpp"
 
+#include "fmt/format.h"
+
 #include <array>
 #include <atomic>
 #include <cassert>
@@ -73,4 +75,21 @@ int main()
   assert(make_type_id<A>() > make_type_id<bool>());
   assert(make_type_id<char>() < make_type_id<long>());
   assert(make_type_id<int>() == make_type_id<int const&>());
+
+  // Print some type IDs
+  fmt::print("void {}\n", make_type_id<void>());
+  fmt::print("bool {}\n", make_type_id<bool>());
+  fmt::print("char {}\n", make_type_id<char>());
+  fmt::print("int {}\n", make_type_id<int>());
+  fmt::print("short {}\n", make_type_id<short>());
+  fmt::print("long {}\n", make_type_id<long>());
+  fmt::print("long long {}\n", make_type_id<long long>());
+  fmt::print("float {}\n", make_type_id<float>());
+  fmt::print("double {}\n", make_type_id<double>());
+  fmt::print("vector<float> {}\n", make_type_id<std::vector<float>>());
+  fmt::print("vector<unsigned int> {}\n", make_type_id<std::vector<unsigned int>>());
+  fmt::print("A {}\n", make_type_id<A>());
+  fmt::print("vector<A> {}\n", make_type_id<std::vector<A>>());
+
+  return 0;
 }
