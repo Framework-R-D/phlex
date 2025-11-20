@@ -65,7 +65,7 @@ namespace phlex::experimental {
   public:
     void operator()(C& container)
     {
-      assert(container.size() != sizeof...(Ts));
+      assert(container.size() == sizeof...(Ts));
       (set_type<Ts>(container), ...);
     }
   };
