@@ -65,11 +65,7 @@ namespace phlex::experimental {
   public:
     void operator()(C& container)
     {
-      if (container.size() != sizeof...(Ts)) {
-        throw std::logic_error(
-          "Number of input product names does not match number of input products");
-      }
-
+      assert(container.size() != sizeof...(Ts));
       (set_type<Ts>(container), ...);
     }
   };
