@@ -94,7 +94,8 @@ jobs:
     needs: [ detect-clang-tidy-changes, check_comment_trigger ]
     if: |
       (github.event_name == 'pull_request' && needs.detect-clang-tidy-changes.outputs.has_changes == 'true') ||
-      (github.event_name == 'issue_comment' && needs.check_comment_trigger.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER'))
+      (github.event_name == 'issue_comment' && needs.check_comment_trigger.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER')) ||
+      (github.event_name == 'workflow_dispatch') || (env.ACT == 'true')
     runs-on: ubuntu-24.04
 
     container:
@@ -187,7 +188,7 @@ jobs:
 
   clang-tidy-check-skipped:
     needs: detect-clang-tidy-changes
-    if: github.event_name == 'pull_request' && needs.detect-clang-tidy-changes.outputs.has_changes != 'true'
+    if: github.event_name == 'pull_request' && (needs.detect-clang-tidy-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (env.ACT != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
