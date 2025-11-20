@@ -11,7 +11,7 @@ namespace phlex::experimental {
   public:
     qualified_name();
     qualified_name(char const* name);
-    qualified_name(std::string name);
+    qualified_name(std::string const& name);
     qualified_name(algorithm_name qualifier, std::string name);
 
     std::string full() const;
@@ -43,7 +43,7 @@ namespace phlex::experimental {
     }
 
   private:
-    algorithm_name const& qualifier_;
+    algorithm_name const& qualifier_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   qualified_names to_qualified_names(std::string const& name,

@@ -4,17 +4,18 @@
 #include "boost/json.hpp"
 
 #include <optional>
+#include <utility>
 
 namespace phlex::experimental {
   class configuration {
   public:
     configuration() = default;
-    explicit configuration(boost::json::object const& config) : config_{config} {}
+    explicit configuration(boost::json::object config) : config_{std::move(config)} {}
 
     template <typename T>
     std::optional<T> get_if_present(std::string const& key) const
     {
-      if (auto pkey = config_.if_contains(key)) {
+      if (auto const* pkey = config_.if_contains(key)) {
         return value_to<T>(*pkey);
       }
       return std::nullopt;

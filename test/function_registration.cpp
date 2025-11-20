@@ -1,4 +1,6 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -11,6 +13,7 @@ using namespace phlex::experimental;
 using namespace std::string_literals;
 
 namespace {
+
   auto no_framework(int num, double temp, std::string const& name)
   {
     return std::make_tuple(num, temp, name);
@@ -48,10 +51,10 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{
-    specified_label{"number"}, specified_label{"temperature"}, specified_label{"name"}};
-  std::array const oproduct_names = {"number"s, "temperature"s, "name"s};
-  std::array const result{"result"s};
+  std::array const product_names{specified_label{.name = "number"},
+                                 specified_label{.name = "temperature"},
+                                 specified_label{.name = "name"}};
+  std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   auto store = product_store::base();
   store->add_product("number", 3);
@@ -91,7 +94,9 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.observe("verify_results", verify_results).input_family(product_names);
+  g.observe("verify_results", verify_results).input_family(oproduct_names);
 
   g.execute();
+
+  CHECK(g.execution_counts("verify_results") == 1ull);
 }

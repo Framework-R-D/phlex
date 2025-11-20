@@ -1,7 +1,11 @@
 #include "phlex/core/detail/filter_impl.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/product_store.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <string>
+#include <utility>
 
 namespace {
   phlex::experimental::specified_label const output_dummy{phlex::experimental::qualified_name{
@@ -75,8 +79,9 @@ namespace phlex::experimental {
 
     // Fill slots in the order of the input arguments to the downstream node.
     for (std::size_t i = 0; i != nargs_; ++i) {
-      if (elem[i] or not store->contains_product((*product_names_)[i].name.full()))
+      if (elem[i] or not store->contains_product((*product_names_)[i].name.full())) {
         continue;
+      }
       elem[i] = store;
     }
   }

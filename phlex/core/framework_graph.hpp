@@ -39,8 +39,10 @@ namespace phlex::experimental {
     std::size_t depth() const noexcept;
 
   private:
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     flush_counters& counters_;
     message_sender& sender_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     product_store_ptr store_;
     std::size_t depth_;
   };
@@ -131,15 +133,15 @@ namespace phlex::experimental {
     void drain();
     std::size_t original_message_id(product_store_ptr const& store);
 
-    resource_usage graph_resource_usage_{};
+    resource_usage graph_resource_usage_;
     max_allowed_parallelism parallelism_limit_;
-    level_hierarchy hierarchy_{};
+    level_hierarchy hierarchy_;
     node_catalog nodes_{};
-    std::map<std::string, filter> filters_{};
+    std::map<std::string, filter> filters_;
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
-    tbb::flow::graph graph_{};
+    tbb::flow::graph graph_;
     framework_driver driver_;
-    std::vector<std::string> registration_errors_{};
+    std::vector<std::string> registration_errors_;
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::stack<end_of_message_ptr> eoms_;

@@ -1,4 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/specified_label.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -49,8 +50,9 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{
-    specified_label{"number"}, specified_label{"temperature"}, specified_label{"name"}};
+  std::array const product_names{specified_label{.name = "number"},
+                                 specified_label{.name = "temperature"},
+                                 specified_label{.name = "name"}};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   auto store = product_store::base();
@@ -95,4 +97,6 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   g.observe("verify_results", verify_results, concurrency::unlimited).input_family(product_names);
 
   g.execute();
+
+  CHECK(g.execution_counts("verify_results") == 1ull);
 }

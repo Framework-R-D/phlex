@@ -1,8 +1,16 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_vector.h"
+
+#include <algorithm>
+#include <atomic>
+#include <cstdlib>
+#include <initializer_list>
+#include <ranges>
+#include <vector>
 
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
@@ -12,12 +20,12 @@ namespace {
   public:
     explicit source(unsigned const max_n) : max_{max_n} {}
 
-    void operator()(framework_driver& driver)
+    void operator()(framework_driver& driver) const
     {
       auto job_store = product_store::base();
       driver.yield(job_store);
 
-      for (unsigned int i : std::views::iota(1u, max_ + 1)) {
+      for (unsigned int const i : std::views::iota(1u, max_ + 1)) {
         auto store = job_store->make_child(i, "event");
         store->add_product<unsigned int>("num", i - 1);
         store->add_product<unsigned int>("other_num", 100 + i - 1);
@@ -26,47 +34,58 @@ namespace {
     }
 
   private:
-    unsigned const max_;
+    unsigned max_;
   };
 
   constexpr bool evens_only(unsigned int const value) { return value % 2u == 0u; }
   constexpr bool odds_only(unsigned int const value) { return not evens_only(value); }
 
   // Hacky!
-  struct sum_numbers {
-    sum_numbers(unsigned int const n) : total{n} {}
-    ~sum_numbers() { CHECK(sum == total); }
-    void add(unsigned int const num) { sum += num; }
-    std::atomic<unsigned int> sum;
-    unsigned int const total;
+  class sum_numbers {
+  public:
+    sum_numbers(unsigned int const n) : total_{n} {}
+    ~sum_numbers() { CHECK(sum_ == total_); }
+    void add(unsigned int const num) { sum_ += num; }
+
+  private:
+    std::atomic<unsigned int> sum_;
+    unsigned int const total_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   // Hacky!
-  struct collect_numbers {
-    collect_numbers(std::initializer_list<unsigned int> numbers) : expected{numbers} {}
+  class collect_numbers {
+  public:
+    collect_numbers(std::initializer_list<unsigned int> numbers) : expected_{numbers} {}
     ~collect_numbers()
     {
-      std::vector<unsigned int> sorted_actual(std::begin(actual), std::end(actual));
-      std::sort(begin(sorted_actual), end(sorted_actual));
-      CHECK(expected == sorted_actual);
+      std::vector<unsigned int> sorted_actual(actual_.begin(), actual_.end());
+      std::ranges::sort(sorted_actual);
+      CHECK(expected_ == sorted_actual);
     }
-    void collect(unsigned int const num) { actual.push_back(num); }
-    tbb::concurrent_vector<unsigned int> actual;
-    std::vector<unsigned int> const expected;
+    void collect(unsigned int const num) { actual_.push_back(num); }
+
+  private:
+    tbb::concurrent_vector<unsigned int> actual_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    std::vector<unsigned int> const expected_;
   };
 
   // Hacky!
-  struct check_multiple_numbers {
-    check_multiple_numbers(int const n) : total{n} {}
-    ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total)); }
+  class check_multiple_numbers {
+  public:
+    explicit check_multiple_numbers(int const n) : total_{n} {}
+    ~check_multiple_numbers() { CHECK(std::abs(sum_) >= std::abs(total_)); }
+
     void add_difference(unsigned int const a, unsigned int const b)
     {
       // The difference is calculated to test that add(a, b) yields a different result
       // than add(b, a).
-      sum += static_cast<int>(b) - static_cast<int>(a);
+      sum_ += static_cast<int>(b) - static_cast<int>(a);
     }
-    std::atomic<int> sum;
-    int const total;
+
+  private:
+    std::atomic<int> sum_;
+    int const total_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   constexpr bool in_range(unsigned int const b, unsigned int const e, unsigned int const i) noexcept
@@ -74,11 +93,14 @@ namespace {
     return i >= b and i < e;
   }
 
-  struct not_in_range {
-    explicit not_in_range(unsigned int const b, unsigned int const e) : begin{b}, end{e} {}
-    unsigned int const begin;
-    unsigned int const end;
-    bool eval(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
+  class not_in_range {
+  public:
+    explicit not_in_range(unsigned int const b, unsigned int const e) : begin_{b}, end_{e} {}
+    bool eval(unsigned int const i) const noexcept { return not in_range(begin_, end_, i); }
+
+  private:
+    unsigned int begin_;
+    unsigned int end_;
   };
 }
 
@@ -141,9 +163,9 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
     unsigned int begin;
     unsigned int end;
   };
-  std::vector<predicate_config> configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
-                                        {.name = "exclude_6_to_7", .begin = 6, .end = 7},
-                                        {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
+  std::vector<predicate_config> const configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
+                                              {.name = "exclude_6_to_7", .begin = 6, .end = 7},
+                                              {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
   framework_graph g{source{10u}};
   for (auto const& [name, b, e] : configs) {

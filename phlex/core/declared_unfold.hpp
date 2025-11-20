@@ -9,7 +9,6 @@
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/qualified_name.hpp"
@@ -27,6 +26,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -58,7 +58,7 @@ namespace phlex::experimental {
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
                     specified_labels input_products);
-    virtual ~declared_unfold();
+    ~declared_unfold() override;
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
@@ -80,9 +80,8 @@ namespace phlex::experimental {
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_node : public declared_unfold, private detect_flush_flag {
-    using InputArgs = constructor_parameter_types<Object>;
-    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
-    static constexpr std::size_t M = number_output_objects<Unfold>;
+    using input_args = constructor_parameter_types<Object>;
+    static constexpr std::size_t number_inputs = std::tuple_size_v<input_args>;
 
   public:
     unfold_node(algorithm_name name,
@@ -97,43 +96,60 @@ namespace phlex::experimental {
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
       output_{to_qualified_names(full_name(), std::move(output_products))},
       new_level_name_{std::move(new_level_name)},
-      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      unfold_{
-        g,
-        concurrency,
-        [this, p = std::move(predicate), ufold = std::move(unfold)](messages_t<N> const& messages,
-                                                                    auto& output) {
-          auto const& msg = most_derived(messages);
-          auto const& store = msg.store;
-          if (store->is_flush()) {
-            flag_for(store->id()->hash()).flush_received(msg.id);
-            std::get<0>(output).try_put(msg);
-          } else if (accessor a; stores_.insert(a, store->id()->hash())) {
-            std::size_t const original_message_id{msg_counter_};
-            generator g{msg.store, this->full_name(), new_level_name_};
-            call(p, ufold, msg.store->id(), g, msg.eom, messages, std::make_index_sequence<N>{});
+      join_{make_join_or_none(g, std::make_index_sequence<number_inputs>{})},
+      unfold_{g,
+              concurrency,
+              [this, p = std::move(predicate), ufold = std::move(unfold)](
+                messages_t<number_inputs> const& messages, auto& output) {
+                auto const& msg = most_derived(messages);
+                auto const& store = msg.store;
+                if (store->is_flush()) {
+                  flag_for(store->id()->hash()).flush_received(msg.id);
+                  std::get<0>(output).try_put(msg);
+                } else if (accessor a; stores_.insert(a, store->id()->hash())) {
+                  std::size_t const original_message_id{msg_counter_};
+                  generator g{msg.store, this->full_name(), new_level_name_};
+                  call(p,
+                       ufold,
+                       msg.store->id(),
+                       g,
+                       msg.eom,
+                       messages,
+                       std::make_index_sequence<number_inputs>{});
 
-            message const flush_msg{g.flush_store(), msg.eom, ++msg_counter_, original_message_id};
-            std::get<0>(output).try_put(flush_msg);
-            flag_for(store->id()->hash()).mark_as_processed();
-          }
+                  message const flush_msg{
+                    g.flush_store(), msg.eom, ++msg_counter_, original_message_id};
+                  std::get<0>(output).try_put(flush_msg);
+                  flag_for(store->id()->hash()).mark_as_processed();
+                }
 
-          if (done_with(store)) {
-            stores_.erase(store->id()->hash());
-          }
-        }}
+                if (done_with(store)) {
+                  stores_.erase(store->id()->hash());
+                }
+              }}
     {
       make_edge(join_, unfold_);
     }
 
-    ~unfold_node() { report_cached_stores(stores_); }
+    ~unfold_node() override { report_cached_stores(stores_); }
+
+    unfold_node(unfold_node const&) = default;
+    unfold_node& operator=(unfold_node const&) = default;
+
+    // NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+    unfold_node(unfold_node&&) = default;
+    unfold_node& operator=(unfold_node&&) = default;
+    // NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label);
+      return receiver_for<number_inputs>(join_, input(), product_label);
     }
-    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<number_inputs>(join_);
+    }
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
@@ -145,7 +161,7 @@ namespace phlex::experimental {
               level_id_ptr const& unfolded_id,
               generator& g,
               end_of_message_ptr const& eom,
-              messages_t<N> const& messages,
+              messages_t<number_inputs> const& messages,
               std::index_sequence<Is...>)
     {
       ++calls_;
@@ -166,7 +182,8 @@ namespace phlex::experimental {
         }
         ++product_count_;
         auto child = g.make_child_for(counter++, std::move(new_products));
-        message const child_msg{child, eom->make_child(child->id()), ++msg_counter_};
+        message const child_msg{
+          .store = child, .eom = eom->make_child(child->id()), .id = ++msg_counter_};
         output_port<0>(unfold_).try_put(child_msg);
       }
     }
@@ -174,15 +191,15 @@ namespace phlex::experimental {
     std::size_t num_calls() const final { return calls_.load(); }
     std::size_t product_count() const final { return product_count_.load(); }
 
-    input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
+    input_retriever_types<input_args> input_{input_arguments<input_args>()};
     qualified_names output_;
     std::string new_level_name_;
-    join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;
+    join_or_none_t<number_inputs> join_;
+    tbb::flow::multifunction_node<messages_t<number_inputs>, messages_t<1u>> unfold_;
     tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr> stores_;
-    std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
-    std::atomic<std::size_t> calls_{};
-    std::atomic<std::size_t> product_count_{};
+    std::atomic<std::size_t> msg_counter_; // Is this sufficient?  Probably not.
+    std::atomic<std::size_t> calls_;
+    std::atomic<std::size_t> product_count_;
   };
 }
 

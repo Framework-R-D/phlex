@@ -8,7 +8,7 @@
 
 namespace phlex::experimental {
 
-  std::size_t MessageHasher::operator()(message const& msg) const noexcept { return msg.id; }
+  std::size_t message_hasher::operator()(message const& msg) const noexcept { return msg.id; }
 
   message const& more_derived(message const& a, message const& b)
   {
@@ -30,7 +30,7 @@ namespace phlex::experimental {
     return std::distance(b, it);
   }
 
-  detail::no_join::no_join(tbb::flow::graph& g, MessageHasher) :
+  detail::no_join::no_join(tbb::flow::graph& g, message_hasher) :
     no_join_base_t{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
   {
   }
