@@ -91,5 +91,18 @@ int main()
   fmt::print("A {}\n", make_type_id<A>());
   fmt::print("vector<A> {}\n", make_type_id<std::vector<A>>());
 
+  assert(fmt::to_string(make_type_id<void>()) == "void");
+  assert(fmt::to_string(make_type_id<bool>()) == "bool");
+  assert(fmt::to_string(make_type_id<char>()) == "char");
+  assert(fmt::to_string(make_type_id<int>()) == "int");
+  assert(fmt::to_string(make_type_id<short>()) == "short");
+  assert(fmt::to_string(make_type_id<long>()) == "long");
+  assert(fmt::to_string(make_type_id<long long>()) == "long long");
+  assert(fmt::to_string(make_type_id<float>()) == "float");
+  assert(fmt::to_string(make_type_id<double>()) == "double");
+  assert(fmt::to_string(make_type_id<std::vector<float>>()) == "LIST float");
+  assert(fmt::to_string(make_type_id<std::vector<unsigned int>>()) == "LIST unsigned int");
+  assert(fmt::to_string(make_type_id<A>()) == "STRUCT {int, int, char, int}");
+  assert(fmt::to_string(make_type_id<std::vector<A>>()) == "LIST STRUCT {int, int, char, int}");
   return 0;
 }

@@ -259,7 +259,8 @@ constexpr auto fmt::formatter<phlex::experimental::type_id>::format(
     return fmt::formatter<std::string>::format("INVALID / EMPTY"s, ctx);
   }
   if (type.has_children()) {
-    std::string const out = fmt::format("STRUCT {{{}}}", fmt::join(type.children_, ", "));
+    std::string const out = fmt::format(
+      "{}STRUCT {{{}}}", type.is_list() ? "LIST " : "", fmt::join(type.children_, ", "));
     return fmt::formatter<std::string>::format(out, ctx);
   }
 
