@@ -77,32 +77,32 @@ int main()
   assert(make_type_id<int>() == make_type_id<int const&>());
 
   // Print some type IDs
-  fmt::print("void {}\n", make_type_id<void>());
-  fmt::print("bool {}\n", make_type_id<bool>());
-  fmt::print("char {}\n", make_type_id<char>());
-  fmt::print("int {}\n", make_type_id<int>());
-  fmt::print("short {}\n", make_type_id<short>());
-  fmt::print("long {}\n", make_type_id<long>());
-  fmt::print("long long {}\n", make_type_id<long long>());
-  fmt::print("float {}\n", make_type_id<float>());
-  fmt::print("double {}\n", make_type_id<double>());
-  fmt::print("vector<float> {}\n", make_type_id<std::vector<float>>());
-  fmt::print("vector<unsigned int> {}\n", make_type_id<std::vector<unsigned int>>());
-  fmt::print("A {}\n", make_type_id<A>());
-  fmt::print("vector<A> {}\n", make_type_id<std::vector<A>>());
+  fmt::print("void: {}\n", make_type_id<void>());
+  fmt::print("bool: {}\n", make_type_id<bool>());
+  fmt::print("char: {}\n", make_type_id<char>());
+  fmt::print("int: {}\n", make_type_id<int>());
+  fmt::print("short: {}\n", make_type_id<short>());
+  fmt::print("long: {}\n", make_type_id<long>());
+  fmt::print("long long: {}\n", make_type_id<long long>());
+  fmt::print("float: {}\n", make_type_id<float>());
+  fmt::print("double: {}\n", make_type_id<double>());
+  fmt::print("vector<float>: {}\n", make_type_id<std::vector<float>>());
+  fmt::print("vector<unsigned int>: {}\n", make_type_id<std::vector<unsigned int>>());
+  fmt::print("A: {}\n", make_type_id<A>());
+  fmt::print("vector<A>: {}\n", make_type_id<std::vector<A>>());
 
-  assert(fmt::to_string(make_type_id<void>()) == "void");
-  assert(fmt::to_string(make_type_id<bool>()) == "bool");
-  assert(fmt::to_string(make_type_id<char>()) == "char");
-  assert(fmt::to_string(make_type_id<int>()) == "int");
-  assert(fmt::to_string(make_type_id<short>()) == "short");
-  assert(fmt::to_string(make_type_id<long>()) == "long");
-  assert(fmt::to_string(make_type_id<long long>()) == "long long");
-  assert(fmt::to_string(make_type_id<float>()) == "float");
-  assert(fmt::to_string(make_type_id<double>()) == "double");
-  assert(fmt::to_string(make_type_id<std::vector<float>>()) == "LIST float");
-  assert(fmt::to_string(make_type_id<std::vector<unsigned int>>()) == "LIST unsigned int");
-  assert(fmt::to_string(make_type_id<A>()) == "STRUCT {int, int, char, int}");
-  assert(fmt::to_string(make_type_id<std::vector<A>>()) == "LIST STRUCT {int, int, char, int}");
+  assert(fmt::format("{}", make_type_id<void>()) == "void");
+  assert(fmt::format("{}", make_type_id<bool>()) == "bool");
+  assert(fmt::format("{}", make_type_id<char>()) == "char");
+  assert(fmt::format("{}", make_type_id<int>()) == "int");
+  assert(fmt::format("{}", make_type_id<short>()) == "short");
+  assert(fmt::format("{}", make_type_id<long>()) == "long");
+  assert(fmt::format("{}", make_type_id<long long>()) == "long long");
+  assert(fmt::format("{}", make_type_id<float>()) == "float");
+  assert(fmt::format("{}", make_type_id<double>()) == "double");
+  assert(fmt::format("{}", make_type_id<std::vector<float>>()) == "LIST float");
+  assert(fmt::format("{}", make_type_id<std::vector<unsigned int>>()) == "LIST unsigned int");
+  assert(fmt::format("{}", make_type_id<A>()) == "STRUCT {int, int, char, int}");
+  assert(fmt::format("{}", make_type_id<std::vector<A>>()) == "LIST STRUCT {int, int, char, int}");
   return 0;
 }
