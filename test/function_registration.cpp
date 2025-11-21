@@ -49,7 +49,7 @@ namespace {
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
   std::array const product_names{
-    specified_label{"number"}, specified_label{"temperature"}, specified_label{"name"}};
+    product_query{"number"}, product_query{"temperature"}, product_query{"name"}};
   std::array const oproduct_names = {"number"s, "temperature"s, "name"s};
   std::array const result{"result"s};
 
