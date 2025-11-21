@@ -23,7 +23,7 @@ namespace phlex::experimental {
     ~multiplexer();
 
     struct named_input_port {
-      specified_label product_label;
+      product_query product_label;
       tbb::flow::receiver<message>* port;
     };
     using named_input_ports_t = std::vector<named_input_port>;

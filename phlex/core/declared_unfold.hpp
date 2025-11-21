@@ -57,7 +57,7 @@ namespace phlex::experimental {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
-                    specified_labels input_products);
+                    product_queries input_products);
     virtual ~declared_unfold();
 
     virtual tbb::flow::sender<message>& sender() = 0;
@@ -91,7 +91,7 @@ namespace phlex::experimental {
                 tbb::flow::graph& g,
                 Predicate&& predicate,
                 Unfold&& unfold,
-                specified_labels product_labels,
+                product_queries product_labels,
                 std::vector<std::string> output_products,
                 std::string new_level_name) :
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
@@ -131,7 +131,7 @@ namespace phlex::experimental {
     ~unfold_node() { report_cached_stores(stores_); }
 
   private:
-    tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
       return receiver_for<N>(join_, input(), product_label);
     }

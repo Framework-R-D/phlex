@@ -51,7 +51,7 @@ add_catch_test(product_store LIBRARIES phlex::core)
 add_catch_test(fold LIBRARIES phlex::core)
 add_catch_test(replicated LIBRARIES TBB::tbb phlex::utilities spdlog::spdlog)
 add_catch_test(serializer LIBRARIES phlex::core TBB::tbb)
-add_catch_test(specified_label LIBRARIES phlex::core)
+add_catch_test(product_query LIBRARIES phlex::core)
 add_catch_test(unfold LIBRARIES Boost::json phlex::core TBB::tbb)
 
 add_subdirectory(benchmarks)
