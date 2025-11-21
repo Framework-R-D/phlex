@@ -14,7 +14,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -42,7 +42,7 @@ namespace phlex::experimental {
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual qualified_names const& output() const = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
@@ -73,7 +73,7 @@ namespace phlex::experimental {
               std::string partition) :
       declared_fold{std::move(name), std::move(predicates), std::move(product_labels)},
       initializer_{std::move(initializer)},
-      output_{to_qualified_names(full_name(), std::move(output), make_type_ids<R>())},
+      output_{to_product_specifications(full_name(), std::move(output), make_type_ids<R>())},
       partition_{std::move(partition)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       fold_{g,
@@ -130,7 +130,7 @@ namespace phlex::experimental {
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(fold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    qualified_names const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
@@ -175,7 +175,7 @@ namespace phlex::experimental {
 
     InitTuple initializer_;
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    qualified_names output_;
+    product_specifications output_;
     std::string partition_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;

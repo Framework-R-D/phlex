@@ -1,20 +1,20 @@
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/algorithm_name.hpp"
 
 #include <cassert>
 
 namespace phlex::experimental {
-  qualified_name::qualified_name() = default;
+  product_specification::product_specification() = default;
 
-  qualified_name::qualified_name(char const* name) : qualified_name{std::string{name}} {}
-  qualified_name::qualified_name(std::string name) { *this = create(name); }
+  product_specification::product_specification(char const* name) : product_specification{std::string{name}} {}
+  product_specification::product_specification(std::string name) { *this = create(name); }
 
-  qualified_name::qualified_name(algorithm_name qualifier, std::string name, type_id type) :
+  product_specification::product_specification(algorithm_name qualifier, std::string name, type_id type) :
     qualifier_{std::move(qualifier)}, name_{std::move(name)}, type_id_{type}
   {
   }
 
-  std::string qualified_name::full() const
+  std::string product_specification::full() const
   {
     auto const qualifier = qualifier_.full();
     if (qualifier.empty()) {
@@ -23,23 +23,23 @@ namespace phlex::experimental {
     return qualifier + "/" + name_;
   }
 
-  bool qualified_name::operator==(qualified_name const& other) const
+  bool product_specification::operator==(product_specification const& other) const
   {
     return std::tie(qualifier_, name_, type_id_) ==
            std::tie(other.qualifier_, other.name_, other.type_id_);
   }
 
-  bool qualified_name::operator!=(qualified_name const& other) const { return !operator==(other); }
+  bool product_specification::operator!=(product_specification const& other) const { return !operator==(other); }
 
-  bool qualified_name::operator<(qualified_name const& other) const
+  bool product_specification::operator<(product_specification const& other) const
   {
     return std::tie(qualifier_, name_, type_id_) <
            std::tie(other.qualifier_, other.name_, type_id_);
   }
 
-  qualified_name qualified_name::create(char const* c) { return create(std::string{c}); }
+  product_specification product_specification::create(char const* c) { return create(std::string{c}); }
 
-  qualified_name qualified_name::create(std::string const& s)
+  product_specification product_specification::create(std::string const& s)
   {
     auto forward_slash = s.find("/");
     if (forward_slash != std::string::npos) {
@@ -49,18 +49,18 @@ namespace phlex::experimental {
     return {algorithm_name::create(""), s, type_id{}};
   }
 
-  qualified_names to_qualified_names(std::string const& name,
+  product_specifications to_product_specifications(std::string const& name,
                                      std::vector<std::string> output_labels,
                                      std::vector<type_id> output_types)
   {
     assert(output_labels.size() == output_types.size());
-    qualified_names outputs;
+    product_specifications outputs;
     outputs.reserve(output_labels.size());
 
-    to_qualified_name make_qualified_name{name};
+    to_product_specification make_product_specification{name};
     // zip view isn't available until C++23 so we have to use a loop over the index
     for (std::size_t i = 0; i < output_labels.size(); ++i) {
-      outputs.push_back(make_qualified_name(output_labels.at(i), output_types.at(i)));
+      outputs.push_back(make_product_specification(output_labels.at(i), output_types.at(i)));
     }
     return outputs;
   }

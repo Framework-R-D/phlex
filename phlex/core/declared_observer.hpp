@@ -13,7 +13,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
