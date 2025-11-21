@@ -4,21 +4,21 @@
 // FIXME: only intended to be used in a single-threaded context as std::map is not
 //        thread-safe.
 
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/fwd.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 
 namespace phlex::experimental {
 
   class cached_product_stores {
   public:
-    product_store_ptr get_store(level_id_ptr id = level_id::base_ptr())
+    product_store_ptr get_store(data_cell_id_ptr id = data_cell_id::base_ptr())
     {
       auto it = product_stores_.find(id->hash());
       if (it != cend(product_stores_)) {
         return it->second;
       }
-      if (id == level_id::base_ptr()) {
+      if (id == data_cell_id::base_ptr()) {
         return new_store(product_store::base());
       }
       return new_store(
@@ -33,7 +33,7 @@ namespace phlex::experimental {
     }
 
     std::string const source_name_{"Source"};
-    std::map<level_id::hash_type, product_store_ptr> product_stores_{};
+    std::map<data_cell_id::hash_type, product_store_ptr> product_stores_{};
   };
 
 }

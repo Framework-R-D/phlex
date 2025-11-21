@@ -1,5 +1,5 @@
 #include "phlex/model/level_hierarchy.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_id.hpp"
 
 #include "fmt/format.h"
 #include "fmt/std.h"
@@ -14,7 +14,7 @@ namespace phlex::experimental {
 
   level_hierarchy::~level_hierarchy() { print(); }
 
-  void level_hierarchy::increment_count(level_id_ptr const& id)
+  void level_hierarchy::increment_count(data_cell_id_ptr const& id)
   {
     if (auto it = levels_.find(id->level_hash()); it != levels_.cend()) {
       ++it->second->count;

@@ -1,5 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/async_driver.hpp"
 #include "test/products_for_output.hpp"
@@ -123,10 +123,10 @@ int main(int argc, char* argv[])
     // Add the transform node to the graph.
     demo::log_record("add_transform");
     auto wrapped_user_function = [](phlex::experimental::handle<demo::Waveforms> hwf) {
-      auto apa_id = hwf.level_id().number();
-      auto spill_id = hwf.level_id().parent()->number();
-      auto subrun_id = hwf.level_id().parent()->parent()->number();
-      auto run_id = hwf.level_id().parent()->parent()->parent()->number();
+      auto apa_id = hwf.data_cell_id().number();
+      auto spill_id = hwf.data_cell_id().parent()->number();
+      auto subrun_id = hwf.data_cell_id().parent()->parent()->number();
+      auto run_id = hwf.data_cell_id().parent()->parent()->parent()->number();
       return demo::clampWaveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
     };
 
@@ -139,10 +139,10 @@ int main(int argc, char* argv[])
     g.fold(
        "accum_for_spill",
        [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) {
-         auto apa_id = hwf.level_id().number();
-         auto spill_id = hwf.level_id().parent()->number();
-         auto subrun_id = hwf.level_id().parent()->parent()->number();
-         auto run_id = hwf.level_id().parent()->parent()->parent()->number();
+         auto apa_id = hwf.data_cell_id().number();
+         auto spill_id = hwf.data_cell_id().parent()->number();
+         auto subrun_id = hwf.data_cell_id().parent()->parent()->number();
+         auto run_id = hwf.data_cell_id().parent()->parent()->parent()->number();
          demo::accumulateSCW(scw, *hwf, run_id, subrun_id, spill_id, apa_id);
        },
        concurrency::unlimited,

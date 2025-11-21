@@ -1,8 +1,8 @@
 #ifndef PHLEX_MODEL_LEVEL_COUNTER_HPP
 #define PHLEX_MODEL_LEVEL_COUNTER_HPP
 
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/fwd.hpp"
-#include "phlex/model/level_id.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 
@@ -14,14 +14,14 @@ namespace phlex::experimental {
   class flush_counts {
   public:
     flush_counts();
-    explicit flush_counts(std::map<level_id::hash_type, std::size_t> child_counts);
+    explicit flush_counts(std::map<data_cell_id::hash_type, std::size_t> child_counts);
 
     auto begin() const { return child_counts_.begin(); }
     auto end() const { return child_counts_.end(); }
     bool empty() const { return child_counts_.empty(); }
     auto size() const { return child_counts_.size(); }
 
-    std::optional<std::size_t> count_for(level_id::hash_type const level_hash) const
+    std::optional<std::size_t> count_for(data_cell_id::hash_type const level_hash) const
     {
       if (auto it = child_counts_.find(level_hash); it != child_counts_.end()) {
         return it->second;
@@ -30,7 +30,7 @@ namespace phlex::experimental {
     }
 
   private:
-    std::map<level_id::hash_type, std::size_t> child_counts_{};
+    std::map<data_cell_id::hash_type, std::size_t> child_counts_{};
   };
 
   using flush_counts_ptr = std::shared_ptr<flush_counts const>;
@@ -54,17 +54,17 @@ namespace phlex::experimental {
     void adjust(level_counter& child);
 
     level_counter* parent_;
-    level_id::hash_type level_hash_;
-    std::map<level_id::hash_type, std::size_t> child_counts_{};
+    data_cell_id::hash_type level_hash_;
+    std::map<data_cell_id::hash_type, std::size_t> child_counts_{};
   };
 
   class flush_counters {
   public:
-    void update(level_id_ptr const id);
-    flush_counts extract(level_id_ptr const id);
+    void update(data_cell_id_ptr const id);
+    flush_counts extract(data_cell_id_ptr const id);
 
   private:
-    std::map<level_id::hash_type, std::shared_ptr<level_counter>> counters_;
+    std::map<data_cell_id::hash_type, std::shared_ptr<level_counter>> counters_;
   };
 }
 

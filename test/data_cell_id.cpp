@@ -1,4 +1,4 @@
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_id.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
@@ -6,7 +6,7 @@ using namespace phlex::experimental;
 
 TEST_CASE("Level ID string literal", "[data model]")
 {
-  CHECK(""_id == level_id::base_ptr());
+  CHECK(""_id == data_cell_id::base_ptr());
   auto id = "2"_id;
   CHECK(*id == *id_for({2}));
   CHECK(id->hash() != 0ull);
@@ -20,7 +20,7 @@ TEST_CASE("Verify independent hashes", "[data model]")
   // In the original implementation of the hash algorithm, there was a collision between the hash for
   // "run:0 subrun:0 event: 760" and "run:0 subrun:1 event: 4999".
 
-  auto base = level_id::base_ptr();
+  auto base = data_cell_id::base_ptr();
   auto run = base->make_child(0, "run");
   auto subrun_0 = run->make_child(0, "subrun");
   auto event_760 = subrun_0->make_child(760, "event");

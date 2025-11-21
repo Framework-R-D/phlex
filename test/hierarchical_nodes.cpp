@@ -17,7 +17,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "test/products_for_output.hpp"
 
@@ -92,7 +92,7 @@ namespace {
   void print_result(handle<double> result, std::string const& stringized_time)
   {
     spdlog::debug("{}: {} @ {}",
-                  result.level_id().to_string(),
+                  result.data_cell_id().to_string(),
                   *result,
                   stringized_time.substr(0, stringized_time.find('\n')));
   }

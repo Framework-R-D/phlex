@@ -1,5 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -30,15 +30,15 @@ namespace {
     driver.yield(event_store);
   }
 
-  void check_two_ids(level_id const& parent_id, level_id const& id)
+  void check_two_ids(data_cell_id const& parent_id, data_cell_id const& id)
   {
     CHECK(parent_id.depth() + 1ull == id.depth());
     CHECK(parent_id.hash() == id.parent()->hash());
   }
 
-  void check_three_ids(level_id const& grandparent_id,
-                       level_id const& parent_id,
-                       level_id const& id)
+  void check_three_ids(data_cell_id const& grandparent_id,
+                       data_cell_id const& parent_id,
+                       data_cell_id const& id)
   {
     CHECK(id.depth() == 3ull);
     CHECK(parent_id.depth() == 2ull);

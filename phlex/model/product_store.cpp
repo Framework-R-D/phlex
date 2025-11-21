@@ -1,5 +1,5 @@
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_id.hpp"
 
 #include <memory>
 #include <utility>
@@ -7,7 +7,7 @@
 namespace phlex::experimental {
 
   product_store::product_store(product_store_const_ptr parent,
-                               level_id_ptr id,
+                               data_cell_id_ptr id,
                                std::string source,
                                stage processing_stage,
                                products new_products) :
@@ -49,7 +49,7 @@ namespace phlex::experimental {
   product_store_ptr product_store::base(std::string base_name)
   {
     return product_store_ptr{
-      new product_store{nullptr, level_id::base_ptr(), std::move(base_name)}};
+      new product_store{nullptr, data_cell_id::base_ptr(), std::move(base_name)}};
   }
 
   product_store_const_ptr product_store::parent(std::string const& level_name) const noexcept
@@ -112,7 +112,7 @@ namespace phlex::experimental {
   std::string const& product_store::level_name() const noexcept { return id_->level_name(); }
   std::string const& product_store::source() const noexcept { return source_; }
   product_store_const_ptr product_store::parent() const noexcept { return parent_; }
-  level_id_ptr const& product_store::id() const noexcept { return id_; }
+  data_cell_id_ptr const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
   bool product_store::contains_product(std::string const& product_name) const

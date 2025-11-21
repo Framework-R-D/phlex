@@ -10,8 +10,8 @@
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -38,7 +38,7 @@ namespace phlex::experimental {
     virtual ~declared_observer();
 
   protected:
-    using hashes_t = tbb::concurrent_hash_map<level_id::hash_type, bool>;
+    using hashes_t = tbb::concurrent_hash_map<data_cell_id::hash_type, bool>;
     using accessor = hashes_t::accessor;
 
     void report_cached_hashes(hashes_t const& hashes) const;

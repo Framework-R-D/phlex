@@ -1,8 +1,8 @@
 #ifndef PHLEX_MODEL_LEVEL_HIERARCHY_HPP
 #define PHLEX_MODEL_LEVEL_HIERARCHY_HPP
 
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/fwd.hpp"
-#include "phlex/model/level_id.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 
@@ -16,7 +16,7 @@ namespace phlex::experimental {
   class level_hierarchy {
   public:
     ~level_hierarchy();
-    void increment_count(level_id_ptr const& id);
+    void increment_count(data_cell_id_ptr const& id);
     std::size_t count_for(std::string const& level_name) const;
 
     void print() const;

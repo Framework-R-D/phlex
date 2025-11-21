@@ -1,4 +1,4 @@
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_id.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include "boost/algorithm/string.hpp"
@@ -11,7 +11,7 @@
 
 namespace {
 
-  std::vector<std::size_t> all_numbers(phlex::experimental::level_id const& id)
+  std::vector<std::size_t> all_numbers(phlex::experimental::data_cell_id const& id)
   {
     if (!id.has_parent()) {
       return {};
@@ -30,9 +30,12 @@ namespace {
 
 namespace phlex::experimental {
 
-  level_id::level_id() : level_name_{"job"}, level_hash_{phlex::experimental::hash(level_name_)} {}
+  data_cell_id::data_cell_id() :
+    level_name_{"job"}, level_hash_{phlex::experimental::hash(level_name_)}
+  {
+  }
 
-  level_id::level_id(level_id_ptr parent, std::size_t i, std::string level_name) :
+  data_cell_id::data_cell_id(data_cell_id_ptr parent, std::size_t i, std::string level_name) :
     parent_{std::move(parent)},
     number_{i},
     level_name_{std::move(level_name)},
@@ -43,30 +46,30 @@ namespace phlex::experimental {
     // FIXME: Should it be an error to create an ID with an empty name?
   }
 
-  level_id const& level_id::base() { return *base_ptr(); }
-  level_id_ptr level_id::base_ptr()
+  data_cell_id const& data_cell_id::base() { return *base_ptr(); }
+  data_cell_id_ptr data_cell_id::base_ptr()
   {
-    static phlex::experimental::level_id_ptr base_id{new level_id};
+    static phlex::experimental::data_cell_id_ptr base_id{new data_cell_id};
     return base_id;
   }
 
-  std::string const& level_id::level_name() const noexcept { return level_name_; }
-  std::size_t level_id::depth() const noexcept { return depth_; }
+  std::string const& data_cell_id::level_name() const noexcept { return level_name_; }
+  std::size_t data_cell_id::depth() const noexcept { return depth_; }
 
-  level_id_ptr level_id::make_child(std::size_t const new_level_number,
-                                    std::string new_level_name) const
+  data_cell_id_ptr data_cell_id::make_child(std::size_t const new_level_number,
+                                            std::string new_level_name) const
   {
-    return level_id_ptr{
-      new level_id{shared_from_this(), new_level_number, std::move(new_level_name)}};
+    return data_cell_id_ptr{
+      new data_cell_id{shared_from_this(), new_level_number, std::move(new_level_name)}};
   }
 
-  bool level_id::has_parent() const noexcept { return static_cast<bool>(parent_); }
+  bool data_cell_id::has_parent() const noexcept { return static_cast<bool>(parent_); }
 
-  std::size_t level_id::number() const { return number_; }
-  std::size_t level_id::hash() const noexcept { return hash_; }
-  std::size_t level_id::level_hash() const noexcept { return level_hash_; }
+  std::size_t data_cell_id::number() const { return number_; }
+  std::size_t data_cell_id::hash() const noexcept { return hash_; }
+  std::size_t data_cell_id::level_hash() const noexcept { return level_hash_; }
 
-  bool level_id::operator==(level_id const& other) const
+  bool data_cell_id::operator==(data_cell_id const& other) const
   {
     if (depth_ != other.depth_)
       return false;
@@ -77,7 +80,7 @@ namespace phlex::experimental {
     return *parent_ == *other.parent_ && same_numbers;
   }
 
-  bool level_id::operator<(level_id const& other) const
+  bool data_cell_id::operator<(data_cell_id const& other) const
   {
     auto these_numbers = all_numbers(*this);
     auto those_numbers = all_numbers(other);
@@ -85,16 +88,16 @@ namespace phlex::experimental {
       begin(these_numbers), end(these_numbers), begin(those_numbers), end(those_numbers));
   }
 
-  level_id_ptr id_for(std::vector<std::size_t> nums)
+  data_cell_id_ptr id_for(std::vector<std::size_t> nums)
   {
-    auto current = level_id::base_ptr();
+    auto current = data_cell_id::base_ptr();
     for (auto const num : nums) {
       current = current->make_child(num, "");
     }
     return current;
   }
 
-  level_id_ptr id_for(char const* c_str)
+  data_cell_id_ptr id_for(char const* c_str)
   {
     std::vector<std::string> strs;
     split(strs, c_str, boost::is_any_of(":"));
@@ -108,13 +111,13 @@ namespace phlex::experimental {
     return id_for(std::move(nums));
   }
 
-  level_id_ptr operator""_id(char const* c_str, std::size_t) { return id_for(c_str); }
+  data_cell_id_ptr operator""_id(char const* c_str, std::size_t) { return id_for(c_str); }
 
-  level_id_ptr level_id::parent() const noexcept { return parent_; }
+  data_cell_id_ptr data_cell_id::parent() const noexcept { return parent_; }
 
-  level_id_ptr level_id::parent(std::string const& level_name) const
+  data_cell_id_ptr data_cell_id::parent(std::string const& level_name) const
   {
-    level_id_ptr parent = parent_;
+    data_cell_id_ptr parent = parent_;
     while (parent) {
       if (parent->level_name_ == level_name) {
         return parent;
@@ -124,7 +127,7 @@ namespace phlex::experimental {
     return nullptr;
   }
 
-  std::string level_id::to_string() const
+  std::string data_cell_id::to_string() const
   {
     // FIXME: prefix needs to be adjusted esp. if a root name can be supplied by the user.
     std::string prefix{"["}; //"root: ["};
@@ -142,7 +145,7 @@ namespace phlex::experimental {
     return prefix + result + suffix;
   }
 
-  std::string level_id::to_string_this_level() const
+  std::string data_cell_id::to_string_this_level() const
   {
     if (empty(level_name_)) {
       return std::to_string(number_);
@@ -150,5 +153,8 @@ namespace phlex::experimental {
     return level_name_ + ":" + std::to_string(number_);
   }
 
-  std::ostream& operator<<(std::ostream& os, level_id const& id) { return os << id.to_string(); }
+  std::ostream& operator<<(std::ostream& os, data_cell_id const& id)
+  {
+    return os << id.to_string();
+  }
 }

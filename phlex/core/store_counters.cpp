@@ -18,7 +18,7 @@ namespace phlex::experimental {
 
   unsigned int store_flag::original_message_id() const noexcept { return original_message_id_; }
 
-  store_flag& detect_flush_flag::flag_for(level_id::hash_type const hash)
+  store_flag& detect_flush_flag::flag_for(data_cell_id::hash_type const hash)
   {
     flag_accessor fa;
     flags_.emplace(fa, hash, std::make_unique<store_flag>());
@@ -52,7 +52,7 @@ namespace phlex::experimental {
     original_message_id_ = original_message_id;
   }
 
-  void store_counter::increment(level_id::hash_type const level_hash) { ++counts_[level_hash]; }
+  void store_counter::increment(data_cell_id::hash_type const level_hash) { ++counts_[level_hash]; }
 
   bool store_counter::is_complete()
   {
@@ -88,7 +88,7 @@ namespace phlex::experimental {
 
   unsigned int store_counter::original_message_id() const noexcept { return original_message_id_; }
 
-  store_counter& count_stores::counter_for(level_id::hash_type const hash)
+  store_counter& count_stores::counter_for(data_cell_id::hash_type const hash)
   {
     counter_accessor ca;
     if (!counters_.find(ca, hash)) {
@@ -97,7 +97,7 @@ namespace phlex::experimental {
     return *ca->second;
   }
 
-  std::unique_ptr<store_counter> count_stores::done_with(level_id::hash_type const hash)
+  std::unique_ptr<store_counter> count_stores::done_with(data_cell_id::hash_type const hash)
   {
     // Must be called after an insertion has already been performed
     counter_accessor ca;
