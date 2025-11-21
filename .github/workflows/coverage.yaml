@@ -43,7 +43,7 @@ jobs:
 
     - name: Detect act environment
       id: detect_act
-      uses: ./phlex-src/.github/actions/detect-act-env
+      uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
 
     - name: Detect coverage relevant changes
       id: filter
