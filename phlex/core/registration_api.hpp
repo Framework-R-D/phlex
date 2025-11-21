@@ -46,8 +46,12 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<specified_label, N> input_args)
+    auto input_family(std::array<product_query, N> input_args)
     {
+      product_queries_type_setter<decltype(input_args),
+                                  typename AlgorithmBits::input_parameter_types>
+        populate_types{};
+      populate_types(input_args);
       if constexpr (M == 0ull) {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](auto predicates, auto /* output_products */) {
@@ -85,7 +89,7 @@ namespace phlex::experimental {
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input_family(
-        {specified_label::create(std::forward<decltype(input_args)>(input_args))...});
+        {product_query::create(std::forward<decltype(input_args)>(input_args))...});
     }
 
   private:
@@ -141,8 +145,12 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<specified_label, N - 1> input_args)
+    auto input_family(std::array<product_query, N - 1> input_args)
     {
+      product_queries_type_setter<decltype(input_args),
+                                  skip_first_type<typename AlgorithmBits::input_parameter_types>>
+        populate_types{};
+      populate_types(input_args);
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
           return std::make_unique<fold_node<AlgorithmBits, InitTuple>>(
@@ -171,7 +179,7 @@ namespace phlex::experimental {
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input_family(
-        {specified_label::create(std::forward<decltype(input_args)>(input_args))...});
+        {product_query::create(std::forward<decltype(input_args)>(input_args))...});
     }
 
   private:
@@ -222,8 +230,10 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<specified_label, N> input_args)
+    auto input_family(std::array<product_query, N> input_args)
     {
+      product_queries_type_setter<decltype(input_args), input_parameter_types> populate_types{};
+      populate_types(input_args);
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto upstream_predicates, auto output_products) {
           return std::make_unique<unfold_node<Object, Predicate, Unfold>>(
@@ -245,7 +255,7 @@ namespace phlex::experimental {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input_family({specified_label{std::forward<decltype(input_args)>(input_args)}...});
+      return input_family({product_query{std::forward<decltype(input_args)>(input_args)}...});
     }
 
   private:

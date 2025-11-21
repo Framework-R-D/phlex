@@ -9,11 +9,11 @@
 
 namespace phlex::experimental::detail {
   void verify_no_duplicate_input_products(std::string const& algorithm_name,
-                                          specified_labels to_sort)
+                                          product_queries to_sort)
   {
     std::sort(begin(to_sort), end(to_sort));
     std::set unique_and_sorted(begin(to_sort), end(to_sort));
-    specified_labels duplicates;
+    product_queries duplicates;
     std::set_difference(begin(to_sort),
                         end(to_sort),
                         begin(unique_and_sorted),
