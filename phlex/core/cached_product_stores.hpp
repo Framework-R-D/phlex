@@ -23,7 +23,7 @@ namespace phlex::experimental {
       }
       return new_store(
         get_store(id->parent())
-          ->make_child(id->number(), id->level_name(), source_name_, stage::process));
+          ->make_child(id->number(), id->layer_name(), source_name_, stage::process));
     }
 
   private:

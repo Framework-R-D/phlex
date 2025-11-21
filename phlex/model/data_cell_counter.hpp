@@ -21,9 +21,9 @@ namespace phlex::experimental {
     bool empty() const { return child_counts_.empty(); }
     auto size() const { return child_counts_.size(); }
 
-    std::optional<std::size_t> count_for(data_cell_id::hash_type const level_hash) const
+    std::optional<std::size_t> count_for(data_cell_id::hash_type const layer_hash) const
     {
-      if (auto it = child_counts_.find(level_hash); it != child_counts_.end()) {
+      if (auto it = child_counts_.find(layer_hash); it != child_counts_.end()) {
         return it->second;
       }
       return std::nullopt;
@@ -38,10 +38,10 @@ namespace phlex::experimental {
   class data_cell_counter {
   public:
     data_cell_counter();
-    data_cell_counter(data_cell_counter* parent, std::string const& level_name);
+    data_cell_counter(data_cell_counter* parent, std::string const& layer_name);
     ~data_cell_counter();
 
-    data_cell_counter make_child(std::string const& level_name);
+    data_cell_counter make_child(std::string const& layer_name);
     flush_counts result() const
     {
       if (empty(child_counts_)) {
@@ -54,7 +54,7 @@ namespace phlex::experimental {
     void adjust(data_cell_counter& child);
 
     data_cell_counter* parent_;
-    data_cell_id::hash_type level_hash_;
+    data_cell_id::hash_type layer_hash_;
     std::map<data_cell_id::hash_type, std::size_t> child_counts_{};
   };
 

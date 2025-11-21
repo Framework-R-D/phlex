@@ -31,17 +31,17 @@ namespace {
 namespace phlex::experimental {
 
   data_cell_id::data_cell_id() :
-    level_name_{"job"}, level_hash_{phlex::experimental::hash(level_name_)}
+    layer_name_{"job"}, layer_hash_{phlex::experimental::hash(layer_name_)}
   {
   }
 
-  data_cell_id::data_cell_id(data_cell_id_ptr parent, std::size_t i, std::string level_name) :
+  data_cell_id::data_cell_id(data_cell_id_ptr parent, std::size_t i, std::string layer_name) :
     parent_{std::move(parent)},
     number_{i},
-    level_name_{std::move(level_name)},
-    level_hash_{phlex::experimental::hash(parent_->level_hash_, level_name_)},
+    layer_name_{std::move(layer_name)},
+    layer_hash_{phlex::experimental::hash(parent_->layer_hash_, layer_name_)},
     depth_{parent_->depth_ + 1},
-    hash_{phlex::experimental::hash(parent_->hash_, number_, level_hash_)}
+    hash_{phlex::experimental::hash(parent_->hash_, number_, layer_hash_)}
   {
     // FIXME: Should it be an error to create an ID with an empty name?
   }
@@ -53,21 +53,21 @@ namespace phlex::experimental {
     return base_id;
   }
 
-  std::string const& data_cell_id::level_name() const noexcept { return level_name_; }
+  std::string const& data_cell_id::layer_name() const noexcept { return layer_name_; }
   std::size_t data_cell_id::depth() const noexcept { return depth_; }
 
   data_cell_id_ptr data_cell_id::make_child(std::size_t const new_level_number,
-                                            std::string new_level_name) const
+                                            std::string new_layer_name) const
   {
     return data_cell_id_ptr{
-      new data_cell_id{shared_from_this(), new_level_number, std::move(new_level_name)}};
+      new data_cell_id{shared_from_this(), new_level_number, std::move(new_layer_name)}};
   }
 
   bool data_cell_id::has_parent() const noexcept { return static_cast<bool>(parent_); }
 
   std::size_t data_cell_id::number() const { return number_; }
   std::size_t data_cell_id::hash() const noexcept { return hash_; }
-  std::size_t data_cell_id::level_hash() const noexcept { return level_hash_; }
+  std::size_t data_cell_id::layer_hash() const noexcept { return layer_hash_; }
 
   bool data_cell_id::operator==(data_cell_id const& other) const
   {
@@ -115,11 +115,11 @@ namespace phlex::experimental {
 
   data_cell_id_ptr data_cell_id::parent() const noexcept { return parent_; }
 
-  data_cell_id_ptr data_cell_id::parent(std::string const& level_name) const
+  data_cell_id_ptr data_cell_id::parent(std::string const& layer_name) const
   {
     data_cell_id_ptr parent = parent_;
     while (parent) {
-      if (parent->level_name_ == level_name) {
+      if (parent->layer_name_ == layer_name) {
         return parent;
       }
       parent = parent->parent_;
@@ -147,10 +147,10 @@ namespace phlex::experimental {
 
   std::string data_cell_id::to_string_this_level() const
   {
-    if (empty(level_name_)) {
+    if (empty(layer_name_)) {
       return std::to_string(number_);
     }
-    return level_name_ + ":" + std::to_string(number_);
+    return layer_name_ + ":" + std::to_string(number_);
   }
 
   std::ostream& operator<<(std::ostream& os, data_cell_id const& id)

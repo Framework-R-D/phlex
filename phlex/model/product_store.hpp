@@ -24,18 +24,18 @@ namespace phlex::experimental {
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
 
-    std::string const& level_name() const noexcept;
+    std::string const& layer_name() const noexcept;
     std::string const& source() const noexcept;
-    product_store_const_ptr parent(std::string const& level_name) const noexcept;
+    product_store_const_ptr parent(std::string const& layer_name) const noexcept;
     product_store_const_ptr parent() const noexcept;
     product_store_ptr make_flush() const;
     product_store_ptr make_continuation(std::string source, products new_products = {}) const;
     product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_level_name,
+                                 std::string const& new_layer_name,
                                  std::string source,
                                  products new_products);
     product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_level_name,
+                                 std::string const& new_layer_name,
                                  std::string source = {},
                                  stage st = stage::process);
     data_cell_id_ptr const& id() const noexcept;
@@ -65,12 +65,12 @@ namespace phlex::experimental {
                            products new_products = {});
     explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
-                           std::string const& new_level_name,
+                           std::string const& new_layer_name,
                            std::string source,
                            products new_products);
     explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
-                           std::string const& new_level_name,
+                           std::string const& new_layer_name,
                            std::string source,
                            stage processing_stage);
 

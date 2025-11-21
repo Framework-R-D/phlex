@@ -92,7 +92,7 @@ namespace phlex::experimental {
               if (store->is_flush()) {
                 // Downstream nodes always get the flush.
                 get<0>(outputs).try_put(msg);
-                if (store->id()->level_name() != partition_) {
+                if (store->id()->layer_name() != partition_) {
                   return;
                 }
               }
@@ -105,7 +105,7 @@ namespace phlex::experimental {
                 counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
               } else {
                 call(ft, messages, std::make_index_sequence<N>{});
-                counter_for(id_hash_for_counter).increment(store->id()->level_hash());
+                counter_for(id_hash_for_counter).increment(store->id()->layer_hash());
               }
 
               if (auto counter = done_with(id_hash_for_counter)) {

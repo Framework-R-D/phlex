@@ -101,7 +101,7 @@ namespace phlex::experimental {
                      if (stores_.insert(a, store->id()->hash())) {
                        auto result = call(ft, messages, std::make_index_sequence<N>{});
                        ++calls_;
-                       ++product_count_[store->id()->level_hash()];
+                       ++product_count_[store->id()->layer_hash()];
                        products new_products;
                        new_products.add_all(output_, std::move(result));
                        a->second =

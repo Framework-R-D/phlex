@@ -18,15 +18,15 @@ namespace phlex::experimental {
     static data_cell_id_ptr base_ptr();
 
     using hash_type = std::size_t;
-    data_cell_id_ptr make_child(std::size_t new_level_number, std::string level_name) const;
-    std::string const& level_name() const noexcept;
+    data_cell_id_ptr make_child(std::size_t new_level_number, std::string layer_name) const;
+    std::string const& layer_name() const noexcept;
     std::size_t depth() const noexcept;
-    data_cell_id_ptr parent(std::string const& level_name) const;
+    data_cell_id_ptr parent(std::string const& layer_name) const;
     data_cell_id_ptr parent() const noexcept;
     bool has_parent() const noexcept;
     std::size_t number() const;
     std::size_t hash() const noexcept;
-    std::size_t level_hash() const noexcept;
+    std::size_t layer_hash() const noexcept;
     bool operator==(data_cell_id const& other) const;
     bool operator<(data_cell_id const& other) const;
 
@@ -37,11 +37,11 @@ namespace phlex::experimental {
 
   private:
     data_cell_id();
-    explicit data_cell_id(data_cell_id_ptr parent, std::size_t i, std::string level_name);
+    explicit data_cell_id(data_cell_id_ptr parent, std::size_t i, std::string layer_name);
     data_cell_id_ptr parent_{nullptr};
     std::size_t number_{-1ull};
-    std::string level_name_;
-    std::size_t level_hash_;
+    std::string layer_name_;
+    std::size_t layer_hash_;
     std::size_t depth_{};
     hash_type hash_{0};
   };

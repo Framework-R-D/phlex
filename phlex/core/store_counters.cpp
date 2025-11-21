@@ -52,7 +52,7 @@ namespace phlex::experimental {
     original_message_id_ = original_message_id;
   }
 
-  void store_counter::increment(data_cell_id::hash_type const level_hash) { ++counts_[level_hash]; }
+  void store_counter::increment(data_cell_id::hash_type const layer_hash) { ++counts_[layer_hash]; }
 
   bool store_counter::is_complete()
   {
@@ -75,8 +75,8 @@ namespace phlex::experimental {
       return false;
     }
 
-    for (auto const& [level_hash, count] : counts_) {
-      auto maybe_count = flush_counts->count_for(level_hash);
+    for (auto const& [layer_hash, count] : counts_) {
+      auto maybe_count = flush_counts->count_for(layer_hash);
       if (!maybe_count or count != *maybe_count) {
         return false;
       }

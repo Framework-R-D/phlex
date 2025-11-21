@@ -17,7 +17,7 @@ namespace phlex::experimental {
   public:
     ~data_layer_hierarchy();
     void increment_count(data_cell_id_ptr const& id);
-    std::size_t count_for(std::string const& level_name) const;
+    std::size_t count_for(std::string const& layer_name) const;
 
     void print() const;
 
@@ -40,7 +40,7 @@ namespace phlex::experimental {
       std::atomic<std::size_t> count{};
     };
 
-    tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<layer_entry>> levels_;
+    tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<layer_entry>> layers_;
   };
 
 }

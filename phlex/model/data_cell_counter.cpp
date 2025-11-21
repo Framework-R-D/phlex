@@ -14,8 +14,8 @@ namespace phlex::experimental {
 
   data_cell_counter::data_cell_counter() : data_cell_counter{nullptr, "job"} {}
 
-  data_cell_counter::data_cell_counter(data_cell_counter* parent, std::string const& level_name) :
-    parent_{parent}, level_hash_{parent_ ? hash(parent->level_hash_, level_name) : hash(level_name)}
+  data_cell_counter::data_cell_counter(data_cell_counter* parent, std::string const& layer_name) :
+    parent_{parent}, layer_hash_{parent_ ? hash(parent->layer_hash_, layer_name) : hash(layer_name)}
   {
   }
 
@@ -26,20 +26,20 @@ namespace phlex::experimental {
     }
   }
 
-  data_cell_counter data_cell_counter::make_child(std::string const& level_name)
+  data_cell_counter data_cell_counter::make_child(std::string const& layer_name)
   {
-    return {this, level_name};
+    return {this, layer_name};
   }
 
   void data_cell_counter::adjust(data_cell_counter& child)
   {
-    auto it2 = child_counts_.find(child.level_hash_);
+    auto it2 = child_counts_.find(child.layer_hash_);
     if (it2 == cend(child_counts_)) {
-      it2 = child_counts_.try_emplace(child.level_hash_, 0).first;
+      it2 = child_counts_.try_emplace(child.layer_hash_, 0).first;
     }
     ++it2->second;
-    for (auto const& [nested_level_hash, count] : child.child_counts_) {
-      child_counts_[nested_level_hash] += count;
+    for (auto const& [nested_layer_hash, count] : child.child_counts_) {
+      child_counts_[nested_layer_hash] += count;
     }
   }
 
@@ -51,7 +51,7 @@ namespace phlex::experimental {
       assert(it != counters_.cend());
       parent_counter = it->second.get();
     }
-    counters_[id->hash()] = std::make_shared<data_cell_counter>(parent_counter, id->level_name());
+    counters_[id->hash()] = std::make_shared<data_cell_counter>(parent_counter, id->layer_name());
   }
 
   flush_counts flush_counters::extract(data_cell_id_ptr const id)

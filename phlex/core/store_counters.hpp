@@ -45,7 +45,7 @@ namespace phlex::experimental {
   class store_counter {
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
-    void increment(data_cell_id::hash_type level_hash);
+    void increment(data_cell_id::hash_type layer_hash);
     bool is_complete();
     unsigned int original_message_id() const noexcept;
 

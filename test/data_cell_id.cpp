@@ -30,5 +30,5 @@ TEST_CASE("Verify independent hashes", "[data model]")
 
   auto event_4999 = subrun_1->make_child(4999, "event");
   CHECK(event_760->hash() != event_4999->hash());
-  CHECK(event_760->level_hash() == event_4999->level_hash());
+  CHECK(event_760->layer_hash() == event_4999->layer_hash());
 }

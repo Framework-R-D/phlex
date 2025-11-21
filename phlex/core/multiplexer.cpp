@@ -20,7 +20,7 @@ namespace {
     if (family.empty()) {
       return store->store_for_product(product_name.full());
     }
-    if (store->level_name() == family and store->contains_product(product_name.full())) {
+    if (store->layer_name() == family and store->contains_product(product_name.full())) {
       return store;
     }
     auto parent = store->parent(family);
@@ -57,7 +57,7 @@ namespace {
       }
 
       if (auto const& allowed_family = product_label.family; not allowed_family.empty()) {
-        if (store_to_send->level_name() != allowed_family) {
+        if (store_to_send->layer_name() != allowed_family) {
           continue;
         }
       }

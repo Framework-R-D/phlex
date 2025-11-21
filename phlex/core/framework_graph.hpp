@@ -32,10 +32,10 @@
 namespace phlex::experimental {
   class configuration;
 
-  class level_sentry {
+  class layer_sentry {
   public:
-    level_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);
-    ~level_sentry();
+    layer_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);
+    ~layer_sentry();
     std::size_t depth() const noexcept;
 
   private:
@@ -146,7 +146,7 @@ namespace phlex::experimental {
     message_sender sender_{hierarchy_, multiplexer_, eoms_};
     std::queue<product_store_ptr> pending_stores_;
     flush_counters counters_;
-    std::stack<level_sentry> levels_;
+    std::stack<layer_sentry> levels_;
     bool shutdown_{false};
   };
 }
