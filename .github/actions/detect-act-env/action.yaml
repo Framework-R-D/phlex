@@ -10,8 +10,10 @@ runs:
     - name: Detect act environment
       id: detect_act
       shell: bash
+      env:
+        ACTOR: ${{ github.actor }}
       run: |
-        if [ "${{ github.actor }}" = "nektos/act" ] || [ "${ACT:-}" = "true" ] || [ "${ACT:-}" = "1" ]; then
+        if [ "$ACTOR" = "nektos/act" ] || [ "${ACT:-}" = "true" ] || [ "${ACT:-}" = "1" ]; then
           echo "is_act=true" >> $GITHUB_OUTPUT
         else
           echo "is_act=false" >> $GITHUB_OUTPUT
