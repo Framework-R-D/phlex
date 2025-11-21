@@ -16,19 +16,19 @@ namespace phlex::experimental {
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
       if (producer.node.match(specified_product_name.qualifier())) {
         if (specified_product_name.type() != producer.type) {
-          spdlog::warn("Matched {} from {} but types don't match (`{}` vs `{}`)",
-                       specified_product_name.full(),
-                       producer.node.full(),
-                       specified_product_name.type(),
-                       producer.type);
+          spdlog::debug("Matched {} from {} but types don't match (`{}` vs `{}`)",
+                        specified_product_name.full(),
+                        producer.node.full(),
+                        specified_product_name.type(),
+                        producer.type);
         } else {
           spdlog::debug("Matched {} from {} and types match (`{}` vs `{}`)",
                         specified_product_name.full(),
                         producer.node.full(),
                         specified_product_name.type(),
                         producer.type);
+          candidates.emplace(producer.node.full(), &producer);
         }
-        candidates.emplace(producer.node.full(), &producer);
       }
     }
 
