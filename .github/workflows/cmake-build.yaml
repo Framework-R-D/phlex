@@ -14,12 +14,19 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  # Check if workflow should run based on PR comment trigger
-  check-trigger:
+  detect-cmake-build-changes:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     outputs:
-      triggered: ${{ steps.check.outputs.triggered }}
+      has_changes: ${{ steps.filter.outputs.matched }}
+      changed_files: ${{ steps.filter.outputs.matched_files }}
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      should_run: ${{ steps.check.outputs.triggered }}
+      pr_details: ${{ steps.pr.outputs.result }}
+
     steps:
       - name: Check trigger condition
         id: check
@@ -34,36 +41,79 @@ jobs:
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
 
+      - name: Get PR details for comment trigger
+        if: github.event_name == 'issue_comment'
+        id: pr
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            return {
+              ref: pr.data.head.ref,
+              sha: pr.data.head.sha,
+              base_sha: pr.data.base.sha
+            };
+
+      - name: Check out source code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
+        with:
+          fetch-depth: 0
+          path: phlex-src
+
+      - name: Detect act environment
+        id: detect_act
+        uses: ./phlex-src/.github/actions/detect-act-env
+
+      - name: Detect C++ and CMake changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: phlex-src
+          base-ref: ${{ github.event_name == 'issue_comment' && fromJSON(steps.pr.outputs.result).base_sha || github.event.pull_request.base.sha || github.event.before }}
+          head-ref: ${{ github.event_name == 'issue_comment' && fromJSON(steps.pr.outputs.result).sha || github.event.pull_request.head.sha || github.sha }}
+          file-type: |
+            cpp
+            cmake
+
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No C++ or CMake changes detected; build will be skipped."
+          else
+            echo "::group::C++ and CMake relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
+
   build:
-    needs: check-trigger
-    if: needs.check-trigger.outputs.triggered == 'true' && (github.event_name == 'workflow_dispatch' || github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER')
+    needs: detect-cmake-build-changes
+    if: >
+      needs.detect-cmake-build-changes.outputs.should_run == 'true' &&
+      (
+        (needs.detect-cmake-build-changes.outputs.has_changes == 'true') ||
+        (github.event_name == 'workflow_dispatch') ||
+        (needs.detect-cmake-build-changes.outputs.is_act == 'true')
+      ) &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.comment.author_association == 'COLLABORATOR' ||
+        github.event.comment.author_association == 'OWNER'
+      )
     runs-on: ubuntu-24.04
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
-    - name: Get PR details for comment trigger
-      if: github.event_name == 'issue_comment'
-      id: pr
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-      with:
-        script: |
-          const pr = await github.rest.pulls.get({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: context.issue.number
-          });
-          return {
-            ref: pr.data.head.ref,
-            sha: pr.data.head.sha
-          };
-
     - name: Check out code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
       with:
         path: phlex-src
-        ref: ${{ github.event_name == 'issue_comment' && fromJSON(steps.pr.outputs.result).sha || github.ref }}
+        ref: ${{ github.event_name == 'issue_comment' && fromJSON(needs.detect-cmake-build-changes.outputs.pr_details).sha || github.ref }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
@@ -81,3 +131,20 @@ jobs:
         . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
         ctest -j $(nproc)
+
+  cmake-build-skipped:
+    needs: detect-cmake-build-changes
+    if: >
+      needs.detect-cmake-build-changes.outputs.should_run == 'true' &&
+      (
+        (needs.detect-cmake-build-changes.outputs.has_changes != 'true') &&
+        (github.event_name != 'workflow_dispatch') &&
+        (needs.detect-cmake-build-changes.outputs.is_act != 'true')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant C++ or CMake changes detected
+      run: echo "No relevant C++ or CMake changes detected; build skipped."
