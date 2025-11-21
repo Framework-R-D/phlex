@@ -1,0 +1,23 @@
+name: 'Generate Build Matrix'
+description: 'Generates a dynamic build matrix for the cmake-build workflow'
+inputs:
+  user-input:
+    description: 'The user-provided build combinations from a workflow_dispatch event'
+    required: false
+  comment-body:
+    description: 'The body of the issue comment that triggered the workflow'
+    required: false
+outputs:
+  matrix:
+    description: 'The generated build matrix in JSON format'
+    value: ${{ steps.generate.outputs.matrix }}
+runs:
+  using: 'composite'
+  steps:
+    - id: generate
+      run: python ${{ github.action_path }}/generate_matrix.py
+      shell: bash
+      env:
+        USER_INPUT: ${{ inputs.user-input }}
+        COMMENT_BODY: ${{ inputs.comment-body }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
