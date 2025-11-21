@@ -11,43 +11,42 @@ permissions:
   contents: write
 
 jobs:
-  check:
+  parse-command:
     runs-on: ubuntu-latest
-    name: Check for phlexbot token
+    name: Parse bot command
     if: ${{ github.event.issue.pull_request }}
-
     outputs:
-      match_result: ${{ steps.check_comment.outputs.match_result }}
-      ref_name: ${{ steps.check_comment.outputs.ref_name }}
-      repo_name: ${{ steps.check_comment.outputs.repo_name }}
+      should_run: ${{ steps.check_comment.outputs.should_run }}
+      ref: ${{ steps.get_pr.outputs.ref }}
+      sha: ${{ steps.get_pr.outputs.sha }}
+      repo: ${{ steps.get_pr.outputs.repo }}
 
     steps:
       - id: check_comment
-        name: Check comment
+        name: Check comment for trigger phrase
         run: |
-          match_result=$(echo "$COMMENT_BODY" | grep -qEe '^@phlexbot[[:space:]]+format\b' && echo match || echo non_match)
-          echo match_result="$match_result" >> $GITHUB_OUTPUT
-
-          ISSUE_NUMBER=${{ github.event.issue.number }}
-          REPO="${{ github.repository }}"
-          gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
-          echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
-          echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
+          if [[ "${{ github.event.comment.author_association }}" == "COLLABORATOR" || "${{ github.event.comment.author_association }}" == "OWNER" ]] && \
+             [[ $(echo "${{ github.event.comment.body }}" | grep -qEe '^@phlexbot[[:space:]]+format\b' && echo 'true') ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Get PR Info
+        if: steps.check_comment.outputs.should_run == 'true'
+        id: get_pr
+        uses: ./actions/get-pr-info
 
   apply_formatting:
     runs-on: ubuntu-latest
     name: Apply formatting
-    needs: check
-    if: ${{ needs.check.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') }}
+    needs: parse-command
+    if: ${{ needs.parse-command.outputs.should_run == 'true' }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
         with:
           path: phlex-src
-          ref: ${{ needs.check.outputs.ref_name }}
-          repository: ${{ needs.check.outputs.repo_name }}
+          ref: ${{ needs.parse-command.outputs.ref }}
+          repository: ${{ needs.parse-command.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
