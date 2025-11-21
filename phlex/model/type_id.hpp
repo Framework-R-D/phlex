@@ -28,7 +28,8 @@ namespace phlex::experimental {
       long_v = 5,
       long_long_v = 6,
       float_v = 7,
-      double_v = 8
+      double_v = 8,
+      long_double_v = 9
     };
 
     constexpr bool valid() const { return not(id_ == 0xFF); }
@@ -121,6 +122,8 @@ namespace phlex::experimental {
         return static_cast<unsigned char>(type_id::builtin::float_v);
       } else if constexpr (std::is_same_v<double, T>) {
         return static_cast<unsigned char>(type_id::builtin::double_v);
+      } else if constexpr (std::is_same_v<long double, T>) {
+        return static_cast<unsigned char>(type_id::builtin::long_double_v);
       } else {
         return make_type_id_helper_integral<T>();
       }
@@ -297,6 +300,10 @@ constexpr auto fmt::formatter<phlex::experimental::type_id>::format(
 
   case type_id::builtin::double_v:
     fundamental = "double"s;
+    break;
+
+  case type_id::builtin::long_double_v:
+    fundamental = "long double"s;
     break;
   }
   std::string const out = fmt::format("{}{}{}",
