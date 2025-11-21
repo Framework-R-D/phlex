@@ -5,6 +5,7 @@
 #include "phlex/model/type_id.hpp"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace phlex::experimental {
@@ -44,7 +45,7 @@ namespace phlex::experimental {
     explicit to_product_specification(algorithm_name const& qualifier) : qualifier_{qualifier} {}
     product_specification operator()(std::string const& name, type_id type) const
     {
-      return product_specification{qualifier_, name, type};
+      return product_specification{qualifier_, name, std::move(type)};
     }
 
   private:
@@ -52,8 +53,8 @@ namespace phlex::experimental {
   };
 
   product_specifications to_product_specifications(std::string const& name,
-                                     std::vector<std::string> output_labels,
-                                     std::vector<type_id> output_types);
+                                                   std::vector<std::string> output_labels,
+                                                   std::vector<type_id> output_types);
 }
 
 #endif // PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
