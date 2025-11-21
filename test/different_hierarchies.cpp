@@ -50,7 +50,7 @@ namespace {
   // job -> trigger primitive levels
   constexpr auto primitive_limit = 10u;
 
-  void levels_to_process(framework_driver& driver)
+  void cells_to_process(framework_driver& driver)
   {
     auto job_store = product_store::base();
     driver.yield(job_store);
@@ -77,7 +77,7 @@ namespace {
 
 TEST_CASE("Different hierarchies used with fold", "[graph]")
 {
-  framework_graph g{levels_to_process};
+  framework_graph g{cells_to_process};
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
     .input_family("number")

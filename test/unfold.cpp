@@ -84,7 +84,7 @@ TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
 
-  auto levels_to_process = [index_limit](auto& driver) {
+  auto cells_to_process = [index_limit](auto& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
@@ -95,7 +95,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     }
   };
 
-  framework_graph g{levels_to_process};
+  framework_graph g{cells_to_process};
 
   g.unfold<iota>(&iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family("max_number")

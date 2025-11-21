@@ -11,7 +11,7 @@ using namespace oneapi::tbb;
 
 namespace {
 
-  void levels_to_process(framework_driver& driver)
+  void cells_to_process(framework_driver& driver)
   {
     auto job_store = product_store::base();
     job_store->add_product("id", *job_store->id());
@@ -52,7 +52,7 @@ namespace {
 
 TEST_CASE("Testing families", "[data model]")
 {
-  framework_graph g{levels_to_process, 2};
+  framework_graph g{cells_to_process, 2};
   g.observe("se", check_two_ids).input_family("id"_in("subrun"), "id"_in("event"));
   g.observe("rs", check_two_ids).input_family("id"_in("run"), "id"_in("subrun"));
   g.observe("rse", check_three_ids)

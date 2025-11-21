@@ -47,7 +47,7 @@ TEST_CASE("Different levels of fold", "[graph]")
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  auto levels_to_process = [index_limit, number_limit](framework_driver& driver) {
+  auto cells_to_process = [index_limit, number_limit](framework_driver& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
@@ -61,8 +61,8 @@ TEST_CASE("Different levels of fold", "[graph]")
     }
   };
 
-  // framework_graph g{levels_to_process};
-  framework_graph g{levels_to_process};
+  // framework_graph g{cells_to_process};
+  framework_graph g{cells_to_process};
 
   g.fold("run_add", add, concurrency::unlimited, "run")
     .input_family("number")

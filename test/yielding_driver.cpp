@@ -13,7 +13,7 @@
 
 using namespace phlex::experimental;
 
-void levels_to_process(async_driver<data_cell_id_ptr>& d)
+void cells_to_process(async_driver<data_cell_id_ptr>& d)
 {
   unsigned int const num_runs = 2;
   unsigned int const num_subruns = 2;
@@ -36,7 +36,7 @@ void levels_to_process(async_driver<data_cell_id_ptr>& d)
 
 int main()
 {
-  async_driver<data_cell_id_ptr> drive{levels_to_process};
+  async_driver<data_cell_id_ptr> drive{cells_to_process};
   tbb::flow::graph g{};
   tbb::flow::input_node source{g, [&drive](tbb::flow_control& fc) -> data_cell_id_ptr {
                                  if (auto next = drive()) {

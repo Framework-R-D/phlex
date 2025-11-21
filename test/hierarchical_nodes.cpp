@@ -38,16 +38,16 @@ namespace {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  void levels_to_process(framework_driver& driver)
+  void cells_to_process(framework_driver& driver)
   {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run", "levels_to_process");
+      auto run_store = job_store->make_child(i, "run", "cells_to_process");
       run_store->add_product<std::time_t>("time", std::time(nullptr));
       driver.yield(run_store);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event", "levels_to_process");
+        auto event_store = run_store->make_child(j, "event", "cells_to_process");
         event_store->add_product("number", i + j);
         driver.yield(event_store);
       }
@@ -100,7 +100,7 @@ namespace {
 
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
-  framework_graph g{levels_to_process};
+  framework_graph g{cells_to_process};
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family("time")
