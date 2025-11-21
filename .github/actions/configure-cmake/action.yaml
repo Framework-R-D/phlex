@@ -49,22 +49,30 @@ runs:
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
         echo "Configuring with CMake preset: $PRESET"
+
+        # Base CMake options
+        CMAKE_ARGS=(
+          --preset="$PRESET" "$SOURCE_DIR"
+          -G "$GENERATOR"
+          -DCMAKE_COLOR_DIAGNOSTICS=ON
+          -DCMAKE_CXX_COMPILER="$CPP_COMPILER"
+          -DPHLEX_USE_FORM="$ENABLE_FORM"
+          -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE"
+        )
+
+        # Add build type if specified
         if [ -n "$BUILD_TYPE" ]; then
-          cmake --preset="$PRESET" "$SOURCE_DIR" \
-            -G "$GENERATOR" \
-            -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
-            -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-            -DPHLEX_USE_FORM="$ENABLE_FORM" \
-            -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE" \
-            $EXTRA_OPTIONS
-        else
-          cmake --preset="$PRESET" "$SOURCE_DIR" \
-            -G "$GENERATOR" \
-            -DCMAKE_CXX_COMPILER="$CPP_COMPILER" \
-            -DPHLEX_USE_FORM="$ENABLE_FORM" \
-            -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE" \
-            $EXTRA_OPTIONS
+          CMAKE_ARGS+=(-DCMAKE_BUILD_TYPE="$BUILD_TYPE")
         fi
+
+        # Add extra options
+        if [ -n "$EXTRA_OPTIONS" ]; then
+          CMAKE_ARGS+=($EXTRA_OPTIONS)
+        fi
+
+        # Run CMake
+        cmake "${CMAKE_ARGS[@]}"
+
         echo "Source directory: $SOURCE_DIR"
         echo "Build directory: $(pwd)"
         echo "Generator: $GENERATOR"
@@ -79,3 +87,4 @@ runs:
         CPP_COMPILER: ${{ inputs.cpp-compiler }}
         PRESET: ${{ inputs.preset }}
         BUILD_TYPE: ${{ inputs.build-type }}
+        CICOLOR_FORCE: 1

@@ -2,9 +2,24 @@ name: CMake Build and Test
 run-name: "${{ github.actor }} building and testing Phlex"
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
   issue_comment:
     types: [created]
   workflow_dispatch:
+    inputs:
+      build-combinations:
+        description: |
+          A space- or comma-separated list of build combinations to run.
+          Syntax examples:
+          - `gcc/asan clang/tsan` (run only these two)
+          - `all` (run all combinations)
+          - `all -clang/none -clang/valgrind` (run all except specified)
+          - `+clang/none +clang/valgrind` (run default matrix plus specified)
+          Default (if empty): Run all except clang/none and clang/valgrind.
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -14,70 +29,166 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  # Check if workflow should run based on PR comment trigger
-  check-trigger:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+  detect-build-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      triggered: ${{ steps.decision.outputs.triggered }}
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      sha: ${{ steps.pr.outputs.sha || github.sha }}
+      repo: ${{ steps.pr.outputs.repo || github.repository }}
+
+    steps:
+    - name: Check out source code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect act environment
+      id: detect_act
+      uses: ./phlex-src/.github/actions/detect-act-env
+
+    - name: Get PR details for comment trigger
+      if: github.event_name == 'issue_comment'
+      id: pr
+      uses: ./phlex-src/.github/actions/get-pr-info
+
+    - name: Detect relevant changes
+      id: filter
+      if: github.event_name == 'push' || github.event_name == 'pull_request'
+      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        file-type: |
+          cpp
+          cmake
+
+    - name: Decide whether to run
+      id: decision
+      run: |
+        if [[ "${{ steps.detect_act.outputs.is_act }}" == 'true' ]]; then
+          echo "triggered=true"
+        elif [[ "${{ github.event_name }}" == 'workflow_dispatch' ]]; then
+          echo "triggered=true"
+        elif [[ "${{ github.event_name }}" == 'issue_comment' && $(echo "${{ github.event.comment.body }}" | grep -qE '^@phlexbot[[:space:]]+build\b' && echo 'true' || echo 'false') == 'true' ]]; then
+          echo "triggered=true"
+        elif [[ "${{ github.event_name }}" == 'push' || "${{ github.event_name }}" == 'pull_request' ]]; then
+          echo "triggered=${{ steps.filter.outputs.matched }}"
+        else
+          echo "triggered=false"
+        fi >> $GITHUB_OUTPUT
+
+  generate-matrix:
+    name: Generate Build Matrix
+    needs: detect-build-changes
+    if: needs.detect-build-changes.outputs.triggered == 'true'
     runs-on: ubuntu-latest
     outputs:
-      triggered: ${{ steps.check.outputs.triggered }}
+      matrix: ${{ steps.generate.outputs.matrix }}
     steps:
-      - name: Check trigger condition
-        id: check
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "triggered=true" >> $GITHUB_OUTPUT
-          elif echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+build\b'; then
-            echo "triggered=true" >> $GITHUB_OUTPUT
-          else
-            echo "triggered=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          COMMENT_BODY: ${{ github.event.comment.body }}
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
+        with:
+          path: phlex-src
+      - id: generate
+        uses: ./phlex-src/.github/actions/generate-build-matrix
+        with:
+          user-input: ${{ github.event.inputs.build-combinations }}
+          comment-body: ${{ github.event.comment.body }}
 
   build:
-    needs: check-trigger
-    if: needs.check-trigger.outputs.triggered == 'true' && (github.event_name == 'workflow_dispatch' || github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER')
+    name: Build and Test (${{ matrix.compiler }}, ${{ matrix.sanitizer }})
+    needs: [detect-build-changes, generate-matrix]
+    if: |
+      needs.detect-build-changes.outputs.triggered == 'true' &&
+      (
+        github.event_name != 'issue_comment' ||
+        (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER')
+      )
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
-    - name: Get PR details for comment trigger
-      if: github.event_name == 'issue_comment'
-      id: pr
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-      with:
-        script: |
-          const pr = await github.rest.pulls.get({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: context.issue.number
-          });
-          return {
-            ref: pr.data.head.ref,
-            sha: pr.data.head.sha
-          };
-
     - name: Check out code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
       with:
         path: phlex-src
-        ref: ${{ github.event_name == 'issue_comment' && fromJSON(steps.pr.outputs.result).sha || github.ref }}
+        ref: ${{ needs.detect-build-changes.outputs.sha }}
+        repository: ${{ needs.detect-build-changes.outputs.repo }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
+    - name: Announce CMake configuration
+      run: echo "➡️ Configuring CMake..."
+
     - name: Configure CMake
+      id: configure
       uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         build-type: ${{ env.BUILD_TYPE }}
+        cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+        extra-options: |
+          ${{ matrix.sanitizer == 'asan' && '-DPHLEX_ENABLE_ASAN=ON' || '' }}
+          ${{ matrix.sanitizer == 'tsan' && '-DPHLEX_ENABLE_TSAN=ON' || '' }}
 
     - name: Build
+      id: build
       uses: Framework-R-D/phlex/.github/actions/build-cmake@main
 
-    - name: Test
+    - name: Run tests
+      if: matrix.sanitizer != 'valgrind'
+      env:
+        CICOLOR_FORCE: 1
       run: |
         . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
-        ctest -j $(nproc)
+
+        echo "➡️ Running tests..."
+        echo "::group::Running ctest"
+        if ctest --progress --output-on-failure -j $(nproc); then
+          echo "::endgroup::"
+          echo "✅ All tests passed."
+        else
+          echo "::endgroup::"
+          echo "❌ Some tests failed."
+          exit 1
+        fi
+
+    - name: Run Valgrind tests
+      if: matrix.sanitizer == 'valgrind'
+      env:
+        CICOLOR_FORCE: 1
+      run: |
+        . /entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+
+        echo "➡️ Running Valgrind tests..."
+        echo "::group::Running ctest -T memcheck"
+        if ctest -T memcheck; then
+          echo "::endgroup::"
+          echo "✅ Valgrind tests passed."
+        else
+          echo "::endgroup::"
+          echo "⚠️ Valgrind tests failed, but the workflow will continue."
+        fi
+
+  build-skipped:
+    name: Build and Test Skipped
+    needs: detect-build-changes
+    if: needs.detect-build-changes.outputs.triggered != 'true' && needs.detect-build-changes.outputs.is_act != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report skipped build
+        run: echo "No relevant changes detected, build and test skipped."
