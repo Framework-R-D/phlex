@@ -11,7 +11,7 @@
 #include "phlex/core/message_sender.hpp"
 #include "phlex/core/multiplexer.hpp"
 #include "phlex/core/node_catalog.hpp"
-#include "phlex/model/level_hierarchy.hpp"
+#include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
@@ -133,7 +133,7 @@ namespace phlex::experimental {
 
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;
-    level_hierarchy hierarchy_{};
+    data_layer_hierarchy hierarchy_{};
     node_catalog nodes_{};
     std::map<std::string, filter> filters_{};
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.

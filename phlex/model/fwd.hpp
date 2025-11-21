@@ -5,7 +5,7 @@
 
 namespace phlex::experimental {
   class level_counter;
-  class level_hierarchy;
+  class data_layer_hierarchy;
   class data_cell_id;
   class product_store;
 

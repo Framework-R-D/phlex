@@ -1,4 +1,4 @@
-#include "phlex/model/level_hierarchy.hpp"
+#include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/data_cell_id.hpp"
 
 #include "fmt/format.h"
@@ -12,9 +12,9 @@ namespace {
 
 namespace phlex::experimental {
 
-  level_hierarchy::~level_hierarchy() { print(); }
+  data_layer_hierarchy::~data_layer_hierarchy() { print(); }
 
-  void level_hierarchy::increment_count(data_cell_id_ptr const& id)
+  void data_layer_hierarchy::increment_count(data_cell_id_ptr const& id)
   {
     if (auto it = levels_.find(id->level_hash()); it != levels_.cend()) {
       ++it->second->count;
@@ -27,11 +27,11 @@ namespace phlex::experimental {
     // which will either refer to the new node in the map, or to the already-emplaced
     // node.  We then increment the count.
     auto [it, _] = levels_.emplace(id->level_hash(),
-                                   std::make_shared<level_entry>(id->level_name(), parent_hash));
+                                   std::make_shared<layer_entry>(id->level_name(), parent_hash));
     ++it->second->count;
   }
 
-  std::size_t level_hierarchy::count_for(std::string const& level_name) const
+  std::size_t data_layer_hierarchy::count_for(std::string const& level_name) const
   {
     auto it = find_if(begin(levels_), end(levels_), [&level_name](auto const& level) {
       return level.second->name == level_name;
@@ -39,11 +39,12 @@ namespace phlex::experimental {
     return it != cend(levels_) ? it->second->count.load() : 0;
   }
 
-  void level_hierarchy::print() const { spdlog::info("{}", graph_layout()); }
+  void data_layer_hierarchy::print() const { spdlog::info("{}", graph_layout()); }
 
-  std::string level_hierarchy::pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
-                                              std::string const& name,
-                                              std::string indent) const
+  std::string data_layer_hierarchy::pretty_recurse(
+    std::map<std::string, hash_name_pairs> const& tree,
+    std::string const& name,
+    std::string indent) const
   {
     auto it = tree.find(name);
     if (it == cend(tree)) {
@@ -66,7 +67,7 @@ namespace phlex::experimental {
     return result;
   }
 
-  std::string level_hierarchy::graph_layout() const
+  std::string data_layer_hierarchy::graph_layout() const
   {
     if (empty(levels_)) {
       return {};
