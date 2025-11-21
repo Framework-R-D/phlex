@@ -86,6 +86,7 @@ int main()
   fmt::print("long long: {}\n", make_type_id<long long>());
   fmt::print("float: {}\n", make_type_id<float>());
   fmt::print("double: {}\n", make_type_id<double>());
+  fmt::print("long double: {}\n", make_type_id<long double>());
   fmt::print("vector<float>: {}\n", make_type_id<std::vector<float>>());
   fmt::print("vector<unsigned int>: {}\n", make_type_id<std::vector<unsigned int>>());
   fmt::print("A: {}\n", make_type_id<A>());
@@ -100,6 +101,7 @@ int main()
   assert(fmt::format("{}", make_type_id<long long>()) == "long long");
   assert(fmt::format("{}", make_type_id<float>()) == "float");
   assert(fmt::format("{}", make_type_id<double>()) == "double");
+  assert(fmt::format("{}", make_type_id<long double>()) == "long double");
   assert(fmt::format("{}", make_type_id<std::vector<float>>()) == "LIST float");
   assert(fmt::format("{}", make_type_id<std::vector<unsigned int>>()) == "LIST unsigned int");
   assert(fmt::format("{}", make_type_id<A>()) == "STRUCT {int, int, char, int}");
