@@ -1,7 +1,7 @@
 add_library(
   phlex_model SHARED
   algorithm_name.cpp
-  level_counter.cpp
+  data_cell_counter.cpp
   data_layer_hierarchy.cpp
   data_cell_id.cpp
   product_matcher.cpp

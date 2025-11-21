@@ -1,5 +1,5 @@
-#ifndef PHLEX_MODEL_LEVEL_COUNTER_HPP
-#define PHLEX_MODEL_LEVEL_COUNTER_HPP
+#ifndef PHLEX_MODEL_DATA_CELL_COUNTER_HPP
+#define PHLEX_MODEL_DATA_CELL_COUNTER_HPP
 
 #include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/fwd.hpp"
@@ -35,13 +35,13 @@ namespace phlex::experimental {
 
   using flush_counts_ptr = std::shared_ptr<flush_counts const>;
 
-  class level_counter {
+  class data_cell_counter {
   public:
-    level_counter();
-    level_counter(level_counter* parent, std::string const& level_name);
-    ~level_counter();
+    data_cell_counter();
+    data_cell_counter(data_cell_counter* parent, std::string const& level_name);
+    ~data_cell_counter();
 
-    level_counter make_child(std::string const& level_name);
+    data_cell_counter make_child(std::string const& level_name);
     flush_counts result() const
     {
       if (empty(child_counts_)) {
@@ -51,9 +51,9 @@ namespace phlex::experimental {
     }
 
   private:
-    void adjust(level_counter& child);
+    void adjust(data_cell_counter& child);
 
-    level_counter* parent_;
+    data_cell_counter* parent_;
     data_cell_id::hash_type level_hash_;
     std::map<data_cell_id::hash_type, std::size_t> child_counts_{};
   };
@@ -64,8 +64,8 @@ namespace phlex::experimental {
     flush_counts extract(data_cell_id_ptr const id);
 
   private:
-    std::map<data_cell_id::hash_type, std::shared_ptr<level_counter>> counters_;
+    std::map<data_cell_id::hash_type, std::shared_ptr<data_cell_counter>> counters_;
   };
 }
 
-#endif // PHLEX_MODEL_LEVEL_COUNTER_HPP
+#endif // PHLEX_MODEL_DATA_CELL_COUNTER_HPP

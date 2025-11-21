@@ -2,7 +2,7 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/edge_maker.hpp"
-#include "phlex/model/level_counter.hpp"
+#include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "fmt/std.h"

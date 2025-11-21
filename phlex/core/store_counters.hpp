@@ -2,8 +2,8 @@
 #define PHLEX_CORE_STORE_COUNTERS_HPP
 
 #include "phlex/core/fwd.hpp"
+#include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/data_cell_id.hpp"
-#include "phlex/model/level_counter.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"

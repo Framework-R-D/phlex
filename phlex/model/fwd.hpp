@@ -4,7 +4,7 @@
 #include <memory>
 
 namespace phlex::experimental {
-  class level_counter;
+  class data_cell_counter;
   class data_layer_hierarchy;
   class data_cell_id;
   class product_store;

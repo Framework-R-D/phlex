@@ -1,6 +1,6 @@
+#include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/data_cell_id.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
-#include "phlex/model/level_counter.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/hashing.hpp"
 
@@ -14,13 +14,13 @@ namespace {
 
 TEST_CASE("Counter with nothing processed", "[data model]")
 {
-  level_counter job_counter{};
+  data_cell_counter job_counter{};
   CHECK(job_counter.result().empty());
 }
 
 TEST_CASE("Counter one layer deep", "[data model]")
 {
-  level_counter job_counter{};
+  data_cell_counter job_counter{};
   for (std::size_t i = 0; i != 10; ++i) {
     job_counter.make_child("event");
   }

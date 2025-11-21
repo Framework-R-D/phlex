@@ -1,5 +1,5 @@
 #include "phlex/core/store_counters.hpp"
-#include "phlex/model/level_counter.hpp"
+#include "phlex/model/data_cell_counter.hpp"
 
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"

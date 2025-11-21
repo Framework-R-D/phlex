@@ -1,4 +1,4 @@
-#include "phlex/model/level_counter.hpp"
+#include "phlex/model/data_cell_counter.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include <cassert>
@@ -12,26 +12,26 @@ namespace phlex::experimental {
   {
   }
 
-  level_counter::level_counter() : level_counter{nullptr, "job"} {}
+  data_cell_counter::data_cell_counter() : data_cell_counter{nullptr, "job"} {}
 
-  level_counter::level_counter(level_counter* parent, std::string const& level_name) :
+  data_cell_counter::data_cell_counter(data_cell_counter* parent, std::string const& level_name) :
     parent_{parent}, level_hash_{parent_ ? hash(parent->level_hash_, level_name) : hash(level_name)}
   {
   }
 
-  level_counter::~level_counter()
+  data_cell_counter::~data_cell_counter()
   {
     if (parent_) {
       parent_->adjust(*this);
     }
   }
 
-  level_counter level_counter::make_child(std::string const& level_name)
+  data_cell_counter data_cell_counter::make_child(std::string const& level_name)
   {
     return {this, level_name};
   }
 
-  void level_counter::adjust(level_counter& child)
+  void data_cell_counter::adjust(data_cell_counter& child)
   {
     auto it2 = child_counts_.find(child.level_hash_);
     if (it2 == cend(child_counts_)) {
@@ -45,13 +45,13 @@ namespace phlex::experimental {
 
   void flush_counters::update(data_cell_id_ptr const id)
   {
-    level_counter* parent_counter = nullptr;
+    data_cell_counter* parent_counter = nullptr;
     if (auto parent = id->parent()) {
       auto it = counters_.find(parent->hash());
       assert(it != counters_.cend());
       parent_counter = it->second.get();
     }
-    counters_[id->hash()] = std::make_shared<level_counter>(parent_counter, id->level_name());
+    counters_[id->hash()] = std::make_shared<data_cell_counter>(parent_counter, id->level_name());
   }
 
   flush_counts flush_counters::extract(data_cell_id_ptr const id)
