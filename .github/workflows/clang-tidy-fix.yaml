@@ -11,59 +11,53 @@ permissions:
   contents: write
 
 jobs:
-  check:
+  parse-command:
     runs-on: ubuntu-latest
-    name: Check for phlexbot tidy-fix token
+    name: Parse bot command
     if: ${{ github.event.issue.pull_request }}
-
     outputs:
-      match_result: ${{ steps.check_comment.outputs.match_result }}
+      should_run: ${{ steps.check_comment.outputs.should_run }}
       tidy_checks: ${{ steps.check_comment.outputs.tidy_checks }}
-      ref_name: ${{ steps.check_comment.outputs.ref_name }}
-      repo_name: ${{ steps.check_comment.outputs.repo_name }}
+      ref: ${{ steps.get_pr.outputs.ref }}
+      sha: ${{ steps.get_pr.outputs.sha }}
+      repo: ${{ steps.get_pr.outputs.repo }}
 
     steps:
       - id: check_comment
-        name: Check comment
+        name: Check comment for trigger phrase
         run: |
-          match_result=$(echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+tidy-fix\b' && echo match || echo non_match)
-
-          # Extract any tokens after 'tidy-fix' (e.g. '@phlexbot tidy-fix misc-include-cleaner')
-          checks_line=$(echo "$COMMENT_BODY" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
-          tidy_checks=""
-          if [ -n "$checks_line" ]; then
-            # Normalize separators: comma or whitespace -> single comma-separated list
-            tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
+          if [[ "${{ github.event.comment.author_association }}" == "COLLABORATOR" || "${{ github.event.comment.author_association }}" == "OWNER" ]] && \
+             [[ $(echo "${{ github.event.comment.body }}" | grep -qEe '^@phlexbot[[:space:]]+clang-tidy-fix\b' && echo 'true') ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            checks_line=$(echo "${{ github.event.comment.body }}" | sed -nE 's/^@phlexbot[[:space:]]+clang-tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
+            if [ -n "$checks_line" ]; then
+              tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
+              echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
           fi
-
-          echo "match_result=$match_result" >> $GITHUB_OUTPUT
-          echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
-
-          ISSUE_NUMBER=${{ github.event.issue.number }}
-          REPO="${{ github.repository }}"
-          gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
-          echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
-          echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
+      - name: Get PR Info
+        if: steps.check_comment.outputs.should_run == 'true'
+        id: get_pr
+        uses: ./actions/get-pr-info
 
   apply_tidy_fixes:
     runs-on: ubuntu-24.04
     name: Apply clang-tidy fixes
-    needs: check
-    if: ${{ needs.check.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') }}
+    needs: parse-command
+    if: ${{ needs.parse-command.outputs.should_run == 'true' }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
         with:
           path: phlex-src
-          ref: ${{ needs.check.outputs.ref_name }}
-          repository: ${{ needs.check.outputs.repo_name }}
+          ref: ${{ needs.parse-command.outputs.ref }}
+          repository: ${{ needs.parse-command.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Setup build environment
@@ -77,7 +71,7 @@ jobs:
 
       - name: Apply clang-tidy fixes using CMake target
         env:
-          PHLEX_TIDY_CHECKS: ${{ needs.check.outputs.tidy_checks }}
+          PHLEX_TIDY_CHECKS: ${{ needs.parse-command.outputs.tidy_checks }}
         run: |
           . /entrypoint.sh
           cd $GITHUB_WORKSPACE/phlex-build

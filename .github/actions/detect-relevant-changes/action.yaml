@@ -52,6 +52,7 @@ runs:
         declare -A DEFAULT_TYPE_PATTERNS
         DEFAULT_TYPE_PATTERNS[cpp]=$'*.cpp\n*.hpp'
         DEFAULT_TYPE_PATTERNS[cmake]=$'CMakeLists.txt\n*.cmake'
+        DEFAULT_TYPE_PATTERNS[python]=$'*.py'
 
         parse_list() {
           local input="$1"

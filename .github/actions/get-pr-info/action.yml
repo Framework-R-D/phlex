@@ -1,0 +1,27 @@
+name: 'Get PR Info'
+description: 'Gets PR information for workflows triggered by an issue comment'
+outputs:
+  ref:
+    description: 'The head ref of the PR'
+    value: ${{ steps.get_pr_info.outputs.ref }}
+  sha:
+    description: 'The head SHA of the PR'
+    value: ${{ steps.get_pr_info.outputs.sha }}
+  repo:
+    description: 'The full name of the head repository'
+    value: ${{ steps.get_pr_info.outputs.repo }}
+runs:
+  using: "composite"
+  steps:
+    - id: get_pr_info
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+      with:
+        script: |
+          const pr = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number
+          });
+          core.setOutput('ref', pr.data.head.ref);
+          core.setOutput('sha', pr.data.head.sha);
+          core.setOutput('repo', pr.data.head.repo.full_name);

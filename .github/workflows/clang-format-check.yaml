@@ -20,13 +20,18 @@ jobs:
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
       changed_files: ${{ steps.filter.outputs.matched_files }}
+      is_act: ${{ steps.detect_act.outputs.is_act }}
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
       with:
         fetch-depth: 0
         path: phlex-src
+
+    - name: Detect act environment
+      id: detect_act
+      uses: ./phlex-src/.github/actions/detect-act-env
 
     - name: Detect C++ formatting changes
       id: filter
@@ -49,27 +54,42 @@ jobs:
 
   clang-format-check:
     needs: detect-clang-format-changes
-    if: ${{ (needs.detect-clang-format-changes.outputs.has_changes == 'true') || (github.event_name == 'workflow_dispatch') || (env.ACT == 'true') }}
+    if: ${{ (needs.detect-clang-format-changes.outputs.has_changes == 'true') || (github.event_name == 'workflow_dispatch') || (needs.detect-clang-format-changes.outputs.is_act == 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
       with:
         path: phlex-src
 
+    - name: Announce clang-format check
+      run: echo "➡️ Running clang-format check..."
+
     - name: Run clang-format lint
+      id: lint
       uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
       with:
         source: "./phlex-src"
         clangFormatVersion: 20
         extensions: cpp,hpp,cpp.in,hpp.in
+      continue-on-error: true
+
+    - name: Evaluate clang-format result
+      if: always()
+      run: |
+        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+          echo "✅ clang-format check passed."
+        else
+          echo "❌ clang-format check failed. Please review the output above for details."
+          exit 1
+        fi
 
   clang-format-check-skipped:
     needs: detect-clang-format-changes
-    if: ${{ (needs.detect-clang-format-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (env.ACT != 'true') }}
+    if: ${{ (needs.detect-clang-format-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (needs.detect-clang-format-changes.outputs.is_act != 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
