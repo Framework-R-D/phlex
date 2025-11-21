@@ -50,7 +50,7 @@ namespace phlex::experimental {
 
   specified_label specified_label::create(std::string const& s)
   {
-    return {qualified_name::create(s)};
+    return {product_specification::create(s)};
   }
 
   specified_label specified_label::create(specified_label l) { return l; }

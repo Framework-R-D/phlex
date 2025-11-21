@@ -12,7 +12,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -62,7 +62,7 @@ namespace phlex::experimental {
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual qualified_names const& output() const = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
 
   protected:
@@ -95,7 +95,7 @@ namespace phlex::experimental {
                 std::vector<std::string> output_products,
                 std::string new_level_name) :
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
-      output_{to_qualified_names(full_name(),
+      output_{to_product_specifications(full_name(),
                                  std::move(output_products),
                                  make_type_ids<skip_first_type<return_type<Unfold>>>())},
       new_level_name_{std::move(new_level_name)},
@@ -139,7 +139,7 @@ namespace phlex::experimental {
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    qualified_names const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,
@@ -177,7 +177,7 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    qualified_names output_;
+    product_specifications output_;
     std::string new_level_name_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;
