@@ -2,7 +2,7 @@
 #define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 
 #include "phlex/core/message.hpp"
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -26,7 +26,7 @@ namespace phlex::experimental {
       type_id type;
     };
 
-    named_output_port const* find_producer(qualified_name const& product_name) const;
+    named_output_port const* find_producer(product_specification const& product_name) const;
     auto values() const { return producers_ | std::views::values; }
 
   private:

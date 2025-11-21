@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_SPECIFIED_LABEL_HPP
 #define PHLEX_CORE_SPECIFIED_LABEL_HPP
 
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 
 #include <algorithm>
 #include <array>
@@ -11,7 +11,7 @@
 
 namespace phlex::experimental {
   struct specified_label {
-    qualified_name name;
+    product_specification name;
     std::string family;
     specified_label operator()(std::string family) &&;
     std::string to_string() const;

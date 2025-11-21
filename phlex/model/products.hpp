@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_PRODUCTS_HPP
 #define PHLEX_MODEL_PRODUCTS_HPP
 
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -53,14 +53,14 @@ namespace phlex::experimental {
     }
 
     template <typename Ts>
-    void add_all(qualified_names const& names, Ts&& ts)
+    void add_all(product_specifications const& names, Ts&& ts)
     {
       assert(names.size() == 1ull);
       add(names[0].name(), std::forward<Ts>(ts));
     }
 
     template <typename... Ts>
-    void add_all(qualified_names const& names, std::tuple<Ts...> ts)
+    void add_all(product_specifications const& names, std::tuple<Ts...> ts)
     {
       assert(names.size() == sizeof...(Ts));
       [this, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
