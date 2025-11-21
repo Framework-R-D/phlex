@@ -48,29 +48,29 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("All free functions")
   {
-    g.transform("square_numbers", square_numbers, concurrency::unlimited)
+    g.transform("square_numbers", square_numbers)
       .input_family("numbers")
       .output_products("squared_numbers");
-    g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
+    g.transform("sum_numbers", sum_numbers)
       .input_family("squared_numbers")
       .output_products("summed_numbers");
-    g.transform("sqrt_sum_numbers", sqrt_sum_numbers, concurrency::unlimited)
+    g.transform("sqrt_sum_numbers", sqrt_sum_numbers)
       .input_family("summed_numbers", "offset")
       .output_products("result");
   }
 
   SECTION("Transforms, one from a class")
   {
-    g.transform("square_numbers", square_numbers, concurrency::unlimited)
+    g.transform("square_numbers", square_numbers)
       .input_family("numbers")
       .output_products("squared_numbers");
 
-    g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
+    g.transform("sum_numbers", sum_numbers)
       .input_family("squared_numbers")
       .output_products("summed_numbers");
 
     g.make<A>()
-      .transform("sqrt_sum", &A::sqrt_sum, concurrency::unlimited)
+      .transform("sqrt_sum", &A::sqrt_sum)
       .input_family("summed_numbers", "offset")
       .output_products("result");
   }
