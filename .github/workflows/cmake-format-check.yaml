@@ -7,31 +7,34 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
 
 jobs:
-  detect-cmake-format-changes:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
-
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-
     steps:
     - name: Checkout code
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
         path: phlex-src
-
-    - name: Detect act environment
-      id: detect_act
-      uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
 
     - name: Detect CMake formatting changes
       id: filter
@@ -53,8 +56,11 @@ jobs:
         fi
 
   cmake-format-check:
-    needs: detect-cmake-format-changes
-    if: ${{ (needs.detect-cmake-format-changes.outputs.has_changes == 'true') || (github.event_name == 'workflow_dispatch') || (needs.detect-cmake-format-changes.outputs.is_act == 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
 
     steps:
@@ -93,7 +99,7 @@ jobs:
         echo "::endgroup::"
 
         if [ $format_errors -gt 0 ]; then
-          echo "❌ Found $format_errors file(s) with formatting issues."
+          echo "::error::Found $format_errors file(s) with formatting issues."
           echo "::error::Run 'cmake-format -i <file>' locally or comment '@phlexbot format' on the PR to auto-fix."
           exit 1
         else
@@ -101,10 +107,14 @@ jobs:
         fi
 
   cmake-format-check-skipped:
-    needs: detect-cmake-format-changes
-    if: ${{ (needs.detect-cmake-format-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (needs.detect-cmake-format-changes.outputs.is_act != 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
 
     steps:
     - name: No relevant CMake changes detected
-      run: echo "No CMake-related changes detected; cmake-format check skipped."
+      run: echo "::notice::No CMake-related changes detected; cmake-format check skipped."

@@ -23,27 +23,30 @@ permissions:
   pull-requests: read
 
 jobs:
-  detect-coverage-changes:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
-
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-
     steps:
     - name: Check out source code
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
         path: phlex-src
-
-    - name: Detect act environment
-      id: detect_act
-      uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
 
     - name: Detect coverage relevant changes
       id: filter
@@ -67,8 +70,11 @@ jobs:
         fi
 
   coverage:
-    needs: detect-coverage-changes
-    if: ${{ (needs.detect-coverage-changes.outputs.has_changes == 'true') || (github.event_name == 'workflow_dispatch') || (needs.detect-coverage-changes.outputs.is_act == 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-24.04
 
     container:
@@ -160,7 +166,7 @@ jobs:
           echo "✅ All tests passed."
         else
           echo "::endgroup::"
-          echo "❌ Some tests failed."
+          echo "::error::Some tests failed."
           exit 1
         fi
 
@@ -179,7 +185,7 @@ jobs:
           echo "✅ GCC coverage report generation succeeded."
         else
           echo "::endgroup::"
-          echo "❌ GCC coverage report generation failed."
+          echo "::error::GCC coverage report generation failed."
           exit 1
         fi
 
@@ -198,7 +204,7 @@ jobs:
           echo "✅ Clang coverage report generation succeeded."
         else
           echo "::endgroup::"
-          echo "❌ Clang coverage report generation failed."
+          echo "::error::Clang coverage report generation failed."
           exit 1
         fi
 
@@ -348,12 +354,16 @@ jobs:
         retention-days: 30
 
   coverage-skipped:
-    needs: detect-coverage-changes
-    if: ${{ (needs.detect-coverage-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (needs.detect-coverage-changes.outputs.is_act != 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
     - name: No relevant coverage changes detected
-      run: echo "No relevant C++ changes detected; coverage workflow skipped."
+      run: echo "::notice::No relevant C++ changes detected; coverage workflow skipped."

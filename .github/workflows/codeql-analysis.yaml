@@ -3,9 +3,9 @@ name: "CodeQL - Analyze (C++, Python, Actions)"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   schedule:
     - cron: '0 3 * * 0'  # weekly (UTC) — adjust as needed
   workflow_dispatch:
@@ -199,6 +199,33 @@ jobs:
                 body: finalBody,
               });
             }
+
+      - name: Log CodeQL alert changes for forked PR
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name != github.repository &&
+          (steps.check_codeql.outputs.new_alerts == 'true' ||
+           steps.check_codeql.outputs.fixed_alerts == 'true')
+        run: |
+          set -euo pipefail
+          comment_file="${{ steps.check_codeql.outputs.comment_path }}"
+          if [ "${{ steps.check_codeql.outputs.new_alerts }}" = "true" ]; then
+            prefix="::error::"
+            should_fail=true
+          else
+            prefix="::notice::"
+            should_fail=false
+          fi
+          echo "${prefix}This PR is from a fork. CodeQL comments cannot be posted directly."
+          echo "${prefix}Displaying comment content in the log:"
+          # Read the file line by line and prepend the prefix to avoid issues
+          # with special characters in the comment body.
+          while IFS= read -r line; do
+            echo "${prefix}${line}"
+          done < "$comment_file"
+          if [ "$should_fail" = true ]; then
+            exit 1
+          fi
 
       - name: Fail workflow due to new CodeQL alerts
         # Only fail the job for PRs from the same repository where the
