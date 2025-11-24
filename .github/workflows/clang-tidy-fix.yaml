@@ -53,7 +53,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           path: phlex-src
           ref: ${{ needs.parse-command.outputs.ref }}
@@ -81,7 +81,7 @@ jobs:
           echo "Clang-tidy fixes applied"
 
       - name: Upload clang-tidy report
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: clang-tidy-report
           path: phlex-build/clang-tidy-fixes.yaml
@@ -99,7 +99,7 @@ jobs:
 
       - name: Tidy fixes committed and pushed
         if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
           message: |
             Clang-tidy fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
@@ -108,7 +108,7 @@ jobs:
 
       - name: No tidy fixes to apply
         if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
           message: |
             No clang-tidy fixes to apply
@@ -122,12 +122,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Download clang-tidy report
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: clang-tidy-report
           path: phlex-build
       - name: Post clang-tidy comments
-        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1
+        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}

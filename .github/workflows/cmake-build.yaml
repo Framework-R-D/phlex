@@ -44,7 +44,7 @@ jobs:
       - name: Get PR details for comment trigger
         if: github.event_name == 'issue_comment'
         id: pr
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const pr = await github.rest.pulls.get({
@@ -59,7 +59,7 @@ jobs:
             };
 
       - name: Check out source code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           fetch-depth: 0
           path: phlex-src
@@ -110,7 +110,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.7
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         path: phlex-src
         ref: ${{ github.event_name == 'issue_comment' && fromJSON(needs.detect-cmake-build-changes.outputs.pr_details).sha || github.ref }}
