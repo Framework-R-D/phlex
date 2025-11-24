@@ -6,26 +6,27 @@
 
 namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
-    product_specification const& specified_product_name) const
+    product_query const& query) const
   {
-    auto [b, e] = producers_.equal_range(specified_product_name.name());
+    auto const& spec = query.name;
+    auto [b, e] = producers_.equal_range(spec.name());
     if (b == e) {
       return nullptr;
     }
     std::map<std::string, named_output_port const*> candidates;
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
-      if (producer.node.match(specified_product_name.qualifier())) {
-        if (specified_product_name.type() != producer.type) {
+      if (producer.node.match(spec.qualifier())) {
+        if (spec.type() != producer.type) {
           spdlog::debug("Matched {} from {} but types don't match (`{}` vs `{}`)",
-                        specified_product_name.full(),
+                        spec.full(),
                         producer.node.full(),
-                        specified_product_name.type(),
+                        spec.type(),
                         producer.type);
         } else {
           spdlog::debug("Matched {} from {} and types match (`{}` vs `{}`)",
-                        specified_product_name.full(),
+                        spec.full(),
                         producer.node.full(),
-                        specified_product_name.type(),
+                        spec.type(),
                         producer.type);
           candidates.emplace(producer.node.full(), &producer);
         }
@@ -34,13 +35,12 @@ namespace phlex::experimental {
 
     if (candidates.empty()) {
       throw std::runtime_error("Cannot identify product matching the specified label " +
-                               specified_product_name.full());
+                               spec.full());
     }
 
     if (candidates.size() > 1ull) {
       std::ostringstream msg;
-      msg << "More than one candidate matches the specified label " << specified_product_name.full()
-          << ":";
+      msg << "More than one candidate matches the specified label " << spec.full() << ":";
       for (auto const& key : candidates | std::views::keys) {
         msg << "\n  - " << key;
       }
