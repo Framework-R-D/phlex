@@ -4,10 +4,10 @@
 #include <string>
 
 namespace {
-  phlex::experimental::product_query const output_dummy{
-    phlex::experimental::product_specification{phlex::experimental::algorithm_name{"for_output_only", ""},
-                                        "for_output_only",
-                                        phlex::experimental::type_id{}}};
+  phlex::experimental::product_query const output_dummy{phlex::experimental::product_specification{
+    phlex::experimental::algorithm_name{"for_output_only", ""},
+    "for_output_only",
+    phlex::experimental::type_id{}}};
   std::vector<phlex::experimental::product_query> const for_output_only{output_dummy};
 }
 

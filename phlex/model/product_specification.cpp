@@ -6,10 +6,15 @@
 namespace phlex::experimental {
   product_specification::product_specification() = default;
 
-  product_specification::product_specification(char const* name) : product_specification{std::string{name}} {}
+  product_specification::product_specification(char const* name) :
+    product_specification{std::string{name}}
+  {
+  }
   product_specification::product_specification(std::string name) { *this = create(name); }
 
-  product_specification::product_specification(algorithm_name qualifier, std::string name, type_id type) :
+  product_specification::product_specification(algorithm_name qualifier,
+                                               std::string name,
+                                               type_id type) :
     qualifier_{std::move(qualifier)}, name_{std::move(name)}, type_id_{type}
   {
   }
@@ -29,7 +34,10 @@ namespace phlex::experimental {
            std::tie(other.qualifier_, other.name_, other.type_id_);
   }
 
-  bool product_specification::operator!=(product_specification const& other) const { return !operator==(other); }
+  bool product_specification::operator!=(product_specification const& other) const
+  {
+    return !operator==(other);
+  }
 
   bool product_specification::operator<(product_specification const& other) const
   {
@@ -37,7 +45,10 @@ namespace phlex::experimental {
            std::tie(other.qualifier_, other.name_, type_id_);
   }
 
-  product_specification product_specification::create(char const* c) { return create(std::string{c}); }
+  product_specification product_specification::create(char const* c)
+  {
+    return create(std::string{c});
+  }
 
   product_specification product_specification::create(std::string const& s)
   {
@@ -50,8 +61,8 @@ namespace phlex::experimental {
   }
 
   product_specifications to_product_specifications(std::string const& name,
-                                     std::vector<std::string> output_labels,
-                                     std::vector<type_id> output_types)
+                                                   std::vector<std::string> output_labels,
+                                                   std::vector<type_id> output_types)
   {
     assert(output_labels.size() == output_types.size());
     product_specifications outputs;
