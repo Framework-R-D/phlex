@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Detect act environment
         id: detect_act
-        uses: ./.github/actions/detect-act-env@main
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main@main
 
   detect-changes:
     needs: pre-check
@@ -38,7 +38,7 @@ jobs:
 
     - name: Detect Python changes
       id: filter
-      uses: ./.github/actions/detect-relevant-changes@main
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}

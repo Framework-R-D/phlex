@@ -34,7 +34,7 @@ jobs:
       - name: Get PR Info
         if: steps.check_comment.outputs.should_run == 'true'
         id: get_pr
-        uses: ./actions/get-pr-info
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
   apply_cmake_formatting:
     runs-on: ubuntu-latest
