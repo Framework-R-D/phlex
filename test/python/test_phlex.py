@@ -4,6 +4,7 @@ from pytest import raises
 
 class TestPYPHLEX:
 
+    @classmethod
     def setup_class(cls):
         import pyphlex
 
