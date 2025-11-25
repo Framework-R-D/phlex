@@ -26,11 +26,11 @@
 #include "spdlog/spdlog.h"
 
 #include <atomic>
+#include <chrono>
 #include <cmath>
-#include <ctime>
+#include <format>
 #include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
@@ -38,15 +38,17 @@ namespace {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
+  using now_t = decltype(std::chrono::system_clock::now());
+
   void levels_to_process(framework_driver& driver)
   {
     auto job_store = product_store::base();
     driver.yield(job_store);
-    for (unsigned i : std::views::iota(0u, index_limit)) {
+    for (unsigned int const i : std::views::iota(0u, index_limit)) {
       auto run_store = job_store->make_child(i, "run", "levels_to_process");
-      run_store->add_product<std::time_t>("time", std::time(nullptr));
+      run_store->add_product<now_t>("time", std::chrono::system_clock::now());
       driver.yield(run_store);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
+      for (unsigned int const j : std::views::iota(0u, number_limit)) {
         auto event_store = run_store->make_child(j, "event", "levels_to_process");
         event_store->add_product("number", i + j);
         driver.yield(event_store);
@@ -68,7 +70,8 @@ namespace {
 
   data_for_rms send(threadsafe_data_for_rms const& data)
   {
-    return {phlex::experimental::send(data.total), phlex::experimental::send(data.number)};
+    return {.total = phlex::experimental::send(data.total),
+            .number = phlex::experimental::send(data.number)};
   }
 
   void add(threadsafe_data_for_rms& redata, unsigned squared_number)
@@ -82,12 +85,7 @@ namespace {
     return std::sqrt(static_cast<double>(data.total) / data.number);
   }
 
-  std::string strtime(std::time_t tm)
-  {
-    char buffer[32];
-    std::strncpy(buffer, std::ctime(&tm), 26);
-    return buffer;
-  }
+  std::string strtime(now_t date_time) { return std::format("{:%F %T %Z}", date_time); }
 
   void print_result(handle<double> result, std::string const& stringized_time)
   {

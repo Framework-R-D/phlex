@@ -50,10 +50,10 @@ TEST_CASE("Different levels of fold", "[graph]")
   auto levels_to_process = [index_limit, number_limit](framework_driver& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
-    for (unsigned i : std::views::iota(0u, index_limit)) {
+    for (unsigned int const i : std::views::iota(0u, index_limit)) {
       auto run_store = job_store->make_child(i, "run");
       driver.yield(run_store);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
+      for (unsigned int const j : std::views::iota(0u, number_limit)) {
         auto event_store = run_store->make_child(j, "event");
         event_store->add_product("number", j);
         driver.yield(event_store);

@@ -38,7 +38,7 @@ namespace phlex::experimental {
     declared_predicate(algorithm_name name,
                        std::vector<std::string> predicates,
                        specified_labels input_products);
-    virtual ~declared_predicate();
+    ~declared_predicate() override;
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
 
@@ -57,9 +57,9 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits>
   class predicate_node : public declared_predicate, private detect_flush_flag {
-    using InputArgs = typename AlgorithmBits::input_parameter_types;
+    using input_args = typename AlgorithmBits::input_parameter_types;
     using function_t = typename AlgorithmBits::bound_type;
-    static constexpr auto N = AlgorithmBits::number_inputs;
+    static constexpr auto number_inputs = AlgorithmBits::number_inputs;
 
   public:
     static constexpr auto number_output_products = 0ull;
@@ -72,47 +72,60 @@ namespace phlex::experimental {
                    AlgorithmBits alg,
                    specified_labels input_products) :
       declared_predicate{std::move(name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      predicate_{
-        g,
-        concurrency,
-        [this, ft = alg.release_algorithm()](messages_t<N> const& messages) -> predicate_result {
-          auto const& msg = most_derived(messages);
-          auto const& [store, message_id] = std::tie(msg.store, msg.id);
-          predicate_result result{};
-          if (store->is_flush()) {
-            flag_for(store->id()->hash()).flush_received(message_id);
-          } else if (const_accessor a; results_.find(a, store->id()->hash())) {
-            result = {msg.eom, message_id, a->second.result};
-          } else if (accessor a; results_.insert(a, store->id()->hash())) {
-            bool const rc = call(ft, messages, std::make_index_sequence<N>{});
-            result = a->second = {msg.eom, message_id, rc};
-            flag_for(store->id()->hash()).mark_as_processed();
-          }
+      join_{make_join_or_none(g, std::make_index_sequence<number_inputs>{})},
+      predicate_{g,
+                 concurrency,
+                 [this, ft = alg.release_algorithm()](
+                   messages_t<number_inputs> const& messages) -> predicate_result {
+                   auto const& msg = most_derived(messages);
+                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
+                   predicate_result result{};
+                   if (store->is_flush()) {
+                     flag_for(store->id()->hash()).flush_received(message_id);
+                   } else if (const_accessor a; results_.find(a, store->id()->hash())) {
+                     result = {msg.eom, message_id, a->second.result};
+                   } else if (accessor a; results_.insert(a, store->id()->hash())) {
+                     bool const rc = call(ft, messages, std::make_index_sequence<number_inputs>{});
+                     result = a->second = {msg.eom, message_id, rc};
+                     flag_for(store->id()->hash()).mark_as_processed();
+                   }
 
-          if (done_with(store)) {
-            results_.erase(store->id()->hash());
-          }
-          return result;
-        }}
+                   if (done_with(store)) {
+                     results_.erase(store->id()->hash());
+                   }
+                   return result;
+                 }}
     {
       make_edge(join_, predicate_);
     }
 
-    ~predicate_node() { report_cached_results(results_); }
+    ~predicate_node() override { report_cached_results(results_); }
+
+    predicate_node(predicate_node const&) = default;
+    predicate_node& operator=(predicate_node const&) = default;
+
+    // NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+    predicate_node(predicate_node&&) = default;
+    predicate_node& operator=(predicate_node&&) = default;
+    // NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 
   private:
     tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label);
+      return receiver_for<number_inputs>(join_, input(), product_label);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<number_inputs>(join_);
+    }
 
     tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
 
     template <std::size_t... Is>
-    bool call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    bool call(function_t const& ft,
+              messages_t<number_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
       ++calls_;
       return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
@@ -120,9 +133,9 @@ namespace phlex::experimental {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>, predicate_result> predicate_;
+    input_retriever_types<input_args> input_{input_arguments<input_args>()};
+    join_or_none_t<number_inputs> join_;
+    tbb::flow::function_node<messages_t<number_inputs>, predicate_result> predicate_;
     results_t results_;
     std::atomic<std::size_t> calls_;
   };

@@ -21,13 +21,13 @@ void levels_to_process(async_driver<level_id_ptr>& d)
 
   auto job_id = level_id::base_ptr();
   d.yield(job_id);
-  for (unsigned int r : std::views::iota(0u, num_runs)) {
+  for (unsigned int const r : std::views::iota(0u, num_runs)) {
     auto run_id = job_id->make_child(r, "run");
     d.yield(run_id);
-    for (unsigned int sr : std::views::iota(0u, num_subruns)) {
+    for (unsigned int const sr : std::views::iota(0u, num_subruns)) {
       auto subrun_id = run_id->make_child(sr, "subrun");
       d.yield(subrun_id);
-      for (unsigned int spill : std::views::iota(0u, num_spills)) {
+      for (unsigned int const spill : std::views::iota(0u, num_spills)) {
         d.yield(subrun_id->make_child(spill, "spill"));
       }
     }

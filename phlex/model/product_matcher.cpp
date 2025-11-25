@@ -2,8 +2,11 @@
 
 #include "fmt/format.h"
 
+#include <array>
 #include <cassert>
 #include <regex>
+#include <stdexcept>
+#include <utility>
 
 namespace {
   auto value_or(std::string const& value, std::string const& default_value)

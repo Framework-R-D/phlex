@@ -17,6 +17,8 @@
 // a loophole in the C++ type system.  Presumably, once reflection is available, we won't
 // have to resort to these shenanigans.
 
+// NOLINTBEGIN(cert-dcl50-cpp)
+
 // Begin Alexandr code
 // ===========================================================================
 
@@ -117,6 +119,8 @@ namespace refl {
 
 // ===========================================================================
 // End Alexandr code
+
+// NOLINTEND(cert-dcl50-cpp)
 
 #if BOOST_COMP_GNUC
 #pragma GCC diagnostic pop

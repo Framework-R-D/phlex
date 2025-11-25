@@ -9,6 +9,8 @@ namespace phlex::experimental {
 #define DATA_PRODUCT(name)                                                                         \
   struct name {}
 
+// NOLINTBEGIN(readability-identifier-naming)
+// We choose data-product type names that have been specified by (e.g.) LArSoft.
 namespace beam {
   DATA_PRODUCT(ProtoDUNEBeamEvents);
 }
@@ -27,6 +29,7 @@ namespace simb {
   DATA_PRODUCT(MCParticle);
   DATA_PRODUCT(MCParticles);
 }
+// NOLINTEND(readability-identifier-naming)
 
 #undef DATA_PRODUCT
 
