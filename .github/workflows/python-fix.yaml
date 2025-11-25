@@ -66,7 +66,7 @@ jobs:
           echo "Fixing Python format with ruff"
           ruff format . || true
           echo "Fixing Python linter issues with ruff"
-          ruff --fix . || true
+          ruff check --fix . || true
 
       - uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
         id: add_and_commit
