@@ -3,9 +3,9 @@ name: "CodeQL - Analyze (C++, Python, Actions)"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   schedule:
     - cron: '0 3 * * 0'  # weekly (UTC) — adjust as needed
   workflow_dispatch:
@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           path: phlex-src
           fetch-depth: 0
@@ -44,7 +44,7 @@ jobs:
           build-path: phlex-build
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@014f16e7ab1402f30e7c3329d33797e7948572db # v4
+        uses: github/codeql-action/init@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4
         with:
           languages: ${{ matrix.language }}
           config-file: phlex-src/.github/codeql/codeql-config.yml
@@ -68,14 +68,14 @@ jobs:
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@014f16e7ab1402f30e7c3329d33797e7948572db # v4
+        uses: github/codeql-action/analyze@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4
         with:
           checkout_path: phlex-src
           output: results
           category: ${{ matrix.language }}
 
       - name: Upload SARIF results
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: codeql-sarif-${{ matrix.language }}
           path: results
@@ -99,12 +99,12 @@ jobs:
         id: set_log_path
         run: echo "path=$RUNNER_TEMP/codeql-alerts.log" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           fetch-depth: 0
 
       - name: Download CodeQL SARIF artifacts
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           pattern: codeql-sarif-*
           path: sarif
@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload CodeQL alerts debug log
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: codeql-alerts-debug-log
           path: ${{ steps.set_log_path.outputs.path }}
@@ -159,7 +159,7 @@ jobs:
           github.event.pull_request.head.repo.full_name == github.repository &&
           (steps.check_codeql.outputs.new_alerts == 'true' ||
            steps.check_codeql.outputs.fixed_alerts == 'true')
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const fs = require('fs');
@@ -199,6 +199,33 @@ jobs:
                 body: finalBody,
               });
             }
+
+      - name: Log CodeQL alert changes for forked PR
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name != github.repository &&
+          (steps.check_codeql.outputs.new_alerts == 'true' ||
+           steps.check_codeql.outputs.fixed_alerts == 'true')
+        run: |
+          set -euo pipefail
+          comment_file="${{ steps.check_codeql.outputs.comment_path }}"
+          if [ "${{ steps.check_codeql.outputs.new_alerts }}" = "true" ]; then
+            prefix="::error::"
+            should_fail=true
+          else
+            prefix="::notice::"
+            should_fail=false
+          fi
+          echo "${prefix}This PR is from a fork. CodeQL comments cannot be posted directly."
+          echo "${prefix}Displaying comment content in the log:"
+          # Read the file line by line and prepend the prefix to avoid issues
+          # with special characters in the comment body.
+          while IFS= read -r line; do
+            echo "${prefix}${line}"
+          done < "$comment_file"
+          if [ "$should_fail" = true ]; then
+            exit 1
+          fi
 
       - name: Fail workflow due to new CodeQL alerts
         # Only fail the job for PRs from the same repository where the

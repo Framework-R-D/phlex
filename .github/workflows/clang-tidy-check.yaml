@@ -7,26 +7,34 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   issue_comment:
     types:
       - created
   workflow_dispatch:
 
 jobs:
-  check_comment_trigger:
+  pre-check:
     runs-on: ubuntu-latest
-    name: Check for phlexbot tidy-check token
-    if: github.event_name == 'issue_comment' && github.event.issue.pull_request
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
 
     outputs:
-      match_result: ${{ steps.check_comment.outputs.match_result }}
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      should_run: ${{ steps.check_comment.outputs.match_result == 'match' }}
       tidy_checks: ${{ steps.check_comment.outputs.tidy_checks }}
       ref_name: ${{ steps.check_comment.outputs.ref_name }}
       repo_name: ${{ steps.check_comment.outputs.repo_name }}
 
     steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
       - id: check_comment
+        if: github.event_name == 'issue_comment'
         name: Check comment
         run: |
           match_result=$(echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+tidy-check\b' && echo match || echo non_match)
@@ -51,8 +59,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
 
-  detect-clang-tidy-changes:
-    if: github.event_name == 'pull_request'
+  detect-changes:
+    needs: pre-check
+    if: >
+      github.event_name == 'pull_request' &&
+      needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -60,11 +71,10 @@ jobs:
 
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
         path: phlex-src
@@ -91,11 +101,13 @@ jobs:
         fi
 
   clang-tidy-check:
-    needs: [ detect-clang-tidy-changes, check_comment_trigger ]
-    if: |
-      (github.event_name == 'pull_request' && needs.detect-clang-tidy-changes.outputs.has_changes == 'true') ||
-      (github.event_name == 'issue_comment' && needs.check_comment_trigger.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER')) ||
-      (github.event_name == 'workflow_dispatch') || (env.ACT == 'true')
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (github.event_name == 'pull_request' && needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true') ||
+      (github.event_name == 'issue_comment' && needs.pre-check.outputs.should_run == 'true' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER'))
+
     runs-on: ubuntu-24.04
 
     container:
@@ -103,18 +115,18 @@ jobs:
 
     steps:
     - name: Checkout code (PR)
-      if: github.event_name == 'pull_request'
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         path: phlex-src
 
     - name: Checkout code (comment)
       if: github.event_name == 'issue_comment'
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         path: phlex-src
-        ref: ${{ needs.check_comment_trigger.outputs.ref_name }}
-        repository: ${{ needs.check_comment_trigger.outputs.repo_name }}
+        ref: ${{ needs.pre-check.outputs.ref_name }}
+        repository: ${{ needs.pre-check.outputs.repo_name }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
@@ -127,21 +139,14 @@ jobs:
 
     - name: Run clang-tidy using CMake target
       env:
-        PHLEX_TIDY_CHECKS: ${{ needs.check_comment_trigger.outputs.tidy_checks }}
+        PHLEX_TIDY_CHECKS: ${{ needs.pre-check.outputs.tidy_checks }}
       shell: bash
       run: |
         . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
 
-        echo "Running clang-tidy checks using CMake target..."
-
-        set -o pipefail
+        echo "➡️ Running clang-tidy checks..."
         cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1 || true
-
-    - name: Check for clang-tidy issues
-      shell: bash
-      run: |
-        cd $GITHUB_WORKSPACE/phlex-build
         if [ -s clang-tidy-fixes.yaml ]; then
           echo "::error::Clang-tidy found issues in the code"
           echo "Error count by check (full details in clang-tidy-log artifact):"
@@ -149,12 +154,12 @@ jobs:
           echo "Comment '@phlexbot tidy-fix [<check>...]' on the PR to attempt auto-fix"
           exit 1
         else
-          echo "✓ No clang-tidy issues found"
+          echo "✅ clang-tidy check passed"
         fi
 
     - name: Upload clang-tidy report
       if: failure()
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: clang-tidy-report
         path: phlex-build/clang-tidy-fixes.yaml
@@ -162,7 +167,7 @@ jobs:
 
     - name: Upload clang-tidy log
       if: failure()
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: clang-tidy-log
         path: phlex-build/clang-tidy.log
@@ -176,23 +181,27 @@ jobs:
       pull-requests: write
     steps:
       - name: Download clang-tidy report
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: clang-tidy-report
           path: phlex-build
       - name: Post clang-tidy comments
-        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1
+        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
   clang-tidy-check-skipped:
-    needs: detect-clang-tidy-changes
-    if: github.event_name == 'pull_request' && (needs.detect-clang-tidy-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (env.ACT != 'true')
+    needs: [tidy-pre-check, detect-clang-tidy-changes]
+    if: >
+      github.event_name == 'pull_request' &&
+      needs.tidy-pre-check.outputs.is_act != 'true' &&
+      needs.detect-clang-tidy-changes.result == 'success' &&
+      needs.detect-clang-tidy-changes.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
     - name: No relevant clang-tidy changes detected
-      run: echo "No clang-tidy relevant changes detected; check skipped."
+      run: echo "::notice::No clang-tidy relevant changes detected; check skipped."
