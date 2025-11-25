@@ -1,6 +1,7 @@
-
 import cppyy
+import pyphlex  # noqa: F401
 
+__all__ = ['pyphlex']
 cpp = cppyy.gbl
 phlex = cpp.phlex.experimental
 
