@@ -1,6 +1,8 @@
 #include "test/benchmarks/fibonacci_numbers.hpp"
 
 #include <algorithm>
+#include <iterator>
+#include <vector>
 
 namespace {
   auto fibs_less_than(int const n)
@@ -22,8 +24,8 @@ namespace {
 namespace test {
   fibonacci_numbers::fibonacci_numbers(int const n) : numbers_{fibs_less_than(n + 1)} {}
 
-  bool fibonacci_numbers::accept(int i) const
+  auto fibonacci_numbers::accept(int i) const -> bool
   {
-    return std::binary_search(begin(numbers_), end(numbers_), i);
+    return std::ranges::binary_search(numbers_, i);
   }
 }

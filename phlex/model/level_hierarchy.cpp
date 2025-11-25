@@ -1,13 +1,19 @@
 #include "phlex/model/level_hierarchy.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/fwd.hpp"
 
-#include "fmt/format.h"
-#include "fmt/std.h"
 #include "spdlog/spdlog.h"
+#include <algorithm>
+#include <cstddef>
+#include <fmt/core.h>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace {
   std::string const unnamed{"(unnamed)"};
-  std::string const& maybe_name(std::string const& name) { return empty(name) ? unnamed : name; }
+  auto maybe_name(std::string const& name) -> std::string const& { return empty(name) ? unnamed : name; }
 }
 
 namespace phlex::experimental {
@@ -31,9 +37,9 @@ namespace phlex::experimental {
     ++it->second->count;
   }
 
-  std::size_t level_hierarchy::count_for(std::string const& level_name) const
+  auto level_hierarchy::count_for(std::string const& level_name) const -> std::size_t
   {
-    auto it = find_if(begin(levels_), end(levels_), [&level_name](auto const& level) {
+    auto it = std::ranges::find_if(levels_, [&level_name](auto const& level) -> auto {
       return level.second->name == level_name;
     });
     return it != cend(levels_) ? it->second->count.load() : 0;
@@ -41,9 +47,9 @@ namespace phlex::experimental {
 
   void level_hierarchy::print() const { spdlog::info("{}", graph_layout()); }
 
-  std::string level_hierarchy::pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
+  auto level_hierarchy::pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
                                               std::string const& name,
-                                              std::string indent) const
+                                              std::string indent) const -> std::string
   {
     auto it = tree.find(name);
     if (it == cend(tree)) {
@@ -66,7 +72,7 @@ namespace phlex::experimental {
     return result;
   }
 
-  std::string level_hierarchy::graph_layout() const
+  auto level_hierarchy::graph_layout() const -> std::string
   {
     if (empty(levels_)) {
       return {};

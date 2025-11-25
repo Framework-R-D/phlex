@@ -1,9 +1,12 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
 #include <array>
+#include <bits/basic_string.h>
 #include <string>
 #include <tuple>
 
@@ -12,12 +15,12 @@ using namespace phlex::experimental;
 
 namespace {
   struct A {
-    auto no_framework(int num, double temp, std::string const& name) const
+    [[nodiscard]] auto no_framework(int num, double temp, std::string const& name) const
     {
       return std::make_tuple(num, temp, name);
     }
 
-    auto no_framework_all_refs(int const& num, double const& temp, std::string const& name) const
+    [[nodiscard]] auto no_framework_all_refs(int const& num, double const& temp, std::string const& name) const
     {
       return std::make_tuple(num, temp, name);
     }
@@ -27,12 +30,12 @@ namespace {
       return std::make_tuple(*num, *temp, *name);
     }
 
-    auto one_framework_arg(handle<int> num, double temp, std::string const& name) const
+    [[nodiscard]] auto one_framework_arg(handle<int> num, double temp, std::string const& name) const
     {
       return std::make_tuple(*num, temp, name);
     }
 
-    auto all_framework_args(handle<int> const num,
+    [[nodiscard]] auto all_framework_args(handle<int> const num,
                             handle<double> const temp,
                             handle<std::string> const name) const
     {
@@ -50,7 +53,7 @@ namespace {
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
   std::array const product_names{
-    specified_label{"number"}, specified_label{"temperature"}, specified_label{"name"}};
+    specified_label{.name="number"}, specified_label{.name="temperature"}, specified_label{.name="name"}};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   auto store = product_store::base();

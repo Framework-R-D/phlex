@@ -1,6 +1,15 @@
 #include "phlex/core/declared_output.hpp"
+#include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
+#include "phlex/core/consumer.hpp"
 #include "phlex/core/detail/make_algorithm_name.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/registrar.hpp"
+#include <cstddef>
+#include <oneapi/tbb/flow_graph.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   declared_output::declared_output(algorithm_name name,

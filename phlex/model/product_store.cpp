@@ -1,7 +1,11 @@
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/products.hpp"
 
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace phlex::experimental {
@@ -52,7 +56,7 @@ namespace phlex::experimental {
       new product_store{nullptr, level_id::base_ptr(), std::move(base_name)}};
   }
 
-  product_store_const_ptr product_store::parent(std::string const& level_name) const noexcept
+  auto product_store::parent(std::string const& level_name) const noexcept -> product_store_const_ptr
   {
     auto store = parent_;
     while (store != nullptr) {
@@ -64,7 +68,7 @@ namespace phlex::experimental {
     return nullptr;
   }
 
-  product_store_const_ptr product_store::store_for_product(std::string const& product_name) const
+  auto product_store::store_for_product(std::string const& product_name) const -> product_store_const_ptr
   {
     auto store = shared_from_this();
     while (store != nullptr) {
@@ -76,7 +80,7 @@ namespace phlex::experimental {
     return nullptr;
   }
 
-  product_store_ptr product_store::make_flush() const
+  auto product_store::make_flush() const -> product_store_ptr
   {
     return product_store_ptr{new product_store{parent_, id_, "[inserted]", stage::flush}};
   }
@@ -88,7 +92,7 @@ namespace phlex::experimental {
       new product_store{parent_, id_, std::move(source), stage::process, std::move(new_products)}};
   }
 
-  product_store_ptr product_store::make_child(std::size_t new_level_number,
+  auto product_store::make_child(std::size_t new_level_number,
                                               std::string const& new_level_name,
                                               std::string source,
                                               products new_products)
@@ -100,7 +104,7 @@ namespace phlex::experimental {
                                                std::move(new_products)}};
   }
 
-  product_store_ptr product_store::make_child(std::size_t new_level_number,
+  auto product_store::make_child(std::size_t new_level_number,
                                               std::string const& new_level_name,
                                               std::string source,
                                               stage processing_stage)
@@ -115,12 +119,12 @@ namespace phlex::experimental {
   level_id_ptr const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
-  bool product_store::contains_product(std::string const& product_name) const
+  auto product_store::contains_product(std::string const& product_name) const -> bool
   {
     return products_.contains(product_name);
   }
 
-  product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
+  auto more_derived(product_store_ptr const& a, product_store_ptr const& b) -> product_store_ptr const&
   {
     if (a->id()->depth() > b->id()->depth()) {
       return a;

@@ -5,13 +5,13 @@
 #include <string>
 
 namespace phlex::experimental {
-  bool products::contains(std::string const& product_name) const
+  auto products::contains(std::string const& product_name) const -> bool
   {
     return products_.contains(product_name);
   }
 
-  products::const_iterator products::begin() const noexcept { return products_.begin(); }
-  products::const_iterator products::end() const noexcept { return products_.end(); }
+  auto products::begin() const noexcept -> products::const_iterator { return products_.begin(); }
+  auto products::end() const noexcept -> products::const_iterator { return products_.end(); }
 
   void products::throw_mismatched_type(std::string const& product_name,
                                        char const* requested_type,

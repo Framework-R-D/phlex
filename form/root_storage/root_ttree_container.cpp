@@ -3,8 +3,12 @@
 #include "root_ttree_container.hpp"
 #include "root_tfile.hpp"
 
-#include "TFile.h"
 #include "TTree.h"
+#include "storage/istorage.hpp"
+#include "storage/storage_association.hpp"
+#include <memory>
+#include <stdexcept>
+#include <string>
 
 using namespace form::detail::experimental;
 
@@ -24,7 +28,7 @@ ROOT_TTree_ContainerImp::~ROOT_TTree_ContainerImp()
 void ROOT_TTree_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
   this->Storage_Association::setFile(file);
-  ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
+  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
     throw std::runtime_error("ROOT_TTree_ContainerImp::setFile can't attach to non-ROOT file");
   }
@@ -60,9 +64,9 @@ void ROOT_TTree_ContainerImp::commit()
   throw std::runtime_error("ROOT_TTree_ContainerImp::commit not implemented");
 }
 
-bool ROOT_TTree_ContainerImp::read(int /* id*/, void const** /* data*/, std::string& /* type*/)
+auto ROOT_TTree_ContainerImp::read(int /* id*/, void const** /* data*/, std::string& /* type*/) -> bool
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::read not implemented");
 }
 
-TTree* ROOT_TTree_ContainerImp::getTTree() { return m_tree; }
+auto ROOT_TTree_ContainerImp::getTTree() -> TTree* { return m_tree; }

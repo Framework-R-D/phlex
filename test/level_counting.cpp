@@ -1,10 +1,10 @@
 #include "phlex/model/level_counter.hpp"
 #include "phlex/model/level_hierarchy.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+#include <cstddef>
 
 using namespace phlex::experimental;
 
@@ -43,7 +43,7 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
   flush_counters counters;
 
   // Notice the wholesale capture by reference--generally a lazy way of doing things.
-  auto check_all_processed = [&] {
+  auto check_all_processed = [&] -> void {
     CHECK(h.count_for("job") == processed_jobs);
     CHECK(h.count_for("run") == processed_runs);
     CHECK(h.count_for("subrun") == processed_subruns);

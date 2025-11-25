@@ -1,22 +1,31 @@
 #include "phlex/core/framework_graph.hpp"
 
-#include "phlex/concurrency.hpp"
+#include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/edge_maker.hpp"
+#include "phlex/core/filter.hpp"
+#include "phlex/core/fwd.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/message_sender.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/level_counter.hpp"
-#include "phlex/model/product_store.hpp"
 
-#include "fmt/std.h"
 #include "spdlog/cfg/env.h"
 #include "spdlog/spdlog.h"
 
 #include <cassert>
-#include <iostream>
+#include <cstddef>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <oneapi/tbb/flow_graph.h>
+#include <stdexcept>
+#include <utility>
 
 namespace phlex::experimental {
   level_sentry::level_sentry(flush_counters& counters,
                              message_sender& sender,
                              product_store_ptr store) :
-    counters_{counters}, sender_{sender}, store_{store}, depth_{store_->id()->depth()}
+    counters_{counters}, sender_{sender}, store_{std::move(store)}, depth_{store_->id()->depth()}
   {
     counters_.update(store_->id());
   }
@@ -32,10 +41,10 @@ namespace phlex::experimental {
     sender_.send_flush(std::move(flush_store));
   }
 
-  std::size_t level_sentry::depth() const noexcept { return depth_; }
+  auto level_sentry::depth() const noexcept -> std::size_t { return depth_; }
 
   framework_graph::framework_graph(product_store_ptr store, int const max_parallelism) :
-    framework_graph{[store](framework_driver& driver) { driver.yield(store); }, max_parallelism}
+    framework_graph{[store](framework_driver& driver) -> void { driver.yield(store); }, max_parallelism}
   {
   }
 
@@ -75,12 +84,12 @@ namespace phlex::experimental {
 
   framework_graph::~framework_graph() = default;
 
-  std::size_t framework_graph::execution_counts(std::string const& node_name) const
+  auto framework_graph::execution_counts(std::string const& node_name) const -> std::size_t
   {
     return nodes_.execution_counts(node_name);
   }
 
-  std::size_t framework_graph::product_counts(std::string const& node_name) const
+  auto framework_graph::product_counts(std::string const& node_name) const -> std::size_t
   {
     return nodes_.product_counts(node_name);
   }
@@ -153,7 +162,7 @@ namespace phlex::experimental {
                nodes_.transforms);
   }
 
-  product_store_ptr framework_graph::accept(product_store_ptr store)
+  auto framework_graph::accept(product_store_ptr store) -> product_store_ptr
   {
     assert(store);
     auto const new_depth = store->id()->depth();

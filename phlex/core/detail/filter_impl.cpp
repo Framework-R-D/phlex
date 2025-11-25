@@ -1,10 +1,15 @@
 #include "phlex/core/detail/filter_impl.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/fwd.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace {
-  phlex::experimental::specified_label const output_dummy{phlex::experimental::qualified_name{
+  phlex::experimental::specified_label const output_dummy{.name=phlex::experimental::qualified_name{
     phlex::experimental::algorithm_name{"for_output_only", ""}, "for_output_only"}};
   std::vector<phlex::experimental::specified_label> const for_output_only{output_dummy};
 }
@@ -34,7 +39,7 @@ namespace phlex::experimental {
     }
   }
 
-  unsigned int decision_map::value(std::size_t const msg_id) const
+  auto decision_map::value(std::size_t const msg_id) const -> unsigned int
   {
     decltype(results_)::const_accessor a;
     if (results_.find(a, msg_id)) {
@@ -43,7 +48,7 @@ namespace phlex::experimental {
     return 0u;
   }
 
-  bool decision_map::claim(accessor& a, std::size_t const msg_id)
+  auto decision_map::claim(accessor& a, std::size_t const msg_id) -> bool
   {
     return results_.find(a, msg_id);
   }
@@ -81,7 +86,7 @@ namespace phlex::experimental {
     }
   }
 
-  bool data_map::is_complete(std::size_t const msg_id) const
+  auto data_map::is_complete(std::size_t const msg_id) const -> bool
   {
     decltype(stores_)::const_accessor a;
     if (stores_.find(a, msg_id)) {
@@ -90,7 +95,7 @@ namespace phlex::experimental {
     return false;
   }
 
-  std::vector<product_store_const_ptr> data_map::release_data(std::size_t const msg_id)
+  auto data_map::release_data(std::size_t const msg_id) -> std::vector<product_store_const_ptr>
   {
     std::vector<product_store_const_ptr> result;
     if (decltype(stores_)::accessor a; stores_.find(a, msg_id)) {

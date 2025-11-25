@@ -1,19 +1,21 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/model/product_store.hpp"
+#include <ranges>
 
 using namespace phlex::experimental;
 
 namespace {
-  unsigned pass_on(unsigned number) { return number; }
+  auto pass_on(unsigned number) -> unsigned { return number; }
 }
 
-int main()
+auto main() -> int
 {
   constexpr auto max_events{100'000u};
   // constexpr auto max_events{1'000'000u};
   // spdlog::flush_on(spdlog::level::trace);
 
-  auto levels_to_process = [](framework_driver& driver) {
+  auto levels_to_process = [](framework_driver& driver) -> void {
     auto job_store = product_store::base();
     driver.yield(job_store);
 

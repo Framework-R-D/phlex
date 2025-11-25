@@ -1,18 +1,17 @@
 #include "phlex/core/concepts.hpp"
-#include "phlex/core/framework_graph.hpp"
 
 using namespace phlex::experimental;
 
 namespace {
-  int transform [[maybe_unused]] (double&) { return 1; };
+  auto transform [[maybe_unused]] (double&) -> int { return 1; };
   void not_a_transform [[maybe_unused]] (int) {}
 
   struct A {
-    int call(int, int) const noexcept { return 1; };
+    [[nodiscard]] auto call(int, int) const noexcept -> int { return 1; };
   };
 }
 
-int main()
+auto main() -> int
 {
   static_assert(is_transform_like<decltype(transform)>);
   static_assert(is_transform_like<decltype(&A::call)>);

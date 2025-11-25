@@ -1,12 +1,12 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/products.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <concepts>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 

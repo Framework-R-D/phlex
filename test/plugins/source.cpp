@@ -1,4 +1,6 @@
 #include "phlex/source.hpp"
+#include "phlex/configuration.hpp"
+#include "phlex/core/fwd.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include <ranges>

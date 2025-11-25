@@ -18,7 +18,7 @@ TEST_CASE("Filter decision", "[filtering]")
 
   SECTION("Test short-circuiting if false predicate result")
   {
-    decisions.update({nullptr, 1, false});
+    decisions.update({.eom=nullptr, .msg_id=1, .result=false});
     {
       auto const value = decisions.value(1);
       CHECK(is_complete(value));
@@ -28,12 +28,12 @@ TEST_CASE("Filter decision", "[filtering]")
 
   SECTION("Verify once a complete decision is made")
   {
-    decisions.update({nullptr, 3, true});
+    decisions.update({.eom=nullptr, .msg_id=3, .result=true});
     {
       auto const value = decisions.value(3);
       CHECK(not is_complete(value));
     }
-    decisions.update({nullptr, 3, true});
+    decisions.update({.eom=nullptr, .msg_id=3, .result=true});
     {
       auto const value = decisions.value(3);
       CHECK(is_complete(value));

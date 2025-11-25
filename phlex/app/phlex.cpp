@@ -1,21 +1,28 @@
 #include "phlex/app/run.hpp"
 #include "phlex/app/version.hpp"
-#include "phlex/concurrency.hpp"
 
-#include "boost/program_options.hpp"
 #include "libjsonnet++.h"
 #include "oneapi/tbb/info.h"
 
+#include <bits/basic_string.h>
+#include <boost/json/parse.hpp>
+#include <boost/program_options/cmdline.hpp>
+#include <boost/program_options/errors.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/value_semantic.hpp>
+#include <boost/program_options/variables_map.hpp>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
+#include <optional>
+#include <sstream>
 #include <string>
+#include <utility>
 
 using namespace std::string_literals;
 using namespace boost;
 namespace bpo = boost::program_options;
 
-int main(int argc, char* argv[])
+auto main(int argc, char* argv[]) -> int
 {
   std::ostringstream descstr;
   descstr << "\nUsage: " << std::filesystem::path(argv[0]).filename().native()

@@ -13,6 +13,6 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
     .input_family("i", "j")
     .output_products("sum");
   m.observe(
-     "verify", [](int actual) { assert(actual == 0); }, concurrency::unlimited)
+     "verify", [](int actual) -> void { assert(actual == 0); }, concurrency::unlimited)
     .input_family("sum");
 }

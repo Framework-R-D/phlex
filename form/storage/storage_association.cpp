@@ -1,11 +1,13 @@
 // Copyright (C) 2025 ...
 
 #include "storage_association.hpp"
+#include "storage/storage_container.hpp"
+#include <string>
 
 using namespace form::detail::experimental;
 
 namespace {
-  std::string maybe_remove_suffix(std::string const& name)
+  auto maybe_remove_suffix(std::string const& name) -> std::string
   {
     auto del_pos = name.find("/");
     if (del_pos != std::string::npos) {

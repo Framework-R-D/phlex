@@ -1,6 +1,5 @@
 #include "phlex/core/cached_product_stores.hpp"
 #include "phlex/model/level_id.hpp"
-#include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 

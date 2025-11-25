@@ -29,6 +29,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/specified_label.hpp"
 #include "phlex/source.hpp"
 #include "test/cached_execution_source.hpp"
 
@@ -38,8 +39,8 @@ using namespace phlex::experimental;
 using namespace test;
 
 namespace {
-  int call_one(int) noexcept { return 1; }
-  int call_two(int, int) noexcept { return 2; }
+  auto call_one(int) noexcept -> int { return 1; }
+  auto call_two(int, int) noexcept -> int { return 2; }
 }
 
 TEST_CASE("Cached function calls", "[data model]")

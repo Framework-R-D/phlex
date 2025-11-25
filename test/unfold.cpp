@@ -15,6 +15,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "test/products_for_output.hpp"
@@ -23,7 +24,10 @@
 
 #include <atomic>
 #include <ranges>
+#include <spdlog/spdlog.h>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace phlex::experimental;
 
@@ -31,9 +35,9 @@ namespace {
   class iota {
   public:
     explicit iota(unsigned int max_number) : max_{max_number} {}
-    unsigned int initial_value() const { return 0; }
-    bool predicate(unsigned int i) const { return i != max_; }
-    auto unfold(unsigned int i) const { return std::make_pair(i + 1, i); };
+    [[nodiscard]] auto initial_value() const -> unsigned int { return 0; }
+    [[nodiscard]] auto predicate(unsigned int i) const -> bool { return i != max_; }
+    [[nodiscard]] auto unfold(unsigned int i) const { return std::make_pair(i + 1, i); };
 
   private:
     unsigned int max_;
@@ -47,9 +51,9 @@ namespace {
       begin_{numbers.begin()}, end_{numbers.end()}
     {
     }
-    auto initial_value() const { return begin_; }
-    bool predicate(numbers_t::const_iterator it) const { return it != end_; }
-    auto unfold(numbers_t::const_iterator it, level_id const& lid) const
+    [[nodiscard]] auto initial_value() const { return begin_; }
+    [[nodiscard]] auto predicate(numbers_t::const_iterator it) const -> bool { return it != end_; }
+    [[nodiscard]] auto unfold(numbers_t::const_iterator it, level_id const& lid) const
     {
       spdlog::info("Unfolding into {}", lid.to_string());
       auto num = *it;
@@ -84,7 +88,7 @@ TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
 
-  auto levels_to_process = [index_limit](auto& driver) {
+  auto levels_to_process = [index_limit](auto& driver) -> auto {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {

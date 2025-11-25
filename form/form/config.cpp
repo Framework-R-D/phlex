@@ -1,4 +1,6 @@
 #include "form/config.hpp"
+#include <optional>
+#include <string>
 
 namespace {
   template <class MAP_LIKE>
@@ -20,7 +22,7 @@ namespace form::experimental::config {
     m_items.emplace_back(product_name, file_name, technology);
   }
 
-  std::optional<PersistenceItem> output_item_config::findItem(std::string const& product_name) const
+  auto output_item_config::findItem(std::string const& product_name) const -> std::optional<PersistenceItem>
   {
     for (auto const& item : m_items) {
       if (item.product_name == product_name) {
@@ -30,15 +32,15 @@ namespace form::experimental::config {
     return std::nullopt;
   }
 
-  tech_setting_config::table_t tech_setting_config::getFileTable(int const technology,
-                                                                 std::string const& fileName) const
+  auto tech_setting_config::getFileTable(int const technology,
+                                                                 std::string const& fileName) const -> tech_setting_config::table_t
   {
     auto const per_tech = ::const_lookup(file_settings, technology);
     return ::const_lookup(per_tech, fileName);
   }
 
-  tech_setting_config::table_t tech_setting_config::getContainerTable(
-    int const technology, std::string const& containerName) const
+  auto tech_setting_config::getContainerTable(
+    int const technology, std::string const& containerName) const -> tech_setting_config::table_t
   {
     auto const per_tech = ::const_lookup(container_settings, technology);
     return ::const_lookup(per_tech, containerName);

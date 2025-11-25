@@ -13,7 +13,7 @@ TEST_CASE("Empty label", "[data model]")
 
 TEST_CASE("Only name in label", "[data model]")
 {
-  specified_label label{"product"};
+  specified_label label{.name="product"};
   CHECK(label == "product"_in);
 
   // Empty family string is interpreted as a wildcard--i.e. any family.
@@ -22,6 +22,6 @@ TEST_CASE("Only name in label", "[data model]")
 
 TEST_CASE("Label with family", "[data model]")
 {
-  specified_label label{"product", {"event"}};
+  specified_label label{.name="product", .family={"event"}};
   CHECK(label == "product"_in("event"));
 }

@@ -3,7 +3,7 @@
 using namespace phlex::experimental;
 
 namespace {
-  int plus_101(int i) noexcept { return i + 101; }
+  auto plus_101(int i) noexcept -> int { return i + 101; }
 }
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)

@@ -1,18 +1,21 @@
 #include "phlex/core/specified_label.hpp"
 
-#include "fmt/format.h"
 
+#include <cstddef>
+#include <fmt/core.h>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <tuple>
+#include <utility>
 
 namespace phlex::experimental {
-  specified_label specified_label::operator()(std::string family) &&
+  auto specified_label::operator()(std::string family) && -> specified_label
   {
-    return {std::move(name), std::move(family)};
+    return {.name=std::move(name), .family=std::move(family)};
   }
 
-  std::string specified_label::to_string() const
+  auto specified_label::to_string() const -> std::string
   {
     if (family.empty()) {
       return name.full();
@@ -20,7 +23,7 @@ namespace phlex::experimental {
     return fmt::format("{} ϵ {}", name.full(), family);
   }
 
-  specified_label operator""_in(char const* name, std::size_t length)
+  auto operator""_in(char const* name, std::size_t length) -> specified_label
   {
     if (length == 0ull) {
       throw std::runtime_error("Cannot specify product with empty name.");
@@ -28,30 +31,30 @@ namespace phlex::experimental {
     return specified_label::create(name);
   }
 
-  bool operator==(specified_label const& a, specified_label const& b)
+  auto operator==(specified_label const& a, specified_label const& b) -> bool
   {
     return std::tie(a.name, a.family) == std::tie(b.name, b.family);
   }
 
-  bool operator!=(specified_label const& a, specified_label const& b) { return !(a == b); }
+  auto operator!=(specified_label const& a, specified_label const& b) -> bool { return !(a == b); }
 
-  bool operator<(specified_label const& a, specified_label const& b)
+  auto operator<(specified_label const& a, specified_label const& b) -> bool
   {
     return std::tie(a.name, a.family) < std::tie(b.name, b.family);
   }
 
-  std::ostream& operator<<(std::ostream& os, specified_label const& label)
+  auto operator<<(std::ostream& os, specified_label const& label) -> std::ostream&
   {
     os << label.to_string();
     return os;
   }
 
-  specified_label specified_label::create(char const* c) { return create(std::string{c}); }
+  auto specified_label::create(char const* c) -> specified_label { return create(std::string{c}); }
 
-  specified_label specified_label::create(std::string const& s)
+  auto specified_label::create(std::string const& s) -> specified_label
   {
-    return {qualified_name::create(s)};
+    return {.name=qualified_name::create(s)};
   }
 
-  specified_label specified_label::create(specified_label l) { return l; }
+  auto specified_label::create(specified_label l) -> specified_label { return l; }
 }

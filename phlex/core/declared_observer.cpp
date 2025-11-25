@@ -1,7 +1,14 @@
 #include "phlex/core/declared_observer.hpp"
 
-#include "fmt/std.h"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/level_id.hpp"
 #include "spdlog/spdlog.h"
+#include <oneapi/tbb/concurrent_hash_map.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   declared_observer::declared_observer(algorithm_name name,

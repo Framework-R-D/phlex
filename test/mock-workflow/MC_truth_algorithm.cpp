@@ -1,3 +1,4 @@
+#include "phlex/model/level_id.hpp"
 #include "phlex/module.hpp"
 #include "test/mock-workflow/algorithm.hpp"
 #include "test/mock-workflow/types.hpp"

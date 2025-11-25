@@ -1,15 +1,12 @@
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/level_id.hpp"
 #include "phlex/utilities/async_driver.hpp"
 
-#include "fmt/std.h"
 #include "spdlog/spdlog.h"
 #include "tbb/flow_graph.h"
 
-#include <cmath>
-#include <functional>
-#include <iostream>
+#include <oneapi/tbb/flow_graph.h>
 #include <ranges>
-#include <vector>
 
 using namespace phlex::experimental;
 
@@ -34,7 +31,7 @@ void levels_to_process(async_driver<level_id_ptr>& d)
   }
 }
 
-int main()
+auto main() -> int
 {
   async_driver<level_id_ptr> drive{levels_to_process};
   tbb::flow::graph g{};
