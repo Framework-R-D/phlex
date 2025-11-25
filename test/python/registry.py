@@ -1,7 +1,5 @@
-import sys
 
 import cppyy
-import pyphlex
 
 cpp = cppyy.gbl
 phlex = cpp.phlex.experimental
