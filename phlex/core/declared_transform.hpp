@@ -8,15 +8,15 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/product_query.hpp"
+#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
-#include "phlex/model/product_store.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -82,8 +82,8 @@ namespace phlex::experimental {
                    product_queries input_products,
                    std::vector<std::string> output) :
       declared_transform{std::move(name), std::move(predicates), std::move(input_products)},
-      output_{
-        to_product_specifications(full_name(), std::move(output), make_output_type_ids<function_t>())},
+      output_{to_product_specifications(
+        full_name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       transform_{g,
                  concurrency,

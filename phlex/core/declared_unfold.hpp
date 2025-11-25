@@ -11,8 +11,8 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
-#include "phlex/model/product_store.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -96,8 +96,8 @@ namespace phlex::experimental {
                 std::string new_level_name) :
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
       output_{to_product_specifications(full_name(),
-                                 std::move(output_products),
-                                 make_type_ids<skip_first_type<return_type<Unfold>>>())},
+                                        std::move(output_products),
+                                        make_type_ids<skip_first_type<return_type<Unfold>>>())},
       new_level_name_{std::move(new_level_name)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       unfold_{
