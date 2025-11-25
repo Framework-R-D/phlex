@@ -1,22 +1,34 @@
 name: Python Check
 run-name: "${{ github.actor }} checking Python code"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
 
 jobs:
-  detect-python-changes:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: ./.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
+      packages: read
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-
     steps:
     - name: Checkout code
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -24,13 +36,9 @@ jobs:
         fetch-depth: 0
         path: phlex-src
 
-    - name: Detect act environment
-      id: detect_act
-      uses: ./phlex-src/.github/actions/detect-act-env
-
     - name: Detect Python changes
       id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      uses: ./.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -40,7 +48,7 @@ jobs:
     - name: Report detection outcome
       run: |
         if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No python check relevant changes detected; workflow will be skipped."
+          echo "::notice::No python check relevant changes detected; job will be skipped."
         else
           echo "::group::Python check relevant files"
           printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
@@ -48,8 +56,11 @@ jobs:
         fi
 
   python-check:
-    needs: detect-python-changes
-    if: ${{ (needs.detect-python-changes.outputs.has_changes == 'true') || (github.event_name == 'workflow_dispatch') || (needs.detect-python-changes.outputs.is_act == 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,8 +112,12 @@ jobs:
         exit $failed
 
   python-check-skipped:
-    needs: detect-python-changes
-    if: ${{ (needs.detect-python-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (needs.detect-python-changes.outputs.is_act != 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
