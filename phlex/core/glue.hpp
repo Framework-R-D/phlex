@@ -57,7 +57,7 @@ namespace phlex::experimental {
     }
 
     template <typename FT>
-    auto observe(std::string name, FT f, concurrency c)
+    auto observe(std::string name, FT f, concurrency c = concurrency::unlimited)
     {
       detail::verify_name(name, config_);
       return make_registration<observer_node>(config_,
@@ -70,7 +70,7 @@ namespace phlex::experimental {
     }
 
     template <typename FT>
-    auto transform(std::string name, FT f, concurrency c)
+    auto transform(std::string name, FT f, concurrency c = concurrency::unlimited)
     {
       detail::verify_name(name, config_);
       return make_registration<transform_node>(config_,
@@ -83,7 +83,7 @@ namespace phlex::experimental {
     }
 
     template <typename FT>
-    auto predicate(std::string name, FT f, concurrency c)
+    auto predicate(std::string name, FT f, concurrency c = concurrency::unlimited)
     {
       detail::verify_name(name, config_);
       return make_registration<predicate_node>(config_,
@@ -124,7 +124,7 @@ namespace phlex::experimental {
                     std::move(destination_data_layer));
     }
 
-    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
+    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::unlimited)
     {
       return output_api{nodes_.registrar_for<declared_output_ptr>(errors_),
                         config_,

@@ -84,12 +84,15 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
     .output_products("run_sum");
   g.fold("job_add", add, concurrency::unlimited).input_family("number").output_products("job_sum");
 
-  g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
+  g.observe(
+     "verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }, concurrency::serial)
     .input_family("run_sum");
-  g.observe("verify_job_sum",
-            [](unsigned int actual) {
-              CHECK(actual == 20u + 45u); // 20u from events, 45u from trigger primitives
-            })
+  g.observe(
+     "verify_job_sum",
+     [](unsigned int actual) {
+       CHECK(actual == 20u + 45u); // 20u from events, 45u from trigger primitives
+     },
+     concurrency::serial)
     .input_family("job_sum");
 
   g.execute();

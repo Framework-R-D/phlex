@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
       return demo::clampWaveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
     };
 
-    g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
+    g.transform("clamp_node", wrapped_user_function)
       .input_family("waves_in_apa"_in("APA"))
       .output_products("clamped_waves");
 

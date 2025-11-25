@@ -8,5 +8,5 @@ namespace {
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
 {
-  m.transform("plus_one", plus_one, concurrency::unlimited).input_family("a").output_products("b");
+  m.transform("plus_one", plus_one).input_family("a").output_products("b");
 }
