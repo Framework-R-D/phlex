@@ -14,31 +14,26 @@ jobs:
   parse-command:
     runs-on: ubuntu-latest
     name: Parse bot command
-    if: ${{ github.event.issue.pull_request }}
+    if: >
+      github.event.issue.pull_request &&
+      (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
+      startsWith(github.event.comment.body, '@phlexbot tidy-fix')
     outputs:
-      should_run: ${{ steps.check_comment.outputs.should_run }}
-      tidy_checks: ${{ steps.check_comment.outputs.tidy_checks }}
+      tidy_checks: ${{ steps.parse_comment.outputs.tidy_checks }}
       ref: ${{ steps.get_pr.outputs.ref }}
       sha: ${{ steps.get_pr.outputs.sha }}
       repo: ${{ steps.get_pr.outputs.repo }}
 
     steps:
-      - id: check_comment
-        name: Check comment for trigger phrase
+      - id: parse_comment
+        name: Parse comment for tidy checks
         run: |
-          if [[ "${{ github.event.comment.author_association }}" == "COLLABORATOR" || "${{ github.event.comment.author_association }}" == "OWNER" ]] && \
-             [[ $(echo "${{ github.event.comment.body }}" | grep -qEe '^@phlexbot[[:space:]]+tidy-fix\b' && echo 'true') ]]; then
-            echo "should_run=true" >> $GITHUB_OUTPUT
-            checks_line=$(echo "${{ github.event.comment.body }}" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
-            if [ -n "$checks_line" ]; then
-              tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
-              echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "should_run=false" >> $GITHUB_OUTPUT
+          checks_line=$(echo "${{ github.event.comment.body }}" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
+          if [ -n "$checks_line" ]; then
+            tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
+            echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
           fi
       - name: Get PR Info
-        if: steps.check_comment.outputs.should_run == 'true'
         id: get_pr
         uses: ./actions/get-pr-info
 
@@ -46,7 +41,7 @@ jobs:
     runs-on: ubuntu-24.04
     name: Apply clang-tidy fixes
     needs: parse-command
-    if: ${{ needs.parse-command.outputs.should_run == 'true' }}
+    if: ${{ needs.parse-command.result == 'success' }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest

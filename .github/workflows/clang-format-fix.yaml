@@ -14,25 +14,17 @@ jobs:
   parse-command:
     runs-on: ubuntu-latest
     name: Parse bot command
-    if: ${{ github.event.issue.pull_request }}
+    if: >
+      github.event.issue.pull_request &&
+      (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
+      startsWith(github.event.comment.body, '@phlexbot format')
     outputs:
-      should_run: ${{ steps.check_comment.outputs.should_run }}
       ref: ${{ steps.get_pr.outputs.ref }}
       sha: ${{ steps.get_pr.outputs.sha }}
       repo: ${{ steps.get_pr.outputs.repo }}
 
     steps:
-      - id: check_comment
-        name: Check comment for trigger phrase
-        run: |
-          if [[ "${{ github.event.comment.author_association }}" == "COLLABORATOR" || "${{ github.event.comment.author_association }}" == "OWNER" ]] && \
-             [[ $(echo "${{ github.event.comment.body }}" | grep -qEe '^@phlexbot[[:space:]]+format\b' && echo 'true') ]]; then
-            echo "should_run=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_run=false" >> $GITHUB_OUTPUT
-          fi
       - name: Get PR Info
-        if: steps.check_comment.outputs.should_run == 'true'
         id: get_pr
         uses: ./actions/get-pr-info
 
@@ -40,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Apply formatting
     needs: parse-command
-    if: ${{ needs.parse-command.outputs.should_run == 'true' }}
+    if: ${{ needs.parse-command.result == 'success' }}
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
