@@ -4,7 +4,7 @@ class TestPYPHLEX:
 
     @classmethod
     def setup_class(cls):
-        import pyphlex # noqa: F401
+        import pyphlex  # noqa: F401
         __all__ = ['pyphlex'] # For CodeQL
 
     def test01_phlex_existence(self):
