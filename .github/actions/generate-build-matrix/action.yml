@@ -15,9 +15,10 @@ runs:
   using: 'composite'
   steps:
     - id: generate
-      run: python ${{ github.action_path }}/generate_matrix.py
+      run: python "$ACTION_PATH/generate_matrix.py"
       shell: bash
       env:
         USER_INPUT: ${{ inputs.user-input }}
         COMMENT_BODY: ${{ inputs.comment-body }}
         GITHUB_EVENT_NAME: ${{ github.event_name }}
+        ACTION_PATH: ${{ github.action_path }}
