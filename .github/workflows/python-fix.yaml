@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: Get PR Info
         id: get_pr
-        uses: ./.github/actions/get-pr-info@main
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main@main
 
   apply_fixes:
     runs-on: ubuntu-latest
