@@ -22,30 +22,21 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
+        startsWith(github.event.comment.body, '@phlexbot build')
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      should_run: ${{ steps.check.outputs.triggered }}
       pr_details: ${{ steps.pr.outputs.result }}
 
     steps:
-      - name: Check trigger condition
-        id: check
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "triggered=true" >> $GITHUB_OUTPUT
-          elif echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+build\b'; then
-            echo "triggered=true" >> $GITHUB_OUTPUT
-          else
-            echo "triggered=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          COMMENT_BODY: ${{ github.event.comment.body }}
-
       - name: Get PR details for comment trigger
         if: github.event_name == 'issue_comment'
         id: pr
@@ -70,7 +61,7 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      needs.pre-check.outputs.should_run == 'true' &&
+      needs.pre-check.result == 'success' &&
       github.event_name != 'workflow_dispatch' &&
       needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
@@ -111,7 +102,7 @@ jobs:
   build:
     needs: [pre-check, detect-changes]
     if: >
-      needs.pre-check.outputs.should_run == 'true' &&
+      needs.pre-check.result == 'success' &&
       (
         github.event_name == 'workflow_dispatch' ||
         needs.pre-check.outputs.is_act == 'true' ||
@@ -154,7 +145,7 @@ jobs:
   cmake-build-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      needs.pre-check.outputs.should_run == 'true' &&
+      needs.pre-check.result == 'success' &&
       github.event_name != 'workflow_dispatch' &&
       needs.pre-check.outputs.is_act != 'true' &&
       needs.detect-changes.result == 'success' &&

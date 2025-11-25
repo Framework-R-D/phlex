@@ -8,62 +8,13 @@ permissions:
 on:
   pull_request:
     branches: [ main, develop ]
-  issue_comment:
-    types:
-      - created
   workflow_dispatch:
 
 jobs:
-  pre-check:
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
-
-    outputs:
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-      should_run: ${{ steps.check_comment.outputs.match_result == 'match' }}
-      tidy_checks: ${{ steps.check_comment.outputs.tidy_checks }}
-      ref_name: ${{ steps.check_comment.outputs.ref_name }}
-      repo_name: ${{ steps.check_comment.outputs.repo_name }}
-
-    steps:
-      - name: Detect act environment
-        id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
-
-      - id: check_comment
-        if: github.event_name == 'issue_comment'
-        name: Check comment
-        run: |
-          match_result=$(echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+tidy-check\b' && echo match || echo non_match)
-
-          # Extract any tokens after 'tidy-check'
-          checks_line=$(echo "$COMMENT_BODY" | sed -nE 's/^@phlexbot[[:space:]]+tidy-check[[:space:]]+(.*)/\1/p' | tr -d '\r')
-          tidy_checks=""
-          if [ -n "$checks_line" ]; then
-            # Normalize separators: comma or whitespace -> single comma-separated list
-            tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
-          fi
-
-          echo "match_result=$match_result" >> $GITHUB_OUTPUT
-          echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
-
-          ISSUE_NUMBER=${{ github.event.issue.number }}
-          REPO="${{ github.repository }}"
-          gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
-          echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
-          echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
 
   detect-changes:
-    needs: pre-check
     if: >
-      github.event_name == 'pull_request' &&
-      needs.pre-check.outputs.is_act != 'true'
+      github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,12 +52,10 @@ jobs:
         fi
 
   clang-tidy-check:
-    needs: [pre-check, detect-changes]
+    needs: [detect-changes]
     if: >
       github.event_name == 'workflow_dispatch' ||
-      needs.pre-check.outputs.is_act == 'true' ||
-      (github.event_name == 'pull_request' && needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true') ||
-      (github.event_name == 'issue_comment' && needs.pre-check.outputs.should_run == 'true' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER'))
+      (github.event_name == 'pull_request' && needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
 
     runs-on: ubuntu-24.04
 
@@ -114,19 +63,10 @@ jobs:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
-    - name: Checkout code (PR)
-      if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    - name: Checkout code
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         path: phlex-src
-
-    - name: Checkout code (comment)
-      if: github.event_name == 'issue_comment'
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-      with:
-        path: phlex-src
-        ref: ${{ needs.pre-check.outputs.ref_name }}
-        repository: ${{ needs.pre-check.outputs.repo_name }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
@@ -138,8 +78,6 @@ jobs:
         extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
 
     - name: Run clang-tidy using CMake target
-      env:
-        PHLEX_TIDY_CHECKS: ${{ needs.pre-check.outputs.tidy_checks }}
       shell: bash
       run: |
         . /entrypoint.sh
@@ -191,17 +129,3 @@ jobs:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  clang-tidy-check-skipped:
-    needs: [tidy-pre-check, detect-clang-tidy-changes]
-    if: >
-      github.event_name == 'pull_request' &&
-      needs.tidy-pre-check.outputs.is_act != 'true' &&
-      needs.detect-clang-tidy-changes.result == 'success' &&
-      needs.detect-clang-tidy-changes.outputs.has_changes != 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-    - name: No relevant clang-tidy changes detected
-      run: echo "::notice::No clang-tidy relevant changes detected; check skipped."
