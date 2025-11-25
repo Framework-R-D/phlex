@@ -81,7 +81,7 @@ jobs:
         if ! ruff check; then
           failed=1
           echo "::endgroup::"
-          echo "❌ Ruff check failed."
+          echo "::error:: Ruff check failed."
         else
           echo "::endgroup::"
           echo "✅ Ruff check passed."
@@ -92,7 +92,7 @@ jobs:
         if ! mypy --color-output .; then
           failed=1
           echo "::endgroup::"
-          echo "❌ MyPy check failed."
+          echo "::error:: MyPy check failed."
         else
           echo "::endgroup::"
           echo "✅ MyPy check passed."
