@@ -9,6 +9,18 @@ on:
   push:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      build-combinations:
+        description: |
+          A space- or comma-separated list of build combinations to run.
+          Syntax examples:
+          - `gcc/asan clang/tsan` (run only these two)
+          - `all` (run all combinations)
+          - `all -clang/none -clang/valgrind` (run all except specified)
+          - `+clang/none +clang/valgrind` (run default matrix plus specified)
+          Default (if empty): Run all except clang/none and clang/valgrind.
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -16,6 +28,7 @@ permissions:
 
 env:
   BUILD_TYPE: Release
+  CICOLOR_FORCE: 1
 
 jobs:
   pre-check:
@@ -27,10 +40,13 @@ jobs:
     permissions:
       contents: read
       packages: read
+
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
       should_run: ${{ steps.check.outputs.triggered }}
       pr_details: ${{ steps.pr.outputs.result }}
+      sha: ${{ steps.pr.outputs.sha || github.sha }}
+      repo: ${{ steps.pr.outputs.repo || github.repository }}
 
     steps:
       - name: Check trigger condition
@@ -79,6 +95,7 @@ jobs:
       packages: read
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
+      matrix: ${{ steps.generate.outputs.matrix }}
 
     steps:
       - name: Check out source code
@@ -108,6 +125,12 @@ jobs:
             echo "::endgroup::"
           fi
 
+      - id: generate
+        uses: ./phlex-src/.github/actions/generate-build-matrix
+        with:
+          user-input: ${{ github.event.inputs.build-combinations }}
+          comment-body: ${{ github.event.comment.body }}
+
   build:
     needs: [pre-check, detect-changes]
     if: >
@@ -123,6 +146,9 @@ jobs:
         github.event.comment.author_association == 'OWNER'
       )
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
@@ -137,19 +163,55 @@ jobs:
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
+    - name: Announce CMake configuration
+      run: echo "➡️ Configuring CMake..."
+
     - name: Configure CMake
+      id: configure
       uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         build-type: ${{ env.BUILD_TYPE }}
+        cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+        extra-options: |
+          ${{ matrix.sanitizer == 'asan' && '-DPHLEX_ENABLE_ASAN=ON' || '' }}
+          ${{ matrix.sanitizer == 'tsan' && '-DPHLEX_ENABLE_TSAN=ON' || '' }}
 
     - name: Build
+      id: build
       uses: Framework-R-D/phlex/.github/actions/build-cmake@main
 
-    - name: Test
+    - name: Run tests
+      if: matrix.sanitizer != 'valgrind'
       run: |
         . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
-        ctest -j $(nproc)
+
+        echo "➡️ Running tests..."
+        echo "::group::Running ctest"
+        if ctest --progress --output-on-failure -j $(nproc); then
+          echo "::endgroup::"
+          echo "✅ All tests passed."
+        else
+          echo "::endgroup::"
+          echo "::error:: Some tests failed."
+          exit 1
+        fi
+
+    - name: Run Valgrind tests
+      if: matrix.sanitizer == 'valgrind'
+      run: |
+        . /entrypoint.sh
+        cd $GITHUB_WORKSPACE/phlex-build
+
+        echo "➡️ Running Valgrind tests..."
+        echo "::group::Running ctest -T memcheck"
+        if ctest -T memcheck; then
+          echo "::endgroup::"
+          echo "✅ Valgrind tests passed."
+        else
+          echo "::endgroup::"
+          echo "⚠️ Valgrind tests failed, but the workflow will continue."
+        fi
 
   cmake-build-skipped:
     needs: [pre-check, detect-changes]
