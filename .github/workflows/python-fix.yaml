@@ -1,0 +1,92 @@
+name: Python Fix
+run-name: "${{ github.actor }} fixing Python code"
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  parse-command:
+    runs-on: ubuntu-latest
+    name: Parse bot command
+    if: ${{ github.event.issue.pull_request }}
+    outputs:
+      should_run: ${{ steps.check_comment.outputs.should_run }}
+      ref: ${{ steps.get_pr.outputs.ref }}
+      sha: ${{ steps.get_pr.outputs.sha }}
+      repo: ${{ steps.get_pr.outputs.repo }}
+
+    steps:
+      - id: check_comment
+        name: Check comment for trigger phrase
+        run: |
+          if [[ "${{ github.event.comment.author_association }}" == "COLLABORATOR" || "${{ github.event.comment.author_association }}" == "OWNER" ]] && \
+             [[ $(echo "${{ github.event.comment.body }}" | grep -qEe '^@phlexbot[[:space:]]+python-fix\b' && echo 'true') ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Get PR Info
+        if: steps.check_comment.outputs.should_run == 'true'
+        id: get_pr
+        uses: ./actions/get-pr-info
+
+  apply_fixes:
+    runs-on: ubuntu-latest
+    name: Apply fixes
+    needs: parse-command
+    if: ${{ needs.parse-command.outputs.should_run == 'true' }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          path: phlex-src
+          ref: ${{ needs.parse-command.outputs.ref }}
+          repository: ${{ needs.parse-command.outputs.repo }}
+          token: ${{ secrets.WORKFLOW_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          pip install ruff
+
+      - name: Run ruff format and fix
+        working-directory: phlex-src
+        env:
+          FORCE_COLOR: 1
+        run: |
+          echo "Fixing Python format with ruff"
+          ruff format . || true
+          echo "Fixing Python linter issues with ruff"
+          ruff --fix . || true
+
+      - uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
+        id: add_and_commit
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
+          cwd: phlex-src
+          author_name: "github-actions[bot]"
+          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          message: 'Committing Python linting fixes'
+
+      - name: Formatting changes committed and pushed
+        if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          message: |
+            Python linting fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
+
+      - name: No formatting changes to make
+        if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          message: |
+            No Python linting fixes to make
