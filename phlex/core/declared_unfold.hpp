@@ -11,8 +11,8 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/qualified_name.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -57,12 +57,12 @@ namespace phlex::experimental {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
-                    specified_labels input_products);
+                    product_queries input_products);
     virtual ~declared_unfold();
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual qualified_names const& output() const = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
 
   protected:
@@ -91,11 +91,13 @@ namespace phlex::experimental {
                 tbb::flow::graph& g,
                 Predicate&& predicate,
                 Unfold&& unfold,
-                specified_labels product_labels,
+                product_queries product_labels,
                 std::vector<std::string> output_products,
                 std::string new_level_name) :
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
-      output_{to_qualified_names(full_name(), std::move(output_products))},
+      output_{to_product_specifications(full_name(),
+                                        std::move(output_products),
+                                        make_type_ids<skip_first_type<return_type<Unfold>>>())},
       new_level_name_{std::move(new_level_name)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       unfold_{
@@ -129,7 +131,7 @@ namespace phlex::experimental {
     ~unfold_node() { report_cached_stores(stores_); }
 
   private:
-    tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
       return receiver_for<N>(join_, input(), product_label);
     }
@@ -137,7 +139,7 @@ namespace phlex::experimental {
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    qualified_names const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,
@@ -175,7 +177,7 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    qualified_names output_;
+    product_specifications output_;
     std::string new_level_name_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;

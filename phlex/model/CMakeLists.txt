@@ -7,12 +7,12 @@ add_library(
   product_matcher.cpp
   product_store.cpp
   products.cpp
-  qualified_name.cpp
+  product_specification.cpp
   )
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(
   phlex_model
-  PUBLIC Boost::boost spdlog::spdlog
+  PUBLIC Boost::boost spdlog::spdlog fmt::fmt
   PRIVATE phlex::graph phlex::utilities
   )
 

@@ -24,7 +24,7 @@ add_library(
   products_consumer.cpp
   registrar.cpp
   registration_api.cpp
-  specified_label.cpp
+  product_query.cpp
   store_counters.cpp
   )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
