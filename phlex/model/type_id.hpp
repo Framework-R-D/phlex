@@ -88,8 +88,7 @@ namespace phlex::experimental {
 
       if constexpr (std::is_same_v<signed char, SignedT>) {
         // We're choosing to treat signed char and char identically
-        id |= static_cast<unsigned char>(type_id::builtin::char_v);
-        return id;
+        return id | static_cast<unsigned char>(type_id::builtin::char_v);
       } else if constexpr (std::is_same_v<int, SignedT>) {
         // ints are generally either long or long long, depending on implementation
         // Treating them separately here to reduce confusion
