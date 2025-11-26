@@ -16,8 +16,8 @@ namespace toy {
 
 namespace {
   // Provider algorithms
-  toy::VertexCollection give_me_vertices(level_id_ptr id) {
-    return toy::VertexCollection{id->number()};
+  toy::VertexCollection give_me_vertices(level_id const& id) {
+    return toy::VertexCollection{id.number()};
   }
 }
 
@@ -48,7 +48,7 @@ TEST_CASE("provider_test")
 
   framework_graph g{levels_to_process};
 
-  g.provide("happy_vertices", give_me_vertices, concurrency::unlimited);
+  g.provide("happy_vertices"_in("spill"), give_me_vertices, concurrency::unlimited);
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family("happy_vertices"_in("spill"))
     .output_products("vertex_data");

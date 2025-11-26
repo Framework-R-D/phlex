@@ -107,6 +107,11 @@ namespace phlex::experimental {
       return make_glue().transform(std::move(name), std::move(f), c);
     }
 
+    auto provide(specified_label name, auto f, concurrency c = concurrency::serial)
+    {
+      return make_glue().provide(std::move(name), std::move(f), c);
+    }
+
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {

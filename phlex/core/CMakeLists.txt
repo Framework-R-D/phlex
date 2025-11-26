@@ -2,12 +2,13 @@ add_library(
   phlex_core SHARED
   concurrency.cpp
   consumer.cpp
+  declared_fold.cpp
   declared_observer.cpp
   declared_output.cpp
   declared_predicate.cpp
-  declared_fold.cpp
-  declared_unfold.cpp
+  declared_provider.cpp
   declared_transform.cpp
+  declared_unfold.cpp
   detail/make_algorithm_name.cpp
   detail/maybe_predicates.cpp
   detail/filter_impl.cpp
