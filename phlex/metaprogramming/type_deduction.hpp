@@ -93,6 +93,12 @@ namespace phlex::experimental {
     requires container<T>;
     requires std::contiguous_iterator<typename T::iterator>;
   };
+
+  template <typename T>
+  class is_tuple : public std::false_type {};
+
+  template <typename... Ts>
+  class is_tuple<std::tuple<Ts...>> : public std::true_type {};
 }
 
 #endif // PHLEX_METAPROGRAMMING_TYPE_DEDUCTION_HPP
