@@ -46,29 +46,41 @@ namespace phlex::experimental {
     return labels;
   }
 
-  // C is a container of product_queries
-  template <typename C, typename>
-    requires(std::is_same_v<typename C::value_type, product_query>)
-  class product_queries_type_setter {};
-  template <typename C, typename... Ts>
-  class product_queries_type_setter<C, std::tuple<Ts...>> {
-  private:
-    std::size_t index_ = 0;
+  namespace detail {
+    // C is a container of product_queries
+    template <typename C, typename T>
+      requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_query> &&
+               is_tuple<T>::value
+    class product_queries_type_setter {};
+    template <typename C, typename... Ts>
+    class product_queries_type_setter<C, std::tuple<Ts...>> {
+    private:
+      std::size_t index_ = 0;
 
-    template <typename T>
-    void set_type(C& container)
-    {
-      container.at(index_).name.set_type(make_type_id<T>());
-      ++index_;
-    }
+      template <typename T>
+      void set_type(C& container)
+      {
+        container.at(index_).name.set_type(make_type_id<T>());
+        ++index_;
+      }
 
-  public:
-    void operator()(C& container)
-    {
-      assert(container.size() == sizeof...(Ts));
-      (set_type<Ts>(container), ...);
-    }
-  };
+    public:
+      void operator()(C& container)
+      {
+        assert(container.size() == sizeof...(Ts));
+        (set_type<Ts>(container), ...);
+      }
+    };
+  }
+
+  template <typename Tup, typename C>
+    requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_query> &&
+             is_tuple<Tup>::value
+  void populate_types(C& container)
+  {
+    detail::product_queries_type_setter<decltype(container), Tup> populate_types{};
+    populate_types(container);
+  }
 }
 
 #endif // PHLEX_CORE_SPECIFIED_LABEL_HPP
