@@ -117,7 +117,7 @@ jobs:
           fi
 
       - id: generate
-        uses: ./phlex-src/.github/actions/generate-build-matrix
+        uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
         with:
           user-input: ${{ github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
