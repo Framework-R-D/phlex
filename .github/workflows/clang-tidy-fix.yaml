@@ -35,7 +35,7 @@ jobs:
           fi
       - name: Get PR Info
         id: get_pr
-        uses: ./actions/get-pr-info
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
   apply_tidy_fixes:
     runs-on: ubuntu-24.04
