@@ -11,33 +11,23 @@ permissions:
   contents: write
 
 jobs:
-  parse-command:
+  apply_fixes:
     runs-on: ubuntu-latest
-    name: Parse bot command
+    name: Apply fixes
     if: |
       github.event.issue.pull_request &&
       (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
       startsWith(github.event.comment.body, '@phlexbot python-fix')
-    outputs:
-      ref: ${{ steps.get_pr.outputs.ref }}
-      sha: ${{ steps.get_pr.outputs.sha }}
-      repo: ${{ steps.get_pr.outputs.repo }}
-
     steps:
       - name: Get PR Info
         id: get_pr
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main@main
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
-  apply_fixes:
-    runs-on: ubuntu-latest
-    name: Apply fixes
-    needs: parse-command
-    steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           path: phlex-src
-          ref: ${{ needs.parse-command.outputs.ref }}
-          repository: ${{ needs.parse-command.outputs.repo }}
+          ref: ${{ steps.get_pr.outputs.ref }}
+          repository: ${{ steps.get_pr.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
