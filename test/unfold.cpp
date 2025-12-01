@@ -15,7 +15,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "test/products_for_output.hpp"
 
@@ -49,7 +49,7 @@ namespace {
     }
     auto initial_value() const { return begin_; }
     bool predicate(numbers_t::const_iterator it) const { return it != end_; }
-    auto unfold(numbers_t::const_iterator it, data_cell_id const& lid) const
+    auto unfold(numbers_t::const_iterator it, data_cell_index const& lid) const
     {
       spdlog::info("Unfolding into {}", lid.to_string());
       auto num = *it;
@@ -66,7 +66,7 @@ namespace {
 
   void check_sum(handle<unsigned int> const sum)
   {
-    if (sum.data_cell_id().number() == 0ull) {
+    if (sum.data_cell_index().number() == 0ull) {
       CHECK(*sum == 45);
     } else {
       CHECK(*sum == 190);
@@ -75,7 +75,7 @@ namespace {
 
   void check_sum_same(handle<unsigned int> const sum)
   {
-    auto const expected_sum = (sum.data_cell_id().number() + 1) * 10;
+    auto const expected_sum = (sum.data_cell_index().number() + 1) * 10;
     CHECK(*sum == expected_sum);
   }
 }

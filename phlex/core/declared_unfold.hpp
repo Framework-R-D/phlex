@@ -9,7 +9,7 @@
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
@@ -50,7 +50,7 @@ namespace phlex::experimental {
     product_store_ptr parent_;
     std::string node_name_;
     std::string const& new_layer_name_;
-    std::map<data_cell_id::hash_type, std::size_t> child_counts_;
+    std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };
 
   class declared_unfold : public products_consumer {
@@ -66,7 +66,7 @@ namespace phlex::experimental {
     virtual std::size_t product_count() const = 0;
 
   protected:
-    using stores_t = tbb::concurrent_hash_map<data_cell_id::hash_type, product_store_ptr>;
+    using stores_t = tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr>;
     using accessor = stores_t::accessor;
     using const_accessor = stores_t::const_accessor;
 
@@ -144,7 +144,7 @@ namespace phlex::experimental {
     template <std::size_t... Is>
     void call(Predicate const& predicate,
               Unfold const& unfold,
-              data_cell_id_ptr const& unfolded_id,
+              data_cell_index_ptr const& unfolded_id,
               generator& g,
               end_of_message_ptr const& eom,
               messages_t<N> const& messages,
@@ -181,7 +181,7 @@ namespace phlex::experimental {
     std::string new_layer_name_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;
-    tbb::concurrent_hash_map<data_cell_id::hash_type, product_store_ptr> stores_;
+    tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr> stores_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
     std::atomic<std::size_t> product_count_{};

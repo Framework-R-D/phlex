@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_HANDLE_HPP
 #define PHLEX_MODEL_HANDLE_HPP
 
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -53,7 +53,7 @@ namespace phlex::experimental {
     using const_pointer = value_type const*;
 
     // The 'product' parameter is not 'const_reference' to avoid avoid implicit type conversions.
-    explicit handle(std::same_as<T> auto const& product, data_cell_id const& id) :
+    explicit handle(std::same_as<T> auto const& product, data_cell_index const& id) :
       product_{&product}, id_{&id}
     {
     }
@@ -74,7 +74,7 @@ namespace phlex::experimental {
     operator const_reference() const noexcept { return operator*(); }
     operator const_pointer() const noexcept { return operator->(); }
 
-    auto const& data_cell_id() const noexcept { return *id_; }
+    auto const& data_cell_index() const noexcept { return *id_; }
 
     template <typename U>
     friend class handle;
@@ -85,12 +85,12 @@ namespace phlex::experimental {
     }
 
   private:
-    const_pointer product_;        // Non-null, by construction
-    class data_cell_id const* id_; // Non-null, by construction
+    const_pointer product_;           // Non-null, by construction
+    class data_cell_index const* id_; // Non-null, by construction
   };
 
   template <typename T>
-  handle(T const&, data_cell_id const&) -> handle<T>;
+  handle(T const&, data_cell_index const&) -> handle<T>;
 }
 
 #endif // PHLEX_MODEL_HANDLE_HPP

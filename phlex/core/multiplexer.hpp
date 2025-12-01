@@ -2,7 +2,7 @@
 #define PHLEX_CORE_MULTIPLEXER_HPP
 
 #include "phlex/core/message.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"

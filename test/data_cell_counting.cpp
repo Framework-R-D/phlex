@@ -1,5 +1,5 @@
 #include "phlex/model/data_cell_counter.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/hashing.hpp"

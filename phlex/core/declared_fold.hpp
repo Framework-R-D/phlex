@@ -11,7 +11,7 @@
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
@@ -179,7 +179,7 @@ namespace phlex::experimental {
     std::string partition_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;
-    tbb::concurrent_unordered_map<data_cell_id, std::unique_ptr<R>> results_;
+    tbb::concurrent_unordered_map<data_cell_index, std::unique_ptr<R>> results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;
   };

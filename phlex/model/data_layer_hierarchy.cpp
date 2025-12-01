@@ -1,5 +1,5 @@
 #include "phlex/model/data_layer_hierarchy.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
 #include "fmt/format.h"
 #include "fmt/std.h"
@@ -14,7 +14,7 @@ namespace phlex::experimental {
 
   data_layer_hierarchy::~data_layer_hierarchy() { print(); }
 
-  void data_layer_hierarchy::increment_count(data_cell_id_ptr const& id)
+  void data_layer_hierarchy::increment_count(data_cell_index_ptr const& id)
   {
     if (auto it = layers_.find(id->layer_hash()); it != layers_.cend()) {
       ++it->second->count;

@@ -7,7 +7,7 @@ namespace phlex::experimental {
 
   flush_counts::flush_counts() = default;
 
-  flush_counts::flush_counts(std::map<data_cell_id::hash_type, std::size_t> child_counts) :
+  flush_counts::flush_counts(std::map<data_cell_index::hash_type, std::size_t> child_counts) :
     child_counts_{std::move(child_counts)}
   {
   }
@@ -43,7 +43,7 @@ namespace phlex::experimental {
     }
   }
 
-  void flush_counters::update(data_cell_id_ptr const id)
+  void flush_counters::update(data_cell_index_ptr const id)
   {
     data_cell_counter* parent_counter = nullptr;
     if (auto parent = id->parent()) {
@@ -54,7 +54,7 @@ namespace phlex::experimental {
     counters_[id->hash()] = std::make_shared<data_cell_counter>(parent_counter, id->layer_name());
   }
 
-  flush_counts flush_counters::extract(data_cell_id_ptr const id)
+  flush_counts flush_counters::extract(data_cell_index_ptr const id)
   {
     auto counter = counters_.extract(id->hash());
     return counter.mapped()->result();

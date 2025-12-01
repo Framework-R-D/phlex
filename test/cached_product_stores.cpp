@@ -1,5 +1,5 @@
 #include "phlex/core/cached_product_stores.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -13,17 +13,17 @@ TEST_CASE("Cached product stores", "[data model]")
   {
     auto store = stores.get_store();
     REQUIRE(store);
-    CHECK(store->id() == data_cell_id::base_ptr());
+    CHECK(store->id() == data_cell_index::base_ptr());
   }
-  SECTION("One level down")
+  SECTION("One layer down")
   {
     auto store = stores.get_store("1"_id);
     REQUIRE(store);
     CHECK(*store->id() == *"1"_id);
     REQUIRE(store->parent());
-    CHECK(store->parent()->id() == data_cell_id::base_ptr());
+    CHECK(store->parent()->id() == data_cell_index::base_ptr());
   }
-  SECTION("One level down, multiple instances")
+  SECTION("One layer down, multiple instances")
   {
     auto store1 = stores.get_store("1"_id);
     auto store2 = stores.get_store("2"_id);
@@ -34,7 +34,7 @@ TEST_CASE("Cached product stores", "[data model]")
     // Make sure both stores have the same parent
     CHECK(store1->parent() == store2->parent());
   }
-  SECTION("Multiple levels")
+  SECTION("Multiple layers")
   {
     auto store1 = stores.get_store("1"_id);
     auto store2345 = stores.get_store("2:3:4:5"_id);

@@ -26,7 +26,7 @@ namespace phlex::experimental {
     data_layer_hierarchy& hierarchy_;
     multiplexer& multiplexer_;
     std::stack<end_of_message_ptr>& eoms_;
-    std::map<data_cell_id_ptr, std::size_t> original_message_ids_;
+    std::map<data_cell_index_ptr, std::size_t> original_message_ids_;
     std::size_t calls_{};
   };
 

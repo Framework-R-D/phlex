@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
 #define PHLEX_MODEL_PRODUCT_STORE_HPP
 
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/products.hpp"
@@ -38,7 +38,7 @@ namespace phlex::experimental {
                                  std::string const& new_layer_name,
                                  std::string source = {},
                                  stage st = stage::process);
-    data_cell_id_ptr const& id() const noexcept;
+    data_cell_index_ptr const& id() const noexcept;
     bool is_flush() const noexcept;
 
     // Product interface
@@ -59,7 +59,7 @@ namespace phlex::experimental {
 
   private:
     explicit product_store(product_store_const_ptr parent,
-                           data_cell_id_ptr id,
+                           data_cell_index_ptr id,
                            std::string source,
                            stage processing_stage = stage::process,
                            products new_products = {});
@@ -76,7 +76,7 @@ namespace phlex::experimental {
 
     product_store_const_ptr parent_{nullptr};
     products products_{};
-    data_cell_id_ptr id_;
+    data_cell_index_ptr id_;
     std::string
       source_; // FIXME: Should not have to copy the string (the source should outlive the product store)
     stage stage_;

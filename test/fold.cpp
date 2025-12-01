@@ -24,7 +24,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -42,7 +42,7 @@ namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 }
 
-TEST_CASE("Different levels of fold", "[graph]")
+TEST_CASE("Different data layers of fold", "[graph]")
 {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;

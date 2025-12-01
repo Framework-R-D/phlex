@@ -3,7 +3,7 @@ add_library(
   algorithm_name.cpp
   data_cell_counter.cpp
   data_layer_hierarchy.cpp
-  data_cell_id.cpp
+  data_cell_index.cpp
   product_matcher.cpp
   product_store.cpp
   products.cpp

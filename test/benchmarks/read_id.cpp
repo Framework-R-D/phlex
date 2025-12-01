@@ -1,8 +1,8 @@
-#include "phlex/model/data_cell_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
 
 namespace {
-  void read_id(phlex::experimental::data_cell_id const&) {}
+  void read_id(phlex::experimental::data_cell_index const&) {}
 }
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
