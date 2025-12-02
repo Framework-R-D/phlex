@@ -50,7 +50,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 {
   std::array const product_names{
     specified_label{"number"}, specified_label{"temperature"}, specified_label{"name"}};
-  std::array const oproduct_names = {"number"s, "temperature"s, "name"s};
+  std::array const oproduct_names = {"numbero"s, "temperatureo"s, "nameo"s};
   std::array const result{"result"s};
 
   auto store = product_store::base();

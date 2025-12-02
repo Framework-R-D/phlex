@@ -27,6 +27,7 @@ namespace phlex::experimental {
       tbb::flow::receiver<message>* port;
     };
     using named_input_ports_t = std::vector<named_input_port>;
+    // map of node name to its input ports
     using head_ports_t = std::map<std::string, named_input_ports_t>;
 
     explicit multiplexer(tbb::flow::graph& g, bool debug = false);

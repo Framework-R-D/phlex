@@ -1,5 +1,9 @@
 #include "phlex/core/node_catalog.hpp"
 
+#include <string>
+
+using namespace std::string_literals;
+
 namespace phlex::experimental {
   std::size_t node_catalog::execution_counts(std::string const& node_name) const
   {
@@ -19,7 +23,10 @@ namespace phlex::experimental {
     if (auto node = transforms.get(node_name)) {
       return node->num_calls();
     }
-    return -1u;
+    if (auto node = providers.get(node_name)) {
+      return node->num_calls();
+    }
+    throw std::runtime_error("Unknown node type with name: "s + node_name);
   }
 
   std::size_t node_catalog::product_counts(std::string const& node_name) const
