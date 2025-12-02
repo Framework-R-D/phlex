@@ -152,6 +152,7 @@ namespace phlex::experimental {
                multiplexer_,
                filters_,
                nodes_.outputs,
+               nodes_.providers,
                nodes_.predicates,
                nodes_.observers,
                nodes_.folds,

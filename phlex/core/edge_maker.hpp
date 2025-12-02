@@ -7,6 +7,7 @@
 #include "phlex/core/multiplexer.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <map>
 #include <memory>
@@ -18,6 +19,7 @@
 #include <vector>
 
 namespace phlex::experimental {
+  using namespace std::string_literals;
 
   using product_name_t = std::string;
 
@@ -31,6 +33,7 @@ namespace phlex::experimental {
                     multiplexer& multi,
                     std::map<std::string, filter>& filters,
                     declared_outputs& outputs,
+                    declared_providers& providers,
                     Args&... consumers);
 
   private:
@@ -77,6 +80,7 @@ namespace phlex::experimental {
                               multiplexer& multi,
                               std::map<std::string, filter>& filters,
                               declared_outputs& outputs,
+                              declared_providers& providers,
                               Args&... consumers)
   {
     make_edge(source, multi);
@@ -92,8 +96,46 @@ namespace phlex::experimental {
     // Create normal edges
     multiplexer::head_ports_t head_ports;
     (head_ports.merge(edges(filters, consumers)), ...);
+    // Eventually, we want to look at the filled-in head_ports and
+    // figure out what provider nodes are needed.
+    // For now, we take as input a mapping of declared_providers.
 
-    multi.finalize(std::move(head_ports));
+    // wire up the head_ports to the given providers.
+    // If any head_port does not have a matching provider, that is
+    // an error.
+    multiplexer::head_ports_t provider_ports;
+    assert(!head_ports.empty());
+    for (auto const& [_, ports] : head_ports) {
+      for (auto const& port : ports) {
+        // Find the provider that has the right product name (hidden in the
+        // output port) and the right family (hidden in the input port).
+        bool found_match = false;
+        for (auto const& [_, p] : providers) {
+          if (port.product_label == p->input()[0]) {
+            auto& provider = *p;
+            assert(provider.ports().size() == 1);
+            multiplexer::named_input_ports_t::value_type v{port.product_label, provider.ports()[0]};
+            auto& provider_input_ports = provider_ports[provider.full_name()];
+            provider_input_ports.push_back(v);
+            spdlog::info(
+              "Connecting provider {} to {}", provider.full_name(), port.product_label.to_string());
+            make_edge(provider.sender(), *(port.port));
+            found_match = true;
+            break;
+          }
+        }
+        if (!found_match) {
+          throw std::runtime_error("No provider found for product: "s +
+                                   port.product_label.to_string());
+        }
+      }
+    }
+
+    // We must have at least one provider port, or there can be no data to
+    // process.
+    assert(!provider_ports.empty());
+    // Pass the providers to the multiplexer.
+    multi.finalize(std::move(provider_ports));
   }
 }
 

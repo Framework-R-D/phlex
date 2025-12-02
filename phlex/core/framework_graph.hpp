@@ -108,7 +108,7 @@ namespace phlex::experimental {
       return make_glue().transform(std::move(name), std::move(f), c);
     }
 
-    auto provide(product_query name, auto f, concurrency c = concurrency::serial)
+    auto provide(std::string name, auto f, concurrency c = concurrency::serial)
     {
       return make_glue().provide(std::move(name), std::move(f), c);
     }
