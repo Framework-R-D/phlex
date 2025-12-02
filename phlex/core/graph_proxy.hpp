@@ -46,7 +46,7 @@ namespace phlex::experimental {
     template <typename... InitArgs>
     auto fold(std::string name,
               is_fold_like auto f,
-              concurrency c = concurrency::serial,
+              concurrency c,
               std::string partition = "job",
               InitArgs&&... init_args)
     {
@@ -57,37 +57,38 @@ namespace phlex::experimental {
                                 std::forward<InitArgs>(init_args)...);
     }
 
-    auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
+    auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::unlimited)
     {
       return create_glue().observe(std::move(name), std::move(f), c);
     }
 
-    auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
+    auto predicate(std::string name,
+                   is_predicate_like auto f,
+                   concurrency c = concurrency::unlimited)
     {
       return create_glue().predicate(std::move(name), std::move(f), c);
     }
 
-    auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial)
+    auto transform(std::string name,
+                   is_transform_like auto f,
+                   concurrency c = concurrency::unlimited)
     {
       return create_glue().transform(std::move(name), std::move(f), c);
     }
 
     template <typename Splitter>
-    auto unfold(std::string name,
-                is_predicate_like auto pred,
-                auto unf,
-                concurrency c = concurrency::serial)
+    auto unfold(std::string name, is_predicate_like auto pred, auto unf, concurrency c)
     {
       return create_glue(false).unfold(std::move(name), std::move(pred), std::move(unf), c);
     }
 
     template <typename Splitter>
-    auto unfold(is_predicate_like auto pred, auto unf, concurrency c = concurrency::serial)
+    auto unfold(is_predicate_like auto pred, auto unf, concurrency c)
     {
       return create_glue(false).unfold(std::move(pred), std::move(unf), c);
     }
 
-    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
+    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::unlimited)
     {
       return create_glue().output(std::move(name), std::move(f), c);
     }
