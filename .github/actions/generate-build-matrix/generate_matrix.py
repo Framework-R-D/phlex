@@ -2,6 +2,7 @@ import json
 import os
 import re
 
+
 def get_default_combinations(event_name, all_combinations):
     """Gets the default build combinations based on the GitHub event type."""
     if event_name in ("push", "pull_request", "pull_request_target"):
@@ -14,10 +15,17 @@ def get_default_combinations(event_name, all_combinations):
         # Default to a minimal safe configuration for unknown events
         return ["gcc/none"]
 
+
 def main():
     all_combinations = [
-        "gcc/none", "gcc/asan", "gcc/tsan", "gcc/valgrind",
-        "clang/none", "clang/asan", "clang/tsan", "clang/valgrind"
+        "gcc/none",
+        "gcc/asan",
+        "gcc/tsan",
+        "gcc/valgrind",
+        "clang/none",
+        "clang/asan",
+        "clang/tsan",
+        "clang/valgrind",
     ]
     user_input = os.getenv("USER_INPUT", "")
     comment_body = os.getenv("COMMENT_BODY", "")
@@ -38,8 +46,9 @@ def main():
         final_combinations = default_combinations
     else:
         # Check for explicit (non-modifier) combinations
-        explicit_combos = {t for t in tokens if not (
-            t.startswith("+") or t.startswith("-") or t == "all")}
+        explicit_combos = {
+            t for t in tokens if not (t.startswith("+") or t.startswith("-") or t == "all")
+        }
 
         if explicit_combos:
             # Case 1: Explicit list. This forms the base set, ignoring defaults.

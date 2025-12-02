@@ -26,7 +26,9 @@ def _process_sarif(path: Path) -> Iterable[str]:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Print SARIF results from one or more SARIF files")
+    parser = argparse.ArgumentParser(
+        description="Print SARIF results from one or more SARIF files"
+    )
     parser.add_argument("files", nargs="+", help="Path(s) to SARIF file(s) to inspect")
     args = parser.parse_args(argv)
 
