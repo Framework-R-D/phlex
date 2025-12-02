@@ -88,14 +88,22 @@ TEST_CASE("Splitting the processing", "[graph]")
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto event_store = job_store->make_child(i, "event");
-      event_store->add_product<unsigned>("max_number", 10u * (i + 1));
-      event_store->add_product<numbers_t>("ten_numbers", numbers_t(10, i + 1));
-      driver.yield(event_store);
+      driver.yield(job_store->make_child(i, "event"));
     }
   };
 
   framework_graph g{cells_to_process};
+
+  g.provide(
+     "provide_max_number",
+     [](data_cell_index const& index) -> unsigned { return 10u * (index.number() + 1); },
+     concurrency::unlimited)
+    .output_product("max_number"_in("event"));
+  g.provide(
+     "provide_ten_numbers",
+     [](data_cell_index const& index) -> numbers_t { return numbers_t(10, index.number() + 1); },
+     concurrency::unlimited)
+    .output_product("ten_numbers"_in("event"));
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family("max_number"_in("event"))

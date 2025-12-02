@@ -41,10 +41,13 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  auto store = product_store::base();
-  store->add_product("numbers", std::vector<unsigned>{0, 1, 2, 3, 4});
-  store->add_product("offset", 6u);
-  framework_graph g{store};
+  framework_graph g{product_store::base()};
+
+  g.provide("provide_numbers",
+            [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })
+    .output_product("numbers"_in("job"));
+  g.provide("provide_offset", [](data_cell_index const&) -> unsigned { return 6u; })
+    .output_product("offset"_in("job"));
 
   SECTION("All free functions")
   {

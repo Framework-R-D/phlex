@@ -54,15 +54,19 @@ TEST_CASE("Different data layers of fold", "[graph]")
       auto run_store = job_store->make_child(i, "run");
       driver.yield(run_store);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event");
-        event_store->add_product("number", j);
-        driver.yield(event_store);
+        driver.yield(run_store->make_child(j, "event"));
       }
     }
   };
 
   // framework_graph g{cells_to_process};
   framework_graph g{cells_to_process};
+
+  g.provide(
+     "provide_number",
+     [](data_cell_index const& index) -> unsigned int { return index.number(); },
+     concurrency::unlimited)
+    .output_product("number"_in("event"));
 
   g.fold("run_add", add, concurrency::unlimited, "run")
     .input_family("number"_in("event"))
@@ -75,16 +79,11 @@ TEST_CASE("Different data layers of fold", "[graph]")
     .input_family("run_sum"_in("run"))
     .output_products("two_layer_job_sum");
 
-  g.observe(
-     "verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }, concurrency::unlimited)
+  g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
     .input_family("run_sum"_in("run"));
-  g.observe(
-     "verify_two_layer_job_sum",
-     [](unsigned int actual) { CHECK(actual == 20u); },
-     concurrency::unlimited)
+  g.observe("verify_two_layer_job_sum", [](unsigned int actual) { CHECK(actual == 20u); })
     .input_family("two_layer_job_sum"_in("job"));
-  g.observe(
-     "verify_job_sum", [](unsigned int actual) { CHECK(actual == 20u); }, concurrency::unlimited)
+  g.observe("verify_job_sum", [](unsigned int actual) { CHECK(actual == 20u); })
     .input_family("job_sum"_in("job"));
 
   g.execute();
