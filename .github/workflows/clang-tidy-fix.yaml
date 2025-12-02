@@ -27,8 +27,10 @@ jobs:
     steps:
       - id: parse_comment
         name: Parse comment for tidy checks
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          checks_line=$(echo "${{ github.event.comment.body }}" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
+          checks_line=$(echo "$COMMENT_BODY" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
           if [ -n "$checks_line" ]; then
             tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
             echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
