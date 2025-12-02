@@ -31,9 +31,7 @@ namespace phlex::experimental {
             spdlog::debug("Matched {} ({}) from {} and types match. Keeping in candidate list.",
                           spec.full(),
                           query.to_string(),
-                          producer.node.full(),
-                          spec.type(),
-                          producer.type);
+                          producer.node.full());
           } else {
             spdlog::warn("Matched {} ({}) from {} and types match, but not exactly (produce {} and "
                          "consume {}). Keeping in candidate list!",
