@@ -1,3 +1,4 @@
+"""Generates a build matrix for CI based on the trigger event and user input."""
 import json
 import os
 import re
@@ -17,6 +18,7 @@ def get_default_combinations(event_name, all_combinations):
 
 
 def main():
+    """Generates and outputs the build matrix based on environment variables."""
     all_combinations = [
         "gcc/none",
         "gcc/asan",
@@ -70,7 +72,7 @@ def main():
         final_combinations = list(base_set)
 
     matrix = {"include": []}
-    for combo in sorted(list(set(final_combinations))):
+    for combo in sorted(set(final_combinations)):
         compiler, sanitizer = combo.split("/")
         matrix["include"].append({"compiler": compiler, "sanitizer": sanitizer})
 
