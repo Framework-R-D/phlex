@@ -18,6 +18,7 @@ namespace {
   // Provider algorithms
   toy::VertexCollection give_me_vertices(data_cell_index const& id)
   {
+    spdlog::info("give_me_vertices: {}", id.number());
     return toy::VertexCollection{id.number()};
   }
 }
@@ -28,32 +29,42 @@ namespace {
 
 TEST_CASE("provider_test")
 {
-  constexpr auto max_events{1'000u};
+  constexpr auto max_events{3u};
   // constexpr auto max_events{1'000'000u};
-  // spdlog::flush_on(spdlog::level::trace);
+  spdlog::flush_on(spdlog::level::trace);
 
   auto levels_to_process = [](framework_driver& driver) {
     auto job_store = product_store::base();
-    spdlog::info("job_store: is about to be yielded");
     driver.yield(job_store);
 
     for (unsigned int i : std::views::iota(1u, max_events + 1)) {
       auto store = job_store->make_child(i, "spill", "Source");
-      store->add_product("happy_vertices", toy::VertexCollection{i});
-      spdlog::info("store: is about to be yielded");
       driver.yield(store);
     }
   };
 
   framework_graph g{levels_to_process};
 
-  g.provide("happy_vertices"_in("spill"), give_me_vertices, concurrency::unlimited);
+  g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
+    .input_family(
+      "happy_vertices"_in("spill")); // todo: fix 'input_family'; it should be 'output_product'
+
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family("happy_vertices"_in("spill"))
     .output_products("vertex_data");
 
-  g.execute();
-  CHECK(g.execution_counts("passer") == max_events);
+  spdlog::info("graph: is about to be executed");
+  try {
+    g.execute();
+    CHECK(g.execution_counts("passer") == max_events);
+    CHECK(g.execution_counts("my_name_here") == max_events);
+  } catch (std::exception const& e) {
+    spdlog::error("Exception during graph execution: {}", e.what());
+    throw;
+  } catch (...) {
+    spdlog::error("Unknown exception during graph execution");
+    throw;
+  }
 }
 
 /*
@@ -62,7 +73,7 @@ Planned development flow:
 
 [x] Get initial test working.
 [x] Make the data product be a simple struct not a fundamental type.
-[ ] Introduce stub `provider` that takes product_store_ptr as input and returns a product_store_ptr.
+[x] Introduce stub `provider` that takes product_store_ptr as input and returns a product_store_ptr.
     Wire the provider into the graph.
 [ ] Modify the `provider` to take data_cell_index as input.
     The `multiplexer` will then need to emit data_cell_index, stripped from the `product_store` it currently returns.

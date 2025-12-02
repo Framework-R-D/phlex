@@ -12,27 +12,6 @@
 using namespace std::chrono;
 
 namespace {
-  phlex::experimental::product_store_const_ptr store_for(
-    phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::product_query const& label)
-  {
-    auto const& [product_name, layer] = label;
-    if (layer.empty()) {
-      return store->store_for_product(product_name.full());
-    }
-    if (store->layer_name() == layer and store->contains_product(product_name.full())) {
-      return store;
-    }
-    auto parent = store->parent(layer);
-    if (not parent) {
-      return nullptr;
-    }
-    if (parent->contains_product(product_name.full())) {
-      return parent;
-    }
-    throw std::runtime_error(
-      fmt::format("Store not available that provides product {}", label.to_string()));
-  }
 
   struct sender_slot {
     tbb::flow::receiver<phlex::experimental::message>* port;
@@ -43,6 +22,9 @@ namespace {
     }
   };
 
+  // FIXME: this function should return optional<sender_slot> to indicate
+  // because it can never return more than one slot, but can return no
+  // sender_slot.
   std::vector<sender_slot> senders_for(
     phlex::experimental::product_store_const_ptr store,
     phlex::experimental::multiplexer::named_input_ports_t const& ports)
@@ -50,20 +32,16 @@ namespace {
     std::vector<sender_slot> result;
     result.reserve(ports.size());
     for (auto const& [product_label, port] : ports) {
-      auto store_to_send = store_for(store, product_label);
-      if (not store_to_send) {
-        // This is fine if the store is not expected to contain the product.
-        continue;
-      }
-
+      // Look for the product_label that matches our store's layer_name.
       if (auto const& allowed_layer = product_label.layer; not allowed_layer.empty()) {
-        if (store_to_send->layer_name() != allowed_layer) {
+        if (store->layer_name() != allowed_layer) {
+          // This store level does not match the required layer
           continue;
         }
       }
-
-      result.push_back({port, store_to_send});
+      result.push_back({port, store});
     }
+    assert(result.size() <= 1);
     return result;
   }
 }

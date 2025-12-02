@@ -15,6 +15,7 @@
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <cstddef>
 #include <functional>
@@ -65,6 +66,11 @@ namespace phlex::experimental {
         g, concurrency, [this, ft = alg.release_algorithm()](message const& msg, auto& output) {
           auto& [stay_in_graph, to_output] = output;
 
+          if (msg.store->is_flush()) {
+            stay_in_graph.try_put(msg);
+            return;
+          }
+
           auto result = std::invoke(ft, *msg.store->id());
           ++calls_;
 
@@ -78,6 +84,8 @@ namespace phlex::experimental {
           to_output.try_put(new_msg);
         }}
     {
+      spdlog::info(
+        "Created provider node {} making output {}", this->full_name(), output[0].to_string());
     }
 
     tbb::flow::receiver<message>& receiver() { return provider_; }
