@@ -81,7 +81,7 @@ jobs:
       shell: bash
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Running clang-tidy checks..."
         cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1 || true

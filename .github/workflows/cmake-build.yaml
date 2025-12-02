@@ -78,15 +78,13 @@ jobs:
     needs: pre-check
     if: >
       needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
+      (github.event_name == 'pull_request' || github.event_name == 'push') &&
       needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      matrix: ${{ steps.generate.outputs.matrix }}
 
     steps:
       - name: Check out source code
@@ -100,8 +98,8 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
         with:
           repo-path: phlex-src
-          base-ref: ${{ github.event_name == 'issue_comment' && fromJSON(needs.pre-check.outputs.pr_details).base_sha || github.event.pull_request.base.sha || github.event.before }}
-          head-ref: ${{ github.event_name == 'issue_comment' && fromJSON(needs.pre-check.outputs.pr_details).sha || github.event.pull_request.head.sha || github.sha }}
+          base-ref: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head-ref: ${{ github.event.pull_request.head.sha || github.sha }}
           file-type: |
             cpp
             cmake
@@ -116,6 +114,13 @@ jobs:
             echo "::endgroup::"
           fi
 
+  generate-matrix:
+    needs: pre-check
+    if: needs.pre-check.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+    steps:
       - id: generate
         uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
         with:
@@ -123,18 +128,14 @@ jobs:
           comment-body: ${{ github.event.comment.body }}
 
   build:
-    needs: [pre-check, detect-changes]
+    needs: [pre-check, detect-changes, generate-matrix]
     if: >
       needs.pre-check.result == 'success' &&
       (
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'issue_comment' ||
         needs.pre-check.outputs.is_act == 'true' ||
         (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
-      ) &&
-      (
-        github.event_name != 'issue_comment' ||
-        github.event.comment.author_association == 'COLLABORATOR' ||
-        github.event.comment.author_association == 'OWNER'
       )
     runs-on: ubuntu-24.04
     strategy:
@@ -149,7 +150,8 @@ jobs:
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         path: phlex-src
-        ref: ${{ github.event_name == 'issue_comment' && fromJSON(needs.build-pre-check.outputs.pr_details).sha || github.ref }}
+        ref: ${{ needs.pre-check.outputs.sha }}
+        repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
@@ -175,11 +177,11 @@ jobs:
       if: matrix.sanitizer != 'valgrind'
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Running tests..."
         echo "::group::Running ctest"
-        if ctest --progress --output-on-failure -j $(nproc); then
+        if ctest --progress --output-on-failure -j "$(nproc)"; then
           echo "::endgroup::"
           echo "✅ All tests passed."
         else
@@ -192,7 +194,7 @@ jobs:
       if: matrix.sanitizer == 'valgrind'
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Running Valgrind tests..."
         echo "::group::Running ctest -T memcheck"

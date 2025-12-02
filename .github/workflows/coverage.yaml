@@ -151,7 +151,7 @@ jobs:
     - name: Run tests with coverage
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Running tests with coverage..."
         PROFILE_ROOT="$GITHUB_WORKSPACE/phlex-build/test/profraw"
@@ -161,7 +161,7 @@ jobs:
         export LLVM_PROFILE_FILE="$PROFILE_ROOT/%m-%p.profraw"
 
         echo "::group::Running ctest for coverage"
-        if ctest --progress --output-on-failure -j $(nproc); then
+        if ctest --progress --output-on-failure -j "$(nproc)"; then
           echo "::endgroup::"
           echo "✅ All tests passed."
         else
@@ -176,7 +176,7 @@ jobs:
       shell: bash
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Generating coverage reports for GCC..."
         echo "::group::Running coverage-gcov target"
@@ -195,7 +195,7 @@ jobs:
       shell: bash
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Generating coverage reports for Clang..."
         echo "::group::Running coverage-llvm target"
