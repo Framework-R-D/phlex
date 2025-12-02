@@ -5,7 +5,7 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/specified_label.hpp"
+#include "phlex/core/product_query.hpp"
 #include "phlex/model/algorithm_name.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -18,14 +18,14 @@ namespace phlex::experimental {
   public:
     products_consumer(algorithm_name name,
                       std::vector<std::string> predicates,
-                      specified_labels input_products);
+                      product_queries input_products);
 
     virtual ~products_consumer();
 
     std::size_t num_inputs() const;
 
-    specified_labels const& input() const noexcept;
-    tbb::flow::receiver<message>& port(specified_label const& product_label);
+    product_queries const& input() const noexcept;
+    tbb::flow::receiver<message>& port(product_query const& product_label);
 
     virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
     virtual std::size_t num_calls() const = 0;
@@ -38,9 +38,9 @@ namespace phlex::experimental {
     }
 
   private:
-    virtual tbb::flow::receiver<message>& port_for(specified_label const& product_label) = 0;
+    virtual tbb::flow::receiver<message>& port_for(product_query const& product_label) = 0;
 
-    specified_labels input_products_;
+    product_queries input_products_;
   };
 }
 

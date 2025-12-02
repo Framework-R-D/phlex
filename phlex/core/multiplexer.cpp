@@ -14,7 +14,7 @@ using namespace std::chrono;
 namespace {
   phlex::experimental::product_store_const_ptr store_for(
     phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::specified_label const& label)
+    phlex::experimental::product_query const& label)
   {
     auto const& [product_name, family] = label;
     if (family.empty()) {

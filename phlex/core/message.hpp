@@ -2,7 +2,7 @@
 #define PHLEX_CORE_MESSAGE_HPP
 
 #include "phlex/core/fwd.hpp"
-#include "phlex/core/specified_label.hpp"
+#include "phlex/core/product_query.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
@@ -67,8 +67,8 @@ namespace phlex::experimental {
     }
   }
 
-  std::size_t port_index_for(specified_labels const& product_labels,
-                             specified_label const& product_label);
+  std::size_t port_index_for(product_queries const& product_labels,
+                             product_query const& product_label);
 
   template <std::size_t I, std::size_t N>
   tbb::flow::receiver<message>& receiver_for(detail::join_messages_t<N>& join,
@@ -85,8 +85,8 @@ namespace phlex::experimental {
 
   template <std::size_t N>
   tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             specified_labels const& product_labels,
-                                             specified_label const& product_label)
+                                             product_queries const& product_labels,
+                                             product_query const& product_label)
   {
     if constexpr (N > 1ull) {
       auto const index = port_index_for(product_labels, product_label);
