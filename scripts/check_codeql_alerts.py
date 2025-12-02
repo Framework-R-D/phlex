@@ -140,7 +140,9 @@ def parse_args(argv: collections.abc.Sequence[str] | None = None) -> argparse.Na
     parser.add_argument(
         "--ref",
         required=False,
-        help="Optional Git ref to compare (e.g. refs/pull/104/merge). When provided the script will query the Code Scanning API instead of relying only on SARIF baselineState",
+        help="Optional Git ref to compare (e.g. refs/pull/104/merge). "
+        "When provided the script will query the Code Scanning API "
+        "instead of relying only on SARIF baselineState",
     )
     parser.add_argument(
         "--min-level",
@@ -244,7 +246,10 @@ def _paginate_alerts_api(
 
 
 def _format_physical_location(phys: dict[str, Any]) -> str | None:
-    """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation dict, or None."""
+    """Return a formatted location string `path[:line[:col]]`.
+
+    Input: SARIF physicalLocation dict, or None.
+    """
     if not phys:
         return None
     artifact = phys.get("artifactLocation", {})
@@ -540,7 +545,8 @@ def collect_alerts(
                         "relatedLocations": result.get("relatedLocations"),
                     }
                     _log(
-                        f"Unknown SARIF location for result: {json.dumps(snippet, default=str)[:4000]}"
+                        f"Unknown SARIF location for result: "
+                        f"{json.dumps(snippet, default=str)[:4000]}"
                     )
                 except (TypeError, OSError) as exc:
                     if DEBUG:
@@ -575,11 +581,13 @@ def _format_section(
         )
 
         lines.append(
-            f"- {bullet_prefix} **{alert.level_title()}**{severity_note} {prefix}{alert.rule_display()}{dismissed_note} at `{alert.location}` — {alert.message}"
+            f"- {bullet_prefix} **{alert.level_title()}**{severity_note} {prefix}"
+            f"{alert.rule_display()}{dismissed_note} at `{alert.location}` — {alert.message}"
         )
     if remaining:
         lines.append(
-            f"- {bullet_prefix} …and {remaining} more alerts (see Code Scanning for the full list)."
+            f"- {bullet_prefix} …and {remaining} more alerts "
+            "(see Code Scanning for the full list)."
         )
     return lines
 
@@ -605,14 +613,16 @@ def build_comment(
     if new_alerts:
         sev_note = f" — Highest severity: {highest_new}" if highest_new else ""
         lines.append(
-            f"## ❌ {len(new_alerts)} new CodeQL alert{'s' if len(new_alerts) != 1 else ''} (level ≥ {threshold}){sev_note}"
+            f"## ❌ {len(new_alerts)} new CodeQL alert"
+            f"{'s' if len(new_alerts) != 1 else ''} (level ≥ {threshold}){sev_note}"
         )
         lines.extend(_format_section(new_alerts, max_results=max_results, bullet_prefix=":x:"))
         lines.append("")
 
     if fixed_alerts:
         lines.append(
-            f"## ✅ {len(fixed_alerts)} CodeQL alert{'s' if len(fixed_alerts) != 1 else ''} resolved since the previous run"
+            f"## ✅ {len(fixed_alerts)} CodeQL alert"
+            f"{'s' if len(fixed_alerts) != 1 else ''} resolved since the previous run"
         )
         lines.extend(
             _format_section(
@@ -650,14 +660,16 @@ def write_summary(
         handle.write("## CodeQL Alerts\n\n")
         if new_alerts:
             handle.write(
-                f"❌ {len(new_alerts)} new alert{'s' if len(new_alerts) != 1 else ''} (level ≥ {threshold}).\n"
+                f"❌ {len(new_alerts)} new alert{'s' if len(new_alerts) != 1 else ''} "
+                "(level ≥ {threshold}).\n"
             )
             for line in _format_section(new_alerts, max_results=max_results, bullet_prefix=":x:"):
                 handle.write(f"{line}\n")
             handle.write("\n")
         if fixed_alerts:
             handle.write(
-                f"✅ {len(fixed_alerts)} alert{'s' if len(fixed_alerts) != 1 else ''} resolved since the previous run.\n"
+                f"✅ {len(fixed_alerts)} alert{'s' if len(fixed_alerts) != 1 else ''} "
+                "resolved since the previous run.\n"
             )
             for line in _format_section(
                 fixed_alerts,
@@ -682,14 +694,17 @@ def _print_summary(
 
     print("CodeQL Summary:")
     print(
-        f"- New (unfiltered): {len(new_alerts)}{f' (Highest: {highest_new})' if highest_new else ''}"
+        f"- New (unfiltered): {len(new_alerts)}"
+        f"{f' (Highest: {highest_new})' if highest_new else ''}"
     )
     print(
-        f"- Fixed (unfiltered): {len(fixed_alerts)}{f' (Highest: {highest_fixed})' if highest_fixed else ''}"
+        f"- Fixed (unfiltered): {len(fixed_alerts)}"
+        f"{f' (Highest: {highest_fixed})' if highest_fixed else ''}"
     )
     if matched_available:
         print(
-            f"- Matched (preexisting): {len(matched_alerts)}{f' (Highest: {highest_matched})' if highest_matched else ''}"
+            f"- Matched (preexisting): {len(matched_alerts)}"
+            f"{f' (Highest: {highest_matched})' if highest_matched else ''}"
         )
     else:
         print("- Matched (preexisting): N/A (no API comparison)")
@@ -857,18 +872,24 @@ def _build_multi_section_comment(
     # Matching summary (always include in PR comment)
     if api_comp.new_vs_base or api_comp.fixed_vs_base:
         lines.append(
-            f"{len(api_comp.fixed_vs_base)} fixed, {len(api_comp.new_vs_base)} new since branch point ({api_comp.base_sha[:7] if api_comp.base_sha else 'unknown'})"
+            f"{len(api_comp.fixed_vs_base)} fixed, {len(api_comp.new_vs_base)} "
+            "new since branch point ("
+            f"{api_comp.base_sha[:7] if api_comp.base_sha else 'unknown'})"
         )
     if api_comp.new_vs_prev or api_comp.fixed_vs_prev:
         lines.append(
-            f"{len(api_comp.fixed_vs_prev)} fixed, {len(api_comp.new_vs_prev)} new since previous report on PR ({api_comp.prev_commit_ref[:7] if api_comp.prev_commit_ref else 'unknown'})"
+            f"{len(api_comp.fixed_vs_prev)} fixed, {len(api_comp.new_vs_prev)} "
+            "new since previous report on PR ("
+            f"{api_comp.prev_commit_ref[:7] if api_comp.prev_commit_ref else 'unknown'})"
         )
     lines.append("")
 
     # Add previous-commit comparison if available
     if api_comp.new_vs_prev:
         lines.append(
-            f"## ❌ {len(api_comp.new_vs_prev)} new CodeQL alert{'s' if len(api_comp.new_vs_prev) != 1 else ''} since the previous PR commit"
+            f"## ❌ {len(api_comp.new_vs_prev)} new CodeQL alert"
+            f"{'s' if len(api_comp.new_vs_prev) != 1 else ''} "
+            "since the previous PR commit"
         )
         lines.extend(
             _format_section(api_comp.new_vs_prev, max_results=max_results, bullet_prefix=":x:")
@@ -876,7 +897,9 @@ def _build_multi_section_comment(
         lines.append("")
     if api_comp.fixed_vs_prev:
         lines.append(
-            f"## ✅ {len(api_comp.fixed_vs_prev)} CodeQL alert{'s' if len(api_comp.fixed_vs_prev) != 1 else ''} resolved since the previous PR commit"
+            f"## ✅ {len(api_comp.fixed_vs_prev)} CodeQL alert"
+            f"{'s' if len(api_comp.fixed_vs_prev) != 1 else ''} "
+            "resolved since the previous PR commit"
         )
         lines.extend(
             _format_section(
@@ -888,7 +911,8 @@ def _build_multi_section_comment(
     # Add branch-point comparison if available
     if api_comp.new_vs_base:
         lines.append(
-            f"## ❌ {len(api_comp.new_vs_base)} new CodeQL alert{'s' if len(api_comp.new_vs_base) != 1 else ''} since the branch point"
+            f"## ❌ {len(api_comp.new_vs_base)} new CodeQL alert"
+            f"{'s' if len(api_comp.new_vs_base) != 1 else ''} since the branch point"
         )
         lines.extend(
             _format_section(api_comp.new_vs_base, max_results=max_results, bullet_prefix=":x:")
@@ -896,7 +920,8 @@ def _build_multi_section_comment(
         lines.append("")
     if api_comp.fixed_vs_base:
         lines.append(
-            f"## ✅ {len(api_comp.fixed_vs_base)} CodeQL alert{'s' if len(api_comp.fixed_vs_base) != 1 else ''} resolved since the branch point"
+            f"## ✅ {len(api_comp.fixed_vs_base)} CodeQL alert"
+            f"{'s' if len(api_comp.fixed_vs_base) != 1 else ''} resolved since the branch point"
         )
         lines.extend(
             _format_section(
@@ -958,7 +983,8 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
             return 2
 
     # Compute unfiltered new/fixed and matched summaries for stdout
-    # If API-mode was used, pr_alerts/main_alerts dicts are available; otherwise fall back to SARIF unfiltered buckets
+    # If API-mode was used, pr_alerts/main_alerts dicts are available;
+    # otherwise fall back to SARIF unfiltered buckets
     if api_comp is not None:
         new_all = api_comp.new_alerts
         fixed_all = api_comp.fixed_alerts
@@ -971,9 +997,11 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
             new_all = buckets_all.get("new", [])
             fixed_all = buckets_all.get("absent", [])
         except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-            # If re-collection fails (malformed SARIF or unexpected structure), fall back to thresholded lists
+            # If re-collection fails (malformed SARIF or unexpected structure),
+            # fall back to thresholded lists
             _debug(
-                f"Re-collecting SARIF without threshold failed: {exc}; falling back to thresholded lists"
+                f"Re-collecting SARIF without threshold failed: {exc}; "
+                "falling back to thresholded lists"
             )
             new_all = new_alerts
             fixed_all = fixed_alerts

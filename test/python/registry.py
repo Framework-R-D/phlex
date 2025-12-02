@@ -7,7 +7,7 @@ phlex = cpp.phlex.experimental
 
 cppyy.include("Python.h")
 
-_registered_modules = dict()
+_registered_modules = {}
 
 
 def register(m, config):
