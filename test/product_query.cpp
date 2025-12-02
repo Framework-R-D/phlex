@@ -16,11 +16,11 @@ TEST_CASE("Only name in label", "[data model]")
   product_query label{"product"};
   CHECK(label == "product"_in);
 
-  // Empty family string is interpreted as a wildcard--i.e. any family.
+  // Empty layer string is interpreted as a wildcard--i.e. any layer.
   CHECK(label == "product"_in(""));
 }
 
-TEST_CASE("Label with family", "[data model]")
+TEST_CASE("Label with layer", "[data model]")
 {
   product_query label{"product", {"event"}};
   CHECK(label == "product"_in("event"));

@@ -7,17 +7,17 @@
 #include <tuple>
 
 namespace phlex::experimental {
-  product_query product_query::operator()(std::string family) &&
+  product_query product_query::operator()(std::string layer) &&
   {
-    return {std::move(name), std::move(family)};
+    return {std::move(name), std::move(layer)};
   }
 
   std::string product_query::to_string() const
   {
-    if (family.empty()) {
+    if (layer.empty()) {
       return name.full();
     }
-    return fmt::format("{} ϵ {}", name.full(), family);
+    return fmt::format("{} ϵ {}", name.full(), layer);
   }
 
   product_query operator""_in(char const* name, std::size_t length)
@@ -30,14 +30,14 @@ namespace phlex::experimental {
 
   bool operator==(product_query const& a, product_query const& b)
   {
-    return std::tie(a.name, a.family) == std::tie(b.name, b.family);
+    return std::tie(a.name, a.layer) == std::tie(b.name, b.layer);
   }
 
   bool operator!=(product_query const& a, product_query const& b) { return !(a == b); }
 
   bool operator<(product_query const& a, product_query const& b)
   {
-    return std::tie(a.name, a.family) < std::tie(b.name, b.family);
+    return std::tie(a.name, a.layer) < std::tie(b.name, b.layer);
   }
 
   std::ostream& operator<<(std::ostream& os, product_query const& label)
