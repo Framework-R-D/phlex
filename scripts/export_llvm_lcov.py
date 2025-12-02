@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-
-"""Helper to capture llvm-cov export output into an LCOV file."""
-
+"""Export LLVM LCOV."""
 from __future__ import annotations
 
 import argparse
@@ -9,8 +7,11 @@ import pathlib
 import subprocess
 import sys
 
+"""Helper to capture llvm-cov export output into an LCOV file."""
+
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser."""
     parser = argparse.ArgumentParser(
         description="Run llvm-cov export and write the LCOV data to a file."
     )
@@ -28,6 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Main entry point for the script."""
     parser = build_parser()
     args = parser.parse_args(argv)
 

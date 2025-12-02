@@ -88,17 +88,21 @@ class Alert:
     analysis_key: str | None = None
 
     def icon(self) -> str:
+        """Return the icon for the alert level."""
         return LEVEL_ICONS.get(self.level, ":grey_question:")
 
     def level_title(self) -> str:
+        """Return the title for the alert level."""
         return self.level.capitalize()
 
     def rule_display(self) -> str:
+        """Return the rule display string."""
         if self.help_uri:
             return f"[{self.rule_id}]({self.help_uri})"
         return f"`{self.rule_id}`"
 
     def severity_suffix(self) -> str:
+        """Return the severity suffix string."""
         if self.security_severity:
             return f" ({self.security_severity})"
         return ""
@@ -120,6 +124,7 @@ class APIAlertComparison:
 
 
 def parse_args(argv: collections.abc.Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--sarif",
@@ -140,7 +145,9 @@ def parse_args(argv: collections.abc.Sequence[str] | None = None) -> argparse.Na
     parser.add_argument(
         "--ref",
         required=False,
-        help="Optional Git ref to compare (e.g. refs/pull/104/merge). When provided the script will query the Code Scanning API instead of relying only on SARIF baselineState",
+        help="Optional Git ref to compare (e.g. refs/pull/104/merge). "
+             "When provided the script will query the Code Scanning API "
+             "instead of relying only on SARIF baselineState",
     )
     parser.add_argument(
         "--min-level",
@@ -244,7 +251,8 @@ def _paginate_alerts_api(
 
 
 def _format_physical_location(phys: dict[str, Any]) -> str | None:
-    """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation dict, or None."""
+    """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation
+       dict, or None."""
     if not phys:
         return None
     artifact = phys.get("artifactLocation", {})
@@ -357,6 +365,7 @@ def _load_sarif_file(path: Path) -> dict[str, Any]:
 
 
 def load_sarif(path: Path) -> dict[str, Any]:
+    """Load a SARIF file, or a directory of SARIF files."""
     if path.is_dir():
         sarif_files = sorted(p for p in path.rglob("*.sarif") if p.is_file())
         if not sarif_files:
@@ -375,6 +384,7 @@ def load_sarif(path: Path) -> dict[str, Any]:
 
 
 def severity(level: str | None) -> str:
+    """Return a normalized severity level."""
     if not level:
         return "warning"
     normalized = level.lower()
@@ -384,10 +394,12 @@ def severity(level: str | None) -> str:
 
 
 def severity_reaches_threshold(level: str, threshold: str) -> bool:
+    """Check if a severity level meets or exceeds a threshold."""
     return LEVEL_ORDER.get(level, 0) >= LEVEL_ORDER.get(threshold, 0)
 
 
 def sanitize_message(message: str | None) -> str:
+    """Sanitize and truncate a message string."""
     if not message:
         return "(no message provided)"
     flattened = " ".join(message.split())
@@ -397,6 +409,7 @@ def sanitize_message(message: str | None) -> str:
 
 
 def extract_message(result: dict[str, Any]) -> str:
+    """Extract and sanitize the message from a SARIF result."""
     message = result.get("message") or {}
     text = message.get("markdown") or message.get("text")
     if not text and isinstance(message, dict):
@@ -407,6 +420,7 @@ def extract_message(result: dict[str, Any]) -> str:
 
 
 def extract_location(result: dict[str, Any]) -> str:
+    """Extract the location from a SARIF result."""
     locations: collections.abc.Iterable[dict[str, Any]] = result.get("locations") or []
     for location in locations:
         phys = location.get("physicalLocation") or {}
@@ -480,6 +494,7 @@ def extract_location(result: dict[str, Any]) -> str:
 
 
 def rule_lookup_map(run: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Create a lookup map from rule ID to rule object."""
     rules: dict[str, dict[str, Any]] = {}
     tool = run.get("tool") or {}
     driver = tool.get("driver") or {}
@@ -491,6 +506,7 @@ def rule_lookup_map(run: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def extract_security_severity(result: dict[str, Any]) -> str | None:
+    """Extract the security severity from a SARIF result."""
     props = result.get("properties") or {}
     for key in ("security-severity", "problem.severity", "problemSeverity"):
         value = props.get(key)
@@ -504,6 +520,7 @@ def collect_alerts(
     *,
     min_level: str,
 ) -> dict[str, list[Alert]]:
+    """Collect new and absent alerts from a SARIF file."""
     buckets: dict[str, list[Alert]] = {"new": [], "absent": []}
     runs: collections.abc.Iterable[dict[str, Any]] = sarif.get("runs") or []
     for run in runs:
@@ -575,7 +592,9 @@ def _format_section(
         )
 
         lines.append(
-            f"- {bullet_prefix} **{alert.level_title()}**{severity_note} {prefix}{alert.rule_display()}{dismissed_note} at `{alert.location}` — {alert.message}"
+            f"- {bullet_prefix} **{alert.level_title()}**{severity_note} "
+            f"{prefix}{alert.rule_display()}{dismissed_note} at "
+            f"`{alert.location}` — {alert.message}"
         )
     if remaining:
         lines.append(
@@ -592,6 +611,7 @@ def build_comment(
     max_results: int,
     threshold: str,
 ) -> str:
+    """Build a Markdown comment for a pull request."""
     lines: list[str] = []
 
     def _highest_severity(alerts: collections.abc.Sequence[Alert]) -> str | None:
@@ -630,6 +650,7 @@ def build_comment(
 
 
 def highest_severity_level_title(alerts: collections.abc.Sequence[Alert]) -> str | None:
+    """Return the highest severity level title from a list of alerts."""
     if not alerts:
         return None
     best = max(alerts, key=lambda a: LEVEL_ORDER.get(a.level, 0))
@@ -643,6 +664,7 @@ def write_summary(
     max_results: int,
     threshold: str,
 ) -> None:
+    """Write a summary of the results to the GitHub step summary."""
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if not summary_path or (not new_alerts and not fixed_alerts):
         return
@@ -702,6 +724,7 @@ def set_outputs(
     fixed_alerts: collections.abc.Sequence[Alert],
     comment_path: Path | None,
 ) -> None:
+    """Set the GitHub action outputs."""
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
         return
@@ -857,11 +880,14 @@ def _build_multi_section_comment(
     # Matching summary (always include in PR comment)
     if api_comp.new_vs_base or api_comp.fixed_vs_base:
         lines.append(
-            f"{len(api_comp.fixed_vs_base)} fixed, {len(api_comp.new_vs_base)} new since branch point ({api_comp.base_sha[:7] if api_comp.base_sha else 'unknown'})"
+            f"{len(api_comp.fixed_vs_base)} fixed, {len(api_comp.new_vs_base)} "
+            f"new since branch point ({api_comp.base_sha[:7] if api_comp.base_sha else 'unknown'})"
         )
     if api_comp.new_vs_prev or api_comp.fixed_vs_prev:
         lines.append(
-            f"{len(api_comp.fixed_vs_prev)} fixed, {len(api_comp.new_vs_prev)} new since previous report on PR ({api_comp.prev_commit_ref[:7] if api_comp.prev_commit_ref else 'unknown'})"
+            f"{len(api_comp.fixed_vs_prev)} fixed, {len(api_comp.new_vs_prev)} "
+            "new since previous report on PR ("
+            f"{api_comp.prev_commit_ref[:7] if api_comp.prev_commit_ref else 'unknown'})"
         )
     lines.append("")
 
@@ -916,6 +942,7 @@ def _build_multi_section_comment(
 
 
 def main(argv: collections.abc.Sequence[str] | None = None) -> int:
+    """Main entry point for the script."""
     args = parse_args(argv)
     # set global debug flag
     global DEBUG

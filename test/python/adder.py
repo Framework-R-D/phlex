@@ -1,3 +1,4 @@
+"""Adder test."""
 import cppyy
 
 cppyy.cppdef("""\

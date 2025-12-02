@@ -1,3 +1,4 @@
+"""Registry test."""
 import cppyy
 import pyphlex  # noqa: F401
 
@@ -7,7 +8,8 @@ phlex = cpp.phlex.experimental
 
 cppyy.include("Python.h")
 
-_registered_modules = dict()
+_registered_modules = {}
+
 
 
 def register(m, config):

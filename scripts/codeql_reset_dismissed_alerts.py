@@ -99,6 +99,8 @@ def _paginate_alerts(owner: str, repo: str) -> Iterator[dict]:
 
 @dataclass
 class Alert:
+    """Represents a CodeQL alert."""
+
     number: int
     html_url: str
     rule_id: str
@@ -123,6 +125,7 @@ def _to_alert(raw: dict) -> Alert:
 
 
 def reopen_alert(owner: str, repo: str, alert: Alert, *, dry_run: bool) -> None:
+    """Reopen a dismissed CodeQL alert."""
     if dry_run:
         print(f"DRY RUN: would reopen alert #{alert.number} ({alert.rule_id})")
         return
@@ -135,6 +138,7 @@ def reopen_alert(owner: str, repo: str, alert: Alert, *, dry_run: bool) -> None:
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--owner", required=True, help="GitHub organization or user")
     parser.add_argument("--repo", required=True, help="Repository name")
@@ -147,6 +151,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    """Main entry point for the script."""
     args = parse_args(argv)
     try:
         alerts = [_to_alert(raw) for raw in _paginate_alerts(args.owner, args.repo)]

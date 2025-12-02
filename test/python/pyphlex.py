@@ -28,6 +28,7 @@ cppyy.cppdef("using namespace phlex::experimental;")
 # `with` is a keyword in Python, so can not be the name of a method; fix this
 # by renaming it to `with_` for all phlex classes
 def fixwith(klass, name):
+    """Fix the `with` keyword in Python."""
     try:
         klass.with_ = getattr(klass, "with")
     except AttributeError:
