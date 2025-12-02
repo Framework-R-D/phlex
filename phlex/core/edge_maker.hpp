@@ -105,7 +105,8 @@ namespace phlex::experimental {
     // an error.
     multiplexer::head_ports_t provider_ports;
     assert(!head_ports.empty());
-    for (auto const& [_, ports] : head_ports) {
+
+    for (auto const& [node_name, ports] : head_ports) {
       for (auto const& port : ports) {
         // Find the provider that has the right product name (hidden in the
         // output port) and the right family (hidden in the input port).
@@ -117,11 +118,16 @@ namespace phlex::experimental {
           if (port.product_label.name.full() == p->input()[0].name.full()) {
             auto& provider = *p;
             assert(provider.ports().size() == 1);
-            multiplexer::named_input_ports_t::value_type v{port.product_label, provider.ports()[0]};
-            auto& provider_input_ports = provider_ports[provider.full_name()];
-            provider_input_ports.push_back(v);
-            spdlog::info(
-              "Connecting provider {} to {}", provider.full_name(), port.product_label.to_string());
+            auto it = provider_ports.find(provider.full_name());
+            if (it == provider_ports.cend()) {
+              multiplexer::named_input_ports_t provider_input_ports;
+              provider_input_ports.emplace_back(port.product_label, provider.ports()[0]);
+              provider_ports.try_emplace(provider.full_name(), std::move(provider_input_ports));
+            }
+            spdlog::info("Connecting provider {} to node {} (product: {})",
+                         provider.full_name(),
+                         node_name,
+                         port.product_label.to_string());
             make_edge(provider.sender(), *(port.port));
             found_match = true;
             break;
