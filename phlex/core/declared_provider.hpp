@@ -84,7 +84,8 @@ namespace phlex::experimental {
           to_output.try_put(new_msg);
         }}
     {
-      spdlog::info("Created provider node {} making output {}", this->full_name(), output[0].to_string());
+      spdlog::info(
+        "Created provider node {} making output {}", this->full_name(), output[0].to_string());
     }
 
     tbb::flow::receiver<message>& receiver() { return provider_; }

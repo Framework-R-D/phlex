@@ -99,7 +99,7 @@ namespace phlex::experimental {
     // Eventually, we want to look at the filled-in head_ports and
     // figure out what provider nodes are needed.
     // For now, we take as input a mapping of declared_providers.
-    
+
     // wire up the head_ports to the given providers.
     // If any head_port does not have a matching provider, that is
     // an error.
@@ -114,20 +114,19 @@ namespace phlex::experimental {
           if (port.product_label == p->input()[0]) {
             auto& provider = *p;
             assert(provider.ports().size() == 1);
-            multiplexer::named_input_ports_t::value_type v{port.product_label,
-                                                           provider.ports()[0]};
+            multiplexer::named_input_ports_t::value_type v{port.product_label, provider.ports()[0]};
             auto& provider_input_ports = provider_ports[provider.full_name()];
             provider_input_ports.push_back(v);
-            spdlog::info("Connecting provider {} to {}",
-                         provider.full_name(),
-                         port.product_label.to_string());
+            spdlog::info(
+              "Connecting provider {} to {}", provider.full_name(), port.product_label.to_string());
             make_edge(provider.sender(), *(port.port));
             found_match = true;
             break;
           }
         }
         if (!found_match) {
-          throw std::runtime_error("No provider found for product: "s + port.product_label.to_string());
+          throw std::runtime_error("No provider found for product: "s +
+                                   port.product_label.to_string());
         }
       }
     }

@@ -27,7 +27,7 @@ namespace phlex::experimental {
 
   // ==============================================================================
   // Registering user functions
-/**
+  /**
  * @brief A class template that provides a fluent interface for registering data processing nodes in a flow graph.
  *
  * The glue class acts as a registration helper that allows binding user-defined functions and algorithms
@@ -81,13 +81,8 @@ namespace phlex::experimental {
     template <typename FT>
     auto provide(std::string name, FT f, concurrency c)
     {
-      return make_registration<provider_node>(config_,
-                                              name,
-                                              algorithm_bits{bound_obj_, std::move(f)},
-                                              c,
-                                              graph_,
-                                              nodes_,
-                                              errors_);
+      return make_registration<provider_node>(
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
     }
 
     template <typename FT>

@@ -41,7 +41,7 @@ namespace {
       }
       result.push_back({port, store});
     }
-    assert (result.size() <= 1);
+    assert(result.size() <= 1);
     return result;
   }
 }
