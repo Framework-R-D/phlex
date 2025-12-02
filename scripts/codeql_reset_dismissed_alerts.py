@@ -35,9 +35,7 @@ class GitHubAPIError(RuntimeError):
 def _token() -> str:
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if not token:
-        raise GitHubAPIError(
-            "Set GITHUB_TOKEN (or GH_TOKEN) with security_events:write scope."
-        )
+        raise GitHubAPIError("Set GITHUB_TOKEN (or GH_TOKEN) with security_events:write scope.")
     return token
 
 
@@ -97,6 +95,8 @@ def _paginate_alerts(owner: str, repo: str) -> Iterator[dict]:
         for alert in result:
             yield alert
         page += 1
+
+
 @dataclass
 class Alert:
     number: int

@@ -1,7 +1,7 @@
 import cppyy
 import pyphlex  # noqa: F401
 
-__all__ = ['pyphlex']
+__all__ = ["pyphlex"]
 cpp = cppyy.gbl
 phlex = cpp.phlex.experimental
 
@@ -9,8 +9,9 @@ cppyy.include("Python.h")
 
 _registered_modules = dict()
 
+
 def register(m, config):
-    config = cppyy.bind_object(config, 'phlex::experimental::configuration')
+    config = cppyy.bind_object(config, "phlex::experimental::configuration")
     pymod_name = str(config.get["std::string"]("pymodule"))
     pyalg_name = str(config.get["std::string"]("pyalg"))
 
@@ -25,6 +26,5 @@ def register(m, config):
 
     pyalg = getattr(pymod, pyalg_name)
 
-    graph = cppyy.bind_object(m, 'phlex::experimental::graph_proxy<phlex::experimental::void_tag>')
-    graph.with_(pyalg_name, pyalg, phlex.concurrency.serial).transform(*inputs).to(*outputs);
-
+    graph = cppyy.bind_object(m, "phlex::experimental::graph_proxy<phlex::experimental::void_tag>")
+    graph.with_(pyalg_name, pyalg, phlex.concurrency.serial).transform(*inputs).to(*outputs)
