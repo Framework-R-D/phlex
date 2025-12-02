@@ -11,20 +11,23 @@ namespace phlex::experimental {
     auto const& spec = query.name;
     auto [b, e] = producers_.equal_range(spec.name());
     if (b == e) {
+      spdlog::debug("Failed to find {}. Assuming it is provided by the driver", spec.name());
       return nullptr;
     }
     std::map<std::string, named_output_port const*> candidates;
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
       if (producer.node.match(spec.qualifier())) {
         if (spec.type() != producer.type) {
-          spdlog::debug("Matched {} from {} but types don't match (`{}` vs `{}`)",
+          spdlog::debug("Matched {} ({}) from {} but types don't match (`{}` vs `{}`)",
                         spec.full(),
+                        query.to_string(),
                         producer.node.full(),
                         spec.type(),
                         producer.type);
         } else {
-          spdlog::debug("Matched {} from {} and types match (`{}` vs `{}`)",
+          spdlog::debug("Matched {} ({}) from {} and types match (`{}` vs `{}`)",
                         spec.full(),
+                        query.to_string(),
                         producer.node.full(),
                         spec.type(),
                         producer.type);

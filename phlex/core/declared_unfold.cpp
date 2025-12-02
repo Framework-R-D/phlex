@@ -48,6 +48,10 @@ namespace phlex::experimental {
       spdlog::warn("Unfold {} has {} cached stores.", full_name(), stores.size());
     }
     for (auto const& [hash, store] : stores) {
+      if (not store) {
+        spdlog::warn("Store with hash {} is null!", hash);
+        continue;
+      }
       spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
     }
   }
