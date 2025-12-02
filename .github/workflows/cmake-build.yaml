@@ -177,11 +177,11 @@ jobs:
       if: matrix.sanitizer != 'valgrind'
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Running tests..."
         echo "::group::Running ctest"
-        if ctest --progress --output-on-failure -j $(nproc); then
+        if ctest --progress --output-on-failure -j "$(nproc)"; then
           echo "::endgroup::"
           echo "✅ All tests passed."
         else
@@ -194,7 +194,7 @@ jobs:
       if: matrix.sanitizer == 'valgrind'
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
 
         echo "➡️ Running Valgrind tests..."
         echo "::group::Running ctest -T memcheck"
