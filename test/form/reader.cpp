@@ -43,7 +43,7 @@ int main(int /* argc*/, char** /* argv[]*/)
       // Processing per sub-event
       std::vector<float> const* track_start_x = nullptr;
       char seg_id_text[64];
-      sprintf(seg_id_text, seg_id, nevent, nseg);
+      snprintf(seg_id_text, 64, seg_id, nevent, nseg);
       std::string const creator = "Toy_Tracker";
       mock_phlex::product_base pb = {
         "trackStart", seg_id_text, track_start_x, std::type_index{typeid(std::vector<float>)}};
@@ -87,7 +87,7 @@ int main(int /* argc*/, char** /* argv[]*/)
     std::cout << "PHLEX: Read Event segments done " << nevent << std::endl;
 
     char evt_id_text[64];
-    sprintf(evt_id_text, evt_id, nevent);
+    snprintf(evt_id_text, 64, evt_id, nevent);
     std::string const creator = "Toy_Tracker_Event";
     mock_phlex::product_base pb = {
       "trackStartX", evt_id_text, track_x, std::type_index{typeid(std::vector<float>)}};

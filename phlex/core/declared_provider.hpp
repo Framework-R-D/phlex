@@ -8,8 +8,8 @@
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/level_id.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/qualified_name.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -28,12 +28,12 @@ namespace phlex::experimental {
 
   class declared_provider : public products_consumer {
   public:
-    declared_provider(algorithm_name name, specified_labels output_products);
+    declared_provider(algorithm_name name, product_queries output_products);
     virtual ~declared_provider();
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual qualified_names const& output() const = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t num_calls() const = 0;
   };
 
@@ -58,7 +58,7 @@ namespace phlex::experimental {
                   std::vector<std::string> /*ignored */,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
-                  specified_labels output) :
+                  product_queries output) :
       // Fixme: get rid of copying of output.
       declared_provider{std::move(name), output},
       output_{output[0].name},
@@ -89,19 +89,16 @@ namespace phlex::experimental {
 
     tbb::flow::receiver<message>& receiver() { return provider_; }
 
-    tbb::flow::receiver<message>& port_for(specified_label const&) override
-    {
-      return provider_;
-    }
+    tbb::flow::receiver<message>& port_for(product_query const&) override { return provider_; }
     std::vector<tbb::flow::receiver<message>*> ports() override { return {&provider_}; }
 
   private:
     tbb::flow::sender<message>& sender() override { return output_port<0>(provider_); }
     tbb::flow::sender<message>& to_output() override { return output_port<1>(provider_); }
-    qualified_names const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     std::size_t num_calls() const final { return calls_.load(); }
-    qualified_names output_;
+    product_specifications output_;
     tbb::flow::multifunction_node<message, messages_t<2u>> provider_;
     std::atomic<std::size_t> calls_;
   };

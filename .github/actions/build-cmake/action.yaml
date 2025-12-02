@@ -54,3 +54,4 @@ runs:
         BUILD_PATH: ${{ inputs.build-path }}
         TARGET: ${{ inputs.target }}
         PARALLEL_JOBS: ${{ inputs.parallel-jobs }}
+        CICOLOR_FORCE: 1

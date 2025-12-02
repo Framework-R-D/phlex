@@ -32,14 +32,14 @@ def _relative_subpath(path: Path, base: Path | None) -> Path | None:
     try:
         return path.relative_to(base)
     except ValueError:
-        pass
+        pass  # Invalid path: continue
 
     base_resolved = base.resolve()
     path_resolved = path.resolve()
     try:
         return path_resolved.relative_to(base_resolved)
     except ValueError:
-        pass
+        pass  # Invalid path: continue
 
     rel_str = os.path.relpath(path, base)
     if not rel_str.startswith(".."):
@@ -148,7 +148,7 @@ def normalize(
                     if stripped != path:
                         base_candidates.insert(0, stripped)
                 except ValueError:
-                    pass
+                    pass  # Invalid path: continue
 
             for base_candidate in base_candidates:
                 if alias_relative is not None:
