@@ -45,9 +45,7 @@ namespace {
       driver.yield(job_store);
 
       for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        auto store = job_store->make_child(i, "event");
-        store->add_product("thing", make_derived_as_abstract());
-        driver.yield(store);
+        driver.yield(job_store->make_child(i, "event"));
       }
     }
 
@@ -60,6 +58,8 @@ namespace {
 TEST_CASE("Test vector of abstract types")
 {
   framework_graph g{source{1u}};
+  g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
+    .output_product("thing"_in("event"));
   g.transform("read_thing", read_abstract).input_family("thing"_in("event")).output_products("sum");
   g.observe(
      "verify_sum", [](int sum) { CHECK(sum == 3); }, concurrency::serial)
