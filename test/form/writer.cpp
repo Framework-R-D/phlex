@@ -72,7 +72,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       // done, phlex call write(mock_phlex::product_base)
       // sub-event writing called by phlex
       char seg_id_text[64];
-      sprintf(seg_id_text, seg_id, nevent, nseg);
+      snprintf(seg_id_text, 64, seg_id, nevent, nseg);
       std::vector<mock_phlex::product_base> batch;
       std::string const creator = "Toy_Tracker";
       mock_phlex::product_base pb = {
@@ -122,7 +122,7 @@ int main(int /*argc*/, char** /* argv[]*/)
 
     // event writing, current framework, will also write references
     char evt_id_text[64];
-    sprintf(evt_id_text, evt_id, nevent);
+    snprintf(evt_id_text, 64, evt_id, nevent);
     std::string const creator = "Toy_Tracker_Event";
     mock_phlex::product_base pb = {
       "trackStartX", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};

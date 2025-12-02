@@ -3,7 +3,7 @@ add_library(
   ${FORM_DATA_PROD_LIB_NAME} SHARED track_start.cpp
   ) # REFLEX_GENERATE_DICTIONARY doesn't work trivially without making a shared
     # library
-target_link_libraries(${FORM_DATA_PROD_LIB_NAME})
+target_link_libraries(${FORM_DATA_PROD_LIB_NAME} ROOT::RIO)
 
 if(FORM_USE_ROOT_STORAGE)
   find_package(ROOT REQUIRED COMPONENTS Core RIO)
