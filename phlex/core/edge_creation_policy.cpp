@@ -1,8 +1,9 @@
 #include "phlex/core/edge_creation_policy.hpp"
 
+#include "fmt/format.h"
+#include "fmt/ranges.h"
 #include "spdlog/spdlog.h"
 #include <ranges>
-#include <sstream>
 
 namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
@@ -18,19 +19,30 @@ namespace phlex::experimental {
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
       if (producer.node.match(spec.qualifier())) {
         if (spec.type() != producer.type) {
-          spdlog::debug("Matched {} ({}) from {} but types don't match (`{}` vs `{}`)",
+          spdlog::debug("Matched {} ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
+                        "from candidate list.",
                         spec.full(),
                         query.to_string(),
                         producer.node.full(),
                         spec.type(),
                         producer.type);
         } else {
-          spdlog::debug("Matched {} ({}) from {} and types match (`{}` vs `{}`)",
-                        spec.full(),
-                        query.to_string(),
-                        producer.node.full(),
-                        spec.type(),
-                        producer.type);
+          if (spec.type().exact_compare(producer.type)) {
+            spdlog::debug("Matched {} ({}) from {} and types match. Keeping in candidate list.",
+                          spec.full(),
+                          query.to_string(),
+                          producer.node.full(),
+                          spec.type(),
+                          producer.type);
+          } else {
+            spdlog::warn("Matched {} ({}) from {} and types match, but not exactly (produce {} and "
+                         "consume {}). Keeping in candidate list!",
+                         spec.full(),
+                         query.to_string(),
+                         producer.node.full(),
+                         spec.type().exact_name(),
+                         producer.type.exact_name());
+          }
           candidates.emplace(producer.node.full(), &producer);
         }
       }
@@ -42,13 +54,11 @@ namespace phlex::experimental {
     }
 
     if (candidates.size() > 1ull) {
-      std::ostringstream msg;
-      msg << "More than one candidate matches the specified label " << spec.full() << ":";
-      for (auto const& key : candidates | std::views::keys) {
-        msg << "\n  - " << key;
-      }
-      msg << '\n';
-      throw std::runtime_error(msg.str());
+      std::string msg =
+        fmt::format("More than one candidate matches the specification {}: \n - {}\n",
+                    spec.full(),
+                    fmt::join(std::views::keys(candidates), "\n - "));
+      throw std::runtime_error(msg);
     }
 
     return candidates.begin()->second;

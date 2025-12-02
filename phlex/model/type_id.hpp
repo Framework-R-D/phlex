@@ -6,6 +6,7 @@
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
+#include <boost/core/demangle.hpp>
 #include <boost/pfr/core.hpp>
 #include <boost/pfr/traits.hpp>
 
@@ -60,12 +61,17 @@ namespace phlex::experimental {
       return (*this <=> rhs) == std::strong_ordering::equal;
     };
 
+    bool exact_compare(type_id const& rhs) const { return *exact_ == *(rhs.exact_); }
+
+    std::string exact_name() const { return boost::core::demangle(exact_->name()); }
+
     template <typename T>
     friend constexpr type_id make_type_id();
     friend struct fmt::formatter<type_id>;
 
   private:
     unsigned char id_ = 0xFF;
+    std::type_info const* exact_{}; // Lifetime of type_info is defined to last until end of program
 
     // This is used only if the product type is a struct
     std::vector<type_id> children_;
@@ -206,6 +212,7 @@ namespace phlex::experimental {
                     "Taking type_id of an unsupported type");
     }
 
+    result.exact_ = &typeid(basic);
     return result;
   }
 
