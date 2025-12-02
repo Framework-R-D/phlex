@@ -111,7 +111,10 @@ namespace phlex::experimental {
         // output port) and the right family (hidden in the input port).
         bool found_match = false;
         for (auto const& [_, p] : providers) {
-          if (port.product_label == p->input()[0]) {
+          // FIXME: The check should probably be more robust.  Right now, the product_specification
+          //        buried in the p->input()[0] call does not have its type set, which prevents us from
+          //        doing a simpler comparison (e.g., port.product_label == p->input()[0]).
+          if (port.product_label.name.full() == p->input()[0].name.full()) {
             auto& provider = *p;
             assert(provider.ports().size() == 1);
             multiplexer::named_input_ports_t::value_type v{port.product_label, provider.ports()[0]};

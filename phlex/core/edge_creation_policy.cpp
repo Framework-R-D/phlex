@@ -12,7 +12,9 @@ namespace phlex::experimental {
     auto const& spec = query.name;
     auto [b, e] = producers_.equal_range(spec.name());
     if (b == e) {
-      spdlog::debug("Failed to find {}. Assuming it is provided by the driver", spec.name());
+      spdlog::debug(
+        "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
+        spec.name());
       return nullptr;
     }
     std::map<std::string, named_output_port const*> candidates;
