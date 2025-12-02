@@ -30,7 +30,7 @@ namespace phlex::experimental {
     }
 
   private:
-    std::map<level_id::hash_type, std::size_t> child_counts_{};
+    std::map<level_id::hash_type, std::size_t> child_counts_;
   };
 
   using flush_counts_ptr = std::shared_ptr<flush_counts const>;
@@ -40,6 +40,13 @@ namespace phlex::experimental {
     level_counter();
     level_counter(level_counter* parent, std::string const& level_name);
     ~level_counter();
+
+    level_counter(level_counter const&);
+    level_counter& operator=(level_counter const&);
+
+    // std::map data member prevents noexcept moves
+    level_counter(level_counter&&) noexcept(false);
+    level_counter& operator=(level_counter&&) noexcept(false);
 
     level_counter make_child(std::string const& level_name);
     flush_counts result() const
@@ -55,13 +62,13 @@ namespace phlex::experimental {
 
     level_counter* parent_;
     level_id::hash_type level_hash_;
-    std::map<level_id::hash_type, std::size_t> child_counts_{};
+    std::map<level_id::hash_type, std::size_t> child_counts_;
   };
 
   class flush_counters {
   public:
-    void update(level_id_ptr const id);
-    flush_counts extract(level_id_ptr const id);
+    void update(level_id_ptr id);
+    flush_counts extract(level_id_ptr id);
 
   private:
     std::map<level_id::hash_type, std::shared_ptr<level_counter>> counters_;

@@ -14,6 +14,14 @@ namespace phlex::experimental {
     resource_usage() noexcept;
     ~resource_usage();
 
+    resource_usage(resource_usage const&);
+    resource_usage& operator=(resource_usage const&);
+
+    // NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+    resource_usage(resource_usage&&);
+    resource_usage& operator=(resource_usage&&);
+    // NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
+
   private:
     std::chrono::time_point<std::chrono::steady_clock> begin_wall_;
     double begin_cpu_;

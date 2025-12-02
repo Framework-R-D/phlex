@@ -15,18 +15,22 @@ namespace phlex::experimental::detail {
 #define NARGS(...) BOOST_PP_DEC(BOOST_PP_VARIADIC_SIZE(__VA_OPT__(, ) __VA_ARGS__))
 
 #define CREATE_1ARG(m)                                                                             \
-  void create(phlex::experimental::graph_proxy<phlex::experimental::void_tag>& m,                  \
+  void create(phlex::experimental::graph_proxy<phlex::experimental::void_tag>&(m),                 \
               phlex::experimental::configuration const&)
-#define CREATE_2ARGS(m, pset)                                                                      \
-  void create(phlex::experimental::graph_proxy<phlex::experimental::void_tag>& m,                  \
-              phlex::experimental::configuration const& config)
+#define CREATE_2ARGS(m, config)                                                                    \
+  void create(phlex::experimental::graph_proxy<phlex::experimental::void_tag>&(m),                 \
+              phlex::experimental::configuration const&(config))
 
 #define SELECT_SIGNATURE(...)                                                                      \
   BOOST_PP_IF(BOOST_PP_EQUAL(NARGS(__VA_ARGS__), 1), CREATE_1ARG, CREATE_2ARGS)(__VA_ARGS__)
 
 #define PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(...)                                                \
+  /* NOLINTBEGIN(misc-use-anonymous-namespace) */                                                  \
   static SELECT_SIGNATURE(__VA_ARGS__);                                                            \
+  /* NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables) */                            \
   BOOST_DLL_ALIAS(create, create_module)                                                           \
+  /* NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables) */                              \
+  /* NOLINTEND(misc-use-anonymous-namespace) */                                                    \
   SELECT_SIGNATURE(__VA_ARGS__)
 
 #endif // PHLEX_MODULE_HPP

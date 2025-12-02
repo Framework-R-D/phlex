@@ -6,7 +6,7 @@
 
 namespace demo {
 
-  struct SummedClampedWaveforms {
+  struct summed_clamped_waveforms {
     std::size_t size = 0;
     double sum = 0.0;
   };

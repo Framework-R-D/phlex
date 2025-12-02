@@ -1,8 +1,9 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/level_id.hpp"
-#include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/matchers/catch_matchers.hpp"
+#include "catch2/matchers/catch_matchers_string.hpp"
 
 #include <concepts>
 #include <string>
@@ -11,7 +12,7 @@
 using namespace phlex::experimental;
 
 namespace {
-  struct Composer {
+  struct composer {
     std::string name;
   };
 }
@@ -101,6 +102,6 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
   CHECK(num_ref == number);
   CHECK(*num_ptr == number);
 
-  Composer const composer{"Elgar"};
-  CHECK(handle{composer, level_id::base()}->name == "Elgar");
+  composer const elgar{"Elgar"};
+  CHECK(handle{elgar, level_id::base()}->name == "Elgar");
 }

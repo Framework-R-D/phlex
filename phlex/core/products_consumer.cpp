@@ -1,4 +1,10 @@
 #include "phlex/core/products_consumer.hpp"
+#include "phlex/core/specified_label.hpp"
+#include "phlex/model/algorithm_name.hpp"
+
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace phlex::experimental {
 

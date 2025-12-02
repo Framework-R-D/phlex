@@ -2,6 +2,9 @@
 
 #include "boost/functional/hash.hpp"
 
+#include <cstddef>
+#include <string>
+
 namespace phlex::experimental {
   std::hash<std::string> const string_hasher{};
 

@@ -12,6 +12,16 @@ namespace {
 
 namespace phlex::experimental {
 
+  // Explicitly defined because of the custom-defined destructor (C++ core guideline C.21)
+  level_hierarchy::level_hierarchy() = default;
+  level_hierarchy::level_hierarchy(level_hierarchy const&) = default;
+  level_hierarchy& level_hierarchy::operator=(level_hierarchy const&) = default;
+
+  level_hierarchy::level_hierarchy(level_hierarchy&&) noexcept(
+    std::is_nothrow_move_constructible<levels_t>{}) = default;
+  level_hierarchy& level_hierarchy::operator=(level_hierarchy&&) noexcept(
+    std::is_nothrow_move_assignable<levels_t>{}) = default;
+
   level_hierarchy::~level_hierarchy() { print(); }
 
   void level_hierarchy::increment_count(level_id_ptr const& id)

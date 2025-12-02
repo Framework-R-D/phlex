@@ -24,10 +24,10 @@ namespace phlex::experimental {
   template <template <typename...> typename HOF, typename AlgorithmBits>
   class registration_api {
     using hof_type = HOF<AlgorithmBits>;
-    using NodePtr = typename hof_type::node_ptr_type;
+    using node_ptr = typename hof_type::node_ptr_type;
 
-    static constexpr auto N = AlgorithmBits::number_inputs;
-    static constexpr auto M = hof_type::number_output_products;
+    static constexpr auto number_inputs = AlgorithmBits::number_inputs;
+    static constexpr auto number_output_products = hof_type::number_output_products;
 
   public:
     registration_api(configuration const* config,
@@ -42,15 +42,18 @@ namespace phlex::experimental {
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
-      registrar_{nodes.registrar_for<NodePtr>(errors)}
+      registrar_{nodes.registrar_for<node_ptr>(errors)}
     {
     }
 
-    auto input_family(std::array<specified_label, N> input_args)
+    auto input_family(std::array<specified_label, number_inputs> input_args)
     {
-      if constexpr (M == 0ull) {
+      if constexpr (number_output_products == 0ull) {
+        // NOLINTBEGIN(performance-unnecessary-value-param)
         registrar_.set_creator(
-          [this, inputs = std::move(input_args)](auto predicates, auto /* output_products */) {
+          [this, inputs = std::move(input_args)](std::vector<std::string> predicates,
+                                                 std::vector<std::string> /* output_products */
+          ) {
             return std::make_unique<hof_type>(std::move(name_),
                                               concurrency_.value,
                                               std::move(predicates),
@@ -58,9 +61,11 @@ namespace phlex::experimental {
                                               std::move(alg_),
                                               std::vector(inputs.begin(), inputs.end()));
           });
+        // NOLINTEND(performance-unnecessary-value-param)
       } else {
         registrar_.set_creator(
-          [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
+          [this, inputs = std::move(input_args)](std::vector<std::string> predicates,
+                                                 std::vector<std::string> output_products) {
             return std::make_unique<hof_type>(std::move(name_),
                                               concurrency_.value,
                                               std::move(predicates),
@@ -70,22 +75,21 @@ namespace phlex::experimental {
                                               std::move(output_products));
           });
       }
-      return upstream_predicates<NodePtr, M>{std::move(registrar_), config_};
+      return upstream_predicates<node_ptr, number_output_products>{std::move(registrar_), config_};
     }
 
     template <label_compatible L>
-    auto input_family(std::array<L, N> input_args)
+    auto input_family(std::array<L, number_inputs> const& input_args)
     {
       return input_family(to_labels(input_args));
     }
 
     auto input_family(label_compatible auto... input_args)
     {
-      static_assert(N == sizeof...(input_args),
+      static_assert(number_inputs == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input_family(
-        {specified_label::create(std::forward<decltype(input_args)>(input_args))...});
+      return input_family({specified_label::create(std::move(input_args))...});
     }
 
   private:
@@ -93,8 +97,8 @@ namespace phlex::experimental {
     algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
-    tbb::flow::graph& graph_;
-    registrar<NodePtr> registrar_;
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    registrar<node_ptr> registrar_;
   };
 
   template <template <typename...> typename HOF, typename AlgorithmBits>
@@ -115,10 +119,10 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits, typename... InitArgs>
   class fold_api {
-    using InitTuple = std::tuple<InitArgs...>;
+    using init_tuple = std::tuple<InitArgs...>;
 
-    static constexpr auto N = AlgorithmBits::number_inputs;
-    static constexpr auto M = 1; // For now
+    static constexpr auto number_inputs = AlgorithmBits::number_inputs;
+    static constexpr auto number_output_products = 1; // For now
 
   public:
     fold_api(configuration const* config,
@@ -141,11 +145,12 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<specified_label, N - 1> input_args)
+    auto input_family(std::array<specified_label, number_inputs - 1> input_args)
     {
       registrar_.set_creator(
-        [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
-          return std::make_unique<fold_node<AlgorithmBits, InitTuple>>(
+        [this, inputs = std::move(input_args)](std::vector<std::string> predicates,
+                                               std::vector<std::string> output_products) {
+          return std::make_unique<fold_node<AlgorithmBits, init_tuple>>(
             std::move(name_),
             concurrency_.value,
             std::move(predicates),
@@ -156,18 +161,19 @@ namespace phlex::experimental {
             std::move(output_products),
             std::move(partition_));
         });
-      return upstream_predicates<declared_fold_ptr, M>{std::move(registrar_), config_};
+      return upstream_predicates<declared_fold_ptr, number_output_products>{std::move(registrar_),
+                                                                            config_};
     }
 
     template <label_compatible L>
-    auto input_family(std::array<L, N> input_args)
+    auto input_family(std::array<L, number_inputs> input_args)
     {
       return input_family(to_labels(input_args));
     }
 
     auto input_family(label_compatible auto... input_args)
     {
-      static_assert(N - 1 == sizeof...(input_args),
+      static_assert(number_inputs - 1 == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input_family(
@@ -179,9 +185,9 @@ namespace phlex::experimental {
     algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
-    tbb::flow::graph& graph_;
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string partition_;
-    InitTuple init_;
+    init_tuple init_;
     registrar<declared_fold_ptr> registrar_;
   };
 
@@ -192,8 +198,8 @@ namespace phlex::experimental {
   class unfold_api {
     using input_parameter_types = constructor_parameter_types<Object>;
 
-    static constexpr auto N = std::tuple_size_v<input_parameter_types>;
-    static constexpr std::size_t M = number_output_objects<Unfold>;
+    static constexpr auto number_inputs = std::tuple_size_v<input_parameter_types>;
+    static constexpr std::size_t number_output_products = number_output_objects<Unfold>;
 
     // FIXME: Should maybe use some type of static assert, but not in a way that
     //        constrains the arguments of the Predicate and the Unfold to be the same.
@@ -222,10 +228,11 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<specified_label, N> input_args)
+    auto input_family(std::array<specified_label, number_inputs> input_args)
     {
       registrar_.set_creator(
-        [this, inputs = std::move(input_args)](auto upstream_predicates, auto output_products) {
+        [this, inputs = std::move(input_args)](std::vector<std::string> upstream_predicates,
+                                               std::vector<std::string> output_products) {
           return std::make_unique<unfold_node<Object, Predicate, Unfold>>(
             std::move(name_),
             concurrency_,
@@ -237,12 +244,13 @@ namespace phlex::experimental {
             std::move(output_products),
             std::move(destination_layer_));
         });
-      return upstream_predicates<declared_unfold_ptr, M>{std::move(registrar_), config_};
+      return upstream_predicates<declared_unfold_ptr, number_output_products>{std::move(registrar_),
+                                                                              config_};
     }
 
     auto input_family(label_compatible auto... input_args)
     {
-      static_assert(N == sizeof...(input_args),
+      static_assert(number_inputs == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input_family({specified_label{std::forward<decltype(input_args)>(input_args)}...});
@@ -253,7 +261,7 @@ namespace phlex::experimental {
     registrar<declared_unfold_ptr> registrar_;
     algorithm_name name_;
     std::size_t concurrency_;
-    tbb::flow::graph& graph_;
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     Predicate predicate_;
     Unfold unfold_;
     std::string destination_layer_;
@@ -280,7 +288,7 @@ namespace phlex::experimental {
 
   private:
     algorithm_name name_;
-    tbb::flow::graph& graph_;
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     detail::output_function_t ft_;
     concurrency concurrency_;
     registrar<declared_output_ptr> reg_;

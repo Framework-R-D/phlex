@@ -26,7 +26,7 @@ namespace phlex::experimental {
   inline auto& to_name(specified_label const& label) { return label.name.name(); }
   inline auto& to_family(specified_label& label) { return label.family; }
 
-  specified_label operator""_in(char const* str, std::size_t);
+  specified_label operator""_in(char const* name, std::size_t);
   bool operator==(specified_label const& a, specified_label const& b);
   bool operator!=(specified_label const& a, specified_label const& b);
   bool operator<(specified_label const& a, specified_label const& b);

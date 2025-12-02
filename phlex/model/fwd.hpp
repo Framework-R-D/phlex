@@ -1,6 +1,7 @@
 #ifndef PHLEX_MODEL_FWD_HPP
 #define PHLEX_MODEL_FWD_HPP
 
+#include <cstdint>
 #include <memory>
 
 namespace phlex::experimental {
@@ -13,7 +14,7 @@ namespace phlex::experimental {
   using product_store_const_ptr = std::shared_ptr<product_store const>;
   using product_store_ptr = std::shared_ptr<product_store>;
 
-  enum class stage { process, flush };
+  enum class stage : std::uint8_t { process, flush };
 }
 
 #endif // PHLEX_MODEL_FWD_HPP

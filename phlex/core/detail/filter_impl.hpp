@@ -12,8 +12,8 @@
 namespace phlex::experimental {
   struct predicate_result {
     end_of_message_ptr eom;
-    std::size_t msg_id;
-    bool result;
+    std::size_t msg_id{};
+    bool result{false};
   };
 
   inline constexpr unsigned int true_value{-1u};
@@ -44,6 +44,7 @@ namespace phlex::experimental {
     bool claim(accessor& a, std::size_t msg_id);
 
   private:
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     unsigned int const total_decisions_;
     decisions_t results_;
   };
@@ -58,10 +59,10 @@ namespace phlex::experimental {
     explicit data_map(for_output_t);
     explicit data_map(specified_labels const& product_names);
 
-    bool is_complete(std::size_t const msg_id) const;
+    bool is_complete(std::size_t msg_id) const;
 
-    void update(std::size_t const msg_id, product_store_const_ptr const& store);
-    std::vector<product_store_const_ptr> release_data(std::size_t const msg_id);
+    void update(std::size_t msg_id, product_store_const_ptr const& store);
+    std::vector<product_store_const_ptr> release_data(std::size_t msg_id);
 
   private:
     stores_t stores_;

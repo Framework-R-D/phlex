@@ -2,9 +2,6 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-#include <iostream>
-#include <regex>
-
 using namespace phlex::experimental;
 
 namespace {
@@ -35,7 +32,7 @@ namespace {
 TEST_CASE("Simple product matcher", "[data model]")
 {
   auto const spec = "event/loaded_module@add:sum";
-  product_matcher matcher{spec};
+  product_matcher const matcher{spec};
   CHECK(matcher.level_path() == "event");
   CHECK(matcher.module_name() == "loaded_module");
   CHECK(matcher.node_name() == "add");
@@ -45,7 +42,7 @@ TEST_CASE("Simple product matcher", "[data model]")
 
 TEST_CASE("Product matcher with default level path", "[data model]")
 {
-  product_matcher matcher{"loaded_module@add:sum"};
+  product_matcher const matcher{"loaded_module@add:sum"};
   CHECK(matcher.level_path() == "*");
   CHECK(matcher.module_name() == "loaded_module");
   CHECK(matcher.node_name() == "add");
@@ -57,7 +54,7 @@ TEST_CASE("Product matcher with default level path", "[data model]")
 
 TEST_CASE("Product matcher with multi-part level path", "[data model]")
 {
-  product_matcher matcher{"a/b/c/loaded_module@add:sum"};
+  product_matcher const matcher{"a/b/c/loaded_module@add:sum"};
   CHECK(matcher.level_path() == "a/b/c");
   CHECK(matcher.module_name() == "loaded_module");
   CHECK(matcher.node_name() == "add");
@@ -67,9 +64,9 @@ TEST_CASE("Product matcher with multi-part level path", "[data model]")
 
 TEST_CASE("Product with only node spec", "[data model]")
 {
-  product_matcher matcher{"@add:sum"};
+  product_matcher const matcher{"@add:sum"};
   CHECK(matcher.level_path() == "*");
-  CHECK(matcher.module_name() == "");
+  CHECK(matcher.module_name().empty());
   CHECK(matcher.node_name() == "add");
   CHECK(matcher.product_name() == "sum");
   CHECK(matcher.encode() == "*/@add:sum");
@@ -77,10 +74,10 @@ TEST_CASE("Product with only node spec", "[data model]")
 
 TEST_CASE("Product with only module spec", "[data model]")
 {
-  product_matcher matcher{"loaded_module:sum"};
+  product_matcher const matcher{"loaded_module:sum"};
   CHECK(matcher.level_path() == "*");
   CHECK(matcher.module_name() == "loaded_module");
-  CHECK(matcher.node_name() == "");
+  CHECK(matcher.node_name().empty());
   CHECK(matcher.product_name() == "sum");
   CHECK(matcher.encode() == "*/loaded_module@:sum");
 }

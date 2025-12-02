@@ -1,7 +1,10 @@
 #include "phlex/model/level_counter.hpp"
+#include "phlex/model/level_id.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include <cassert>
+#include <map>
+#include <utility>
 
 namespace phlex::experimental {
 
@@ -25,6 +28,13 @@ namespace phlex::experimental {
       parent_->adjust(*this);
     }
   }
+
+  // Explicitly defined because of the custom-defined destructor (C++ core guideline C.21)
+  level_counter::level_counter(level_counter const&) = default;
+  level_counter& level_counter::operator=(level_counter const&) = default;
+
+  level_counter::level_counter(level_counter&&) noexcept(false) = default;
+  level_counter& level_counter::operator=(level_counter&&) noexcept(false) = default;
 
   level_counter level_counter::make_child(std::string const& level_name)
   {

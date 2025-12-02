@@ -23,9 +23,11 @@ namespace phlex::experimental {
   private:
     std::size_t original_message_id(product_store_ptr const& store);
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     level_hierarchy& hierarchy_;
     multiplexer& multiplexer_;
     std::stack<end_of_message_ptr>& eoms_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::map<level_id_ptr, std::size_t> original_message_ids_;
     std::size_t calls_{};
   };

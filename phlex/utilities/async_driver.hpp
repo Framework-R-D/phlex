@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <optional>
@@ -13,7 +14,7 @@ namespace phlex::experimental {
 
   template <typename RT>
   class async_driver {
-    enum class states { off, drive, park };
+    enum class states : std::uint8_t { off, drive, park };
 
   public:
     template <typename FT>
@@ -21,6 +22,12 @@ namespace phlex::experimental {
     {
     }
     async_driver(void (*ft)(async_driver<RT>&)) : driver_{ft} {}
+
+    // Moves and copies not allowed because of (e.g.) std::atomic
+    async_driver(async_driver const&) = delete;
+    async_driver(async_driver&&) = delete;
+    async_driver& operator=(async_driver const&) = delete;
+    async_driver& operator=(async_driver&&) = delete;
 
     ~async_driver() { thread_.join(); }
 

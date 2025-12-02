@@ -24,6 +24,8 @@
 #include <atomic>
 #include <ranges>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace phlex::experimental;
 
@@ -87,7 +89,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   auto levels_to_process = [index_limit](auto& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
-    for (unsigned i : std::views::iota(0u, index_limit)) {
+    for (unsigned const i : std::views::iota(0u, index_limit)) {
       auto event_store = job_store->make_child(i, "event");
       event_store->add_product<unsigned>("max_number", 10u * (i + 1));
       event_store->add_product<numbers_t>("ten_numbers", numbers_t(10, i + 1));
