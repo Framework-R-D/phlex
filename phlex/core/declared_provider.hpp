@@ -55,13 +55,11 @@ namespace phlex::experimental {
 
     provider_node(algorithm_name name,
                   std::size_t concurrency,
-                  std::vector<std::string> /*ignored */,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
-                  product_queries output) :
-      // Fixme: get rid of copying of output.
-      declared_provider{std::move(name), output},
-      output_{output[0].name},
+                  product_query output) :
+      declared_provider{std::move(name), {output}},
+      output_{output.name},
       provider_{
         g, concurrency, [this, ft = alg.release_algorithm()](message const& msg, auto& output) {
           auto& [stay_in_graph, to_output] = output;
@@ -85,7 +83,7 @@ namespace phlex::experimental {
         }}
     {
       spdlog::info(
-        "Created provider node {} making output {}", this->full_name(), output[0].to_string());
+        "Created provider node {} making output {}", this->full_name(), output.to_string());
     }
 
     tbb::flow::receiver<message>& receiver() { return provider_; }

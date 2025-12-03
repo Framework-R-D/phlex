@@ -79,8 +79,14 @@ namespace phlex::experimental {
     template <typename FT>
     auto provide(std::string name, FT f, concurrency c)
     {
-      return make_registration<provider_node>(
-        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
+      detail::verify_name(name, config_);
+      return provider_api{config_,
+                          std::move(name),
+                          algorithm_bits{bound_obj_, std::move(f)},
+                          c,
+                          graph_,
+                          nodes_,
+                          errors_};
     }
 
     template <typename FT>
