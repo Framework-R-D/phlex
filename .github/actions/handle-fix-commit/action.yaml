@@ -1,0 +1,104 @@
+name: 'Handle Fix Commit'
+description: 'Commits changes if possible, otherwise creates a patch and comments on the PR.'
+
+inputs:
+  commit-message:
+    description: 'The commit message to use.'
+    required: true
+  working-directory:
+    description: 'The working directory for git operations.'
+    required: false
+    default: 'phlex-src'
+  token:
+    description: 'The PAT to use for committing.'
+    required: true
+  pr-info-ref:
+    description: 'The ref (branch name) of the PR'
+    required: true
+  pr-info-repo:
+    description: 'The repository of the PR'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check for changes
+      id: check_changes
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "changes=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: No changes to apply
+      if: steps.check_changes.outputs.changes == 'false'
+      uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+      with:
+        message: 'No automatic fixes were necessary.'
+
+    - name: Get PR maintainer_can_modify property
+      id: pr-properties
+      if: steps.check_changes.outputs.changes == 'true'
+      uses: actions/github-script@60a0d83039c74a0a96485d6a7ce539208d113576 # v7.0.1
+      with:
+        script: |
+          const { data: pr } = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number
+          });
+          core.setOutput('maintainer_can_modify', pr.maintainer_can_modify);
+    - name: Commit fixes
+      if: steps.check_changes.outputs.changes == 'true' && (inputs.pr-info-repo == github.repository || steps.pr-properties.outputs.maintainer_can_modify == 'true')
+      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
+      id: add_and_commit
+      with:
+        token: ${{ inputs.token }}
+        cwd: ${{ inputs.working-directory }}
+        author_name: "github-actions[bot]"
+        author_email: "41898282+github-actions[bot]@users.noreply.github.com"
+        message: ${{ inputs.commit-message }}
+
+    - name: Notify of commit
+      if: steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'
+      uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+      with:
+        message: |
+          Automatic fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }}).
+          ⚠️ **Note:** Some issues may require manual review and fixing.
+
+    - name: Create patch
+      if: steps.check_changes.outputs.changes == 'true' && !(inputs.pr-info-repo == github.repository || steps.pr-properties.outputs.maintainer_can_modify == 'true')
+      id: create_patch
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        git diff > fix.patch
+        echo "patch_name=fix.patch" >> $GITHUB_OUTPUT
+
+    - name: Upload patch
+      if: steps.create_patch.outputs.patch_name
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      with:
+        name: fix-patch
+        path: ${{ inputs.working-directory }}/${{ steps.create_patch.outputs.patch_name }}
+
+    - name: Comment with patch instructions
+      if: steps.create_patch.outputs.patch_name
+      uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+      with:
+        message: |
+          Automatic fixes are available but could not be applied directly because this PR is from a fork and "Allow edits from maintainers" is not enabled.
+          Please apply the patch below to fix the issues:
+          1. **Download the patch file:** You can download the patch from the "Artifacts" section of this workflow run.
+          2. **Apply the patch:**
+             ```shell
+             git apply <path/to/downloaded/fix.patch>
+             ```
+          3. **Commit the changes:**
+             ```shell
+             git commit -am "${{ inputs.commit-message }}"
+             ```
