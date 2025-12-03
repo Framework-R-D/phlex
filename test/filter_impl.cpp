@@ -1,4 +1,5 @@
 #include "phlex/core/detail/filter_impl.hpp"
+#include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
@@ -40,4 +41,25 @@ TEST_CASE("Filter decision", "[filtering]")
       CHECK(to_boolean(value) == true);
     }
   }
+}
+
+TEST_CASE("Filter data map", "[filtering]")
+{
+  std::vector const data_products_to_cache{"a"_in("spill"), "b"_in("spill")};
+  data_map data{data_products_to_cache};
+
+  // Stores with the data products "a" and "b"
+  auto store_with_a = product_store::base("provide_a");
+  store_with_a->add_product("a", 1);
+  auto store_with_b = product_store::base("provide_b");
+  store_with_b->add_product("b", 2);
+
+  std::size_t const msg_id{1};
+  CHECK(not data.is_complete(msg_id));
+
+  data.update(msg_id, store_with_a);
+  CHECK(not data.is_complete(msg_id));
+
+  data.update(msg_id, store_with_b);
+  CHECK(data.is_complete(msg_id));
 }
