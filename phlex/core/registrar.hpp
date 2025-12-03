@@ -47,23 +47,17 @@
 //
 // =======================================================================================
 
-#include "phlex/core/product_query.hpp"
-#include "phlex/model/algorithm_name.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <cassert>
 #include <functional>
 #include <optional>
-#include <span>
 #include <string>
 #include <vector>
 
 namespace phlex::experimental {
 
   namespace detail {
-    void verify_layers(std::vector<std::string>& errors,
-                       algorithm_name const& name,
-                       std::span<product_query const> queries);
     void add_to_error_messages(std::vector<std::string>& errors, std::string const& name);
   }
 
@@ -83,11 +77,6 @@ namespace phlex::experimental {
 
     registrar(registrar&&) = default;
     registrar& operator=(registrar&&) = default;
-
-    void verify_layers(algorithm_name const& name, std::span<product_query const> queries)
-    {
-      detail::verify_layers(*errors_, name, queries);
-    }
 
     bool has_predicates() const { return predicates_.has_value(); }
 

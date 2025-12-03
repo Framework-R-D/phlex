@@ -51,7 +51,6 @@ namespace phlex::experimental {
     {
       populate_types<input_parameter_types>(input_args);
 
-      registrar_.verify_layers(name_, input_args);
       if constexpr (M == 0ull) {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](auto predicates, auto /* output_products */) {
@@ -143,7 +142,6 @@ namespace phlex::experimental {
     {
       populate_types<input_parameter_types>(input_args);
 
-      registrar_.verify_layers(name_, input_args);
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
           return std::make_unique<fold_node<AlgorithmBits, InitTuple>>(
@@ -220,7 +218,6 @@ namespace phlex::experimental {
     {
       populate_types<input_parameter_types>(input_args);
 
-      registrar_.verify_layers(name_, input_args);
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto upstream_predicates, auto output_products) {
           return std::make_unique<unfold_node<Object, Predicate, Unfold>>(

@@ -13,12 +13,12 @@ namespace phlex::experimental {
   struct product_query {
     product_specification name;
     std::string layer;
-    product_query operator()(std::string layer) &&;
     std::string to_string() const;
+  };
 
-    static product_query create(char const* c);
-    static product_query create(std::string const& s);
-    static product_query create(product_query l);
+  struct product_query_prefix {
+    product_specification name;
+    product_query operator()(std::string layer) &&;
   };
 
   using product_queries = std::vector<product_query>;
@@ -26,7 +26,7 @@ namespace phlex::experimental {
   inline auto& to_name(product_query const& label) { return label.name.name(); }
   inline auto& to_layer(product_query& label) { return label.layer; }
 
-  product_query operator""_in(char const* str, std::size_t);
+  product_query_prefix operator""_in(char const* str, std::size_t);
   bool operator==(product_query const& a, product_query const& b);
   bool operator!=(product_query const& a, product_query const& b);
   bool operator<(product_query const& a, product_query const& b);

@@ -7,9 +7,12 @@
 #include <tuple>
 
 namespace phlex::experimental {
-  product_query product_query::operator()(std::string layer) &&
+  product_query product_query_prefix::operator()(std::string data_layer) &&
   {
-    return {std::move(name), std::move(layer)};
+    if (data_layer.empty()) {
+      throw std::runtime_error("Cannot specify the empty string as a data layer.");
+    }
+    return {std::move(name), std::move(data_layer)};
   }
 
   std::string product_query::to_string() const
@@ -20,12 +23,12 @@ namespace phlex::experimental {
     return fmt::format("{} ϵ {}", name.full(), layer);
   }
 
-  product_query operator""_in(char const* name, std::size_t length)
+  product_query_prefix operator""_in(char const* product_name, std::size_t length)
   {
     if (length == 0ull) {
       throw std::runtime_error("Cannot specify product with empty name.");
     }
-    return product_query::create(name);
+    return {product_specification::create(product_name)};
   }
 
   bool operator==(product_query const& a, product_query const& b)
@@ -45,13 +48,4 @@ namespace phlex::experimental {
     os << label.to_string();
     return os;
   }
-
-  product_query product_query::create(char const* c) { return create(std::string{c}); }
-
-  product_query product_query::create(std::string const& s)
-  {
-    return {product_specification::create(s)};
-  }
-
-  product_query product_query::create(product_query l) { return l; }
 }
