@@ -1,3 +1,6 @@
+"""This module provides a function to register Python algorithms with the Phlex framework."""
+import types
+
 import cppyy
 import pyphlex  # noqa: F401
 
@@ -7,7 +10,7 @@ phlex = cpp.phlex.experimental
 
 cppyy.include("Python.h")
 
-_registered_modules = dict()
+_registered_modules: dict[str, types.ModuleType] = {}
 
 
 def register(m, config):
