@@ -60,10 +60,10 @@ namespace {
 TEST_CASE("Test vector of abstract types")
 {
   framework_graph g{source{1u}};
-  g.transform("read_thing", read_abstract).input_family("thing").output_products("sum");
+  g.transform("read_thing", read_abstract).input_family("thing"_in("event")).output_products("sum");
   g.observe(
      "verify_sum", [](int sum) { CHECK(sum == 3); }, concurrency::serial)
-    .input_family("sum");
+    .input_family("sum"_in("event"));
   g.execute();
 
   CHECK(g.execution_counts("read_thing") == 1);

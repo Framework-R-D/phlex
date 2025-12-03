@@ -103,22 +103,23 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   framework_graph g{cells_to_process};
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
-    .input_family("time")
+    .input_family("time"_in("run"))
     .when()
     .output_products("strtime");
   g.transform("square", square, concurrency::unlimited)
-    .input_family("number")
+    .input_family("number"_in("event"))
     .output_products("squared_number");
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
-    .input_family("squared_number")
+    .input_family("squared_number"_in("event"))
     .when()
     .output_products("added_data");
 
   g.transform("scale", scale, concurrency::unlimited)
-    .input_family("added_data")
+    .input_family("added_data"_in("run"))
     .output_products("result");
-  g.observe("print_result", print_result, concurrency::unlimited).input_family("result", "strtime");
+  g.observe("print_result", print_result, concurrency::unlimited)
+    .input_family("result"_in("run"), "strtime"_in("run"));
 
   g.make<test::products_for_output>().output("save", &test::products_for_output::save).when();
 
