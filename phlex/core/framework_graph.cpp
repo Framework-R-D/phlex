@@ -86,9 +86,12 @@ namespace phlex::experimental {
   }
 
   void framework_graph::execute()
-  {
+  try {
     finalize();
     run();
+  } catch (std::exception const& e) {
+    spdlog::error(e.what());
+    throw;
   }
 
   void framework_graph::run()
