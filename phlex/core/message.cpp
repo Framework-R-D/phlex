@@ -12,6 +12,8 @@ namespace phlex::experimental {
 
   message const& more_derived(message const& a, message const& b)
   {
+    assert(a.store);
+    assert(b.store);
     if (a.store->id()->depth() > b.store->id()->depth()) {
       return a;
     }
