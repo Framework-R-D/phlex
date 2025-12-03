@@ -1,0 +1,6 @@
+```text
+# Make the Approvers team the code owners for the entire repository.
+# This will allow enforcing "Require review from Code Owners" in branch protection.
+# Use the org/team slug form: @ORG/team-slug
+* @Framework-R-D/approvers
+```
