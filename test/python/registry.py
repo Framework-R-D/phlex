@@ -1,12 +1,12 @@
 """This module provides a function to register Python algorithms with the Phlex framework."""
+import types
+
 import cppyy
 import pyphlex  # noqa: F401
 
 __all__ = ["pyphlex"]
 cpp = cppyy.gbl
 phlex = cpp.phlex.experimental
-
-import types
 
 cppyy.include("Python.h")
 
