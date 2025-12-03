@@ -107,6 +107,53 @@ namespace phlex::experimental {
   }
 
   // ====================================================================================
+  // Provider API
+
+  template <typename AlgorithmBits>
+  class provider_api {
+    using provider_type = provider_node<AlgorithmBits>;
+
+  public:
+    provider_api(configuration const* config,
+                 std::string name,
+                 AlgorithmBits alg,
+                 concurrency c,
+                 tbb::flow::graph& g,
+                 node_catalog& nodes,
+                 std::vector<std::string>& errors) :
+      config_{config},
+      name_{detail::make_algorithm_name(config, std::move(name))},
+      alg_{std::move(alg)},
+      concurrency_{c},
+      graph_{g},
+      registrar_{nodes.registrar_for<declared_provider_ptr>(errors)}
+    {
+    }
+
+    auto output_product(product_query output)
+    {
+      registrar_.set_creator(
+        [this, output = std::move(output)](auto /* predicates */, auto /* output_products */) {
+          return std::make_unique<provider_type>(
+            std::move(name_), concurrency_.value, graph_, std::move(alg_), std::move(output));
+        });
+    }
+
+    auto output_product(label_compatible auto output)
+    {
+      return output_product({product_query::create(std::forward<decltype(output)>(output))});
+    }
+
+  private:
+    configuration const* config_;
+    algorithm_name name_;
+    AlgorithmBits alg_;
+    concurrency concurrency_;
+    tbb::flow::graph& graph_;
+    registrar<declared_provider_ptr> registrar_;
+  };
+
+  // ====================================================================================
   // Fold API
 
   template <typename AlgorithmBits, typename... InitArgs>
