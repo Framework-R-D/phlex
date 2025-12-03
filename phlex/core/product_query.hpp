@@ -32,20 +32,6 @@ namespace phlex::experimental {
   bool operator<(product_query const& a, product_query const& b);
   std::ostream& operator<<(std::ostream& os, product_query const& label);
 
-  template <typename T>
-  concept label_compatible = requires(T t) {
-    { product_query::create(t) };
-  };
-
-  template <label_compatible T, std::size_t N>
-  auto to_labels(std::array<T, N> const& like_labels)
-  {
-    std::array<product_query, N> labels;
-    std::ranges::transform(
-      like_labels, labels.begin(), [](T const& t) { return product_query::create(t); });
-    return labels;
-  }
-
   namespace detail {
     // C is a container of product_queries
     template <typename C, typename T>

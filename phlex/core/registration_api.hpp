@@ -77,19 +77,12 @@ namespace phlex::experimental {
       return upstream_predicates<NodePtr, M>{std::move(registrar_), config_};
     }
 
-    template <label_compatible L>
-    auto input_family(std::array<L, N> input_args)
-    {
-      return input_family(to_labels(input_args));
-    }
-
-    auto input_family(label_compatible auto... input_args)
+    auto input_family(std::same_as<product_query> auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input_family(
-        {product_query::create(std::forward<decltype(input_args)>(input_args))...});
+      return input_family({std::move(input_args)...});
     }
 
   private:
@@ -167,19 +160,12 @@ namespace phlex::experimental {
       return upstream_predicates<declared_fold_ptr, M>{std::move(registrar_), config_};
     }
 
-    template <label_compatible L>
-    auto input_family(std::array<L, N> input_args)
-    {
-      return input_family(to_labels(input_args));
-    }
-
-    auto input_family(label_compatible auto... input_args)
+    auto input_family(std::same_as<product_query> auto... input_args)
     {
       static_assert(N - 1 == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input_family(
-        {product_query::create(std::forward<decltype(input_args)>(input_args))...});
+      return input_family({std::move(input_args)...});
     }
 
   private:
@@ -251,12 +237,12 @@ namespace phlex::experimental {
       return upstream_predicates<declared_unfold_ptr, M>{std::move(registrar_), config_};
     }
 
-    auto input_family(label_compatible auto... input_args)
+    auto input_family(std::same_as<product_query> auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input_family({product_query{std::forward<decltype(input_args)>(input_args)}...});
+      return input_family({std::move(input_args)...});
     }
 
   private:
