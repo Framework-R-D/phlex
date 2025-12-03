@@ -22,7 +22,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from typing import Iterator, List, Optional
+from typing import Any, Iterator, List, Optional
 
 API_ROOT = "https://api.github.com"
 API_VERSION = "2022-11-28"
@@ -45,7 +45,7 @@ def _request(
     *,
     params: Optional[dict] = None,
     payload: Optional[dict] = None,
-) -> dict:
+) -> Any:
     url = urllib.parse.urljoin(API_ROOT, path)
     if params:
         query = urllib.parse.urlencode(params)

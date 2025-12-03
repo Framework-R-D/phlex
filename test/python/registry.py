@@ -6,9 +6,11 @@ __all__ = ["pyphlex"]
 cpp = cppyy.gbl
 phlex = cpp.phlex.experimental
 
+import types
+
 cppyy.include("Python.h")
 
-_registered_modules = {}
+_registered_modules: dict[str, types.ModuleType] = {}
 
 
 def register(m, config):

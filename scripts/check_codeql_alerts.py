@@ -10,7 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -212,7 +212,7 @@ def _log(msg: str) -> None:
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         # Use timezone-aware UTC timestamp to avoid deprecation warnings.
-        ts = datetime.now(datetime.timezone.utc).isoformat()
+        ts = datetime.now(timezone.utc).isoformat()
         with open(_LOG_PATH, "a", encoding="utf-8") as fh:
             fh.write(f"{ts} {msg}\n")
     except Exception:
@@ -230,7 +230,7 @@ def _init_log(log_path: Path) -> None:
     _LOG_PATH = log_path
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now(datetime.timezone.utc).isoformat()
+        ts = datetime.now(timezone.utc).isoformat()
         with open(_LOG_PATH, "w", encoding="utf-8") as fh:
             fh.write(f"{ts} CodeQL alerts helper log (truncated for new run)\n")
     except Exception:
@@ -331,7 +331,7 @@ def _to_alert_api(raw: dict) -> Alert:
                 security_severity = str(inst_props.get(key))
                 break
     alert = Alert(
-        number=(int(raw.get("number")) if raw.get("number") is not None else None),
+        number=int(raw["number"]) if "number" in raw and raw["number"] is not None else None,
         html_url=raw.get("html_url"),
         rule_id=rule_id,
         level=(raw.get("severity") or "warning"),
