@@ -1,3 +1,4 @@
+"""This module provides a function to register Python algorithms with the Phlex framework."""
 import cppyy
 import pyphlex  # noqa: F401
 

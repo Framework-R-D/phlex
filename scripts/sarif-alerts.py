@@ -1,3 +1,4 @@
+"""A simple tool to print SARIF results from one or more SARIF files."""
 import argparse
 import json
 from pathlib import Path
@@ -26,6 +27,14 @@ def _process_sarif(path: Path) -> Iterable[str]:
 
 
 def main(argv=None) -> int:
+    """The main entry point of the script.
+
+    Args:
+        argv: The command-line arguments.
+
+    Returns:
+        The exit code.
+    """
     parser = argparse.ArgumentParser(
         description="Print SARIF results from one or more SARIF files"
     )
