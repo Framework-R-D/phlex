@@ -12,7 +12,6 @@
 #include <numpy/arrayobject.h>
 #endif
 
-#include <iostream>
 #include <vector>
 
 using namespace phlex::experimental;
@@ -52,7 +51,6 @@ static void import_numpy(bool control_interpreter)
 {
   static std::atomic<bool> numpy_imported{false};
   if (!numpy_imported.exchange(true)) {
-    std::cerr << "NOW IMPORTINT NUMPY " << std::endl;
     if (_import_array() < 0) {
       PyErr_Print();
       if (control_interpreter)

@@ -173,7 +173,7 @@ namespace {
 
   static std::string annotation_as_text(PyObject* pyobj)
   {
-    char const* cstr = nullptr;
+    std::string ann;
     if (!PyUnicode_Check(pyobj)) {
       PyObject* pystr = PyObject_GetAttrString(pyobj, "__name__"); // eg. for classes
       if (!pystr) {
@@ -181,15 +181,34 @@ namespace {
         pystr = PyObject_Str(pyobj);
       }
 
-      cstr = PyUnicode_AsUTF8(pystr);
+      char const* cstr = PyUnicode_AsUTF8(pystr);
+      if (cstr)
+        ann = cstr;
       Py_DECREF(pystr);
-      return cstr;
-    }
-    cstr = PyUnicode_AsUTF8(pyobj);
 
-    if (!cstr)
-      return "";
-    return cstr;
+      // for numpy typing, there's no useful way of figuring out the type from the
+      // name of the type, only from its string representation, so fall through and
+      // let this method return str()
+      if (ann != "ndarray")
+        return ann;
+
+      // start over for numpy type using result from str()
+      pystr = PyObject_Str(pyobj);
+      cstr = PyUnicode_AsUTF8(pystr);
+      if (cstr)        // if failed, ann will remain "ndarray"
+        ann = cstr;
+      Py_DECREF(pystr);
+      return ann;
+    }
+
+    // unicode object, i.e. string name of the type
+    char const* cstr = PyUnicode_AsUTF8(pyobj);
+    if (cstr)
+      ann = cstr;
+    else
+      PyErr_Clear();
+
+    return ann;
   }
 
   // converters of builtin types; TODO: this is a basic subset only, b/c either
@@ -264,51 +283,57 @@ namespace {
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
-  template <class T>
-  struct LifeLine {
-    PyObject* m_pyobject;
-    std::shared_ptr<T> m_dataobj;
-  };
-
-  static intptr_t vint_to_py(std::shared_ptr<std::vector<int>> const& v)
-  {
-    PyGILRAII gil;
-
 #ifdef PHLEX_HAVE_NUMPY
-    // use a numpy view with the shared pointer tied up in a lifeline object (note: this
-    // is just a demonstrator; alternatives are still being considered)
-    npy_intp dims[] = {static_cast<npy_intp>(v->size())};
-
-    PyObject* np_view = PyArray_SimpleNewFromData(1,        // ndims
-                                                  dims,     // dim sizes
-                                                  NPY_INT,  // C type matching int
-                                                  v->data() // raw buffer
-    );
-
-    if (!np_view)
-      return (intptr_t)nullptr;
-
-    // make the date read-only by not making it writable
-    PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);
-
-    // create a lifeline object to tie this array and the original handle together; note
-    // that the callback code needs to pick the data member out of the lifeline object,
-    // when passing it to the registered Python function
-    py_lifeline_t* pyll =
-      (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);
-    pyll->m_view = np_view; // steals reference
-    pyll->m_source = v;
-
-    return (intptr_t)pyll;
-
-#else
-    // TODO: this is just to make code coverage happy; in the end, these preprocessor
-    // directives will all go away with Numpy being properly installed with spack
-    intptr_t result = (intptr_t)(v->size() - v->size());
-    PyErr_SetString(PyExc_SystemError, "vector data products are not supported without numpy");
-    return (intptr_t)result;
-#endif
+#define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
+  static intptr_t name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                     \
+  {                                                                                                \
+    PyGILRAII gil;                                                                                 \
+                                                                                                   \
+    /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
+    /* is just a demonstrator; alternatives are still being considered) */                         \
+    npy_intp dims[] = {static_cast<npy_intp>(v->size())};                                          \
+                                                                                                   \
+    PyObject* np_view = PyArray_SimpleNewFromData(1,        /* 1-D array */                        \
+                                                  dims,     /* dimension sizes */                  \
+                                                  nptype,   /* numpy C type */                     \
+                                                  v->data() /* raw buffer */                       \
+    );                                                                                             \
+                                                                                                   \
+    if (!np_view)                                                                                  \
+      return (intptr_t)nullptr;                                                                    \
+                                                                                                   \
+    /* make the date read-only by not making it writable */                                        \
+    PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
+                                                                                                   \
+    /* create a lifeline object to tie this array and the original handle together; note */        \
+    /* that the callback code needs to pick the data member out of the lifeline object, */         \
+    /* when passing it to the registered Python function */                                        \
+    py_lifeline_t* pyll =                                                                          \
+      (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
+    pyll->m_view = np_view; /* steals reference */                                                 \
+    pyll->m_source = v;                                                                            \
+                                                                                                   \
+    return (intptr_t)pyll;                                                                         \
   }
+#else
+#define VECTOR_CONVERTER(nptype)                                                                   \
+  static intptr_t vec_to_py(std::shared_ptr<std::vector<T>> const& v)                              \
+  {                                                                                                \
+    PyGILRAII gil;                                                                                 \
+    /* TODO: this is just to make code coverage happy; in the end, these preprocessor */           \
+    /* directives will all go away with Numpy being properly installed with spack */               \
+    intptr_t result = (intptr_t)(v->size() - v->size());                                           \
+    PyErr_SetString(PyExc_SystemError, "vector data products are not supported without numpy");    \
+    return (intptr_t)result;                                                                       \
+  }
+#endif
+
+  VECTOR_CONVERTER(vint, int, NPY_INT)
+  VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
+  VECTOR_CONVERTER(vlong, long, NPY_LONG)
+  VECTOR_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  VECTOR_CONVERTER(vfloat, float, NPY_FLOAT)
+  VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
 } // unnamed namespace
 
@@ -423,12 +448,41 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
       INSERT_INPUT_CONVERTER(float, inp);
     else if (inp_type == "double")
       INSERT_INPUT_CONVERTER(double, inp);
-    else if (inp_type.compare(0, 7, "ndarray") == 0) {
-      if (inp_type.compare(8, std::string::npos, "int]") == 0) {
-        // TODO: this is a hard-coded std::vector <-> numpy array mapping, which is
-        // way too simplistic for real use. It only exists for demonstration purposes,
-        // until we have an IDL.
+    else if (inp_type.compare(0, 13, "numpy.ndarray") == 0) {
+      // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
+      // way too simplistic for real use. It only exists for demonstration purposes,
+      // until we have an IDL
+      auto pos = inp_type.rfind("numpy.dtype");
+      if (pos == std::string::npos) {
+        PyErr_Format(
+          PyExc_TypeError, "could not determine dtype of input type \"%s\"", inp_type.c_str());
+        return nullptr;
+      }
+
+      pos += 18;
+
+      if (inp_type.compare(pos, std::string::npos, "int32]]") == 0) {
         mod->ph_module->transform("pyvint_" + inp, vint_to_py, concurrency::serial)
+          .input_family(inp)
+          .output_products(inp + "py");
+      } else if (inp_type.compare(pos, std::string::npos, "uint32]]") == 0) {
+        mod->ph_module->transform("pyvuint_" + inp, vuint_to_py, concurrency::serial)
+          .input_family(inp)
+          .output_products(inp + "py");
+      } else if (inp_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
+        mod->ph_module->transform("pyvlong_" + inp, vlong_to_py, concurrency::serial)
+          .input_family(inp)
+          .output_products(inp + "py");
+      } else if (inp_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
+        mod->ph_module->transform("pyvulong_" + inp, vulong_to_py, concurrency::serial)
+          .input_family(inp)
+          .output_products(inp + "py");
+      } else if (inp_type.compare(pos, std::string::npos, "float32]]") == 0) {
+        mod->ph_module->transform("pyvfloat_" + inp, vfloat_to_py, concurrency::serial)
+          .input_family(inp)
+          .output_products(inp + "py");
+      } else if (inp_type.compare(pos, std::string::npos, "double64]]") == 0) {
+        mod->ph_module->transform("pyvdouble_" + inp, vdouble_to_py, concurrency::serial)
           .input_family(inp)
           .output_products(inp + "py");
       } else {
