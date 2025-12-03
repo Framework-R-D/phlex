@@ -46,8 +46,7 @@ TEST_CASE("provider_test")
   framework_graph g{levels_to_process};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
-    .input_family(
-      "happy_vertices"_in("spill")); // todo: fix 'input_family'; it should be 'output_product'
+    .output_product("happy_vertices"_in("spill"));
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family("happy_vertices"_in("spill"))
