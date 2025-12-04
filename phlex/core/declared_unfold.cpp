@@ -9,16 +9,16 @@ namespace phlex::experimental {
 
   generator::generator(product_store_const_ptr const& parent,
                        std::string node_name,
-                       std::string const& new_layer_name) :
+                       std::string const& child_layer_name) :
     parent_{std::const_pointer_cast<product_store>(parent)},
     node_name_{std::move(node_name)},
-    new_layer_name_{new_layer_name}
+    child_layer_name_{child_layer_name}
   {
   }
 
   product_store_const_ptr generator::make_child(std::size_t const i, products new_products)
   {
-    auto child = parent_->make_child(i, new_layer_name_, node_name_, std::move(new_products));
+    auto child = parent_->make_child(i, child_layer_name_, node_name_, std::move(new_products));
     ++child_counts_[child->id()->layer_hash()];
     return child;
   }

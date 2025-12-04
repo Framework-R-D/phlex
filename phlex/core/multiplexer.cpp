@@ -97,7 +97,7 @@ namespace phlex::experimental {
     }
 
     for (auto const& ports : head_ports_ | std::views::values) {
-      // FIXME: Should make sure that the received store has a level equal to the most
+      // FIXME: Should make sure that the received store has the same layer name as the most
       //        derived store required by the algorithm.
       auto const senders = senders_for(store, ports);
       if (size(senders) != size(ports)) {

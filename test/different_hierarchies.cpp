@@ -43,11 +43,11 @@ using namespace phlex::experimental;
 namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 
-  // job -> run -> event levels
+  // job -> run -> event layers
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  // job -> trigger primitive levels
+  // job -> trigger primitive layers
   constexpr auto primitive_limit = 10u;
 
   void cells_to_process(framework_driver& driver)
@@ -55,7 +55,7 @@ namespace {
     auto job_store = product_store::base();
     driver.yield(job_store);
 
-    // job -> run -> event levels
+    // job -> run -> event layers
     for (unsigned i : std::views::iota(0u, index_limit)) {
       auto run_store = job_store->make_child(i, "run");
       driver.yield(run_store);
@@ -66,7 +66,7 @@ namespace {
       }
     }
 
-    // job -> trigger primitive levels
+    // job -> trigger primitive layers
     for (unsigned i : std::views::iota(0u, primitive_limit)) {
       auto tp_store = job_store->make_child(i, "trigger primitive");
       tp_store->add_product("number", i);

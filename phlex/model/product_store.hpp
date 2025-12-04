@@ -30,12 +30,12 @@ namespace phlex::experimental {
     product_store_const_ptr parent() const noexcept;
     product_store_ptr make_flush() const;
     product_store_ptr make_continuation(std::string source, products new_products = {}) const;
-    product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_layer_name,
+    product_store_ptr make_child(std::size_t data_cell_number,
+                                 std::string const& child_layer_name,
                                  std::string source,
                                  products new_products);
-    product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_layer_name,
+    product_store_ptr make_child(std::size_t data_cell_number,
+                                 std::string const& child_layer_name,
                                  std::string source = {},
                                  stage st = stage::process);
     data_cell_index_ptr const& id() const noexcept;
@@ -64,13 +64,13 @@ namespace phlex::experimental {
                            stage processing_stage = stage::process,
                            products new_products = {});
     explicit product_store(product_store_const_ptr parent,
-                           std::size_t new_level_number,
-                           std::string const& new_layer_name,
+                           std::size_t data_cell_number,
+                           std::string const& child_layer_name,
                            std::string source,
                            products new_products);
     explicit product_store(product_store_const_ptr parent,
-                           std::size_t new_level_number,
-                           std::string const& new_layer_name,
+                           std::size_t data_cell_number,
+                           std::string const& child_layer_name,
                            std::string source,
                            stage processing_stage);
 

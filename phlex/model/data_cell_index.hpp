@@ -18,7 +18,7 @@ namespace phlex::experimental {
     static data_cell_index_ptr base_ptr();
 
     using hash_type = std::size_t;
-    data_cell_index_ptr make_child(std::size_t new_level_number, std::string layer_name) const;
+    data_cell_index_ptr make_child(std::size_t data_cell_number, std::string layer_name) const;
     std::string const& layer_name() const noexcept;
     std::size_t depth() const noexcept;
     data_cell_index_ptr parent(std::string const& layer_name) const;
@@ -31,7 +31,7 @@ namespace phlex::experimental {
     bool operator<(data_cell_index const& other) const;
 
     std::string to_string() const;
-    std::string to_string_this_level() const;
+    std::string to_string_this_layer() const;
 
     friend std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
 
