@@ -31,8 +31,6 @@ jobs:
     name: Apply fixes
     needs: parse-command
     if: ${{ needs.parse-command.result == 'success' }}
-    permissions:
-      pull-requests: write
     steps:
       - name: Get PR Info
         id: get_pr
