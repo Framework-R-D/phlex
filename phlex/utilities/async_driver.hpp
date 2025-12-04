@@ -23,17 +23,10 @@ namespace phlex::experimental {
     }
     async_driver(void (*ft)(async_driver<RT>&)) : driver_{ft} {}
 
-    ~async_driver()
-    {
-      if (thread_.joinable()) {
-        thread_.join();
-      }
-    }
-
     std::optional<RT> operator()()
     {
       if (gear_ == states::off) {
-        thread_ = std::thread{[this] {
+        thread_ = std::jthread{[this] {
           try {
             driver_(*this);
           } catch (...) {
@@ -69,7 +62,7 @@ namespace phlex::experimental {
     std::function<void(async_driver&)> driver_;
     std::optional<RT> current_;
     std::atomic<states> gear_ = states::off;
-    std::thread thread_;
+    std::jthread thread_;
     std::mutex mutex_;
     std::condition_variable cv_;
     std::exception_ptr cached_exception_;
