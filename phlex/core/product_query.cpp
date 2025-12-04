@@ -7,7 +7,7 @@
 #include <tuple>
 
 namespace phlex::experimental {
-  product_query product_query_prefix::operator()(std::string data_layer) &&
+  product_query product_tag::operator()(std::string data_layer) &&
   {
     if (data_layer.empty()) {
       throw std::runtime_error("Cannot specify the empty string as a data layer.");
@@ -23,7 +23,7 @@ namespace phlex::experimental {
     return fmt::format("{} ϵ {}", name.full(), layer);
   }
 
-  product_query_prefix operator""_in(char const* product_name, std::size_t length)
+  product_tag operator""_in(char const* product_name, std::size_t length)
   {
     if (length == 0ull) {
       throw std::runtime_error("Cannot specify product with empty name.");
