@@ -63,7 +63,7 @@ runs:
         message: ${{ inputs.commit-message }}
 
     - name: Notify of commit
-      if: steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'
+      if: steps.add_and_commit.conclusion == 'success' && steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: |
