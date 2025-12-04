@@ -92,6 +92,9 @@ namespace phlex::experimental {
   } catch (std::exception const& e) {
     spdlog::error(e.what());
     throw;
+  } catch (...) {
+    spdlog::error("Unknown exception during graph execution");
+    throw;
   }
 
   void framework_graph::run()
