@@ -111,6 +111,7 @@ int main(int argc, char* argv[])
     auto const chunksize = 256LL; // this could be read from a configuration file
 
     g.unfold<demo::WaveformGenerator>(
+       "WaveformGenerator",
        &demo::WaveformGenerator::predicate,
        [](demo::WaveformGenerator const& wg, std::size_t running_value) {
          return wg.op(running_value, chunksize);
