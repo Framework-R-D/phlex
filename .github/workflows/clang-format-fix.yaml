@@ -33,7 +33,7 @@ jobs:
     needs: parse-command
     if: ${{ needs.parse-command.result == 'success' }}
     steps:
-      - uses: actions/checkout@1af3-b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           path: phlex-src
           ref: ${{ needs.parse-command.outputs.ref }}
