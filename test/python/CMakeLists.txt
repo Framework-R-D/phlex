@@ -92,37 +92,8 @@ except ImportError:
   add_library(py_cppdriver MODULE driver.cpp)
   target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
 
-  # Phlex module to run Python algorithms
-  add_library(
-    pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp lifelinewrap.cpp
-                    errorwrap.cpp
-    )
-  include_directories(pymodule, ${Python_INCLUDE_DIRS})
-  target_link_libraries(
-    pymodule
-    PRIVATE phlex::module ${Python_LIBRARIES}
-    PUBLIC Python::Python
-    )
-
   # numpy support if installed
   if(HAS_NUMPY)
-
-    # locate numpy's header directory
-    execute_process(
-      COMMAND "${Python_EXECUTABLE}" -c
-              "import numpy; print(numpy.get_include(), end='')"
-      RESULT_VARIABLE NUMPY_RESULT
-      OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      )
-
-    if(NUMPY_RESULT EQUAL 0)
-      include_directories(pymodule PRIVATE ${NUMPY_INCLUDE_DIR})
-      target_compile_definitions(
-        pymodule PRIVATE PHLEX_HAVE_NUMPY=1
-                         NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION
-        )
-    endif()
 
     # phlex-based tests that require numpy support
     add_test(NAME py:vec
@@ -149,6 +120,6 @@ except ImportError:
     ${ACTIVE_PY_CPHLEX_TESTS}
     PROPERTIES
       ENVIRONMENT
-      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_BINARY_DIR}/plugins/python;PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
     )
 endif() # Python available
