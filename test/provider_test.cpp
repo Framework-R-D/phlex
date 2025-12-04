@@ -1,6 +1,6 @@
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "test/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "fmt/std.h"
@@ -33,17 +33,10 @@ TEST_CASE("provider_test")
   // constexpr auto max_events{1'000'000u};
   spdlog::flush_on(spdlog::level::trace);
 
-  auto levels_to_process = [](framework_driver& driver) {
-    auto job_index = data_cell_index::base_ptr();
-    driver.yield(job_index);
+  layer_generator gen;
+  gen.add_layer("spill", {"job", max_events, 1u});
 
-    for (unsigned int i : std::views::iota(1u, max_events + 1)) {
-      auto index = job_index->make_child(i, "spill");
-      driver.yield(index);
-    }
-  };
-
-  framework_graph g{levels_to_process};
+  framework_graph g{gen};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
     .output_product("happy_vertices"_in("spill"));

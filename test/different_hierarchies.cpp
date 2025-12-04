@@ -32,16 +32,12 @@
 
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "test/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
-#include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
@@ -50,40 +46,23 @@ namespace {
   unsigned int provide_number(data_cell_index const& index) { return index.number(); }
 
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
-
-  // job -> run -> event layers
-  constexpr auto index_limit = 2u;
-  constexpr auto number_limit = 5u;
-
-  // job -> event levels
-  constexpr auto top_level_event_limit = 10u;
-
-  void cells_to_process(framework_driver& driver)
-  {
-    auto job_index = data_cell_index::base_ptr();
-    driver.yield(job_index);
-
-    // job -> run -> event layers
-    for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_index = job_index->make_child(i, "run");
-      driver.yield(run_index);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_index = run_index->make_child(j, "event");
-        driver.yield(event_index);
-      }
-    }
-
-    // job -> event layers
-    for (unsigned i : std::views::iota(0u, top_level_event_limit)) {
-      auto tp_event_index = job_index->make_child(i, "event");
-      driver.yield(tp_event_index);
-    }
-  }
 }
 
 TEST_CASE("Different hierarchies used with fold", "[graph]")
 {
-  framework_graph g{cells_to_process};
+  // job -> run -> event layers
+  constexpr auto index_limit = 2u;
+  constexpr auto number_limit = 5u;
+
+  // job -> event layers
+  constexpr auto top_level_event_limit = 10u;
+
+  layer_generator gen;
+  gen.add_layer("run", {"job", index_limit});
+  gen.add_layer("event", {"run", number_limit});
+  gen.add_layer("event", {"job", top_level_event_limit});
+
+  framework_graph g{gen};
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)
