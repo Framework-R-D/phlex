@@ -11,9 +11,9 @@
 //      | \| \|
 //     A3 B2  C
 //
-// where A1, A2, and A3 are transforms that execute at the "run" level; B1 and B2 are
-// transforms that execute at the "subrun" level; and C is a transform that executes at
-// the event level.
+// where A1, A2, and A3 are transforms that execute at the "run" layer; B1 and B2 are
+// transforms that execute at the "subrun" layer; and C is a transform that executes at
+// the event layer.
 //
 // This test verifies that for each "run", "subrun", and "event", the corresponding
 // transforms execute only once.  This test assumes:

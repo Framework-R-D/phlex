@@ -1,5 +1,5 @@
 #include "phlex/core/message.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
 #include <algorithm>
 #include <iterator>
@@ -12,6 +12,8 @@ namespace phlex::experimental {
 
   message const& more_derived(message const& a, message const& b)
   {
+    assert(a.store);
+    assert(b.store);
     if (a.store->id()->depth() > b.store->id()->depth()) {
       return a;
     }

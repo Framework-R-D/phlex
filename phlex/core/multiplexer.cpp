@@ -33,9 +33,9 @@ namespace {
     result.reserve(ports.size());
     for (auto const& [product_label, port] : ports) {
       // Look for the product_label that matches our store's level_name.
-      if (auto const& allowed_family = product_label.family; not allowed_family.empty()) {
-        if (store->level_name() != allowed_family) {
-          // This store level does not match the required family
+      if (auto const& allowed_layer = product_label.layer; not allowed_layer.empty()) {
+        if (store->layer_name() != allowed_layer) {
+          // This store layer does not match the required layer
           continue;
         }
       }
@@ -75,7 +75,7 @@ namespace phlex::experimental {
     }
 
     for (auto const& ports : head_ports_ | std::views::values) {
-      // FIXME: Should make sure that the received store has a level equal to the most
+      // FIXME: Should make sure that the received store has the same layer name as the most
       //        derived store required by the algorithm.
       auto const senders = senders_for(store, ports);
       if (size(senders) != size(ports)) {

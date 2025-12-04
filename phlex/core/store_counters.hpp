@@ -2,8 +2,8 @@
 #define PHLEX_CORE_STORE_COUNTERS_HPP
 
 #include "phlex/core/fwd.hpp"
-#include "phlex/model/level_counter.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_counter.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -29,11 +29,12 @@ namespace phlex::experimental {
 
   class detect_flush_flag {
   protected:
-    store_flag& flag_for(level_id::hash_type hash);
+    store_flag& flag_for(data_cell_index::hash_type hash);
     bool done_with(product_store_const_ptr const& store);
 
   private:
-    using flags_t = tbb::concurrent_hash_map<level_id::hash_type, std::unique_ptr<store_flag>>;
+    using flags_t =
+      tbb::concurrent_hash_map<data_cell_index::hash_type, std::unique_ptr<store_flag>>;
     using flag_accessor = flags_t::accessor;
     using const_flag_accessor = flags_t::const_accessor;
 
@@ -45,12 +46,13 @@ namespace phlex::experimental {
   class store_counter {
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
-    void increment(level_id::hash_type level_hash);
+    void increment(data_cell_index::hash_type layer_hash);
     bool is_complete();
     unsigned int original_message_id() const noexcept;
 
   private:
-    using counts_t2 = tbb::concurrent_unordered_map<level_id::hash_type, std::atomic<std::size_t>>;
+    using counts_t2 =
+      tbb::concurrent_unordered_map<data_cell_index::hash_type, std::atomic<std::size_t>>;
 
     counts_t2 counts_{};
 #ifdef __cpp_lib_atomic_shared_ptr
@@ -64,12 +66,12 @@ namespace phlex::experimental {
 
   class count_stores {
   protected:
-    store_counter& counter_for(level_id::hash_type hash);
-    std::unique_ptr<store_counter> done_with(level_id::hash_type hash);
+    store_counter& counter_for(data_cell_index::hash_type hash);
+    std::unique_ptr<store_counter> done_with(data_cell_index::hash_type hash);
 
   private:
     using counters_t =
-      tbb::concurrent_hash_map<level_id::hash_type, std::unique_ptr<store_counter>>;
+      tbb::concurrent_hash_map<data_cell_index::hash_type, std::unique_ptr<store_counter>>;
     using counter_accessor = counters_t::accessor;
 
     counters_t counters_;

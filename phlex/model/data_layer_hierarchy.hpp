@@ -1,8 +1,8 @@
-#ifndef PHLEX_MODEL_LEVEL_HIERARCHY_HPP
-#define PHLEX_MODEL_LEVEL_HIERARCHY_HPP
+#ifndef PHLEX_MODEL_DATA_LAYER_HIERARCHY_HPP
+#define PHLEX_MODEL_DATA_LAYER_HIERARCHY_HPP
 
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
-#include "phlex/model/level_id.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 
@@ -13,11 +13,11 @@
 
 namespace phlex::experimental {
 
-  class level_hierarchy {
+  class data_layer_hierarchy {
   public:
-    ~level_hierarchy();
-    void increment_count(level_id_ptr const& id);
-    std::size_t count_for(std::string const& level_name) const;
+    ~data_layer_hierarchy();
+    void increment_count(data_cell_index_ptr const& id);
+    std::size_t count_for(std::string const& layer_name) const;
 
     void print() const;
 
@@ -30,8 +30,8 @@ namespace phlex::experimental {
                                std::string const& parent_name,
                                std::string indent = {}) const;
 
-    struct level_entry {
-      level_entry(std::string n, std::size_t par_hash) : name{std::move(n)}, parent_hash{par_hash}
+    struct layer_entry {
+      layer_entry(std::string n, std::size_t par_hash) : name{std::move(n)}, parent_hash{par_hash}
       {
       }
 
@@ -40,9 +40,9 @@ namespace phlex::experimental {
       std::atomic<std::size_t> count{};
     };
 
-    tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<level_entry>> levels_;
+    tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<layer_entry>> layers_;
   };
 
 }
 
-#endif // PHLEX_MODEL_LEVEL_HIERARCHY_HPP
+#endif // PHLEX_MODEL_DATA_LAYER_HIERARCHY_HPP

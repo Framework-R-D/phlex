@@ -1,3 +1,4 @@
+"""This module defines a simple C++ function using cppyy."""
 import cppyy
 
 cppyy.cppdef("""\

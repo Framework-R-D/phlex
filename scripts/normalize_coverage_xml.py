@@ -208,12 +208,17 @@ def normalize(
 
             absolute_candidate = (repo_root_resolved / relative).resolve()
 
-        cls.set("filename", relative.as_posix())
+        if relative is not None:
+            cls.set("filename", relative.as_posix())
 
-        candidate = repo_root / relative
-        candidate_resolved = absolute_candidate
-        if not candidate.exists() and not candidate_resolved.exists():
-            missing.append(relative.as_posix())
+            candidate = repo_root / relative
+            if absolute_candidate is not None:
+                candidate_resolved = absolute_candidate
+            else:
+                candidate_resolved = candidate.resolve()
+
+            if not candidate.exists() and not candidate_resolved.exists():
+                missing.append(relative.as_posix())
 
     tree.write(report_path)
     return missing, external

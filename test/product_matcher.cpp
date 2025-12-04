@@ -9,12 +9,12 @@ using namespace phlex::experimental;
 
 namespace {
 
-  // Spec: [level path spec/][[module name][@node name]:]product name
+  // Spec: [layer path spec/][[module name][@node name]:]product name
 
-  // std::string const optional_level_path{R"((?:(.*)/)?)"};
+  // std::string const optional_layer_path{R"((?:(.*)/)?)"};
   // std::string const optional_qualified_node_name{R"((?:(\w+)?(?:@(\w+))?:)?)"};
   // std::string const product_name{R"((\w+))"};
-  // std::regex const pattern{optional_level_path + optional_qualified_node_name + product_name};
+  // std::regex const pattern{optional_layer_path + optional_qualified_node_name + product_name};
   // void print(std::string const& spec)
   // {
   //   std::smatch submatches;
@@ -36,17 +36,17 @@ TEST_CASE("Simple product matcher", "[data model]")
 {
   auto const spec = "event/loaded_module@add:sum";
   product_matcher matcher{spec};
-  CHECK(matcher.level_path() == "event");
+  CHECK(matcher.layer_path() == "event");
   CHECK(matcher.module_name() == "loaded_module");
   CHECK(matcher.node_name() == "add");
   CHECK(matcher.product_name() == "sum");
   CHECK(matcher.encode() == spec);
 }
 
-TEST_CASE("Product matcher with default level path", "[data model]")
+TEST_CASE("Product matcher with default layer path", "[data model]")
 {
   product_matcher matcher{"loaded_module@add:sum"};
-  CHECK(matcher.level_path() == "*");
+  CHECK(matcher.layer_path() == "*");
   CHECK(matcher.module_name() == "loaded_module");
   CHECK(matcher.node_name() == "add");
   CHECK(matcher.product_name() == "sum");
@@ -55,10 +55,10 @@ TEST_CASE("Product matcher with default level path", "[data model]")
   CHECK(product_matcher{"*/loaded_module@add:sum"}.encode() == "*/loaded_module@add:sum");
 }
 
-TEST_CASE("Product matcher with multi-part level path", "[data model]")
+TEST_CASE("Product matcher with multi-part layer path", "[data model]")
 {
   product_matcher matcher{"a/b/c/loaded_module@add:sum"};
-  CHECK(matcher.level_path() == "a/b/c");
+  CHECK(matcher.layer_path() == "a/b/c");
   CHECK(matcher.module_name() == "loaded_module");
   CHECK(matcher.node_name() == "add");
   CHECK(matcher.product_name() == "sum");
@@ -68,7 +68,7 @@ TEST_CASE("Product matcher with multi-part level path", "[data model]")
 TEST_CASE("Product with only node spec", "[data model]")
 {
   product_matcher matcher{"@add:sum"};
-  CHECK(matcher.level_path() == "*");
+  CHECK(matcher.layer_path() == "*");
   CHECK(matcher.module_name() == "");
   CHECK(matcher.node_name() == "add");
   CHECK(matcher.product_name() == "sum");
@@ -78,7 +78,7 @@ TEST_CASE("Product with only node spec", "[data model]")
 TEST_CASE("Product with only module spec", "[data model]")
 {
   product_matcher matcher{"loaded_module:sum"};
-  CHECK(matcher.level_path() == "*");
+  CHECK(matcher.layer_path() == "*");
   CHECK(matcher.module_name() == "loaded_module");
   CHECK(matcher.node_name() == "");
   CHECK(matcher.product_name() == "sum");

@@ -11,6 +11,11 @@ import sys
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Builds the command-line argument parser.
+
+    Returns:
+        The argument parser.
+    """
     parser = argparse.ArgumentParser(
         description="Run llvm-cov export and write the LCOV data to a file."
     )
@@ -28,6 +33,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """The main entry point of the script.
+
+    Args:
+        argv: The command-line arguments.
+
+    Returns:
+        The exit code.
+    """
     parser = build_parser()
     args = parser.parse_args(argv)
 

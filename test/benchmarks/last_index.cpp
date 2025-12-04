@@ -1,10 +1,10 @@
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
 
 using namespace phlex::experimental;
 
 namespace {
-  int last_index(level_id const& id) { return static_cast<int>(id.number()); }
+  int last_index(data_cell_index const& id) { return static_cast<int>(id.number()); }
 }
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)

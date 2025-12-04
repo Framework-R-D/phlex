@@ -34,6 +34,14 @@ SUPPORTED_SUFFIXES = {
 
 
 def should_link(path: pathlib.Path) -> bool:
+    """Checks if a file should be symlinked for coverage analysis.
+
+    Args:
+        path: The path to the file.
+
+    Returns:
+        True if the file should be symlinked, False otherwise.
+    """
     if not path.is_file():
         return False
     suffix = path.suffix
@@ -49,6 +57,14 @@ def should_link(path: pathlib.Path) -> bool:
 
 
 def iter_source_files(build_root: pathlib.Path) -> Iterable[pathlib.Path]:
+    """Iterates over all source files in a directory.
+
+    Args:
+        build_root: The root directory to search.
+
+    Yields:
+        Paths to the source files.
+    """
     for root, _dirs, files in os.walk(build_root):
         root_path = pathlib.Path(root)
         for filename in files:
@@ -58,6 +74,12 @@ def iter_source_files(build_root: pathlib.Path) -> Iterable[pathlib.Path]:
 
 
 def create_symlinks(build_root: pathlib.Path, output_root: pathlib.Path) -> None:
+    """Creates symlinks for all source files in a directory.
+
+    Args:
+        build_root: The root directory containing the source files.
+        output_root: The directory where the symlinks will be created.
+    """
     if output_root.exists():
         shutil.rmtree(output_root)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -79,6 +101,14 @@ def create_symlinks(build_root: pathlib.Path, output_root: pathlib.Path) -> None
 
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
+    """Parses command-line arguments.
+
+    Args:
+        argv: The command-line arguments to parse.
+
+    Returns:
+        The parsed arguments.
+    """
     parser = argparse.ArgumentParser(description="Create coverage symlink tree")
     parser.add_argument("--build-root", required=True)
     parser.add_argument("--output-root", required=True)
@@ -86,6 +116,14 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
 
 
 def main(argv: Iterable[str]) -> int:
+    """The main entry point of the script.
+
+    Args:
+        argv: The command-line arguments.
+
+    Returns:
+        The exit code.
+    """
     args = parse_args(argv)
     build_root = pathlib.Path(args.build_root).resolve()
     output_root = pathlib.Path(args.output_root).resolve()

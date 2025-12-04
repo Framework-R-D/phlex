@@ -22,7 +22,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from typing import Iterator, List, Optional
+from typing import Any, Iterator, List, Optional
 
 API_ROOT = "https://api.github.com"
 API_VERSION = "2022-11-28"
@@ -45,7 +45,7 @@ def _request(
     *,
     params: Optional[dict] = None,
     payload: Optional[dict] = None,
-) -> dict:
+) -> Any:
     url = urllib.parse.urljoin(API_ROOT, path)
     if params:
         query = urllib.parse.urlencode(params)
@@ -99,6 +99,8 @@ def _paginate_alerts(owner: str, repo: str) -> Iterator[dict]:
 
 @dataclass
 class Alert:
+    """Represents a dismissed CodeQL alert."""
+
     number: int
     html_url: str
     rule_id: str
@@ -123,6 +125,14 @@ def _to_alert(raw: dict) -> Alert:
 
 
 def reopen_alert(owner: str, repo: str, alert: Alert, *, dry_run: bool) -> None:
+    """Reopens a dismissed CodeQL alert.
+
+    Args:
+        owner: The GitHub organization or user.
+        repo: The repository name.
+        alert: The alert to reopen.
+        dry_run: If True, print the action without executing it.
+    """
     if dry_run:
         print(f"DRY RUN: would reopen alert #{alert.number} ({alert.rule_id})")
         return
@@ -135,6 +145,14 @@ def reopen_alert(owner: str, repo: str, alert: Alert, *, dry_run: bool) -> None:
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    """Parses command-line arguments.
+
+    Args:
+        argv: The command-line arguments to parse.
+
+    Returns:
+        The parsed arguments.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--owner", required=True, help="GitHub organization or user")
     parser.add_argument("--repo", required=True, help="Repository name")
@@ -147,6 +165,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    """The main entry point of the script.
+
+    Args:
+        argv: The command-line arguments.
+
+    Returns:
+        The exit code.
+    """
     args = parse_args(argv)
     try:
         alerts = [_to_alert(raw) for raw in _paginate_alerts(args.owner, args.repo)]
