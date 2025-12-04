@@ -95,10 +95,10 @@ runs:
           Please apply the patch below to fix the issues:
           1. **Download the patch file:** You can download the patch from the "Artifacts" section of this workflow run.
           2. **Apply the patch:**
-             ```shell
+             ```bash
              git apply <path/to/downloaded/fix.patch>
              ```
           3. **Commit the changes:**
-             ```shell
+             ```bash
              git commit -am "${{ inputs.commit-message }}"
              ```
