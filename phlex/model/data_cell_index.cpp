@@ -58,11 +58,11 @@ namespace phlex::experimental {
   std::string const& data_cell_index::layer_name() const noexcept { return layer_name_; }
   std::size_t data_cell_index::depth() const noexcept { return depth_; }
 
-  data_cell_index_ptr data_cell_index::make_child(std::size_t const new_level_number,
-                                                  std::string new_layer_name) const
+  data_cell_index_ptr data_cell_index::make_child(std::size_t const data_cell_number,
+                                                  std::string child_layer_name) const
   {
     return data_cell_index_ptr{
-      new data_cell_index{shared_from_this(), new_level_number, std::move(new_layer_name)}};
+      new data_cell_index{shared_from_this(), data_cell_number, std::move(child_layer_name)}};
   }
 
   bool data_cell_index::has_parent() const noexcept { return static_cast<bool>(parent_); }
@@ -137,17 +137,17 @@ namespace phlex::experimental {
     std::string suffix{"]"};
 
     if (number_ != -1ull) {
-      result = to_string_this_level();
+      result = to_string_this_layer();
       auto parent = parent_;
       while (parent != nullptr and parent->number_ != -1ull) {
-        result.insert(0, parent->to_string_this_level() + ", ");
+        result.insert(0, parent->to_string_this_layer() + ", ");
         parent = parent->parent_;
       }
     }
     return prefix + result + suffix;
   }
 
-  std::string data_cell_index::to_string_this_level() const
+  std::string data_cell_index::to_string_this_layer() const
   {
     if (empty(layer_name_)) {
       return std::to_string(number_);

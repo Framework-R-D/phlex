@@ -20,25 +20,25 @@ namespace phlex::experimental {
   }
 
   product_store::product_store(product_store_const_ptr parent,
-                               std::size_t new_level_number,
-                               std::string const& new_layer_name,
+                               std::size_t data_cell_number,
+                               std::string const& child_layer_name,
                                std::string source,
                                products new_products) :
     parent_{parent},
     products_{std::move(new_products)},
-    id_{parent->id()->make_child(new_level_number, new_layer_name)},
+    id_{parent->id()->make_child(data_cell_number, child_layer_name)},
     source_{std::move(source)},
     stage_{stage::process}
   {
   }
 
   product_store::product_store(product_store_const_ptr parent,
-                               std::size_t new_level_number,
-                               std::string const& new_layer_name,
+                               std::size_t data_cell_number,
+                               std::string const& child_layer_name,
                                std::string source,
                                stage processing_stage) :
     parent_{parent},
-    id_{parent->id()->make_child(new_level_number, new_layer_name)},
+    id_{parent->id()->make_child(data_cell_number, child_layer_name)},
     source_{std::move(source)},
     stage_{processing_stage}
   {
@@ -88,25 +88,25 @@ namespace phlex::experimental {
       new product_store{parent_, id_, std::move(source), stage::process, std::move(new_products)}};
   }
 
-  product_store_ptr product_store::make_child(std::size_t new_level_number,
-                                              std::string const& new_layer_name,
+  product_store_ptr product_store::make_child(std::size_t data_cell_number,
+                                              std::string const& child_layer_name,
                                               std::string source,
                                               products new_products)
   {
     return product_store_ptr{new product_store{shared_from_this(),
-                                               new_level_number,
-                                               new_layer_name,
+                                               data_cell_number,
+                                               child_layer_name,
                                                std::move(source),
                                                std::move(new_products)}};
   }
 
-  product_store_ptr product_store::make_child(std::size_t new_level_number,
-                                              std::string const& new_layer_name,
+  product_store_ptr product_store::make_child(std::size_t data_cell_number,
+                                              std::string const& child_layer_name,
                                               std::string source,
                                               stage processing_stage)
   {
     return product_store_ptr{new product_store{
-      shared_from_this(), new_level_number, new_layer_name, std::move(source), processing_stage}};
+      shared_from_this(), data_cell_number, child_layer_name, std::move(source), processing_stage}};
   }
 
   std::string const& product_store::layer_name() const noexcept { return id_->layer_name(); }

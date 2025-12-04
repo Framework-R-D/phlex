@@ -33,8 +33,8 @@ namespace phlex::experimental {
 
   std::size_t data_layer_hierarchy::count_for(std::string const& layer_name) const
   {
-    auto it = find_if(begin(layers_), end(layers_), [&layer_name](auto const& level) {
-      return level.second->name == layer_name;
+    auto it = find_if(begin(layers_), end(layers_), [&layer_name](auto const& layer) {
+      return layer.second->name == layer_name;
     });
     return it != cend(layers_) ? it->second->count.load() : 0;
   }
@@ -84,7 +84,7 @@ namespace phlex::experimental {
     }
 
     auto const initial_indent = "  ";
-    return fmt::format("\nProcessed levels:\n\n{}job{}\n",
+    return fmt::format("\nProcessed layers:\n\n{}job{}\n",
                        initial_indent,
                        pretty_recurse(tree, "job", initial_indent));
   }
