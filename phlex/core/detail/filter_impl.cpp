@@ -1,5 +1,6 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <string>
 
@@ -87,7 +88,9 @@ namespace phlex::experimental {
   {
     decltype(stores_)::const_accessor a;
     if (stores_.find(a, msg_id)) {
-      return a->second.size() == nargs_;
+      std::size_t const num_ready = std::ranges::count_if(
+        a->second, [](auto const& store) { return static_cast<bool>(store); });
+      return num_ready == nargs_;
     }
     return false;
   }
