@@ -6,7 +6,7 @@
 #include <cassert>
 
 namespace phlex::experimental {
-  message_sender::message_sender(level_hierarchy& hierarchy,
+  message_sender::message_sender(data_layer_hierarchy& hierarchy,
                                  multiplexer& mplexer,
                                  std::stack<end_of_message_ptr>& eoms) :
     hierarchy_{hierarchy}, multiplexer_{mplexer}, eoms_{eoms}

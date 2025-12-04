@@ -13,8 +13,8 @@
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -50,7 +50,7 @@ namespace phlex::experimental {
     virtual std::size_t product_count() const = 0;
 
   protected:
-    using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
+    using stores_t = tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr>;
     using accessor = stores_t::accessor;
     using const_accessor = stores_t::const_accessor;
 
@@ -101,7 +101,7 @@ namespace phlex::experimental {
                      if (stores_.insert(a, store->id()->hash())) {
                        auto result = call(ft, messages, std::make_index_sequence<N>{});
                        ++calls_;
-                       ++product_count_[store->id()->level_hash()];
+                       ++product_count_[store->id()->layer_hash()];
                        products new_products;
                        new_products.add_all(output_, std::move(result));
                        a->second =

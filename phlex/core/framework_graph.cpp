@@ -2,7 +2,7 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/edge_maker.hpp"
-#include "phlex/model/level_counter.hpp"
+#include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "fmt/std.h"
@@ -13,7 +13,7 @@
 #include <iostream>
 
 namespace phlex::experimental {
-  level_sentry::level_sentry(flush_counters& counters,
+  layer_sentry::layer_sentry(flush_counters& counters,
                              message_sender& sender,
                              product_store_ptr store) :
     counters_{counters}, sender_{sender}, store_{store}, depth_{store_->id()->depth()}
@@ -21,7 +21,7 @@ namespace phlex::experimental {
     counters_.update(store_->id());
   }
 
-  level_sentry::~level_sentry()
+  layer_sentry::~layer_sentry()
   {
     auto flush_result = counters_.extract(store_->id());
     auto flush_store = store_->make_flush();
@@ -32,7 +32,7 @@ namespace phlex::experimental {
     sender_.send_flush(std::move(flush_store));
   }
 
-  std::size_t level_sentry::depth() const noexcept { return depth_; }
+  std::size_t layer_sentry::depth() const noexcept { return depth_; }
 
   framework_graph::framework_graph(product_store_ptr store, int const max_parallelism) :
     framework_graph{[store](framework_driver& driver) { driver.yield(store); }, max_parallelism}

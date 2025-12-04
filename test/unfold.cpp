@@ -15,7 +15,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "test/products_for_output.hpp"
 
@@ -49,7 +49,7 @@ namespace {
     }
     auto initial_value() const { return begin_; }
     bool predicate(numbers_t::const_iterator it) const { return it != end_; }
-    auto unfold(numbers_t::const_iterator it, level_id const& lid) const
+    auto unfold(numbers_t::const_iterator it, data_cell_index const& lid) const
     {
       spdlog::info("Unfolding into {}", lid.to_string());
       auto num = *it;
@@ -66,7 +66,7 @@ namespace {
 
   void check_sum(handle<unsigned int> const sum)
   {
-    if (sum.level_id().number() == 0ull) {
+    if (sum.data_cell_index().number() == 0ull) {
       CHECK(*sum == 45);
     } else {
       CHECK(*sum == 190);
@@ -75,7 +75,7 @@ namespace {
 
   void check_sum_same(handle<unsigned int> const sum)
   {
-    auto const expected_sum = (sum.level_id().number() + 1) * 10;
+    auto const expected_sum = (sum.data_cell_index().number() + 1) * 10;
     CHECK(*sum == expected_sum);
   }
 }
@@ -84,7 +84,7 @@ TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
 
-  auto levels_to_process = [index_limit](auto& driver) {
+  auto cells_to_process = [index_limit](auto& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
@@ -95,7 +95,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     }
   };
 
-  framework_graph g{levels_to_process};
+  framework_graph g{cells_to_process};
 
   g.unfold<iota>(&iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family("max_number")

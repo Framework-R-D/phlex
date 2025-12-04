@@ -11,8 +11,8 @@
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
@@ -43,7 +43,7 @@ namespace phlex::experimental {
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
 
   protected:
-    using results_t = tbb::concurrent_hash_map<level_id::hash_type, predicate_result>;
+    using results_t = tbb::concurrent_hash_map<data_cell_index::hash_type, predicate_result>;
     using accessor = results_t::accessor;
     using const_accessor = results_t::const_accessor;
 

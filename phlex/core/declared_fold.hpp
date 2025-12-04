@@ -11,8 +11,8 @@
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -92,7 +92,7 @@ namespace phlex::experimental {
               if (store->is_flush()) {
                 // Downstream nodes always get the flush.
                 get<0>(outputs).try_put(msg);
-                if (store->id()->level_name() != partition_) {
+                if (store->id()->layer_name() != partition_) {
                   return;
                 }
               }
@@ -105,7 +105,7 @@ namespace phlex::experimental {
                 counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
               } else {
                 call(ft, messages, std::make_index_sequence<N>{});
-                counter_for(id_hash_for_counter).increment(store->id()->level_hash());
+                counter_for(id_hash_for_counter).increment(store->id()->layer_hash());
               }
 
               if (auto counter = done_with(id_hash_for_counter)) {
@@ -179,7 +179,7 @@ namespace phlex::experimental {
     std::string partition_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;
-    tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
+    tbb::concurrent_unordered_map<data_cell_index, std::unique_ptr<R>> results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;
   };

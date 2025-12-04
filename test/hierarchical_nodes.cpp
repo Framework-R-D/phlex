@@ -12,12 +12,12 @@
 //     print_result [also includes output module]
 //
 // where the asterisk (*) indicates a fold step.  In terms of the data model,
-// whenever the add node receives the flush token, a product is inserted at one level
-// higher than the level processed by square and add nodes.
+// whenever the add node receives the flush token, a product is inserted in one data layer
+// higher than the data layer processed by square and add nodes.
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "test/products_for_output.hpp"
 
@@ -38,16 +38,16 @@ namespace {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  void levels_to_process(framework_driver& driver)
+  void cells_to_process(framework_driver& driver)
   {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run", "levels_to_process");
+      auto run_store = job_store->make_child(i, "run", "cells_to_process");
       run_store->add_product<std::time_t>("time", std::time(nullptr));
       driver.yield(run_store);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event", "levels_to_process");
+        auto event_store = run_store->make_child(j, "event", "cells_to_process");
         event_store->add_product("number", i + j);
         driver.yield(event_store);
       }
@@ -92,7 +92,7 @@ namespace {
   void print_result(handle<double> result, std::string const& stringized_time)
   {
     spdlog::debug("{}: {} @ {}",
-                  result.level_id().to_string(),
+                  result.data_cell_index().to_string(),
                   *result,
                   stringized_time.substr(0, stringized_time.find('\n')));
   }
@@ -100,7 +100,7 @@ namespace {
 
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
-  framework_graph g{levels_to_process};
+  framework_graph g{cells_to_process};
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family("time")
