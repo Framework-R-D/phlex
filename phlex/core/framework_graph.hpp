@@ -146,7 +146,7 @@ namespace phlex::experimental {
     message_sender sender_{hierarchy_, multiplexer_, eoms_};
     std::queue<product_store_ptr> pending_stores_;
     flush_counters counters_;
-    std::stack<layer_sentry> levels_;
+    std::stack<layer_sentry> layers_;
     bool shutdown_{false};
   };
 }
