@@ -157,18 +157,18 @@ namespace phlex::experimental {
   {
     assert(store);
     auto const new_depth = store->id()->depth();
-    while (not empty(levels_) and new_depth <= levels_.top().depth()) {
-      levels_.pop();
+    while (not empty(layers_) and new_depth <= layers_.top().depth()) {
+      layers_.pop();
       eoms_.pop();
     }
-    levels_.emplace(counters_, sender_, store);
+    layers_.emplace(counters_, sender_, store);
     return store;
   }
 
   void framework_graph::drain()
   {
-    while (not empty(levels_)) {
-      levels_.pop();
+    while (not empty(layers_)) {
+      layers_.pop();
       eoms_.pop();
     }
   }

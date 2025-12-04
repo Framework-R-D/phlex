@@ -1,5 +1,5 @@
-#ifndef PHLEX_MODEL_DATA_CELL_ID_HPP
-#define PHLEX_MODEL_DATA_CELL_ID_HPP
+#ifndef PHLEX_MODEL_DATA_CELL_INDEX_HPP
+#define PHLEX_MODEL_DATA_CELL_INDEX_HPP
 
 #include "phlex/model/fwd.hpp"
 
@@ -62,4 +62,4 @@ namespace std {
   };
 }
 
-#endif // PHLEX_MODEL_DATA_CELL_ID_HPP
+#endif // PHLEX_MODEL_DATA_CELL_INDEX_HPP
