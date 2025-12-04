@@ -71,7 +71,7 @@ runs:
           ⚠️ **Note:** Some issues may require manual review and fixing.
 
     - name: Create patch
-      if: steps.check_changes.outputs.changes == 'true' && !(inputs.pr-info-repo == github.repository || steps.pr-properties.outputs.maintainer_can_modify == 'true')
+      if: steps.check_changes.outputs.changes == 'true' && inputs.pr-info-repo != github.repository && steps.pr-properties.outputs.maintainer_can_modify != 'true'
       id: create_patch
       shell: bash
       working-directory: ${{ inputs.working-directory }}
