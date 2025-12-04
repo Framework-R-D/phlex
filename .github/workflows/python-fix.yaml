@@ -32,10 +32,6 @@ jobs:
     needs: parse-command
     if: ${{ needs.parse-command.result == 'success' }}
     steps:
-      - name: Get PR Info
-        id: get_pr
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
-
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           path: phlex-src
