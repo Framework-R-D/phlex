@@ -2,12 +2,18 @@
 #include "phlex/utilities/hashing.hpp"
 
 #include "boost/algorithm/string.hpp"
+#include "fmt/format.h"
+#include "fmt/ranges.h"
 
 #include <algorithm>
 #include <iterator>
 #include <map>
 #include <numeric>
+#include <ranges>
 #include <stdexcept>
+#include <string>
+
+using namespace std::string_literals;
 
 namespace {
 
@@ -56,6 +62,18 @@ namespace phlex::experimental {
   }
 
   std::string const& data_cell_index::layer_name() const noexcept { return layer_name_; }
+
+  std::string data_cell_index::layer_path() const
+  {
+    std::vector layers_in_reverse{layer_name_};
+    auto next_parent = parent();
+    while (next_parent) {
+      layers_in_reverse.push_back(next_parent->layer_name());
+      next_parent = next_parent->parent();
+    }
+    return fmt::format("/{}", fmt::join(std::views::reverse(layers_in_reverse), "/"));
+  }
+
   std::size_t data_cell_index::depth() const noexcept { return depth_; }
 
   data_cell_index_ptr data_cell_index::make_child(std::size_t const data_cell_number,

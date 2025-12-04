@@ -142,6 +142,7 @@ cet_test(
   LIBRARIES
   phlex::core
   spdlog::spdlog
+  layer_generator
   )
 cet_test(
   replicated
