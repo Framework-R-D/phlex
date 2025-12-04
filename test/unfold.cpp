@@ -1,5 +1,5 @@
 // =======================================================================================
-// This test executes unfoldting functionality using the following graph
+// This test executes unfolding functionality using the following graph
 //
 //     Multiplexer
 //          |
@@ -97,7 +97,7 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   framework_graph g{levels_to_process};
 
-  g.unfold<iota>(&iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
+  g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family("max_number")
     .output_products("new_number");
   g.fold("add", add, concurrency::unlimited, "event")
@@ -105,8 +105,11 @@ TEST_CASE("Splitting the processing", "[graph]")
     .output_products("sum1");
   g.observe("check_sum", check_sum, concurrency::unlimited).input_family("sum1");
 
-  g.unfold<iterate_through>(
-     &iterate_through::predicate, &iterate_through::unfold, concurrency::unlimited, "lower2")
+  g.unfold<iterate_through>("iterate_through",
+                            &iterate_through::predicate,
+                            &iterate_through::unfold,
+                            concurrency::unlimited,
+                            "lower2")
     .input_family("ten_numbers")
     .output_products("each_number");
   g.fold("add_numbers", add_numbers, concurrency::unlimited, "event")

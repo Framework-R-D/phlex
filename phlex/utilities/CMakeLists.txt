@@ -1,5 +1,5 @@
 add_library(
-  phlex_utilities SHARED hashing.cpp resource_usage.cpp stripped_name.cpp
+  phlex_utilities SHARED hashing.cpp resource_usage.cpp
   )
 target_include_directories(phlex_utilities PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(

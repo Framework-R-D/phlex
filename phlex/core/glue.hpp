@@ -6,9 +6,7 @@
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/registration_api.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
-#include "phlex/utilities/stripped_name.hpp"
 
-#include "boost/core/demangle.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
@@ -113,15 +111,6 @@ namespace phlex::experimental {
         nodes_,
         errors_,
         std::move(destination_data_layer)};
-    }
-
-    auto unfold(auto pred, auto unf, concurrency c, std::string destination_data_layer)
-    {
-      return unfold(detail::stripped_name(boost::core::demangle(typeid(T).name())),
-                    std::move(pred),
-                    std::move(unf),
-                    c,
-                    std::move(destination_data_layer));
     }
 
     auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)

@@ -83,13 +83,14 @@ namespace phlex::experimental {
     }
 
     template <typename T>
-    auto unfold(is_predicate_like auto pred,
+    auto unfold(std::string name,
+                is_predicate_like auto pred,
                 auto unf,
                 concurrency c,
                 std::string destination_data_layer)
     {
       return make_glue<T, false>().unfold(
-        std::move(pred), std::move(unf), c, std::move(destination_data_layer));
+        std::move(name), std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
     auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
