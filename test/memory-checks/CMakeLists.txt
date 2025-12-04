@@ -1,1 +1,1 @@
-cet_test(many_events SOURCE many_events.cpp LIBRARIES Boost::json phlex::core)
+cet_test(many_events SOURCE many_events.cpp LIBRARIES Boost::json phlex::core layer_generator)

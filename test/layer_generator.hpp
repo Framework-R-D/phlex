@@ -18,7 +18,10 @@ namespace phlex::experimental {
     layer_generator();
     void add_layer(std::string layer_name, layer_spec lspec);
 
-    void operator()(framework_driver& driver) const { execute(driver, data_cell_index::base_ptr()); }
+    void operator()(framework_driver& driver) const
+    {
+      execute(driver, data_cell_index::base_ptr());
+    }
 
   private:
     void execute(framework_driver& driver, data_cell_index_ptr index, bool recurse = true) const;
