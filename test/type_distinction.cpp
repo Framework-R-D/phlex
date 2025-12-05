@@ -1,4 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "spdlog/spdlog.h"
@@ -11,6 +12,11 @@
 using namespace phlex::experimental;
 
 namespace {
+  // Provider functions
+  int provide_numbers(data_cell_index const& index) { return static_cast<int>(index.number()); }
+
+  std::size_t provide_length(data_cell_index const& index) { return index.number(); }
+
   auto add_numbers(int x, int y) { return x + y; }
 
   auto triple(int x) { return 3 * x; }
@@ -43,13 +49,17 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
     driver.yield(job_store);
     for (int i : numbers) {
       auto event_store = job_store->make_child(unsigned(i), "event");
-      event_store->add_product<int>("numbers", +i);
-      event_store->add_product<std::size_t>("length", +i);
       driver.yield(event_store);
     }
   };
 
   framework_graph g{gen};
+
+  // Register providers
+  g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
+    .output_product("numbers"_in("event"));
+  g.provide("provide_length", provide_length, concurrency::unlimited)
+    .output_product("length"_in("event"));
 
   SECTION("Duplicate product name but differ in producer name")
   {
