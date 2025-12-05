@@ -3,47 +3,14 @@ add_definitions("-UNDEBUG")
 find_package(Catch2 REQUIRED)
 include(CetTest)
 
-cet_test(
-  concepts
-  SOURCE
-  concepts.cpp
-  LIBRARIES
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
-cet_test(
-  string_literal
-  SOURCE
-  string_literal.cpp
-  LIBRARIES
-  phlex::utilities
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
-cet_test(
-  type_deduction
-  SOURCE
-  type_deduction.cpp
-  LIBRARIES
-  phlex::metaprogramming
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
-cet_test(
-  type_id
-  SOURCE
-  type_id.cpp
-  LIBRARIES
-  phlex::model
-  fmt::fmt
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
+cet_test_env(SPDLOG_LEVEL=debug)
+
+cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core)
+cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities)
+cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
+         phlex::metaprogramming
+         )
+cet_test(type_id SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
 cet_test(
   yielding_driver
   SOURCE
@@ -52,9 +19,6 @@ cet_test(
   phlex::core
   TBB::tbb
   spdlog::spdlog
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 
 cet_test(
@@ -65,21 +29,10 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
-cet_test(
-  vector_of_abstract_types
-  USE_CATCH2_MAIN
-  SOURCE
-  vector_of_abstract_types.cpp
-  LIBRARIES
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
+cet_test(vector_of_abstract_types USE_CATCH2_MAIN SOURCE
+         vector_of_abstract_types.cpp LIBRARIES phlex::core
+         )
 cet_test(
   cached_execution
   USE_CATCH2_MAIN
@@ -88,21 +41,10 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
-cet_test(
-  cached_product_stores
-  USE_CATCH2_MAIN
-  SOURCE
-  cached_product_stores.cpp
-  LIBRARIES
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
+cet_test(cached_product_stores USE_CATCH2_MAIN SOURCE cached_product_stores.cpp
+         LIBRARIES phlex::core
+         )
 cet_test(
   class_registration
   USE_CATCH2_MAIN
@@ -111,9 +53,6 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   different_hierarchies
@@ -123,21 +62,10 @@ cet_test(
   LIBRARIES
   phlex::core
   spdlog::spdlog
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
-cet_test(
-  filter_impl
-  USE_CATCH2_MAIN
-  SOURCE
-  filter_impl.cpp
-  LIBRARIES
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
+cet_test(filter_impl USE_CATCH2_MAIN SOURCE filter_impl.cpp LIBRARIES
+         phlex::core
+         )
 cet_test(
   filter
   USE_CATCH2_MAIN
@@ -146,9 +74,6 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   framework_graph
@@ -158,9 +83,6 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   function_registration
@@ -170,9 +92,6 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   hierarchical_nodes
@@ -184,9 +103,6 @@ cet_test(
   TBB::tbb
   phlex::core
   spdlog::spdlog
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   multiple_function_registration
@@ -196,9 +112,6 @@ cet_test(
   LIBRARIES
   Boost::json
   phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   data_cell_counting
@@ -208,54 +121,19 @@ cet_test(
   LIBRARIES
   phlex::model
   phlex::utilities
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
-cet_test(
-  data_cell_index
-  USE_CATCH2_MAIN
-  SOURCE
-  data_cell_index.cpp
-  LIBRARIES
-  phlex::model
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
-cet_test(
-  product_handle
-  USE_CATCH2_MAIN
-  SOURCE
-  product_handle.cpp
-  LIBRARIES
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
-cet_test(
-  product_matcher
-  USE_CATCH2_MAIN
-  SOURCE
-  product_matcher.cpp
-  LIBRARIES
-  phlex::model
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
-cet_test(
-  product_store
-  USE_CATCH2_MAIN
-  SOURCE
-  product_store.cpp
-  LIBRARIES
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
+cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
+         phlex::model
+         )
+cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
+         phlex::core
+         )
+cet_test(product_matcher USE_CATCH2_MAIN SOURCE product_matcher.cpp LIBRARIES
+         phlex::model
+         )
+cet_test(product_store USE_CATCH2_MAIN SOURCE product_store.cpp LIBRARIES
+         phlex::core
+         )
 cet_test(
   fold
   USE_CATCH2_MAIN
@@ -264,9 +142,6 @@ cet_test(
   LIBRARIES
   phlex::core
   spdlog::spdlog
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   replicated
@@ -277,9 +152,6 @@ cet_test(
   TBB::tbb
   phlex::utilities
   spdlog::spdlog
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   serializer
@@ -291,21 +163,10 @@ cet_test(
   TBB::tbb
   phlex::graph
   spdlog::spdlog
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
-cet_test(
-  product_query
-  USE_CATCH2_MAIN
-  SOURCE
-  product_query.cpp
-  LIBRARIES
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
+cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
+         phlex::core
+         )
 cet_test(
   type_distinction
   USE_CATCH2_MAIN
@@ -314,9 +175,6 @@ cet_test(
   LIBRARIES
   spdlog::spdlog
   phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 cet_test(
   unfold
@@ -328,9 +186,6 @@ cet_test(
   phlex::core
   TBB::tbb
   spdlog::spdlog
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
   )
 
 add_subdirectory(benchmarks)

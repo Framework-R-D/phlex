@@ -1,11 +1,1 @@
-cet_test(
-  many_events
-  SOURCE
-  many_events.cpp
-  LIBRARIES
-  Boost::json
-  phlex::core
-  TEST_PROPERTIES
-  ENVIRONMENT
-  SPDLOG_LEVEL=debug
-  )
+cet_test(many_events SOURCE many_events.cpp LIBRARIES Boost::json phlex::core)
