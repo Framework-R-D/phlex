@@ -46,6 +46,7 @@ project(
   VERSION 0.0.1
   LANGUAGES CXX
   )
+cet_cmake_env()
 # ##############################################################################
 
 # Make tools available
@@ -200,3 +201,5 @@ endif()
 
 # Create clang-tidy targets
 create_clang_tidy_targets()
+
+cet_cmake_config()

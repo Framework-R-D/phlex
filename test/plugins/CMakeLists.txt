@@ -11,5 +11,6 @@ add_test(NAME job:add COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/add.jsonnet)
 
 set_tests_properties(
   job:add PROPERTIES ENVIRONMENT SPDLOG_LEVEL=debug ENVIRONMENT
-                     PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
+                     PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}
   )
+

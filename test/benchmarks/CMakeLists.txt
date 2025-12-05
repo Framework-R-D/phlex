@@ -62,6 +62,7 @@ foreach(
     )
   set_tests_properties(
     ${test_name} PROPERTIES ENVIRONMENT
-                            PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
+                            PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}
     )
 endforeach()
+

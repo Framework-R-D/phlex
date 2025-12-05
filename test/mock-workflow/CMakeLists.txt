@@ -31,5 +31,6 @@ add_test(
   )
 set_tests_properties(
   ${TEST_NAME} PROPERTIES ENVIRONMENT
-                          PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
+                          PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}
   )
+

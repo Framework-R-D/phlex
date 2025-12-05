@@ -1,7 +1,18 @@
 configure_file(version.cpp.in version.cpp @ONLY)
 
-add_library(run_phlex SHARED load_module.cpp run.cpp version.cpp)
-target_link_libraries(run_phlex PRIVATE Boost::json phlex::core)
+cet_make_library(
+  LIBRARY_NAME run_phlex
+  SHARED
+  SOURCE
+  load_module.cpp
+  run.cpp
+  version.cpp
+  LIBRARIES
+  Boost::json
+  phlex::core
+)
+
+install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
 
 # We'll use C++17's filesystem instead of Boost's
 target_compile_definitions(run_phlex PRIVATE BOOST_DLL_USE_STD_FS)
@@ -12,4 +23,7 @@ target_link_libraries(
                 jsonnet::lib
   )
 
-install(TARGETS run_phlex phlex)
+set_target_properties(phlex PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
+install(TARGETS phlex RUNTIME DESTINATION bin)
+
+

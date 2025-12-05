@@ -1,4 +1,18 @@
 add_library(phlex_utilities SHARED hashing.cpp resource_usage.cpp)
+target_sources(
+  phlex_utilities
+  PUBLIC FILE_SET HEADERS
+         BASE_DIRS ${PROJECT_SOURCE_DIR}
+         FILES async_driver.hpp
+               hashing.hpp
+               max_allowed_parallelism.hpp
+               resource_usage.hpp
+               simple_ptr_map.hpp
+               sized_tuple.hpp
+               sleep_for.hpp
+               string_literal.hpp
+               thread_counter.hpp
+  )
 target_include_directories(phlex_utilities PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(
   phlex_utilities
@@ -18,4 +32,4 @@ target_link_libraries(
 
 add_library(phlex::utilities ALIAS phlex_utilities_int)
 
-install(TARGETS phlex_utilities)
+install(TARGETS phlex_utilities phlex_utilities_int EXPORT phlex FILE_SET HEADERS)

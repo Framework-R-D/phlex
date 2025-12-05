@@ -9,6 +9,25 @@ add_library(
   products.cpp
   product_specification.cpp
   )
+target_sources(
+  phlex_model
+  PUBLIC FILE_SET
+         HEADERS
+         BASE_DIRS
+         ${PROJECT_SOURCE_DIR}
+         FILES
+         algorithm_name.hpp
+         fwd.hpp
+         handle.hpp
+         data_cell_counter.hpp
+         data_layer_hierarchy.hpp
+         data_cell_index.hpp
+         product_matcher.hpp
+         product_specification.hpp
+         product_store.hpp
+         products.hpp
+         type_id.hpp
+  )
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(
   phlex_model
@@ -28,4 +47,4 @@ target_link_libraries(
 
 add_library(phlex::model ALIAS phlex_model_int)
 
-install(TARGETS phlex_model)
+install(TARGETS phlex_model phlex_model_int EXPORT phlex FILE_SET HEADERS)

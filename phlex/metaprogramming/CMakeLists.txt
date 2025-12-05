@@ -6,7 +6,13 @@ target_include_directories(
   )
 
 target_link_libraries(phlex_metaprogramming_int INTERFACE Boost::boost)
+target_sources(
+  phlex_metaprogramming_int
+  INTERFACE FILE_SET HEADERS
+            BASE_DIRS ${PROJECT_SOURCE_DIR}
+            FILES delegate.hpp type_deduction.hpp
+  )
 
 add_library(phlex::metaprogramming ALIAS phlex_metaprogramming_int)
 
-install(TARGETS phlex_metaprogramming_int)
+install(TARGETS phlex_metaprogramming_int EXPORT phlex FILE_SET HEADERS)

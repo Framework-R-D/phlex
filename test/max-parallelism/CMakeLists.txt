@@ -41,5 +41,6 @@ add_test(
 set_tests_properties(
   job:check_parallelism_default job:check_parallelism_cli
   job:check_parallelism_config job:check_parallelism_cli_over_config
-  PROPERTIES ENVIRONMENT "PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}"
+  PROPERTIES ENVIRONMENT "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
   )
+
