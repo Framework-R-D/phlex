@@ -47,4 +47,8 @@ target_link_libraries(
 
 add_library(phlex::model ALIAS phlex_model_int)
 
-install(TARGETS phlex_model phlex_model_int EXPORT phlex FILE_SET HEADERS)
+install(
+  TARGETS phlex_model phlex_model_int
+  EXPORT phlex
+  FILE_SET HEADERS
+  )

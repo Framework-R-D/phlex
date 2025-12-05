@@ -1,7 +1,8 @@
 configure_file(version.cpp.in version.cpp @ONLY)
 
 cet_make_library(
-  LIBRARY_NAME run_phlex
+  LIBRARY_NAME
+  run_phlex
   SHARED
   SOURCE
   load_module.cpp
@@ -10,7 +11,7 @@ cet_make_library(
   LIBRARIES
   Boost::json
   phlex::core
-)
+  )
 
 install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
 
@@ -25,5 +26,3 @@ target_link_libraries(
 
 set_target_properties(phlex PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 install(TARGETS phlex RUNTIME DESTINATION bin)
-
-

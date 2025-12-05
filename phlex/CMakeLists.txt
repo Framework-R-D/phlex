@@ -7,23 +7,30 @@ add_subdirectory(model)
 add_subdirectory(core)
 
 cet_make_library(
-  LIBRARY_NAME phlex_module
-  EXPORT_NAME module
+  LIBRARY_NAME
+  phlex_module
+  EXPORT_NAME
+  module
   INTERFACE
   NO_SOURCE
-  LIBRARIES Boost::boost Boost::json phlex::core
-)
+  LIBRARIES
+  Boost::boost
+  Boost::json
+  phlex::core
+  )
 
 install(FILES concurrency.hpp module.hpp source.hpp DESTINATION include/phlex)
 
 cet_make_library(
-  LIBRARY_NAME phlex_configuration
-  EXPORT_NAME configuration
+  LIBRARY_NAME
+  phlex_configuration
+  EXPORT_NAME
+  configuration
   INTERFACE
   NO_SOURCE
-  LIBRARIES Boost::json
-)
+  LIBRARIES
+  Boost::json
+  )
 install(FILES configuration.hpp DESTINATION include/phlex)
 
 add_subdirectory(app)
-

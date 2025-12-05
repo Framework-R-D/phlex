@@ -1,5 +1,6 @@
 cet_make_library(
-  LIBRARY_NAME phlex_core
+  LIBRARY_NAME
+  phlex_core
   SHARED
   SOURCE
   concurrency.cpp
@@ -29,40 +30,46 @@ cet_make_library(
   product_query.cpp
   store_counters.cpp
   LIBRARIES
-  PUBLIC TBB::tbb phlex::graph phlex::metaprogramming phlex::model
-          phlex::utilities Boost::json spdlog::spdlog
-)
-install(FILES
-  cached_product_stores.hpp
-  concepts.hpp
-  consumer.hpp
-  declared_fold.hpp
-  declared_observer.hpp
-  declared_output.hpp
-  declared_predicate.hpp
-  declared_transform.hpp
-  declared_unfold.hpp
-  edge_creation_policy.hpp
-  edge_maker.hpp
-  end_of_message.hpp
-  filter.hpp
-  framework_graph.hpp
-  fwd.hpp
-  glue.hpp
-  graph_proxy.hpp
-  input_arguments.hpp
-  message.hpp
-  message_sender.hpp
-  multiplexer.hpp
-  node_catalog.hpp
-  product_query.hpp
-  products_consumer.hpp
-  registrar.hpp
-  registration_api.hpp
-  store_counters.hpp
-  upstream_predicates.hpp
+  PUBLIC
+  TBB::tbb
+  phlex::graph
+  phlex::metaprogramming
+  phlex::model
+  phlex::utilities
+  Boost::json
+  spdlog::spdlog
+  )
+install(
+  FILES cached_product_stores.hpp
+        concepts.hpp
+        consumer.hpp
+        declared_fold.hpp
+        declared_observer.hpp
+        declared_output.hpp
+        declared_predicate.hpp
+        declared_transform.hpp
+        declared_unfold.hpp
+        edge_creation_policy.hpp
+        edge_maker.hpp
+        end_of_message.hpp
+        filter.hpp
+        framework_graph.hpp
+        fwd.hpp
+        glue.hpp
+        graph_proxy.hpp
+        input_arguments.hpp
+        message.hpp
+        message_sender.hpp
+        multiplexer.hpp
+        node_catalog.hpp
+        product_query.hpp
+        products_consumer.hpp
+        registrar.hpp
+        registration_api.hpp
+        store_counters.hpp
+        upstream_predicates.hpp
   DESTINATION include/phlex/core
-)
+  )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
 
 # AppleClang 15.0 still treats std::views::join as experimental
@@ -74,8 +81,10 @@ endif()
 
 # Interface library
 cet_make_library(
-  LIBRARY_NAME phlex_core_int
-  EXPORT_NAME core
+  LIBRARY_NAME
+  phlex_core_int
+  EXPORT_NAME
+  core
   INTERFACE
   NO_SOURCE
   LIBRARIES
@@ -86,5 +95,4 @@ cet_make_library(
   phlex::utilities
   Boost::json
   TBB::tbb
-)
-
+  )

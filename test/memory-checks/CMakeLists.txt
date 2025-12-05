@@ -1,1 +1,11 @@
-add_unit_test(many_events LIBRARIES Boost::json phlex::core)
+cet_test(
+  many_events
+  SOURCE
+  many_events.cpp
+  LIBRARIES
+  Boost::json
+  phlex::core
+  TEST_PROPERTIES
+  ENVIRONMENT
+  SPDLOG_LEVEL=debug
+  )
