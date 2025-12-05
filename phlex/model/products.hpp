@@ -98,6 +98,7 @@ namespace phlex::experimental {
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
     size_type size() const noexcept;
+    bool empty() const noexcept;
 
   private:
     static void throw_mismatched_type [[noreturn]] (std::string const& product_name,
