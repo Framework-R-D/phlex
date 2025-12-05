@@ -16,7 +16,6 @@ jobs:
     name: Parse bot command
     if: >
       github.event.issue.pull_request &&
-      (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
       startsWith(github.event.comment.body, '@phlexbot format')
     outputs:
       ref: ${{ steps.get_pr.outputs.ref }}
@@ -69,26 +68,11 @@ jobs:
             cmake-format -i "$file"
           done
 
-      - name: Commit formatting changes
-        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
-        id: add_and_commit
+      - name: Handle fix commit
+        uses: ./phlex-src/.github/actions/handle-fix-commit
         with:
+          commit-message: 'Apply cmake-format fixes'
+          working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
-          cwd: phlex-src
-          author_name: "github-actions[bot]"
-          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-          message: 'Apply cmake-format changes'
-
-      - name: Formatting changes committed and pushed
-        if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
-        with:
-          message: |
-            CMake formatting changes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
-
-      - name: No formatting changes to make
-        if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
-        with:
-          message: |
-            No CMake formatting changes to make
+          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
+          pr-info-repo: ${{ needs.parse-command.outputs.repo }}

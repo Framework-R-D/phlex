@@ -26,7 +26,7 @@ int main()
 
   framework_graph g{cells_to_process};
   g.transform("pass_on", pass_on, concurrency::unlimited)
-    .input_family("number")
+    .input_family("number"_in("event"))
     .output_products("different");
   g.execute();
 }

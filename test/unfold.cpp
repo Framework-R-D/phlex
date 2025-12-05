@@ -98,24 +98,25 @@ TEST_CASE("Splitting the processing", "[graph]")
   framework_graph g{cells_to_process};
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
-    .input_family("max_number")
+    .input_family("max_number"_in("event"))
     .output_products("new_number");
   g.fold("add", add, concurrency::unlimited, "event")
-    .input_family("new_number")
+    .input_family("new_number"_in("lower1"))
     .output_products("sum1");
-  g.observe("check_sum", check_sum, concurrency::unlimited).input_family("sum1");
+  g.observe("check_sum", check_sum, concurrency::unlimited).input_family("sum1"_in("event"));
 
   g.unfold<iterate_through>("iterate_through",
                             &iterate_through::predicate,
                             &iterate_through::unfold,
                             concurrency::unlimited,
                             "lower2")
-    .input_family("ten_numbers")
+    .input_family("ten_numbers"_in("event"))
     .output_products("each_number");
   g.fold("add_numbers", add_numbers, concurrency::unlimited, "event")
-    .input_family("each_number")
+    .input_family("each_number"_in("lower2"))
     .output_products("sum2");
-  g.observe("check_sum_same", check_sum_same, concurrency::unlimited).input_family("sum2");
+  g.observe("check_sum_same", check_sum_same, concurrency::unlimited)
+    .input_family("sum2"_in("event"));
 
   g.make<test::products_for_output>().output(
     "save", &test::products_for_output::save, concurrency::serial);

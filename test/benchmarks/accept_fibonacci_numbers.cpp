@@ -5,8 +5,8 @@
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
+  using namespace phlex::experimental;
   m.make<test::fibonacci_numbers>(config.get<int>("max_number"))
-    .predicate(
-      "accept", &test::fibonacci_numbers::accept, phlex::experimental::concurrency::unlimited)
-    .input_family(config.get<std::string>("consumes"));
+    .predicate("accept", &test::fibonacci_numbers::accept, concurrency::unlimited)
+    .input_family(product_query{config.get<std::string>("consumes"), "event"});
 }

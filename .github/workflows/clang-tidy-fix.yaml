@@ -16,7 +16,6 @@ jobs:
     name: Parse bot command
     if: >
       github.event.issue.pull_request &&
-      (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
       startsWith(github.event.comment.body, '@phlexbot tidy-fix')
     outputs:
       tidy_checks: ${{ steps.parse_comment.outputs.tidy_checks }}
@@ -84,33 +83,14 @@ jobs:
           path: phlex-build/clang-tidy-fixes.yaml
           retention-days: 7
 
-      - name: Commit tidy fixes
-        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
-        id: add_and_commit
+      - name: Handle fix commit
+        uses: ./phlex-src/.github/actions/handle-fix-commit
         with:
+          commit-message: 'Apply clang-tidy fixes'
+          working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
-          cwd: phlex-src
-          author_name: "github-actions[bot]"
-          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-          message: 'Apply clang-tidy fixes'
-
-      - name: Tidy fixes committed and pushed
-        if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
-        with:
-          message: |
-            Clang-tidy fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
-
-            ⚠️ **Note:** Some issues may require manual review and fixing.
-
-      - name: No tidy fixes to apply
-        if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
-        with:
-          message: |
-            No clang-tidy fixes to apply
-
-            All automatically fixable issues have been resolved. Any remaining issues require manual attention.
+          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
+          pr-info-repo: ${{ needs.parse-command.outputs.repo }}
 
   clang-tidy-pr-comments:
     needs: apply_tidy_fixes

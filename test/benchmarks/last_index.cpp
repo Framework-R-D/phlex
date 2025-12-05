@@ -10,6 +10,6 @@ namespace {
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
   m.transform("last_index", last_index, concurrency::unlimited)
-    .input_family("id")
+    .input_family("id"_in("event"))
     .output_products(config.get<std::string>("produces", "a"));
 }

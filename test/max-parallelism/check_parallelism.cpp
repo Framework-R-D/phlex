@@ -36,5 +36,5 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
             [expected = config.get<std::size_t>("expected_parallelism")](std::size_t actual) {
               assert(actual == expected);
             })
-    .input_family("max_parallelism");
+    .input_family("max_parallelism"_in("job"));
 }

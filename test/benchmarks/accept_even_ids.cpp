@@ -5,9 +5,10 @@
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
+  using namespace phlex::experimental;
   m.predicate(
      "accept_even_ids",
-     [](phlex::experimental::data_cell_index const& id) { return id.number() % 2 == 0; },
-     phlex::experimental::concurrency::unlimited)
-    .input_family(config.get<std::string>("product_name"));
+     [](data_cell_index const& id) { return id.number() % 2 == 0; },
+     concurrency::unlimited)
+    .input_family(product_query{config.get<std::string>("product_name"), "event"});
 }

@@ -1,26 +1,20 @@
 #include "phlex/core/product_query.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/matchers/catch_matchers_string.hpp"
 
 using namespace phlex::experimental;
 
-TEST_CASE("Empty label", "[data model]")
+TEST_CASE("Empty specifications", "[data model]")
 {
-  product_query empty{};
-  CHECK_THROWS(""_in);
-  CHECK_THROWS(""_in(""));
+  CHECK_THROWS_WITH(""_in,
+                    Catch::Matchers::ContainsSubstring("Cannot specify product with empty name."));
+  CHECK_THROWS_WITH(
+    "product"_in(""),
+    Catch::Matchers::ContainsSubstring("Cannot specify the empty string as a data layer."));
 }
 
-TEST_CASE("Only name in label", "[data model]")
-{
-  product_query label{"product"};
-  CHECK(label == "product"_in);
-
-  // Empty layer string is interpreted as a wildcard--i.e. any layer.
-  CHECK(label == "product"_in(""));
-}
-
-TEST_CASE("Label with layer", "[data model]")
+TEST_CASE("Product name with data layer", "[data model]")
 {
   product_query label{"product", {"event"}};
   CHECK(label == "product"_in("event"));

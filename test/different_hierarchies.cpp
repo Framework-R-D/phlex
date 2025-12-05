@@ -16,14 +16,18 @@
 //
 //    job
 //     │
-//     ├ trigger primitive
+//     ├ event
 //     │
 //     └ run
 //        │
 //        └ event
 //
-// As the run_add node performs folds only over "runs", any "trigger primitive"
+// As the run_add node performs folds only over "runs", any top-level "events"
 // stores are excluded from the fold result.
+//
+// N.B. The multiplexer sends data products to nodes based on the name of the lowest
+//      layer.  For example, the top-level "event" and the nested "run/event" are both
+//      candidates for the "job" fold.
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
@@ -47,8 +51,8 @@ namespace {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  // job -> trigger primitive layers
-  constexpr auto primitive_limit = 10u;
+  // job -> event levels
+  constexpr auto top_level_event_limit = 10u;
 
   void cells_to_process(framework_driver& driver)
   {
@@ -66,9 +70,9 @@ namespace {
       }
     }
 
-    // job -> trigger primitive layers
-    for (unsigned i : std::views::iota(0u, primitive_limit)) {
-      auto tp_store = job_store->make_child(i, "trigger primitive");
+    // job -> event layers
+    for (unsigned i : std::views::iota(0u, top_level_event_limit)) {
+      auto tp_store = job_store->make_child(i, "event");
       tp_store->add_product("number", i);
       driver.yield(tp_store);
     }
@@ -80,22 +84,24 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
   framework_graph g{cells_to_process};
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
-    .input_family("number")
+    .input_family("number"_in("event"))
     .output_products("run_sum");
-  g.fold("job_add", add, concurrency::unlimited).input_family("number").output_products("job_sum");
+  g.fold("job_add", add, concurrency::unlimited)
+    .input_family("number"_in("event"))
+    .output_products("job_sum");
 
   g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
-    .input_family("run_sum");
+    .input_family("run_sum"_in("run"));
   g.observe("verify_job_sum",
             [](unsigned int actual) {
-              CHECK(actual == 20u + 45u); // 20u from events, 45u from trigger primitives
+              CHECK(actual == 20u + 45u); // 20u from nested events, 45u from top-level events
             })
-    .input_family("job_sum");
+    .input_family("job_sum"_in("job"));
 
   g.execute();
 
   CHECK(g.execution_counts("run_add") == index_limit * number_limit);
-  CHECK(g.execution_counts("job_add") == index_limit * number_limit + primitive_limit);
+  CHECK(g.execution_counts("job_add") == index_limit * number_limit + top_level_event_limit);
   CHECK(g.execution_counts("verify_run_sum") == index_limit);
   CHECK(g.execution_counts("verify_job_sum") == 1);
 }
