@@ -1,4 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -18,9 +19,7 @@ namespace {
       driver.yield(job_store);
 
       for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        auto store = job_store->make_child(i, "event");
-        store->add_product<unsigned int>("num", i - 1);
-        store->add_product<unsigned int>("other_num", 100 + i - 1);
+        auto store = job_store->make_child(i, "event", "Source");
         driver.yield(store);
       }
     }
@@ -28,6 +27,11 @@ namespace {
   private:
     unsigned const max_;
   };
+
+  // Provider algorithms
+  unsigned int give_me_nums(data_cell_index const& id) { return id.number() - 1; }
+
+  unsigned int give_me_other_nums(data_cell_index const& id) { return 100 + id.number() - 1; }
 
   constexpr bool evens_only(unsigned int const value) { return value % 2u == 0u; }
   constexpr bool odds_only(unsigned int const value) { return not evens_only(value); }
@@ -85,6 +89,7 @@ namespace {
 TEST_CASE("Two predicates", "[filtering]")
 {
   framework_graph g{source{10u}};
+  g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num"_in("event"));
   g.make<sum_numbers>(20u)
@@ -105,6 +110,7 @@ TEST_CASE("Two predicates", "[filtering]")
 TEST_CASE("Two predicates in series", "[filtering]")
 {
   framework_graph g{source{10u}};
+  g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited)
     .input_family("num"_in("event"))
@@ -122,6 +128,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   framework_graph g{source{10u}};
+  g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num"_in("event"));
   g.make<sum_numbers>(0u)
@@ -146,6 +153,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
                                         {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
   framework_graph g{source{10u}};
+  g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
       .predicate(name, &not_in_range::eval, concurrency::unlimited)
@@ -168,6 +176,9 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
   framework_graph g{source{10u}};
+  g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
+  g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)
+    .output_product("other_num"_in("event"));
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num"_in("event"));
   g.make<check_multiple_numbers>(5 * 100)

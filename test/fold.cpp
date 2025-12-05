@@ -40,6 +40,9 @@ using namespace phlex::experimental;
 
 namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
+
+  // Provider algorithm
+  unsigned int provide_number(data_cell_index const& id) { return id.number(); }
 }
 
 TEST_CASE("Different data layers of fold", "[graph]")
@@ -51,10 +54,11 @@ TEST_CASE("Different data layers of fold", "[graph]")
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run");
+      auto run_store = job_store->make_child(i, "run", "Source");
       driver.yield(run_store);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        driver.yield(run_store->make_child(j, "event"));
+        auto event_store = run_store->make_child(j, "event", "Source");
+        driver.yield(event_store);
       }
     }
   };
@@ -62,10 +66,7 @@ TEST_CASE("Different data layers of fold", "[graph]")
   // framework_graph g{cells_to_process};
   framework_graph g{cells_to_process};
 
-  g.provide(
-     "provide_number",
-     [](data_cell_index const& index) -> unsigned int { return index.number(); },
-     concurrency::unlimited)
+  g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product("number"_in("event"));
 
   g.fold("run_add", add, concurrency::unlimited, "run")
