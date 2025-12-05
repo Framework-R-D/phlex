@@ -139,11 +139,6 @@ namespace phlex::experimental {
         });
     }
 
-    auto output_product(label_compatible auto output)
-    {
-      return output_product({product_query::create(std::forward<decltype(output)>(output))});
-    }
-
   private:
     configuration const* config_;
     algorithm_name name_;
