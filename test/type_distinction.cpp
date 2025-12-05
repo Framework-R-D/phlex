@@ -53,31 +53,32 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
 
   SECTION("Duplicate product name but differ in producer name")
   {
-    g.observe("starter", [](int num) { spdlog::info("Recieved {}", num); }).input_family("numbers");
+    g.observe("starter", [](int num) { spdlog::info("Received {}", num); })
+      .input_family("numbers"_in("event"));
     g.transform("triple_numbers", triple, concurrency::unlimited)
-      .input_family("numbers")
+      .input_family("numbers"_in("event"))
       .output_products("tripled");
     spdlog::info("Registered tripled");
     g.transform("expand_orig", expand, concurrency::unlimited)
-      .input_family("numbers", "length")
+      .input_family("numbers"_in("event"), "length"_in("event"))
       .output_products("expanded_one");
     spdlog::info("Registered expanded_one");
     g.transform("expand_triples", expand, concurrency::unlimited)
-      .input_family("tripled", "length")
+      .input_family("tripled"_in("event"), "length"_in("event"))
       .output_products("expanded_three");
     spdlog::info("Registered expanded_three");
 
     g.transform("add_nums", add_numbers, concurrency::unlimited)
-      .input_family("numbers", "tripled")
+      .input_family("numbers"_in("event"), "tripled"_in("event"))
       .output_products("sums");
     spdlog::info("Registered sums");
 
     g.transform("add_vect", add_vectors, concurrency::unlimited)
-      .input_family("expanded_one", "expanded_three")
+      .input_family("expanded_one"_in("event"), "expanded_three"_in("event"))
       .output_products("sums");
 
     g.transform("test_add_num", triple, concurrency::unlimited)
-      .input_family("sums")
+      .input_family("sums"_in("event"))
       .output_products("result");
     spdlog::info("Registered result");
   }
@@ -85,16 +86,16 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
   SECTION("Duplicate product name and producer, differ only in type")
   {
     g.transform("square", square, concurrency::unlimited)
-      .input_family("numbers")
+      .input_family("numbers"_in("event"))
       .output_products("square_result", "square_result");
 
     g.transform("extract_result", id, concurrency::unlimited)
-      .input_family("square_result")
+      .input_family("square_result"_in("event"))
       .output_products("result");
   }
 
   g.observe("print_result", [](int res) { spdlog::info("Result: {}", res); })
-    .input_family("result");
+    .input_family("result"_in("event"));
   spdlog::info("Registered observe");
   g.execute();
   spdlog::info("Executed");
