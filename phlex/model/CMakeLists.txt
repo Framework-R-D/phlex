@@ -19,6 +19,7 @@ cet_make_library(
   PRIVATE
   phlex::graph
   phlex::utilities
+  TBB::tbb
   )
 
 install(
