@@ -51,6 +51,7 @@ cet_test(
   LIBRARIES
   phlex::core
   TBB::tbb
+  spdlog::spdlog
   TEST_PROPERTIES
   ENVIRONMENT
   SPDLOG_LEVEL=debug
@@ -121,6 +122,7 @@ cet_test(
   different_hierarchies.cpp
   LIBRARIES
   phlex::core
+  spdlog::spdlog
   TEST_PROPERTIES
   ENVIRONMENT
   SPDLOG_LEVEL=debug
@@ -181,6 +183,7 @@ cet_test(
   Boost::json
   TBB::tbb
   phlex::core
+  spdlog::spdlog
   TEST_PROPERTIES
   ENVIRONMENT
   SPDLOG_LEVEL=debug
@@ -260,6 +263,7 @@ cet_test(
   fold.cpp
   LIBRARIES
   phlex::core
+  spdlog::spdlog
   TEST_PROPERTIES
   ENVIRONMENT
   SPDLOG_LEVEL=debug
@@ -285,6 +289,8 @@ cet_test(
   LIBRARIES
   phlex::core
   TBB::tbb
+  phlex::graph
+  spdlog::spdlog
   TEST_PROPERTIES
   ENVIRONMENT
   SPDLOG_LEVEL=debug
@@ -321,6 +327,7 @@ cet_test(
   Boost::json
   phlex::core
   TBB::tbb
+  spdlog::spdlog
   TEST_PROPERTIES
   ENVIRONMENT
   SPDLOG_LEVEL=debug

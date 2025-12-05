@@ -32,10 +32,11 @@ cet_make_library(
   LIBRARIES
   PUBLIC
   TBB::tbb
-  phlex::graph
   phlex::metaprogramming
   phlex::model
   phlex::utilities
+  PRIVATE
+  phlex::graph
   Boost::json
   spdlog::spdlog
   )
