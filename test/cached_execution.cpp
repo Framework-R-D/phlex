@@ -29,6 +29,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/source.hpp"
 #include "test/cached_execution_source.hpp"
 
@@ -38,6 +39,11 @@ using namespace phlex::experimental;
 using namespace test;
 
 namespace {
+  // Provider functions
+  int provide_number(data_cell_index const& index) { return 2 * index.number(); }
+  int provide_another(data_cell_index const& index) { return 3 * index.number(); }
+  int provide_still(data_cell_index const& index) { return 4 * index.number(); }
+
   int call_one(int) noexcept { return 1; }
   int call_two(int, int) noexcept { return 2; }
 }
@@ -45,6 +51,14 @@ namespace {
 TEST_CASE("Cached function calls", "[data model]")
 {
   framework_graph g{detail::create_next<cached_execution_source>()};
+
+  // Register providers
+  g.provide("provide_number", provide_number, concurrency::unlimited)
+    .output_product("number"_in("run"));
+  g.provide("provide_another", provide_another, concurrency::unlimited)
+    .output_product("another"_in("subrun"));
+  g.provide("provide_still", provide_still, concurrency::unlimited)
+    .output_product("still"_in("event"));
 
   g.transform("A1", call_one, concurrency::unlimited)
     .input_family("number"_in("run"))
