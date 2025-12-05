@@ -11,10 +11,15 @@ using namespace phlex::experimental;
 TEST_CASE("Product store insertion", "[data model]")
 {
   auto store = product_store::base();
+  CHECK(store->empty());
+
   constexpr int number = 4;
   std::vector many_numbers{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   store->add_product("number", number);
   store->add_product("numbers", many_numbers);
+
+  // Check number of products
+  CHECK(store->size() == 2ull);
 
   CHECK_THROWS_WITH(
     store->get_product<double>("number"),

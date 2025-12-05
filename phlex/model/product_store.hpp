@@ -23,6 +23,8 @@ namespace phlex::experimental {
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
+    auto size() const noexcept { return products_.size(); }
+    bool empty() const noexcept { return products_.empty(); }
 
     std::string const& layer_name() const noexcept;
     std::string const& source() const noexcept;
