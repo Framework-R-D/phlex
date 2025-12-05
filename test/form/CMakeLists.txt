@@ -23,6 +23,7 @@ if(FORM_USE_ROOT_STORAGE)
     reader.cpp
     LIBRARIES
     mock_phlex
+    form
     form_test_data_products
     TEST_ARGS
     "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
@@ -30,6 +31,5 @@ if(FORM_USE_ROOT_STORAGE)
     DEPENDS
     WriteVector
     )
-  target_link_libraries(ReadVector PRIVATE form)
   target_include_directories(ReadVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
 endif()
