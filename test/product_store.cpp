@@ -16,6 +16,9 @@ TEST_CASE("Product store insertion", "[data model]")
   store->add_product("number", number);
   store->add_product("numbers", many_numbers);
 
+  // Check number of products
+  CHECK(store->size() == 2ull);
+
   CHECK_THROWS_WITH(
     store->get_product<double>("number"),
     Catch::Matchers::ContainsSubstring(

@@ -39,6 +39,7 @@ namespace phlex::experimental {
 
   public:
     using const_iterator = collection_t::const_iterator;
+    using size_type = collection_t::size_type;
 
     template <typename T>
     void add(std::string const& product_name, T&& t)
@@ -96,6 +97,7 @@ namespace phlex::experimental {
     bool contains(std::string const& product_name) const;
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
+    size_type size() const noexcept;
 
   private:
     static void throw_mismatched_type [[noreturn]] (std::string const& product_name,
