@@ -9,6 +9,7 @@ cet_make_library(
   run.cpp
   version.cpp
   LIBRARIES
+  PRIVATE
   Boost::json
   phlex::core
   )
