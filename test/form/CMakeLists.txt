@@ -10,11 +10,11 @@ if(FORM_USE_ROOT_STORAGE)
     toy_tracker.cpp
     LIBRARIES
     mock_phlex
+    form
     form_test_data_products
     TEST_ARGS
     "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
     )
-  target_link_libraries(WriteVector PRIVATE form)
   target_include_directories(WriteVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
   cet_test(
