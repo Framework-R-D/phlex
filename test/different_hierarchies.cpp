@@ -60,23 +60,23 @@ namespace {
 
   void cells_to_process(framework_driver& driver)
   {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
 
     // job -> run -> event layers
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run");
-      driver.yield(run_store);
+      auto run_index = job_index->make_child(i, "run");
+      driver.yield(run_index);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event");
-        driver.yield(event_store);
+        auto event_index = run_index->make_child(j, "event");
+        driver.yield(event_index);
       }
     }
 
     // job -> event layers
     for (unsigned i : std::views::iota(0u, top_level_event_limit)) {
-      auto tp_store = job_store->make_child(i, "event");
-      driver.yield(tp_store);
+      auto tp_event_index = job_index->make_child(i, "event");
+      driver.yield(tp_event_index);
     }
   }
 }

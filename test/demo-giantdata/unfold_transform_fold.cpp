@@ -4,7 +4,6 @@
 #include "phlex/utilities/async_driver.hpp"
 #include "test/products_for_output.hpp"
 
-#include "test/demo-giantdata/log_record.hpp"
 #include "test/demo-giantdata/user_algorithms.hpp"
 #include "test/demo-giantdata/waveform_generator.hpp"
 #include "test/demo-giantdata/waveform_generator_input.hpp"
@@ -14,7 +13,6 @@
 #include <string>
 #include <vector>
 
-using framework_driver = phlex::experimental::async_driver<phlex::experimental::product_store_ptr>;
 using namespace phlex::experimental;
 
 // Call the program as follows:
@@ -57,42 +55,23 @@ int main(int argc, char* argv[])
   // We may or may not want to create pre-generated data layers.
   // Each data layer gets an index number in the hierarchy.
 
-  auto source = [n_runs, n_subruns, n_spills, wires_per_spill](framework_driver& driver) {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+  auto source = [n_runs, n_subruns, n_spills](framework_driver& driver) {
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
 
     // job -> run -> subrun -> spill data layers
     for (unsigned runno : std::views::iota(0u, n_runs)) {
-      auto run_store = job_store->make_child(runno, "run");
-      driver.yield(run_store);
+      auto run_index = job_index->make_child(runno, "run");
+      driver.yield(run_index);
 
       for (unsigned subrunno : std::views::iota(0u, n_subruns)) {
-        auto subrun_store = run_store->make_child(subrunno, "subrun");
-        driver.yield(subrun_store);
+        auto subrun_index = run_index->make_child(subrunno, "subrun");
+        driver.yield(subrun_index);
 
         for (unsigned spillno : std::views::iota(0u, n_spills)) {
 
-          auto spill_store = subrun_store->make_child(spillno, "spill");
-
-          // Put the WGI product into the job, so that our CHOF can find it.
-          auto next_size = wires_per_spill;
-          demo::log_record("add_wgi",
-                           run_store->id()->number(),
-                           subrun_store->id()->number(),
-                           spill_store->id()->number(),
-                           -1,
-                           &spill_store,
-                           next_size,
-                           nullptr);
-          // NOTE: the only reason that we are able to put the spill id into the WGI object
-          // is because we have access to the store
-          spill_store->add_product<demo::WGI>("wgen",
-                                              demo::WGI(next_size,
-                                                        run_store->id()->number(),
-                                                        subrun_store->id()->number(),
-                                                        spill_store->id()->number()));
-
-          driver.yield(spill_store);
+          auto spill_index = subrun_index->make_child(spillno, "spill");
+          driver.yield(spill_index);
         }
       }
     }
@@ -101,14 +80,21 @@ int main(int argc, char* argv[])
   // Create the graph. The source tells us what data we will process.
   // We introduce a new scope to make sure the graph is destroyed before we
   // write out the logged records.
-  demo::log_record("create_graph");
   {
     framework_graph g{source};
 
     // Add the unfold node to the graph. We do not yet know how to provide the chunksize
     // to the constructor of the WaveformGenerator, so we will use the default value.
-    demo::log_record("add_unfold");
     auto const chunksize = 256LL; // this could be read from a configuration file
+
+    g.provide("provide_wgen", [wires_per_spill](data_cell_index const& spill_index) {
+      return 
+        demo::WGI(wires_per_spill,
+                  spill_index.parent()->parent()->number(), // ugh
+                  spill_index.parent()->number(),
+                  spill_index.number());
+        })
+        .output_product("wget"_in("spill"));
 
     g.unfold<demo::WaveformGenerator>(
        "WaveformGenerator",
@@ -122,13 +108,8 @@ int main(int argc, char* argv[])
       .output_products("waves_in_apa");
 
     // Add the transform node to the graph.
-    demo::log_record("add_transform");
     auto wrapped_user_function = [](phlex::experimental::handle<demo::Waveforms> hwf) {
-      auto apa_id = hwf.data_cell_index().number();
-      auto spill_id = hwf.data_cell_index().parent()->number();
-      auto subrun_id = hwf.data_cell_index().parent()->parent()->number();
-      auto run_id = hwf.data_cell_index().parent()->parent()->parent()->number();
-      return demo::clampWaveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
+      return demo::clampWaveforms(*hwf);
     };
 
     g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
@@ -136,15 +117,10 @@ int main(int argc, char* argv[])
       .output_products("clamped_waves");
 
     // Add the fold node to the graph.
-    demo::log_record("add_fold");
     g.fold(
        "accum_for_spill",
        [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) {
-         auto apa_id = hwf.data_cell_index().number();
-         auto spill_id = hwf.data_cell_index().parent()->number();
-         auto subrun_id = hwf.data_cell_index().parent()->parent()->number();
-         auto run_id = hwf.data_cell_index().parent()->parent()->parent()->number();
-         demo::accumulateSCW(scw, *hwf, run_id, subrun_id, spill_id, apa_id);
+         demo::accumulateSCW(scw, *hwf);
        },
        concurrency::unlimited,
        "spill" // partition the output by the spill
@@ -152,15 +128,10 @@ int main(int argc, char* argv[])
       .input_family("clamped_waves"_in("APA"))
       .output_products("summed_waveforms");
 
-    demo::log_record("add_output");
     g.make<test::products_for_output>().output(
       "save", &test::products_for_output::save, concurrency::serial);
 
     // Execute the graph.
-    demo::log_record("execute_graph");
     g.execute();
-    demo::log_record("end_graph");
   }
-  demo::log_record("graph_destroyed");
-  demo::write_log("unfold_transform_fold.tsv");
 }

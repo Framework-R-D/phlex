@@ -93,11 +93,11 @@ TEST_CASE("Splitting the processing", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto cells_to_process = [index_limit](auto& driver) {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto event_store = job_store->make_child(i, "event", "Source");
-      driver.yield(event_store);
+      auto event_index = job_index->make_child(i, "event");
+      driver.yield(event_index);
     }
   };
 

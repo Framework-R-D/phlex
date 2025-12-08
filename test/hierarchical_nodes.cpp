@@ -40,13 +40,13 @@ namespace {
 
   void cells_to_process(framework_driver& driver)
   {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run", "cells_to_process");
-      driver.yield(run_store);
+      auto run_index = job_index->make_child(i, "run");
+      driver.yield(run_index);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        driver.yield(run_store->make_child(j, "event", "cells_to_process"));
+        driver.yield(run_index->make_child(j, "event"));
       }
     }
   }
