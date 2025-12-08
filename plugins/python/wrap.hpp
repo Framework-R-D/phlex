@@ -26,14 +26,16 @@
 namespace phlex::experimental {
 
   // Create dict-like access to the configuration from Python.
+  // Returns a new reference.
   PyObject* wrap_configuration(configuration const* config);
 
   // Python wrapper for Phlex configuration
   extern PyTypeObject PhlexConfig_Type;
   struct py_config_map;
 
-  // Phlex' Module wrapper to register algorithms.
+  // Phlex' Module wrapper to register algorithms
   typedef graph_proxy<void_tag> phlex_module_t;
+  // Returns a new reference.
   PyObject* wrap_module(phlex_module_t* mod);
 
   // Python wrapper for Phlex modules
@@ -43,11 +45,12 @@ namespace phlex::experimental {
   // Python wrapper for Phlex handles
   extern PyTypeObject PhlexLifeline_Type;
   // clang-format off
-  typedef struct py_lifeline {
+  struct py_lifeline {
     PyObject_HEAD
     PyObject* m_view;
     std::shared_ptr<void> m_source;
-  } py_lifeline_t;
+  };
+  using py_lifeline_t = py_lifeline;
   // clang-format on
 
   // Error reporting helper.

@@ -302,7 +302,7 @@ namespace {
     if (!np_view)                                                                                  \
       return (intptr_t)nullptr;                                                                    \
                                                                                                    \
-    /* make the date read-only by not making it writable */                                        \
+    /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
                                                                                                    \
     /* create a lifeline object to tie this array and the original handle together; note */        \
