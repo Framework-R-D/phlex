@@ -13,5 +13,8 @@ def register(pyalg, m, config, concurrency=None):
     except TypeError:
         outputs = []
 
-    m.register(pyalg, inputs, outputs, concurrency)
+    if outputs:
+        m.transform(pyalg, inputs, outputs, concurrency)
+    else:
+        m.observe(pyalg, inputs, outputs, concurrency)
 

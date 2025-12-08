@@ -195,7 +195,7 @@ namespace {
       // start over for numpy type using result from str()
       pystr = PyObject_Str(pyobj);
       cstr = PyUnicode_AsUTF8(pystr);
-      if (cstr)        // if failed, ann will remain "ndarray"
+      if (cstr) // if failed, ann will remain "ndarray"
         ann = cstr;
       Py_DECREF(pystr);
       return ann;
@@ -347,18 +347,32 @@ namespace {
     .input_family("py" + output)                                                                   \
     .output_products(output)
 
-static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*kwds*/)
+static PyObject* parse_args(PyObject* args,
+                            PyObject* kwds,
+                            std::string& functor_name,
+                            std::vector<std::string>& input_labels,
+                            std::vector<std::string>& input_types,
+                            std::vector<std::string>& output_labels,
+                            std::vector<std::string>& output_types)
 {
-  // Register a python algorithm by adding the necessary intermediate converter
-  // nodes going from C++ to PyObject* and back.
+  // Helper function to extract the common names and identifiers needed to insert
+  // any node. (The observer does not require outputs, but they still need to be
+  // retrieved, not ignored, to issue an error message if an output is provided.)
 
-  if (PyTuple_Size(args) < 3) {
-    PyErr_SetString(PyExc_TypeError, "expected arguments: callable, inputs, outputs");
+  static char const* kwnames[] = {"callable", "input", "output", "concurrency", nullptr};
+  PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0;
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwds, "OO|OO", (char**)kwnames, &callable, &input, &output, &concurrency)) {
+    // error already set by argument parser
     return nullptr;
   }
 
-  PyObject* callable = PyTuple_GetItem(args, 0);
-  if (!PyCallable_Check(callable)) {
+  if (concurrency and concurrency != Py_None) {
+    PyErr_SetString(PyExc_TypeError, "only serial concurrency is supported");
+    return nullptr;
+  }
+
+  if (!callable || !PyCallable_Check(callable)) {
     PyErr_SetString(PyExc_TypeError, "provided algorithm is not callable");
     return nullptr;
   }
@@ -369,28 +383,24 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
     // AttributeError already set
     return nullptr;
   }
-  std::string cname = PyUnicode_AsUTF8(pyname);
+  functor_name = PyUnicode_AsUTF8(pyname);
   Py_DECREF(pyname);
 
-  PyObject* inputs = PyTuple_GetItem(args, 1);
-  PyObject* outputs = PyTuple_GetItem(args, 2);
-  if (!(PySequence_Check(inputs) && PySequence_Check(outputs))) {
-    PyErr_SetString(PyExc_TypeError, "inputs and outputs need to be sequences");
+  if (!(PySequence_Check(input) && PySequence_Check(output))) {
+    PyErr_SetString(PyExc_TypeError, "input and output need to be sequences");
     return nullptr;
   }
 
   // convert input and output declarations, to be able to pass them to Phlex
-  auto const& cinputs = cseq(inputs);
-  auto const& coutputs = cseq(outputs);
-  if (coutputs.size() > 1) {
+  input_labels = cseq(input);
+  output_labels = cseq(output);
+  if (output_labels.size() > 1) {
     PyErr_SetString(PyExc_TypeError, "only a single output supported");
     return nullptr;
   }
-  std::string output = coutputs.empty() ? "" : coutputs[0];
 
-  std::vector<std::string> input_types;
-  input_types.reserve(cinputs.size());
-  std::string output_type; // TODO: accept a tuple (see also above)
+  // retrieve C++ (matching) types from annotations
+  input_types.reserve(input_labels.size());
 
   PyObject* sann = PyUnicode_FromString("__annotations__");
   PyObject* annot = PyObject_GetAttr(callable, sann);
@@ -408,7 +418,7 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
   if (annot && PyDict_Check(annot) && PyDict_Size(annot)) {
     PyObject* ret = PyDict_GetItemString(annot, "return");
     if (ret)
-      output_type = annotation_as_text(ret);
+      output_types.push_back(annotation_as_text(ret));
 
     // dictionary is ordered with return last if provide (note: the keys here
     // could be used as input labels, instead of the ones from the configuration,
@@ -416,22 +426,33 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
     PyObject* values = PyDict_Values(annot);
     for (Py_ssize_t i = 0; i < (PyList_GET_SIZE(values) - (ret ? 1 : 0)); ++i) {
       PyObject* item = PyList_GET_ITEM(values, i);
-      input_types.emplace_back(annotation_as_text(item));
+      input_types.push_back(annotation_as_text(item));
     }
     Py_DECREF(values);
   }
   Py_XDECREF(annot);
 
-  if (input_types.size() != cinputs.size()) {
+  // if annotations were correct (and correctly parsed), there should be as many
+  // input types as input labels
+  if (input_types.size() != input_labels.size()) {
     PyErr_SetString(PyExc_TypeError, "annotions not found or unknown formatting");
     return nullptr;
   }
 
+  // no common errors detected; actual registration may have more checks
+  Py_INCREF(callable);
+  return callable;
+}
+
+static bool insert_input_converters(py_phlex_module* mod,
+                                    const std::vector<std::string>& input_labels,
+                                    const std::vector<std::string>& input_types)
+{
   // insert input converter nodes into the graph
-  for (size_t i = 0; i < (size_t)cinputs.size(); ++i) {
+  for (size_t i = 0; i < (size_t)input_labels.size(); ++i) {
     // TODO: this seems overly verbose and inefficient, but the function needs
     // to be properly types, so every option is made explicit
-    auto const& inp = cinputs[i];
+    auto const& inp = input_labels[i];
     auto const& inp_type = input_types[i];
 
     if (inp_type == "bool")
@@ -456,7 +477,7 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
       if (pos == std::string::npos) {
         PyErr_Format(
           PyExc_TypeError, "could not determine dtype of input type \"%s\"", inp_type.c_str());
-        return nullptr;
+        return false;
       }
 
       pos += 18;
@@ -487,80 +508,131 @@ static PyObject* md_register(py_phlex_module* mod, PyObject* args, PyObject* /*k
           .output_products(inp + "py");
       } else {
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
-        return nullptr;
+        return false;
       }
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
-      return nullptr;
+      return false;
     }
   }
 
-  // register Python algorithm
-  if (cinputs.size() == 1) {
-    if (!output.empty()) {
-      auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
-      mod->ph_module->transform(cname, *pyc, concurrency::serial)
-        .input_family(cinputs[0] + "py")
-        .output_products("py" + output);
-    } else {
-      auto* pyc = new py_callback_1v{callable}; // id.
-      mod->ph_module->observe(cname, *pyc, concurrency::serial).input_family(cinputs[0] + "py");
-    }
-  } else if (cinputs.size() == 2) {
-    if (!output.empty()) {
-      auto* pyc = new py_callback_2{callable};
-      mod->ph_module->transform(cname, *pyc, concurrency::serial)
-        .input_family(cinputs[0] + "py", cinputs[1] + "py")
-        .output_products("py" + output);
-    } else {
-      auto* pyc = new py_callback_2v{callable};
-      mod->ph_module->observe(cname, *pyc, concurrency::serial)
-        .input_family(cinputs[0] + "py", cinputs[1] + "py");
-    }
-  } else if (cinputs.size() == 3) {
-    if (!output.empty()) {
-      auto* pyc = new py_callback_3{callable};
-      mod->ph_module->transform(cname, *pyc, concurrency::serial)
-        .input_family(cinputs[0] + "py", cinputs[1] + "py", cinputs[2] + "py")
-        .output_products("py" + output);
-    } else {
-      auto* pyc = new py_callback_3v{callable};
-      mod->ph_module->observe(cname, *pyc, concurrency::serial)
-        .input_family(cinputs[0] + "py", cinputs[1] + "py", cinputs[2] + "py");
-    }
+  return true;
+}
+
+static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kwds)
+{
+  // Register a python algorithm by adding the necessary intermediate converter
+  // nodes going from C++ to PyObject* and back.
+
+  std::string cname;
+  std::vector<std::string> input_labels, input_types, output_labels, output_types;
+  PyObject* callable =
+    parse_args(args, kwds, cname, input_labels, input_types, output_labels, output_types);
+  if (!callable)
+    return nullptr; // error already set
+
+  if (output_types.empty()) {
+    PyErr_Format(PyExc_TypeError, "a transform should have an output type");
+    return nullptr;
+  }
+
+  // TODO: only support single output type for now, as there has to be a mapping
+  // onto a std::tuple otherwise, which is a typed object, thus complicating the
+  // template instantiation
+  std::string output = output_labels[0];
+  std::string output_type = output_types[0];
+
+  if (!insert_input_converters(mod, input_labels, input_types))
+    return nullptr; // error already set
+
+  // register Python transform
+  if (input_labels.size() == 1) {
+    auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
+    mod->ph_module->transform(cname, *pyc, concurrency::serial)
+      .input_family(input_labels[0] + "py")
+      .output_products("py" + output);
+  } else if (input_labels.size() == 2) {
+    auto* pyc = new py_callback_2{callable};
+    mod->ph_module->transform(cname, *pyc, concurrency::serial)
+      .input_family(input_labels[0] + "py", input_labels[1] + "py")
+      .output_products("py" + output);
+  } else if (input_labels.size() == 3) {
+    auto* pyc = new py_callback_3{callable};
+    mod->ph_module->transform(cname, *pyc, concurrency::serial)
+      .input_family(input_labels[0] + "py", input_labels[1] + "py", input_labels[2] + "py")
+      .output_products("py" + output);
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     return nullptr;
   }
 
-  if (!output_type.empty()) {
-    // insert output converter node into the graph (TODO: same as above; these
-    // are explicit b/c of the templates only)
-    if (output_type == "bool")
-      INSERT_OUTPUT_CONVERTER(bool, output);
-    else if (output_type == "int")
-      INSERT_OUTPUT_CONVERTER(int, output);
-    else if (output_type == "unsigned int")
-      INSERT_OUTPUT_CONVERTER(uint, output);
-    else if (output_type == "long")
-      INSERT_OUTPUT_CONVERTER(long, output);
-    else if (output_type == "unsigned long")
-      INSERT_OUTPUT_CONVERTER(ulong, output);
-    else if (output_type == "float")
-      INSERT_OUTPUT_CONVERTER(float, output);
-    else if (output_type == "double")
-      INSERT_OUTPUT_CONVERTER(double, output);
-    else {
-      PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output.c_str());
-      return nullptr;
-    }
+  // insert output converter node into the graph (TODO: same as above; these
+  // are explicit b/c of the templates only)
+  if (output_type == "bool")
+    INSERT_OUTPUT_CONVERTER(bool, output);
+  else if (output_type == "int")
+    INSERT_OUTPUT_CONVERTER(int, output);
+  else if (output_type == "unsigned int")
+    INSERT_OUTPUT_CONVERTER(uint, output);
+   else if (output_type == "long")
+    INSERT_OUTPUT_CONVERTER(long, output);
+  else if (output_type == "unsigned long")
+    INSERT_OUTPUT_CONVERTER(ulong, output);
+  else if (output_type == "float")
+    INSERT_OUTPUT_CONVERTER(float, output);
+  else if (output_type == "double")
+    INSERT_OUTPUT_CONVERTER(double, output);
+  else {
+    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output.c_str());
+    return nullptr;
+  }
+
+  Py_RETURN_NONE;
+}
+
+static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds)
+{
+  // Register a python observer by adding the necessary intermediate converter
+  // nodes going from C++ to PyObject* and back.
+
+  std::string cname;
+  std::vector<std::string> input_labels, input_types, output_labels, output_types;
+  PyObject* callable =
+    parse_args(args, kwds, cname, input_labels, input_types, output_labels, output_types);
+  if (!callable)
+    return nullptr; // error already set
+
+  if (!output_types.empty()) {
+    PyErr_Format(PyExc_TypeError, "an observer should not have an output type");
+    return nullptr;
+  }
+
+  if (!insert_input_converters(mod, input_labels, input_types))
+    return nullptr; // error already set
+
+  // register Python observer
+  if (input_labels.size() == 1) {
+    auto* pyc = new py_callback_1v{callable}; // id.
+    mod->ph_module->observe(cname, *pyc, concurrency::serial).input_family(input_labels[0] + "py");
+  } else if (input_labels.size() == 2) {
+    auto* pyc = new py_callback_2v{callable};
+    mod->ph_module->observe(cname, *pyc, concurrency::serial)
+      .input_family(input_labels[0] + "py", input_labels[1] + "py");
+  } else if (input_labels.size() == 3) {
+    auto* pyc = new py_callback_3v{callable};
+    mod->ph_module->observe(cname, *pyc, concurrency::serial)
+      .input_family(input_labels[0] + "py", input_labels[1] + "py", input_labels[2] + "py");
+  } else {
+    PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
+    return nullptr;
   }
 
   Py_RETURN_NONE;
 }
 
 static PyMethodDef md_methods[] = {
-  {(char*)"register", (PyCFunction)md_register, METH_VARARGS, (char*)"register a Python algorithm"},
+  {(char*)"transform", (PyCFunction)md_transform, METH_VARARGS | METH_KEYWORDS, (char*)"register a Python transform"},
+  {(char*)"observe", (PyCFunction)md_observe, METH_VARARGS | METH_KEYWORDS, (char*)"register a Python observer"},
   {(char*)nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
