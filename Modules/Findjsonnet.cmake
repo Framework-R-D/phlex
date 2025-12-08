@@ -40,7 +40,8 @@ if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
   # On macOS, fix jsonnet libraries if they have incorrect install_name
   if(APPLE)
     foreach(_lib ${${CMAKE_FIND_PACKAGE_NAME}_LIBRARY}
-                 ${${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY})
+                 ${${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY}
+            )
       if(EXISTS "${_lib}")
         # Get the library's current install_name
         execute_process(
@@ -64,7 +65,7 @@ if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
                     "${_lib}"
             RESULT_VARIABLE _fix_result
             ERROR_QUIET
-          )
+            )
           if(NOT _fix_result EQUAL 0)
             message(WARNING "Failed to fix install_name for ${_lib_name}")
           endif()
@@ -85,4 +86,3 @@ if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
       )
   endif()
 endif()
-
