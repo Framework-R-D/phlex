@@ -2,6 +2,7 @@
 // This source creates 1M events.
 // ===================================================================
 
+#include "phlex/module.hpp"
 #include "phlex/source.hpp"
 
 #include "fmt/std.h"
@@ -29,7 +30,6 @@ namespace test {
         }
 
         auto store = job_store->make_child(i, "event");
-        store->add_product("id", *store->id());
         driver.yield(store);
       }
     }
@@ -40,3 +40,10 @@ namespace test {
 }
 
 PHLEX_EXPERIMENTAL_REGISTER_SOURCE(test::benchmarks_source)
+PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m) {
+  using namespace phlex::experimental;
+  m.provide("provide_id", [](data_cell_index const& id) {
+    return id;
+  })
+  .output_product("id"_in("event"));
+}
