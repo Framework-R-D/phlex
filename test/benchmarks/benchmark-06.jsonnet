@@ -16,5 +16,8 @@
     d: {
       plugin: 'verify_difference',
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }
