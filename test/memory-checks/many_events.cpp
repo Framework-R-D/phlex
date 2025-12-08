@@ -19,12 +19,12 @@ int main()
 
     for (unsigned int i : std::views::iota(1u, max_events + 1)) {
       auto event_store = job_store->make_child(i, "event", "Source");
-      event_store->add_product("number", i);
       driver.yield(event_store);
     }
   };
 
   framework_graph g{cells_to_process};
+  g.provide("provide_number", [](data_cell_index const& id)->unsigned { return id.number(); }).output_product("number"_in("event"));
   g.transform("pass_on", pass_on, concurrency::unlimited)
     .input_family("number"_in("event"))
     .output_products("different");
