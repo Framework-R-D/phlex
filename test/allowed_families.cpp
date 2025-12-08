@@ -13,17 +13,17 @@ namespace {
 
   void cells_to_process(framework_driver& driver)
   {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
 
-    auto run_store = job_store->make_child(0, "run");
-    driver.yield(run_store);
+    auto run_index = job_index->make_child(0, "run");
+    driver.yield(run_index);
 
-    auto subrun_store = run_store->make_child(0, "subrun");
-    driver.yield(subrun_store);
-
-    auto event_store = subrun_store->make_child(0, "event");
-    driver.yield(event_store);
+    auto subrun_index = run_index->make_child(0, "subrun");
+    driver.yield(subrun_index);
+    
+    auto event_index = subrun_index->make_child(0, "event");
+    driver.yield(event_index);
   }
 
   // Provider functions that return data_cell_index for each level
