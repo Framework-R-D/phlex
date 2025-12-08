@@ -10,6 +10,9 @@ target_link_libraries(
 add_library(mock_workflow_source MODULE source.cpp)
 target_link_libraries(mock_workflow_source PRIVATE timed_busy phlex::module)
 
+add_library(id_provider MODULE id_provider.cpp)
+target_link_libraries(id_provider PRIVATE phlex::module)
+
 function(add_module NAME)
   add_library(${NAME} MODULE ${NAME}.cpp)
   target_link_libraries(${NAME} PRIVATE algorithm)

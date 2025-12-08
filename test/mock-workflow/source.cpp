@@ -26,7 +26,6 @@ namespace phlex::experimental::test {
         }
 
         auto store = job_store->make_child(i, "event");
-        store->add_product("id", *store->id());
         driver.yield(store);
       }
     }
