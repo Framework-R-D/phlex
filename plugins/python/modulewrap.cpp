@@ -445,8 +445,8 @@ static PyObject* parse_args(PyObject* args,
 }
 
 static bool insert_input_converters(py_phlex_module* mod,
-                                    const std::vector<std::string>& input_labels,
-                                    const std::vector<std::string>& input_types)
+                                    std::vector<std::string> const& input_labels,
+                                    std::vector<std::string> const& input_types)
 {
   // insert input converter nodes into the graph
   for (size_t i = 0; i < (size_t)input_labels.size(); ++i) {
@@ -574,7 +574,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     INSERT_OUTPUT_CONVERTER(int, output);
   else if (output_type == "unsigned int")
     INSERT_OUTPUT_CONVERTER(uint, output);
-   else if (output_type == "long")
+  else if (output_type == "long")
     INSERT_OUTPUT_CONVERTER(long, output);
   else if (output_type == "unsigned long")
     INSERT_OUTPUT_CONVERTER(ulong, output);
@@ -630,10 +630,15 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   Py_RETURN_NONE;
 }
 
-static PyMethodDef md_methods[] = {
-  {(char*)"transform", (PyCFunction)md_transform, METH_VARARGS | METH_KEYWORDS, (char*)"register a Python transform"},
-  {(char*)"observe", (PyCFunction)md_observe, METH_VARARGS | METH_KEYWORDS, (char*)"register a Python observer"},
-  {(char*)nullptr, nullptr, 0, nullptr}};
+static PyMethodDef md_methods[] = {{(char*)"transform",
+                                    (PyCFunction)md_transform,
+                                    METH_VARARGS | METH_KEYWORDS,
+                                    (char*)"register a Python transform"},
+                                   {(char*)"observe",
+                                    (PyCFunction)md_observe,
+                                    METH_VARARGS | METH_KEYWORDS,
+                                    (char*)"register a Python observer"},
+                                   {(char*)nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
 PyTypeObject phlex::experimental::PhlexModule_Type = {
