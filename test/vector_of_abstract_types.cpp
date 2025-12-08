@@ -41,11 +41,11 @@ namespace {
 
     void operator()(framework_driver& driver)
     {
-      auto job_store = phlex::experimental::product_store::base();
-      driver.yield(job_store);
+      auto job_index = phlex::experimental::data_cell_index::base_ptr();
+      driver.yield(job_index);
 
       for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        driver.yield(job_store->make_child(i, "event"));
+        driver.yield(job_index->make_child(i, "event"));
       }
     }
 

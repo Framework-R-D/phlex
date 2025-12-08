@@ -21,8 +21,8 @@ namespace {
   public:
     void next(framework_driver& driver)
     {
-      auto job_store = product_store::base();
-      driver.yield(job_store);
+      auto job_index = data_cell_index::base_ptr();
+      driver.yield(job_index);
     }
   };
 }

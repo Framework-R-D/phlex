@@ -16,6 +16,12 @@ namespace phlex::experimental {
 
   class product_store : public std::enable_shared_from_this<product_store> {
   public:
+
+    explicit product_store(product_store_const_ptr parent,
+                           data_cell_index_ptr id,
+                           std::string source,
+                           stage processing_stage = stage::process,
+                           products new_products = {});
     ~product_store();
     static product_store_ptr base(std::string base_name = "Source");
 
@@ -60,11 +66,6 @@ namespace phlex::experimental {
     void add_product(std::string const& key, std::unique_ptr<product<T>>&& t);
 
   private:
-    explicit product_store(product_store_const_ptr parent,
-                           data_cell_index_ptr id,
-                           std::string source,
-                           stage processing_stage = stage::process,
-                           products new_products = {});
     explicit product_store(product_store_const_ptr parent,
                            std::size_t data_cell_number,
                            std::string const& child_layer_name,
