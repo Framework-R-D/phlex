@@ -61,8 +61,13 @@ if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
             )
           execute_process(
             COMMAND install_name_tool -id "@rpath/${_current_install_name}"
-                    "${_lib}" ERROR_QUIET
-            )
+                    "${_lib}"
+            RESULT_VARIABLE _fix_result
+            ERROR_QUIET
+          )
+          if(NOT _fix_result EQUAL 0)
+            message(WARNING "Failed to fix install_name for ${_lib_name}")
+          endif()
         endif()
       endif()
     endforeach()
