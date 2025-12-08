@@ -3,15 +3,33 @@
 if(FORM_USE_ROOT_STORAGE)
   add_subdirectory(data_products)
 
-  add_executable(phlex_writer writer.cpp toy_tracker.cpp)
-  target_include_directories(phlex_writer PRIVATE ${PROJECT_SOURCE_DIR}/form)
-  target_link_libraries(phlex_writer mock_phlex form form_test_data_products)
+  cet_test(
+    WriteVector
+    SOURCE
+    writer.cpp
+    toy_tracker.cpp
+    LIBRARIES
+    mock_phlex
+    form
+    form_test_data_products
+    TEST_ARGS
+    "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
+    )
+  target_include_directories(WriteVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
-  add_executable(phlex_reader reader.cpp)
-  target_include_directories(phlex_reader PRIVATE ${PROJECT_SOURCE_DIR}/form)
-  target_link_libraries(phlex_reader mock_phlex form form_test_data_products)
-
-  add_test(NAME WriteVector COMMAND phlex_writer)
-  add_test(NAME ReadVector COMMAND phlex_reader)
-  set_tests_properties(ReadVector PROPERTIES DEPENDS WriteVector)
+  cet_test(
+    ReadVector
+    SOURCE
+    reader.cpp
+    LIBRARIES
+    mock_phlex
+    form
+    form_test_data_products
+    TEST_ARGS
+    "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
+    TEST_PROPERTIES
+    DEPENDS
+    WriteVector
+    )
+  target_include_directories(ReadVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
 endif()
