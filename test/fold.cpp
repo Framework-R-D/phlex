@@ -51,14 +51,14 @@ TEST_CASE("Different data layers of fold", "[graph]")
   constexpr auto number_limit = 5u;
 
   auto cells_to_process = [index_limit, number_limit](framework_driver& driver) {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run", "Source");
-      driver.yield(run_store);
+      auto run_index = job_index->make_child(i, "run");
+      driver.yield(run_index);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event", "Source");
-        driver.yield(event_store);
+        auto event_index = run_index->make_child(j, "event");
+        driver.yield(event_index);
       }
     }
   };

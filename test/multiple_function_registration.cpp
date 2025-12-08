@@ -41,7 +41,7 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  framework_graph g{product_store::base()};
+  framework_graph g{data_cell_index::base_ptr()};
 
   g.provide("provide_numbers",
             [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })
