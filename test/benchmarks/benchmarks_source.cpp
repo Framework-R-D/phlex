@@ -2,7 +2,6 @@
 // This source creates 1M events.
 // ===================================================================
 
-#include "phlex/module.hpp"
 #include "phlex/source.hpp"
 
 #include "fmt/std.h"
@@ -40,10 +39,3 @@ namespace test {
 }
 
 PHLEX_EXPERIMENTAL_REGISTER_SOURCE(test::benchmarks_source)
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m) {
-  using namespace phlex::experimental;
-  m.provide("provide_id", [](data_cell_index const& id) {
-    return id;
-  })
-  .output_product("id"_in("event"));
-}

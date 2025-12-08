@@ -19,5 +19,8 @@
       when: ['even_filter:accept_even_numbers'],
       consumes: 'b',
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

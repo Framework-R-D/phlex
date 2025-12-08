@@ -11,5 +11,8 @@
       plugin: 'read_index',
       consumes: 'a'
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }
