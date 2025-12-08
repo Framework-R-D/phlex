@@ -9,10 +9,10 @@
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/model/qualified_name.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -37,36 +37,37 @@ namespace phlex::experimental {
   public:
     explicit generator(product_store_const_ptr const& parent,
                        std::string node_name,
-                       std::string const& new_level_name);
+                       std::string const& child_layer_name);
     product_store_const_ptr flush_store() const;
 
-    product_store_const_ptr make_child_for(std::size_t const level_number, products new_products)
+    product_store_const_ptr make_child_for(std::size_t const data_cell_number,
+                                           products new_products)
     {
-      return make_child(level_number, std::move(new_products));
+      return make_child(data_cell_number, std::move(new_products));
     }
 
   private:
     product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
     std::string node_name_;
-    std::string const& new_level_name_;
-    std::map<level_id::hash_type, std::size_t> child_counts_;
+    std::string const& child_layer_name_;
+    std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };
 
   class declared_unfold : public products_consumer {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
-                    specified_labels input_products);
+                    product_queries input_products);
     virtual ~declared_unfold();
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual qualified_names const& output() const = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
 
   protected:
-    using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
+    using stores_t = tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr>;
     using accessor = stores_t::accessor;
     using const_accessor = stores_t::const_accessor;
 
@@ -91,12 +92,14 @@ namespace phlex::experimental {
                 tbb::flow::graph& g,
                 Predicate&& predicate,
                 Unfold&& unfold,
-                specified_labels product_labels,
+                product_queries product_labels,
                 std::vector<std::string> output_products,
-                std::string new_level_name) :
+                std::string child_layer_name) :
       declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
-      output_{to_qualified_names(full_name(), std::move(output_products))},
-      new_level_name_{std::move(new_level_name)},
+      output_{to_product_specifications(full_name(),
+                                        std::move(output_products),
+                                        make_type_ids<skip_first_type<return_type<Unfold>>>())},
+      child_layer_name_{std::move(child_layer_name)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       unfold_{
         g,
@@ -110,7 +113,7 @@ namespace phlex::experimental {
             std::get<0>(output).try_put(msg);
           } else if (accessor a; stores_.insert(a, store->id()->hash())) {
             std::size_t const original_message_id{msg_counter_};
-            generator g{msg.store, this->full_name(), new_level_name_};
+            generator g{msg.store, this->full_name(), child_layer_name_};
             call(p, ufold, msg.store->id(), g, msg.eom, messages, std::make_index_sequence<N>{});
 
             message const flush_msg{g.flush_store(), msg.eom, ++msg_counter_, original_message_id};
@@ -129,7 +132,7 @@ namespace phlex::experimental {
     ~unfold_node() { report_cached_stores(stores_); }
 
   private:
-    tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
       return receiver_for<N>(join_, input(), product_label);
     }
@@ -137,12 +140,12 @@ namespace phlex::experimental {
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    qualified_names const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,
               Unfold const& unfold,
-              level_id_ptr const& unfolded_id,
+              data_cell_index_ptr const& unfolded_id,
               generator& g,
               end_of_message_ptr const& eom,
               messages_t<N> const& messages,
@@ -154,7 +157,7 @@ namespace phlex::experimental {
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
         products new_products;
-        auto new_id = unfolded_id->make_child(counter, new_level_name_);
+        auto new_id = unfolded_id->make_child(counter, child_layer_name_);
         if constexpr (requires { std::invoke(unfold, obj, running_value, *new_id); }) {
           auto [next_value, prods] = std::invoke(unfold, obj, running_value, *new_id);
           new_products.add_all(output_, std::move(prods));
@@ -175,11 +178,11 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    qualified_names output_;
-    std::string new_level_name_;
+    product_specifications output_;
+    std::string child_layer_name_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;
-    tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr> stores_;
+    tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr> stores_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
     std::atomic<std::size_t> product_count_{};

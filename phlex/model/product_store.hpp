@@ -1,9 +1,9 @@
 #ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
 #define PHLEX_MODEL_PRODUCT_STORE_HPP
 
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/products.hpp"
 
 #include <cstddef>
@@ -23,22 +23,24 @@ namespace phlex::experimental {
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
+    auto size() const noexcept { return products_.size(); }
+    bool empty() const noexcept { return products_.empty(); }
 
-    std::string const& level_name() const noexcept;
+    std::string const& layer_name() const noexcept;
     std::string const& source() const noexcept;
-    product_store_const_ptr parent(std::string const& level_name) const noexcept;
+    product_store_const_ptr parent(std::string const& layer_name) const noexcept;
     product_store_const_ptr parent() const noexcept;
     product_store_ptr make_flush() const;
     product_store_ptr make_continuation(std::string source, products new_products = {}) const;
-    product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_level_name,
+    product_store_ptr make_child(std::size_t data_cell_number,
+                                 std::string const& child_layer_name,
                                  std::string source,
                                  products new_products);
-    product_store_ptr make_child(std::size_t new_level_number,
-                                 std::string const& new_level_name,
+    product_store_ptr make_child(std::size_t data_cell_number,
+                                 std::string const& child_layer_name,
                                  std::string source = {},
                                  stage st = stage::process);
-    level_id_ptr const& id() const noexcept;
+    data_cell_index_ptr const& id() const noexcept;
     bool is_flush() const noexcept;
 
     // Product interface
@@ -59,24 +61,24 @@ namespace phlex::experimental {
 
   private:
     explicit product_store(product_store_const_ptr parent,
-                           level_id_ptr id,
+                           data_cell_index_ptr id,
                            std::string source,
                            stage processing_stage = stage::process,
                            products new_products = {});
     explicit product_store(product_store_const_ptr parent,
-                           std::size_t new_level_number,
-                           std::string const& new_level_name,
+                           std::size_t data_cell_number,
+                           std::string const& child_layer_name,
                            std::string source,
                            products new_products);
     explicit product_store(product_store_const_ptr parent,
-                           std::size_t new_level_number,
-                           std::string const& new_level_name,
+                           std::size_t data_cell_number,
+                           std::string const& child_layer_name,
                            std::string source,
                            stage processing_stage);
 
     product_store_const_ptr parent_{nullptr};
     products products_{};
-    level_id_ptr id_;
+    data_cell_index_ptr id_;
     std::string
       source_; // FIXME: Should not have to copy the string (the source should outlive the product store)
     stage stage_;

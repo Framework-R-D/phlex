@@ -1,12 +1,15 @@
 #include "phlex/core/detail/filter_impl.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <string>
 
 namespace {
-  phlex::experimental::specified_label const output_dummy{phlex::experimental::qualified_name{
-    phlex::experimental::algorithm_name{"for_output_only", ""}, "for_output_only"}};
-  std::vector<phlex::experimental::specified_label> const for_output_only{output_dummy};
+  phlex::experimental::product_query const output_dummy{phlex::experimental::product_specification{
+    phlex::experimental::algorithm_name{"for_output_only", ""},
+    "for_output_only",
+    phlex::experimental::type_id{}}};
+  std::vector<phlex::experimental::product_query> const for_output_only{output_dummy};
 }
 
 namespace phlex::experimental {
@@ -50,7 +53,7 @@ namespace phlex::experimental {
 
   void decision_map::erase(accessor& a) { results_.erase(a); }
 
-  data_map::data_map(specified_labels const& product_names) :
+  data_map::data_map(product_queries const& product_names) :
     product_names_{&product_names}, nargs_{product_names.size()}
   {
     assert(nargs_ > 0);
@@ -85,7 +88,9 @@ namespace phlex::experimental {
   {
     decltype(stores_)::const_accessor a;
     if (stores_.find(a, msg_id)) {
-      return a->second.size() == nargs_;
+      std::size_t const num_ready = std::ranges::count_if(
+        a->second, [](auto const& store) { return static_cast<bool>(store); });
+      return num_ready == nargs_;
     }
     return false;
   }

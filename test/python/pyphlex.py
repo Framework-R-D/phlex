@@ -1,5 +1,4 @@
-"""
-Minimal access to Phlex from cppyy.
+"""Minimal access to Phlex from cppyy.
 
 cppyy needs access to core Phlex classes to complete the registration, which
 is done through header parsing. Only the relevant header files are included
@@ -7,8 +6,9 @@ and no libraries are loaded as this module is only for use in the `phlex`
 executable, which is already appropriately linked.
 """
 
-import cppyy
 import os
+
+import cppyy
 
 # locate phlex through the environment
 PHLEX_INSTALL = os.environ["PHLEX_INSTALL"]
@@ -16,7 +16,7 @@ PHLEX_INSTALL = os.environ["PHLEX_INSTALL"]
 # load phlex headers
 includedir = os.path.join(PHLEX_INSTALL, "include")
 if not os.path.exists(includedir):
-  includedir = PHLEX_INSTALL
+    includedir = PHLEX_INSTALL
 cppyy.add_include_path(includedir)
 cppyy.include("phlex/core/framework_graph.hpp")
 cppyy.include("phlex/configuration.hpp")
@@ -24,13 +24,20 @@ cppyy.include("phlex/configuration.hpp")
 # open phlex namespace for convenience in JITed C++ snippets
 cppyy.cppdef("using namespace phlex::experimental;")
 
+
 # `with` is a keyword in Python, so can not be the name of a method; fix this
 # by renaming it to `with_` for all phlex classes
 def fixwith(klass, name):
+    """A cppyy pythonization to rename the 'with' method to 'with_'.
+
+    Args:
+        klass: The class to pythonize.
+        name: The name of the class.
+    """
     try:
-        klass.with_ = getattr(klass, 'with')
+        klass.with_ = getattr(klass, "with")
     except AttributeError:
         pass  # nothing to fix
 
-cppyy.py.add_pythonization(fixwith, "phlex::experimental")
 
+cppyy.py.add_pythonization(fixwith, "phlex::experimental")

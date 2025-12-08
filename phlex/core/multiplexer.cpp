@@ -14,16 +14,16 @@ using namespace std::chrono;
 namespace {
   phlex::experimental::product_store_const_ptr store_for(
     phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::specified_label const& label)
+    phlex::experimental::product_query const& label)
   {
-    auto const& [product_name, family] = label;
-    if (family.empty()) {
+    auto const& [product_name, layer] = label;
+    if (layer.empty()) {
       return store->store_for_product(product_name.full());
     }
-    if (store->level_name() == family and store->contains_product(product_name.full())) {
+    if (store->layer_name() == layer and store->contains_product(product_name.full())) {
       return store;
     }
-    auto parent = store->parent(family);
+    auto parent = store->parent(layer);
     if (not parent) {
       return nullptr;
     }
@@ -56,8 +56,8 @@ namespace {
         continue;
       }
 
-      if (auto const& allowed_family = product_label.family; not allowed_family.empty()) {
-        if (store_to_send->level_name() != allowed_family) {
+      if (auto const& allowed_layer = product_label.layer; not allowed_layer.empty()) {
+        if (store_to_send->layer_name() != allowed_layer) {
           continue;
         }
       }
@@ -97,7 +97,7 @@ namespace phlex::experimental {
     }
 
     for (auto const& ports : head_ports_ | std::views::values) {
-      // FIXME: Should make sure that the received store has a level equal to the most
+      // FIXME: Should make sure that the received store has the same layer name as the most
       //        derived store required by the algorithm.
       auto const senders = senders_for(store, ports);
       if (size(senders) != size(ports)) {

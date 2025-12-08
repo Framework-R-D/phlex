@@ -1,3 +1,4 @@
+"""This module defines a simple C++ function using cppyy."""
 import cppyy
 
 cppyy.cppdef("""\
@@ -6,4 +7,3 @@ namespace test {
 }""")
 
 add = cppyy.gbl.test.add
-

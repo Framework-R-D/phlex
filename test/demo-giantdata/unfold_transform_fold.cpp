@@ -1,5 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/async_driver.hpp"
 #include "test/products_for_output.hpp"
@@ -53,15 +53,15 @@ int main(int argc, char* argv[])
 
   std::size_t const wires_per_spill = apas_per_spill * 256ull;
 
-  // Create some levels of the data set categories hierarchy.
-  // We may or may not want to create pre-generated data set categories like this.
-  // Each data set category gets an index number in the hierarchy.
+  // Create some data layers of the data-layer hierarchy.
+  // We may or may not want to create pre-generated data layers.
+  // Each data layer gets an index number in the hierarchy.
 
   auto source = [n_runs, n_subruns, n_spills, wires_per_spill](framework_driver& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
 
-    // job -> run -> subrun -> spill levels
+    // job -> run -> subrun -> spill data layers
     for (unsigned runno : std::views::iota(0u, n_runs)) {
       auto run_store = job_store->make_child(runno, "run");
       driver.yield(run_store);
@@ -111,6 +111,7 @@ int main(int argc, char* argv[])
     auto const chunksize = 256LL; // this could be read from a configuration file
 
     g.unfold<demo::WaveformGenerator>(
+       "WaveformGenerator",
        &demo::WaveformGenerator::predicate,
        [](demo::WaveformGenerator const& wg, std::size_t running_value) {
          return wg.op(running_value, chunksize);
@@ -123,10 +124,10 @@ int main(int argc, char* argv[])
     // Add the transform node to the graph.
     demo::log_record("add_transform");
     auto wrapped_user_function = [](phlex::experimental::handle<demo::Waveforms> hwf) {
-      auto apa_id = hwf.level_id().number();
-      auto spill_id = hwf.level_id().parent()->number();
-      auto subrun_id = hwf.level_id().parent()->parent()->number();
-      auto run_id = hwf.level_id().parent()->parent()->parent()->number();
+      auto apa_id = hwf.data_cell_index().number();
+      auto spill_id = hwf.data_cell_index().parent()->number();
+      auto subrun_id = hwf.data_cell_index().parent()->parent()->number();
+      auto run_id = hwf.data_cell_index().parent()->parent()->parent()->number();
       return demo::clampWaveforms(*hwf, run_id, subrun_id, spill_id, apa_id);
     };
 
@@ -139,10 +140,10 @@ int main(int argc, char* argv[])
     g.fold(
        "accum_for_spill",
        [](demo::SummedClampedWaveforms& scw, phlex::experimental::handle<demo::Waveforms> hwf) {
-         auto apa_id = hwf.level_id().number();
-         auto spill_id = hwf.level_id().parent()->number();
-         auto subrun_id = hwf.level_id().parent()->parent()->number();
-         auto run_id = hwf.level_id().parent()->parent()->parent()->number();
+         auto apa_id = hwf.data_cell_index().number();
+         auto spill_id = hwf.data_cell_index().parent()->number();
+         auto subrun_id = hwf.data_cell_index().parent()->parent()->number();
+         auto run_id = hwf.data_cell_index().parent()->parent()->parent()->number();
          demo::accumulateSCW(scw, *hwf, run_id, subrun_id, spill_id, apa_id);
        },
        concurrency::unlimited,

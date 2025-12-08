@@ -13,7 +13,7 @@ int main()
   // constexpr auto max_events{1'000'000u};
   // spdlog::flush_on(spdlog::level::trace);
 
-  auto levels_to_process = [](framework_driver& driver) {
+  auto cells_to_process = [](framework_driver& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
 
@@ -24,9 +24,9 @@ int main()
     }
   };
 
-  framework_graph g{levels_to_process};
+  framework_graph g{cells_to_process};
   g.transform("pass_on", pass_on, concurrency::unlimited)
-    .input_family("number")
+    .input_family("number"_in("event"))
     .output_products("different");
   g.execute();
 }

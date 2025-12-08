@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import argparse
-import sys
 import os
-from pathlib import Path
+import sys
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 
 def _relative_subpath(path: Path, base: Path | None) -> Path | None:
@@ -25,7 +25,6 @@ def _relative_subpath(path: Path, base: Path | None) -> Path | None:
     Returns:
         The relative path if it exists within the base, otherwise None.
     """
-
     if base is None:
         return None
 
@@ -76,7 +75,6 @@ def normalize(
         A tuple containing missing files (relative to repo_root) and external
         files that reside outside the repository.
     """
-
     tree = ET.parse(report_path)
     root = tree.getroot()
 
@@ -110,15 +108,11 @@ def normalize(
 
     coverage_root_relative = _relative_subpath(coverage_root, repo_root)
     if coverage_root_relative is None:
-        coverage_root_relative = _relative_subpath(
-            coverage_root_resolved, repo_root_resolved
-        )
+        coverage_root_relative = _relative_subpath(coverage_root_resolved, repo_root_resolved)
 
     repo_relative_from_coverage = _relative_subpath(repo_root, coverage_root)
     if repo_relative_from_coverage is None:
-        repo_relative_from_coverage = _relative_subpath(
-            repo_root_resolved, coverage_root_resolved
-        )
+        repo_relative_from_coverage = _relative_subpath(repo_root_resolved, coverage_root_resolved)
 
     def _usable_prefix(prefix: Path | None) -> Path | None:
         if prefix is None:
@@ -214,12 +208,17 @@ def normalize(
 
             absolute_candidate = (repo_root_resolved / relative).resolve()
 
-        cls.set("filename", relative.as_posix())
+        if relative is not None:
+            cls.set("filename", relative.as_posix())
 
-        candidate = repo_root / relative
-        candidate_resolved = absolute_candidate
-        if not candidate.exists() and not candidate_resolved.exists():
-            missing.append(relative.as_posix())
+            candidate = repo_root / relative
+            if absolute_candidate is not None:
+                candidate_resolved = absolute_candidate
+            else:
+                candidate_resolved = candidate.resolve()
+
+            if not candidate.exists() and not candidate_resolved.exists():
+                missing.append(relative.as_posix())
 
     tree.write(report_path)
     return missing, external
@@ -243,28 +242,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "report",
         type=Path,
-        help=(
-            "Path to the Cobertura XML report "
-            "(e.g., phlex-build/coverage.xml)"
-        ),
+        help=("Path to the Cobertura XML report (e.g., phlex-build/coverage.xml)"),
     )
     parser.add_argument(
         "--repo-root",
         type=Path,
         default=Path.cwd(),
-        help=(
-            "Repository root as seen by Codecov "
-            "(default: current directory)"
-        ),
+        help=("Repository root as seen by Codecov (default: current directory)"),
     )
     parser.add_argument(
         "--coverage-root",
         type=Path,
         default=None,
-        help=(
-            "Root used when gcovr generated the report "
-            "(default: --repo-root)"
-        ),
+        help=("Root used when gcovr generated the report (default: --repo-root)"),
     )
     parser.add_argument(
         "--coverage-alias",
@@ -279,10 +269,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--source-dir",
         type=Path,
         default=None,
-        help=(
-            "Directory to store inside <source> "
-            "(default: same as --repo-root)"
-        ),
+        help=("Directory to store inside <source> (default: same as --repo-root)"),
     )
     parser.add_argument(
         "--path-map",
@@ -311,20 +298,14 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     report = args.report.resolve()
     repo_root = args.repo_root.absolute()
-    coverage_root = (
-        args.coverage_root.absolute() if args.coverage_root else repo_root
-    )
-    coverage_alias = (
-        args.coverage_alias.absolute() if args.coverage_alias else None
-    )
+    coverage_root = args.coverage_root.absolute() if args.coverage_root else repo_root
+    coverage_alias = args.coverage_alias.absolute() if args.coverage_alias else None
     source_dir = args.source_dir.absolute() if args.source_dir else repo_root
 
     path_maps: list[tuple[Path, Path]] = []
     for mapping in args.path_map:
         if "=" not in mapping:
-            raise SystemExit(
-                f"Invalid --path-map '{mapping}'. Expected format FROM=TO."
-            )
+            raise SystemExit(f"Invalid --path-map '{mapping}'. Expected format FROM=TO.")
         src_raw, dst_raw = mapping.split("=", 1)
         src_path = Path(src_raw)
         if not src_path.is_absolute():
@@ -361,9 +342,7 @@ def main(argv: list[str]) -> int:
     if missing:
         joined = "\n".join(f"  - {name}" for name in missing)
         sys.stderr.write(
-            "Coverage XML references files that do not exist in the "
-            "repository:\n"
-            f"{joined}\n"
+            f"Coverage XML references files that do not exist in the repository:\n{joined}\n"
         )
         return 1
 

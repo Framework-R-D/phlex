@@ -7,23 +7,31 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
 
 jobs:
-  detect-cmake-format-changes:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
-
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
-
     steps:
     - name: Checkout code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
         path: phlex-src
@@ -48,18 +56,21 @@ jobs:
         fi
 
   cmake-format-check:
-    needs: detect-cmake-format-changes
-    if: ${{ (needs.detect-cmake-format-changes.outputs.has_changes == 'true') || (github.event_name == 'workflow_dispatch') || (env.ACT == 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         path: phlex-src
 
     - name: Set up Python
-      uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+      uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
       with:
         python-version: '3.x'
 
@@ -68,8 +79,8 @@ jobs:
 
     - name: Check CMake formatting
       run: |
+        echo "➡️ Checking CMake file formatting..."
         cd phlex-src
-        echo "Checking CMake file formatting..."
 
         cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "CMakeLists.txt.in" -o -name "*.cmake" -o -name "*.cmake.in" \) ! -path "*/build/*" ! -path "*/_deps/*")
 
@@ -78,29 +89,32 @@ jobs:
           exit 0
         fi
 
+        echo "::group::Running cmake-format --check"
         format_errors=0
         for file in $cmake_files; do
-          echo "Checking $file..."
           if ! cmake-format --check "$file"; then
-            echo "❌ Format error in: $file"
             format_errors=$((format_errors + 1))
           fi
         done
+        echo "::endgroup::"
 
         if [ $format_errors -gt 0 ]; then
-          echo ""
-          echo "::error::Found $format_errors file(s) with formatting issues"
-          echo "Run 'cmake-format -i <file>' locally or comment '@phlexbot format' on the PR to auto-fix"
+          echo "::error::Found $format_errors file(s) with formatting issues."
+          echo "::error::Run 'cmake-format -i <file>' locally or comment '@phlexbot format' on the PR to auto-fix."
           exit 1
+        else
+          echo "✅ All CMake files are properly formatted."
         fi
 
-        echo "✓ All CMake files are properly formatted"
-
   cmake-format-check-skipped:
-    needs: detect-cmake-format-changes
-    if: ${{ (needs.detect-cmake-format-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (env.ACT != 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
 
     steps:
     - name: No relevant CMake changes detected
-      run: echo "No CMake-related changes detected; cmake-format check skipped."
+      run: echo "::notice::No CMake-related changes detected; cmake-format check skipped."

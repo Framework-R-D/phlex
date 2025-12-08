@@ -11,59 +11,49 @@ permissions:
   contents: write
 
 jobs:
-  check:
+  parse-command:
     runs-on: ubuntu-latest
-    name: Check for phlexbot tidy-fix token
-    if: ${{ github.event.issue.pull_request }}
-
+    name: Parse bot command
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '@phlexbot tidy-fix')
     outputs:
-      match_result: ${{ steps.check_comment.outputs.match_result }}
-      tidy_checks: ${{ steps.check_comment.outputs.tidy_checks }}
-      ref_name: ${{ steps.check_comment.outputs.ref_name }}
-      repo_name: ${{ steps.check_comment.outputs.repo_name }}
+      tidy_checks: ${{ steps.parse_comment.outputs.tidy_checks }}
+      ref: ${{ steps.get_pr.outputs.ref }}
+      sha: ${{ steps.get_pr.outputs.sha }}
+      repo: ${{ steps.get_pr.outputs.repo }}
 
     steps:
-      - id: check_comment
-        name: Check comment
-        run: |
-          match_result=$(echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+tidy-fix\b' && echo match || echo non_match)
-
-          # Extract any tokens after 'tidy-fix' (e.g. '@phlexbot tidy-fix misc-include-cleaner')
-          checks_line=$(echo "$COMMENT_BODY" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
-          tidy_checks=""
-          if [ -n "$checks_line" ]; then
-            # Normalize separators: comma or whitespace -> single comma-separated list
-            tidy_checks=$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)
-          fi
-
-          echo "match_result=$match_result" >> $GITHUB_OUTPUT
-          echo "tidy_checks=$tidy_checks" >> $GITHUB_OUTPUT
-
-          ISSUE_NUMBER=${{ github.event.issue.number }}
-          REPO="${{ github.repository }}"
-          gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
-          echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
-          echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
+      - id: parse_comment
+        name: Parse comment for tidy checks
         env:
-          GH_TOKEN: ${{ github.token }}
           COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          checks_line=$(echo "$COMMENT_BODY" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
+          if [ -n "$checks_line" ]; then
+            tidy_checks="$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)"
+            echo "tidy_checks=$tidy_checks" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Get PR Info
+        id: get_pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
   apply_tidy_fixes:
     runs-on: ubuntu-24.04
     name: Apply clang-tidy fixes
-    needs: check
-    if: ${{ needs.check.outputs.match_result == 'match' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') }}
+    needs: parse-command
+    if: ${{ needs.parse-command.result == 'success' }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           path: phlex-src
-          ref: ${{ needs.check.outputs.ref_name }}
-          repository: ${{ needs.check.outputs.repo_name }}
+          ref: ${{ needs.parse-command.outputs.ref }}
+          repository: ${{ needs.parse-command.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Setup build environment
@@ -77,49 +67,30 @@ jobs:
 
       - name: Apply clang-tidy fixes using CMake target
         env:
-          PHLEX_TIDY_CHECKS: ${{ needs.check.outputs.tidy_checks }}
+          PHLEX_TIDY_CHECKS: ${{ needs.parse-command.outputs.tidy_checks }}
         run: |
           . /entrypoint.sh
-          cd $GITHUB_WORKSPACE/phlex-build
+          cd "$GITHUB_WORKSPACE/phlex-build"
 
           echo "Applying clang-tidy fixes using CMake target..."
           cmake --build . --target clang-tidy-fix -- --export-fixes clang-tidy-fixes.yaml || true
           echo "Clang-tidy fixes applied"
 
       - name: Upload clang-tidy report
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: clang-tidy-report
           path: phlex-build/clang-tidy-fixes.yaml
           retention-days: 7
 
-      - name: Commit tidy fixes
-        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
-        id: add_and_commit
+      - name: Handle fix commit
+        uses: ./phlex-src/.github/actions/handle-fix-commit
         with:
+          commit-message: 'Apply clang-tidy fixes'
+          working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
-          cwd: phlex-src
-          author_name: "github-actions[bot]"
-          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-          message: 'Apply clang-tidy fixes'
-
-      - name: Tidy fixes committed and pushed
-        if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
-        with:
-          message: |
-            Clang-tidy fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
-
-            ⚠️ **Note:** Some issues may require manual review and fixing.
-
-      - name: No tidy fixes to apply
-        if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
-        with:
-          message: |
-            No clang-tidy fixes to apply
-
-            All automatically fixable issues have been resolved. Any remaining issues require manual attention.
+          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
+          pr-info-repo: ${{ needs.parse-command.outputs.repo }}
 
   clang-tidy-pr-comments:
     needs: apply_tidy_fixes
@@ -128,12 +99,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Download clang-tidy report
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: clang-tidy-report
           path: phlex-build
       - name: Post clang-tidy comments
-        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1
+        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}

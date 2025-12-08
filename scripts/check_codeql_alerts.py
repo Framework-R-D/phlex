@@ -10,7 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +61,7 @@ def _api_request(
         _debug(f"GitHub API HTTPError {exc.code} for {url}: {body[:200]}")
         raise GitHubAPIError(f"GitHub API {method} {url} failed with {exc.code}: {body}") from exc
 
+
 LEVEL_ORDER = {"none": 0, "note": 1, "warning": 2, "error": 3}
 LEVEL_ICONS = {
     "error": ":x:",
@@ -73,6 +74,7 @@ LEVEL_ICONS = {
 @dataclass
 class Alert:
     """Represents a CodeQL alert extracted from SARIF."""
+
     number: int | None
     html_url: str | None
     rule_id: str
@@ -86,17 +88,21 @@ class Alert:
     analysis_key: str | None = None
 
     def icon(self) -> str:
+        """Returns an icon for the alert's level."""
         return LEVEL_ICONS.get(self.level, ":grey_question:")
 
     def level_title(self) -> str:
+        """Returns a title-cased version of the alert's level."""
         return self.level.capitalize()
 
     def rule_display(self) -> str:
+        """Returns a formatted string for the rule ID, including a link if available."""
         if self.help_uri:
             return f"[{self.rule_id}]({self.help_uri})"
         return f"`{self.rule_id}`"
 
     def severity_suffix(self) -> str:
+        """Returns a string indicating the security severity, if available."""
         if self.security_severity:
             return f" ({self.security_severity})"
         return ""
@@ -118,6 +124,14 @@ class APIAlertComparison:
 
 
 def parse_args(argv: collections.abc.Sequence[str] | None = None) -> argparse.Namespace:
+    """Parses command-line arguments.
+
+    Args:
+        argv: The command-line arguments to parse.
+
+    Returns:
+        The parsed arguments.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--sarif",
@@ -138,7 +152,9 @@ def parse_args(argv: collections.abc.Sequence[str] | None = None) -> argparse.Na
     parser.add_argument(
         "--ref",
         required=False,
-        help="Optional Git ref to compare (e.g. refs/pull/104/merge). When provided the script will query the Code Scanning API instead of relying only on SARIF baselineState",
+        help="Optional Git ref to compare (e.g. refs/pull/104/merge). "
+        "When provided the script will query the Code Scanning API "
+        "instead of relying only on SARIF baselineState",
     )
     parser.add_argument(
         "--min-level",
@@ -184,6 +200,7 @@ def _debug(msg: str) -> None:
 
 _LOG_PATH: Path | None = None
 
+
 def _log(msg: str) -> None:
     """Append a timestamped message to the persistent log file.
 
@@ -195,7 +212,7 @@ def _log(msg: str) -> None:
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         # Use timezone-aware UTC timestamp to avoid deprecation warnings.
-        ts = datetime.now(datetime.timezone.utc).isoformat()
+        ts = datetime.now(timezone.utc).isoformat()
         with open(_LOG_PATH, "a", encoding="utf-8") as fh:
             fh.write(f"{ts} {msg}\n")
     except Exception:
@@ -213,7 +230,7 @@ def _init_log(log_path: Path) -> None:
     _LOG_PATH = log_path
     try:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now(datetime.timezone.utc).isoformat()
+        ts = datetime.now(timezone.utc).isoformat()
         with open(_LOG_PATH, "w", encoding="utf-8") as fh:
             fh.write(f"{ts} CodeQL alerts helper log (truncated for new run)\n")
     except Exception:
@@ -221,7 +238,9 @@ def _init_log(log_path: Path) -> None:
         return
 
 
-def _paginate_alerts_api(owner: str, repo: str, *, state: str = "open", ref: str | None = None) -> collections.abc.Iterator[dict]:
+def _paginate_alerts_api(
+    owner: str, repo: str, *, state: str = "open", ref: str | None = None
+) -> collections.abc.Iterator[dict]:
     """Paginate Code Scanning alerts from the GitHub API for given repo and ref."""
     page = 1
     while True:
@@ -239,7 +258,10 @@ def _paginate_alerts_api(owner: str, repo: str, *, state: str = "open", ref: str
 
 
 def _format_physical_location(phys: dict[str, Any]) -> str | None:
-    """Return a formatted location string `path[:line[:col]]` from a SARIF physicalLocation dict, or None."""
+    """Return a formatted location string `path[:line[:col]]`.
+
+    Input: SARIF physicalLocation dict, or None.
+    """
     if not phys:
         return None
     artifact = phys.get("artifactLocation", {})
@@ -299,12 +321,17 @@ def _to_alert_api(raw: dict) -> Alert:
     # instance properties fallback
     if not security_severity:
         inst_props = instance.get("properties") or {}
-        for key in ("security-severity", "securitySeverity", "problem.severity", "problemSeverity"):
+        for key in (
+            "security-severity",
+            "securitySeverity",
+            "problem.severity",
+            "problemSeverity",
+        ):
             if inst_props.get(key):
                 security_severity = str(inst_props.get(key))
                 break
     alert = Alert(
-        number=(int(raw.get("number")) if raw.get("number") is not None else None),
+        number=int(raw["number"]) if "number" in raw and raw["number"] is not None else None,
         html_url=raw.get("html_url"),
         rule_id=rule_id,
         level=(raw.get("severity") or "warning"),
@@ -314,22 +341,24 @@ def _to_alert_api(raw: dict) -> Alert:
         help_uri=help_uri,
         security_severity=security_severity,
         dismissed_reason=(str(dismissed_reason) if dismissed_reason is not None else None),
-        analysis_key=(instance.get("analysis_key") or raw.get("analysis_key") or raw.get("fingerprint")),
+        analysis_key=(
+            instance.get("analysis_key") or raw.get("analysis_key") or raw.get("fingerprint")
+        ),
     )
     # If location couldn't be determined, log the raw API alert for inspection
     if location == "(location unavailable)":
-                try:
-                    snippet = {
-                        "number": raw.get("number"),
-                        "rule": raw.get("rule"),
-                        "most_recent_instance": raw.get("most_recent_instance"),
-                        "instances": raw.get("instances"),
-                    }
-                    _log(f"Unknown API alert location: {json.dumps(snippet, default=str)[:4000]}")
-                except (TypeError, OSError) as exc:
-                    # Best-effort logging failed; print a short message in debug mode.
-                    if DEBUG:
-                        print(f"Failed to write API unknown-location snippet: {exc}", file=sys.stderr)
+        try:
+            snippet = {
+                "number": raw.get("number"),
+                "rule": raw.get("rule"),
+                "most_recent_instance": raw.get("most_recent_instance"),
+                "instances": raw.get("instances"),
+            }
+            _log(f"Unknown API alert location: {json.dumps(snippet, default=str)[:4000]}")
+        except (TypeError, OSError) as exc:
+            # Best-effort logging failed; print a short message in debug mode.
+            if DEBUG:
+                print(f"Failed to write API unknown-location snippet: {exc}", file=sys.stderr)
     return alert
 
 
@@ -345,6 +374,14 @@ def _load_sarif_file(path: Path) -> dict[str, Any]:
 
 
 def load_sarif(path: Path) -> dict[str, Any]:
+    """Loads a SARIF file, handling single files and directories.
+
+    Args:
+        path: The path to the SARIF file or directory.
+
+    Returns:
+        The loaded SARIF data.
+    """
     if path.is_dir():
         sarif_files = sorted(p for p in path.rglob("*.sarif") if p.is_file())
         if not sarif_files:
@@ -363,6 +400,14 @@ def load_sarif(path: Path) -> dict[str, Any]:
 
 
 def severity(level: str | None) -> str:
+    """Normalizes a severity level string.
+
+    Args:
+        level: The severity level string.
+
+    Returns:
+        The normalized severity level.
+    """
     if not level:
         return "warning"
     normalized = level.lower()
@@ -372,10 +417,27 @@ def severity(level: str | None) -> str:
 
 
 def severity_reaches_threshold(level: str, threshold: str) -> bool:
+    """Checks if a severity level meets a threshold.
+
+    Args:
+        level: The severity level to check.
+        threshold: The threshold to compare against.
+
+    Returns:
+        True if the severity level meets the threshold, False otherwise.
+    """
     return LEVEL_ORDER.get(level, 0) >= LEVEL_ORDER.get(threshold, 0)
 
 
 def sanitize_message(message: str | None) -> str:
+    """Sanitizes and truncates a message string.
+
+    Args:
+        message: The message to sanitize.
+
+    Returns:
+        The sanitized message.
+    """
     if not message:
         return "(no message provided)"
     flattened = " ".join(message.split())
@@ -385,6 +447,14 @@ def sanitize_message(message: str | None) -> str:
 
 
 def extract_message(result: dict[str, Any]) -> str:
+    """Extracts the message from a SARIF result.
+
+    Args:
+        result: The SARIF result.
+
+    Returns:
+        The extracted message.
+    """
     message = result.get("message") or {}
     text = message.get("markdown") or message.get("text")
     if not text and isinstance(message, dict):
@@ -395,6 +465,14 @@ def extract_message(result: dict[str, Any]) -> str:
 
 
 def extract_location(result: dict[str, Any]) -> str:
+    """Extracts the location from a SARIF result.
+
+    Args:
+        result: The SARIF result.
+
+    Returns:
+        The extracted location.
+    """
     locations: collections.abc.Iterable[dict[str, Any]] = result.get("locations") or []
     for location in locations:
         phys = location.get("physicalLocation") or {}
@@ -414,7 +492,9 @@ def extract_location(result: dict[str, Any]) -> str:
             location_str = uri
         return location_str
     # Try relatedLocations as a fallback
-    related_locations: collections.abc.Iterable[dict[str, Any]] = result.get("relatedLocations") or []
+    related_locations: collections.abc.Iterable[dict[str, Any]] = (
+        result.get("relatedLocations") or []
+    )
     for location in related_locations:
         phys = location.get("physicalLocation") or {}
         artifact = phys.get("artifactLocation") or {}
@@ -433,7 +513,9 @@ def extract_location(result: dict[str, Any]) -> str:
             location_str = uri
         return location_str
 
-    logical_locations: collections.abc.Iterable[dict[str, Any]] = result.get("logicalLocations") or []
+    logical_locations: collections.abc.Iterable[dict[str, Any]] = (
+        result.get("logicalLocations") or []
+    )
     for logical in logical_locations:
         fq_name = logical.get("fullyQualifiedName") or logical.get("name")
         if fq_name:
@@ -464,6 +546,14 @@ def extract_location(result: dict[str, Any]) -> str:
 
 
 def rule_lookup_map(run: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Creates a map of rule IDs to rule objects.
+
+    Args:
+        run: The SARIF run object.
+
+    Returns:
+        A dictionary mapping rule IDs to rule objects.
+    """
     rules: dict[str, dict[str, Any]] = {}
     tool = run.get("tool") or {}
     driver = tool.get("driver") or {}
@@ -475,6 +565,14 @@ def rule_lookup_map(run: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def extract_security_severity(result: dict[str, Any]) -> str | None:
+    """Extracts the security severity from a SARIF result.
+
+    Args:
+        result: The SARIF result.
+
+    Returns:
+        The security severity, or None if not found.
+    """
     props = result.get("properties") or {}
     for key in ("security-severity", "problem.severity", "problemSeverity"):
         value = props.get(key)
@@ -488,6 +586,15 @@ def collect_alerts(
     *,
     min_level: str,
 ) -> dict[str, list[Alert]]:
+    """Collects new and absent alerts from a SARIF report.
+
+    Args:
+        sarif: The SARIF report.
+        min_level: The minimum severity level to include.
+
+    Returns:
+        A dictionary of new and absent alerts.
+    """
     buckets: dict[str, list[Alert]] = {"new": [], "absent": []}
     runs: collections.abc.Iterable[dict[str, Any]] = sarif.get("runs") or []
     for run in runs:
@@ -523,10 +630,16 @@ def collect_alerts(
                         "locations": result.get("locations"),
                         "relatedLocations": result.get("relatedLocations"),
                     }
-                    _log(f"Unknown SARIF location for result: {json.dumps(snippet, default=str)[:4000]}")
+                    _log(
+                        f"Unknown SARIF location for result: "
+                        f"{json.dumps(snippet, default=str)[:4000]}"
+                    )
                 except (TypeError, OSError) as exc:
                     if DEBUG:
-                        print(f"Failed to write SARIF unknown-location snippet: {exc}", file=sys.stderr)
+                        print(
+                            f"Failed to write SARIF unknown-location snippet: {exc}",
+                            file=sys.stderr,
+                        )
                 buckets[baseline_state].append(alert)
     return buckets
 
@@ -549,13 +662,19 @@ def _format_section(
             prefix = f"# {alert.number} "
         else:
             prefix = ""
-        dismissed_note = f" (dismissed: {alert.dismissed_reason})" if alert.dismissed_reason else ""
+        dismissed_note = (
+            f" (dismissed: {alert.dismissed_reason})" if alert.dismissed_reason else ""
+        )
 
         lines.append(
-            f"- {bullet_prefix} **{alert.level_title()}**{severity_note} {prefix}{alert.rule_display()}{dismissed_note} at `{alert.location}` — {alert.message}"
+            f"- {bullet_prefix} **{alert.level_title()}**{severity_note} {prefix}"
+            f"{alert.rule_display()}{dismissed_note} at `{alert.location}` — {alert.message}"
         )
     if remaining:
-        lines.append(f"- {bullet_prefix} …and {remaining} more alerts (see Code Scanning for the full list).")
+        lines.append(
+            f"- {bullet_prefix} …and {remaining} more alerts "
+            "(see Code Scanning for the full list)."
+        )
     return lines
 
 
@@ -567,7 +686,20 @@ def build_comment(
     max_results: int,
     threshold: str,
 ) -> str:
+    """Builds a comment body for a pull request.
+
+    Args:
+        new_alerts: A list of new alerts.
+        fixed_alerts: A list of fixed alerts.
+        repo: The repository name.
+        max_results: The maximum number of results to include.
+        threshold: The severity threshold.
+
+    Returns:
+        The formatted comment body.
+    """
     lines: list[str] = []
+
     def _highest_severity(alerts: collections.abc.Sequence[Alert]) -> str | None:
         if not alerts:
             return None
@@ -579,16 +711,22 @@ def build_comment(
     if new_alerts:
         sev_note = f" — Highest severity: {highest_new}" if highest_new else ""
         lines.append(
-            f"## ❌ {len(new_alerts)} new CodeQL alert{'s' if len(new_alerts) != 1 else ''} (level ≥ {threshold}){sev_note}"
+            f"## ❌ {len(new_alerts)} new CodeQL alert"
+            f"{'s' if len(new_alerts) != 1 else ''} (level ≥ {threshold}){sev_note}"
         )
         lines.extend(_format_section(new_alerts, max_results=max_results, bullet_prefix=":x:"))
         lines.append("")
 
     if fixed_alerts:
         lines.append(
-            f"## ✅ {len(fixed_alerts)} CodeQL alert{'s' if len(fixed_alerts) != 1 else ''} resolved since the previous run"
+            f"## ✅ {len(fixed_alerts)} CodeQL alert"
+            f"{'s' if len(fixed_alerts) != 1 else ''} resolved since the previous run"
         )
-        lines.extend(_format_section(fixed_alerts, max_results=max_results, bullet_prefix=":white_check_mark:"))
+        lines.extend(
+            _format_section(
+                fixed_alerts, max_results=max_results, bullet_prefix=":white_check_mark:"
+            )
+        )
         lines.append("")
 
     if repo:
@@ -600,6 +738,14 @@ def build_comment(
 
 
 def highest_severity_level_title(alerts: collections.abc.Sequence[Alert]) -> str | None:
+    """Finds the highest severity level in a list of alerts.
+
+    Args:
+        alerts: A list of alerts.
+
+    Returns:
+        The title of the highest severity level, or None if the list is empty.
+    """
     if not alerts:
         return None
     best = max(alerts, key=lambda a: LEVEL_ORDER.get(a.level, 0))
@@ -613,6 +759,14 @@ def write_summary(
     max_results: int,
     threshold: str,
 ) -> None:
+    """Writes a summary of the alerts to the GitHub step summary.
+
+    Args:
+        new_alerts: A list of new alerts.
+        fixed_alerts: A list of fixed alerts.
+        max_results: The maximum number of results to include.
+        threshold: The severity threshold.
+    """
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if not summary_path or (not new_alerts and not fixed_alerts):
         return
@@ -620,14 +774,16 @@ def write_summary(
         handle.write("## CodeQL Alerts\n\n")
         if new_alerts:
             handle.write(
-                f"❌ {len(new_alerts)} new alert{'s' if len(new_alerts) != 1 else ''} (level ≥ {threshold}).\n"
+                f"❌ {len(new_alerts)} new alert{'s' if len(new_alerts) != 1 else ''} "
+                "(level ≥ {threshold}).\n"
             )
             for line in _format_section(new_alerts, max_results=max_results, bullet_prefix=":x:"):
                 handle.write(f"{line}\n")
             handle.write("\n")
         if fixed_alerts:
             handle.write(
-                f"✅ {len(fixed_alerts)} alert{'s' if len(fixed_alerts) != 1 else ''} resolved since the previous run.\n"
+                f"✅ {len(fixed_alerts)} alert{'s' if len(fixed_alerts) != 1 else ''} "
+                "resolved since the previous run.\n"
             )
             for line in _format_section(
                 fixed_alerts,
@@ -651,10 +807,19 @@ def _print_summary(
     highest_matched = highest_severity_level_title(matched_alerts) if matched_alerts else None
 
     print("CodeQL Summary:")
-    print(f"- New (unfiltered): {len(new_alerts)}{f' (Highest: {highest_new})' if highest_new else ''}")
-    print(f"- Fixed (unfiltered): {len(fixed_alerts)}{f' (Highest: {highest_fixed})' if highest_fixed else ''}")
+    print(
+        f"- New (unfiltered): {len(new_alerts)}"
+        f"{f' (Highest: {highest_new})' if highest_new else ''}"
+    )
+    print(
+        f"- Fixed (unfiltered): {len(fixed_alerts)}"
+        f"{f' (Highest: {highest_fixed})' if highest_fixed else ''}"
+    )
     if matched_available:
-        print(f"- Matched (preexisting): {len(matched_alerts)}{f' (Highest: {highest_matched})' if highest_matched else ''}")
+        print(
+            f"- Matched (preexisting): {len(matched_alerts)}"
+            f"{f' (Highest: {highest_matched})' if highest_matched else ''}"
+        )
     else:
         print("- Matched (preexisting): N/A (no API comparison)")
     print("")
@@ -666,6 +831,13 @@ def set_outputs(
     fixed_alerts: collections.abc.Sequence[Alert],
     comment_path: Path | None,
 ) -> None:
+    """Sets the GitHub action outputs.
+
+    Args:
+        new_alerts: A list of new alerts.
+        fixed_alerts: A list of fixed alerts.
+        comment_path: The path to the comment file.
+    """
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
         return
@@ -718,12 +890,16 @@ def _compare_alerts_via_api(owner: str, repo: str, ref: str) -> APIAlertComparis
         if base_ref or base_sha:
             # prefer base SHA if available
             base_target = base_sha or base_ref
-            base_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=base_target))
+            base_alerts_raw = list(
+                _paginate_alerts_api(owner, repo, state="open", ref=base_target)
+            )
             _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
 
     prev_alerts_raw: list[dict] = []
     if prev_commit_ref:
-        prev_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref))
+        prev_alerts_raw = list(
+            _paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref)
+        )
         _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
 
     def alert_key(a: Alert) -> tuple[str, str]:
@@ -817,32 +993,62 @@ def _build_multi_section_comment(
     # Matching summary (always include in PR comment)
     if api_comp.new_vs_base or api_comp.fixed_vs_base:
         lines.append(
-            f"{len(api_comp.fixed_vs_base)} fixed, {len(api_comp.new_vs_base)} new since branch point ({api_comp.base_sha[:7] if api_comp.base_sha else 'unknown'})"
+            f"{len(api_comp.fixed_vs_base)} fixed, {len(api_comp.new_vs_base)} "
+            "new since branch point ("
+            f"{api_comp.base_sha[:7] if api_comp.base_sha else 'unknown'})"
         )
     if api_comp.new_vs_prev or api_comp.fixed_vs_prev:
         lines.append(
-            f"{len(api_comp.fixed_vs_prev)} fixed, {len(api_comp.new_vs_prev)} new since previous report on PR ({api_comp.prev_commit_ref[:7] if api_comp.prev_commit_ref else 'unknown'})"
+            f"{len(api_comp.fixed_vs_prev)} fixed, {len(api_comp.new_vs_prev)} "
+            "new since previous report on PR ("
+            f"{api_comp.prev_commit_ref[:7] if api_comp.prev_commit_ref else 'unknown'})"
         )
     lines.append("")
 
     # Add previous-commit comparison if available
     if api_comp.new_vs_prev:
-        lines.append(f"## ❌ {len(api_comp.new_vs_prev)} new CodeQL alert{'s' if len(api_comp.new_vs_prev) != 1 else ''} since the previous PR commit")
-        lines.extend(_format_section(api_comp.new_vs_prev, max_results=max_results, bullet_prefix=":x:"))
+        lines.append(
+            f"## ❌ {len(api_comp.new_vs_prev)} new CodeQL alert"
+            f"{'s' if len(api_comp.new_vs_prev) != 1 else ''} "
+            "since the previous PR commit"
+        )
+        lines.extend(
+            _format_section(api_comp.new_vs_prev, max_results=max_results, bullet_prefix=":x:")
+        )
         lines.append("")
     if api_comp.fixed_vs_prev:
-        lines.append(f"## ✅ {len(api_comp.fixed_vs_prev)} CodeQL alert{'s' if len(api_comp.fixed_vs_prev) != 1 else ''} resolved since the previous PR commit")
-        lines.extend(_format_section(api_comp.fixed_vs_prev, max_results=max_results, bullet_prefix=":white_check_mark:"))
+        lines.append(
+            f"## ✅ {len(api_comp.fixed_vs_prev)} CodeQL alert"
+            f"{'s' if len(api_comp.fixed_vs_prev) != 1 else ''} "
+            "resolved since the previous PR commit"
+        )
+        lines.extend(
+            _format_section(
+                api_comp.fixed_vs_prev, max_results=max_results, bullet_prefix=":white_check_mark:"
+            )
+        )
         lines.append("")
 
     # Add branch-point comparison if available
     if api_comp.new_vs_base:
-        lines.append(f"## ❌ {len(api_comp.new_vs_base)} new CodeQL alert{'s' if len(api_comp.new_vs_base) != 1 else ''} since the branch point")
-        lines.extend(_format_section(api_comp.new_vs_base, max_results=max_results, bullet_prefix=":x:"))
+        lines.append(
+            f"## ❌ {len(api_comp.new_vs_base)} new CodeQL alert"
+            f"{'s' if len(api_comp.new_vs_base) != 1 else ''} since the branch point"
+        )
+        lines.extend(
+            _format_section(api_comp.new_vs_base, max_results=max_results, bullet_prefix=":x:")
+        )
         lines.append("")
     if api_comp.fixed_vs_base:
-        lines.append(f"## ✅ {len(api_comp.fixed_vs_base)} CodeQL alert{'s' if len(api_comp.fixed_vs_base) != 1 else ''} resolved since the branch point")
-        lines.extend(_format_section(api_comp.fixed_vs_base, max_results=max_results, bullet_prefix=":white_check_mark:"))
+        lines.append(
+            f"## ✅ {len(api_comp.fixed_vs_base)} CodeQL alert"
+            f"{'s' if len(api_comp.fixed_vs_base) != 1 else ''} resolved since the branch point"
+        )
+        lines.extend(
+            _format_section(
+                api_comp.fixed_vs_base, max_results=max_results, bullet_prefix=":white_check_mark:"
+            )
+        )
         lines.append("")
 
     repo_str = os.environ.get("GITHUB_REPOSITORY")
@@ -856,6 +1062,14 @@ def _build_multi_section_comment(
 
 
 def main(argv: collections.abc.Sequence[str] | None = None) -> int:
+    """The main entry point of the script.
+
+    Args:
+        argv: The command-line arguments.
+
+    Returns:
+        The exit code.
+    """
     args = parse_args(argv)
     # set global debug flag
     global DEBUG
@@ -884,7 +1098,9 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
         if not owner or not repo:
             repo_full = os.environ.get("GITHUB_REPOSITORY")
             if not repo_full:
-                print("GITHUB_REPOSITORY not set; please provide --owner and --repo", file=sys.stderr)
+                print(
+                    "GITHUB_REPOSITORY not set; please provide --owner and --repo", file=sys.stderr
+                )
                 return 2
             owner, repo = repo_full.split("/", 1)
         try:
@@ -896,7 +1112,8 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
             return 2
 
     # Compute unfiltered new/fixed and matched summaries for stdout
-    # If API-mode was used, pr_alerts/main_alerts dicts are available; otherwise fall back to SARIF unfiltered buckets
+    # If API-mode was used, pr_alerts/main_alerts dicts are available;
+    # otherwise fall back to SARIF unfiltered buckets
     if api_comp is not None:
         new_all = api_comp.new_alerts
         fixed_all = api_comp.fixed_alerts
@@ -905,12 +1122,16 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
     else:
         # SARIF-only mode: re-collect without threshold to get unfiltered counts
         try:
-            buckets_all = collect_alerts(sarif, min_level='none')
-            new_all = buckets_all.get('new', [])
-            fixed_all = buckets_all.get('absent', [])
+            buckets_all = collect_alerts(sarif, min_level="none")
+            new_all = buckets_all.get("new", [])
+            fixed_all = buckets_all.get("absent", [])
         except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-            # If re-collection fails (malformed SARIF or unexpected structure), fall back to thresholded lists
-            _debug(f"Re-collecting SARIF without threshold failed: {exc}; falling back to thresholded lists")
+            # If re-collection fails (malformed SARIF or unexpected structure),
+            # fall back to thresholded lists
+            _debug(
+                f"Re-collecting SARIF without threshold failed: {exc}; "
+                "falling back to thresholded lists"
+            )
             new_all = new_alerts
             fixed_all = fixed_alerts
         matched_all = []
@@ -924,7 +1145,19 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
         matched_available=matched_available,
     )
 
-    if new_alerts or fixed_alerts or (api_comp and (api_comp.new_vs_prev or api_comp.fixed_vs_prev or api_comp.new_vs_base or api_comp.fixed_vs_base)):
+    if (
+        new_alerts
+        or fixed_alerts
+        or (
+            api_comp
+            and (
+                api_comp.new_vs_prev
+                or api_comp.fixed_vs_prev
+                or api_comp.new_vs_base
+                or api_comp.fixed_vs_base
+            )
+        )
+    ):
         repo_str = os.environ.get("GITHUB_REPOSITORY")
         comment_body = ""
         if api_comp:

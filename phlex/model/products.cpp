@@ -12,6 +12,8 @@ namespace phlex::experimental {
 
   products::const_iterator products::begin() const noexcept { return products_.begin(); }
   products::const_iterator products::end() const noexcept { return products_.end(); }
+  products::size_type products::size() const noexcept { return products_.size(); }
+  bool products::empty() const noexcept { return products_.empty(); }
 
   void products::throw_mismatched_type(std::string const& product_name,
                                        char const* requested_type,

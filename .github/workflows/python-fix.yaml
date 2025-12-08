@@ -1,0 +1,68 @@
+name: Python Fix
+run-name: "${{ github.actor }} fixing Python code"
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  parse-command:
+    runs-on: ubuntu-latest
+    name: Parse bot command
+    if: |
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '@phlexbot python-fix')
+    outputs:
+      ref: ${{ steps.get_pr.outputs.ref }}
+      sha: ${{ steps.get_pr.outputs.sha }}
+      repo: ${{ steps.get_pr.outputs.repo }}
+    steps:
+      - name: Get PR Info
+        id: get_pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+  apply_fixes:
+    runs-on: ubuntu-latest
+    name: Apply fixes
+    needs: parse-command
+    if: ${{ needs.parse-command.result == 'success' }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          path: phlex-src
+          ref: ${{ needs.parse-command.outputs.ref }}
+          repository: ${{ needs.parse-command.outputs.repo }}
+          token: ${{ secrets.WORKFLOW_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          pip install ruff
+
+      - name: Run ruff format and fix
+        working-directory: phlex-src
+        env:
+          FORCE_COLOR: 1
+        run: |
+          echo "Fixing Python format with ruff"
+          ruff format . || true
+          echo "Fixing Python linter issues with ruff"
+          ruff check --fix . || true
+
+      - name: Handle fix commit
+        uses: ./phlex-src/.github/actions/handle-fix-commit
+        with:
+          commit-message: 'Apply Python linting fixes'
+          working-directory: phlex-src
+          token: ${{ secrets.WORKFLOW_PAT }}
+          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
+          pr-info-repo: ${{ needs.parse-command.outputs.repo }}

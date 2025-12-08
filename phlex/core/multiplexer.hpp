@@ -2,7 +2,7 @@
 #define PHLEX_CORE_MULTIPLEXER_HPP
 
 #include "phlex/core/message.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -23,7 +23,7 @@ namespace phlex::experimental {
     ~multiplexer();
 
     struct named_input_port {
-      specified_label product_label;
+      product_query product_label;
       tbb::flow::receiver<message>* port;
     };
     using named_input_ports_t = std::vector<named_input_port>;

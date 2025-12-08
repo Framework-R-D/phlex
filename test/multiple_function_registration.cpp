@@ -1,5 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_hierarchy.hpp"
+#include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -49,33 +49,34 @@ TEST_CASE("Call multiple functions", "[programming model]")
   SECTION("All free functions")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family("numbers")
+      .input_family("numbers"_in("job"))
       .output_products("squared_numbers");
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
-      .input_family("squared_numbers")
+      .input_family("squared_numbers"_in("job"))
       .output_products("summed_numbers");
     g.transform("sqrt_sum_numbers", sqrt_sum_numbers, concurrency::unlimited)
-      .input_family("summed_numbers", "offset")
+      .input_family("summed_numbers"_in("job"), "offset"_in("job"))
       .output_products("result");
   }
 
   SECTION("Transforms, one from a class")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family("numbers")
+      .input_family("numbers"_in("job"))
       .output_products("squared_numbers");
 
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
-      .input_family("squared_numbers")
+      .input_family("squared_numbers"_in("job"))
       .output_products("summed_numbers");
 
     g.make<A>()
       .transform("sqrt_sum", &A::sqrt_sum, concurrency::unlimited)
-      .input_family("summed_numbers", "offset")
+      .input_family("summed_numbers"_in("job"), "offset"_in("job"))
       .output_products("result");
   }
 
   // The following is invoked for *each* section above
-  g.observe("verify_result", [](double actual) { assert(actual == 6.); }).input_family("result");
+  g.observe("verify_result", [](double actual) { assert(actual == 6.); })
+    .input_family("result"_in("job"));
   g.execute();
 }

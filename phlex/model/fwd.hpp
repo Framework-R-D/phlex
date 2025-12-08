@@ -4,12 +4,12 @@
 #include <memory>
 
 namespace phlex::experimental {
-  class level_counter;
-  class level_hierarchy;
-  class level_id;
+  class data_cell_counter;
+  class data_layer_hierarchy;
+  class data_cell_index;
   class product_store;
 
-  using level_id_ptr = std::shared_ptr<level_id const>;
+  using data_cell_index_ptr = std::shared_ptr<data_cell_index const>;
   using product_store_const_ptr = std::shared_ptr<product_store const>;
   using product_store_ptr = std::shared_ptr<product_store>;
 

@@ -24,7 +24,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -42,12 +42,12 @@ namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 }
 
-TEST_CASE("Different levels of fold", "[graph]")
+TEST_CASE("Different data layers of fold", "[graph]")
 {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  auto levels_to_process = [index_limit, number_limit](framework_driver& driver) {
+  auto cells_to_process = [index_limit, number_limit](framework_driver& driver) {
     auto job_store = product_store::base();
     driver.yield(job_store);
     for (unsigned i : std::views::iota(0u, index_limit)) {
@@ -61,29 +61,31 @@ TEST_CASE("Different levels of fold", "[graph]")
     }
   };
 
-  // framework_graph g{levels_to_process};
-  framework_graph g{levels_to_process};
+  // framework_graph g{cells_to_process};
+  framework_graph g{cells_to_process};
 
   g.fold("run_add", add, concurrency::unlimited, "run")
-    .input_family("number")
+    .input_family("number"_in("event"))
     .output_products("run_sum");
-  g.fold("job_add", add, concurrency::unlimited).input_family("number").output_products("job_sum");
+  g.fold("job_add", add, concurrency::unlimited)
+    .input_family("number"_in("event"))
+    .output_products("job_sum");
 
   g.fold("two_layer_job_add", add, concurrency::unlimited)
-    .input_family("run_sum")
+    .input_family("run_sum"_in("run"))
     .output_products("two_layer_job_sum");
 
   g.observe(
      "verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }, concurrency::unlimited)
-    .input_family("run_sum");
+    .input_family("run_sum"_in("run"));
   g.observe(
      "verify_two_layer_job_sum",
      [](unsigned int actual) { CHECK(actual == 20u); },
      concurrency::unlimited)
-    .input_family("two_layer_job_sum");
+    .input_family("two_layer_job_sum"_in("job"));
   g.observe(
      "verify_job_sum", [](unsigned int actual) { CHECK(actual == 20u); }, concurrency::unlimited)
-    .input_family("job_sum");
+    .input_family("job_sum"_in("job"));
 
   g.execute();
 

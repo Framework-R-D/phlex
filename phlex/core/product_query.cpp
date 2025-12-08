@@ -1,0 +1,51 @@
+#include "phlex/core/product_query.hpp"
+
+#include "fmt/format.h"
+
+#include <ostream>
+#include <stdexcept>
+#include <tuple>
+
+namespace phlex::experimental {
+  product_query product_tag::operator()(std::string data_layer) &&
+  {
+    if (data_layer.empty()) {
+      throw std::runtime_error("Cannot specify the empty string as a data layer.");
+    }
+    return {std::move(name), std::move(data_layer)};
+  }
+
+  std::string product_query::to_string() const
+  {
+    if (layer.empty()) {
+      return name.full();
+    }
+    return fmt::format("{} ϵ {}", name.full(), layer);
+  }
+
+  product_tag operator""_in(char const* product_name, std::size_t length)
+  {
+    if (length == 0ull) {
+      throw std::runtime_error("Cannot specify product with empty name.");
+    }
+    return {product_specification::create(product_name)};
+  }
+
+  bool operator==(product_query const& a, product_query const& b)
+  {
+    return std::tie(a.name, a.layer) == std::tie(b.name, b.layer);
+  }
+
+  bool operator!=(product_query const& a, product_query const& b) { return !(a == b); }
+
+  bool operator<(product_query const& a, product_query const& b)
+  {
+    return std::tie(a.name, a.layer) < std::tie(b.name, b.layer);
+  }
+
+  std::ostream& operator<<(std::ostream& os, product_query const& label)
+  {
+    os << label.to_string();
+    return os;
+  }
+}

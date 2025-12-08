@@ -49,8 +49,7 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{
-    specified_label{"number"}, specified_label{"temperature"}, specified_label{"name"}};
+  std::array const product_names{"number"_in("job"), "temperature"_in("job"), "name"_in("job")};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   auto store = product_store::base();

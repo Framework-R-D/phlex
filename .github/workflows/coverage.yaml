@@ -23,19 +23,27 @@ permissions:
   pull-requests: read
 
 jobs:
-  detect-coverage-changes:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
-
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
-
     steps:
     - name: Check out source code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
         path: phlex-src
@@ -62,8 +70,11 @@ jobs:
         fi
 
   coverage:
-    needs: detect-coverage-changes
-    if: ${{ (needs.detect-coverage-changes.outputs.has_changes == 'true') || (github.event_name == 'workflow_dispatch') || (env.ACT == 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-24.04
 
     container:
@@ -94,12 +105,15 @@ jobs:
         echo "enable_form=$form" >> "$GITHUB_OUTPUT"
 
     - name: Check out source code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         path: phlex-src
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+
+    - name: Announce CMake configuration
+      run: echo "➡️ Configuring CMake for coverage..."
 
     - name: Configure CMake with GCC coverage
       id: configure_gcc
@@ -122,24 +136,39 @@ jobs:
         form-root-storage: ${{ steps.coverage_options.outputs.enable_form }}
 
     - name: Unknown Compiler Error
-      if: ${{ always() && steps.coverage_options.outputs.compiler != 'gcc' && steps.coverage_options.outputs.compiler != 'clang' }}
+      if: ${{ steps.coverage_options.outputs.compiler != 'gcc' && steps.coverage_options.outputs.compiler != 'clang' }}
       run: |
         echo "ERROR: Unknown compiler '${{ steps.coverage_options.outputs.compiler }}'. Must be 'gcc' or 'clang'."
         exit 1
 
+    - name: Announce build
+      run: echo "➡️ Building with coverage instrumentation..."
+
     - name: Build with coverage instrumentation
+      id: build
       uses: Framework-R-D/phlex/.github/actions/build-cmake@main
 
     - name: Run tests with coverage
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
+        cd "$GITHUB_WORKSPACE/phlex-build"
+
+        echo "➡️ Running tests with coverage..."
         PROFILE_ROOT="$GITHUB_WORKSPACE/phlex-build/test/profraw"
         echo "Cleaning LLVM profile directory: $PROFILE_ROOT"
         rm -rf "$PROFILE_ROOT"
         mkdir -p "$PROFILE_ROOT"
         export LLVM_PROFILE_FILE="$PROFILE_ROOT/%m-%p.profraw"
-        ctest -j $(nproc) --output-on-failure
+
+        echo "::group::Running ctest for coverage"
+        if ctest --progress --output-on-failure -j "$(nproc)"; then
+          echo "::endgroup::"
+          echo "✅ All tests passed."
+        else
+          echo "::endgroup::"
+          echo "::error::Some tests failed."
+          exit 1
+        fi
 
     - name: Generate coverage reports (GCC)
       id: report_gcc
@@ -147,26 +176,17 @@ jobs:
       shell: bash
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
-        echo "Using GCC/gcovr/lcov bundled coverage target."
-        cmake --build . --target coverage-gcov -v
-        if [ -f coverage.xml ]; then
-          echo "Coverage XML generated successfully"
-          echo "Coverage XML size: $(wc -c < coverage.xml) bytes"
-          echo "Source paths in coverage.xml:"
-          grep -o '<source>.*</source>' coverage.xml | head -5
+        cd "$GITHUB_WORKSPACE/phlex-build"
+
+        echo "➡️ Generating coverage reports for GCC..."
+        echo "::group::Running coverage-gcov target"
+        if cmake --build . --target coverage-gcov -v; then
+          echo "::endgroup::"
+          echo "✅ GCC coverage report generation succeeded."
         else
-          echo "ERROR: coverage.xml not found"
-          ls -la *.xml || echo "No XML files found"
+          echo "::endgroup::"
+          echo "::error::GCC coverage report generation failed."
           exit 1
-        fi
-        if [ -d coverage-html ]; then
-          echo "HTML coverage report generated successfully"
-        else
-          echo "WARNING: coverage-html directory not found (lcov/genhtml may be unavailable)"
-        fi
-        if [ -f coverage.info.final ]; then
-          echo "LCOV summary available at coverage.info.final"
         fi
 
     - name: Generate coverage reports (Clang)
@@ -175,19 +195,16 @@ jobs:
       shell: bash
       run: |
         . /entrypoint.sh
-        cd $GITHUB_WORKSPACE/phlex-build
-        echo "Using Clang/llvm-cov coverage targets."
-        cmake --build . --target coverage-llvm -v
-        if [ -f coverage-llvm.txt ]; then
-          echo "LLVM coverage summary:"
-          if command -v head >/dev/null 2>&1; then
-            head -n 20 coverage-llvm.txt
-          else
-            cat coverage-llvm.txt
-          fi
+        cd "$GITHUB_WORKSPACE/phlex-build"
+
+        echo "➡️ Generating coverage reports for Clang..."
+        echo "::group::Running coverage-llvm target"
+        if cmake --build . --target coverage-llvm -v; then
+          echo "::endgroup::"
+          echo "✅ Clang coverage report generation succeeded."
         else
-          echo "ERROR: coverage-llvm.txt not found"
-          ls -la *.txt || echo "No LLVM coverage summary found"
+          echo "::endgroup::"
+          echo "::error::Clang coverage report generation failed."
           exit 1
         fi
 
@@ -214,7 +231,7 @@ jobs:
         fi
 
     - name: Unknown Coverage Report Error
-      if: ${{ always() && steps.report_gcc.outcome == 'skipped' && steps.report_clang.outcome == 'skipped' }}
+      if: ${{ steps.report_gcc.outcome == 'skipped' && steps.report_clang.outcome == 'skipped' }}
       run: |
         echo "ERROR: No coverage report was generated. Must run either GCC or Clang coverage report step."
         exit 1
@@ -265,7 +282,7 @@ jobs:
 
     - name: Upload coverage bundle
       if: ${{ (steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped') && steps.artifact_runtime.outputs.available == 'true' && github.actor != 'nektos/act' }}
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: coverage-generated
         path: coverage-artifacts/
@@ -280,12 +297,12 @@ jobs:
 
     steps:
     - name: Check out source code for Codecov mapping
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
 
     - name: Download coverage bundle
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: coverage-generated
         path: coverage-artifacts
@@ -329,7 +346,7 @@ jobs:
 
     - name: Publish HTML coverage report
       if: ${{ needs.coverage.outputs.has_coverage_html == 'true' }}
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: coverage-html-report
         path: coverage-artifacts/coverage-html/
@@ -337,12 +354,16 @@ jobs:
         retention-days: 30
 
   coverage-skipped:
-    needs: detect-coverage-changes
-    if: ${{ (needs.detect-coverage-changes.outputs.has_changes != 'true') && (github.event_name != 'workflow_dispatch') && (env.ACT != 'true') }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
     - name: No relevant coverage changes detected
-      run: echo "No relevant C++ changes detected; coverage workflow skipped."
+      run: echo "::notice::No relevant C++ changes detected; coverage workflow skipped."

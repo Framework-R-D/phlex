@@ -1,16 +1,36 @@
-add_subdirectory(app)
-add_subdirectory(core)
-add_subdirectory(graph)
+cet_register_export_set(SET_NAME phlex NAMESPACE phlex SET_DEFAULT)
+
 add_subdirectory(metaprogramming)
-add_subdirectory(model)
 add_subdirectory(utilities)
+add_subdirectory(graph)
+add_subdirectory(model)
+add_subdirectory(core)
 
-# Interface library
-add_library(phlex_int INTERFACE)
-target_include_directories(
-  phlex_int INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
-                      "$<INSTALL_INTERFACE:include>"
+cet_make_library(
+  LIBRARY_NAME
+  phlex_module
+  EXPORT_NAME
+  module
+  INTERFACE
+  NO_SOURCE
+  LIBRARIES
+  Boost::boost
+  Boost::json
+  phlex::core
   )
-target_link_libraries(phlex_int INTERFACE Boost::boost Boost::json phlex::core)
 
-add_library(phlex::module ALIAS phlex_int)
+install(FILES concurrency.hpp module.hpp source.hpp DESTINATION include/phlex)
+
+cet_make_library(
+  LIBRARY_NAME
+  phlex_configuration
+  EXPORT_NAME
+  configuration
+  INTERFACE
+  NO_SOURCE
+  LIBRARIES
+  Boost::json
+  )
+install(FILES configuration.hpp DESTINATION include/phlex)
+
+add_subdirectory(app)
