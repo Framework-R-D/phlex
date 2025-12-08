@@ -47,7 +47,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install gersemi
-        run: pip3 install gersemi
+        run: pip install gersemi
 
       - name: Apply CMake formatting
         run: |
