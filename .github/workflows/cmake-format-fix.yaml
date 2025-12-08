@@ -52,7 +52,7 @@ jobs:
       - name: Apply CMake formatting
         run: |
           echo "Applying CMake formatting..."
-          gersemi --in-place phlex-src
+          gersemi -i phlex-src
 
       - name: Handle fix commit
         uses: ./phlex-src/.github/actions/handle-fix-commit
