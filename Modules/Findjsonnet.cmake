@@ -38,6 +38,8 @@ if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
       )
 
   # On macOS, fix jsonnet libraries if they have incorrect install_name
+  # This should be removed when the Spack recipe is updated to create
+  # the correct install_name.
   if(APPLE)
     foreach(_lib ${${CMAKE_FIND_PACKAGE_NAME}_LIBRARY}
                  ${${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY}
