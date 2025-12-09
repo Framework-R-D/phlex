@@ -4,28 +4,56 @@
 #define __FORM_HPP__
 
 #include "form/config.hpp"
-#include "mock_phlex/phlex_toy_config.hpp"
-#include "mock_phlex/phlex_toy_core.hpp" // FORM Interface may include core phlex modules
 #include "persistence/ipersistence.hpp"
 
+#include <map>
 #include <memory>
 #include <string>
+#include <typeindex>
+#include <unordered_map>
+#include <vector>
 
 namespace form::experimental {
+
+  // Type map - moved from mock_phlex (FORM needs this)
+  struct product_type_names {
+    std::unordered_map<std::type_index, std::string> names;
+  };
+
+  // Product structure - moved from mock_phlex, but without id field
+  struct product_base {
+    std::string label;        // product name
+    void const* data;         // pointer to actual data
+    std::type_index type;     // type information
+    // Note: id field removed - now passed separately to write()
+  };
+
   class form_interface {
   public:
-    form_interface(std::shared_ptr<mock_phlex::product_type_names> tm,
-                   mock_phlex::config::parse_config const& config);
+    // Constructor accepts FORM config structures (similar to old mock_phlex::config::parse_config)
+    form_interface(std::shared_ptr<product_type_names> tm,
+                   config::output_item_config const& output_config,
+                   config::tech_setting_config const& tech_config);
     ~form_interface() = default;
 
-    void write(std::string const& creator, mock_phlex::product_base const& pb);
+    // Write single product - NEW: segment_id passed separately
     void write(std::string const& creator,
-               std::vector<mock_phlex::product_base> const& batch); // batch version
-    void read(std::string const& creator, mock_phlex::product_base& pb);
+               std::string const& segment_id,
+               product_base const& product);
+    
+    // Write multiple products - NEW: segment_id passed separately
+    void write(std::string const& creator,
+               std::string const& segment_id,
+               std::vector<product_base> const& products);
+    
+    // Read product - NEW: segment_id passed separately
+    void read(std::string const& creator,
+              std::string const& segment_id,
+              product_base& product);
 
   private:
     std::unique_ptr<form::detail::experimental::IPersistence> m_pers;
-    std::shared_ptr<mock_phlex::product_type_names> m_type_map;
+    std::shared_ptr<product_type_names> m_type_map;
     // Fast lookup maps built once in constructor
     std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
   };

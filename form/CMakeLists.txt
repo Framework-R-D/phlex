@@ -18,7 +18,6 @@ endif()
 
 # Add sub directories
 add_subdirectory(form)
-add_subdirectory(mock_phlex)
 add_subdirectory(core)
 add_subdirectory(util)
 add_subdirectory(persistence)
@@ -28,4 +27,11 @@ if(FORM_USE_ROOT_STORAGE)
 endif()
 
 add_library(form_module form_module.cpp)
-target_link_libraries(form_module PRIVATE phlex::module)
+target_link_libraries(form_module PRIVATE 
+    phlex::module
+    phlex::experimental
+)
+
+target_include_directories(form_module PRIVATE
+    ${PROJECT_SOURCE_DIR}
+  )
