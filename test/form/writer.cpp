@@ -82,11 +82,11 @@ int main(int /*argc*/, char** /* argv[]*/)
       std::string segment_id(seg_id_text);
       
       // CHANGED: mock_phlex → form::experimental, renamed batch → products
-      std::vector<form::experimental::product_base> products;
+      std::vector<form::experimental::product_with_name> products;
       std::string const creator = "Toy_Tracker";
       
       // CHANGED: product_base no longer has id field
-      form::experimental::product_base pb = {
+      form::experimental::product_with_name pb = {
         "trackStart", &track_start_x, std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
       products.push_back(pb);
@@ -102,7 +102,7 @@ int main(int /*argc*/, char** /* argv[]*/)
                 << ", check = " << check << std::endl;
       
       // CHANGED: product_base no longer has id field
-      form::experimental::product_base pb_int = {
+      form::experimental::product_with_name pb_int = {
         "trackNumberHits", &track_n_hits, std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
       products.push_back(pb_int);
@@ -116,7 +116,7 @@ int main(int /*argc*/, char** /* argv[]*/)
                 << ", checkPoints = " << checkPoints << std::endl;
       
       // CHANGED: product_base no longer has id field
-      form::experimental::product_base pb_points = {
+      form::experimental::product_with_name pb_points = {
         "trackStartPoints", &start_points, std::type_index{typeid(std::vector<TrackStart>)}};
       type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
       products.push_back(pb_points);
@@ -144,7 +144,7 @@ int main(int /*argc*/, char** /* argv[]*/)
     std::string const creator = "Toy_Tracker_Event";
     
     // CHANGED: product_base no longer has id field
-    form::experimental::product_base pb = {
+    form::experimental::product_with_name pb = {
       "trackStartX", &track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text

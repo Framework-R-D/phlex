@@ -60,7 +60,7 @@ namespace {
       // STEP 2: Convert each Phlex product to FORM format
       
       // Collect all products for writing
-      std::vector<form::experimental::product_base> products;
+      std::vector<form::experimental::product_with_name> products;
       
       // Reserve space for efficiency - avoid reallocations
       products.reserve(store.size());

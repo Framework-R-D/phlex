@@ -26,7 +26,7 @@ namespace form::experimental {
   // Write single product - ONLY CHANGE: segment_id now a parameter instead of from pb.id
   void form_interface::write(std::string const& creator,
                              std::string const& segment_id,
-                             product_base const& pb)
+                             product_with_name const& pb)
   {
     // Look up configuration - SAME as before
     auto it = m_product_to_config.find(pb.label);
@@ -50,7 +50,7 @@ namespace form::experimental {
   // Write multiple products - ONLY CHANGE: segment_id now a parameter
   void form_interface::write(std::string const& creator,
                              std::string const& segment_id,
-                             std::vector<product_base> const& products)
+                             std::vector<product_with_name> const& products)
   {
     // Empty check - SAME as before
     if (products.empty())
@@ -86,7 +86,7 @@ namespace form::experimental {
   // Read product - ONLY CHANGE: segment_id now a parameter
   void form_interface::read(std::string const& creator,
                             std::string const& segment_id,
-                            product_base& pb)
+                            product_with_name& pb)
   {
     // Look up configuration - SAME as before
     auto it = m_product_to_config.find(pb.label);

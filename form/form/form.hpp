@@ -21,7 +21,7 @@ namespace form::experimental {
   };
 
   // Product structure - moved from mock_phlex, but without id field
-  struct product_base {
+  struct product_with_name {
     std::string label;        // product name
     void const* data;         // pointer to actual data
     std::type_index type;     // type information
@@ -39,17 +39,17 @@ namespace form::experimental {
     // Write single product - NEW: segment_id passed separately
     void write(std::string const& creator,
                std::string const& segment_id,
-               product_base const& product);
+               product_with_name const& product);
     
     // Write multiple products - NEW: segment_id passed separately
     void write(std::string const& creator,
                std::string const& segment_id,
-               std::vector<product_base> const& products);
+               std::vector<product_with_name> const& products);
     
     // Read product - NEW: segment_id passed separately
     void read(std::string const& creator,
               std::string const& segment_id,
-              product_base& product);
+              product_with_name& product);
 
   private:
     std::unique_ptr<form::detail::experimental::IPersistence> m_pers;
