@@ -87,4 +87,7 @@ TEST_CASE("Testing families", "[data model]")
   CHECK(g.execution_counts("se") == 1ull);
   CHECK(g.execution_counts("rs") == 1ull);
   CHECK(g.execution_counts("rse") == 1ull);
+  CHECK(g.execution_counts("run_id_provider") == 1ull);
+  CHECK(g.execution_counts("subrun_id_provider") == 1ull);
+  CHECK(g.execution_counts("event_id_provider") == 1ull);
 }
