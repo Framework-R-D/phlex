@@ -1,7 +1,6 @@
 #include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
-#include "phlex/model/product_store.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -54,41 +53,41 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
   auto const subrun_hash_value = hash(run_hash_value, "subrun");
   auto const event_hash_value = hash(subrun_hash_value, "event");
 
-  auto job_store = product_store::base();
-  counters.update(job_store->id());
+  auto job_index = data_cell_index::base_ptr();
+  counters.update(job_index);
   for (std::size_t i = 0; i != nruns; ++i) {
-    auto run_store = job_store->make_child(i, "run");
-    counters.update(run_store->id());
+    auto run_index = job_index->make_child(i, "run");
+    counters.update(run_index);
     for (std::size_t j = 0; j != nsubruns_per_run; ++j) {
-      auto subrun_store = run_store->make_child(j, "subrun");
-      counters.update(subrun_store->id());
+      auto subrun_index = run_index->make_child(j, "subrun");
+      counters.update(subrun_index);
       for (std::size_t k = 0; k != nevents_per_subrun; ++k) {
-        auto event_store = subrun_store->make_child(k, "event");
-        counters.update(event_store->id());
+        auto event_index = subrun_index->make_child(k, "event");
+        counters.update(event_index);
         ++processed_events;
 
-        h.increment_count(event_store->id());
-        auto results = counters.extract(event_store->id());
+        h.increment_count(event_index);
+        auto results = counters.extract(event_index);
         CHECK(results.empty());
         check_all_processed();
       }
-      h.increment_count(subrun_store->id());
-      auto results = counters.extract(subrun_store->id());
+      h.increment_count(subrun_index);
+      auto results = counters.extract(subrun_index);
       ++processed_subruns;
 
       CHECK(results.count_for(event_hash_value));
       check_all_processed();
     }
-    h.increment_count(run_store->id());
-    auto results = counters.extract(run_store->id());
+    h.increment_count(run_index);
+    auto results = counters.extract(run_index);
     ++processed_runs;
 
     CHECK(results.count_for(event_hash_value) == nevents_per_subrun * nsubruns_per_run);
     CHECK(results.count_for(subrun_hash_value) == nsubruns_per_run);
     check_all_processed();
   }
-  h.increment_count(job_store->id());
-  auto results = counters.extract(job_store->id());
+  h.increment_count(job_index);
+  auto results = counters.extract(job_index);
   ++processed_jobs;
 
   CHECK(results.count_for(event_hash_value) == nevents_per_subrun * nsubruns_per_run * nruns);

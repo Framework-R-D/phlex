@@ -75,7 +75,8 @@ namespace phlex::experimental {
           products new_products;
           // Add all adds all products; we should only have one. Fix this later.
           new_products.add_all(output_, std::move(result));
-          auto store = msg.store->make_continuation(this->full_name(), std::move(new_products));
+          auto store = std::make_shared<product_store>(
+            msg.store->id(), this->full_name(), stage::process, std::move(new_products));
 
           message const new_msg{store, msg.eom, msg.id};
           stay_in_graph.try_put(new_msg);

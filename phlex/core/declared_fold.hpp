@@ -97,9 +97,10 @@ namespace phlex::experimental {
                 }
               }
 
-              auto const& fold_store = store->is_flush() ? store : store->parent(partition_);
-              assert(fold_store);
-              auto const& id_hash_for_counter = fold_store->id()->hash();
+              auto const& fold_index =
+                store->is_flush() ? store->id() : store->id()->parent(partition_);
+              assert(fold_index);
+              auto const& id_hash_for_counter = fold_index->hash();
 
               if (store->is_flush()) {
                 counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
@@ -109,7 +110,7 @@ namespace phlex::experimental {
               }
 
               if (auto counter = done_with(id_hash_for_counter)) {
-                auto parent = fold_store->make_continuation(this->full_name());
+                auto parent = std::make_shared<product_store>(fold_index, this->full_name());
                 commit_(*parent);
                 ++product_count_;
                 // FIXME: This msg.eom value may be wrong!
