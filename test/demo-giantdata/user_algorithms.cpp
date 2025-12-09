@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "user_algorithms.hpp"
 #include "summed_clamped_waveforms.hpp"
 #include "waveforms.hpp"
