@@ -6,43 +6,28 @@
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <cassert>
 #include <ranges>
 #include <stdexcept>
 
 using namespace std::chrono;
+using namespace phlex::experimental;
 
 namespace {
-
-  struct sender_slot {
-    tbb::flow::receiver<phlex::experimental::message>* port;
-    phlex::experimental::product_store_const_ptr store;
-    void operator()(phlex::experimental::end_of_message_ptr eom, std::size_t message_id) const
-    {
-      port->try_put({store, eom, message_id});
-    }
-  };
-
-  // FIXME: this function should return optional<sender_slot> to indicate
-  // because it can never return more than one slot, but can return no
-  // sender_slot.
-  std::vector<sender_slot> senders_for(
-    phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::multiplexer::named_input_ports_t const& ports)
+  product_store_const_ptr store_for(product_store_const_ptr store,
+                                    std::string const& port_product_layer)
   {
-    std::vector<sender_slot> result;
-    result.reserve(ports.size());
-    for (auto const& [product_label, port] : ports) {
-      if (store->id()->layer_name() == product_label.layer) {
-        // This store's layer matches what is expected by the port
-        result.push_back({port, store});
-      } else if (auto index = store->id()->parent(product_label.layer)) {
-        // This store has a parent layer that matches what is expected by the port
-        result.push_back(
-          {port, std::make_shared<phlex::experimental::product_store>(index, store->source())});
-      }
+    if (store->id()->layer_name() == port_product_layer) {
+      // This store's layer matches what is expected by the port
+      return store;
     }
-    assert(result.size() <= 1);
-    return result;
+
+    if (auto index = store->id()->parent(port_product_layer)) {
+      // This store has a parent layer that matches what is expected by the port
+      return std::make_shared<product_store>(index, store->source());
+    }
+
+    return nullptr;
   }
 }
 
@@ -55,8 +40,7 @@ namespace phlex::experimental {
 
   void multiplexer::finalize(head_ports_t head_ports)
   {
-    // We must have at least one provider port, or there can be no data to
-    // process.
+    // We must have at least one provider port, or there can be no data to process.
     assert(!head_ports.empty());
 
     head_ports_ = std::move(head_ports);
@@ -82,16 +66,10 @@ namespace phlex::experimental {
     }
 
     for (auto const& ports : head_ports_ | std::views::values) {
-      // FIXME: Should make sure that the received store has the same layer name as the most
-      //        derived store required by the algorithm.
-      auto const senders = senders_for(store, ports);
-      if (size(senders) != size(ports)) {
-        // Not enough stores to ports of the node
-        continue;
-      }
-
-      for (auto const& sender : senders) {
-        sender(eom, message_id);
+      assert(ports.size() == 1ull);
+      auto const& [product_label, port] = ports[0];
+      if (auto const store_to_send = store_for(store, product_label.layer)) {
+        port->try_put({store_to_send, eom, message_id});
       }
     }
 
