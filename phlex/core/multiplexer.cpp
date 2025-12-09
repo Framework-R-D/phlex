@@ -32,14 +32,16 @@ namespace {
     std::vector<sender_slot> result;
     result.reserve(ports.size());
     for (auto const& [product_label, port] : ports) {
-      // Look for the product_label that matches our store's layer_name.
-      if (auto const& allowed_layer = product_label.layer; not allowed_layer.empty()) {
-        if (store->layer_name() != allowed_layer) {
-          // This store level does not match the required layer
-          continue;
+      // Look for the product_label that matches our store's level_name.
+        if(  store->id()->layer_name() == product_label.layer) {
+          // This store layer does not match the required layer
+          result.push_back({port, store});
         }
-      }
-      result.push_back({port, store});
+        else if (auto index = store->id()->parent(product_label.layer)){
+          // This store layer does not match the required layer
+          result.push_back({port, std::make_shared<phlex::experimental::product_store>(
+            index, store->source())});
+        }
     }
     assert(result.size() <= 1);
     return result;
