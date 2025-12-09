@@ -41,8 +41,7 @@ cet_make_library(
   spdlog::spdlog
   )
 install(
-  FILES cached_product_stores.hpp
-        concepts.hpp
+  FILES concepts.hpp
         consumer.hpp
         declared_fold.hpp
         declared_observer.hpp

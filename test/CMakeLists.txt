@@ -42,9 +42,6 @@ cet_test(
   phlex::core
   Boost::json
   )
-cet_test(cached_product_stores USE_CATCH2_MAIN SOURCE cached_product_stores.cpp
-         LIBRARIES phlex::core
-         )
 cet_test(
   class_registration
   USE_CATCH2_MAIN
