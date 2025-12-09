@@ -83,7 +83,7 @@ namespace phlex::experimental {
           to_output.try_put(new_msg);
         }}
     {
-      spdlog::info(
+      spdlog::debug(
         "Created provider node {} making output {}", this->full_name(), output.to_string());
     }
 

@@ -14,40 +14,24 @@ namespace {
   void cells_to_process(framework_driver& driver)
   {
     auto job_index = data_cell_index::base_ptr();
-    spdlog::info("Yielding job index with depth {}", job_index->depth());
     driver.yield(job_index);
 
     auto run_index = job_index->make_child(0, "run");
-    spdlog::info("Yielding run index with depth {}", run_index->depth());
     driver.yield(run_index);
 
     auto subrun_index = run_index->make_child(0, "subrun");
-    spdlog::info("Yielding subrun index with depth {}", subrun_index->depth());
     driver.yield(subrun_index);
 
     auto event_index = subrun_index->make_child(0, "event");
-    spdlog::info("Yielding event index with depth {}", event_index->depth());
     driver.yield(event_index);
   }
 
   // Provider functions that return data_cell_index for each level
-  data_cell_index provide_run_id(data_cell_index const& index)
-  {
-    spdlog::info("Providing run id with depth {}", index.depth());
-    return index;
-  }
+  data_cell_index provide_run_id(data_cell_index const& index) { return index; }
 
-  data_cell_index provide_subrun_id(data_cell_index const& index)
-  {
-    spdlog::info("Providing subrun id with depth {}", index.depth());
-    return index;
-  }
+  data_cell_index provide_subrun_id(data_cell_index const& index) { return index; }
 
-  data_cell_index provide_event_id(data_cell_index const& index)
-  {
-    spdlog::info("Providing event id with depth {}", index.depth());
-    return index;
-  }
+  data_cell_index provide_event_id(data_cell_index const& index) { return index; }
 
   void check_two_ids(data_cell_index const& parent_id, data_cell_index const& id)
   {
