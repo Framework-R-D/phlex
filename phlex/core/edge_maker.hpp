@@ -115,7 +115,8 @@ namespace phlex::experimental {
           // FIXME: The check should probably be more robust.  Right now, the product_specification
           //        buried in the p->input()[0] call does not have its type set, which prevents us from
           //        doing a simpler comparison (e.g., port.product_label == p->input()[0]).
-          if (port.product_label.name.full() == p->input()[0].name.full()) {
+          if (port.product_label.name.full() == p->input()[0].name.full() &&
+              port.product_label.layer == p->input()[0].layer) {
             auto& provider = *p;
             assert(provider.ports().size() == 1);
             auto it = provider_ports.find(provider.full_name());
