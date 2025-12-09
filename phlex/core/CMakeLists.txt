@@ -16,6 +16,7 @@ cet_make_library(
   detail/maybe_predicates.cpp
   detail/filter_impl.cpp
   edge_creation_policy.cpp
+  edge_maker.cpp
   end_of_message.cpp
   filter.cpp
   framework_graph.cpp
