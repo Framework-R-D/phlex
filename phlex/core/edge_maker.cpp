@@ -32,10 +32,10 @@ namespace phlex::experimental {
               provider_input_ports.emplace_back(port.product_label, provider.ports()[0]);
               result.try_emplace(provider.full_name(), std::move(provider_input_ports));
             }
-            spdlog::info("Connecting provider {} to node {} (product: {})",
-                         provider.full_name(),
-                         node_name,
-                         port.product_label.to_string());
+            spdlog::debug("Connecting provider {} to node {} (product: {})",
+                          provider.full_name(),
+                          node_name,
+                          port.product_label.to_string());
             make_edge(provider.sender(), *(port.port));
             found_match = true;
             break;
