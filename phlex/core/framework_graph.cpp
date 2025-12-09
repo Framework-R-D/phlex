@@ -52,7 +52,7 @@ namespace phlex::experimental {
              return {};
            }
            auto index = *item;
-           auto store = std::make_shared<product_store>(nullptr, index, "Source");
+           auto store = std::make_shared<product_store>(index, "Source");
            return sender_.make_message(accept(std::move(store)));
          }},
     multiplexer_{graph_}

@@ -7,25 +7,21 @@
 #include "phlex/model/products.hpp"
 
 #include <cstddef>
-#include <map>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 namespace phlex::experimental {
 
   class product_store : public std::enable_shared_from_this<product_store> {
   public:
-
-    explicit product_store(product_store_const_ptr parent,
-                           data_cell_index_ptr id,
-                           std::string source,
+    explicit product_store(data_cell_index_ptr id,
+                           std::string source = "Source",
                            stage processing_stage = stage::process,
                            products new_products = {});
     ~product_store();
     static product_store_ptr base(std::string base_name = "Source");
-
-    product_store_const_ptr store_for_product(std::string const& product_name) const;
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
@@ -34,18 +30,7 @@ namespace phlex::experimental {
 
     std::string const& layer_name() const noexcept;
     std::string const& source() const noexcept;
-    product_store_const_ptr parent(std::string const& layer_name) const noexcept;
-    product_store_const_ptr parent() const noexcept;
     product_store_ptr make_flush() const;
-    product_store_ptr make_continuation(std::string source, products new_products = {}) const;
-    product_store_ptr make_child(std::size_t data_cell_number,
-                                 std::string const& child_layer_name,
-                                 std::string source,
-                                 products new_products);
-    product_store_ptr make_child(std::size_t data_cell_number,
-                                 std::string const& child_layer_name,
-                                 std::string source = {},
-                                 stage st = stage::process);
     data_cell_index_ptr const& id() const noexcept;
     bool is_flush() const noexcept;
 
@@ -66,18 +51,6 @@ namespace phlex::experimental {
     void add_product(std::string const& key, std::unique_ptr<product<T>>&& t);
 
   private:
-    explicit product_store(product_store_const_ptr parent,
-                           std::size_t data_cell_number,
-                           std::string const& child_layer_name,
-                           std::string source,
-                           products new_products);
-    explicit product_store(product_store_const_ptr parent,
-                           std::size_t data_cell_number,
-                           std::string const& child_layer_name,
-                           std::string source,
-                           stage processing_stage);
-
-    product_store_const_ptr parent_{nullptr};
     products products_{};
     data_cell_index_ptr id_;
     std::string
