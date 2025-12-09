@@ -53,7 +53,14 @@ namespace phlex::experimental {
   {
   }
 
-  void multiplexer::finalize(head_ports_t head_ports) { head_ports_ = std::move(head_ports); }
+  void multiplexer::finalize(head_ports_t head_ports)
+  {
+    // We must have at least one provider port, or there can be no data to
+    // process.
+    assert(!head_ports.empty());
+
+    head_ports_ = std::move(head_ports);
+  }
 
   tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
   {
