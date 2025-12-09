@@ -52,23 +52,6 @@ namespace {
     CHECK(parent_id.hash() == id.parent()->hash());
   }
 
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * @brief Checks the relationships between three data_cell_index objects.
- *
- * @param grandparent_id The data_cell_index object at depth 1.
- * @param parent_id The data_cell_index object at depth 2, which is the parent of id.
- * @param id The data_cell_index object at depth 3.
- *
- * This function checks that the relationships between the three objects are correct.
- * Specifically, it checks that:
- *   - id is at depth 3
- *   - parent_id is at depth 2
- *   - grandparent_id is at depth 1
- *   - grandparent_id is the grandparent of id
- *   - parent_id is the parent of id
- */
-/*******  f1db79b2-2a69-493d-ae03-20d77cee24b3  *******/
   void check_three_ids(data_cell_index const& grandparent_id,
                        data_cell_index const& parent_id,
                        data_cell_index const& id)
