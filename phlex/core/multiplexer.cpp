@@ -38,38 +38,36 @@ namespace phlex::experimental {
   {
   }
 
-  void multiplexer::finalize(head_ports_t head_ports)
+  void multiplexer::finalize(input_ports_t provider_input_ports)
   {
     // We must have at least one provider port, or there can be no data to process.
-    assert(!head_ports.empty());
-
-    head_ports_ = std::move(head_ports);
+    assert(!provider_input_ports.empty());
+    provider_input_ports_ = std::move(provider_input_ports);
   }
 
   tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
   {
     ++received_messages_;
-    auto const& [store, eom, message_id] = std::tie(msg.store, msg.eom, msg.id);
+    auto const& [store, eom, message_id, _] = msg;
     if (debug_) {
       spdlog::debug("Multiplexing {} with ID {} (is flush: {})",
                     store->id()->to_string(),
                     message_id,
                     store->is_flush());
     }
-    auto start_time = steady_clock::now();
 
     if (store->is_flush()) {
-      for (auto const& head_port : head_ports_ | std::views::values | std::views::join) {
+      for (auto const& head_port : provider_input_ports_ | std::views::values) {
         head_port.port->try_put(msg);
       }
       return {};
     }
 
-    for (auto const& ports : head_ports_ | std::views::values) {
-      assert(ports.size() == 1ull);
-      auto const& [product_label, port] = ports[0];
-      if (auto const store_to_send = store_for(store, product_label.layer)) {
-        port->try_put({store_to_send, eom, message_id});
+    auto start_time = steady_clock::now();
+
+    for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
+      if (auto store_to_send = store_for(store, product_label.layer)) {
+        port->try_put({std::move(store_to_send), eom, message_id});
       }
     }
 
