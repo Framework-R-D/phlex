@@ -6,12 +6,12 @@
 #include <cassert>
 
 namespace phlex::experimental {
-  multiplexer::head_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
-                                                declared_providers& providers)
+  multiplexer::input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
+                                                 declared_providers& providers)
   {
     assert(!head_ports.empty());
 
-    multiplexer::head_ports_t result;
+    multiplexer::input_ports_t result;
     for (auto const& [node_name, ports] : head_ports) {
       for (auto const& port : ports) {
         // Find the provider that has the right product name (hidden in the
@@ -28,9 +28,7 @@ namespace phlex::experimental {
             assert(provider.ports().size() == 1);
             auto it = result.find(provider.full_name());
             if (it == result.cend()) {
-              multiplexer::named_input_ports_t provider_input_ports;
-              provider_input_ports.emplace_back(port.product_label, provider.ports()[0]);
-              result.try_emplace(provider.full_name(), std::move(provider_input_ports));
+              result.try_emplace(provider.full_name(), port.product_label, provider.ports()[0]);
             }
             spdlog::debug("Connecting provider {} to node {} (product: {})",
                           provider.full_name(),

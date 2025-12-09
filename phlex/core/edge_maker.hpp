@@ -24,8 +24,8 @@ namespace phlex::experimental {
 
   using product_name_t = std::string;
 
-  multiplexer::head_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
-                                                declared_providers& providers);
+  multiplexer::input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
+                                                 declared_providers& providers);
 
   class edge_maker {
   public:
