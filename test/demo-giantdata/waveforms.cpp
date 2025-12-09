@@ -34,6 +34,4 @@ demo::Waveforms& demo::Waveforms::operator=(Waveforms&& other)
   return *this;
 }
 
-demo::Waveforms::~Waveforms()
-{
-};
+demo::Waveforms::~Waveforms() {};

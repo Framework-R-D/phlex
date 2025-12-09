@@ -87,14 +87,14 @@ int main(int argc, char* argv[])
     // to the constructor of the WaveformGenerator, so we will use the default value.
     auto const chunksize = 256LL; // this could be read from a configuration file
 
-    g.provide("provide_wgen", [wires_per_spill](data_cell_index const& spill_index) {
-      return 
-        demo::WGI(wires_per_spill,
-                  spill_index.parent()->parent()->number(), // ugh
-                  spill_index.parent()->number(),
-                  spill_index.number());
-        })
-        .output_product("wget"_in("spill"));
+    g.provide("provide_wgen",
+              [wires_per_spill](data_cell_index const& spill_index) {
+                return demo::WGI(wires_per_spill,
+                                 spill_index.parent()->parent()->number(), // ugh
+                                 spill_index.parent()->number(),
+                                 spill_index.number());
+              })
+      .output_product("wget"_in("spill"));
 
     g.unfold<demo::WaveformGenerator>(
        "WaveformGenerator",

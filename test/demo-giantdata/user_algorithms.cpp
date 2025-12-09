@@ -16,8 +16,7 @@ demo::Waveforms demo::clampWaveforms(demo::Waveforms const& input)
 }
 
 // This is the fold operator that will accumulate a SummedClampedWaveforms object.
-void demo::accumulateSCW(demo::SummedClampedWaveforms& accumulator,
-                         demo::Waveforms const& wf)
+void demo::accumulateSCW(demo::SummedClampedWaveforms& accumulator, demo::Waveforms const& wf)
 {
   // This is the fold operator that will accumulate a SummedClampedWaveforms object.
   accumulator.size += wf.size();

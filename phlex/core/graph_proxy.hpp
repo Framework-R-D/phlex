@@ -66,7 +66,7 @@ namespace phlex::experimental {
     {
       return create_glue().predicate(std::move(name), std::move(f), c);
     }
-    
+
     auto provide(std::string name, is_provider_like auto f, concurrency c = concurrency::serial)
     {
       return create_glue().provide(std::move(name), std::move(f), c);
