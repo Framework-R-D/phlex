@@ -31,19 +31,22 @@ namespace {
   }
 
   // Provider functions that return data_cell_index for each level
-  data_cell_index provide_run_id(data_cell_index const& index) { 
+  data_cell_index provide_run_id(data_cell_index const& index)
+  {
     spdlog::info("Providing run id with depth {}", index.depth());
-    return index; 
+    return index;
   }
 
-  data_cell_index provide_subrun_id(data_cell_index const& index) { 
-    spdlog::info("Providing subrun id with depth {}", index.depth()); 
-    return index; 
+  data_cell_index provide_subrun_id(data_cell_index const& index)
+  {
+    spdlog::info("Providing subrun id with depth {}", index.depth());
+    return index;
   }
 
-  data_cell_index provide_event_id(data_cell_index const& index) { 
+  data_cell_index provide_event_id(data_cell_index const& index)
+  {
     spdlog::info("Providing event id with depth {}", index.depth());
-    return index; 
+    return index;
   }
 
   void check_two_ids(data_cell_index const& parent_id, data_cell_index const& id)

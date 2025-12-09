@@ -1,7 +1,7 @@
 #include <algorithm>
 
-#include "user_algorithms.hpp"
 #include "summed_clamped_waveforms.hpp"
+#include "user_algorithms.hpp"
 #include "waveforms.hpp"
 
 // This function is used to transform an input Waveforms object into an
