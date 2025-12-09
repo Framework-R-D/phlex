@@ -34,6 +34,4 @@ demo::WaveformGeneratorInput& demo::WaveformGeneratorInput::operator=(
   return *this;
 }
 
-demo::WaveformGeneratorInput::~WaveformGeneratorInput()
-{
-}
+demo::WaveformGeneratorInput::~WaveformGeneratorInput() {}

@@ -32,9 +32,7 @@ PHLEX_EXPERIMENTAL_REGISTER_SOURCE(send_parallelism)
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
   m.provide("provide_max_parallelism",
-            [](data_cell_index const&) {
-              return max_allowed_parallelism::active_value();
-            })
+            [](data_cell_index const&) { return max_allowed_parallelism::active_value(); })
     .output_product("max_parallelism"_in("job"));
 
   m.observe("verify_expected",

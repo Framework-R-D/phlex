@@ -9,8 +9,10 @@ using namespace phlex::experimental;
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
 {
-  m.provide("provide_i", [](data_cell_index const& id)->int{ return id.number(); }).output_product("i"_in("event"));
-  m.provide("provide_j", [](data_cell_index const& id)->int{ return -id.number(); }).output_product("j"_in("event"));
+  m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number(); })
+    .output_product("i"_in("event"));
+  m.provide("provide_j", [](data_cell_index const& id) -> int { return -id.number(); })
+    .output_product("j"_in("event"));
   m.transform("add", test::add, concurrency::unlimited)
     .input_family("i"_in("event"), "j"_in("event"))
     .output_products("sum");

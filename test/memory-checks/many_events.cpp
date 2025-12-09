@@ -24,7 +24,8 @@ int main()
   };
 
   framework_graph g{cells_to_process};
-  g.provide("provide_number", [](data_cell_index const& id)->unsigned { return id.number(); }).output_product("number"_in("event"));
+  g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
+    .output_product("number"_in("event"));
   g.transform("pass_on", pass_on, concurrency::unlimited)
     .input_family("number"_in("event"))
     .output_products("different");

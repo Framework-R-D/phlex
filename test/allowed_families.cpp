@@ -21,7 +21,7 @@ namespace {
 
     auto subrun_index = run_index->make_child(0, "subrun");
     driver.yield(subrun_index);
-    
+
     auto event_index = subrun_index->make_child(0, "event");
     driver.yield(event_index);
   }
@@ -58,7 +58,8 @@ TEST_CASE("Testing families", "[data model]")
   framework_graph g{cells_to_process, 2};
 
   // Wire up providers for each level
-  g.provide("run_id_provider", provide_run_id, concurrency::unlimited).output_product("id"_in("run"));
+  g.provide("run_id_provider", provide_run_id, concurrency::unlimited)
+    .output_product("id"_in("run"));
   g.provide("subrun_id_provider", provide_subrun_id, concurrency::unlimited)
     .output_product("id"_in("subrun"));
   g.provide("event_id_provider", provide_event_id, concurrency::unlimited)

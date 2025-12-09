@@ -14,9 +14,9 @@ using namespace phlex::experimental;
 namespace {
   // Provider functions
   int provide_number(data_cell_index const&) { return 3; }
-  
+
   double provide_temperature(data_cell_index const&) { return 98.5; }
-  
+
   std::string provide_name(data_cell_index const&) { return "John"; }
 }
 
@@ -63,15 +63,14 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   framework_graph g{data_cell_index::base_ptr()};
-  
+
   // Register providers for the input products
   g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product("number"_in("job"));
   g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
     .output_product("temperature"_in("job"));
-  g.provide("provide_name", provide_name, concurrency::unlimited)
-    .output_product("name"_in("job"));
-  
+  g.provide("provide_name", provide_name, concurrency::unlimited).output_product("name"_in("job"));
+
   auto glueball = g.make<A>();
   SECTION("No framework")
   {

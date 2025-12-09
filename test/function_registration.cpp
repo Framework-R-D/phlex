@@ -58,15 +58,14 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::array const oproduct_names = {"onumber"s, "otemperature"s, "oname"s};
   std::array const result{"result"s};
 
-  framework_graph g {data_cell_index::base_ptr()};
+  framework_graph g{data_cell_index::base_ptr()};
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product("number"_in("job"));
   g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
     .output_product("temperature"_in("job"));
-  g.provide("provide_name", provide_name, concurrency::unlimited)
-    .output_product("name"_in("job"));
+  g.provide("provide_name", provide_name, concurrency::unlimited).output_product("name"_in("job"));
 
   SECTION("No framework")
   {
