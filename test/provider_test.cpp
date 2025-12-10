@@ -34,12 +34,12 @@ TEST_CASE("provider_test")
   spdlog::flush_on(spdlog::level::trace);
 
   auto levels_to_process = [](framework_driver& driver) {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
 
     for (unsigned int i : std::views::iota(1u, max_events + 1)) {
-      auto store = job_store->make_child(i, "spill", "Source");
-      driver.yield(store);
+      auto index = job_index->make_child(i, "spill");
+      driver.yield(index);
     }
   };
 
