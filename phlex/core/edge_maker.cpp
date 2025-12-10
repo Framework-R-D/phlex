@@ -19,12 +19,7 @@ namespace phlex::experimental {
         bool found_match = false;
         for (auto const& [_, p] : providers) {
           auto& provider = *p;
-          // FIXME: The check should probably be more robust.  Right now, the
-          //        product_specification buried in the provider.output_product() call
-          //        does not have its type set, which prevents us from doing a simpler
-          //        comparison (e.g., port.product_label == provider.output_product()).
-          if (port.product_label.name.full() == provider.output_product().name.full() &&
-              port.product_label.layer == provider.output_product().layer) {
+          if (port.product_label == provider.output_product()) {
             auto it = result.find(provider.full_name());
             if (it == result.cend()) {
               result.try_emplace(provider.full_name(), port.product_label, provider.input_port());
