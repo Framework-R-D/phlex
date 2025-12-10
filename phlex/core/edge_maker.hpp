@@ -104,6 +104,11 @@ namespace phlex::experimental {
     // figure out what provider nodes are needed.
     // For now, we take as input a mapping of declared_providers.
 
+    if (head_ports.empty()) {
+      // This can happen for jobs that only execute the driver, which is helpful for debugging
+      return;
+    }
+
     auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
     multi.finalize(std::move(provider_input_ports));
   }
