@@ -1,5 +1,5 @@
-#ifndef PHLEX_CORE_SPECIFIED_LABEL_HPP
-#define PHLEX_CORE_SPECIFIED_LABEL_HPP
+#ifndef PHLEX_CORE_PRODUCT_QUERY_HPP
+#define PHLEX_CORE_PRODUCT_QUERY_HPP
 
 #include "phlex/model/product_specification.hpp"
 
@@ -11,26 +11,26 @@
 
 namespace phlex::experimental {
   struct product_query {
-    product_specification name;
+    product_specification spec;
     std::string layer;
     std::string to_string() const;
   };
 
   struct product_tag {
-    product_specification name;
+    product_specification spec;
     product_query operator()(std::string layer) &&;
   };
 
   using product_queries = std::vector<product_query>;
 
-  inline auto& to_name(product_query const& label) { return label.name.name(); }
-  inline auto& to_layer(product_query& label) { return label.layer; }
+  inline auto& to_name(product_query const& query) { return query.spec.name(); }
+  inline auto& to_layer(product_query& query) { return query.layer; }
 
   product_tag operator""_in(char const* str, std::size_t);
   bool operator==(product_query const& a, product_query const& b);
   bool operator!=(product_query const& a, product_query const& b);
   bool operator<(product_query const& a, product_query const& b);
-  std::ostream& operator<<(std::ostream& os, product_query const& label);
+  std::ostream& operator<<(std::ostream& os, product_query const& query);
 
   namespace detail {
     // C is a container of product_queries
@@ -46,7 +46,7 @@ namespace phlex::experimental {
       template <typename T>
       void set_type(C& container)
       {
-        container.at(index_).name.set_type(make_type_id<T>());
+        container.at(index_).spec.set_type(make_type_id<T>());
         ++index_;
       }
 
@@ -69,4 +69,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // PHLEX_CORE_SPECIFIED_LABEL_HPP
+#endif // PHLEX_CORE_PRODUCT_QUERY_HPP
