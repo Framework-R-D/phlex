@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
                                  spill_index.parent()->number(),
                                  spill_index.number());
               })
-      .output_product("wget"_in("spill"));
+      .output_product("wgen"_in("spill"));
 
     g.unfold<demo::WaveformGenerator>(
        "WaveformGenerator",
