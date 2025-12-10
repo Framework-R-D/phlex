@@ -18,8 +18,8 @@ namespace phlex::experimental {
   public:
     explicit product_store(data_cell_index_ptr id,
                            std::string source = "Source",
-                           stage processing_stage = stage::process,
-                           products new_products = {});
+                           products new_products = {},
+                           stage processing_stage = stage::process);
     ~product_store();
     static product_store_ptr base(std::string base_name = "Source");
 

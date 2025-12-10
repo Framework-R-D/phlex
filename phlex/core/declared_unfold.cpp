@@ -20,8 +20,7 @@ namespace phlex::experimental {
   {
     auto child_index = parent_->id()->make_child(i, child_layer_name_);
     ++child_counts_[child_index->layer_hash()];
-    return std::make_shared<product_store>(
-      child_index, node_name_, stage::process, std::move(new_products));
+    return std::make_shared<product_store>(child_index, node_name_, std::move(new_products));
   }
 
   product_store_const_ptr generator::flush_store() const

@@ -8,8 +8,8 @@ namespace phlex::experimental {
 
   product_store::product_store(data_cell_index_ptr id,
                                std::string source,
-                               stage processing_stage,
-                               products new_products) :
+                               products new_products,
+                               stage processing_stage) :
     products_{std::move(new_products)},
     id_{std::move(id)},
     source_{std::move(source)},
@@ -26,7 +26,7 @@ namespace phlex::experimental {
 
   product_store_ptr product_store::make_flush() const
   {
-    return product_store_ptr{new product_store{id_, "[inserted]", stage::flush}};
+    return product_store_ptr{new product_store{id_, "[inserted]", {}, stage::flush}};
   }
 
   std::string const& product_store::layer_name() const noexcept { return id_->layer_name(); }
