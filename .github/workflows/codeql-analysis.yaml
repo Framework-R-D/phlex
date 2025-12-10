@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: phlex-src
           fetch-depth: 0
@@ -44,7 +44,7 @@ jobs:
           build-path: phlex-build
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4
+        uses: github/codeql-action/init@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # v4.31.7
         with:
           languages: ${{ matrix.language }}
           config-file: phlex-src/.github/codeql/codeql-config.yml
@@ -68,7 +68,7 @@ jobs:
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4
+        uses: github/codeql-action/analyze@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # v4.31.7
         with:
           checkout_path: phlex-src
           output: results
@@ -99,7 +99,7 @@ jobs:
         id: set_log_path
         run: echo "path=$RUNNER_TEMP/codeql-alerts.log" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 

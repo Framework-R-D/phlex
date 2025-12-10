@@ -1,5 +1,6 @@
 // Copyright (C) 2025 ...
 
+#include "test_helpers.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form.hpp"
 #include "form/technology.hpp"
@@ -13,24 +14,27 @@ static int const NUMBER_SEGMENT = 15;
 static char const* const evt_id = "[EVENT=%08X]";
 static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
 
-int main(int /* argc*/, char** /* argv[]*/)
+int main(int argc, char** argv)
 {
   std::cout << "In main" << std::endl;
 
+  std::string const filename = (argc > 1) ? argv[1] : "toy.root";
+  
   // CHANGED: mock_phlex → form::experimental
-  std::shared_ptr<form::experimental::product_type_names> type_map = 
-    std::make_shared<form::experimental::product_type_names>();
+  std::shared_ptr<form::experimental::product_type_names> type_map = form::experimental::createTypeMap();
+  
 
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
+
   
   // CHANGED: Use form config classes directly
   form::experimental::config::output_item_config output_config;
-  output_config.addItem("trackStart", "toy.root", form::technology::ROOT_TTREE);
-  output_config.addItem("trackNumberHits", "toy.root", form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartPoints", "toy.root", form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartX", "toy.root", form::technology::ROOT_TTREE);
+  output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
+  output_config.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
+  output_config.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
+  output_config.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
 
   form::experimental::config::tech_setting_config tech_config;
 

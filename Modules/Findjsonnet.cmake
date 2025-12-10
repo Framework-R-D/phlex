@@ -36,6 +36,47 @@ if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
   set(${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIRS
       ${${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIRS}
       )
+
+  # On macOS, fix jsonnet libraries if they have incorrect install_name
+  #
+  # This should be removed when the Spack recipe is updated to create the
+  # correct install_name.
+  if(APPLE)
+    foreach(_lib ${${CMAKE_FIND_PACKAGE_NAME}_LIBRARY}
+                 ${${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY}
+            )
+      if(EXISTS "${_lib}")
+        # Get the library's current install_name
+        execute_process(
+          COMMAND otool -D "${_lib}"
+          OUTPUT_VARIABLE _install_name_output
+          OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET
+          )
+        # Extract just the install_name (second line of output)
+        string(REGEX REPLACE "^[^\n]+\n(.+)$" "\\1" _current_install_name
+                             "${_install_name_output}"
+               )
+        get_filename_component(_lib_name "${_lib}" NAME)
+        # Check if install_name needs fixing (doesn't start with @ or /)
+        if(_current_install_name MATCHES "^[^/@]")
+          message(
+            STATUS
+              "Fixing install_name for ${_lib_name}: ${_current_install_name} -> @rpath/${_current_install_name}"
+            )
+          execute_process(
+            COMMAND install_name_tool -id "@rpath/${_current_install_name}"
+                    "${_lib}"
+            RESULT_VARIABLE _fix_result
+            ERROR_QUIET
+            )
+          if(NOT _fix_result EQUAL 0)
+            message(WARNING "Failed to fix install_name for ${_lib_name}")
+          endif()
+        endif()
+      endif()
+    endforeach()
+  endif()
+
   if(NOT TARGET jsonnet::lib)
     add_library(jsonnet::lib SHARED IMPORTED)
     set_target_properties(

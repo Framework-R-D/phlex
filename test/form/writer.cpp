@@ -1,5 +1,6 @@
 // Copyright (C) 2025 ...
 
+#include "test_helpers.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form.hpp"
 #include "form/technology.hpp"
@@ -28,36 +29,38 @@ void generate(std::vector<float>& vrand, int size)
   }
 }
 
-int main(int /*argc*/, char** /* argv[]*/)
+int main(int argc, char** argv)
 {
   std::cout << "In main" << std::endl;
   srand(time(0));
 
+  std::string const filename = (argc > 1) ? argv[1] : "toy.root";
+  
   // CHANGED: mock_phlex → form::experimental
-  std::shared_ptr<form::experimental::product_type_names> type_map = 
-    std::make_shared<form::experimental::product_type_names>();
-
+  std::shared_ptr<form::experimental::product_type_names> type_map = form::experimental::createTypeMap();
+  
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
   
   // CHANGED: Use form config classes directly
   form::experimental::config::output_item_config output_config;
-  output_config.addItem("trackStart", "toy.root", form::technology::ROOT_TTREE);
-  output_config.addItem("trackNumberHits", "toy.root", form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartPoints", "toy.root", form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartX", "toy.root", form::technology::ROOT_TTREE);
+  output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
+  output_config.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
+  output_config.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
+  output_config.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
   
   form::experimental::config::tech_setting_config tech_config;
   tech_config.container_settings[form::technology::ROOT_TTREE]["trackStart"].emplace_back("auto_flush", "1");
   tech_config.file_settings[form::technology::ROOT_TTREE]["toy.root"].emplace_back("compression", "kZSTD");
   tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"].emplace_back("force_streamer_field", "true");
-
+  
+  
   // CHANGED: Constructor signature
   form::experimental::form_interface form(type_map, output_config, tech_config);
-
+  
   ToyTracker tracker(4 * 1024);
-
+  
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
 
