@@ -10,5 +10,5 @@
     provider: {
       plugin: 'benchmarks_provider'
     }
-  }, 
+  },
 }
