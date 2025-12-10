@@ -7,4 +7,18 @@ namespace phlex::experimental {
   }
 
   declared_provider::~declared_provider() = default;
+
+  void declared_provider::report_cached_stores(stores_t const& stores) const
+  {
+    if (stores.size() > 0ull) {
+      spdlog::warn("Provider {} has {} cached stores.", full_name(), stores.size());
+    }
+    for (auto const& [hash, store] : stores) {
+      if (not store) {
+        spdlog::warn("Store with hash {} is null!", hash);
+        continue;
+      }
+      spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
+    }
+  }
 }

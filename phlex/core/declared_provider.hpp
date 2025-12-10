@@ -5,6 +5,7 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/products_consumer.hpp"
+#include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
@@ -35,6 +36,12 @@ namespace phlex::experimental {
     virtual tbb::flow::sender<message>& to_output() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t num_calls() const = 0;
+
+  protected:
+    using stores_t = tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr>;
+    using const_accessor = stores_t::const_accessor;
+
+    void report_cached_stores(stores_t const& stores) const;
   };
 
   using declared_provider_ptr = std::unique_ptr<declared_provider>;
@@ -43,7 +50,7 @@ namespace phlex::experimental {
   // =====================================================================================
 
   template <typename AlgorithmBits>
-  class provider_node : public declared_provider {
+  class provider_node : public declared_provider, private detect_flush_flag {
     using function_t = typename AlgorithmBits::bound_type;
     static constexpr auto M = number_output_objects<function_t>;
 
@@ -65,27 +72,48 @@ namespace phlex::experimental {
           auto& [stay_in_graph, to_output] = output;
 
           if (msg.store->is_flush()) {
+            flag_for(msg.store->id()->hash()).flush_received(msg.original_id);
             stay_in_graph.try_put(msg);
-            return;
+          } else {
+            // Check cache first
+            auto index_hash = msg.store->id()->hash();
+            if (const_accessor ca; cache_.find(ca, index_hash)) {
+              // Cache hit - reuse the cached store
+              message const new_msg{ca->second, msg.eom, msg.id};
+              stay_in_graph.try_put(new_msg);
+              to_output.try_put(new_msg);
+              return;
+            }
+
+            // Cache miss - compute the result
+            auto result = std::invoke(ft, *msg.store->id());
+            ++calls_;
+
+            products new_products;
+            // Add all adds all products; we should only have one. Fix this later.
+            new_products.add_all(output_, std::move(result));
+            auto store = std::make_shared<product_store>(
+              msg.store->id(), this->full_name(), std::move(new_products));
+
+            // Store in cache
+            cache_.emplace(index_hash, store);
+
+            message const new_msg{store, msg.eom, msg.id};
+            stay_in_graph.try_put(new_msg);
+            to_output.try_put(new_msg);
+            flag_for(msg.store->id()->hash()).mark_as_processed();
           }
 
-          auto result = std::invoke(ft, *msg.store->id());
-          ++calls_;
-
-          products new_products;
-          // Add all adds all products; we should only have one. Fix this later.
-          new_products.add_all(output_, std::move(result));
-          auto store = std::make_shared<product_store>(
-            msg.store->id(), this->full_name(), stage::process, std::move(new_products));
-
-          message const new_msg{store, msg.eom, msg.id};
-          stay_in_graph.try_put(new_msg);
-          to_output.try_put(new_msg);
+          if (done_with(msg.store)) {
+            cache_.erase(msg.store->id()->hash());
+          }
         }}
     {
       spdlog::debug(
         "Created provider node {} making output {}", this->full_name(), output.to_string());
     }
+
+    ~provider_node() { report_cached_stores(cache_); }
 
     tbb::flow::receiver<message>& receiver() { return provider_; }
 
@@ -101,6 +129,7 @@ namespace phlex::experimental {
     product_specifications output_;
     tbb::flow::multifunction_node<message, messages_t<2u>> provider_;
     std::atomic<std::size_t> calls_;
+    stores_t cache_;
   };
 
 }

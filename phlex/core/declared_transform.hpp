@@ -105,7 +105,7 @@ namespace phlex::experimental {
                        products new_products;
                        new_products.add_all(output_, std::move(result));
                        a->second = std::make_shared<product_store>(
-                         store->id(), this->full_name(), stage::process, std::move(new_products));
+                         store->id(), this->full_name(), std::move(new_products));
 
                        message const new_msg{a->second, msg.eom, message_id};
                        stay_in_graph.try_put(new_msg);
