@@ -52,35 +52,7 @@ TEST_CASE("provider_test")
     .input_family("happy_vertices"_in("spill"))
     .output_products("vertex_data");
 
-  spdlog::info("graph: is about to be executed");
-  try {
-    g.execute();
-    CHECK(g.execution_counts("passer") == max_events);
-    CHECK(g.execution_counts("my_name_here") == max_events);
-  } catch (std::exception const& e) {
-    spdlog::error("Exception during graph execution: {}", e.what());
-    throw;
-  } catch (...) {
-    spdlog::error("Unknown exception during graph execution");
-    throw;
-  }
+  g.execute();
+  CHECK(g.execution_counts("passer") == max_events);
+  CHECK(g.execution_counts("my_name_here") == max_events);
 }
-
-/*
-
-Planned development flow:
-
-[x] Get initial test working.
-[x] Make the data product be a simple struct not a fundamental type.
-[x] Introduce stub `provider` that takes product_store_ptr as input and returns a product_store_ptr.
-    Wire the provider into the graph.
-[ ] Modify the `provider` to take data_cell_index as input.
-    The `multiplexer` will then need to emit data_cell_index, stripped from the `product_store` it currently returns.
-[ ] Modify the `multiplexer` to accept data_cell_index as input.
-    The Input will then need to emit data_cell_index, stripped from the `product_store` it currently returns.
-[ ] Modify `Input` to accept data_cell_index is input.
-    This will mean `framework_driver` will have to emit data_cell_index instead of product_store.
-
-Then we're done.
-
-*/
