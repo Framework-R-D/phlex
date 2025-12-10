@@ -111,8 +111,6 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits>
   class provider_api {
-    using provider_type = provider_node<AlgorithmBits>;
-
   public:
     provider_api(configuration const* config,
                  std::string name,
@@ -132,6 +130,11 @@ namespace phlex::experimental {
 
     auto output_product(product_query output)
     {
+      using return_type = return_type<typename AlgorithmBits::algorithm_type>;
+      using provider_type = provider_node<AlgorithmBits>;
+
+      output.spec.set_type(make_type_id<return_type>());
+
       registrar_.set_creator(
         [this, output = std::move(output)](auto /* predicates */, auto /* output_products */) {
           return std::make_unique<provider_type>(
