@@ -15,11 +15,11 @@ namespace phlex::experimental {
   template <typename T, std::size_t JoinNodePort>
   struct retriever {
     using handle_arg_t = detail::handle_value_type<T>;
-    product_query label;
+    product_query query;
     auto retrieve(auto const& messages) const
     {
       return std::get<JoinNodePort>(messages).store->template get_handle<handle_arg_t>(
-        label.name.name());
+        query.spec.name());
     }
   };
 

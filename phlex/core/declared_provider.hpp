@@ -67,7 +67,7 @@ namespace phlex::experimental {
                   AlgorithmBits alg,
                   product_query output) :
       declared_provider{std::move(name), output},
-      output_{output.name},
+      output_{output.spec},
       provider_{
         g, concurrency, [this, ft = alg.release_algorithm()](message const& msg, auto& output) {
           auto& [stay_in_graph, to_output] = output;
