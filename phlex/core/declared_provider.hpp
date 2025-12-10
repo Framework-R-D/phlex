@@ -4,7 +4,6 @@
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -27,14 +26,16 @@
 
 namespace phlex::experimental {
 
-  class declared_provider : public products_consumer {
+  class declared_provider {
   public:
-    declared_provider(algorithm_name name, product_queries output_products);
+    declared_provider(algorithm_name name, product_query output_product);
     virtual ~declared_provider();
 
+    std::string full_name() const;
+    product_query const& output_product() const noexcept;
+
+    virtual tbb::flow::receiver<message>* input_port() = 0;
     virtual tbb::flow::sender<message>& sender() = 0;
-    virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual product_specifications const& output() const = 0;
     virtual std::size_t num_calls() const = 0;
 
   protected:
@@ -42,6 +43,10 @@ namespace phlex::experimental {
     using const_accessor = stores_t::const_accessor;
 
     void report_cached_stores(stores_t const& stores) const;
+
+  private:
+    algorithm_name name_;
+    product_query output_product_;
   };
 
   using declared_provider_ptr = std::unique_ptr<declared_provider>;
@@ -52,20 +57,16 @@ namespace phlex::experimental {
   template <typename AlgorithmBits>
   class provider_node : public declared_provider, private detect_flush_flag {
     using function_t = typename AlgorithmBits::bound_type;
-    static constexpr auto M = number_output_objects<function_t>;
 
   public:
     using node_ptr_type = declared_provider_ptr;
-    // We are setting number_output_products to 0 because that will allow the
-    // registration mechanism to work, for now.
-    static constexpr auto number_output_products = 0;
 
     provider_node(algorithm_name name,
                   std::size_t concurrency,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
                   product_query output) :
-      declared_provider{std::move(name), {output}},
+      declared_provider{std::move(name), output},
       output_{output.name},
       provider_{
         g, concurrency, [this, ft = alg.release_algorithm()](message const& msg, auto& output) {
@@ -90,8 +91,7 @@ namespace phlex::experimental {
             ++calls_;
 
             products new_products;
-            // Add all adds all products; we should only have one. Fix this later.
-            new_products.add_all(output_, std::move(result));
+            new_products.add(output_.name(), std::move(result));
             auto store = std::make_shared<product_store>(
               msg.store->id(), this->full_name(), std::move(new_products));
 
@@ -115,18 +115,13 @@ namespace phlex::experimental {
 
     ~provider_node() { report_cached_stores(cache_); }
 
-    tbb::flow::receiver<message>& receiver() { return provider_; }
-
-    tbb::flow::receiver<message>& port_for(product_query const&) override { return provider_; }
-    std::vector<tbb::flow::receiver<message>*> ports() override { return {&provider_}; }
-
   private:
+    tbb::flow::receiver<message>* input_port() override { return &provider_; }
     tbb::flow::sender<message>& sender() override { return output_port<0>(provider_); }
-    tbb::flow::sender<message>& to_output() override { return output_port<1>(provider_); }
-    product_specifications const& output() const override { return output_; }
 
     std::size_t num_calls() const final { return calls_.load(); }
-    product_specifications output_;
+
+    product_specification output_;
     tbb::flow::multifunction_node<message, messages_t<2u>> provider_;
     std::atomic<std::size_t> calls_;
     stores_t cache_;

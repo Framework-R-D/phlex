@@ -20,15 +20,14 @@ namespace phlex::experimental {
         for (auto const& [_, p] : providers) {
           auto& provider = *p;
           // FIXME: The check should probably be more robust.  Right now, the
-          //        product_specification buried in the provider.input()[0] call does not
-          //        have its type set, which prevents us from doing a simpler comparison
-          //        (e.g., port.product_label == provider.input()[0]).
-          if (port.product_label.name.full() == provider.input()[0].name.full() &&
-              port.product_label.layer == provider.input()[0].layer) {
-            assert(provider.ports().size() == 1);
+          //        product_specification buried in the provider.output_product() call
+          //        does not have its type set, which prevents us from doing a simpler
+          //        comparison (e.g., port.product_label == provider.output_product()).
+          if (port.product_label.name.full() == provider.output_product().name.full() &&
+              port.product_label.layer == provider.output_product().layer) {
             auto it = result.find(provider.full_name());
             if (it == result.cend()) {
-              result.try_emplace(provider.full_name(), port.product_label, provider.ports()[0]);
+              result.try_emplace(provider.full_name(), port.product_label, provider.input_port());
             }
             spdlog::debug("Connecting provider {} to node {} (product: {})",
                           provider.full_name(),
