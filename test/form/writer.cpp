@@ -1,9 +1,9 @@
 // Copyright (C) 2025 ...
 
-#include "test_helpers.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form.hpp"
 #include "form/technology.hpp"
+#include "test_helpers.hpp"
 #include "toy_tracker.hpp"
 
 #include <cstdlib>  // For rand() and srand()
@@ -35,32 +35,35 @@ int main(int argc, char** argv)
   srand(time(0));
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
-  
+
   // CHANGED: mock_phlex → form::experimental
-  std::shared_ptr<form::experimental::product_type_names> type_map = form::experimental::createTypeMap();
-  
+  std::shared_ptr<form::experimental::product_type_names> type_map =
+    form::experimental::createTypeMap();
+
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
-  
+
   // CHANGED: Use form config classes directly
   form::experimental::config::output_item_config output_config;
   output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
   output_config.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
   output_config.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
   output_config.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
-  
+
   form::experimental::config::tech_setting_config tech_config;
-  tech_config.container_settings[form::technology::ROOT_TTREE]["trackStart"].emplace_back("auto_flush", "1");
-  tech_config.file_settings[form::technology::ROOT_TTREE]["toy.root"].emplace_back("compression", "kZSTD");
-  tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"].emplace_back("force_streamer_field", "true");
-  
-  
+  tech_config.container_settings[form::technology::ROOT_TTREE]["trackStart"].emplace_back(
+    "auto_flush", "1");
+  tech_config.file_settings[form::technology::ROOT_TTREE]["toy.root"].emplace_back("compression",
+                                                                                   "kZSTD");
+  tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"]
+    .emplace_back("force_streamer_field", "true");
+
   // CHANGED: Constructor signature
   form::experimental::form_interface form(type_map, output_config, tech_config);
-  
+
   ToyTracker tracker(4 * 1024);
-  
+
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
 
@@ -80,14 +83,14 @@ int main(int argc, char** argv)
       // sub-event writing called by phlex
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
-      
+
       // CHANGED: Extract segment_id once for all products
       std::string segment_id(seg_id_text);
-      
+
       // CHANGED: mock_phlex → form::experimental, renamed batch → products
       std::vector<form::experimental::product_with_name> products;
       std::string const creator = "Toy_Tracker";
-      
+
       // CHANGED: product_base no longer has id field
       form::experimental::product_with_name pb = {
         "trackStart", &track_start_x, std::type_index{typeid(std::vector<float>)}};
@@ -103,7 +106,7 @@ int main(int argc, char** argv)
         check += val;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << std::endl;
-      
+
       // CHANGED: product_base no longer has id field
       form::experimental::product_with_name pb_int = {
         "trackNumberHits", &track_n_hits, std::type_index{typeid(std::vector<int>)}};
@@ -117,7 +120,7 @@ int main(int argc, char** argv)
         checkPoints += point;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", checkPoints = " << checkPoints << std::endl;
-      
+
       // CHANGED: product_base no longer has id field
       form::experimental::product_with_name pb_points = {
         "trackStartPoints", &start_points, std::type_index{typeid(std::vector<TrackStart>)}};
@@ -140,19 +143,19 @@ int main(int argc, char** argv)
     // event writing, current framework, will also write references
     char evt_id_text[64];
     sprintf(evt_id_text, evt_id, nevent);
-    
+
     // CHANGED: Extract event_id
     std::string event_id(evt_id_text);
-    
+
     std::string const creator = "Toy_Tracker_Event";
-    
+
     // CHANGED: product_base no longer has id field
     form::experimental::product_with_name pb = {
       "trackStartX", &track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << std::endl;
-    
+
     // CHANGED: write signature now takes event_id separately
     form.write(creator, event_id, pb);
 
@@ -162,15 +165,3 @@ int main(int argc, char** argv)
   std::cout << "PHLEX: Write done " << std::endl;
   return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-

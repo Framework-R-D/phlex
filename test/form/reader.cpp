@@ -1,9 +1,9 @@
 // Copyright (C) 2025 ...
 
-#include "test_helpers.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form.hpp"
 #include "form/technology.hpp"
+#include "test_helpers.hpp"
 
 #include <iostream> // For cout
 #include <vector>
@@ -19,16 +19,15 @@ int main(int argc, char** argv)
   std::cout << "In main" << std::endl;
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
-  
+
   // CHANGED: mock_phlex → form::experimental
-  std::shared_ptr<form::experimental::product_type_names> type_map = form::experimental::createTypeMap();
-  
+  std::shared_ptr<form::experimental::product_type_names> type_map =
+    form::experimental::createTypeMap();
 
   // TODO: Read configuration from config file instead of hardcoding
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
 
-  
   // CHANGED: Use form config classes directly
   form::experimental::config::output_item_config output_config;
   output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
@@ -53,40 +52,40 @@ int main(int argc, char** argv)
       std::vector<float> const* track_start_x = nullptr;
       char seg_id_text[64];
       sprintf(seg_id_text, seg_id, nevent, nseg);
-      
+
       // CHANGED: Extract segment_id
       std::string segment_id(seg_id_text);
-      
+
       std::string const creator = "Toy_Tracker";
-      
+
       // CHANGED: product_base no longer has id field
       form::experimental::product_with_name pb = {
         "trackStart", track_start_x, std::type_index{typeid(std::vector<float>)}};
       type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
-      
+
       // CHANGED: read signature now takes segment_id separately
       form.read(creator, segment_id, pb);
       track_start_x =
         static_cast<std::vector<float> const*>(pb.data); //FIXME: Can this be done by FORM?
-      
+
       std::vector<int> const* track_n_hits = nullptr;
-      
+
       // CHANGED: product_base no longer has id field
       form::experimental::product_with_name pb_int = {
         "trackNumberHits", track_n_hits, std::type_index{typeid(std::vector<int>)}};
       type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
-      
+
       // CHANGED: read signature now takes segment_id separately
       form.read(creator, segment_id, pb_int);
       track_n_hits = static_cast<std::vector<int> const*>(pb_int.data);
 
       std::vector<TrackStart> const* start_points = nullptr;
-      
+
       // CHANGED: product_base no longer has id field
       form::experimental::product_with_name pb_points = {
         "trackStartPoints", start_points, std::type_index{typeid(std::vector<TrackStart>)}};
       type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
-      
+
       // CHANGED: read signature now takes segment_id separately
       form.read(creator, segment_id, pb_points);
       start_points = static_cast<std::vector<TrackStart> const*>(pb_points.data);
@@ -112,21 +111,21 @@ int main(int argc, char** argv)
 
     char evt_id_text[64];
     sprintf(evt_id_text, evt_id, nevent);
-    
+
     // CHANGED: Extract event_id
     std::string event_id(evt_id_text);
-    
+
     std::string const creator = "Toy_Tracker_Event";
-    
+
     // CHANGED: product_base no longer has id field
     form::experimental::product_with_name pb = {
       "trackStartX", track_x, std::type_index{typeid(std::vector<float>)}};
     type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
-    
+
     // CHANGED: read signature now takes event_id separately
     form.read(creator, event_id, pb);
     track_x = static_cast<std::vector<float> const*>(pb.data); //FIXME: Can this be done by FORM?
-    
+
     float check = 0.0;
     for (float val : *track_x)
       check += val;

@@ -22,9 +22,9 @@ namespace form::experimental {
 
   // Product structure - moved from mock_phlex, but without id field
   struct product_with_name {
-    std::string label;        // product name
-    void const* data;         // pointer to actual data
-    std::type_index type;     // type information
+    std::string label;    // product name
+    void const* data;     // pointer to actual data
+    std::type_index type; // type information
     // Note: id field removed - now passed separately to write()
   };
 
@@ -40,12 +40,12 @@ namespace form::experimental {
     void write(std::string const& creator,
                std::string const& segment_id,
                product_with_name const& product);
-    
+
     // Write multiple products - NEW: segment_id passed separately
     void write(std::string const& creator,
                std::string const& segment_id,
                std::vector<product_with_name> const& products);
-    
+
     // Read product - NEW: segment_id passed separately
     void read(std::string const& creator,
               std::string const& segment_id,
