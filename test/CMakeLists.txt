@@ -37,9 +37,15 @@ cet_test(
   Boost::json
   layer_generator
   )
-cet_test(vector_of_abstract_types USE_CATCH2_MAIN SOURCE
-         vector_of_abstract_types.cpp LIBRARIES phlex::core layer_generator
-         )
+cet_test(
+  vector_of_abstract_types
+  USE_CATCH2_MAIN
+  SOURCE
+  vector_of_abstract_types.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
+  )
 cet_test(
   cached_execution
   USE_CATCH2_MAIN
