@@ -12,5 +12,8 @@
       plugin: 'last_index',
       product_name: "a2"
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

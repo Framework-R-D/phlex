@@ -14,17 +14,18 @@ int main()
   // spdlog::flush_on(spdlog::level::trace);
 
   auto cells_to_process = [](framework_driver& driver) {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
 
     for (unsigned int i : std::views::iota(1u, max_events + 1)) {
-      auto event_store = job_store->make_child(i, "event", "Source");
-      event_store->add_product("number", i);
-      driver.yield(event_store);
+      auto event_index = job_index->make_child(i, "event");
+      driver.yield(event_index);
     }
   };
 
   framework_graph g{cells_to_process};
+  g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
+    .output_product("number"_in("event"));
   g.transform("pass_on", pass_on, concurrency::unlimited)
     .input_family("number"_in("event"))
     .output_products("different");

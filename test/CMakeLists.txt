@@ -164,6 +164,9 @@ cet_test(
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
          phlex::core
          )
+cet_test(provider_test USE_CATCH2_MAIN SOURCE provider_test.cpp LIBRARIES
+         phlex::core
+         )
 cet_test(
   type_distinction
   USE_CATCH2_MAIN

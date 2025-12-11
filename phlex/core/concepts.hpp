@@ -57,6 +57,10 @@ namespace phlex::experimental {
                            expects_input_parameters<T, product_store const&> && returns<T, void>;
 
   template <typename T>
+  concept is_provider_like =
+    expects_input_parameters<T, data_cell_index const&> && number_output_objects<T> == 1ull;
+
+  template <typename T>
   concept is_fold_like =
     at_least_two_input_parameters<T> && first_input_parameter_is_non_const_lvalue_reference<T> &&
     first_input_parameter_is_sendable<T> &&

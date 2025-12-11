@@ -104,8 +104,8 @@ namespace phlex::experimental {
                        ++product_count_[store->id()->layer_hash()];
                        products new_products;
                        new_products.add_all(output_, std::move(result));
-                       a->second =
-                         store->make_continuation(this->full_name(), std::move(new_products));
+                       a->second = std::make_shared<product_store>(
+                         store->id(), this->full_name(), std::move(new_products));
 
                        message const new_msg{a->second, msg.eom, message_id};
                        stay_in_graph.try_put(new_msg);

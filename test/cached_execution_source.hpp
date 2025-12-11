@@ -24,23 +24,19 @@ namespace test {
     {
       using namespace phlex::experimental;
 
-      auto job_store = product_store::base();
-      driver.yield(job_store);
+      auto job_index = data_cell_index::base_ptr();
+      driver.yield(job_index);
 
       for (std::size_t i : std::views::iota(0u, n_runs)) {
-        auto run_store = job_store->make_child(i, "run");
-        run_store->add_product<int>("number", 2 * i);
-        driver.yield(run_store);
+        auto run_index = job_index->make_child(i, "run");
+        driver.yield(run_index);
 
         for (std::size_t j : std::views::iota(0u, n_subruns)) {
-          auto subrun_store = run_store->make_child(j, "subrun");
-          subrun_store->add_product<int>("another", 3 * j);
-          driver.yield(subrun_store);
-
+          auto subrun_index = run_index->make_child(j, "subrun");
+          driver.yield(subrun_index);
           for (std::size_t k : std::views::iota(0u, n_events)) {
-            auto event_store = subrun_store->make_child(k, "event");
-            event_store->add_product<int>("still", 4 * k);
-            driver.yield(event_store);
+            auto event_index = subrun_index->make_child(k, "event");
+            driver.yield(event_index);
           }
         }
       }

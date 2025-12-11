@@ -11,16 +11,19 @@
     b_creator: {
       plugin: 'last_index',
       when: ['even_filter:accept_even_ids'],
-      product_name: 'b',
+      produces: 'b',
     },
     c_creator: {
       plugin: 'last_index',
       when: ['even_filter:accept_even_ids'],
-      product_name: 'c',
+      produces: 'c',
     },
     d: {
       plugin: 'verify_difference',
       expected: 0
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

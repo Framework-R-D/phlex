@@ -16,5 +16,8 @@
       plugin: 'verify_difference',
       expected: 0
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

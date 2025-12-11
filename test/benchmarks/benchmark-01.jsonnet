@@ -7,5 +7,8 @@
     a_creator: {
       plugin: 'last_index',
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

@@ -34,15 +34,15 @@ namespace phlex::experimental {
 
   std::size_t layer_sentry::depth() const noexcept { return depth_; }
 
-  framework_graph::framework_graph(product_store_ptr store, int const max_parallelism) :
-    framework_graph{[store](framework_driver& driver) { driver.yield(store); }, max_parallelism}
+  framework_graph::framework_graph(data_cell_index_ptr index, int const max_parallelism) :
+    framework_graph{[index](framework_driver& driver) { driver.yield(index); }, max_parallelism}
   {
   }
 
   // FIXME: The algorithm below should support user-specified flush stores.
-  framework_graph::framework_graph(detail::next_store_t next_store, int const max_parallelism) :
+  framework_graph::framework_graph(detail::next_index_t next_index, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
-    driver_{std::move(next_store)},
+    driver_{std::move(next_index)},
     src_{graph_,
          [this](tbb::flow_control& fc) mutable -> message {
            auto item = driver_();
@@ -51,8 +51,8 @@ namespace phlex::experimental {
              fc.stop();
              return {};
            }
-           auto store = *item;
-           assert(not store->is_flush());
+           auto index = *item;
+           auto store = std::make_shared<product_store>(index, "Source");
            return sender_.make_message(accept(std::move(store)));
          }},
     multiplexer_{graph_}
@@ -152,6 +152,7 @@ namespace phlex::experimental {
                multiplexer_,
                filters_,
                nodes_.outputs,
+               nodes_.providers,
                nodes_.predicates,
                nodes_.observers,
                nodes_.folds,

@@ -13,14 +13,12 @@ namespace {
 
     void next(phlex::experimental::framework_driver& driver) const
     {
-      auto job_store = phlex::experimental::product_store::base();
-      driver.yield(job_store);
+      auto job_index = phlex::experimental::data_cell_index::base_ptr();
+      driver.yield(job_index);
 
       for (int i : std::views::iota(1, n_ + 1)) {
-        auto store = job_store->make_child(i, "event");
-        store->add_product("i", i);
-        store->add_product("j", -i);
-        driver.yield(store);
+        auto index = job_index->make_child(i, "event");
+        driver.yield(index);
       }
     }
 

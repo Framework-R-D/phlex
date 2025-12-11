@@ -31,6 +31,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -45,6 +46,9 @@
 using namespace phlex::experimental;
 
 namespace {
+  // Provider function
+  unsigned int provide_number(data_cell_index const& index) { return index.number(); }
+
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 
   // job -> run -> event layers
@@ -56,25 +60,23 @@ namespace {
 
   void cells_to_process(framework_driver& driver)
   {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
 
     // job -> run -> event layers
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run");
-      driver.yield(run_store);
+      auto run_index = job_index->make_child(i, "run");
+      driver.yield(run_index);
       for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event");
-        event_store->add_product("number", j);
-        driver.yield(event_store);
+        auto event_index = run_index->make_child(j, "event");
+        driver.yield(event_index);
       }
     }
 
     // job -> event layers
     for (unsigned i : std::views::iota(0u, top_level_event_limit)) {
-      auto tp_store = job_store->make_child(i, "event");
-      tp_store->add_product("number", i);
-      driver.yield(tp_store);
+      auto tp_event_index = job_index->make_child(i, "event");
+      driver.yield(tp_event_index);
     }
   }
 }
@@ -82,6 +84,10 @@ namespace {
 TEST_CASE("Different hierarchies used with fold", "[graph]")
 {
   framework_graph g{cells_to_process};
+
+  // Register provider
+  g.provide("provide_number", provide_number, concurrency::unlimited)
+    .output_product("number"_in("event"));
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
     .input_family("number"_in("event"))

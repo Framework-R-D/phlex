@@ -12,15 +12,15 @@ namespace phlex::experimental {
     if (data_layer.empty()) {
       throw std::runtime_error("Cannot specify the empty string as a data layer.");
     }
-    return {std::move(name), std::move(data_layer)};
+    return {std::move(spec), std::move(data_layer)};
   }
 
   std::string product_query::to_string() const
   {
     if (layer.empty()) {
-      return name.full();
+      return spec.full();
     }
-    return fmt::format("{} ϵ {}", name.full(), layer);
+    return fmt::format("{} ϵ {}", spec.full(), layer);
   }
 
   product_tag operator""_in(char const* product_name, std::size_t length)
@@ -33,19 +33,19 @@ namespace phlex::experimental {
 
   bool operator==(product_query const& a, product_query const& b)
   {
-    return std::tie(a.name, a.layer) == std::tie(b.name, b.layer);
+    return std::tie(a.spec, a.layer) == std::tie(b.spec, b.layer);
   }
 
   bool operator!=(product_query const& a, product_query const& b) { return !(a == b); }
 
   bool operator<(product_query const& a, product_query const& b)
   {
-    return std::tie(a.name, a.layer) < std::tie(b.name, b.layer);
+    return std::tie(a.spec, a.layer) < std::tie(b.spec, b.layer);
   }
 
-  std::ostream& operator<<(std::ostream& os, product_query const& label)
+  std::ostream& operator<<(std::ostream& os, product_query const& query)
   {
-    os << label.to_string();
+    os << query.to_string();
     return os;
   }
 }

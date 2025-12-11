@@ -21,9 +21,8 @@ namespace {
   public:
     void next(framework_driver& driver)
     {
-      auto job_store = product_store::base();
-      job_store->add_product("max_parallelism", max_allowed_parallelism::active_value());
-      driver.yield(job_store);
+      auto job_index = data_cell_index::base_ptr();
+      driver.yield(job_index);
     }
   };
 }
@@ -32,6 +31,10 @@ namespace {
 PHLEX_EXPERIMENTAL_REGISTER_SOURCE(send_parallelism)
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
+  m.provide("provide_max_parallelism",
+            [](data_cell_index const&) { return max_allowed_parallelism::active_value(); })
+    .output_product("max_parallelism"_in("job"));
+
   m.observe("verify_expected",
             [expected = config.get<std::size_t>("expected_parallelism")](std::size_t actual) {
               assert(actual == expected);

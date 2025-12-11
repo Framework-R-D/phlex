@@ -47,9 +47,9 @@ namespace phlex::experimental {
 
   class framework_graph {
   public:
-    explicit framework_graph(product_store_ptr store,
+    explicit framework_graph(data_cell_index_ptr index,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
-    explicit framework_graph(detail::next_store_t f,
+    explicit framework_graph(detail::next_index_t f,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
 
@@ -108,6 +108,11 @@ namespace phlex::experimental {
       return make_glue().transform(std::move(name), std::move(f), c);
     }
 
+    auto provide(std::string name, auto f, concurrency c = concurrency::serial)
+    {
+      return make_glue().provide(std::move(name), std::move(f), c);
+    }
+
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
@@ -115,6 +120,31 @@ namespace phlex::experimental {
     }
 
   private:
+    /**
+     * Creates a glue object that binds framework components together.
+     *
+     * @tparam T Type of object to construct and bind, defaults to void_tag
+     * @tparam Construct Boolean flag controlling whether to construct T, defaults to true
+     * @tparam Args Variadic template for constructor arguments
+     *
+     * @param args Arguments forwarded to T's constructor if Construct is true
+     *
+     * @return glue<T> A glue object containing the constructed T (if any) and framework components
+     *
+     * This helper creates a glue object that connects framework components. If T is void_tag,
+     * no object is constructed and the glue acts as a pure connector between framework parts.
+     * This is useful for simple operations that don't require maintaining state or complex logic.
+     *
+     * If T is not void_tag and Construct is true, it will construct a shared_ptr to T using
+     * the provided args. This allows the glue to maintain state and complex behavior through
+     * the lifetime of the constructed T object.
+     *
+     * The glue object binds together:
+     * - The TBB flow graph
+     * - Node catalog for tracking registered nodes
+     * - Optional instance of T (if not void_tag)
+     * - Registration error collection
+     */
     template <typename T = void_tag, bool Construct = true, typename... Args>
     glue<T> make_glue(Args&&... args)
     {

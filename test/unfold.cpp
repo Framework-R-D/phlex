@@ -78,6 +78,14 @@ namespace {
     auto const expected_sum = (sum.data_cell_index().number() + 1) * 10;
     CHECK(*sum == expected_sum);
   }
+
+  // Provider algorithms
+  unsigned int provide_max_number(data_cell_index const& id) { return 10u * (id.number() + 1); }
+
+  numbers_t provide_ten_numbers(data_cell_index const& id)
+  {
+    return numbers_t(10, id.number() + 1);
+  }
 }
 
 TEST_CASE("Splitting the processing", "[graph]")
@@ -85,17 +93,20 @@ TEST_CASE("Splitting the processing", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto cells_to_process = [index_limit](auto& driver) {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+    auto job_index = data_cell_index::base_ptr();
+    driver.yield(job_index);
     for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto event_store = job_store->make_child(i, "event");
-      event_store->add_product<unsigned>("max_number", 10u * (i + 1));
-      event_store->add_product<numbers_t>("ten_numbers", numbers_t(10, i + 1));
-      driver.yield(event_store);
+      auto event_index = job_index->make_child(i, "event");
+      driver.yield(event_index);
     }
   };
 
   framework_graph g{cells_to_process};
+
+  g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
+    .output_product("max_number"_in("event"));
+  g.provide("provide_ten_numbers", provide_ten_numbers, concurrency::unlimited)
+    .output_product("ten_numbers"_in("event"));
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family("max_number"_in("event"))

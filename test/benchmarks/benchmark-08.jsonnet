@@ -25,5 +25,8 @@ local max_number = 100000;
       consumes: 'a',
       max_number: max_number,
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }
