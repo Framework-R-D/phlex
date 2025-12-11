@@ -111,6 +111,15 @@ cet_test(
   phlex::core
   )
 cet_test(
+  anonymous_products
+  USE_CATCH2_MAIN
+  SOURCE
+  anonymous_products.cpp
+  LIBRARIES
+  Boost::json
+  phlex::core
+  )
+cet_test(
   data_cell_counting
   USE_CATCH2_MAIN
   SOURCE

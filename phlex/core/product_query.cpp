@@ -1,6 +1,8 @@
 #include "phlex/core/product_query.hpp"
 
 #include "fmt/format.h"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/product_specification.hpp"
 
 #include <ostream>
 #include <stdexcept>
@@ -21,6 +23,11 @@ namespace phlex::experimental {
       return spec.full();
     }
     return fmt::format("{} ϵ {}", spec.full(), layer);
+  }
+
+  product_tag from(char const* creator)
+  {
+    return {.name = product_specification(algorithm_name(creator), "", type_id())};
   }
 
   product_tag operator""_in(char const* product_name, std::size_t length)
