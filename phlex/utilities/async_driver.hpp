@@ -28,6 +28,7 @@ namespace phlex::experimental {
       if (gear_ == states::off) {
         thread_ = std::jthread{[this] {
           try {
+            gear_ = states::drive;
             driver_(*this);
           } catch (...) {
             cached_exception_ = std::current_exception();
@@ -35,7 +36,6 @@ namespace phlex::experimental {
           gear_ = states::park;
           cv_.notify_one();
         }};
-        gear_ = states::drive;
       } else {
         cv_.notify_one();
       }
