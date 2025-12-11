@@ -28,11 +28,6 @@ endif()
 
 add_library(form_module form_module.cpp)
 
-target_link_libraries(form_module PRIVATE 
-    phlex::module
-#    phlex::experimental
-)
-
-target_link_libraries(form_module PRIVATE phlex::module phlex::experimental)
+target_link_libraries(form_module PRIVATE phlex::module)
 
 target_include_directories(form_module PRIVATE ${PROJECT_SOURCE_DIR})

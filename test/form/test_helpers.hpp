@@ -32,10 +32,6 @@ namespace form::experimental {
 
     // Register all your data product types here
     // Easy to add more in the future:
-    // registerVectorType<TrackStart>(*type_map, "TrackStart");
-    // registerVectorType<HitCollection>(*type_map, "HitCollection");
-    // registerVectorType<Vertex>(*type_map, "Vertex");
-
     return type_map;
   }
 }
