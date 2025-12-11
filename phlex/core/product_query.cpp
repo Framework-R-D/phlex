@@ -27,7 +27,7 @@ namespace phlex::experimental {
 
   product_tag from(char const* creator)
   {
-    return {.name = product_specification(algorithm_name(creator), "", type_id())};
+    return {.spec = product_specification(algorithm_name(creator), "", type_id())};
   }
 
   product_tag operator""_in(char const* product_name, std::size_t length)
