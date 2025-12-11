@@ -113,7 +113,7 @@ jobs:
 
       - name: Detect act environment
         id: detect_act
-        uses: ${{ github.repository }}/.github/actions/detect-act-env@main
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
 
   detect-changes:
     needs: pre-check
@@ -140,7 +140,7 @@ jobs:
 
       - name: Detect C++ and CMake changes
         id: filter
-        uses: ${{ github.repository }}/.github/actions/detect-relevant-changes@main
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
         with:
           repo-path: ${{ env.local-checkout-path }}
           base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
@@ -167,7 +167,7 @@ jobs:
       matrix: ${{ steps.generate.outputs.matrix }}
     steps:
       - id: generate
-        uses: ${{ github.repository }}/.github/actions/generate-build-matrix@main
+        uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
         with:
           user-input: ${{ (github.event_name == 'workflow_call' && inputs.build-combinations) || github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
@@ -200,28 +200,32 @@ jobs:
         repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Setup build environment
-      uses: ${{ github.repository }}/.github/actions/setup-build-env@main
+      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
       with:
         build-path: ${{ env.local-build-path }}
 
     - name: Announce CMake configuration
       run: echo "➡️ Configuring CMake..."
 
+    - name: Extract repository name
+      id: repo_name
+      run: echo "name=$(echo '${{ needs.pre-check.outputs.repo }}' | sed 's:.*/::')" >> $GITHUB_OUTPUT
+
     - name: Configure CMake
       id: configure
-      uses: ${{ github.repository }}/.github/actions/configure-cmake@main
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         source-path: ${{ env.local-checkout-path }}
         build-path: ${{ env.local-build-path }}
         build-type: ${{ env.BUILD_TYPE }}
         cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
         extra-options: |
-          ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', needs.pre-check.outputs.repo) || '' }}
-          ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', needs.pre-check.outputs.repo) || '' }}
+          ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', steps.repo_name.outputs.name) || '' }}
+          ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', steps.repo_name.outputs.name) || '' }}
 
     - name: Build
       id: build
-      uses: ${{ github.repository }}/.github/actions/build-cmake@main
+      uses: Framework-R-D/phlex/.github/actions/build-cmake@main
       with:
         build-path: ${{ env.local-build-path }}
 

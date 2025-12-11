@@ -69,7 +69,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup build environment
-        uses: ${{ github.repository }}/.github/actions/setup-build-env@main
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
         with:
           build-path: ${{ env.local_build_path }}
 
@@ -83,7 +83,7 @@ jobs:
 
       - name: Produce compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
-        uses: ${{ github.repository }}/.github/actions/configure-cmake@main
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
         with:
           build-type: ${{ env.BUILD_TYPE }}
           source-path: ${{ env.local_checkout_path }}

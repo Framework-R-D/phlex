@@ -20,6 +20,14 @@ on:
         required: false
         type: boolean
         default: false
+      pr-base-sha:
+        description: "Base SHA of the PR for relevance check"
+        required: false
+        type: string
+      pr-head-sha:
+        description: "Head SHA of the PR for relevance check"
+        required: false
+        type: string
 
 env:
   local-checkout-path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
@@ -32,7 +40,7 @@ jobs:
     steps:
       - name: Detect act environment
         id: detect_act
-        uses: ${{ github.repository }}/.github/actions/detect-act-env@main
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
 
   detect-changes:
     needs: pre-check
@@ -55,11 +63,11 @@ jobs:
 
     - name: Detect workflow changes
       id: filter
-      uses: ${{ github.repository }}/.github/actions/detect-relevant-changes@main
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: ${{ env.local-checkout-path }}
-        base-ref: ${{ github.event.pull_request.base.sha || github.event.before }}
-        head-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || github.event.pull_request.head.sha || github.sha }}
         include-globs: |
           .github/workflows/**/*.yml
           .github/workflows/**/*.yaml

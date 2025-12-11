@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Get PR Info
         id: get_pr
-        uses: ${{ github.repository }}/.github/actions/get-pr-info@main
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
   apply_cmake_formatting:
     runs-on: ubuntu-latest
