@@ -1,5 +1,5 @@
 name: CMake Build and Test
-run-name: "${{ github.actor }} building and testing Phlex"
+run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
 
 on:
   pull_request:
@@ -21,6 +21,41 @@ on:
           Default (if empty): Run all except clang/none and clang/valgrind.
         required: false
         default: ''
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      build-path:
+        description: "Path for build artifacts"
+        required: false
+        type: string
+      skip-relevance-check:
+        description: "Bypass relevance check"
+        required: false
+        type: boolean
+        default: false
+      build-combinations:
+        description: "A space- or comma-separated list of build combinations to run"
+        required: false
+        type: string
+      ref:
+        description: "The branch or ref to checkout"
+        required: false
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: false
+        type: string
+      pr-base-sha:
+        description: "Base SHA of the PR for relevance check"
+        required: false
+        type: string
+      pr-head-sha:
+        description: "Head SHA of the PR for relevance check"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -29,17 +64,23 @@ permissions:
 env:
   BUILD_TYPE: Release
   CICOLOR_FORCE: 1
+  local-checkout-path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local-build-path: ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}
 
 jobs:
   pre-check:
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_call' ||
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
-        startsWith(github.event.comment.body, '@phlexbot build')
+        (
+          startsWith(github.event.comment.body, '@phlexbot build') ||
+          startsWith(github.event.comment.body, format('@{0}bot build', github.event.repository.name))
+        )
       )
     runs-on: ubuntu-latest
     permissions:
@@ -48,9 +89,8 @@ jobs:
 
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      pr_details: ${{ steps.pr.outputs.result }}
-      sha: ${{ steps.pr.outputs.sha || github.sha }}
-      repo: ${{ steps.pr.outputs.repo || github.repository }}
+      sha: ${{ (github.event_name == 'workflow_call' && inputs.ref) || steps.pr.outputs.sha || github.sha }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || steps.pr.outputs.repo || github.repository }}
 
     steps:
       - name: Get PR details for comment trigger
@@ -67,18 +107,23 @@ jobs:
             return {
               ref: pr.data.head.ref,
               sha: pr.data.head.sha,
+              repo: pr.data.head.repo.full_name,
               base_sha: pr.data.base.sha
             };
 
       - name: Detect act environment
         id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+        uses: ${{ github.repository }}/.github/actions/detect-act-env@main
 
   detect-changes:
     needs: pre-check
     if: >
       needs.pre-check.result == 'success' &&
-      (github.event_name == 'pull_request' || github.event_name == 'push') &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_call' && inputs.skip-relevance-check != 'true')
+      ) &&
       needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -91,15 +136,15 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          path: phlex-src
+          path: ${{ env.local-checkout-path }}
 
       - name: Detect C++ and CMake changes
         id: filter
-        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        uses: ${{ github.repository }}/.github/actions/detect-relevant-changes@main
         with:
-          repo-path: phlex-src
-          base-ref: ${{ github.event.pull_request.base.sha || github.event.before }}
-          head-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          repo-path: ${{ env.local-checkout-path }}
+          base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || github.event.pull_request.head.sha || github.sha }}
           file-type: |
             cpp
             cmake
@@ -122,9 +167,9 @@ jobs:
       matrix: ${{ steps.generate.outputs.matrix }}
     steps:
       - id: generate
-        uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
+        uses: ${{ github.repository }}/.github/actions/generate-build-matrix@main
         with:
-          user-input: ${{ github.event.inputs.build-combinations }}
+          user-input: ${{ (github.event_name == 'workflow_call' && inputs.build-combinations) || github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
 
   build:
@@ -134,6 +179,7 @@ jobs:
       (
         github.event_name == 'workflow_dispatch' ||
         github.event_name == 'issue_comment' ||
+        (github.event_name == 'workflow_call' && inputs.skip-relevance-check == 'true') ||
         needs.pre-check.outputs.is_act == 'true' ||
         (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
       )
@@ -149,35 +195,41 @@ jobs:
     - name: Check out code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        path: phlex-src
+        path: ${{ env.local-checkout-path }}
         ref: ${{ needs.pre-check.outputs.sha }}
         repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Setup build environment
-      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+      uses: ${{ github.repository }}/.github/actions/setup-build-env@main
+      with:
+        build-path: ${{ env.local-build-path }}
 
     - name: Announce CMake configuration
       run: echo "➡️ Configuring CMake..."
 
     - name: Configure CMake
       id: configure
-      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+      uses: ${{ github.repository }}/.github/actions/configure-cmake@main
       with:
+        source-path: ${{ env.local-checkout-path }}
+        build-path: ${{ env.local-build-path }}
         build-type: ${{ env.BUILD_TYPE }}
         cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
         extra-options: |
-          ${{ matrix.sanitizer == 'asan' && '-DPHLEX_ENABLE_ASAN=ON' || '' }}
-          ${{ matrix.sanitizer == 'tsan' && '-DPHLEX_ENABLE_TSAN=ON' || '' }}
+          ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', needs.pre-check.outputs.repo) || '' }}
+          ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', needs.pre-check.outputs.repo) || '' }}
 
     - name: Build
       id: build
-      uses: Framework-R-D/phlex/.github/actions/build-cmake@main
+      uses: ${{ github.repository }}/.github/actions/build-cmake@main
+      with:
+        build-path: ${{ env.local-build-path }}
 
     - name: Run tests
       if: matrix.sanitizer != 'valgrind'
       run: |
         . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/phlex-build"
+        cd "$GITHUB_WORKSPACE/${{ env.local-build-path }}"
 
         echo "➡️ Running tests..."
         echo "::group::Running ctest"
@@ -194,7 +246,7 @@ jobs:
       if: matrix.sanitizer == 'valgrind'
       run: |
         . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/phlex-build"
+        cd "$GITHUB_WORKSPACE/${{ env.local-build-path }}"
 
         echo "➡️ Running Valgrind tests..."
         echo "::group::Running ctest -T memcheck"
@@ -211,9 +263,9 @@ jobs:
     if: >
       needs.pre-check.result == 'success' &&
       github.event_name != 'workflow_dispatch' &&
+      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
       needs.pre-check.outputs.is_act != 'true' &&
-      needs.detect-changes.result == 'success' &&
-      needs.detect-changes.outputs.has_changes != 'true'
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read

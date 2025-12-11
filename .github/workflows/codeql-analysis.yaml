@@ -9,6 +9,33 @@ on:
   schedule:
     - cron: '0 3 * * 0'  # weekly (UTC) — adjust as needed
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      build-path:
+        description: "Path for build artifacts"
+        required: false
+        type: string
+      language-matrix:
+        description: "JSON array of languages to analyze"
+        required: false
+        type: string
+        default: '["cpp", "python", "actions"]'
+      pr-number:
+        description: "PR number if run in PR context"
+        required: false
+        type: string
+      pr-head-repo:
+        description: "The full name of the PR head repository"
+        required: false
+        type: string
+      pr-base-repo:
+        description: "The full name of the PR base repository"
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -18,7 +45,6 @@ permissions:
 env:
   BUILD_TYPE: RelWithDebInfo
   CPP_COMPILER: g++
-  CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/phlex-build/compile_commands.json
 
 jobs:
   codeql:
@@ -26,36 +52,42 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
+    env:
+      local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+      local_build_path: ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}
+      CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}/compile_commands.json
     strategy:
       fail-fast: false
       matrix:
-        language: ['cpp', 'python', 'actions']
+        language: ${{ fromJson((github.event_name == 'workflow_call' && inputs.language-matrix) || '["cpp", "python", "actions"]') }}
     timeout-minutes: 120
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: phlex-src
+          path: ${{ env.local_checkout_path }}
           fetch-depth: 0
 
       - name: Setup build environment
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        uses: ${{ github.repository }}/.github/actions/setup-build-env@main
         with:
-          build-path: phlex-build
+          build-path: ${{ env.local_build_path }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@b20883b0cd1f46c72ae0ba6d1090936928f9fa30 # v4.32.0
         with:
           languages: ${{ matrix.language }}
-          config-file: phlex-src/.github/codeql/codeql-config.yml
-          source-root: phlex-src
+          config-file: ${{ env.local_checkout_path }}/.github/codeql/codeql-config.yml
+          source-root: ${{ env.local_checkout_path }}
           build-mode: none
 
       - name: Produce compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: ${{ github.repository }}/.github/actions/configure-cmake@main
         with:
           build-type: ${{ env.BUILD_TYPE }}
+          source-path: ${{ env.local_checkout_path }}
+          build-path: ${{ env.local_build_path }}
 
       - name: Verify compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
@@ -70,7 +102,7 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@b20883b0cd1f46c72ae0ba6d1090936928f9fa30 # v4.32.0
         with:
-          checkout_path: phlex-src
+          checkout_path: ${{ env.local_checkout_path }}
           output: results
           category: ${{ matrix.language }}
 
@@ -119,8 +151,15 @@ jobs:
             --min-level "${CODEQL_MIN_LEVEL}"
             --log-path "${{ steps.set_log_path.outputs.path }}"
           )
+          PR_NUMBER=""
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            ARGS+=(--ref "refs/pull/${{ github.event.pull_request.number }}/merge")
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          elif [ "${{ github.event_name }}" = "workflow_call" ]; then
+            PR_NUMBER="${{ inputs.pr-number }}"
+          fi
+
+          if [ -n "$PR_NUMBER" ]; then
+            ARGS+=(--ref "refs/pull/${PR_NUMBER}/merge")
           fi
           python3 scripts/check_codeql_alerts.py "${ARGS[@]}"
 

@@ -5,38 +5,58 @@ on:
   issue_comment:
     types:
       - created
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      ref:
+        description: "The branch or ref to checkout"
+        required: true
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: true
+        type: string
 
 permissions:
   pull-requests: write
   contents: write
 
+env:
+  local-checkout-path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+
 jobs:
   parse-command:
     runs-on: ubuntu-latest
     name: Parse bot command
-    if: |
+    if: >
+      github.event_name == 'issue_comment' &&
       github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '@phlexbot python-fix')
+      (
+        startsWith(github.event.comment.body, '@phlexbot python-fix') ||
+        startsWith(github.event.comment.body, format('@{0}bot python-fix', github.event.repository.name))
+      )
     outputs:
       ref: ${{ steps.get_pr.outputs.ref }}
-      sha: ${{ steps.get_pr.outputs.sha }}
       repo: ${{ steps.get_pr.outputs.repo }}
     steps:
       - name: Get PR Info
         id: get_pr
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+        uses: ${{ github.repository }}/.github/actions/get-pr-info@main
 
   apply_fixes:
     runs-on: ubuntu-latest
     name: Apply fixes
     needs: parse-command
-    if: ${{ needs.parse-command.result == 'success' }}
+    if: github.event_name == 'workflow_call' || needs.parse-command.result == 'success'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: phlex-src
-          ref: ${{ needs.parse-command.outputs.ref }}
-          repository: ${{ needs.parse-command.outputs.repo }}
+          path: ${{ env.local-checkout-path }}
+          ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.parse-command.outputs.ref }}
+          repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.parse-command.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
@@ -49,7 +69,7 @@ jobs:
           pip install ruff
 
       - name: Run ruff format and fix
-        working-directory: phlex-src
+        working-directory: ${{ env.local-checkout-path }}
         env:
           FORCE_COLOR: 1
         run: |
@@ -59,10 +79,10 @@ jobs:
           ruff check --fix . || true
 
       - name: Handle fix commit
-        uses: ./phlex-src/.github/actions/handle-fix-commit
+        uses: ./${{ env.local-checkout-path }}/.github/actions/handle-fix-commit
         with:
           tool: 'Python linting'
           working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
-          pr-info-repo: ${{ needs.parse-command.outputs.repo }}
+          pr-info-ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.parse-command.outputs.ref }}
+          pr-info-repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.parse-command.outputs.repo }}

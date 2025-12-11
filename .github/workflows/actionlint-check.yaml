@@ -9,6 +9,20 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      skip-relevance-check:
+        description: "Bypass relevance check"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  local-checkout-path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
 
 jobs:
   pre-check:
@@ -18,11 +32,14 @@ jobs:
     steps:
       - name: Detect act environment
         id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+        uses: ${{ github.repository }}/.github/actions/detect-act-env@main
 
   detect-changes:
     needs: pre-check
-    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
+      needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,15 +51,15 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: 0
-        path: phlex-src
+        path: ${{ env.local-checkout-path }}
 
     - name: Detect workflow changes
       id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      uses: ${{ github.repository }}/.github/actions/detect-relevant-changes@main
       with:
-        repo-path: phlex-src
-        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        repo-path: ${{ env.local-checkout-path }}
+        base-ref: ${{ github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event.pull_request.head.sha || github.sha }}
         include-globs: |
           .github/workflows/**/*.yml
           .github/workflows/**/*.yaml
@@ -63,6 +80,7 @@ jobs:
     needs: [pre-check, detect-changes]
     if: >
       github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_call' && inputs.skip-relevance-check == 'true') ||
       needs.pre-check.outputs.is_act == 'true' ||
       (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
@@ -73,7 +91,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        path: phlex-src
+        path: ${{ env.local-checkout-path }}
 
     - name: Announce actionlint check
       run: echo "➡️ Running actionlint check..."
@@ -82,7 +100,7 @@ jobs:
       id: lint
       run: |
         docker run --rm \
-          -v "${{ github.workspace }}/phlex-src:/work" \
+          -v "${{ github.workspace }}/${{ env.local-checkout-path }}:/work" \
           -w /work \
           rhysd/actionlint:latest \
           -config-file .github/actionlint.yaml
@@ -102,9 +120,9 @@ jobs:
     needs: [pre-check, detect-changes]
     if: >
       github.event_name != 'workflow_dispatch' &&
+      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
       needs.pre-check.outputs.is_act != 'true' &&
-      needs.detect-changes.result == 'success' &&
-      needs.detect-changes.outputs.has_changes != 'true'
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
