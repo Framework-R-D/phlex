@@ -135,6 +135,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout Phlex for scripts
+        if: github.event_name == 'workflow_call'
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          repository: Framework-R-D/phlex
+          path: phlex
+          fetch-depth: 0
+
       - name: Download CodeQL SARIF artifacts
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -161,7 +169,12 @@ jobs:
           if [ -n "$PR_NUMBER" ]; then
             ARGS+=(--ref "refs/pull/${PR_NUMBER}/merge")
           fi
-          python3 scripts/check_codeql_alerts.py "${ARGS[@]}"
+
+          script_path="scripts/check_codeql_alerts.py"
+          if [ "${{ github.event_name }}" = "workflow_call" ]; then
+            script_path="phlex/$script_path"
+          fi
+          python3 "$script_path" "${ARGS[@]}"
 
       - name: Upload CodeQL alerts debug log
         if: always()

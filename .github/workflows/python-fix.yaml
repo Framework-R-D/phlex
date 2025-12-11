@@ -79,7 +79,7 @@ jobs:
           ruff check --fix . || true
 
       - name: Handle fix commit
-        uses: ./${{ env.local-checkout-path }}/.github/actions/handle-fix-commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: 'Python linting'
           working-directory: phlex-src

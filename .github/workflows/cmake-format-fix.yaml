@@ -75,7 +75,7 @@ jobs:
           gersemi -i ${{ env.local-checkout-path }}
 
       - name: Handle fix commit
-        uses: ./${{ env.local-checkout-path }}/.github/actions/handle-fix-commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: cmake-format
           working-directory: phlex-src
