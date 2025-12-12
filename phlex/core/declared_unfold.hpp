@@ -171,6 +171,10 @@ namespace phlex::experimental {
         auto child = g.make_child_for(counter++, std::move(new_products));
         message const child_msg{child, eom->make_child(child->id()), ++msg_counter_};
         output_port<0>(unfold_).try_put(child_msg);
+
+        // Every data cell needs a flush (for now)
+        message const child_flush_msg{child->make_flush(), nullptr, ++msg_counter_};
+        output_port<0>(unfold_).try_put(child_flush_msg);
       }
     }
 
