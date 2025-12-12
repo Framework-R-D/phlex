@@ -6,7 +6,11 @@
 
 namespace phlex::experimental {
 
-  layer_generator::layer_generator() = default;
+  layer_generator::layer_generator()
+  {
+    // Always seed the "job" in case only the job is desired
+    parent_to_children_["/job"] = {};
+  }
 
   void layer_generator::add_layer(std::string layer_name, layer_spec lspec)
   {
@@ -72,7 +76,6 @@ namespace phlex::experimental {
                                 data_cell_index_ptr index,
                                 bool recurse) const
   {
-    // spdlog::info("Processing {}", index->to_string());
     driver.yield(index);
 
     if (not recurse) {

@@ -2,8 +2,10 @@ local max_number = 100000;
 
 {
   source: {
-    plugin: 'benchmarks_source',
-    n_events: max_number,
+    plugin: 'generate_layers',
+    layers: {
+      event: { total: max_number }
+    }
   },
   modules: {
     a_creator: {
