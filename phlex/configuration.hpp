@@ -42,9 +42,9 @@ namespace phlex::experimental {
       bool is_array = k == boost::json::kind::array;
 
       if (is_array) {
-      // The current configuration interface only supports homogenous containers,
-      // thus checking only the first element suffices. (This assumes arrays are
-      // not nested, which is fine for now.)
+        // The current configuration interface only supports homogenous containers,
+        // thus checking only the first element suffices. (This assumes arrays are
+        // not nested, which is fine for now.)
         boost::json::array const& arr = value.as_array();
         k = arr.empty() ? boost::json::kind::null : arr[0].kind();
       }
