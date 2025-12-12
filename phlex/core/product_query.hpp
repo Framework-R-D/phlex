@@ -19,6 +19,11 @@ namespace phlex::experimental {
   struct product_tag {
     product_specification spec;
     product_query operator()(std::string layer) &&;
+    product_query in(std::string layer) &&
+    {
+      // std::move(*this) required to forward to rvalue ref qualified operator()
+      return std::move(*this).operator()(std::move(layer));
+    }
   };
 
   using product_queries = std::vector<product_query>;
@@ -26,6 +31,7 @@ namespace phlex::experimental {
   inline auto& to_name(product_query const& query) { return query.spec.name(); }
   inline auto& to_layer(product_query& query) { return query.layer; }
 
+  product_tag from(char const* creator);
   product_tag operator""_in(char const* str, std::size_t);
   bool operator==(product_query const& a, product_query const& b);
   bool operator!=(product_query const& a, product_query const& b);
