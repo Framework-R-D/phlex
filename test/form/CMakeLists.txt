@@ -2,7 +2,6 @@
 
 if(FORM_USE_ROOT_STORAGE)
   add_subdirectory(data_products)
-
   cet_test(
     WriteVector
     SOURCE
@@ -15,7 +14,7 @@ if(FORM_USE_ROOT_STORAGE)
     "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
     )
   target_include_directories(WriteVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
-
+  
   cet_test(
     ReadVector
     SOURCE
@@ -30,5 +29,27 @@ if(FORM_USE_ROOT_STORAGE)
     WriteVector
     )
   target_include_directories(ReadVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
-
 endif()
+
+cet_test(
+  job:form_module
+  HANDBUILT
+  TEST_EXEC
+  phlex
+  TEST_ARGS
+  -c
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_test.jsonnet
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
+)
+
+
+
+
+
+
+
+
+
+
