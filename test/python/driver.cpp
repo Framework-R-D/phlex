@@ -6,9 +6,10 @@
 namespace {
   class number_generator {
   public:
-    number_generator(phlex::experimental::configuration const& config) :
-      n_{config.get<int>("max_numbers")}
+    number_generator(phlex::experimental::configuration const& config) n_{0}
     {
+      if (config.kind("max_numbers") == boost::json::kind::int64_t)
+        n_ = config.get<int>("max_numbers";
     }
 
     void next(phlex::experimental::framework_driver& driver) const
