@@ -17,6 +17,7 @@ cet_make_library(
   Boost::boost
   Boost::json
   phlex::core
+  phlex::configuration
   )
 
 install(FILES concurrency.hpp module.hpp source.hpp DESTINATION include/phlex)
@@ -27,9 +28,11 @@ cet_make_library(
   EXPORT_NAME
   configuration
   INTERFACE
-  NO_SOURCE
+  SOURCE
+  configuration.cpp
   LIBRARIES
   Boost::json
+  phlex::core
   )
 install(FILES configuration.hpp DESTINATION include/phlex)
 

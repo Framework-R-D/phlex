@@ -8,6 +8,6 @@ namespace {
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
   using namespace phlex::experimental;
-  m.observe("read_index", read_index, phlex::experimental::concurrency::unlimited)
-    .input_family(product_query{config.get<std::string>("consumes"), "event"});
+  m.observe("read_index", read_index, concurrency::unlimited)
+    .input_family(config.get<product_query>("consumes"));
 }

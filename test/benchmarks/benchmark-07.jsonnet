@@ -6,7 +6,7 @@
   modules: {
     even_filter: {
       plugin: 'accept_even_ids',
-      product_name: 'id',
+      input: { product: 'id', layer: 'event' },
     },
     b_creator: {
       plugin: 'last_index',

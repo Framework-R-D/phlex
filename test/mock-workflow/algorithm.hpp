@@ -3,6 +3,7 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
+#include "phlex/core/product_query.hpp"
 #include "test/mock-workflow/timed_busy.hpp"
 
 #include "fmt/std.h"
@@ -55,7 +56,7 @@ namespace phlex::experimental::test {
       return Outputs{};
     }
 
-    using inputs = std::array<std::string, sizeof...(Inputs)>;
+    using inputs = std::array<product_query, sizeof...(Inputs)>;
     using outputs = std::array<std::string, output_size<Outputs>>;
 
   private:
@@ -70,19 +71,10 @@ namespace phlex::experimental::test {
     using algorithm_t = algorithm<inputs_t, Outputs>;
     concurrency const j{c.get<unsigned>("concurrency", concurrency::unlimited.value)};
 
-    // Convert product strings to product queries.
-    // FIXME: There should be a c.get<product_query>(...) specialization
-    auto input_product_strings = c.get<typename algorithm_t::inputs>("inputs");
-    std::array<product_query, std::tuple_size_v<inputs_t>> queries{};
-    std::ranges::transform(
-      input_product_strings, queries.begin(), [](std::string const& product_string) {
-        return product_query{product_string, "event"};
-      });
-
     m.template make<algorithm_t>(c.get<std::string>("module_label"),
                                  c.get<unsigned>("duration_usec"))
       .transform("execute", &algorithm_t::execute, j)
-      .input_family(std::move(queries))
+      .input_family(c.get<typename algorithm_t::inputs>("inputs"))
       .output_products(c.get<typename algorithm_t::outputs>("outputs"));
   }
 }

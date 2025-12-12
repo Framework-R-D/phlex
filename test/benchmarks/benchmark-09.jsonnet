@@ -12,12 +12,12 @@
     },
     even_filter: {
       plugin: 'accept_even_numbers',
-      consumes: 'a',
+      consumes: { product: 'a', layer: "event" }
     },
     d: {
       plugin: 'read_index',
       when: ['even_filter:accept_even_numbers'],
-      consumes: 'b',
+      consumes: { product: 'b', layer: "event" }
     },
     provider: {
       plugin: 'benchmarks_provider'

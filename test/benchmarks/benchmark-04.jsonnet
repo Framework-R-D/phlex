@@ -9,7 +9,7 @@
     },
     read_index: {
       plugin: 'read_index',
-      consumes: 'a'
+      consumes: { product: 'a', layer: "event" }
     },
     provider: {
       plugin: 'benchmarks_provider'
