@@ -14,7 +14,7 @@ if(FORM_USE_ROOT_STORAGE)
     "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
     )
   target_include_directories(WriteVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
-  
+
   cet_test(
     ReadVector
     SOURCE
@@ -42,14 +42,4 @@ cet_test(
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
-)
-
-
-
-
-
-
-
-
-
-
+  )
