@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <string>
 
 #include "phlex/configuration.hpp"
@@ -26,111 +27,95 @@ PyObject* phlex::experimental::wrap_configuration(configuration const* config)
   return (PyObject*)pyconfig;
 }
 
-static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* args)
+static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
 {
   // Retrieve a named configuration setting.
   //
-  // Configuration is only accessible through templated lookups and it is up to
-  // the caller to figure the correct one. Here, conversion is attempted in order,
-  // unless an optional type is provided. On failure, the setting is returned as
-  // a string.
+  // Configuration should have a single in-memory representation, which is why
+  // the current approach retrieves it from the equivalent C++ object, ie. after
+  // the JSON input has been parsed, even as there are Python JSON parsers.
   //
-  // Since the configuration is read-only, values are cached in the implicit
-  // dictionary such that they can continue to be inspected.
-  //
-  // Python arguments expected:
-  //  name: the property to retrieve
-  //  type: the type to cast to (optional) and one of: int, float (for C++
-  //        double), or str (for C++ std::string)
-  //        tuple as standin for std::vector
-  //  coll: boolean, set to True if this is a collection of <type>
+  // pykey: the lookup key to retrieve the configuration value
 
-  PyObject *pyname = nullptr, *type = nullptr;
-  int coll = 0;
-  if (PyTuple_Check(args)) {
-    if (!PyArg_ParseTuple(args, "U|Op:__getitem__", &pyname, &type, &coll))
-      return nullptr;
-  } else
-    pyname = args;
+  if (!PyUnicode_Check(pykey)) {
+    PyErr_SetString(PyExc_TypeError, "__getitem__ expects a string key");
+    return nullptr;
+  }
 
   // cached lookup
 #if PY_VERSION_HEX >= 0x030d0000
   PyObject* pyvalue = nullptr;
-  PyObject_GetOptionalAttr((PyObject*)pycmap, pyname, &pyvalue);
+  PyObject_GetOptionalAttr((PyObject*)pycmap, pykey &pyvalue);
 #else
-  PyObject* pyvalue = PyObject_GetAttr((PyObject*)pycmap, pyname);
+  PyObject* pyvalue = PyObject_GetAttr((PyObject*)pycmap, pykey);
   if (!pyvalue)
     PyErr_Clear();
 #endif
   if (pyvalue)
     return pyvalue;
 
-  std::string cname = PyUnicode_AsUTF8(pyname);
+  std::string ckey = PyUnicode_AsUTF8(pykey);
 
-  // typed conversion if provided
-  if (type == (PyObject*)&PyUnicode_Type) {
-    if (!coll) {
-      try {
-        auto const& cvalue = pycmap->ph_config->get<std::string>(cname);
-        pyvalue = PyUnicode_FromString(cvalue.c_str());
-      } catch (...) {
-        PyErr_Format(PyExc_TypeError, "property \"%s\" is not a string", cname.c_str());
-      }
-    } else {
-      try {
-        auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(cname);
+  try {
+    auto k = pycmap->ph_config->kind(ckey);
+    if (k.second /* is array */) {
+      if (k.first == boost::json::kind::bool_) {
+        auto const& cvalue = pycmap->ph_config->get<std::vector<bool>>(ckey);
         pyvalue = PyTuple_New(cvalue.size());
         for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-          PyObject* item = PyUnicode_FromString(cvalue[i].c_str());
+          PyObject* item = PyLong_FromLong((long)cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
-      } catch (...) {
-        PyErr_Format(
-          PyExc_TypeError, "property \"%s\" is not a collection of strings", cname.c_str());
+      } else if (k.first == boost::json::kind::int64) {
+        auto const& cvalue = pycmap->ph_config->get<std::vector<std::int64_t>>(ckey);
+        pyvalue = PyTuple_New(cvalue.size());
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+          PyObject* item = PyLong_FromLong(cvalue[i]);
+          PyTuple_SetItem(pyvalue, i, item);
+        }
+      } else if (k.first == boost::json::kind::uint64) {
+        auto const& cvalue = pycmap->ph_config->get<std::vector<std::uint64_t>>(ckey);
+        pyvalue = PyTuple_New(cvalue.size());
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+          PyObject* item = PyLong_FromUnsignedLong(cvalue[i]);
+          PyTuple_SetItem(pyvalue, i, item);
+        }
+      } else if (k.first == boost::json::kind::double_) {
+        auto const& cvalue = pycmap->ph_config->get<std::vector<double>>(ckey);
+        pyvalue = PyTuple_New(cvalue.size());
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+          PyObject* item = PyFloat_FromDouble(cvalue[i]);
+          PyTuple_SetItem(pyvalue, i, item);
+        }
+      } else if (k.first == boost::json::kind::string) {
+        auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(ckey);
+        pyvalue = PyTuple_New(cvalue.size());
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+          PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(), cvalue[i].size());
+          PyTuple_SetItem(pyvalue, i, item);
+        }
       }
-    }
-  } else if (type == (PyObject*)&PyLong_Type) {
-    if (!coll) {
-      try {
-        auto const& cvalue = pycmap->ph_config->get<long>(cname);
+    } else {
+      if (k.first == boost::json::kind::bool_) {
+        auto cvalue = pycmap->ph_config->get<bool>(ckey);
+        pyvalue = PyBool_FromLong((long)cvalue);
+      } else if (k.first == boost::json::kind::int64) {
+        auto cvalue = pycmap->ph_config->get<std::int64_t>(ckey);
         pyvalue = PyLong_FromLong(cvalue);
-      } catch (...) {
-        PyErr_Format(PyExc_TypeError, "property \"%s\" is not an integer", cname.c_str());
-      }
-    } else {
-      try {
-        auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(cname);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-          PyObject* item = PyLong_FromString(cvalue[i].c_str(), nullptr, 10);
-          PyTuple_SetItem(pyvalue, i, item);
-        }
-      } catch (...) {
-        PyErr_Format(
-          PyExc_TypeError, "property \"%s\" is not a collection of integers", cname.c_str());
+      } else if (k.first == boost::json::kind::uint64) {
+        auto cvalue = pycmap->ph_config->get<std::uint64_t>(ckey);
+        pyvalue = PyLong_FromUnsignedLong(cvalue);
+      } else if (k.first == boost::json::kind::double_) {
+        auto cvalue = pycmap->ph_config->get<double>(ckey);
+        pyvalue = PyFloat_FromDouble(cvalue);
+      } else if (k.first == boost::json::kind::string) {
+        auto const& cvalue = pycmap->ph_config->get<std::string>(ckey);
+        pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), cvalue.size());
       }
     }
-  } else if (type) {
-    PyErr_SetString(PyExc_TypeError, "requested type not supported");
-  }
-
-  if (type)
-    return pyvalue; // may be nullptr
-
-  // untyped (guess) conversion
-  if (!pyvalue) {
-    try {
-      auto const& cvalue = pycmap->ph_config->get<long>(cname);
-      pyvalue = PyLong_FromLong(cvalue);
-    } catch (std::runtime_error const&) {
-    }
-  }
-  if (!pyvalue) {
-    try {
-      auto const& cvalue = pycmap->ph_config->get<std::string>(cname);
-      pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), cvalue.size());
-    } catch (std::runtime_error const&) {
-    }
+  } catch (std::runtime_error const&) {
+    PyErr_Format(
+    PyExc_TypeError, "property \"%s\" does not exist", ckey.c_str());
   }
 
   // cache if found

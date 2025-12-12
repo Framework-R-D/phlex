@@ -5,11 +5,11 @@ Convenience functions for registering Python algorithms with Phlex.
 
 def register(pyalg, m, config, concurrency=None):
     # inputs must exist
-    inputs = config["input", str, True]
+    inputs = config["input"]
 
     # outputs are optional
     try:
-        outputs = config["output", str, True]
+        outputs = config["output"]
     except TypeError:
         outputs = []
 
