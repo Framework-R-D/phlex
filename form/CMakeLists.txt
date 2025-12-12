@@ -26,7 +26,7 @@ if(FORM_USE_ROOT_STORAGE)
   add_subdirectory(root_storage)
 endif()
 
-add_library(form_module form_module.cpp)
+add_library(form_module MODULE form_module.cpp)
 
 target_link_libraries(form_module PRIVATE phlex::module)
 
