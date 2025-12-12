@@ -4,9 +4,6 @@ target_link_libraries(module PRIVATE phlex::module)
 add_library(output MODULE output.cpp)
 target_link_libraries(output PRIVATE phlex::module)
 
-add_library(source MODULE source.cpp)
-target_link_libraries(source PRIVATE Boost::json phlex::core)
-
 cet_test(
   job:add
   HANDBUILT

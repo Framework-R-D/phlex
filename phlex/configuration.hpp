@@ -2,8 +2,10 @@
 #define PHLEX_CONFIGURATION_HPP
 
 #include "boost/json.hpp"
+#include "phlex/core/product_query.hpp"
 
 #include <optional>
+#include <ranges>
 
 namespace phlex::experimental {
   class configuration {
@@ -22,8 +24,10 @@ namespace phlex::experimental {
 
     template <typename T>
     T get(std::string const& key) const
-    {
+    try {
       return value_to<T>(config_.at(key));
+    } catch (std::exception const& e) {
+      throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
     }
 
     template <typename T>
@@ -32,10 +36,29 @@ namespace phlex::experimental {
       return get_if_present<T>(key).value_or(std::forward<T>(default_value));
     }
 
+    std::vector<std::string> keys() const
+    {
+      std::vector<std::string> result;
+      result.reserve(config_.size());
+      for (auto const& element : config_) {
+        result.push_back(element.key());
+      }
+      return result;
+    }
+
   private:
     boost::json::object config_;
   };
 
+  // =================================================================================
+  // To enable direct conversions from Boost JSON types to our own types, we implement
+  // tag_invoke(...) function overloads, which are the customization points Boost JSON
+  // provides.
+  configuration tag_invoke(boost::json::value_to_tag<configuration> const&,
+                           boost::json::value const& jv);
+
+  product_query tag_invoke(boost::json::value_to_tag<product_query> const&,
+                           boost::json::value const& jv);
 }
 
 #endif // PHLEX_CONFIGURATION_HPP
