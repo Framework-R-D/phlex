@@ -30,13 +30,11 @@
 
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/source.hpp"
-#include "test/cached_execution_source.hpp"
+#include "test/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
-using namespace test;
 
 namespace {
   // Provider functions
@@ -50,7 +48,16 @@ namespace {
 
 TEST_CASE("Cached function calls", "[data model]")
 {
-  framework_graph g{detail::create_next<cached_execution_source>()};
+  constexpr unsigned int n_runs{1};
+  constexpr unsigned int n_subruns{2u};
+  constexpr unsigned int n_events{5000u};
+
+  layer_generator gen;
+  gen.add_layer("run", {"job", n_runs});
+  gen.add_layer("subrun", {"run", n_subruns});
+  gen.add_layer("event", {"subrun", n_events});
+
+  framework_graph g{gen};
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)

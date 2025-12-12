@@ -1,6 +1,6 @@
 {
   source: {
-    plugin: 'check_parallelism',
+    plugin: 'generate_layers',
   },
   modules: {
     verify: {

@@ -15,10 +15,16 @@ namespace {
   public:
     generate_layers(configuration const& config)
     {
-      auto layers = config.get<configuration>("layers");
+      auto const layers = config.get<configuration>("layers", {});
       for (auto const& key : layers.keys()) {
-        spdlog::info("Key: {}", key);
+        auto const layer_config = layers.get<configuration>(key);
+        auto const parent = layer_config.get<std::string>("parent", "job");
+        auto const total_number = layer_config.get<unsigned int>("total");
+        auto const starting_number = layer_config.get<unsigned int>("starting_number", 0);
+        gen_.add_layer(key, {parent, total_number, starting_number});
       }
+
+      // FIXME: Print out statement?
     }
 
     void next(framework_driver& driver) const { gen_(driver); }
