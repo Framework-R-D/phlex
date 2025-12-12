@@ -6,7 +6,9 @@ include(CetTest)
 cet_test_env(SPDLOG_LEVEL=debug)
 
 cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core)
-cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES phlex::configuration)
+cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
+         phlex::configuration
+         )
 cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities)
 cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
