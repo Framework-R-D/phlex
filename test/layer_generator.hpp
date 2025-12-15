@@ -23,6 +23,8 @@ namespace phlex::experimental {
       execute(driver, data_cell_index::base_ptr());
     }
 
+    std::size_t emitted_cells(std::string const& layer_path) const;
+
   private:
     void execute(framework_driver& driver, data_cell_index_ptr index, bool recurse = true) const;
 
