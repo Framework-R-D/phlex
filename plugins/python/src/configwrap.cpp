@@ -74,7 +74,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
   std::string ckey = PyUnicode_AsUTF8(pykey);
 
   try {
-    auto k = pycmap->ph_config->kind(ckey);
+    auto k = pycmap->ph_config->prototype_internal_kind(ckey);
     if (k.second /* is array */) {
       if (k.first == boost::json::kind::bool_) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<bool>>(ckey);

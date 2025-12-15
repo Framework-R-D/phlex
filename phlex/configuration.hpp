@@ -34,7 +34,7 @@ namespace phlex::experimental {
     }
 
     // Internal function for prototype purposes; do not use as this will change.
-    std::pair<boost::json::kind, bool> kind(std::string const& key) const
+    std::pair<boost::json::kind, bool> prototype_internal_kind(std::string const& key) const
     {
       auto const& value = config_.at(key); // may throw
 
