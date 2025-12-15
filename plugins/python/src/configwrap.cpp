@@ -11,6 +11,7 @@ using namespace phlex::experimental;
 struct phlex::experimental::py_config_map {
   PyObject_HEAD
   phlex::experimental::configuration const* ph_config;
+  PyObject* ph_config_cache;
 };
 // clang-format on
 
@@ -21,10 +22,30 @@ PyObject* phlex::experimental::wrap_configuration(configuration const* config)
     return nullptr;
   }
 
-  py_config_map* pyconfig = PyObject_New(py_config_map, &PhlexConfig_Type);
+  py_config_map* pyconfig =
+    (py_config_map*)PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr);
+
   pyconfig->ph_config = config;
 
   return (PyObject*)pyconfig;
+}
+
+//= CPyCppyy low level view construction/destruction =========================
+static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
+{
+    py_config_map* pcm = (py_config_map*)subtype->tp_alloc(subtype, 0);
+    if (!pcm)
+        return nullptr;
+
+    pcm->ph_config_cache = PyDict_New();
+
+    return pcm;
+}
+
+static void pcm_dealloc(py_config_map* pcm)
+{
+  Py_DECREF(pcm->ph_config_cache);
+  Py_TYPE(pcm)->tp_free((PyObject*)pcm);
 }
 
 static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
@@ -43,16 +64,12 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
   }
 
   // cached lookup
-#if PY_VERSION_HEX >= 0x030d0000
-  PyObject* pyvalue = nullptr;
-  PyObject_GetOptionalAttr((PyObject*)pycmap, pykey & pyvalue);
-#else
-  PyObject* pyvalue = PyObject_GetAttr((PyObject*)pycmap, pykey);
-  if (!pyvalue)
-    PyErr_Clear();
-#endif
-  if (pyvalue)
+  PyObject* pyvalue = PyDict_GetItem(pycmap->ph_config_cache, pykey);
+  if (pyvalue) {
+    Py_INCREF(pyvalue);
     return pyvalue;
+  }
+  PyErr_Clear();
 
   std::string ckey = PyUnicode_AsUTF8(pykey);
 
@@ -118,6 +135,9 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
   }
 
   // cache if found
+  if (pyvalue) {
+    PyDict_SetItem(pycmap->ph_config_cache, pykey, pyvalue);
+  }
 
   return pyvalue;
 }
@@ -130,7 +150,7 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   (char*) "pyphlex.configuration",                   // tp_name
   sizeof(py_config_map),                             // tp_basicsize
   0,                                                 // tp_itemsize
-  0,                                                 // tp_dealloc
+  (destructor)pcm_dealloc,                           // tp_dealloc
   0,                                                 // tp_vectorcall_offset / tp_print
   0,                                                 // tp_getattr
   0,                                                 // tp_setattr
@@ -160,10 +180,10 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   0,                                                 // tp_dict
   0,                                                 // tp_descr_get
   0,                                                 // tp_descr_set
-  0,                                                 // tp_dictoffset
+  offsetof(py_config_map, ph_config_cache),          // tp_dictoffset
   0,                                                 // tp_init
   0,                                                 // tp_alloc
-  0,                                                 // tp_new
+  (newfunc)pcm_new,                                  // tp_new
   0,                                                 // tp_free
   0,                                                 // tp_is_gc
   0,                                                 // tp_bases
