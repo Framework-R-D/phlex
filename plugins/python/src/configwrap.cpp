@@ -45,7 +45,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
   // cached lookup
 #if PY_VERSION_HEX >= 0x030d0000
   PyObject* pyvalue = nullptr;
-  PyObject_GetOptionalAttr((PyObject*)pycmap, pykey &pyvalue);
+  PyObject_GetOptionalAttr((PyObject*)pycmap, pykey & pyvalue);
 #else
   PyObject* pyvalue = PyObject_GetAttr((PyObject*)pycmap, pykey);
   if (!pyvalue)
@@ -114,8 +114,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
       }
     }
   } catch (std::runtime_error const&) {
-    PyErr_Format(
-    PyExc_TypeError, "property \"%s\" does not exist", ckey.c_str());
+    PyErr_Format(PyExc_TypeError, "property \"%s\" does not exist", ckey.c_str());
   }
 
   // cache if found

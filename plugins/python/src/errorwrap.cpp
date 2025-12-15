@@ -6,9 +6,11 @@ using namespace phlex::experimental;
 
 static bool format_traceback(std::string& msg,
 #if PY_VERSION_HEX < 0x30c000000
-  PyObject* type, PyObject* value, PyObject* traceback)
+                             PyObject* type,
+                             PyObject* value,
+                             PyObject* traceback)
 #else
-  PyObject* exception)
+                             PyObject* exception)
 #endif
 {
   PyObject* tbmod = PyImport_ImportModule("traceback");
@@ -38,7 +40,7 @@ static bool format_traceback(std::string& msg,
     return false;
   }
 
-  const char* c_msg = PyUnicode_AsUTF8(py_msg);
+  char const* c_msg = PyUnicode_AsUTF8(py_msg);
   if (c_msg) {
     msg = c_msg;
     Py_DECREF(py_msg);
@@ -90,4 +92,3 @@ bool phlex::experimental::msg_from_py_error(std::string& msg, bool check_error)
 
   return true;
 }
-

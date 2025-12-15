@@ -1,9 +1,9 @@
 #include "phlex/module.hpp"
 #include "wrap.hpp"
 
-#include <stdexcept>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #ifdef PHLEX_HAVE_NUMPY
@@ -372,7 +372,8 @@ static PyObject* parse_args(PyObject* args,
   // any node. (The observer does not require outputs, but they still need to be
   // retrieved, not ignored, to issue an error message if an output is provided.)
 
-  static char const* kwnames[] = {"callable", "input_family", "output_products", "concurrency", nullptr};
+  static char const* kwnames[] = {
+    "callable", "input_family", "output_products", "concurrency", nullptr};
   PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|OO", (char**)kwnames, &callable, &input, &output, &concurrency)) {
