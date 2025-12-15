@@ -33,13 +33,13 @@ PyObject* phlex::experimental::wrap_configuration(configuration const* config)
 //= CPyCppyy low level view construction/destruction =========================
 static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
 {
-    py_config_map* pcm = (py_config_map*)subtype->tp_alloc(subtype, 0);
-    if (!pcm)
-        return nullptr;
+  py_config_map* pcm = (py_config_map*)subtype->tp_alloc(subtype, 0);
+  if (!pcm)
+    return nullptr;
 
-    pcm->ph_config_cache = PyDict_New();
+  pcm->ph_config_cache = PyDict_New();
 
-    return pcm;
+  return pcm;
 }
 
 static void pcm_dealloc(py_config_map* pcm)
