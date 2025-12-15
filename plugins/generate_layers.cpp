@@ -1,5 +1,5 @@
 #include "phlex/source.hpp"
-#include "test/layer_generator.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "phlex/core/framework_graph.hpp"
 

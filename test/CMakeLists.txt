@@ -5,12 +5,6 @@ include(CetTest)
 
 cet_test_env(SPDLOG_LEVEL=debug)
 
-add_library(layer_generator layer_generator.cpp)
-target_link_libraries(layer_generator PRIVATE phlex::core)
-
-add_library(generate_layers MODULE generate_layers.cpp)
-target_link_libraries(generate_layers PRIVATE phlex::module layer_generator)
-
 cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core)
 cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
          phlex::configuration

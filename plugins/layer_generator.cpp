@@ -1,4 +1,4 @@
-#include "test/layer_generator.hpp"
+#include "plugins/layer_generator.hpp"
 #include "phlex/model/data_cell_index.hpp"
 
 #include "fmt/format.h"

@@ -1,5 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
-#include "test/layer_generator.hpp"
+#include "plugins/layer_generator.hpp"
 
 using namespace phlex::experimental;
 
