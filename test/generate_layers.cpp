@@ -27,7 +27,7 @@ namespace {
       // FIXME: Print out statement?
     }
 
-    void next(framework_driver& driver) const { gen_(driver); }
+    void next(framework_driver& driver) { gen_(driver); }
 
   private:
     layer_generator gen_;

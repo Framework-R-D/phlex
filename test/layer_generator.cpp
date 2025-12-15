@@ -12,11 +12,31 @@ namespace phlex::experimental {
     parent_to_children_["/job"] = {};
   }
 
-  void layer_generator::add_layer(std::string layer_name, layer_spec lspec)
+  std::string layer_generator::parent_path(std::string const& layer_name,
+                                           std::string const& parent_layer_spec) const
   {
-    // We need to make sure that we can distinguish between (e.g.) /events and /run/events.
-    // When a layer is added, the parent layers are also included as part of the path.
+    // Seed result with the specified parent_layer_spec
+    std::string result{"/" + parent_layer_spec};
+    std::string const* found_parent{nullptr};
+    for (auto const& path : layer_paths_) {
+      if (path.ends_with(parent_layer_spec)) {
+        if (found_parent) {
+          auto const msg =
+            fmt::format("Two layer paths found that match the same layer parent: {} vs. {}/{}",
+                        result,
+                        parent_layer_spec,
+                        layer_name);
+          throw std::runtime_error(msg);
+        }
+        found_parent = &path;
+      }
+    }
+    return found_parent ? *found_parent : result;
+  }
 
+  void layer_generator::maybe_rebase_layer_paths(std::string const& layer_name,
+                                                 std::string const& parent_full_path)
+  {
     // First check if layer paths need to be rebased
     std::vector<size_t> indices_for_rebasing;
     for (std::size_t i = 0ull, n = layer_paths_.size(); i != n; ++i) {
@@ -24,27 +44,6 @@ namespace phlex::experimental {
       if (layer.starts_with("/" + layer_name)) {
         indices_for_rebasing.push_back(i);
       }
-    }
-
-    // Seed parent_full_path with the specified parent_layer_name
-    std::string parent_full_path{"/" + lspec.parent_layer_name};
-    std::string const* found_parent{nullptr};
-    for (auto const& path : layer_paths_) {
-      if (path.ends_with(lspec.parent_layer_name)) {
-        if (found_parent) {
-          auto const msg =
-            fmt::format("Two layer paths found that match the same layer parent: {} vs. {}/{}",
-                        parent_full_path,
-                        lspec.parent_layer_name,
-                        layer_name);
-          throw std::runtime_error(msg);
-        }
-        found_parent = &path;
-      }
-    }
-
-    if (found_parent) {
-      parent_full_path = *found_parent;
     }
 
     // Do the rebase
@@ -63,6 +62,15 @@ namespace phlex::experimental {
       reverse_handle.key() = new_parent_path;
       parent_to_children_.insert(std::move(reverse_handle));
     }
+  }
+
+  void layer_generator::add_layer(std::string layer_name, layer_spec lspec)
+  {
+    auto const parent_full_path = parent_path(layer_name, lspec.parent_layer_name);
+
+    // We need to make sure that we can distinguish between (e.g.) /events and /run/events.
+    // When a layer is added, the parent layers are also included as part of the path.
+    maybe_rebase_layer_paths(layer_name, parent_full_path);
 
     auto full_path = parent_full_path + "/" + layer_name;
 
@@ -72,9 +80,7 @@ namespace phlex::experimental {
     layer_paths_.push_back(full_path);
   }
 
-  void layer_generator::execute(framework_driver& driver,
-                                data_cell_index_ptr index,
-                                bool recurse) const
+  void layer_generator::execute(framework_driver& driver, data_cell_index_ptr index, bool recurse)
   {
     driver.yield(index);
 

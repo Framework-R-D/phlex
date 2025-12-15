@@ -18,15 +18,16 @@ namespace phlex::experimental {
     layer_generator();
     void add_layer(std::string layer_name, layer_spec lspec);
 
-    void operator()(framework_driver& driver) const
-    {
-      execute(driver, data_cell_index::base_ptr());
-    }
+    void operator()(framework_driver& driver) { execute(driver, data_cell_index::base_ptr()); }
 
     std::size_t emitted_cells(std::string const& layer_path) const;
 
   private:
-    void execute(framework_driver& driver, data_cell_index_ptr index, bool recurse = true) const;
+    void execute(framework_driver& driver, data_cell_index_ptr index, bool recurse = true);
+    std::string parent_path(std::string const& layer_name,
+                            std::string const& parent_layer_spec) const;
+    void maybe_rebase_layer_paths(std::string const& layer_name,
+                                  std::string const& parent_full_path);
 
     std::map<std::string, layer_spec> layers_;
     std::vector<std::string> layer_paths_{"/job"};
