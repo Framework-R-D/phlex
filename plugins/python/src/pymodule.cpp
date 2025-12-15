@@ -114,9 +114,12 @@ static bool initialize()
 #endif
 
   // add custom types
-  PyType_Ready(&PhlexConfig_Type);
-  PyType_Ready(&PhlexModule_Type);
-  PyType_Ready(&PhlexLifeline_Type);
+  if (PyType_Ready(&PhlexConfig_Type) < 0)
+    return false;
+  if (PyType_Ready(&PhlexModule_Type) < 0)
+    return false;
+  if (PyType_Ready(&PhlexLifeline_Type) < 0)
+    return false;
 
   // load numpy (see also above, if already initialized)
 #ifdef PHLEX_HAVE_NUMPY
