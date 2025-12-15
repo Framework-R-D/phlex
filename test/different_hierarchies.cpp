@@ -62,7 +62,7 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
   gen.add_layer("event", {"run", number_limit});
   gen.add_layer("event", {"job", top_level_event_limit});
 
-  framework_graph g{gen};
+  framework_graph g{driver_for_test(gen)};
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)

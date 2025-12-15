@@ -16,7 +16,7 @@ int main()
   layer_generator gen;
   gen.add_layer("event", {"job", max_events, 1u});
 
-  framework_graph g{gen};
+  framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
     .output_product("number"_in("event"));

@@ -13,6 +13,15 @@ namespace phlex::experimental {
     emitted_cells_["/job"] = 0ull;
   }
 
+  std::size_t layer_generator::emitted_cells(std::string const& layer_path) const
+  {
+    if (auto it = emitted_cells_.find(layer_path); it != emitted_cells_.end()) {
+      return emitted_cells_.at(layer_path);
+    }
+
+    throw std::runtime_error("No emitted cells corresponding to layer path '" + layer_path + "'");
+  }
+
   std::string layer_generator::parent_path(std::string const& layer_name,
                                            std::string const& parent_layer_spec) const
   {
@@ -23,10 +32,11 @@ namespace phlex::experimental {
       if (path.ends_with(parent_layer_spec)) {
         if (found_parent) {
           auto const msg =
-            fmt::format("Two layer paths found that match the same layer parent: {} vs. {}/{}",
-                        result,
-                        parent_layer_spec,
-                        layer_name);
+            fmt::format("Ambiguous: two parent layers found for data layer '{}':\n  - {}\n  - {}"
+                        "\nTo disambiguate, specify a parent layer path that is more complete.",
+                        layer_name,
+                        *found_parent,
+                        path);
           throw std::runtime_error(msg);
         }
         found_parent = &path;

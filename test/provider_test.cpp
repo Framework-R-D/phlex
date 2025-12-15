@@ -36,7 +36,7 @@ TEST_CASE("provider_test")
   layer_generator gen;
   gen.add_layer("spill", {"job", max_events, 1u});
 
-  framework_graph g{gen};
+  framework_graph g{driver_for_test(gen)};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
     .output_product("happy_vertices"_in("spill"));

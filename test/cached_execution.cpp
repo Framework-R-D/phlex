@@ -57,7 +57,7 @@ TEST_CASE("Cached function calls", "[data model]")
   gen.add_layer("subrun", {"run", n_subruns});
   gen.add_layer("event", {"subrun", n_events});
 
-  framework_graph g{gen};
+  framework_graph g{driver_for_test(gen)};
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)

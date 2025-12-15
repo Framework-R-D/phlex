@@ -115,6 +115,15 @@ cet_test(
   layer_generator
   )
 cet_test(
+  layer_generator_test
+  USE_CATCH2_MAIN
+  SOURCE
+  layer_generator.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
+  )
+cet_test(
   multiple_function_registration
   USE_CATCH2_MAIN
   SOURCE

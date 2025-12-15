@@ -86,7 +86,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   gen.add_layer("run", {"job", index_limit});
   gen.add_layer("event", {"run", number_limit});
 
-  framework_graph g{gen};
+  framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_time",
             [](data_cell_index const& index) -> std::time_t {

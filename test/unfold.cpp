@@ -94,7 +94,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   layer_generator gen;
   gen.add_layer("event", {"job", index_limit});
 
-  framework_graph g{gen};
+  framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
     .output_product("max_number"_in("event"));

@@ -16,6 +16,12 @@ namespace phlex::experimental {
   class layer_generator {
   public:
     layer_generator();
+
+    layer_generator(layer_generator const&) = delete;
+    layer_generator& operator=(layer_generator const&) = delete;
+    layer_generator(layer_generator&&) = default;
+    layer_generator& operator=(layer_generator&&) = default;
+
     void add_layer(std::string layer_name, layer_spec lspec);
 
     void operator()(framework_driver& driver) { execute(driver, data_cell_index::base_ptr()); }
@@ -36,6 +42,12 @@ namespace phlex::experimental {
     using reverse_map_t = std::map<std::string, std::vector<std::string>>;
     reverse_map_t parent_to_children_;
   };
+
+  // N.B. The layer_generator object must outlive any whatever uses it.
+  std::function<void(framework_driver&)> driver_for_test(layer_generator& generator)
+  {
+    return [&generator](framework_driver& driver) mutable { generator(driver); };
+  }
 }
 
 #endif // TEST_LAYER_GENERATOR_HPP
