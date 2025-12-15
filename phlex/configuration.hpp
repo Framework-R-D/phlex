@@ -5,7 +5,8 @@
 #include "phlex/core/product_query.hpp"
 
 #include <optional>
-#include <ranges>
+#include <string>
+#include <vector>
 
 namespace phlex::experimental {
   class configuration {
@@ -36,15 +37,7 @@ namespace phlex::experimental {
       return get_if_present<T>(key).value_or(std::forward<T>(default_value));
     }
 
-    std::vector<std::string> keys() const
-    {
-      std::vector<std::string> result;
-      result.reserve(config_.size());
-      for (auto const& element : config_) {
-        result.push_back(element.key());
-      }
-      return result;
-    }
+    std::vector<std::string> keys() const;
 
   private:
     boost::json::object config_;
