@@ -30,6 +30,7 @@ namespace phlex::experimental {
                                   std::string const& parent_full_path);
 
     std::map<std::string, layer_spec> layers_;
+    std::map<std::string, std::size_t> emitted_cells_;
     std::vector<std::string> layer_paths_{"/job"};
 
     using reverse_map_t = std::map<std::string, std::vector<std::string>>;

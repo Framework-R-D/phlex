@@ -10,6 +10,7 @@ namespace phlex::experimental {
   {
     // Always seed the "job" in case only the job is desired
     parent_to_children_["/job"] = {};
+    emitted_cells_["/job"] = 0ull;
   }
 
   std::string layer_generator::parent_path(std::string const& layer_name,
@@ -58,6 +59,10 @@ namespace phlex::experimental {
       layer_handle.mapped().parent_layer_name = new_parent_path;
       layers_.insert(std::move(layer_handle));
 
+      auto emitted_handle = emitted_cells_.extract(old_layer_path);
+      emitted_handle.key() = new_layer_path;
+      emitted_cells_.insert(std::move(emitted_handle));
+
       auto reverse_handle = parent_to_children_.extract(old_parent_path);
       reverse_handle.key() = new_parent_path;
       parent_to_children_.insert(std::move(reverse_handle));
@@ -76,12 +81,17 @@ namespace phlex::experimental {
 
     lspec.parent_layer_name = parent_full_path;
     layers_[full_path] = std::move(lspec);
+    emitted_cells_[full_path] = 0ull;
     parent_to_children_[parent_full_path].push_back(std::move(layer_name));
     layer_paths_.push_back(full_path);
   }
 
   void layer_generator::execute(framework_driver& driver, data_cell_index_ptr index, bool recurse)
   {
+    auto cell_it = emitted_cells_.find(index->layer_path());
+    assert(cell_it != emitted_cells_.cend());
+    ++cell_it->second;
+
     driver.yield(index);
 
     if (not recurse) {
