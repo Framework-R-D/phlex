@@ -12,8 +12,6 @@
 #include <numpy/arrayobject.h>
 #endif
 
-#include <vector>
-
 using namespace phlex::experimental;
 
 static bool initialize();
@@ -42,8 +40,12 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
     Py_DECREF(mod);
   }
 
-  if (PyErr_Occurred())
-    throw_runtime_error_from_py_error(false /* check_error */);
+  if (PyErr_Occurred()) {
+    std::string error_msg;
+    if (!msg_from_py_error(error_msg))
+      error_msg = "Unknown python error";
+    throw std::runtime_error(error_msg.c_str());
+  }
 }
 
 #ifdef PHLEX_HAVE_NUMPY

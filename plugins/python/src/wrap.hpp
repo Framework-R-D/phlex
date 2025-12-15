@@ -19,6 +19,7 @@
 #include "Python.h"
 
 #include <memory>
+#include <string>
 
 #include "phlex/configuration.hpp"
 #include "phlex/module.hpp"
@@ -54,7 +55,7 @@ namespace phlex::experimental {
   // clang-format on
 
   // Error reporting helper.
-  void throw_runtime_error_from_py_error(bool check_error);
+  bool msg_from_py_error(std::string& msg, bool check_error = false);
 
   // RAII helper for GIL handling
   class PyGILRAII {

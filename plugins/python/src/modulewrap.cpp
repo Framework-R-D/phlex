@@ -1,6 +1,7 @@
 #include "phlex/module.hpp"
 #include "wrap.hpp"
 
+#include <stdexcept>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -78,10 +79,16 @@ namespace {
       PyObject* result =
         PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args)..., nullptr);
 
+      std::string error_msg;
+      if (!result) {
+        if (!msg_from_py_error(error_msg))
+          error_msg = "Unknown python error";
+      }
+
       decref_all(args...);
 
-      if (!result)
-        throw_runtime_error_from_py_error(false);
+      if (!error_msg.empty())
+        throw std::runtime_error(error_msg.c_str());
 
       return (intptr_t)result;
     }
@@ -95,12 +102,18 @@ namespace {
 
       PyObject* result =
         PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
-      Py_XDECREF(result);
+
+      std::string error_msg;
+      if (!result) {
+        if (!msg_from_py_error(error_msg))
+          error_msg = "Unknown python error";
+      } else
+        Py_DECREF(result);
 
       decref_all(args...);
 
-      if (!result)
-        throw_runtime_error_from_py_error(false);
+      if (!error_msg.empty())
+        throw std::runtime_error(error_msg.c_str());
     }
 
   private:
@@ -143,7 +156,7 @@ namespace {
 
   static std::vector<std::string> cseq(PyObject* coll)
   {
-    size_t len = (size_t)PySequence_Size(coll);
+    size_t len = coll ? (size_t)PySequence_Size(coll) : 0;
     std::vector<std::string> cargs{len};
 
     for (size_t i = 0; i < len; ++i) {
@@ -359,7 +372,7 @@ static PyObject* parse_args(PyObject* args,
   // any node. (The observer does not require outputs, but they still need to be
   // retrieved, not ignored, to issue an error message if an output is provided.)
 
-  static char const* kwnames[] = {"callable", "input", "output", "concurrency", nullptr};
+  static char const* kwnames[] = {"callable", "input_family", "output_products", "concurrency", nullptr};
   PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|OO", (char**)kwnames, &callable, &input, &output, &concurrency)) {
@@ -367,7 +380,7 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
-  if (concurrency and concurrency != Py_None) {
+  if (concurrency && concurrency != Py_None) {
     PyErr_SetString(PyExc_TypeError, "only serial concurrency is supported");
     return nullptr;
   }
@@ -386,7 +399,12 @@ static PyObject* parse_args(PyObject* args,
   functor_name = PyUnicode_AsUTF8(pyname);
   Py_DECREF(pyname);
 
-  if (!(PySequence_Check(input) && PySequence_Check(output))) {
+  if (!input) {
+    PyErr_SetString(PyExc_TypeError, "an input is required");
+    return nullptr;
+  }
+
+  if (!PySequence_Check(input) || (output && !PySequence_Check(output))) {
     PyErr_SetString(PyExc_TypeError, "input and output need to be sequences");
     return nullptr;
   }

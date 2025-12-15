@@ -59,8 +59,8 @@ except ImportError:
 
   # Phlex module to run Python algorithms
   add_library(
-    pymodule MODULE pymodule.cpp modulewrap.cpp configwrap.cpp lifelinewrap.cpp
-                    errorwrap.cpp
+    pymodule MODULE src/pymodule.cpp src/modulewrap.cpp src/configwrap.cpp
+                    src/lifelinewrap.cpp src/errorwrap.cpp
     )
   include_directories(pymodule, ${Python_INCLUDE_DIRS})
   target_link_libraries(
