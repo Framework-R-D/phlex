@@ -5,6 +5,7 @@
 #include "catch2/matchers/catch_matchers_string.hpp"
 
 using namespace phlex::experimental;
+using namespace Catch::Matchers;
 
 TEST_CASE("Check parameter-retrieval errors", "[config]")
 {
@@ -14,10 +15,9 @@ TEST_CASE("Check parameter-retrieval errors", "[config]")
 
   CHECK(config.keys() == std::vector<std::string>{"b"});
 
-  CHECK_THROWS_WITH(config.get<int>("a"),
-                    Catch::Matchers::ContainsSubstring("Error retrieving parameter 'a'"));
+  CHECK_THROWS_WITH(config.get<int>("a"), ContainsSubstring("Error retrieving parameter 'a'"));
   CHECK_THROWS_WITH(config.get<std::string>("b"),
-                    Catch::Matchers::ContainsSubstring("Error retrieving parameter 'b'"));
+                    ContainsSubstring("Error retrieving parameter 'b'"));
 }
 
 TEST_CASE("Retrieve value that is a configuration object", "[config]")
@@ -35,10 +35,26 @@ TEST_CASE("Retrieve product_query", "[config]")
   input["product"] = "tracks";
   input["layer"] = "job";
 
+  boost::json::object malformed_input1;
+  malformed_input1["product"] = 16.; // Should be string
+  malformed_input1["layer"] = "job";
+
+  boost::json::object malformed_input2;
+  malformed_input2["product"] = "hits";
+  malformed_input2["level"] = "should be layer, not level";
+
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
+  underlying_config["malformed1"] = std::move(malformed_input1);
+  underlying_config["malformed2"] = std::move(malformed_input2);
   configuration config{underlying_config};
 
   auto input_query = config.get<product_query>("input");
   CHECK(input_query == "tracks"_in("job"));
+  CHECK_THROWS_WITH(config.get<product_query>("malformed1"),
+                    ContainsSubstring("Error retrieving parameter 'malformed1'") &&
+                      ContainsSubstring("Error retrieving parameter 'product'"));
+  CHECK_THROWS_WITH(config.get<product_query>("malformed2"),
+                    ContainsSubstring("Error retrieving parameter 'malformed2'") &&
+                      ContainsSubstring("Error retrieving parameter 'layer'"));
 }

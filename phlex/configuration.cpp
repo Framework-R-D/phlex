@@ -2,6 +2,7 @@
 #include "phlex/core/product_query.hpp"
 
 #include <ranges>
+#include <string>
 
 namespace phlex::experimental {
   std::vector<std::string> configuration::keys() const
@@ -22,8 +23,9 @@ namespace phlex::experimental {
   product_query tag_invoke(boost::json::value_to_tag<product_query> const&,
                            boost::json::value const& jv)
   {
+    using detail::value_decorate_exception;
     auto query_object = jv.as_object();
-    return product_query{product_specification{value_to<std::string>(query_object.at("product"))},
-                         value_to<std::string>(query_object.at("layer"))};
+    return product_query{.spec = {value_decorate_exception<std::string>(query_object, "product")},
+                         .layer = value_decorate_exception<std::string>(query_object, "layer")};
   }
 }

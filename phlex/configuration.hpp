@@ -9,6 +9,17 @@
 #include <vector>
 
 namespace phlex::experimental {
+
+  namespace detail {
+    template <typename T>
+    T value_decorate_exception(boost::json::object const& obj, std::string const& key)
+    try {
+      return value_to<T>(obj.at(key));
+    } catch (std::exception const& e) {
+      throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
+    }
+  }
+
   class configuration {
   public:
     configuration() = default;
@@ -17,18 +28,16 @@ namespace phlex::experimental {
     template <typename T>
     std::optional<T> get_if_present(std::string const& key) const
     {
-      if (auto pkey = config_.if_contains(key)) {
-        return value_to<T>(*pkey);
+      if (config_.contains(key)) {
+        return detail::value_decorate_exception<T>(config_, key);
       }
       return std::nullopt;
     }
 
     template <typename T>
     T get(std::string const& key) const
-    try {
-      return value_to<T>(config_.at(key));
-    } catch (std::exception const& e) {
-      throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
+    {
+      return detail::value_decorate_exception<T>(config_, key);
     }
 
     template <typename T>
