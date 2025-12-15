@@ -8,6 +8,8 @@
 # ##############################################################################
 # Copyright (C) 2025 ...
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 include_directories(${PROJECT_SOURCE_DIR}/form)
 
 # ROOT Storage toggle
@@ -28,6 +30,6 @@ endif()
 
 add_library(form_module MODULE form_module.cpp)
 
-target_link_libraries(form_module PRIVATE phlex::module)
+target_link_libraries(form_module PRIVATE phlex::module form)
 
 target_include_directories(form_module PRIVATE ${PROJECT_SOURCE_DIR})
