@@ -29,7 +29,7 @@ class Verifier:
         """
         self._sum_total = sum_total
 
-    def __call__(self, value: int):# -> None:
+    def __call__(self, value: int) -> None:
         """Verify a the `value`.
 
         Check that `value` matches the pre-registered value.

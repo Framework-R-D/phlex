@@ -451,6 +451,10 @@ static PyObject* parse_args(PyObject* args,
   }
   Py_XDECREF(annot);
 
+  // ignore None as Python's conventional "void" return, which is meaningless in C++
+  if (output_types.size() == 1 && output_types[0] == "None")
+    output_types.clear();
+
   // if annotations were correct (and correctly parsed), there should be as many
   // input types as input labels
   if (input_types.size() != input_labels.size()) {
