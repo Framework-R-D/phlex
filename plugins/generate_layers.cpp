@@ -1,3 +1,21 @@
+// ==============================================================================================
+// See notes in plugins/layer_generator.hpp.  To configure the generate_layers driver to
+// produce the tree shown in plugins/layer_generator.hpp, the user would configure the driver
+// like (e.g.):
+//
+//   driver: {
+//     plugin: "generate_layers",
+//     layers: {
+//       spill: { parent: "job", total: 16 },
+//       CRU: { parent: "spill", total: 256 },
+//       run: { parent: "job", total: 16},
+//       APA: { parent: "run", total: 150, starting_number: 1 }
+//     }
+//   }
+//
+// Note that 'total' refers to the total number of data cells *per* parent.
+// ==============================================================================================
+
 #include "phlex/source.hpp"
 #include "plugins/layer_generator.hpp"
 

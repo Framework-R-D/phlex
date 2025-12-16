@@ -1,5 +1,32 @@
-#ifndef TEST_LAYER_GENERATOR_HPP
-#define TEST_LAYER_GENERATOR_HPP
+#ifndef PLUGINS_LAYER_GENERATOR_HPP
+#define PLUGINS_LAYER_GENERATOR_HPP
+
+// ==============================================================================================
+// The layer_generator class enables the creation of a tree of layers, such as
+//
+//   job
+//    │
+//    ├ spill: 16
+//    │  │
+//    │  └ CRU: 4096
+//    │
+//    └ run: 16
+//       │
+//       └ APA: 2500
+//
+// To create the above tree of layers, the following function calls could be made:
+//
+//   layer_generator gen;
+//   gen.add_layer("spill", {"job", 16});     // 16 spill data cells with job as parent
+//   gen.add_layer("CRU",  {"spill", 256});   // 256 CRU data cells per spill parent
+//   gen.add_layer("run", {"job", 16});       // 16 run data cells with job as parent
+//   gen.add_layer("APA",  {"run", 150, 1});  // 150 APA data cells per run parent
+//                                            // with first APA data cell number starting at 1
+//
+// ----------------------------------------------------------------------------------------------
+// N.B. The layer generator can create data-layer hierarchies that are trees, and not
+//      more general DAGs, where a data layer may have more than one parent.
+// ==============================================================================================
 
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
@@ -50,4 +77,4 @@ namespace phlex::experimental {
   }
 }
 
-#endif // TEST_LAYER_GENERATOR_HPP
+#endif // PLUGINS_LAYER_GENERATOR_HPP
