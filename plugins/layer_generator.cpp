@@ -4,6 +4,9 @@
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
 
+#include <algorithm>
+#include <ranges>
+
 namespace phlex::experimental {
 
   layer_generator::layer_generator()
@@ -13,8 +16,18 @@ namespace phlex::experimental {
     emitted_cells_["/job"] = 0ull;
   }
 
-  std::size_t layer_generator::emitted_cells(std::string const& layer_path) const
+  std::size_t layer_generator::emitted_cells(std::string layer_path) const
   {
+    // Check if the count of all emitted cells is requested
+    if (layer_path.empty()) {
+      // For C++23, we can use std::ranges::fold_left
+      std::size_t total{};
+      for (auto const& [_, count] : emitted_cells_) {
+        total += count;
+      }
+      return total;
+    }
+
     if (auto it = emitted_cells_.find(layer_path); it != emitted_cells_.end()) {
       return emitted_cells_.at(layer_path);
     }

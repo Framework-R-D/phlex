@@ -15,6 +15,7 @@ TEST_CASE("Only job layer", "[layer-generation]")
   g.execute();
 
   CHECK(gen.emitted_cells("/job") == 1);
+  CHECK(gen.emitted_cells() == 1);
 }
 
 TEST_CASE("One non-job layer", "[layer-generation]")
@@ -27,6 +28,7 @@ TEST_CASE("One non-job layer", "[layer-generation]")
 
   CHECK(gen.emitted_cells("/job") == 1);
   CHECK(gen.emitted_cells("/job/spill") == 16);
+  CHECK(gen.emitted_cells() == 1 + 16);
 }
 
 TEST_CASE("Two non-job layers", "[layer-generation]")
@@ -41,6 +43,7 @@ TEST_CASE("Two non-job layers", "[layer-generation]")
   CHECK(gen.emitted_cells("/job") == 1);
   CHECK(gen.emitted_cells("/job/spill") == 16);
   CHECK(gen.emitted_cells("/job/spill/APA") == 256);
+  CHECK(gen.emitted_cells() == 1 + 16 + 256);
 }
 
 TEST_CASE("Test rebasing layers", "[layer-generation]")
@@ -55,6 +58,7 @@ TEST_CASE("Test rebasing layers", "[layer-generation]")
   CHECK(gen.emitted_cells("/job") == 1);
   CHECK(gen.emitted_cells("/job/spill") == 16);
   CHECK(gen.emitted_cells("/job/spill/APA") == 256);
+  CHECK(gen.emitted_cells() == 1 + 16 + 256);
 }
 
 TEST_CASE("Ambiguous layers", "[layer-generation]")
@@ -87,6 +91,8 @@ TEST_CASE("Avoid ambiguous layers", "[layer-generation]")
   CHECK(gen.emitted_cells("/job/run/spill") == 256);
   CHECK(gen.emitted_cells("/job/run/spill/APA") == 4096);
   CHECK(gen.emitted_cells("/job/spill") == 16);
+  CHECK(gen.emitted_cells() == 1 + 16 + 256 + 4096 + 16);
+
   CHECK_THROWS_WITH(
     gen.emitted_cells("/job/spill/APA"),
     ContainsSubstring("No emitted cells corresponding to layer path '/job/spill/APA'"));
