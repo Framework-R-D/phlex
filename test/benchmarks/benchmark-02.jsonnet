@@ -1,5 +1,5 @@
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
       event: { total: 100000 }

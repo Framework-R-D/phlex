@@ -1,7 +1,7 @@
 local max_number = 100000;
 
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
       event: { total: max_number }

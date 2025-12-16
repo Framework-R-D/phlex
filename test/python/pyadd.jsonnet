@@ -5,10 +5,12 @@
       event: { parent: 'job', total: 10, starting_number: 1 }
     }
   },
+  source: {
+    provider: {
+      plugin: 'cppsource4py',
+    }
+  },
   modules: {
-    cppdriver: {
-      plugin: 'cppdriver4py',
-    },
     pyadd: {
       plugin: 'pymodule',
       pyplugin: 'adder',

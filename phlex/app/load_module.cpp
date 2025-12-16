@@ -1,8 +1,8 @@
 #include "phlex/app/load_module.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/driver.hpp"
 #include "phlex/module.hpp"
-#include "phlex/source.hpp"
 
 #include "boost/algorithm/string.hpp"
 #include "boost/dll/import.hpp"
@@ -19,7 +19,7 @@ namespace phlex::experimental {
     // If factory function goes out of scope, then the library is unloaded...and that's
     // bad.
     std::vector<std::function<detail::module_creator_t>> create_module;
-    std::function<detail::source_creator_t> create_source;
+    std::function<detail::driver_creator_t> create_driver;
 
     template <typename creator_t>
     std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
@@ -57,11 +57,11 @@ namespace phlex::experimental {
     creator(module_proxy, config);
   }
 
-  detail::next_index_t load_source(boost::json::object const& raw_config)
+  detail::next_index_t load_driver(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("plugin");
-    create_source = plugin_loader<detail::source_creator_t>(spec, "create_source");
-    return create_source(config);
+    create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
+    return create_driver(config);
   }
 }

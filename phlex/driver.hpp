@@ -1,5 +1,5 @@
-#ifndef PHLEX_SOURCE_HPP
-#define PHLEX_SOURCE_HPP
+#ifndef PHLEX_DRIVER_HPP
+#define PHLEX_DRIVER_HPP
 
 #include "boost/dll/alias.hpp"
 
@@ -45,10 +45,10 @@ namespace phlex::experimental::detail {
     // N.B. Because we are initializing an std::function object with a lambda, the lambda
     //      (and therefore its captured values) must be copy-constructible.  This means
     //      that make<T>(config) must return a copy-constructible object.  Because we do not
-    //      know if a user's provided source class is copyable, we create the object on
+    //      know if a user's provided driver class is copyable, we create the object on
     //      the heap, and capture a shared pointer to the object.  This also ensures that
-    //      the source object is created only once, thus avoiding potential errors in the
-    //      implementations of the source class' copy/move constructors (e.g. if the
+    //      the driver object is created only once, thus avoiding potential errors in the
+    //      implementations of the driver class' copy/move constructors (e.g. if the
     //      source is caching an iterator).
     if constexpr (next_function_with_driver<T>) {
       return [t = make<T>(config)](framework_driver& driver) { t->next(driver); };
@@ -60,10 +60,10 @@ namespace phlex::experimental::detail {
   }
 
   using next_index_t = std::function<void(framework_driver&)>;
-  using source_creator_t = next_index_t(configuration const&);
+  using driver_creator_t = next_index_t(configuration const&);
 }
 
-#define PHLEX_EXPERIMENTAL_REGISTER_SOURCE(source)                                                 \
-  BOOST_DLL_ALIAS(phlex::experimental::detail::create_next<source>, create_source)
+#define PHLEX_EXPERIMENTAL_REGISTER_DRIVER(driver)                                                 \
+  BOOST_DLL_ALIAS(phlex::experimental::detail::create_next<driver>, create_driver)
 
-#endif // PHLEX_SOURCE_HPP
+#endif // PHLEX_DRIVER_HPP
