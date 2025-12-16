@@ -110,6 +110,12 @@ except ImportError:
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
 
+  add_test(NAME py:config
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet -g
+                   pyconfig.gv
+           )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
+
   set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
   if(DEFINED ENV{VIRTUAL_ENV})
     set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH})
