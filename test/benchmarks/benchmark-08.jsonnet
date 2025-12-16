@@ -7,6 +7,11 @@ local max_number = 100000;
       event: { total: max_number }
     }
   },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
+  },
   modules: {
     a_creator: {
       plugin: 'last_index',
@@ -27,8 +32,5 @@ local max_number = 100000;
       consumes: { product: 'a', layer: "event" },
       max_number: max_number,
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

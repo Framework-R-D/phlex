@@ -5,6 +5,11 @@
       event: { total: 100000 }
     }
   },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
+  },
   modules: {
     a_creator: {
       plugin: 'last_index',
@@ -21,8 +26,5 @@
       when: ['even_filter:accept_even_numbers'],
       consumes: { product: 'b', layer: "event" }
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

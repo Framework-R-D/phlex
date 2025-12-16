@@ -3,6 +3,7 @@
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/module.hpp"
+#include "phlex/source.hpp"
 
 #include "boost/algorithm/string.hpp"
 #include "boost/dll/import.hpp"
@@ -19,6 +20,7 @@ namespace phlex::experimental {
     // If factory function goes out of scope, then the library is unloaded...and that's
     // bad.
     std::vector<std::function<detail::module_creator_t>> create_module;
+    std::vector<std::function<detail::source_creator_t>> create_source;
     std::function<detail::driver_creator_t> create_driver;
 
     template <typename creator_t>
@@ -55,6 +57,22 @@ namespace phlex::experimental {
     configuration const config{raw_config};
     auto module_proxy = g.proxy(config);
     creator(module_proxy, config);
+  }
+
+  void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
+  {
+    auto const& spec = value_to<std::string>(raw_config.at("plugin"));
+    auto& creator =
+      create_source.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_source"));
+
+    // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
+    //        'module_label', but that requires adjusting other parts of the system
+    //        (e.g. make_algorithm_name).
+    raw_config["module_label"] = label;
+
+    configuration const config{raw_config};
+    auto source_proxy = g.proxy(config);
+    creator(source_proxy, config);
   }
 
   detail::next_index_t load_driver(boost::json::object const& raw_config)

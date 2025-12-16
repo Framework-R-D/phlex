@@ -5,6 +5,11 @@
       event: { total: 100000 }
     }
   },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
+  },
   modules: {
     b_creator: {
       plugin: 'last_index',
@@ -18,8 +23,5 @@
       plugin: 'verify_difference',
       expected: 0
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

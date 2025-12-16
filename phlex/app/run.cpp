@@ -23,6 +23,10 @@ namespace phlex::experimental {
     for (auto const& [key, value] : module_configs) {
       load_module(g, key, value.as_object());
     }
+    auto const source_configs = object_decorate_exception(configurations, "sources");
+    for (auto const& [key, value] : source_configs) {
+      load_source(g, key, value.as_object());
+    }
     g.execute();
   }
 }

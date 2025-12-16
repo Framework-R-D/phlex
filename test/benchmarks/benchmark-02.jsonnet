@@ -5,6 +5,11 @@
       event: { total: 100000 }
     }
   },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
+  },
   modules: {
     a1_creator: {
       plugin: 'last_index',
@@ -14,8 +19,5 @@
       plugin: 'last_index',
       product_name: "a2"
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

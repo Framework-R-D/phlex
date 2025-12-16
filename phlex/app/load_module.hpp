@@ -10,6 +10,7 @@
 
 namespace phlex::experimental {
   void load_module(framework_graph& g, std::string const& label, boost::json::object config);
+  void load_source(framework_graph& g, std::string const& label, boost::json::object config);
   detail::next_index_t load_driver(boost::json::object const& config);
 }
 

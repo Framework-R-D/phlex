@@ -5,6 +5,11 @@
       event: { total: 100000 }
     }
   },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
+  },
   modules: {
     even_filter: {
       plugin: 'accept_even_ids',
@@ -24,8 +29,5 @@
       plugin: 'verify_difference',
       expected: 0
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

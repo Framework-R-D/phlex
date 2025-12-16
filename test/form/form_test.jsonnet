@@ -1,8 +1,13 @@
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
       event: { total: 10 }
+    }
+  },
+  sources: {
+    provider: {
+      plugin: 'ij_source'
     }
   },
   modules: {

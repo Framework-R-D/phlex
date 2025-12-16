@@ -4,7 +4,6 @@
 // =======================================================================================
 
 #include "phlex/module.hpp"
-#include "phlex/utilities/max_allowed_parallelism.hpp"
 
 #include <cassert>
 
@@ -12,10 +11,6 @@ using namespace phlex::experimental;
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
-  m.provide("provide_max_parallelism",
-            [](data_cell_index const&) { return max_allowed_parallelism::active_value(); })
-    .output_product("max_parallelism"_in("job"));
-
   m.observe("verify_expected",
             [expected = config.get<std::size_t>("expected_parallelism")](std::size_t actual) {
               assert(actual == expected);

@@ -9,9 +9,10 @@ local g4stage2 = import 'G4Stage2.libsonnet';
       event: { total: 1 }
     }
   },
-  modules: singlesgen + g4stage1 + g4stage2 {
+  sources: {
     provider: {
       plugin: 'id_provider'
     }
   },
+  modules: singlesgen + g4stage1 + g4stage2,
 }

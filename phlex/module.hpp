@@ -8,17 +8,35 @@
 
 #include "boost/preprocessor.hpp"
 
-namespace phlex::experimental::detail {
-  using module_creator_t = void(graph_proxy<void_tag>&, configuration const&);
+namespace phlex::experimental {
+  template <typename T>
+  class module_token : graph_proxy<T> {
+    using base = graph_proxy<T>;
+
+  public:
+    using base::graph_proxy;
+
+    using base::make;
+
+    using base::fold;
+    using base::observe;
+    using base::predicate;
+    using base::transform;
+    using base::unfold;
+  };
+
+  namespace detail {
+    using module_creator_t = void(graph_proxy<void_tag>&, configuration const&);
+  }
 }
 
 #define NARGS(...) BOOST_PP_DEC(BOOST_PP_VARIADIC_SIZE(__VA_OPT__(, ) __VA_ARGS__))
 
 #define CREATE_1ARG(m)                                                                             \
-  void create(phlex::experimental::graph_proxy<phlex::experimental::void_tag>& m,                  \
+  void create(phlex::experimental::module_token<phlex::experimental::void_tag>& m,                 \
               phlex::experimental::configuration const&)
 #define CREATE_2ARGS(m, pset)                                                                      \
-  void create(phlex::experimental::graph_proxy<phlex::experimental::void_tag>& m,                  \
+  void create(phlex::experimental::module_token<phlex::experimental::void_tag>& m,                 \
               phlex::experimental::configuration const& config)
 
 #define SELECT_SIGNATURE(...)                                                                      \
