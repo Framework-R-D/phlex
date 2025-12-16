@@ -100,8 +100,7 @@ if(ENABLE_TSAN)
       -g
       -O1
       # Ensure no optimizations interfere with TSan
-      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer
-      -fno-optimize-sibling-calls>
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>"
       )
     add_link_options(-fsanitize=thread)
   else()
@@ -125,8 +124,7 @@ if(ENABLE_ASAN)
       -g
       -O1
       # Ensure no optimizations interfere with ASan
-      $<$<COMPILER_LANGUAGE:CXX>:-fno-omit-frame-pointer
-      -fno-optimize-sibling-calls>
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>"
       )
     add_link_options(-fsanitize=address)
   else()
