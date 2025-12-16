@@ -60,7 +60,7 @@ namespace phlex::experimental {
     return {algorithm_name::create(""), s, type_id{}};
   }
 
-  product_specifications to_product_specifications(std::string const& name,
+  product_specifications to_product_specifications(std::string const name,
                                                    std::vector<std::string> output_labels,
                                                    std::vector<type_id> output_types)
   {
@@ -68,10 +68,9 @@ namespace phlex::experimental {
     product_specifications outputs;
     outputs.reserve(output_labels.size());
 
-    to_product_specification make_product_specification{name};
     // zip view isn't available until C++23 so we have to use a loop over the index
     for (std::size_t i = 0; i < output_labels.size(); ++i) {
-      outputs.push_back(make_product_specification(output_labels.at(i), output_types.at(i)));
+      outputs.emplace_back(name, output_labels[i], output_types[i]);
     }
     return outputs;
   }
