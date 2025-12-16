@@ -57,14 +57,6 @@ namespace phlex::experimental {
          }},
     multiplexer_{graph_}
   {
-    // FIXME: This requirement is in place so that the yielding driver can be used.
-    //        At least 2 threads are required for that to work.
-    //        It would be better if the specified concurrency would be applied to an
-    //        arena in which the user-facing work is done.
-    if (max_parallelism < 2) {
-      throw std::runtime_error("Must choose concurrency level of at least 2.");
-    }
-
     // FIXME: Should the loading of env levels happen in the phlex app only?
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());

@@ -92,6 +92,7 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
+  layer_generator
   )
 cet_test(
   function_registration
