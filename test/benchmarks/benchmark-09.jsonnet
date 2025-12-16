@@ -1,28 +1,28 @@
 {
   driver: {
-    plugin: 'generate_layers',
+    cpp: 'generate_layers',
     layers: {
       event: { total: 100000 }
     }
   },
   sources: {
     provider: {
-      plugin: 'benchmarks_provider'
+      cpp: 'benchmarks_provider'
     }
   },
   modules: {
     a_creator: {
-      plugin: 'last_index',
+      cpp: 'last_index',
     },
     b_creator: {
-      plugin: 'plus_one',
+      cpp: 'plus_one',
     },
     even_filter: {
-      plugin: 'accept_even_numbers',
+      cpp: 'accept_even_numbers',
       consumes: { product: 'a', layer: "event" }
     },
     d: {
-      plugin: 'read_index',
+      cpp: 'read_index',
       when: ['even_filter:accept_even_numbers'],
       consumes: { product: 'b', layer: "event" }
     },

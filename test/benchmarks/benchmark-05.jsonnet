@@ -1,26 +1,26 @@
 {
   driver: {
-    plugin: 'generate_layers',
+    cpp: 'generate_layers',
     layers: {
       event: { total: 100000 }
     }
   },
   sources: {
     provider: {
-      plugin: 'benchmarks_provider'
+      cpp: 'benchmarks_provider'
     }
   },
   modules: {
     b_creator: {
-      plugin: 'last_index',
+      cpp: 'last_index',
       produces: 'b',
     },
     c_creator: {
-      plugin: 'last_index',
+      cpp: 'last_index',
       produces: 'c',
     },
     d: {
-      plugin: 'verify_difference',
+      cpp: 'verify_difference',
       expected: 0
     },
   },

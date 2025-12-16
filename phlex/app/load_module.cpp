@@ -49,7 +49,7 @@ namespace phlex::experimental {
 
   void load_module(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const& spec = value_to<std::string>(raw_config.at("plugin"));
+    auto const& spec = value_to<std::string>(raw_config.at("cpp"));
     auto& creator =
       create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
     raw_config["module_label"] = label;
@@ -60,7 +60,7 @@ namespace phlex::experimental {
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const& spec = value_to<std::string>(raw_config.at("plugin"));
+    auto const& spec = value_to<std::string>(raw_config.at("cpp"));
     auto& creator =
       create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
 
@@ -76,7 +76,7 @@ namespace phlex::experimental {
   detail::next_index_t load_driver(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
-    auto const& spec = config.get<std::string>("plugin");
+    auto const& spec = config.get<std::string>("cpp");
     create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
     return create_driver(config);
   }

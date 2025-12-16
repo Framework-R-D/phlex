@@ -1,21 +1,21 @@
 {
   driver: {
-    plugin: 'generate_layers',
+    cpp: 'generate_layers',
     layers: {
       event: { total: 10 }
     }
   },
   sources: {
     provider: {
-      plugin: 'ij_source'
+      cpp: 'ij_source'
     }
   },
   modules: {
     add: {
-      plugin: 'module',
+      cpp: 'module',
     },
     form_output: {
-      plugin: 'form_module',
+      cpp: 'form_module',
       products: ["sum"],
     },
   },
