@@ -27,7 +27,11 @@ namespace {
       form::experimental::config::output_item_config output_cfg;
       form::experimental::config::tech_setting_config tech_cfg;
 
-      // For first prototype: products will be registered dynamically on first write
+      // Register products that will be written
+      // Register "sum" product with output file and technology
+      output_cfg.addItem("sum", m_output_file, m_technology);
+      
+      std::cout << "  Registered product 'sum' with FORM\n";
 
       // Initialize FORM interface
       m_form_interface =
