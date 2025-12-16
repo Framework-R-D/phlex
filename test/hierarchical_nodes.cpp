@@ -18,7 +18,7 @@
 
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "plugins/layer_generator.hpp"
 #include "test/products_for_output.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -28,28 +28,13 @@
 #include <atomic>
 #include <cmath>
 #include <ctime>
-#include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
 namespace {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
-
-  void cells_to_process(framework_driver& driver)
-  {
-    auto job_index = data_cell_index::base_ptr();
-    driver.yield(job_index);
-    for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_index = job_index->make_child(i, "run");
-      driver.yield(run_index);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
-        driver.yield(run_index->make_child(j, "event"));
-      }
-    }
-  }
 
   auto square(unsigned int const num) { return num * num; }
 
@@ -97,7 +82,11 @@ namespace {
 
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
-  framework_graph g{cells_to_process};
+  layer_generator gen;
+  gen.add_layer("run", {"job", index_limit});
+  gen.add_layer("event", {"run", number_limit});
+
+  framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_time",
             [](data_cell_index const& index) -> std::time_t {

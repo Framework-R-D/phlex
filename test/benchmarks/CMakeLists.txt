@@ -1,9 +1,6 @@
 add_library(fibonacci_numbers SHARED fibonacci_numbers.cpp)
 target_include_directories(fibonacci_numbers PRIVATE ${PROJECT_SOURCE_DIR})
 
-add_library(benchmarks_source MODULE benchmarks_source.cpp)
-target_link_libraries(benchmarks_source PRIVATE phlex::model phlex::module)
-
 add_library(benchmarks_provider MODULE benchmarks_provider.cpp)
 target_link_libraries(benchmarks_provider PRIVATE phlex::model phlex::module)
 

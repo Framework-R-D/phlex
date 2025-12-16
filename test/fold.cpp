@@ -25,16 +25,12 @@
 
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
-#include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
@@ -50,21 +46,11 @@ TEST_CASE("Different data layers of fold", "[graph]")
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  auto cells_to_process = [index_limit, number_limit](framework_driver& driver) {
-    auto job_index = data_cell_index::base_ptr();
-    driver.yield(job_index);
-    for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_index = job_index->make_child(i, "run");
-      driver.yield(run_index);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_index = run_index->make_child(j, "event");
-        driver.yield(event_index);
-      }
-    }
-  };
+  layer_generator gen;
+  gen.add_layer("run", {"job", index_limit});
+  gen.add_layer("event", {"run", number_limit});
 
-  // framework_graph g{cells_to_process};
-  framework_graph g{cells_to_process};
+  framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product("number"_in("event"));

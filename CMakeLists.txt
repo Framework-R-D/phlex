@@ -180,6 +180,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_subdirectory(phlex)
+add_subdirectory(plugins)
 
 if(PHLEX_USE_FORM)
   set(BUILD_SHARED_LIBS OFF) # Temporary

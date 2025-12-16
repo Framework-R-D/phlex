@@ -32,10 +32,17 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
+  layer_generator
   )
-cet_test(vector_of_abstract_types USE_CATCH2_MAIN SOURCE
-         vector_of_abstract_types.cpp LIBRARIES phlex::core
-         )
+cet_test(
+  vector_of_abstract_types
+  USE_CATCH2_MAIN
+  SOURCE
+  vector_of_abstract_types.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
+  )
 cet_test(
   cached_execution
   USE_CATCH2_MAIN
@@ -44,6 +51,7 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
+  layer_generator
   )
 cet_test(
   class_registration
@@ -62,6 +70,7 @@ cet_test(
   LIBRARIES
   phlex::core
   spdlog::spdlog
+  layer_generator
   )
 cet_test(filter_impl USE_CATCH2_MAIN SOURCE filter_impl.cpp LIBRARIES
          phlex::core
@@ -103,6 +112,16 @@ cet_test(
   TBB::tbb
   phlex::core
   spdlog::spdlog
+  layer_generator
+  )
+cet_test(
+  layer_generator_test
+  USE_CATCH2_MAIN
+  SOURCE
+  layer_generator.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
   )
 cet_test(
   multiple_function_registration
@@ -142,6 +161,7 @@ cet_test(
   LIBRARIES
   phlex::core
   spdlog::spdlog
+  layer_generator
   )
 cet_test(
   replicated
@@ -167,9 +187,15 @@ cet_test(
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
          phlex::core
          )
-cet_test(provider_test USE_CATCH2_MAIN SOURCE provider_test.cpp LIBRARIES
-         phlex::core
-         )
+cet_test(
+  provider_test
+  USE_CATCH2_MAIN
+  SOURCE
+  provider_test.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
+  )
 cet_test(
   type_distinction
   USE_CATCH2_MAIN
@@ -189,6 +215,7 @@ cet_test(
   phlex::core
   TBB::tbb
   spdlog::spdlog
+  layer_generator
   )
 
 add_subdirectory(benchmarks)

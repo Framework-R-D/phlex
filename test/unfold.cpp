@@ -16,13 +16,12 @@
 
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "plugins/layer_generator.hpp"
 #include "test/products_for_output.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
 #include <atomic>
-#include <ranges>
 #include <string>
 
 using namespace phlex::experimental;
@@ -92,16 +91,10 @@ TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
 
-  auto cells_to_process = [index_limit](auto& driver) {
-    auto job_index = data_cell_index::base_ptr();
-    driver.yield(job_index);
-    for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto event_index = job_index->make_child(i, "event");
-      driver.yield(event_index);
-    }
-  };
+  layer_generator gen;
+  gen.add_layer("event", {"job", index_limit});
 
-  framework_graph g{cells_to_process};
+  framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
     .output_product("max_number"_in("event"));
