@@ -90,35 +90,31 @@ except ImportError:
 
   # C++ helper to provide a driver
   add_library(py_cppdriver MODULE driver.cpp)
-  target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
+  target_link_libraries(py_cppdriver PRIVATE phlex::module)
 
   # numpy support if installed
   if(HAS_NUMPY)
 
     # phlex-based tests that require numpy support
     add_test(NAME py:vec
-             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet -g
-                     pyvec.gv
+             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet
              )
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
   endif()
 
   # phlex-based tests (no cppyy dependency)
   add_test(NAME py:add
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet -g
-                   pyadd.gv
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
 
   add_test(NAME py:config
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet -g
-                   pyconfig.gv
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 
   add_test(NAME py:reduce
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet -g
-                   pyreduce.gv
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
@@ -132,6 +128,6 @@ except ImportError:
     ${ACTIVE_PY_CPHLEX_TESTS}
     PROPERTIES
       ENVIRONMENT
-      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_BINARY_DIR}/plugins/python;PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=.:${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_BINARY_DIR}/plugins/python;PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
     )
 endif() # Python available
