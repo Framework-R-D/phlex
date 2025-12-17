@@ -1,7 +1,9 @@
 {
   source: {
-    plugin: 'source',
-    max_numbers: 10,
+    plugin: 'generate_layers',
+    layers: {
+      event: { total: 10 }
+    }
   },
   modules: {
     add: {
