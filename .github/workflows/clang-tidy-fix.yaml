@@ -86,7 +86,7 @@ jobs:
       - name: Handle fix commit
         uses: ./phlex-src/.github/actions/handle-fix-commit
         with:
-          commit-message: 'Apply clang-tidy fixes'
+          tool: clang-tidy
           working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.parse-command.outputs.ref }}

@@ -61,7 +61,7 @@ jobs:
       - name: Handle fix commit
         uses: ./phlex-src/.github/actions/handle-fix-commit
         with:
-          commit-message: 'Apply Python linting fixes'
+          tool: 'Python linting'
           working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.parse-command.outputs.ref }}
