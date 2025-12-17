@@ -27,10 +27,15 @@ namespace {
       form::experimental::config::output_item_config output_cfg;
       form::experimental::config::tech_setting_config tech_cfg;
 
+      // FIXME: Temporary solution to accommodate Phlex limitation.
+      // Eventually, Phlex will communicate to FORM which products will be written
+      // before executing any algorithms
+
+      // Temp. Sol for Phlex Prototype 0.1
       // Register products that will be written
       // Register "sum" product with output file and technology
       output_cfg.addItem("sum", m_output_file, m_technology);
-      
+
       std::cout << "  Registered product 'sum' with FORM\n";
 
       // Initialize FORM interface
@@ -105,6 +110,9 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 
   // Create type map
   auto type_map = std::make_shared<form::experimental::product_type_names>();
+
+  // Register the int type for sum product
+  type_map->names[std::type_index(typeid(int))] = "int";
 
   // TODO: Register product types
   // This needs to be populated with actual types your application uses
