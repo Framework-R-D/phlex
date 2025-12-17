@@ -43,8 +43,3 @@ cet_test(
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${CMAKE_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
   )
-
-
-
-
-
