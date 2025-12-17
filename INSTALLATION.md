@@ -90,7 +90,7 @@ spack concretize
 ```
 
 The concretization can take up to a few minutes.
-If it is successful you will see the concretization results listed followed by a notice that spack is updating a few at some path.
+If it is successful you will see the concretization results listed followed by a notice that spack is updating a view at some path.
 
 You are then ready to build the Phlex environment:
 
