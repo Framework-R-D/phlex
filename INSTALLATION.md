@@ -50,7 +50,7 @@ Run the following, which will open an editor.
 spack config edit config
 ```
 Modify the file to include a new key, `build_stage`.
-`config` key will already be in the file and may already contain other keys. 
+`config` key may already be in the file and may already contain other keys. 
 
 ```yaml
 config:
