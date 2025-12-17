@@ -72,7 +72,7 @@ int main(int argc, char** argv)
         check += val;
 
       char seg_id_text[64];
-      sprintf(seg_id_text, seg_id, nevent, nseg);
+      snprintf(seg_id_text, 64, seg_id, nevent, nseg);
 
       std::string segment_id(seg_id_text);
 
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
       check += val;
 
     char evt_id_text[64];
-    sprintf(evt_id_text, evt_id, nevent);
+    snprintf(seg_id_text, 64, seg_id, nevent, nseg);
 
     std::string event_id(evt_id_text);
 
