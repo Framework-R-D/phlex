@@ -5,19 +5,21 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/graph_proxy.hpp"
-
-#include "boost/preprocessor.hpp"
+#include "phlex/detail/plugin_macros.hpp"
 
 namespace phlex::experimental {
   template <typename T>
-  class source_token : graph_proxy<T> {
+  class source_graph_proxy : graph_proxy<T> {
     using base = graph_proxy<T>;
 
   public:
     using base::graph_proxy;
 
+    // FIXME: make sure functions called from make<T>(...) are restricted to the functions below:
+    //        Users can call make<T>(...).provide(...) but not make<T>(...).fold(...)
     using base::make;
 
+    // Only provide(...) should be accessible
     using base::provide;
   };
 
@@ -26,23 +28,8 @@ namespace phlex::experimental {
   }
 }
 
-#define SOURCE_NARGS(...) BOOST_PP_DEC(BOOST_PP_VARIADIC_SIZE(__VA_OPT__(, ) __VA_ARGS__))
-
-#define CREATE_SOURCE_1ARG(m)                                                                      \
-  void create_src(phlex::experimental::source_token<phlex::experimental::void_tag>& m,             \
-                  phlex::experimental::configuration const&)
-#define CREATE_SOURCE_2ARGS(m, pset)                                                               \
-  void create_src(phlex::experimental::source_token<phlex::experimental::void_tag>& m,             \
-                  phlex::experimental::configuration const& config)
-
-#define SELECT_SOURCE_SIGNATURE(...)                                                               \
-  BOOST_PP_IF(BOOST_PP_EQUAL(SOURCE_NARGS(__VA_ARGS__), 1),                                        \
-              CREATE_SOURCE_1ARG,                                                                  \
-              CREATE_SOURCE_2ARGS)(__VA_ARGS__)
-
 #define PHLEX_EXPERIMENTAL_REGISTER_PROVIDERS(...)                                                 \
-  static SELECT_SOURCE_SIGNATURE(__VA_ARGS__);                                                     \
-  BOOST_DLL_ALIAS(create_src, create_source)                                                       \
-  SELECT_SOURCE_SIGNATURE(__VA_ARGS__)
+  PHLEX_DETAIL_REGISTER_PLUGIN(                                                                    \
+    phlex::experimental::source_graph_proxy, create, create_source, __VA_ARGS__)
 
 #endif // PHLEX_SOURCE_HPP

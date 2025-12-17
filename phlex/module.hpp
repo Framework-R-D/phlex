@@ -5,17 +5,18 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/graph_proxy.hpp"
-
-#include "boost/preprocessor.hpp"
+#include "phlex/detail/plugin_macros.hpp"
 
 namespace phlex::experimental {
   template <typename T>
-  class module_token : graph_proxy<T> {
+  class module_graph_proxy : graph_proxy<T> {
     using base = graph_proxy<T>;
 
   public:
     using base::graph_proxy;
 
+    // FIXME: make sure functions called from make<T>(...) are restricted to the functions below:
+    //        Users can call make<T>(...).fold(...) but not make<T>(...).provide(...)
     using base::make;
 
     using base::fold;
@@ -30,21 +31,8 @@ namespace phlex::experimental {
   }
 }
 
-#define NARGS(...) BOOST_PP_DEC(BOOST_PP_VARIADIC_SIZE(__VA_OPT__(, ) __VA_ARGS__))
-
-#define CREATE_1ARG(m)                                                                             \
-  void create(phlex::experimental::module_token<phlex::experimental::void_tag>& m,                 \
-              phlex::experimental::configuration const&)
-#define CREATE_2ARGS(m, pset)                                                                      \
-  void create(phlex::experimental::module_token<phlex::experimental::void_tag>& m,                 \
-              phlex::experimental::configuration const& config)
-
-#define SELECT_SIGNATURE(...)                                                                      \
-  BOOST_PP_IF(BOOST_PP_EQUAL(NARGS(__VA_ARGS__), 1), CREATE_1ARG, CREATE_2ARGS)(__VA_ARGS__)
-
 #define PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(...)                                                \
-  static SELECT_SIGNATURE(__VA_ARGS__);                                                            \
-  BOOST_DLL_ALIAS(create, create_module)                                                           \
-  SELECT_SIGNATURE(__VA_ARGS__)
+  PHLEX_DETAIL_REGISTER_PLUGIN(                                                                    \
+    phlex::experimental::module_graph_proxy, create, create_module, __VA_ARGS__)
 
 #endif // PHLEX_MODULE_HPP
