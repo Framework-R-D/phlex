@@ -10,6 +10,8 @@
 namespace phlex {
   class product_query {
   public:
+    // FIXME: Boost JSON's parameter retrieval facilities require a default constructor
+    //        whenever the type is (e.g.) std::array<product_query, N>.
     product_query();
     product_query(experimental::product_specification spec, std::string layer);
 
