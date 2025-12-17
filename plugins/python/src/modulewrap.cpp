@@ -352,13 +352,13 @@ namespace {
 
 #define INSERT_INPUT_CONVERTER(name, alg, inp)                                                     \
   mod->ph_module->transform("py" #name "_" + inp + "_" + alg, name##_to_py, concurrency::serial)   \
-    .input_family(inp)                                                                             \
-    .output_products(alg + "_" + inp + "py")
+    .input_family(product_query{product_specification::create(inp)})                               \
+    .output_products(std::string{alg + "_" + inp + "py"})
 
 #define INSERT_OUTPUT_CONVERTER(name, alg, outp)                                                   \
   mod->ph_module->transform(#name "py_" + outp + "_" + alg, py_to_##name, concurrency::serial)     \
-    .input_family("py" + output + "_" + alg)                                                       \
-    .output_products(output)
+    .input_family(product_query{product_specification::create("py" + outp + "_" + alg)})           \
+    .output_products(outp)
 
 static PyObject* parse_args(PyObject* args,
                             PyObject* kwds,
@@ -471,7 +471,7 @@ static PyObject* parse_args(PyObject* args,
 }
 
 static bool insert_input_converters(py_phlex_module* mod,
-                                    std::string const& cname,   // TODO: shared_ptr<PyObject>
+                                    std::string const& cname, // TODO: shared_ptr<PyObject>
                                     std::vector<std::string> const& input_labels,
                                     std::vector<std::string> const& input_types)
 {
@@ -512,27 +512,30 @@ static bool insert_input_converters(py_phlex_module* mod,
       std::string py_out = cname + "_" + inp + "py";
       if (inp_type.compare(pos, std::string::npos, "int32]]") == 0) {
         mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
-          .input_family(inp)
+          .input_family(product_query{product_specification::create(inp)})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "uint32]]") == 0) {
         mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
-          .input_family(inp)
+          .input_family(product_query{product_specification::create(inp)})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
         mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
-          .input_family(inp)
+          .input_family(product_query{product_specification::create(inp)})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
-        mod->ph_module->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
-          .input_family(inp)
+        mod->ph_module
+          ->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
+          .input_family(product_query{product_specification::create(inp)})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "float32]]") == 0) {
-        mod->ph_module->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
-          .input_family(inp)
+        mod->ph_module
+          ->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
+          .input_family(product_query{product_specification::create(inp)})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "double64]]") == 0) {
-        mod->ph_module->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
-          .input_family(inp)
+        mod->ph_module
+          ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
+          .input_family(product_query{product_specification::create(inp)})
           .output_products(py_out);
       } else {
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
@@ -578,17 +581,23 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   if (input_labels.size() == 1) {
     auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
-      .input_family(cname + "_" + input_labels[0] + "py")
+      .input_family(
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")})
       .output_products(py_out);
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
-      .input_family(cname + "_" + input_labels[0] + "py", cname + "_" +  input_labels[1] + "py")
+      .input_family(
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")})
       .output_products(py_out);
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
-      .input_family(cname + "_" + input_labels[0] + "py", cname + "_" + input_labels[1] + "py", cname + "_" + input_labels[2] + "py")
+      .input_family(
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")},
+        product_query{product_specification::create(cname + "_" + input_labels[2] + "py")})
       .output_products(py_out);
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
@@ -642,15 +651,19 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   // register Python observer
   if (input_labels.size() == 1) {
     auto* pyc = new py_callback_1v{callable}; // id.
-    mod->ph_module->observe(cname, *pyc, concurrency::serial).input_family(input_labels[0] + "py");
+    mod->ph_module->observe(cname, *pyc, concurrency::serial)
+      .input_family(product_query{product_specification::create(input_labels[0] + "py")});
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
-      .input_family(input_labels[0] + "py", input_labels[1] + "py");
+      .input_family(product_query{product_specification::create(input_labels[0] + "py")},
+                    product_query{product_specification::create(input_labels[1] + "py")});
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
-      .input_family(input_labels[0] + "py", input_labels[1] + "py", input_labels[2] + "py");
+      .input_family(product_query{product_specification::create(input_labels[0] + "py")},
+                    product_query{product_specification::create(input_labels[1] + "py")},
+                    product_query{product_specification::create(input_labels[2] + "py")});
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     return nullptr;
