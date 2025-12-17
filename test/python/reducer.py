@@ -1,3 +1,16 @@
+"""Explicit reduction algorithm.
+
+This test code implements a reduction by explicitly coding it up in the
+Phlex execution graph. The goal is to try to creating node naming issues
+to ensure these either don't happen or are properly resolved by Phlex:
+
+ - Re-uses the same Python algorithm in different nodes, this means that
+   simply taking the name from reflection can not be relied upon.
+ - Several Python algorithms receive the same C++ inputs, which causes
+   either converter node naming problems (if converters are reused) or
+   lifetime issues (if they are not).
+"""
+
 def add(i: int, j: int) -> int:
     """Add the inputs together and return the sum total.
 

@@ -1,3 +1,10 @@
+"""Python-representation of configuration.
+
+This test code comes with a configurtion file that provides exemplars of
+all supported types. It then verifies whether this is properly translated
+to Python. The actual run is a noop.
+"""
+
 class ConfigConsumer:
     """A callable class that "needs" every configuration type.
 

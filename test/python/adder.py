@@ -1,3 +1,9 @@
+"""A most basic algorithm.
+
+This test code implements the smallest possible run that does something
+real. It serves as a "Hello, World" equivalent for running Python code.
+"""
+
 def add(i: int, j: int) -> int:
     """Add the inputs together and return the sum total.
 

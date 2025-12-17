@@ -1,3 +1,9 @@
+"""A most basic algorithm using a type that is not a C++ builtin.
+
+This test code implements the smallest possible run that does something
+real with a non-builtin type: it exercises numpy support.
+"""
+
 import numpy as np
 import numpy.typing as npt
 

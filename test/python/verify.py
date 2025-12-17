@@ -1,3 +1,9 @@
+"""An observer to check for output in tests.
+
+Test algorithms produce outputs. To ensure that a test is run correctly,
+this observer verifies its result against the expected value.
+"""
+
 class Verifier:
     """A callable class that can assert an expected value.
 
