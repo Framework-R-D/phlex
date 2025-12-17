@@ -122,7 +122,7 @@ int main(int argc, char** argv)
       check += val;
 
     char evt_id_text[64];
-    snprintf(seg_id_text, 64, seg_id, nevent, nseg);
+    snprintf(evt_id_text, 64, evt_id, nevent);
 
     std::string event_id(evt_id_text);
 
