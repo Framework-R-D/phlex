@@ -67,7 +67,6 @@ def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-
     assert_sum = Verifier(config["sum_total"])
     m.observe(assert_sum, input_family = config["input"])
 

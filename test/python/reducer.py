@@ -47,7 +47,6 @@ def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-
     # first recieve the same input x4 but return "different" output
     for i in range(4):
         m.transform(add,

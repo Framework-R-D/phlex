@@ -28,7 +28,7 @@ class ConfigConsumer:
             None
         """
         # builtin types
-        assert config['a_bool'] == False
+        assert config['a_bool'] == False # noqa: E712  # we really want to check False
         assert config['an_int'] == -37
         assert config['a_uint'] ==  18446744073709551616
         assert config['a_float'] == 3.1415
@@ -70,7 +70,6 @@ def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-
     config_consumer = ConfigConsumer(config)
     m.observe(config_consumer, input_family = config["input"])
 
