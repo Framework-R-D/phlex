@@ -1,21 +1,25 @@
 {
   source: {
-    plugin: 'py_cppdriver',
-    max_numbers: 10,
-    as_collection: true,
+    plugin: 'generate_layers',
+    layers: {
+      event: { parent: "job", total: 10, starting_number: 1 }
+    }
   },
   modules: {
+    cppdriver: {
+      plugin: 'cppdriver4py',
+    },
     pysum: {
       plugin: 'pymodule',
       pyplugin: 'sumit',
-      input: ['coll_of_i'],
+      input: ['i', 'j'],
       output: ['sum'],
     },
     pyverify: {
       plugin: 'pymodule',
       pyplugin: 'verify',
       input: ['sum'],
-      sum_total: 55,
+      sum_total: 1,
     },
   },
 }

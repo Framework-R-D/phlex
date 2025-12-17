@@ -1,10 +1,14 @@
 {
   source: {
-    plugin: 'py_cppdriver',
-    max_numbers: 10,
-    as_collection: false,
+    plugin: 'generate_layers',
+    layers: {
+      event: { parent: "job", total: 10, starting_number: 1 }
+    }
   },
   modules: {
+    cppdriver: {
+      plugin: 'cppdriver4py',
+    },
     pyconfig: {
       plugin: 'pymodule',
       pyplugin: 'all_config',

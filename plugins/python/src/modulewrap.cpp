@@ -15,6 +15,10 @@
 
 using namespace phlex::experimental;
 
+// TODO: the layer is currently hard-wired and should come from the product
+// specification instead, but that doesn't exist in Python yet.
+static std::string const LAYER = "job";
+
 // Simple phlex module wrapper
 // clang-format off
 struct phlex::experimental::py_phlex_module {
@@ -394,12 +398,12 @@ namespace {
 
 #define INSERT_INPUT_CONVERTER(name, alg, inp)                                                     \
   mod->ph_module->transform("py" #name "_" + inp + "_" + alg, name##_to_py, concurrency::serial)   \
-    .input_family(product_query{product_specification::create(inp)})                               \
+    .input_family(product_query{product_specification::create(inp), LAYER})                        \
     .output_products(alg + "_" + inp + "py")
 
 #define INSERT_OUTPUT_CONVERTER(name, alg, outp)                                                   \
   mod->ph_module->transform(#name "py_" + outp + "_" + alg, py_to_##name, concurrency::serial)     \
-    .input_family(product_query{product_specification::create("py" + outp + "_" + alg)})           \
+    .input_family(product_query{product_specification::create("py" + outp + "_" + alg), LAYER})    \
     .output_products(outp)
 
 static PyObject* parse_args(PyObject* args,
@@ -560,30 +564,30 @@ static bool insert_input_converters(py_phlex_module* mod,
       std::string py_out = cname + "_" + inp + "py";
       if (inp_type.compare(pos, std::string::npos, "int32]]") == 0) {
         mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp)})
+          .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "uint32]]") == 0) {
         mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp)})
+          .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
         mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp)})
+          .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
         mod->ph_module
           ->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp)})
+          .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "float32]]") == 0) {
         mod->ph_module
           ->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp)})
+          .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "double64]]") == 0) {
         mod->ph_module
           ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp)})
+          .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
       } else {
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
@@ -631,22 +635,22 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")})
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER})
       .output_products(py_out);
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")})
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER})
       .output_products(py_out);
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")},
-        product_query{product_specification::create(cname + "_" + input_labels[2] + "py")})
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER},
+        product_query{product_specification::create(cname + "_" + input_labels[2] + "py"), LAYER})
       .output_products(py_out);
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
@@ -685,30 +689,30 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     auto py_in = "py" + output + "_" + cname;
     if (output_type.compare(pos, std::string::npos, "int32]]") == 0) {
       mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in)})
+        .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
     } else if (output_type.compare(pos, std::string::npos, "uint32]]") == 0) {
       mod->ph_module->transform("pyvuint_" + output + "_" + cname, py_to_vuint, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in)})
+        .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
     } else if (output_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
       mod->ph_module->transform("pyvlong_" + output + "_" + cname, py_to_vlong, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in)})
+        .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
     } else if (output_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
       mod->ph_module
         ->transform("pyvulong_" + output + "_" + cname, py_to_vulong, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in)})
+        .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
     } else if (output_type.compare(pos, std::string::npos, "float32]]") == 0) {
       mod->ph_module
         ->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in)})
+        .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
     } else if (output_type.compare(pos, std::string::npos, "double64]]") == 0) {
       mod->ph_module
         ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in)})
+        .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported array output type \"%s\"", output_type.c_str());
@@ -749,20 +753,20 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     auto* pyc = new py_callback_1v{callable}; // id.
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")});
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER});
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")});
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER});
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")},
-        product_query{product_specification::create(cname + "_" + input_labels[2] + "py")});
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER},
+        product_query{product_specification::create(cname + "_" + input_labels[2] + "py"), LAYER});
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     return nullptr;
