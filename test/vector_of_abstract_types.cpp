@@ -1,4 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
@@ -34,36 +35,20 @@ namespace {
     return std::transform_reduce(
       vec.begin(), vec.end(), 0, std::plus{}, [](auto const& ptr) -> int { return ptr->value(); });
   }
-
-  class source {
-  public:
-    explicit source(unsigned const max_n) : max_{max_n} {}
-
-    void operator()(framework_driver& driver)
-    {
-      auto job_store = phlex::experimental::product_store::base();
-      driver.yield(job_store);
-
-      for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        auto store = job_store->make_child(i, "event");
-        store->add_product("thing", make_derived_as_abstract());
-        driver.yield(store);
-      }
-    }
-
-  private:
-    unsigned const max_;
-  };
-
 }
 
 TEST_CASE("Test vector of abstract types")
 {
-  framework_graph g{source{1u}};
-  g.transform("read_thing", read_abstract).input_family("thing").output_products("sum");
+  layer_generator gen;
+  gen.add_layer("event", {"job", 1u, 1u});
+
+  framework_graph g{driver_for_test(gen)};
+  g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
+    .output_product("thing"_in("event"));
+  g.transform("read_thing", read_abstract).input_family("thing"_in("event")).output_products("sum");
   g.observe(
      "verify_sum", [](int sum) { CHECK(sum == 3); }, concurrency::serial)
-    .input_family("sum");
+    .input_family("sum"_in("event"));
   g.execute();
 
   CHECK(g.execution_counts("read_thing") == 1);

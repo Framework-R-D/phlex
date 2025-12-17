@@ -1,32 +1,44 @@
 name: Clang-Format Check
 run-name: "${{ github.actor }} checking code format"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
 
 jobs:
-  detect-clang-format-changes:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
-
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
-      changed_files: ${{ steps.filter.outputs.matched_files }}
-
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         fetch-depth: 0
         path: phlex-src
 
     - name: Detect C++ formatting changes
       id: filter
-      uses: ./phlex-src/.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
         base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -44,32 +56,54 @@ jobs:
         fi
 
   clang-format-check:
-    needs: detect-clang-format-changes
-    if: ${{ needs.detect-clang-format-changes.outputs.has_changes == 'true' }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         path: phlex-src
 
+    - name: Announce clang-format check
+      run: echo "➡️ Running clang-format check..."
+
     - name: Run clang-format lint
-      uses: DoozyX/clang-format-lint-action@v0.20
+      id: lint
+      uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
       with:
         source: "./phlex-src"
         clangFormatVersion: 20
         extensions: cpp,hpp,cpp.in,hpp.in
+      continue-on-error: true
+
+    - name: Evaluate clang-format result
+      if: always()
+      run: |
+        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+          echo "✅ clang-format check passed."
+        else
+          echo "::error::clang-format check failed. Please review the output above for details."
+          exit 1
+        fi
 
   clang-format-check-skipped:
-    needs: detect-clang-format-changes
-    if: ${{ needs.detect-clang-format-changes.outputs.has_changes != 'true' }}
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
     - name: No relevant C++ changes detected
-      run: echo "No clang-format relevant changes detected; check skipped."
+      run: echo "::notice::No clang-format relevant changes detected; check skipped."

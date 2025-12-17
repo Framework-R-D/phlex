@@ -1,5 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/product_store.hpp"
+#include "plugins/layer_generator.hpp"
 
 using namespace phlex::experimental;
 
@@ -9,24 +9,19 @@ namespace {
 
 int main()
 {
-  constexpr auto max_events{100'000u};
-  // constexpr auto max_events{1'000'000u};
   // spdlog::flush_on(spdlog::level::trace);
 
-  auto levels_to_process = [](framework_driver& driver) {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
+  constexpr auto max_events{100'000u};
 
-    for (unsigned int i : std::views::iota(1u, max_events + 1)) {
-      auto event_store = job_store->make_child(i, "event", "Source");
-      event_store->add_product("number", i);
-      driver.yield(event_store);
-    }
-  };
+  layer_generator gen;
+  gen.add_layer("event", {"job", max_events, 1u});
 
-  framework_graph g{levels_to_process};
+  framework_graph g{driver_for_test(gen)};
+
+  g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
+    .output_product("number"_in("event"));
   g.transform("pass_on", pass_on, concurrency::unlimited)
-    .input_family("number")
+    .input_family("number"_in("event"))
     .output_products("different");
   g.execute();
 }

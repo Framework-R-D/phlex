@@ -3,11 +3,13 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
+#include "phlex/core/product_query.hpp"
 #include "test/mock-workflow/timed_busy.hpp"
 
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <concepts>
@@ -54,7 +56,7 @@ namespace phlex::experimental::test {
       return Outputs{};
     }
 
-    using inputs = std::array<std::string, sizeof...(Inputs)>;
+    using inputs = std::array<product_query, sizeof...(Inputs)>;
     using outputs = std::array<std::string, output_size<Outputs>>;
 
   private:
@@ -68,6 +70,7 @@ namespace phlex::experimental::test {
     using inputs_t = ensure_tuple<Inputs>;
     using algorithm_t = algorithm<inputs_t, Outputs>;
     concurrency const j{c.get<unsigned>("concurrency", concurrency::unlimited.value)};
+
     m.template make<algorithm_t>(c.get<std::string>("module_label"),
                                  c.get<unsigned>("duration_usec"))
       .transform("execute", &algorithm_t::execute, j)

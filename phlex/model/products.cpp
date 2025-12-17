@@ -12,13 +12,15 @@ namespace phlex::experimental {
 
   products::const_iterator products::begin() const noexcept { return products_.begin(); }
   products::const_iterator products::end() const noexcept { return products_.end(); }
+  products::size_type products::size() const noexcept { return products_.size(); }
+  bool products::empty() const noexcept { return products_.empty(); }
 
-  std::string products::error_message(std::string const& product_name,
-                                      char const* requested_type,
-                                      char const* available_type)
+  void products::throw_mismatched_type(std::string const& product_name,
+                                       char const* requested_type,
+                                       char const* available_type)
   {
-    return "Cannot get product '" + product_name + "' with type '" +
-           boost::core::demangle(requested_type) + "' -- must specify type '" +
-           boost::core::demangle(available_type) + "'.";
+    throw std::runtime_error("Cannot get product '" + product_name + "' with type '" +
+                             boost::core::demangle(requested_type) + "' -- must specify type '" +
+                             boost::core::demangle(available_type) + "'.");
   }
 }

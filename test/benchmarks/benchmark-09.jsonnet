@@ -1,7 +1,9 @@
 {
   source: {
-    plugin: 'benchmarks_source',
-    n_events: 100000
+    plugin: 'generate_layers',
+    layers: {
+      event: { total: 100000 }
+    }
   },
   modules: {
     a_creator: {
@@ -12,12 +14,15 @@
     },
     even_filter: {
       plugin: 'accept_even_numbers',
-      consumes: 'a',
+      consumes: { product: 'a', layer: "event" }
     },
     d: {
       plugin: 'read_index',
       when: ['even_filter:accept_even_numbers'],
-      consumes: 'b',
+      consumes: { product: 'b', layer: "event" }
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

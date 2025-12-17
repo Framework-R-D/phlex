@@ -4,12 +4,12 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: "60...90"
+  range: "80...90"
 
   status:
     project:
       default:
-        target: 55%
+        target: 80%
         threshold: 2%
         if_ci_failed: error
     patch:
@@ -27,18 +27,13 @@ comment:
 ignore:
   - "test/**/*"           # Ignore test files
   - "**/CMakeFiles/**"    # Ignore CMake generated files
-  - "build/**"            # Ignore build directories
+  - "build/**"            # Ignore build directories (generic 1/3)
+  - "build-*/**"          # Ignore build directories (generic 2/3)
+  - "*-build/**"          # Ignore build directories (generic 3/3)
+  - ".coverage-generated/**" # Ignore normalized symlink tree
   - "ci/**"               # Ignore CI scripts
   - "docs/**"             # Ignore documentation
   - "examples/**"         # Ignore example code
 
 github_checks:
   annotations: true
-
-parsers:
-  gcov:
-    branch_detection:
-      conditional: no
-      loop: no
-      method: no
-      macro: no

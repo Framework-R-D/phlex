@@ -6,7 +6,6 @@
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/registration_api.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
-#include "phlex/utilities/stripped_name.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -26,7 +25,16 @@ namespace phlex::experimental {
 
   // ==============================================================================
   // Registering user functions
-
+  /**
+ * @brief A class template that provides a fluent interface for registering data processing nodes in a flow graph.
+ *
+ * The glue class acts as a registration helper that allows binding user-defined functions and algorithms
+ * to nodes in a TBB flow graph. It provides methods to create different types of processing nodes like
+ * fold, transform, observe, predicate etc.
+ *
+ * @tparam T The type of the object that contains the user-defined functions/algorithms to be registered.
+ *           This object is stored as a shared pointer and its methods are bound to the created nodes.
+ */
   template <typename T>
   class glue {
   public:
@@ -66,6 +74,19 @@ namespace phlex::experimental {
                                               graph_,
                                               nodes_,
                                               errors_);
+    }
+
+    template <typename FT>
+    auto provide(std::string name, FT f, concurrency c)
+    {
+      detail::verify_name(name, config_);
+      return provider_api{config_,
+                          std::move(name),
+                          algorithm_bits{bound_obj_, std::move(f)},
+                          c,
+                          graph_,
+                          nodes_,
+                          errors_};
     }
 
     template <typename FT>
@@ -112,15 +133,6 @@ namespace phlex::experimental {
         nodes_,
         errors_,
         std::move(destination_data_layer)};
-    }
-
-    auto unfold(auto pred, auto unf, concurrency c, std::string destination_data_layer)
-    {
-      return unfold(detail::stripped_name(boost::core::demangle(typeid(T).name())),
-                    std::move(pred),
-                    std::move(unf),
-                    c,
-                    std::move(destination_data_layer));
     }
 
     auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)

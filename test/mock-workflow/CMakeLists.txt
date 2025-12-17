@@ -7,8 +7,8 @@ target_link_libraries(
   algorithm INTERFACE timed_busy phlex::module spdlog::spdlog
   )
 
-add_library(mock_workflow_source MODULE source.cpp)
-target_link_libraries(mock_workflow_source PRIVATE timed_busy phlex::module)
+add_library(id_provider MODULE id_provider.cpp)
+target_link_libraries(id_provider PRIVATE phlex::module)
 
 function(add_module NAME)
   add_library(${NAME} MODULE ${NAME}.cpp)
@@ -22,16 +22,15 @@ add_module(largeant)
 add_module(three_tuple_algorithm)
 
 set(TEST_NAME mock-workflow)
-set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME}.d)
-file(MAKE_DIRECTORY ${TEST_DIR})
-add_test(
-  NAME ${TEST_NAME}
-  COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.jsonnet -g
-          ${TEST_NAME}
-  WORKING_DIRECTORY ${TEST_DIR}
+cet_test(
+  ${TEST_NAME}
+  HANDBUILT
+  TEST_EXEC
+  phlex
+  TEST_ARGS
+  -c
+  ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.jsonnet
+  TEST_PROPERTIES
+  ENVIRONMENT
+  PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}
   )
-set_tests_properties(
-  ${TEST_NAME} PROPERTIES ENVIRONMENT
-                          PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
-  )
-dot_test(${TEST_NAME})

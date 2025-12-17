@@ -1,5 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/level_hierarchy.hpp"
+#include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -41,41 +41,45 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  auto store = product_store::base();
-  store->add_product("numbers", std::vector<unsigned>{0, 1, 2, 3, 4});
-  store->add_product("offset", 6u);
-  framework_graph g{store};
+  framework_graph g{data_cell_index::base_ptr()};
+
+  g.provide("provide_numbers",
+            [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })
+    .output_product("numbers"_in("job"));
+  g.provide("provide_offset", [](data_cell_index const&) -> unsigned { return 6u; })
+    .output_product("offset"_in("job"));
 
   SECTION("All free functions")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family("numbers")
+      .input_family("numbers"_in("job"))
       .output_products("squared_numbers");
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
-      .input_family("squared_numbers")
+      .input_family("squared_numbers"_in("job"))
       .output_products("summed_numbers");
     g.transform("sqrt_sum_numbers", sqrt_sum_numbers, concurrency::unlimited)
-      .input_family("summed_numbers", "offset")
+      .input_family("summed_numbers"_in("job"), "offset"_in("job"))
       .output_products("result");
   }
 
   SECTION("Transforms, one from a class")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family("numbers")
+      .input_family("numbers"_in("job"))
       .output_products("squared_numbers");
 
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
-      .input_family("squared_numbers")
+      .input_family("squared_numbers"_in("job"))
       .output_products("summed_numbers");
 
     g.make<A>()
       .transform("sqrt_sum", &A::sqrt_sum, concurrency::unlimited)
-      .input_family("summed_numbers", "offset")
+      .input_family("summed_numbers"_in("job"), "offset"_in("job"))
       .output_products("result");
   }
 
   // The following is invoked for *each* section above
-  g.observe("verify_result", [](double actual) { assert(actual == 6.); }).input_family("result");
+  g.observe("verify_result", [](double actual) { assert(actual == 6.); })
+    .input_family("result"_in("job"));
   g.execute();
 }

@@ -6,7 +6,7 @@
 namespace phlex::experimental {
   declared_transform::declared_transform(algorithm_name name,
                                          std::vector<std::string> predicates,
-                                         specified_labels input_products) :
+                                         product_queries input_products) :
     products_consumer{std::move(name), std::move(predicates), std::move(input_products)}
   {
   }
@@ -19,6 +19,10 @@ namespace phlex::experimental {
       spdlog::warn("Transform {} has {} cached stores.", full_name(), stores.size());
     }
     for (auto const& [hash, store] : stores) {
+      if (not store) {
+        spdlog::warn("Store with hash {} is null!", hash);
+        continue;
+      }
       spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
     }
   }

@@ -1,5 +1,5 @@
 #include "phlex/core/store_counters.hpp"
-#include "phlex/model/level_counter.hpp"
+#include "phlex/model/data_cell_counter.hpp"
 
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
@@ -18,7 +18,7 @@ namespace phlex::experimental {
 
   unsigned int store_flag::original_message_id() const noexcept { return original_message_id_; }
 
-  store_flag& detect_flush_flag::flag_for(level_id::hash_type const hash)
+  store_flag& detect_flush_flag::flag_for(data_cell_index::hash_type const hash)
   {
     flag_accessor fa;
     flags_.emplace(fa, hash, std::make_unique<store_flag>());
@@ -52,7 +52,10 @@ namespace phlex::experimental {
     original_message_id_ = original_message_id;
   }
 
-  void store_counter::increment(level_id::hash_type const level_hash) { ++counts_[level_hash]; }
+  void store_counter::increment(data_cell_index::hash_type const layer_hash)
+  {
+    ++counts_[layer_hash];
+  }
 
   bool store_counter::is_complete()
   {
@@ -75,8 +78,8 @@ namespace phlex::experimental {
       return false;
     }
 
-    for (auto const& [level_hash, count] : counts_) {
-      auto maybe_count = flush_counts->count_for(level_hash);
+    for (auto const& [layer_hash, count] : counts_) {
+      auto maybe_count = flush_counts->count_for(layer_hash);
       if (!maybe_count or count != *maybe_count) {
         return false;
       }
@@ -88,7 +91,7 @@ namespace phlex::experimental {
 
   unsigned int store_counter::original_message_id() const noexcept { return original_message_id_; }
 
-  store_counter& count_stores::counter_for(level_id::hash_type const hash)
+  store_counter& count_stores::counter_for(data_cell_index::hash_type const hash)
   {
     counter_accessor ca;
     if (!counters_.find(ca, hash)) {
@@ -97,7 +100,7 @@ namespace phlex::experimental {
     return *ca->second;
   }
 
-  std::unique_ptr<store_counter> count_stores::done_with(level_id::hash_type const hash)
+  std::unique_ptr<store_counter> count_stores::done_with(data_cell_index::hash_type const hash)
   {
     // Must be called after an insertion has already been performed
     counter_accessor ca;

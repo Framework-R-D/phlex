@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_PRODUCTS_HPP
 #define PHLEX_MODEL_PRODUCTS_HPP
 
-#include "phlex/model/qualified_name.hpp"
+#include "phlex/model/product_specification.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -39,6 +39,7 @@ namespace phlex::experimental {
 
   public:
     using const_iterator = collection_t::const_iterator;
+    using size_type = collection_t::size_type;
 
     template <typename T>
     void add(std::string const& product_name, T&& t)
@@ -53,14 +54,14 @@ namespace phlex::experimental {
     }
 
     template <typename Ts>
-    void add_all(qualified_names const& names, Ts&& ts)
+    void add_all(product_specifications const& names, Ts&& ts)
     {
       assert(names.size() == 1ull);
       add(names[0].name(), std::forward<Ts>(ts));
     }
 
     template <typename... Ts>
-    void add_all(qualified_names const& names, std::tuple<Ts...> ts)
+    void add_all(product_specifications const& names, std::tuple<Ts...> ts)
     {
       assert(names.size() == sizeof...(Ts));
       [this, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
@@ -69,17 +70,17 @@ namespace phlex::experimental {
     }
 
     template <typename T>
-    std::variant<T const*, std::string> get(std::string const& product_name) const
+    T const& get(std::string const& product_name) const
     {
       auto it = products_.find(product_name);
       if (it == cend(products_)) {
-        return "No product exists with the name '" + product_name + "'.";
+        throw std::runtime_error("No product exists with the name '" + product_name + "'.");
       }
 
       // Should be able to use dynamic_cast a la:
       //
       //   if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
-      //     return &t->obj;
+      //     return t->obj;
       //   }
       //
       // Unfortunately, this doesn't work well whenever products are inserted across
@@ -87,19 +88,22 @@ namespace phlex::experimental {
 
       auto available_product = it->second.get();
       if (std::strcmp(typeid(T).name(), available_product->type().name()) == 0) {
-        return &reinterpret_cast<product<T> const*>(available_product)->obj;
+        return reinterpret_cast<product<T> const*>(available_product)->obj;
       }
-      return error_message(product_name, typeid(T).name(), available_product->type().name());
+
+      throw_mismatched_type(product_name, typeid(T).name(), available_product->type().name());
     }
 
     bool contains(std::string const& product_name) const;
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
+    size_type size() const noexcept;
+    bool empty() const noexcept;
 
   private:
-    static std::string error_message(std::string const& product_name,
-                                     char const* requested_type,
-                                     char const* available_type);
+    static void throw_mismatched_type [[noreturn]] (std::string const& product_name,
+                                                    char const* requested_type,
+                                                    char const* available_type);
 
     collection_t products_;
   };

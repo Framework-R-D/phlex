@@ -16,86 +16,77 @@
 //
 //    job
 //     │
-//     ├ trigger primitive
+//     ├ event
 //     │
 //     └ run
 //        │
 //        └ event
 //
-// As the run_add node performs folds only over "runs", any "trigger primitive"
+// As the run_add node performs folds only over "runs", any top-level "events"
 // stores are excluded from the fold result.
+//
+// N.B. The multiplexer sends data products to nodes based on the name of the lowest
+//      layer.  For example, the top-level "event" and the nested "run/event" are both
+//      candidates for the "job" fold.
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
-#include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
 namespace {
+  // Provider function
+  unsigned int provide_number(data_cell_index const& index) { return index.number(); }
+
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
-
-  // job -> run -> event levels
-  constexpr auto index_limit = 2u;
-  constexpr auto number_limit = 5u;
-
-  // job -> trigger primitive levels
-  constexpr auto primitive_limit = 10u;
-
-  void levels_to_process(framework_driver& driver)
-  {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
-
-    // job -> run -> event levels
-    for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run");
-      driver.yield(run_store);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event");
-        event_store->add_product("number", j);
-        driver.yield(event_store);
-      }
-    }
-
-    // job -> trigger primitive levels
-    for (unsigned i : std::views::iota(0u, primitive_limit)) {
-      auto tp_store = job_store->make_child(i, "trigger primitive");
-      tp_store->add_product("number", i);
-      driver.yield(tp_store);
-    }
-  }
 }
 
 TEST_CASE("Different hierarchies used with fold", "[graph]")
 {
-  framework_graph g{levels_to_process};
+  // job -> run -> event layers
+  constexpr auto index_limit = 2u;
+  constexpr auto number_limit = 5u;
+
+  // job -> event layers
+  constexpr auto top_level_event_limit = 10u;
+
+  layer_generator gen;
+  gen.add_layer("run", {"job", index_limit});
+  gen.add_layer("event", {"run", number_limit});
+  gen.add_layer("event", {"job", top_level_event_limit});
+
+  framework_graph g{driver_for_test(gen)};
+
+  // Register provider
+  g.provide("provide_number", provide_number, concurrency::unlimited)
+    .output_product("number"_in("event"));
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
-    .input_family("number")
+    .input_family("number"_in("event"))
     .output_products("run_sum");
-  g.fold("job_add", add, concurrency::unlimited).input_family("number").output_products("job_sum");
+  g.fold("job_add", add, concurrency::unlimited)
+    .input_family("number"_in("event"))
+    .output_products("job_sum");
 
   g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
-    .input_family("run_sum");
+    .input_family("run_sum"_in("run"));
   g.observe("verify_job_sum",
             [](unsigned int actual) {
-              CHECK(actual == 20u + 45u); // 20u from events, 45u from trigger primitives
+              CHECK(actual == 20u + 45u); // 20u from nested events, 45u from top-level events
             })
-    .input_family("job_sum");
+    .input_family("job_sum"_in("job"));
 
   g.execute();
 
   CHECK(g.execution_counts("run_add") == index_limit * number_limit);
-  CHECK(g.execution_counts("job_add") == index_limit * number_limit + primitive_limit);
+  CHECK(g.execution_counts("job_add") == index_limit * number_limit + top_level_event_limit);
   CHECK(g.execution_counts("verify_run_sum") == index_limit);
   CHECK(g.execution_counts("verify_job_sum") == 1);
 }

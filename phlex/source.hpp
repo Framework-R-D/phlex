@@ -59,8 +59,8 @@ namespace phlex::experimental::detail {
     }
   }
 
-  using next_store_t = std::function<void(framework_driver&)>;
-  using source_creator_t = next_store_t(configuration const&);
+  using next_index_t = std::function<void(framework_driver&)>;
+  using source_creator_t = next_index_t(configuration const&);
 }
 
 #define PHLEX_EXPERIMENTAL_REGISTER_SOURCE(source)                                                 \

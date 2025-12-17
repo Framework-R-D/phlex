@@ -25,9 +25,6 @@ runs:
     - id: setup
       shell: bash
       run: |
-        # Source the entrypoint script
-        . "$GITHUB_WORKSPACE/$SOURCE_PATH/ci/entrypoint.sh"
-        
         # Create and export build directory
         mkdir -p "$GITHUB_WORKSPACE/$BUILD_PATH"
         

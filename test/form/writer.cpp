@@ -30,10 +30,12 @@ void generate(std::vector<float>& vrand, int size)
   }
 }
 
-int main(int /*argc*/, char** /* argv[]*/)
+int main(int argc, char** argv)
 {
   std::cout << "In main" << std::endl;
   srand(time(0));
+
+  std::string const filename = (argc > 1) ? argv[1] : "toy.root";
 
   std::shared_ptr<mock_phlex::product_type_names> type_map = mock_phlex::createTypeMap();
 
@@ -41,12 +43,12 @@ int main(int /*argc*/, char** /* argv[]*/)
   // Should be: phlex::config::parse_config config = phlex::config::loadFromFile("phlex_config.json");
   // Create configuration and pass to form
   mock_phlex::config::parse_config config;
-  config.addItem("trackStart", "toy.root", form::technology::ROOT_TTREE);
-  config.addItem("trackNumberHits", "toy.root", form::technology::ROOT_TTREE);
-  config.addItem("trackStartPoints", "toy.root", form::technology::ROOT_TTREE);
-  config.addItem("trackStartX", "toy.root", form::technology::ROOT_TTREE);
+  config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
+  config.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
+  config.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
+  config.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
   config.addContainerSetting(form::technology::ROOT_TTREE, "trackStart", "auto_flush", "1");
-  config.addFileSetting(form::technology::ROOT_TTREE, "toy.root", "compression", "kZSTD");
+  config.addFileSetting(form::technology::ROOT_TTREE, filename, "compression", "kZSTD");
   config.addContainerSetting(
     form::technology::ROOT_RNTUPLE, "Toy_Tracker/trackStartPoints", "force_streamer_field", "true");
 
@@ -72,7 +74,7 @@ int main(int /*argc*/, char** /* argv[]*/)
       // done, phlex call write(mock_phlex::product_base)
       // sub-event writing called by phlex
       char seg_id_text[64];
-      sprintf(seg_id_text, seg_id, nevent, nseg);
+      snprintf(seg_id_text, 64, seg_id, nevent, nseg);
       std::vector<mock_phlex::product_base> batch;
       std::string const creator = "Toy_Tracker";
       mock_phlex::product_base pb = {
@@ -122,7 +124,7 @@ int main(int /*argc*/, char** /* argv[]*/)
 
     // event writing, current framework, will also write references
     char evt_id_text[64];
-    sprintf(evt_id_text, evt_id, nevent);
+    snprintf(evt_id_text, 64, evt_id, nevent);
     std::string const creator = "Toy_Tracker_Event";
     mock_phlex::product_base pb = {
       "trackStartX", evt_id_text, &track_x, std::type_index{typeid(std::vector<float>)}};

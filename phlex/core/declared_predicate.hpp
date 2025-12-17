@@ -6,13 +6,13 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/core/product_query.hpp"
 #include "phlex/core/products_consumer.hpp"
-#include "phlex/core/specified_label.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/model/level_id.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
@@ -37,13 +37,13 @@ namespace phlex::experimental {
   public:
     declared_predicate(algorithm_name name,
                        std::vector<std::string> predicates,
-                       specified_labels input_products);
+                       product_queries input_products);
     virtual ~declared_predicate();
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
 
   protected:
-    using results_t = tbb::concurrent_hash_map<level_id::hash_type, predicate_result>;
+    using results_t = tbb::concurrent_hash_map<data_cell_index::hash_type, predicate_result>;
     using accessor = results_t::accessor;
     using const_accessor = results_t::const_accessor;
 
@@ -70,7 +70,7 @@ namespace phlex::experimental {
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
                    AlgorithmBits alg,
-                   specified_labels input_products) :
+                   product_queries input_products) :
       declared_predicate{std::move(name), std::move(predicates), std::move(input_products)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       predicate_{
@@ -102,7 +102,7 @@ namespace phlex::experimental {
     ~predicate_node() { report_cached_results(results_); }
 
   private:
-    tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
       return receiver_for<N>(join_, input(), product_label);
     }

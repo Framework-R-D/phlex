@@ -11,22 +11,24 @@ using namespace phlex::experimental;
 TEST_CASE("Product store insertion", "[data model]")
 {
   auto store = product_store::base();
+  CHECK(store->empty());
+
   constexpr int number = 4;
   std::vector many_numbers{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   store->add_product("number", number);
   store->add_product("numbers", many_numbers);
+
+  // Check number of products
+  CHECK(store->size() == 2ull);
 
   CHECK_THROWS_WITH(
     store->get_product<double>("number"),
     Catch::Matchers::ContainsSubstring(
       "Cannot get product 'number' with type 'double' -- must specify type 'int'."));
 
-  auto invalid_handle = store->get_handle<int>("wrong_key");
-  CHECK(!invalid_handle);
   auto const matcher =
     Catch::Matchers::ContainsSubstring("No product exists with the name 'wrong_key'.");
-  CHECK_THROWS_WITH(*invalid_handle, matcher);
-  CHECK_THROWS_WITH(invalid_handle.operator->(), matcher);
+  CHECK_THROWS_WITH(store->get_handle<int>("wrong_key"), matcher);
 
   CHECK(store->get_product<int>("number") == number);
 
@@ -47,7 +49,7 @@ TEST_CASE("Product store derivation", "[data model]")
   }
 
   auto root = product_store::base();
-  auto trunk = root->make_child(1, "trunk");
+  auto trunk = std::make_shared<product_store>(root->id()->make_child(1, "trunk"));
   SECTION("Compare different generations")
   {
     CHECK(trunk == more_derived(root, trunk));
@@ -55,15 +57,15 @@ TEST_CASE("Product store derivation", "[data model]")
   }
   SECTION("Compare siblings (right is always favored)")
   {
-    auto bole = root->make_child(2, "bole");
+    auto bole = std::make_shared<product_store>(root->id()->make_child(2, "bole"));
     CHECK(bole == more_derived(trunk, bole));
     CHECK(trunk == more_derived(bole, trunk));
   }
 
-  auto limb = trunk->make_child(2, "limb");
-  auto branch = limb->make_child(3, "branch");
-  auto twig = branch->make_child(4, "twig");
-  auto leaf = twig->make_child(5, "leaf");
+  auto limb = std::make_shared<product_store>(trunk->id()->make_child(2, "limb"));
+  auto branch = std::make_shared<product_store>(limb->id()->make_child(3, "branch"));
+  auto twig = std::make_shared<product_store>(branch->id()->make_child(4, "twig"));
+  auto leaf = std::make_shared<product_store>(twig->id()->make_child(5, "leaf"));
 
   auto order_a = std::make_tuple(root, trunk, limb, branch, twig, leaf);
   auto order_b = std::make_tuple(leaf, twig, branch, limb, trunk, root);

@@ -9,7 +9,7 @@
 
 namespace form::experimental::config {
   class output_item_config;
-  class tech_setting_config;
+  struct tech_setting_config;
 }
 
 namespace form::detail::experimental {

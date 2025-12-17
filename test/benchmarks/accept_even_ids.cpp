@@ -1,13 +1,14 @@
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
 
 #include <string>
 
 PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 {
+  using namespace phlex::experimental;
   m.predicate(
      "accept_even_ids",
-     [](phlex::experimental::level_id const& id) { return id.number() % 2 == 0; },
-     phlex::experimental::concurrency::unlimited)
-    .input_family(config.get<std::string>("product_name"));
+     [](data_cell_index const& id) { return id.number() % 2 == 0; },
+     concurrency::unlimited)
+    .input_family(config.get<product_query>("input"));
 }

@@ -1,8 +1,8 @@
 add_library(fibonacci_numbers SHARED fibonacci_numbers.cpp)
 target_include_directories(fibonacci_numbers PRIVATE ${PROJECT_SOURCE_DIR})
 
-add_library(benchmarks_source MODULE benchmarks_source.cpp)
-target_link_libraries(benchmarks_source PRIVATE phlex::model Boost::json)
+add_library(benchmarks_provider MODULE benchmarks_provider.cpp)
+target_link_libraries(benchmarks_provider PRIVATE phlex::model phlex::module)
 
 add_library(last_index MODULE last_index.cpp)
 target_link_libraries(last_index PRIVATE phlex::module)
@@ -52,18 +52,16 @@ foreach(
         08
         09
   )
-  set(test_name benchmark:${I})
-  set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/benchmark-${I}.d)
-  file(MAKE_DIRECTORY ${TEST_DIR})
-  add_test(
-    NAME ${test_name}
-    COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet -g
-            benchmark-${I}
-    WORKING_DIRECTORY ${TEST_DIR}
+  cet_test(
+    benchmark:${I}
+    HANDBUILT
+    TEST_EXEC
+    phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet
+    TEST_PROPERTIES
+    ENVIRONMENT
+    PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}
     )
-  set_tests_properties(
-    ${test_name} PROPERTIES ENVIRONMENT
-                            PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}
-    )
-  dot_test(benchmark-${I})
 endforeach()

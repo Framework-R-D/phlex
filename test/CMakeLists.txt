@@ -1,92 +1,226 @@
-find_package(Catch2 REQUIRED)
-
-find_program(DOT dot)
-if(NOT DOT)
-  message(
-    STATUS "dot program not found; all TEST_DOT_GRAPH options will be ignored."
-    )
-endif()
-
 add_definitions("-UNDEBUG")
 
-function(dot_test BASENAME)
-  if(DOT)
-    set(ORIG_TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/${BASENAME}.d)
-    set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/dot_${BASENAME}.d)
-    file(MAKE_DIRECTORY ${TEST_DIR})
-    add_test(
-      NAME dot:${BASENAME}
-      COMMAND
-        bash -c
-        "for g in \$(ls ../${BASENAME}.d/*.gv); do dot -Tpdf ../${BASENAME}.d/\${g} -o \$(basename \${g%.gv}).pdf; done"
-      WORKING_DIRECTORY ${TEST_DIR}
-      )
-    set_tests_properties(dot:${BASENAME} PROPERTIES DEPENDS ${BASENAME})
-  endif()
-endfunction()
+find_package(Catch2 REQUIRED)
+include(CetTest)
 
-function(add_unit_test BASENAME)
-  set(multiValueArgs LIBRARIES)
-  cmake_parse_arguments(UT "" "" "${multiValueArgs}" ${ARGN})
-  add_executable(${BASENAME} ${BASENAME}.cpp)
-  target_link_libraries(${BASENAME} PRIVATE ${UT_LIBRARIES})
-  set_target_properties(
-    ${BASENAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                           ${CMAKE_CURRENT_BINARY_DIR}/bin
-    )
-  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BASENAME}.d)
-  add_test(
-    NAME ${BASENAME}
-    COMMAND ${BASENAME}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BASENAME}.d
-    )
-  set_tests_properties(${BASENAME} PROPERTIES ENVIRONMENT SPDLOG_LEVEL=debug)
-endfunction()
+cet_test_env(SPDLOG_LEVEL=debug)
 
-function(add_catch_test BASENAME)
-  set(optionalArgs TEST_DOT_GRAPH)
-  set(multiValueArgs LIBRARIES)
-  cmake_parse_arguments(UT "${optionalArgs}" "" "${multiValueArgs}" ${ARGN})
-  add_unit_test(${BASENAME} LIBRARIES Catch2::Catch2WithMain ${UT_LIBRARIES})
-  if(UT_TEST_DOT_GRAPH)
-    dot_test(${BASENAME})
-  endif()
-endfunction()
-
-add_unit_test(concepts LIBRARIES phlex::core)
-add_unit_test(string_literal LIBRARIES phlex::utilities)
-add_unit_test(type_deduction LIBRARIES phlex::metaprogramming)
-add_unit_test(yielding_driver LIBRARIES phlex::core TBB::tbb)
-
-add_catch_test(
-  allowed_families LIBRARIES phlex::core Boost::json TEST_DOT_GRAPH
+cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core)
+cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
+         phlex::configuration
+         )
+cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities)
+cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
+         phlex::metaprogramming
+         )
+cet_test(type_id SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
+cet_test(
+  yielding_driver
+  SOURCE
+  yielding_driver.cpp
+  LIBRARIES
+  phlex::core
+  TBB::tbb
+  spdlog::spdlog
   )
-add_catch_test(vector_of_abstract_types LIBRARIES phlex::core)
-add_catch_test(
-  cached_execution LIBRARIES phlex::core Boost::json TEST_DOT_GRAPH
+
+cet_test(
+  allowed_families
+  USE_CATCH2_MAIN
+  SOURCE
+  allowed_families.cpp
+  LIBRARIES
+  phlex::core
+  Boost::json
+  layer_generator
   )
-add_catch_test(cached_product_stores LIBRARIES phlex::core)
-add_catch_test(class_registration LIBRARIES phlex::core Boost::json)
-add_catch_test(different_hierarchies LIBRARIES phlex::core)
-add_catch_test(filter_impl LIBRARIES phlex::core)
-add_catch_test(filter LIBRARIES phlex::core Boost::json TEST_DOT_GRAPH)
-add_catch_test(function_registration LIBRARIES phlex::core Boost::json)
-add_catch_test(
-  hierarchical_nodes LIBRARIES Boost::json TBB::tbb phlex::core TEST_DOT_GRAPH
+cet_test(
+  vector_of_abstract_types
+  USE_CATCH2_MAIN
+  SOURCE
+  vector_of_abstract_types.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
   )
-add_catch_test(multiple_function_registration LIBRARIES Boost::json phlex::core)
-add_catch_test(level_counting LIBRARIES phlex::model phlex::utilities)
-add_catch_test(level_id LIBRARIES phlex::model)
-add_catch_test(product_handle LIBRARIES phlex::core)
-add_catch_test(product_matcher LIBRARIES phlex::model)
-add_catch_test(product_store LIBRARIES phlex::core)
-add_catch_test(fold LIBRARIES phlex::core)
-add_catch_test(replicated LIBRARIES TBB::tbb phlex::utilities spdlog::spdlog)
-add_catch_test(serializer LIBRARIES phlex::core TBB::tbb)
-add_catch_test(specified_label LIBRARIES phlex::core)
-add_catch_test(unfold LIBRARIES Boost::json phlex::core TBB::tbb TEST_DOT_GRAPH)
+cet_test(
+  cached_execution
+  USE_CATCH2_MAIN
+  SOURCE
+  cached_execution.cpp
+  LIBRARIES
+  phlex::core
+  Boost::json
+  layer_generator
+  )
+cet_test(
+  class_registration
+  USE_CATCH2_MAIN
+  SOURCE
+  class_registration.cpp
+  LIBRARIES
+  phlex::core
+  Boost::json
+  )
+cet_test(
+  different_hierarchies
+  USE_CATCH2_MAIN
+  SOURCE
+  different_hierarchies.cpp
+  LIBRARIES
+  phlex::core
+  spdlog::spdlog
+  layer_generator
+  )
+cet_test(filter_impl USE_CATCH2_MAIN SOURCE filter_impl.cpp LIBRARIES
+         phlex::core
+         )
+cet_test(
+  filter
+  USE_CATCH2_MAIN
+  SOURCE
+  filter.cpp
+  LIBRARIES
+  phlex::core
+  Boost::json
+  )
+cet_test(
+  framework_graph
+  USE_CATCH2_MAIN
+  SOURCE
+  framework_graph.cpp
+  LIBRARIES
+  phlex::core
+  Boost::json
+  layer_generator
+  )
+cet_test(
+  function_registration
+  USE_CATCH2_MAIN
+  SOURCE
+  function_registration.cpp
+  LIBRARIES
+  phlex::core
+  Boost::json
+  )
+cet_test(
+  hierarchical_nodes
+  USE_CATCH2_MAIN
+  SOURCE
+  hierarchical_nodes.cpp
+  LIBRARIES
+  Boost::json
+  TBB::tbb
+  phlex::core
+  spdlog::spdlog
+  layer_generator
+  )
+cet_test(
+  layer_generator_test
+  USE_CATCH2_MAIN
+  SOURCE
+  layer_generator.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
+  )
+cet_test(
+  multiple_function_registration
+  USE_CATCH2_MAIN
+  SOURCE
+  multiple_function_registration.cpp
+  LIBRARIES
+  Boost::json
+  phlex::core
+  )
+cet_test(
+  data_cell_counting
+  USE_CATCH2_MAIN
+  SOURCE
+  data_cell_counting.cpp
+  LIBRARIES
+  phlex::model
+  phlex::utilities
+  )
+cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
+         phlex::model
+         )
+cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
+         phlex::core
+         )
+cet_test(product_matcher USE_CATCH2_MAIN SOURCE product_matcher.cpp LIBRARIES
+         phlex::model
+         )
+cet_test(product_store USE_CATCH2_MAIN SOURCE product_store.cpp LIBRARIES
+         phlex::core
+         )
+cet_test(
+  fold
+  USE_CATCH2_MAIN
+  SOURCE
+  fold.cpp
+  LIBRARIES
+  phlex::core
+  spdlog::spdlog
+  layer_generator
+  )
+cet_test(
+  replicated
+  USE_CATCH2_MAIN
+  SOURCE
+  replicated.cpp
+  LIBRARIES
+  TBB::tbb
+  phlex::utilities
+  spdlog::spdlog
+  )
+cet_test(
+  serializer
+  USE_CATCH2_MAIN
+  SOURCE
+  serializer.cpp
+  LIBRARIES
+  phlex::core
+  TBB::tbb
+  phlex::graph
+  spdlog::spdlog
+  )
+cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
+         phlex::core
+         )
+cet_test(
+  provider_test
+  USE_CATCH2_MAIN
+  SOURCE
+  provider_test.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
+  )
+cet_test(
+  type_distinction
+  USE_CATCH2_MAIN
+  SOURCE
+  type_distinction.cpp
+  LIBRARIES
+  spdlog::spdlog
+  phlex::core
+  )
+cet_test(
+  unfold
+  USE_CATCH2_MAIN
+  SOURCE
+  unfold.cpp
+  LIBRARIES
+  Boost::json
+  phlex::core
+  TBB::tbb
+  spdlog::spdlog
+  layer_generator
+  )
 
 add_subdirectory(benchmarks)
+
 add_subdirectory(max-parallelism)
 add_subdirectory(memory-checks)
 add_subdirectory(plugins)

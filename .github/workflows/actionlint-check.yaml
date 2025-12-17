@@ -1,0 +1,114 @@
+name: Actionlint Check
+run-name: "${{ github.actor }} checking workflow format"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect workflow changes
+      id: filter
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        include-globs: |
+          .github/workflows/**/*.yml
+          .github/workflows/**/*.yaml
+          .github/actions/**/*.yml
+          .github/actions/**/*.yaml
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No actionlint related changes detected; job will be skipped."
+        else
+          echo "::group::Actionlint relevant files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  actionlint-check:
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        path: phlex-src
+
+    - name: Announce actionlint check
+      run: echo "➡️ Running actionlint check..."
+
+    - name: Run actionlint
+      id: lint
+      run: |
+        docker run --rm \
+          -v "${{ github.workspace }}/phlex-src:/work" \
+          -w /work \
+          rhysd/actionlint:latest \
+          -config-file .github/actionlint.yaml
+      continue-on-error: true
+
+    - name: Evaluate actionlint result
+      if: always()
+      run: |
+        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+          echo "✅ actionlint check passed."
+        else
+          echo "::error::actionlint check failed. Please review the output above for details."
+          exit 1
+        fi
+
+  actionlint-check-skipped:
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant workflow changes detected
+      run: echo "::notice::No actionlint relevant changes detected; check skipped."

@@ -1,23 +1,42 @@
-add_library(
-  phlex_utilities SHARED hashing.cpp resource_usage.cpp stripped_name.cpp
-  )
-target_include_directories(phlex_utilities PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(
+cet_make_library(
+  LIBRARY_NAME
   phlex_utilities
-  PRIVATE Boost::boost
-  PUBLIC spdlog::spdlog
+  SHARED
+  SOURCE
+  hashing.cpp
+  resource_usage.cpp
+  LIBRARIES
+  PRIVATE
+  Boost::boost
+  PUBLIC
+  spdlog::spdlog
   )
+
+install(
+  FILES async_driver.hpp
+        hashing.hpp
+        max_allowed_parallelism.hpp
+        resource_usage.hpp
+        simple_ptr_map.hpp
+        sized_tuple.hpp
+        sleep_for.hpp
+        string_literal.hpp
+        thread_counter.hpp
+  DESTINATION include/phlex/utilities
+  )
+
+target_include_directories(phlex_utilities PRIVATE ${PROJECT_SOURCE_DIR})
 
 # Interface library
-add_library(phlex_utilities_int INTERFACE)
-target_include_directories(
-  phlex_utilities_int INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
-                                "$<INSTALL_INTERFACE:include>"
+cet_make_library(
+  LIBRARY_NAME
+  phlex_utilities_int
+  EXPORT_NAME
+  utilities
+  INTERFACE
+  NO_SOURCE
+  LIBRARIES
+  phlex_utilities
+  TBB::tbb
+  spdlog::spdlog
   )
-target_link_libraries(
-  phlex_utilities_int INTERFACE phlex_utilities TBB::tbb spdlog::spdlog
-  )
-
-add_library(phlex::utilities ALIAS phlex_utilities_int)
-
-install(TARGETS phlex_utilities)

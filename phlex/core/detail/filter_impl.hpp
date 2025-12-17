@@ -2,7 +2,7 @@
 #define PHLEX_CORE_DETAIL_FILTER_IMPL_HPP
 
 #include "phlex/core/fwd.hpp"
-#include "phlex/core/specified_label.hpp"
+#include "phlex/core/product_query.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -56,7 +56,7 @@ namespace phlex::experimental {
     struct for_output_t {};
     static constexpr for_output_t for_output{};
     explicit data_map(for_output_t);
-    explicit data_map(specified_labels const& product_names);
+    explicit data_map(product_queries const& product_names);
 
     bool is_complete(std::size_t const msg_id) const;
 
@@ -65,7 +65,7 @@ namespace phlex::experimental {
 
   private:
     stores_t stores_;
-    std::vector<specified_label> const* product_names_;
+    std::vector<product_query> const* product_names_;
     std::size_t nargs_;
   };
 }

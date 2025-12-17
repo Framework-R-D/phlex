@@ -2,15 +2,13 @@
 #define PHLEX_CORE_EDGE_MAKER_HPP
 
 #include "phlex/core/declared_output.hpp"
-#include "phlex/core/declared_unfold.hpp"
-#include "phlex/core/dot/attributes.hpp"
-#include "phlex/core/dot/data_graph.hpp"
-#include "phlex/core/dot/function_graph.hpp"
+#include "phlex/core/declared_provider.hpp"
 #include "phlex/core/edge_creation_policy.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/multiplexer.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <map>
 #include <memory>
@@ -22,133 +20,60 @@
 #include <vector>
 
 namespace phlex::experimental {
-
-  template <typename T>
-  concept supports_output = requires(T t) {
-    { t->output() };
-  };
-
-  template <typename T>
-  struct consumers {
-    T& data;
-    dot::attributes attributes;
-  };
-
-  template <typename T>
-  consumers(T&) -> consumers<T>;
-
-  template <typename T>
-  consumers(T&, dot::attributes) -> consumers<T>;
+  using namespace std::string_literals;
 
   using product_name_t = std::string;
+
+  multiplexer::input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
+                                                 declared_providers& providers);
 
   class edge_maker {
   public:
     template <typename... Args>
-    edge_maker(std::string const& file_prefix, Args&... args);
+    edge_maker(Args&... args);
 
     template <typename... Args>
     void operator()(tbb::flow::input_node<message>& source,
                     multiplexer& multi,
                     std::map<std::string, filter>& filters,
                     declared_outputs& outputs,
-                    consumers<Args>... cons);
-
-    auto release_data_graph() { return std::move(data_graph_); }
-    auto release_function_graph() { return std::move(function_graph_); }
+                    declared_providers& providers,
+                    Args&... consumers);
 
   private:
     template <typename T>
-    void record_attributes(T& consumers);
-
-    template <typename T>
     multiplexer::head_ports_t edges(std::map<std::string, filter>& filters, T& consumers);
 
-    std::unique_ptr<dot::function_graph> function_graph_;
-    std::unique_ptr<dot::data_graph> data_graph_;
-
     edge_creation_policy producers_;
-    std::map<std::string, dot::attributes> attributes_;
-
-    template <typename T>
-    void make_the_node(T& node, dot::attributes const& node_attributes)
-    {
-      if (not function_graph_) {
-        return;
-      }
-
-      auto const& node_name = node->full_name();
-      function_graph_->node(node_name, node_attributes);
-      for (auto const& predicate_name : node->when()) {
-        function_graph_->edge(predicate_name, node_name, {.color = "red"});
-      }
-
-      if constexpr (supports_output<decltype(node)>) {
-        if (data_graph_) {
-          data_graph_->add(node_name, node->input(), node->output());
-        }
-      }
-    }
-
-    template <typename Sender, typename Receiver>
-    void make_the_edge(Sender& sender,
-                       Receiver& receiver,
-                       std::string const& receiver_node_name,
-                       std::string const& product_name)
-    {
-      make_edge(*sender.port, receiver);
-      if (function_graph_) {
-        function_graph_->edge(sender.node.full(),
-                              receiver_node_name,
-                              {.color = "blue",
-                               .fontsize = dot::default_fontsize,
-                               .label = dot::parenthesized(product_name)});
-      }
-    }
   };
 
   // =============================================================================
   // Implementation
   template <typename... Args>
-  edge_maker::edge_maker(std::string const& file_prefix, Args&... producers) :
-    function_graph_{file_prefix.empty() ? nullptr : std::make_unique<dot::function_graph>()},
-    data_graph_{file_prefix.empty() ? nullptr : std::make_unique<dot::data_graph>()},
-    producers_{producers...}
+  edge_maker::edge_maker(Args&... producers) : producers_{producers...}
   {
-  }
-
-  template <typename T>
-  void edge_maker::record_attributes(T& consumers)
-  {
-    auto const& [data, attributes] = consumers;
-    for (auto const& node_name : data | std::views::keys) {
-      attributes_[node_name] = attributes;
-    }
   }
 
   template <typename T>
   multiplexer::head_ports_t edge_maker::edges(std::map<std::string, filter>& filters, T& consumers)
   {
     multiplexer::head_ports_t result;
-    auto const& [data, attributes] = consumers;
-    for (auto& [node_name, node] : data) {
+    for (auto& [node_name, node] : consumers) {
       tbb::flow::receiver<message>* collector = nullptr;
       if (auto coll_it = filters.find(node_name); coll_it != cend(filters)) {
         collector = &coll_it->second.data_port();
       }
 
-      make_the_node(node, attributes);
-
-      for (auto const& product_label : node->input()) {
-        auto* receiver_port = collector ? collector : &node->port(product_label);
-        auto producer = producers_.find_producer(product_label.name);
+      for (auto const& query : node->input()) {
+        auto* receiver_port = collector ? collector : &node->port(query);
+        auto producer = producers_.find_producer(query);
         if (not producer) {
           // Is there a way to detect mis-specified product dependencies?
-          result[node_name].push_back({product_label, receiver_port});
+          result[node_name].push_back({query, receiver_port});
           continue;
         }
 
-        make_the_edge(*producer, *receiver_port, node_name, to_name(product_label));
+        make_edge(*producer->port, *receiver_port);
       }
     }
     return result;
@@ -159,90 +84,33 @@ namespace phlex::experimental {
                               multiplexer& multi,
                               std::map<std::string, filter>& filters,
                               declared_outputs& outputs,
-                              consumers<Args>... cons)
+                              declared_providers& providers,
+                              Args&... consumers)
   {
-    (record_attributes(cons), ...);
-
     make_edge(source, multi);
 
     // Create edges to outputs
-    auto& unfolds = std::get<consumers<declared_unfolds>&>(std::tie(cons...));
-
     for (auto const& [output_name, output_node] : outputs) {
       make_edge(source, output_node->port());
-      if (function_graph_) {
-        function_graph_->node(output_name, {.shape = "cylinder"});
-        function_graph_->edge("Source", output_name, {.color = "gray"});
-      }
       for (auto const& named_port : producers_.values()) {
         make_edge(*named_port.to_output, output_node->port());
-        if (function_graph_) {
-          function_graph_->edge(named_port.node.full(), output_name, {.color = "gray"});
-        }
-      }
-      for (auto const& [unfold_name, unfold] : unfolds.data) {
-        make_edge(unfold->to_output(), output_node->port());
-        if (function_graph_) {
-          function_graph_->edge(unfold_name, output_name, {.color = "gray"});
-        }
       }
     }
 
     // Create normal edges
     multiplexer::head_ports_t head_ports;
-    (head_ports.merge(edges(filters, cons)), ...);
+    (head_ports.merge(edges(filters, consumers)), ...);
+    // Eventually, we want to look at the filled-in head_ports and
+    // figure out what provider nodes are needed.
+    // For now, we take as input a mapping of declared_providers.
 
-    // Create head nodes for unfolds
-    auto get_consumed_products = [](auto const& cons, auto& products) {
-      for (auto const& [key, consumer] : cons.data) {
-        for (auto const& product_name : consumer->input() | std::views::transform(to_name)) {
-          products[product_name].push_back(key);
-        }
-      }
-    };
-
-    std::map<std::string, std::vector<std::string>> consumed_products;
-    (get_consumed_products(cons, consumed_products), ...);
-
-    std::set<std::string> remove_ports_for_products;
-    for (auto const& [name, unfold] : unfolds.data) {
-      multiplexer::head_ports_t heads;
-      for (auto const& product_name : unfold->output()) {
-        // There can be multiple head nodes that require the same product.
-        remove_ports_for_products.insert(product_name.full());
-        for (auto const& [node_name, ports] : head_ports) {
-          for (auto const& port : ports) {
-            if (to_name(port.product_label) != product_name.name()) {
-              continue;
-            }
-            heads[node_name].push_back(port);
-          }
-        }
-      }
-      unfold->finalize(std::move(heads));
+    if (head_ports.empty()) {
+      // This can happen for jobs that only execute the driver, which is helpful for debugging
+      return;
     }
 
-    // Remove head nodes claimed by unfolds
-    for (auto const& key : remove_ports_for_products) {
-      for (auto& ports : head_ports | std::views::values) {
-        std::erase_if(ports,
-                      [&key](auto const& port) { return to_name(port.product_label) == key; });
-      }
-    }
-
-    multi.finalize(std::move(head_ports));
-
-    if (function_graph_) {
-      for (auto const& [name, unfold] : unfolds.data) {
-        for (auto const& [node_name, ports] : unfold->downstream_ports()) {
-          function_graph_->edges_for(name, node_name, ports);
-        }
-      }
-
-      for (auto const& [node_name, ports] : multi.downstream_ports()) {
-        function_graph_->edges_for("Source", node_name, ports);
-      }
-    }
+    auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
+    multi.finalize(std::move(provider_input_ports));
   }
 }
 

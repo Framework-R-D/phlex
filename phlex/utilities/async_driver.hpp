@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <exception>
 #include <functional>
 #include <mutex>
 #include <optional>
@@ -22,23 +23,30 @@ namespace phlex::experimental {
     }
     async_driver(void (*ft)(async_driver<RT>&)) : driver_{ft} {}
 
-    ~async_driver() { thread_.join(); }
-
     std::optional<RT> operator()()
     {
       if (gear_ == states::off) {
-        thread_ = std::thread{[this] {
-          driver_(*this);
+        thread_ = std::jthread{[this] {
+          try {
+            gear_ = states::drive;
+            driver_(*this);
+          } catch (...) {
+            cached_exception_ = std::current_exception();
+          }
           gear_ = states::park;
           cv_.notify_one();
         }};
-        gear_ = states::drive;
       } else {
         cv_.notify_one();
       }
 
       std::unique_lock lock{mutex_};
       cv_.wait(lock, [&] { return current_.has_value() or gear_ == states::park; });
+
+      if (cached_exception_) {
+        std::rethrow_exception(cached_exception_);
+      }
+
       return std::exchange(current_, std::nullopt);
     }
 
@@ -54,9 +62,10 @@ namespace phlex::experimental {
     std::function<void(async_driver&)> driver_;
     std::optional<RT> current_;
     std::atomic<states> gear_ = states::off;
-    std::thread thread_;
+    std::jthread thread_;
     std::mutex mutex_;
     std::condition_variable cv_;
+    std::exception_ptr cached_exception_;
   };
 }
 

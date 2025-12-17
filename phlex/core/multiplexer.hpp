@@ -2,7 +2,7 @@
 #define PHLEX_CORE_MULTIPLEXER_HPP
 
 #include "phlex/core/message.hpp"
-#include "phlex/model/level_id.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -23,21 +23,21 @@ namespace phlex::experimental {
     ~multiplexer();
 
     struct named_input_port {
-      specified_label product_label;
+      product_query product_label;
       tbb::flow::receiver<message>* port;
     };
     using named_input_ports_t = std::vector<named_input_port>;
+    // map of node name to its input ports
     using head_ports_t = std::map<std::string, named_input_ports_t>;
+    using input_ports_t = std::map<std::string, named_input_port>;
 
     explicit multiplexer(tbb::flow::graph& g, bool debug = false);
     tbb::flow::continue_msg multiplex(message const& msg);
 
-    void finalize(head_ports_t head_ports);
-
-    head_ports_t const& downstream_ports() const noexcept { return head_ports_; }
+    void finalize(input_ports_t provider_input_ports);
 
   private:
-    head_ports_t head_ports_;
+    input_ports_t provider_input_ports_;
     bool debug_;
     std::atomic<std::size_t> received_messages_{};
     std::chrono::duration<float, std::chrono::microseconds::period> execution_time_{};

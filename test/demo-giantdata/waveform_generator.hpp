@@ -1,7 +1,6 @@
 #ifndef TEST_DEMO_GIANTDATA_WAVEFORM_GENERATOR_HPP
 #define TEST_DEMO_GIANTDATA_WAVEFORM_GENERATOR_HPP
 
-#include "log_record.hpp"
 #include "waveform_generator_input.hpp"
 #include "waveforms.hpp"
 
@@ -37,7 +36,6 @@ namespace demo {
 
   private:
     std::size_t maxsize_; // total number of waveforms to make for the unfold
-    int spill_id_;        // the id of the spill this object will process
   }; // class WaveformGenerator
 } // namespace demo
 #endif // TEST_DEMO_GIANTDATA_WAVEFORM_GENERATOR_HPP

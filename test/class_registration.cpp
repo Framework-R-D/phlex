@@ -1,4 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -9,6 +10,15 @@
 
 using namespace std::string_literals;
 using namespace phlex::experimental;
+
+namespace {
+  // Provider functions
+  int provide_number(data_cell_index const&) { return 3; }
+
+  double provide_temperature(data_cell_index const&) { return 98.5; }
+
+  std::string provide_name(data_cell_index const&) { return "John"; }
+}
 
 namespace {
   struct A {
@@ -49,16 +59,18 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{
-    specified_label{"number"}, specified_label{"temperature"}, specified_label{"name"}};
+  std::array const product_names{"number"_in("job"), "temperature"_in("job"), "name"_in("job")};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
-  auto store = product_store::base();
-  store->add_product("number", 3);
-  store->add_product("temperature", 98.5);
-  store->add_product("name", std::string{"John"});
+  framework_graph g{data_cell_index::base_ptr()};
 
-  framework_graph g{store};
+  // Register providers for the input products
+  g.provide("provide_number", provide_number, concurrency::unlimited)
+    .output_product("number"_in("job"));
+  g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
+    .output_product("temperature"_in("job"));
+  g.provide("provide_name", provide_name, concurrency::unlimited).output_product("name"_in("job"));
+
   auto glueball = g.make<A>();
   SECTION("No framework")
   {
@@ -94,5 +106,5 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   // The following is invoked for *each* section above
   g.observe("verify_results", verify_results, concurrency::unlimited).input_family(product_names);
 
-  g.execute("class_component_t");
+  g.execute();
 }

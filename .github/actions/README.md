@@ -6,7 +6,7 @@ This directory contains reusable composite actions for Phlex CI/CD workflows.
 
 ### setup-build-env
 
-Sets up the Phlex build environment by sourcing the entrypoint script and creating build directories.
+Verifies the container build environment and creates build directories.
 
 **Inputs:**
 
@@ -88,7 +88,7 @@ jobs:
   my-job:
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2025-10-21
+      image: ghcr.io/framework-r-d/phlex-ci:latest
     
     steps:
     - name: Checkout code
@@ -109,7 +109,7 @@ jobs:
     
     - name: Run tests
       run: |
-        . $GITHUB_WORKSPACE/phlex-src/ci/entrypoint.sh
+        . /entrypoint.sh
         cd $GITHUB_WORKSPACE/phlex-build
         ctest -j $(nproc)
 ```

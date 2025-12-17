@@ -2,7 +2,8 @@
 #define PHLEX_CORE_INPUT_ARGUMENTS_HPP
 
 #include "phlex/core/message.hpp"
-#include "phlex/core/specified_label.hpp"
+#include "phlex/core/product_query.hpp"
+#include "phlex/model/handle.hpp"
 
 #include <cstddef>
 #include <string>
@@ -13,12 +14,12 @@
 namespace phlex::experimental {
   template <typename T, std::size_t JoinNodePort>
   struct retriever {
-    using handle_arg_t = typename handle_for<T>::value_type;
-    specified_label label;
+    using handle_arg_t = detail::handle_value_type<T>;
+    product_query query;
     auto retrieve(auto const& messages) const
     {
       return std::get<JoinNodePort>(messages).store->template get_handle<handle_arg_t>(
-        label.name.name());
+        query.spec.name());
     }
   };
 
@@ -35,7 +36,7 @@ namespace phlex::experimental {
   using input_retriever_types = typename input_retriever_types_impl<InputTypes>::type;
 
   template <typename InputTypes, std::size_t... Is>
-  auto form_input_arguments_impl(specified_labels const& args, std::index_sequence<Is...>)
+  auto form_input_arguments_impl(product_queries const& args, std::index_sequence<Is...>)
   {
     return std::make_tuple(
       retriever<std::tuple_element_t<Is, InputTypes>, Is>{std::move(args[Is])}...);
@@ -43,11 +44,11 @@ namespace phlex::experimental {
 
   namespace detail {
     void verify_no_duplicate_input_products(std::string const& algorithm_name,
-                                            specified_labels to_sort);
+                                            product_queries to_sort);
   }
 
   template <typename InputTypes>
-  auto form_input_arguments(std::string const& algorithm_name, specified_labels const& args)
+  auto form_input_arguments(std::string const& algorithm_name, product_queries const& args)
   {
     constexpr auto N = std::tuple_size_v<InputTypes>;
     detail::verify_no_duplicate_input_products(algorithm_name, args);

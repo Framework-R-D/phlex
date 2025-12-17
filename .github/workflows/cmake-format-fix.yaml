@@ -7,51 +7,42 @@ on:
       - created
 
 permissions:
-   pull-requests: write
-   contents: write
+  pull-requests: write
+  contents: write
 
 jobs:
-  check:
+  parse-command:
     runs-on: ubuntu-latest
-    name: Check for phlexbot token
-    if: ${{ github.event.issue.pull_request }}
-
+    name: Parse bot command
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '@phlexbot format')
     outputs:
-      match_result: ${{ steps.check_comment.outputs.match_result }}
-      ref_name: ${{ steps.check_comment.outputs.ref_name }}
-      repo_name: ${{ steps.check_comment.outputs.repo_name }}
+      ref: ${{ steps.get_pr.outputs.ref }}
+      sha: ${{ steps.get_pr.outputs.sha }}
+      repo: ${{ steps.get_pr.outputs.repo }}
 
     steps:
-      - id: check_comment
-        name: Check comment
-        run: |
-          match_result=$(echo "$COMMENT_BODY" | grep -qE '^@phlexbot[[:space:]]+format\b' && echo match || echo non_match)
-          echo match_result="$match_result" >> $GITHUB_OUTPUT
-
-          ISSUE_NUMBER=${{ github.event.issue.number }}
-          REPO="${{ github.repository }}"
-          gh api "repos/$REPO/pulls/$ISSUE_NUMBER" > pr.json
-          echo "ref_name=$(jq -r .head.ref pr.json)" >> $GITHUB_OUTPUT
-          echo "repo_name=$(jq -r .head.repo.full_name pr.json)" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
+      - name: Get PR Info
+        id: get_pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
   apply_cmake_formatting:
     runs-on: ubuntu-latest
     name: Apply CMake formatting
-    needs: check
-    if: ${{ needs.check.outputs.match_result == 'match' }}
+    needs: parse-command
+    if: ${{ needs.parse-command.result == 'success' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: phlex-src
-          ref: ${{ needs.check.outputs.ref_name }}
-          repository: ${{ needs.check.outputs.repo_name }}
+          ref: ${{ needs.parse-command.outputs.ref }}
+          repository: ${{ needs.parse-command.outputs.repo }}
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: '3.x'
 
@@ -77,25 +68,11 @@ jobs:
             cmake-format -i "$file"
           done
 
-      - name: Commit formatting changes
-        uses: EndBug/add-and-commit@v9
-        id: add_and_commit
+      - name: Handle fix commit
+        uses: ./phlex-src/.github/actions/handle-fix-commit
         with:
-          cwd: phlex-src
-          author_name: "github-actions[bot]"
-          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-          message: 'Apply cmake-format changes'
-
-      - name: Formatting changes committed and pushed
-        if: ${{ steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'}}
-        uses: thollander/actions-comment-pull-request@v3
-        with:
-          message: |
-            CMake formatting changes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }})
-
-      - name: No formatting changes to make
-        if: ${{ steps.add_and_commit.outputs.committed == 'false' }}
-        uses: thollander/actions-comment-pull-request@v3
-        with:
-          message: |
-            No CMake formatting changes to make
+          commit-message: 'Apply cmake-format fixes'
+          working-directory: phlex-src
+          token: ${{ secrets.WORKFLOW_PAT }}
+          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
+          pr-info-repo: ${{ needs.parse-command.outputs.repo }}

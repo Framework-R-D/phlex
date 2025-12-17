@@ -11,7 +11,7 @@
 #include "phlex/core/message_sender.hpp"
 #include "phlex/core/multiplexer.hpp"
 #include "phlex/core/node_catalog.hpp"
-#include "phlex/model/level_hierarchy.hpp"
+#include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
@@ -32,10 +32,10 @@
 namespace phlex::experimental {
   class configuration;
 
-  class level_sentry {
+  class layer_sentry {
   public:
-    level_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);
-    ~level_sentry();
+    layer_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);
+    ~layer_sentry();
     std::size_t depth() const noexcept;
 
   private:
@@ -47,13 +47,13 @@ namespace phlex::experimental {
 
   class framework_graph {
   public:
-    explicit framework_graph(product_store_ptr store,
+    explicit framework_graph(data_cell_index_ptr index,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
-    explicit framework_graph(detail::next_store_t f,
+    explicit framework_graph(detail::next_index_t f,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
 
-    void execute(std::string const& dot_prefix = {});
+    void execute();
 
     std::size_t execution_counts(std::string const& node_name) const;
     std::size_t product_counts(std::string const& node_name) const;
@@ -83,13 +83,14 @@ namespace phlex::experimental {
     }
 
     template <typename T>
-    auto unfold(is_predicate_like auto pred,
+    auto unfold(std::string name,
+                is_predicate_like auto pred,
                 auto unf,
                 concurrency c,
                 std::string destination_data_layer)
     {
       return make_glue<T, false>().unfold(
-        std::move(pred), std::move(unf), c, std::move(destination_data_layer));
+        std::move(name), std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
     auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
@@ -107,6 +108,11 @@ namespace phlex::experimental {
       return make_glue().transform(std::move(name), std::move(f), c);
     }
 
+    auto provide(std::string name, auto f, concurrency c = concurrency::serial)
+    {
+      return make_glue().provide(std::move(name), std::move(f), c);
+    }
+
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
@@ -114,6 +120,31 @@ namespace phlex::experimental {
     }
 
   private:
+    /**
+     * Creates a glue object that binds framework components together.
+     *
+     * @tparam T Type of object to construct and bind, defaults to void_tag
+     * @tparam Construct Boolean flag controlling whether to construct T, defaults to true
+     * @tparam Args Variadic template for constructor arguments
+     *
+     * @param args Arguments forwarded to T's constructor if Construct is true
+     *
+     * @return glue<T> A glue object containing the constructed T (if any) and framework components
+     *
+     * This helper creates a glue object that connects framework components. If T is void_tag,
+     * no object is constructed and the glue acts as a pure connector between framework parts.
+     * This is useful for simple operations that don't require maintaining state or complex logic.
+     *
+     * If T is not void_tag and Construct is true, it will construct a shared_ptr to T using
+     * the provided args. This allows the glue to maintain state and complex behavior through
+     * the lifetime of the constructed T object.
+     *
+     * The glue object binds together:
+     * - The TBB flow graph
+     * - Node catalog for tracking registered nodes
+     * - Optional instance of T (if not void_tag)
+     * - Registration error collection
+     */
     template <typename T = void_tag, bool Construct = true, typename... Args>
     glue<T> make_glue(Args&&... args)
     {
@@ -125,8 +156,7 @@ namespace phlex::experimental {
     }
 
     void run();
-    void finalize(std::string const& dot_file_prefix);
-    void post_data_graph(std::string const& dot_file_prefix);
+    void finalize();
 
     product_store_ptr accept(product_store_ptr store);
     void drain();
@@ -134,7 +164,7 @@ namespace phlex::experimental {
 
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;
-    level_hierarchy hierarchy_{};
+    data_layer_hierarchy hierarchy_{};
     node_catalog nodes_{};
     std::map<std::string, filter> filters_{};
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
@@ -147,7 +177,7 @@ namespace phlex::experimental {
     message_sender sender_{hierarchy_, multiplexer_, eoms_};
     std::queue<product_store_ptr> pending_stores_;
     flush_counters counters_;
-    std::stack<level_sentry> levels_;
+    std::stack<layer_sentry> layers_;
     bool shutdown_{false};
   };
 }

@@ -24,9 +24,8 @@ runs:
   steps:
     - shell: bash
       run: |
-        # Source the entrypoint script
-        . "$GITHUB_WORKSPACE/$SOURCE_PATH/ci/entrypoint.sh"
-        
+        # Source the container entrypoint script
+        . /entrypoint.sh
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         
         # Determine parallel jobs
@@ -52,3 +51,4 @@ runs:
         BUILD_PATH: ${{ inputs.build-path }}
         TARGET: ${{ inputs.target }}
         PARALLEL_JOBS: ${{ inputs.parallel-jobs }}
+        CICOLOR_FORCE: 1
