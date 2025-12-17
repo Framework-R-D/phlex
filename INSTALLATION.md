@@ -12,7 +12,7 @@ If you already have a new-enough version of Spack installed, you can skip to ste
 Step 1: create a working directory for phlex use:
 
 ```bash
-export PHLEX_WORK_DIR="/scratch/$(id -un)/phlex-work-dir
+export PHLEX_WORK_DIR="/scratch/$(id -un)/phlex-work-dir"
 mkdir -p ${PHLEX_WORK_DIR}
 cd ${PHLEX_WORK_DIR}
 ```
