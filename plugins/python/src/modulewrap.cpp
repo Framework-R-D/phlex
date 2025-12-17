@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -36,6 +37,19 @@ PyObject* phlex::experimental::wrap_module(phlex_module_t* module_)
 }
 
 namespace {
+
+  // TODO: wishing for std::views::join_with() in C++23, but until then:
+  static std::string stringify(std::vector<std::string>& v)
+  {
+    std::ostringstream oss;
+    if (!v.empty()) {
+      oss << v.front();
+      for (std::size_t i = 1; i < v.size(); ++i) {
+        oss << ", " << v[i];
+      }
+    }
+    return oss.str();
+  }
 
   static inline PyObject* lifeline_transform(intptr_t arg)
   {
@@ -284,7 +298,7 @@ namespace {
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
-    Py_DECREF(pyobj);                                                                              \
+    Py_DECREF((PyObject*)pyobj);                                                                   \
     return i;                                                                                      \
   }
 
@@ -328,18 +342,6 @@ namespace {
                                                                                                    \
     return (intptr_t)pyll;                                                                         \
   }
-#else
-#define VECTOR_CONVERTER(nptype)                                                                   \
-  static intptr_t vec_to_py(std::shared_ptr<std::vector<T>> const& v)                              \
-  {                                                                                                \
-    PyGILRAII gil;                                                                                 \
-    /* TODO: this is just to make code coverage happy; in the end, these preprocessor */           \
-    /* directives will all go away with Numpy being properly installed with spack */               \
-    intptr_t result = (intptr_t)(v->size() - v->size());                                           \
-    PyErr_SetString(PyExc_SystemError, "vector data products are not supported without numpy");    \
-    return (intptr_t)result;                                                                       \
-  }
-#endif
 
   VECTOR_CONVERTER(vint, int, NPY_INT)
   VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
@@ -348,12 +350,52 @@ namespace {
   VECTOR_CONVERTER(vfloat, float, NPY_FLOAT)
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
+#define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype)                                               \
+  static std::shared_ptr<std::vector<cpptype>> py_to_##name(intptr_t pyobj)                        \
+  {                                                                                                \
+    PyGILRAII gil;                                                                                 \
+                                                                                                   \
+    auto vec = std::make_shared<std::vector<cpptype>>();                                           \
+                                                                                                   \
+    /* TODO: because of unresolved ownership issues, copy the full array contents */               \
+    if (!pyobj || !PyArray_Check((PyObject*)pyobj)) {                                              \
+      PyErr_Clear(); /* how to report an error? */                                                 \
+      Py_DECREF((PyObject*)pyobj);                                                                 \
+      return vec;                                                                                  \
+    }                                                                                              \
+                                                                                                   \
+    PyArrayObject* arr = (PyArrayObject*)pyobj;                                                    \
+                                                                                                   \
+    /* TODO: flattening the array here seems to be the only workable solution */                   \
+    npy_intp* dims = PyArray_DIMS(arr);                                                            \
+    int nd = PyArray_NDIM(arr);                                                                    \
+    size_t total = 1;                                                                              \
+    for (int i = 0; i < nd; ++i)                                                                   \
+      total *= static_cast<size_t>(dims[i]);                                                       \
+                                                                                                   \
+    /* copy the array info; note that this assumes C continuity */                                 \
+    cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                       \
+    vec->reserve(total);                                                                           \
+    vec->insert(vec->end(), raw, raw + total);                                                     \
+                                                                                                   \
+    Py_DECREF((PyObject*)pyobj);                                                                   \
+    return vec;                                                                                    \
+  }
+
+  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
+  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
+  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
+  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
+  NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+#endif
+
 } // unnamed namespace
 
 #define INSERT_INPUT_CONVERTER(name, alg, inp)                                                     \
   mod->ph_module->transform("py" #name "_" + inp + "_" + alg, name##_to_py, concurrency::serial)   \
     .input_family(product_query{product_specification::create(inp)})                               \
-    .output_products(std::string{alg + "_" + inp + "py"})
+    .output_products(alg + "_" + inp + "py")
 
 #define INSERT_OUTPUT_CONVERTER(name, alg, outp)                                                   \
   mod->ph_module->transform(#name "py_" + outp + "_" + alg, py_to_##name, concurrency::serial)     \
@@ -461,7 +503,12 @@ static PyObject* parse_args(PyObject* args,
   // if annotations were correct (and correctly parsed), there should be as many
   // input types as input labels
   if (input_types.size() != input_labels.size()) {
-    PyErr_SetString(PyExc_TypeError, "annotions not found or unknown formatting");
+    PyErr_Format(PyExc_TypeError,
+                 "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
+                 input_labels.size(),
+                 stringify(input_labels).c_str(),
+                 input_types.size(),
+                 stringify(input_types).c_str());
     return nullptr;
   }
 
@@ -496,6 +543,7 @@ static bool insert_input_converters(py_phlex_module* mod,
       INSERT_INPUT_CONVERTER(float, cname, inp);
     else if (inp_type == "double")
       INSERT_INPUT_CONVERTER(double, cname, inp);
+#ifdef PHLEX_HAVE_NUMPY
     else if (inp_type.compare(0, 13, "numpy.ndarray") == 0) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
@@ -541,6 +589,7 @@ static bool insert_input_converters(py_phlex_module* mod,
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
         return false;
       }
+#endif
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
       return false;
@@ -620,8 +669,55 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     INSERT_OUTPUT_CONVERTER(float, cname, output);
   else if (output_type == "double")
     INSERT_OUTPUT_CONVERTER(double, cname, output);
+#ifdef PHLEX_HAVE_NUMPY
+  else if (output_type.compare(0, 13, "numpy.ndarray") == 0) {
+    // TODO: just like for input types, these are hard-coded, but should be handled by
+    // an IDL instead.
+    auto pos = output_type.rfind("numpy.dtype");
+    if (pos == std::string::npos) {
+      PyErr_Format(
+        PyExc_TypeError, "could not determine dtype of input type \"%s\"", output_type.c_str());
+      return nullptr;
+    }
+
+    pos += 18;
+
+    auto py_in = "py" + output + "_" + cname;
+    if (output_type.compare(pos, std::string::npos, "int32]]") == 0) {
+      mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
+        .input_family(product_query{product_specification::create(py_in)})
+        .output_products(output);
+    } else if (output_type.compare(pos, std::string::npos, "uint32]]") == 0) {
+      mod->ph_module->transform("pyvuint_" + output + "_" + cname, py_to_vuint, concurrency::serial)
+        .input_family(product_query{product_specification::create(py_in)})
+        .output_products(output);
+    } else if (output_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
+      mod->ph_module->transform("pyvlong_" + output + "_" + cname, py_to_vlong, concurrency::serial)
+        .input_family(product_query{product_specification::create(py_in)})
+        .output_products(output);
+    } else if (output_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
+      mod->ph_module
+        ->transform("pyvulong_" + output + "_" + cname, py_to_vulong, concurrency::serial)
+        .input_family(product_query{product_specification::create(py_in)})
+        .output_products(output);
+    } else if (output_type.compare(pos, std::string::npos, "float32]]") == 0) {
+      mod->ph_module
+        ->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
+        .input_family(product_query{product_specification::create(py_in)})
+        .output_products(output);
+    } else if (output_type.compare(pos, std::string::npos, "double64]]") == 0) {
+      mod->ph_module
+        ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
+        .input_family(product_query{product_specification::create(py_in)})
+        .output_products(output);
+    } else {
+      PyErr_Format(PyExc_TypeError, "unsupported array output type \"%s\"", output_type.c_str());
+      return nullptr;
+    }
+  }
+#endif
   else {
-    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output.c_str());
+    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output_type.c_str());
     return nullptr;
   }
 
@@ -652,18 +748,21 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   if (input_labels.size() == 1) {
     auto* pyc = new py_callback_1v{callable}; // id.
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
-      .input_family(product_query{product_specification::create(input_labels[0] + "py")});
+      .input_family(
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")});
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
-      .input_family(product_query{product_specification::create(input_labels[0] + "py")},
-                    product_query{product_specification::create(input_labels[1] + "py")});
+      .input_family(
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")});
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
-      .input_family(product_query{product_specification::create(input_labels[0] + "py")},
-                    product_query{product_specification::create(input_labels[1] + "py")},
-                    product_query{product_specification::create(input_labels[2] + "py")});
+      .input_family(
+        product_query{product_specification::create(cname + "_" + input_labels[0] + "py")},
+        product_query{product_specification::create(cname + "_" + input_labels[1] + "py")},
+        product_query{product_specification::create(cname + "_" + input_labels[2] + "py")});
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     return nullptr;
