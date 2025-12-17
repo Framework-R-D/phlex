@@ -111,8 +111,15 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
   // Create type map
   auto type_map = std::make_shared<form::experimental::product_type_names>();
 
-  // Register the int type for sum product
+  // Register some fundamental type for simple products
   type_map->names[std::type_index(typeid(int))] = "int";
+  type_map->names[std::type_index(typeid(long))] = "long";
+  type_map->names[std::type_index(typeid(float))] = "float";
+  type_map->names[std::type_index(typeid(double))] = "double";
+  type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
+  type_map->names[std::type_index(typeid(std::vector<long>))] = "std::vector<long>";
+  type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+  type_map->names[std::type_index(typeid(std::vector<double>))] = "std::vector<double>";
 
   // TODO: Register product types
   // This needs to be populated with actual types your application uses
