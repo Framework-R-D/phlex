@@ -19,7 +19,7 @@ namespace phlex::experimental {
     auto retrieve(auto const& messages) const
     {
       return std::get<JoinNodePort>(messages).store->template get_handle<handle_arg_t>(
-        query.spec.name());
+        query.spec().name());
     }
   };
 
