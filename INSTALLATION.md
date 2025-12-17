@@ -34,7 +34,6 @@ wget https://raw.githubusercontent.com/FNALssi/fermi-spack-tools/refs/heads/fnal
 bash bootstrap $PWD/spack-fnal
 ```
 The bootstrap takes about 2 minutes.
-The output from a successful bootstrap will end up in `Bootstrap completed properly, see logfile for details`
 
 Step 4: make spack available at the command line.
 ```bash
