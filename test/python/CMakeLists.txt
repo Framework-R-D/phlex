@@ -116,6 +116,12 @@ except ImportError:
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 
+  add_test(NAME py:reduce
+           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet -g
+                   pyreduce.gv
+           )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
+
   set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
   if(DEFINED ENV{VIRTUAL_ENV})
     set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH})

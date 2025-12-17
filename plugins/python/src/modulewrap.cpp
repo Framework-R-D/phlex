@@ -350,14 +350,14 @@ namespace {
 
 } // unnamed namespace
 
-#define INSERT_INPUT_CONVERTER(name, inp)                                                          \
-  mod->ph_module->transform("py" #name "_" + inp, name##_to_py, concurrency::serial)               \
+#define INSERT_INPUT_CONVERTER(name, alg, inp)                                                     \
+  mod->ph_module->transform("py" #name "_" + inp + "_" + alg, name##_to_py, concurrency::serial)   \
     .input_family(inp)                                                                             \
-    .output_products(inp + "py")
+    .output_products(alg + "_" + inp + "py")
 
-#define INSERT_OUTPUT_CONVERTER(name, outp)                                                        \
-  mod->ph_module->transform(#name "py_" + outp, py_to_##name, concurrency::serial)                 \
-    .input_family("py" + output)                                                                   \
+#define INSERT_OUTPUT_CONVERTER(name, alg, outp)                                                   \
+  mod->ph_module->transform(#name "py_" + outp + "_" + alg, py_to_##name, concurrency::serial)     \
+    .input_family("py" + output + "_" + alg)                                                       \
     .output_products(output)
 
 static PyObject* parse_args(PyObject* args,
@@ -373,10 +373,10 @@ static PyObject* parse_args(PyObject* args,
   // retrieved, not ignored, to issue an error message if an output is provided.)
 
   static char const* kwnames[] = {
-    "callable", "input_family", "output_products", "concurrency", nullptr};
-  PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0;
+    "callable", "input_family", "output_products", "concurrency", "name", nullptr};
+  PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0, *pyname = 0;
   if (!PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO|OO", (char**)kwnames, &callable, &input, &output, &concurrency)) {
+        args, kwds, "OO|OOO", (char**)kwnames, &callable, &input, &output, &concurrency, &pyname)) {
     // error already set by argument parser
     return nullptr;
   }
@@ -392,11 +392,14 @@ static PyObject* parse_args(PyObject* args,
   }
 
   // retrieve function name and argument types
-  PyObject* pyname = PyObject_GetAttrString(callable, "__name__");
   if (!pyname) {
-    // AttributeError already set
-    return nullptr;
-  }
+    pyname = PyObject_GetAttrString(callable, "__name__");
+    if (!pyname) {
+      // AttributeError already set
+      return nullptr;
+    }
+  } else
+    Py_INCREF(pyname);
   functor_name = PyUnicode_AsUTF8(pyname);
   Py_DECREF(pyname);
 
@@ -468,6 +471,7 @@ static PyObject* parse_args(PyObject* args,
 }
 
 static bool insert_input_converters(py_phlex_module* mod,
+                                    std::string const& cname,   // TODO: shared_ptr<PyObject>
                                     std::vector<std::string> const& input_labels,
                                     std::vector<std::string> const& input_types)
 {
@@ -479,19 +483,19 @@ static bool insert_input_converters(py_phlex_module* mod,
     auto const& inp_type = input_types[i];
 
     if (inp_type == "bool")
-      INSERT_INPUT_CONVERTER(bool, inp);
+      INSERT_INPUT_CONVERTER(bool, cname, inp);
     else if (inp_type == "int")
-      INSERT_INPUT_CONVERTER(int, inp);
+      INSERT_INPUT_CONVERTER(int, cname, inp);
     else if (inp_type == "unsigned int")
-      INSERT_INPUT_CONVERTER(uint, inp);
+      INSERT_INPUT_CONVERTER(uint, cname, inp);
     else if (inp_type == "long")
-      INSERT_INPUT_CONVERTER(long, inp);
+      INSERT_INPUT_CONVERTER(long, cname, inp);
     else if (inp_type == "unsigned long")
-      INSERT_INPUT_CONVERTER(ulong, inp);
+      INSERT_INPUT_CONVERTER(ulong, cname, inp);
     else if (inp_type == "float")
-      INSERT_INPUT_CONVERTER(float, inp);
+      INSERT_INPUT_CONVERTER(float, cname, inp);
     else if (inp_type == "double")
-      INSERT_INPUT_CONVERTER(double, inp);
+      INSERT_INPUT_CONVERTER(double, cname, inp);
     else if (inp_type.compare(0, 13, "numpy.ndarray") == 0) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
@@ -505,30 +509,31 @@ static bool insert_input_converters(py_phlex_module* mod,
 
       pos += 18;
 
+      std::string py_out = cname + "_" + inp + "py";
       if (inp_type.compare(pos, std::string::npos, "int32]]") == 0) {
-        mod->ph_module->transform("pyvint_" + inp, vint_to_py, concurrency::serial)
+        mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
           .input_family(inp)
-          .output_products(inp + "py");
+          .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "uint32]]") == 0) {
-        mod->ph_module->transform("pyvuint_" + inp, vuint_to_py, concurrency::serial)
+        mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
           .input_family(inp)
-          .output_products(inp + "py");
+          .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
-        mod->ph_module->transform("pyvlong_" + inp, vlong_to_py, concurrency::serial)
+        mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
           .input_family(inp)
-          .output_products(inp + "py");
+          .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
-        mod->ph_module->transform("pyvulong_" + inp, vulong_to_py, concurrency::serial)
+        mod->ph_module->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
           .input_family(inp)
-          .output_products(inp + "py");
+          .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "float32]]") == 0) {
-        mod->ph_module->transform("pyvfloat_" + inp, vfloat_to_py, concurrency::serial)
+        mod->ph_module->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
           .input_family(inp)
-          .output_products(inp + "py");
+          .output_products(py_out);
       } else if (inp_type.compare(pos, std::string::npos, "double64]]") == 0) {
-        mod->ph_module->transform("pyvdouble_" + inp, vdouble_to_py, concurrency::serial)
+        mod->ph_module->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
           .input_family(inp)
-          .output_products(inp + "py");
+          .output_products(py_out);
       } else {
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
         return false;
@@ -565,25 +570,26 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string output = output_labels[0];
   std::string output_type = output_types[0];
 
-  if (!insert_input_converters(mod, input_labels, input_types))
+  if (!insert_input_converters(mod, cname, input_labels, input_types))
     return nullptr; // error already set
 
   // register Python transform
+  std::string py_out = "py" + output + "_" + cname;
   if (input_labels.size() == 1) {
     auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
-      .input_family(input_labels[0] + "py")
-      .output_products("py" + output);
+      .input_family(cname + "_" + input_labels[0] + "py")
+      .output_products(py_out);
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
-      .input_family(input_labels[0] + "py", input_labels[1] + "py")
-      .output_products("py" + output);
+      .input_family(cname + "_" + input_labels[0] + "py", cname + "_" +  input_labels[1] + "py")
+      .output_products(py_out);
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
-      .input_family(input_labels[0] + "py", input_labels[1] + "py", input_labels[2] + "py")
-      .output_products("py" + output);
+      .input_family(cname + "_" + input_labels[0] + "py", cname + "_" + input_labels[1] + "py", cname + "_" + input_labels[2] + "py")
+      .output_products(py_out);
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     return nullptr;
@@ -592,19 +598,19 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // insert output converter node into the graph (TODO: same as above; these
   // are explicit b/c of the templates only)
   if (output_type == "bool")
-    INSERT_OUTPUT_CONVERTER(bool, output);
+    INSERT_OUTPUT_CONVERTER(bool, cname, output);
   else if (output_type == "int")
-    INSERT_OUTPUT_CONVERTER(int, output);
+    INSERT_OUTPUT_CONVERTER(int, cname, output);
   else if (output_type == "unsigned int")
-    INSERT_OUTPUT_CONVERTER(uint, output);
+    INSERT_OUTPUT_CONVERTER(uint, cname, output);
   else if (output_type == "long")
-    INSERT_OUTPUT_CONVERTER(long, output);
+    INSERT_OUTPUT_CONVERTER(long, cname, output);
   else if (output_type == "unsigned long")
-    INSERT_OUTPUT_CONVERTER(ulong, output);
+    INSERT_OUTPUT_CONVERTER(ulong, cname, output);
   else if (output_type == "float")
-    INSERT_OUTPUT_CONVERTER(float, output);
+    INSERT_OUTPUT_CONVERTER(float, cname, output);
   else if (output_type == "double")
-    INSERT_OUTPUT_CONVERTER(double, output);
+    INSERT_OUTPUT_CONVERTER(double, cname, output);
   else {
     PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output.c_str());
     return nullptr;
@@ -630,7 +636,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  if (!insert_input_converters(mod, input_labels, input_types))
+  if (!insert_input_converters(mod, cname, input_labels, input_types))
     return nullptr; // error already set
 
   // register Python observer
