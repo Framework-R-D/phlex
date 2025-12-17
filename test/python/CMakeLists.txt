@@ -96,25 +96,25 @@ except ImportError:
   if(HAS_NUMPY)
 
     # phlex-based tests that require numpy support
-    add_test(NAME py:vec
-             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet
+    add_test(NAME py:vec COMMAND phlex -c
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet
              )
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
   endif()
 
   # phlex-based tests (no cppyy dependency)
-  add_test(NAME py:add
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet
+  add_test(NAME py:add COMMAND phlex -c
+                               ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
 
-  add_test(NAME py:config
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet
+  add_test(NAME py:config COMMAND phlex -c
+                                  ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 
-  add_test(NAME py:reduce
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet
+  add_test(NAME py:reduce COMMAND phlex -c
+                                  ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
