@@ -9,7 +9,7 @@ namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
     product_query const& query) const
   {
-    auto const& spec = query.spec;
+    auto const& spec = query.spec();
     auto [b, e] = producers_.equal_range(spec.name());
     if (b == e) {
       spdlog::debug(

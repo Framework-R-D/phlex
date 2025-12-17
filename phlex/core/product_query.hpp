@@ -3,22 +3,28 @@
 
 #include "phlex/model/product_specification.hpp"
 
-#include <algorithm>
-#include <array>
-#include <iosfwd>
+// #include <algorithm>
 #include <string>
 #include <vector>
 
 namespace phlex {
-  struct product_query {
-    experimental::product_specification spec;
-    std::string layer;
-    std::string to_string() const;
-  };
+  class product_query {
+  public:
+    product_query();
+    product_query(experimental::product_specification spec, std::string layer);
 
-  bool operator==(product_query const& a, product_query const& b);
-  bool operator!=(product_query const& a, product_query const& b);
-  bool operator<(product_query const& a, product_query const& b);
+    auto const& spec() const noexcept { return spec_; }
+    auto const& layer() const noexcept { return layer_; }
+    void set_type(experimental::type_id&& type) { spec_.set_type(std::move(type)); }
+
+    std::string to_string() const;
+
+    auto operator<=>(product_query const&) const = default;
+
+  private:
+    experimental::product_specification spec_;
+    std::string layer_;
+  };
 
   using product_queries = std::vector<product_query>;
 }
@@ -28,8 +34,6 @@ namespace phlex::experimental {
     product_specification spec;
     product_query operator()(std::string layer) &&;
   };
-
-  std::ostream& operator<<(std::ostream& os, product_query const& query);
 
   namespace detail {
     // C is a container of product_queries
@@ -45,7 +49,7 @@ namespace phlex::experimental {
       template <typename T>
       void set_type(C& container)
       {
-        container.at(index_).spec.set_type(make_type_id<T>());
+        container.at(index_).set_type(make_type_id<T>());
         ++index_;
       }
 

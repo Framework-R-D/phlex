@@ -21,9 +21,7 @@ namespace phlex::experimental {
     std::string const& algorithm() const noexcept { return algorithm_; }
 
     bool match(algorithm_name const& other) const;
-    bool operator==(algorithm_name const& other) const;
-    bool operator!=(algorithm_name const& other) const;
-    bool operator<(algorithm_name const& other) const;
+    auto operator<=>(algorithm_name const&) const = default;
 
     static algorithm_name create(char const* spec);
     static algorithm_name create(std::string const& spec);
