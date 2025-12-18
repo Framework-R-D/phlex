@@ -17,7 +17,7 @@ namespace {
     FormOutputModule(std::shared_ptr<form::experimental::product_type_names> type_map,
                      std::string output_file,
                      int technology,
-                     std::vector<std::string> products_to_save) :
+                     std::vector<std::string> const& products_to_save) :
       m_type_map(type_map), m_output_file(std::move(output_file)), m_technology(technology)
     {
       std::cout << "FormOutputModule initialized\n";
