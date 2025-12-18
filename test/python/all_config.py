@@ -56,7 +56,7 @@ class ConfigConsumer:
         pass
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register an instance of `ConfigConsumer` as an observer.
 
     Use the standard Phlex `observe` registration to insert a node in

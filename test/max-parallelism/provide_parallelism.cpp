@@ -3,7 +3,7 @@
 
 using namespace phlex::experimental;
 
-PHLEX_EXPERIMENTAL_REGISTER_PROVIDERS(s)
+PHLEX_REGISTER_PROVIDERS(s)
 {
   s.provide("provide_max_parallelism",
             [](data_cell_index const&) { return max_allowed_parallelism::active_value(); })

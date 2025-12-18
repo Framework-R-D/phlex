@@ -5,7 +5,7 @@ namespace {
   void read_index(int) {}
 }
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   using namespace phlex::experimental;
   m.observe("read_index", read_index, concurrency::unlimited)

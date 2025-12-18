@@ -4,7 +4,7 @@
 
 using namespace phlex::experimental;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   m.observe(
      "verify_difference",

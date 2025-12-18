@@ -4,7 +4,7 @@
 
 using namespace phlex::experimental::test;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   define_algorithm<sim::SimEnergyDeposits,
                    phlex::experimental::sized_tuple<sim::SimEnergyDeposits, 2>>(m, config);

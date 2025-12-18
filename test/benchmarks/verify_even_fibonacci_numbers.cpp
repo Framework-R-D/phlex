@@ -14,7 +14,7 @@ namespace test {
   };
 }
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   using namespace phlex::experimental;
   using namespace test;

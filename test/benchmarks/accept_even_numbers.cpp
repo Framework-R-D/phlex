@@ -2,7 +2,7 @@
 
 #include <string>
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   using namespace phlex::experimental;
   m.predicate(

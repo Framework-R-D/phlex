@@ -4,7 +4,7 @@
 
 using namespace phlex::experimental::test;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   define_algorithm<phlex::experimental::data_cell_index, simb::MCTruths>(m, config);
 }

@@ -16,7 +16,7 @@ using namespace phlex::experimental;
 
 static bool initialize();
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   initialize();
 
@@ -25,7 +25,7 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
   std::string modname = config.get<std::string>("py");
   PyObject* mod = PyImport_ImportModule(modname.c_str());
   if (mod) {
-    PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS");
+    PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_REGISTER_ALGORITHMS");
     if (reg) {
       PyObject* pym = wrap_module(&m);
       PyObject* pyconfig = wrap_configuration(&config);

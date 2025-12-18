@@ -1,6 +1,6 @@
 #include "phlex/source.hpp"
 
-PHLEX_EXPERIMENTAL_REGISTER_PROVIDERS(s)
+PHLEX_REGISTER_PROVIDERS(s)
 {
   using namespace phlex::experimental;
   s.provide("provide_id", [](data_cell_index const& id) { return id; })
