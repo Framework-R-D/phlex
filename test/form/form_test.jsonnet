@@ -11,12 +11,7 @@
     },
     form_output: {
       plugin: 'form_module',
-      products: {
-        sum: {
-          branch_name: 'sum',
-        },
-      },
+      products: ["sum"],
     },
   },
 }
-
