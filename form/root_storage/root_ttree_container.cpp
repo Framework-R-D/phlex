@@ -16,7 +16,13 @@ ROOT_TTree_ContainerImp::ROOT_TTree_ContainerImp(std::string const& name) :
 ROOT_TTree_ContainerImp::~ROOT_TTree_ContainerImp()
 {
   if (m_tree != nullptr) {
-    m_tree->Write();
+    // Calling:
+    //   m_tree->Write();
+    // requires the TTree's directory to be the current directory, so we could do
+    //   TDirectory::TContext ctxt(m_tree->GetDirectory());
+    //   m_tree->Write();
+    // or let's just do:
+    m_tree->AutoSave("flushbaskets");
     delete m_tree;
   }
 }
@@ -46,6 +52,9 @@ void ROOT_TTree_ContainerImp::setupWrite(std::string const& /* type*/)
   }
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TTree_ContainerImp::setupWrite no tree created");
+  }
+  if (m_tree->GetDirectory() == nullptr) {
+    throw std::runtime_error("ROOT_TTree_ContainerImp::setupWrite not attached to any file");
   }
   return;
 }
