@@ -28,16 +28,13 @@ which spack
 ```
 should tell you there is no spack in your PATH.
 
-Step 3: install the fermilab version of Spack and related tools. 
-```bash
-wget https://raw.githubusercontent.com/FNALssi/fermi-spack-tools/refs/heads/fnal-v1.1.0/bin/bootstrap
-bash bootstrap $PWD/spack-fnal
-```
-The bootstrap takes about 2 minutes.
+Step 3: install Spack
+
+Follow the [installation instructions from the Spack project]( https://spack-tutorial.readthedocs.io/en/latest/tutorial_basics.html#basics-tutorial).
 
 Step 4: make spack available at the command line.
 ```bash
-source ${PHLEX_WORK_DIR}/spack-fnal/share/spack/setup-env.sh
+source ${HOME}/spack/share/spack/setup-env.sh
 ```
 `which spack` will show that `spack` is a bash function. 
 
@@ -64,15 +61,23 @@ Step 6: ensure that spack has access to a new enough GCC.
 Currently this means GCC 14. 
 
 Run `spack compilers` to see what compilers Spack knows about.
+It may tell you to run `spack compiler find` to autodetect compilers.
+If so, follow the instructions and afterward re-run `spack compilers`.
+
 If you don't have GCC 14 or newer, then install GCC 14:
 
 ```bash
-spack install -j 12 gcc@14
+spack install -j 12 gcc@14  # choose a suitable number of jobs for your machine
 ```
 
-Step 7: Add the Spack recipe repository for Phlex:
+Building GCC may take
+
+### Creating and installing the Phlex environment
+
+Step 7: Add the Spack recipe repositories needed by Phlex:
 
 ```bash
+spack repo add https://github.com/FNALssi/fnal_art.git
 spack repo add https://github.com/Framework-R-D/phlex-spack-recipes.git
 ```
 
@@ -98,8 +103,8 @@ You are then ready to build the Phlex environment:
 spack install -j 12  # choose a suitable number of jobs for your machine
 ```
 
-While the build of `phlex` itself takes a couple of minutes, this install may need to build (and not just download) other packages.
-Thus the full installation may take an hour or so.
+While the build of `phlex` itself takes a couple of minutes, this install may need to build (and not just download) many other packages.
+Thus the full installation may take a few hours.
 
 When the installation is complete, you should find that the `phlex` executable is on your PATH.
 `which phlex` will verify this.
