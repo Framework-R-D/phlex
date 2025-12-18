@@ -124,14 +124,14 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
   // Extract configuration from Phlex config
   std::string output_file = config.get<std::string>("output_file", "output.root");
   std::string tech_string = config.get<std::string>("technology", "ROOT_TTREE");
-  
+
   std::cout << "Configuration:\n";
   std::cout << "  output_file: " << output_file << "\n";
   std::cout << "  technology: " << tech_string << "\n";
-  
+
   // Map Phlex config string to FORM technology constant
   int technology = form::technology::ROOT_TTREE; // default
-  
+
   if (tech_string == "ROOT_TTREE") {
     technology = form::technology::ROOT_TTREE;
   } else if (tech_string == "ROOT_RNTUPLE") {
@@ -141,17 +141,17 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
   } else {
     throw std::runtime_error("Unknown technology: " + tech_string);
   }
-  
+
   auto products_to_save = config.get<std::vector<std::string>>("products");
-  
+
   // Phlex needs an OBJECT
   // Create the FORM output module
-  auto form_output = 
+  auto form_output =
     m.make<FormOutputModule>(type_map, output_file, technology, std::move(products_to_save));
-  
+
   // Phlex needs a MEMBER FUNCTION to call
   // Register the callback that Phlex will invoke
   form_output.output("save_data_products", &FormOutputModule::save_data_products);
-  
+
   std::cout << "FORM output module registered successfully\n";
 }
