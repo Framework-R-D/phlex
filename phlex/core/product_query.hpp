@@ -9,27 +9,26 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex {
   struct product_query {
-    product_specification spec;
+    experimental::product_specification spec;
     std::string layer;
     std::string to_string() const;
   };
 
+  bool operator==(product_query const& a, product_query const& b);
+  bool operator!=(product_query const& a, product_query const& b);
+  bool operator<(product_query const& a, product_query const& b);
+
+  using product_queries = std::vector<product_query>;
+}
+
+namespace phlex::experimental {
   struct product_tag {
     product_specification spec;
     product_query operator()(std::string layer) &&;
   };
 
-  using product_queries = std::vector<product_query>;
-
-  inline auto& to_name(product_query const& query) { return query.spec.name(); }
-  inline auto& to_layer(product_query& query) { return query.layer; }
-
-  product_tag operator""_in(char const* str, std::size_t);
-  bool operator==(product_query const& a, product_query const& b);
-  bool operator!=(product_query const& a, product_query const& b);
-  bool operator<(product_query const& a, product_query const& b);
   std::ostream& operator<<(std::ostream& os, product_query const& query);
 
   namespace detail {
@@ -67,6 +66,10 @@ namespace phlex::experimental {
     detail::product_queries_type_setter<decltype(container), Tup> populate_types{};
     populate_types(container);
   }
+}
+
+namespace phlex {
+  experimental::product_tag operator""_in(char const* str, std::size_t);
 }
 
 #endif // PHLEX_CORE_PRODUCT_QUERY_HPP

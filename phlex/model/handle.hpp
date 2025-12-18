@@ -7,11 +7,11 @@
 #include <utility>
 #include <variant>
 
-namespace phlex::experimental {
+namespace phlex {
   template <typename T>
   class handle;
 
-  namespace detail {
+  namespace experimental::detail {
     template <typename T>
     struct handle_value_type_impl {
       using type = std::remove_const_t<T>;
@@ -45,7 +45,7 @@ namespace phlex::experimental {
   template <typename T>
   class handle {
   public:
-    static_assert(std::same_as<T, detail::handle_value_type<T>>,
+    static_assert(std::same_as<T, experimental::detail::handle_value_type<T>>,
                   "Cannot create a handle with a template argument that is const-qualified, a "
                   "reference type, or a pointer type.");
     using value_type = T;

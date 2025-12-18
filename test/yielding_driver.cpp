@@ -11,9 +11,9 @@
 #include <ranges>
 #include <vector>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
-void cells_to_process(async_driver<data_cell_index_ptr>& d)
+void cells_to_process(experimental::async_driver<data_cell_index_ptr>& d)
 {
   unsigned int const num_runs = 2;
   unsigned int const num_subruns = 2;
@@ -36,7 +36,7 @@ void cells_to_process(async_driver<data_cell_index_ptr>& d)
 
 int main()
 {
-  async_driver<data_cell_index_ptr> drive{cells_to_process};
+  experimental::async_driver<data_cell_index_ptr> drive{cells_to_process};
   tbb::flow::graph g{};
   tbb::flow::input_node source{g, [&drive](tbb::flow_control& fc) -> data_cell_index_ptr {
                                  if (auto next = drive()) {

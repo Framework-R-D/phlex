@@ -5,7 +5,7 @@
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_vector.h"
 
-using namespace phlex::experimental;
+using namespace phlex;
 using namespace oneapi::tbb;
 
 namespace {
@@ -88,7 +88,7 @@ namespace {
 
 TEST_CASE("Two predicates", "[filtering]")
 {
-  framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num"_in("event"));
@@ -109,7 +109,7 @@ TEST_CASE("Two predicates", "[filtering]")
 
 TEST_CASE("Two predicates in series", "[filtering]")
 {
-  framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited)
@@ -127,7 +127,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
 
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
-  framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited).input_family("num"_in("event"));
@@ -152,7 +152,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
                                         {.name = "exclude_6_to_7", .begin = 6, .end = 7},
                                         {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
-  framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
@@ -175,7 +175,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
-  framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited).output_product("num"_in("event"));
   g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)
     .output_product("other_num"_in("event"));

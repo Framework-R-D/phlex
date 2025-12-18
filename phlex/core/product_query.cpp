@@ -15,20 +15,20 @@ namespace phlex::experimental {
     return {std::move(spec), std::move(data_layer)};
   }
 
+  std::ostream& operator<<(std::ostream& os, product_query const& query)
+  {
+    os << query.to_string();
+    return os;
+  }
+}
+
+namespace phlex {
   std::string product_query::to_string() const
   {
     if (layer.empty()) {
       return spec.full();
     }
     return fmt::format("{} ϵ {}", spec.full(), layer);
-  }
-
-  product_tag operator""_in(char const* product_name, std::size_t length)
-  {
-    if (length == 0ull) {
-      throw std::runtime_error("Cannot specify product with empty name.");
-    }
-    return {product_specification::create(product_name)};
   }
 
   bool operator==(product_query const& a, product_query const& b)
@@ -43,9 +43,11 @@ namespace phlex::experimental {
     return std::tie(a.spec, a.layer) < std::tie(b.spec, b.layer);
   }
 
-  std::ostream& operator<<(std::ostream& os, product_query const& query)
+  experimental::product_tag operator""_in(char const* product_name, std::size_t length)
   {
-    os << query.to_string();
-    return os;
+    if (length == 0ull) {
+      throw std::runtime_error("Cannot specify product with empty name.");
+    }
+    return {experimental::product_specification::create(product_name)};
   }
 }

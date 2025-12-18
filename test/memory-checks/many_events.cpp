@@ -1,7 +1,7 @@
 #include "phlex/core/framework_graph.hpp"
 #include "plugins/layer_generator.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   unsigned pass_on(unsigned number) { return number; }
@@ -13,10 +13,10 @@ int main()
 
   constexpr auto max_events{100'000u};
 
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("event", {"job", max_events, 1u});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
     .output_product("number"_in("event"));

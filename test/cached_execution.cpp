@@ -34,7 +34,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   // Provider functions
@@ -52,12 +52,12 @@ TEST_CASE("Cached function calls", "[data model]")
   constexpr unsigned int n_subruns{2u};
   constexpr unsigned int n_events{5000u};
 
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("run", {"job", n_runs});
   gen.add_layer("subrun", {"run", n_subruns});
   gen.add_layer("event", {"subrun", n_events});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)

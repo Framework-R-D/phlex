@@ -1,7 +1,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   void read_id(data_cell_index const&) {}
@@ -9,6 +9,5 @@ namespace {
 
 PHLEX_REGISTER_ALGORITHMS(m)
 {
-  m.observe("read_id", read_id, phlex::experimental::concurrency::unlimited)
-    .input_family("id"_in("event"));
+  m.observe("read_id", read_id, concurrency::unlimited).input_family("id"_in("event"));
 }

@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex {
   class data_cell_index : public std::enable_shared_from_this<data_cell_index> {
   public:
     static data_cell_index const& base();
@@ -52,11 +52,8 @@ namespace phlex::experimental {
 
 namespace std {
   template <>
-  struct hash<phlex::experimental::data_cell_index> {
-    std::size_t operator()(phlex::experimental::data_cell_index const& id) const noexcept
-    {
-      return id.hash();
-    }
+  struct hash<phlex::data_cell_index> {
+    std::size_t operator()(phlex::data_cell_index const& id) const noexcept { return id.hash(); }
   };
 }
 

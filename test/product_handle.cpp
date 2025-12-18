@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   struct Composer {
@@ -17,7 +17,7 @@ namespace {
 
 TEST_CASE("Handle type conversions (compile-time checks)", "[data model]")
 {
-  using detail::handle_value_type;
+  using experimental::detail::handle_value_type;
   static_assert(std::same_as<handle_value_type<int>, int>);
   static_assert(std::same_as<handle_value_type<int const>, int>);
   static_assert(std::same_as<handle_value_type<int const&>, int>);

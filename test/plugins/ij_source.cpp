@@ -1,6 +1,6 @@
 #include "phlex/source.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 PHLEX_REGISTER_PROVIDERS(s)
 {

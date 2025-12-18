@@ -17,7 +17,7 @@ using namespace std::string_literals;
 
 namespace {
 
-  std::vector<std::size_t> all_numbers(phlex::experimental::data_cell_index const& id)
+  std::vector<std::size_t> all_numbers(phlex::data_cell_index const& id)
   {
     if (!id.has_parent()) {
       return {};
@@ -34,7 +34,7 @@ namespace {
 
 }
 
-namespace phlex::experimental {
+namespace phlex {
 
   data_cell_index::data_cell_index() :
     layer_name_{"job"}, layer_hash_{phlex::experimental::hash(layer_name_)}
@@ -57,7 +57,7 @@ namespace phlex::experimental {
   data_cell_index const& data_cell_index::base() { return *base_ptr(); }
   data_cell_index_ptr data_cell_index::base_ptr()
   {
-    static phlex::experimental::data_cell_index_ptr base_id{new data_cell_index};
+    static data_cell_index_ptr base_id{new data_cell_index};
     return base_id;
   }
 

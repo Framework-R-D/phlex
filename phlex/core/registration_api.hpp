@@ -15,8 +15,11 @@
 #include <functional>
 #include <memory>
 
-namespace phlex::experimental {
+namespace phlex {
   class configuration;
+}
+
+namespace phlex::experimental {
 
   // ====================================================================================
   // Registration API

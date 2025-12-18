@@ -2,7 +2,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 TEST_CASE("Verify independent hashes", "[data model]")
 {

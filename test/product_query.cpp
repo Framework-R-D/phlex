@@ -3,7 +3,7 @@
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_string.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 TEST_CASE("Empty specifications", "[data model]")
 {

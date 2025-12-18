@@ -24,7 +24,7 @@
 #include <atomic>
 #include <string>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   class iota {
@@ -91,10 +91,10 @@ TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
 
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("event", {"job", index_limit});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
     .output_product("max_number"_in("event"));
@@ -122,8 +122,8 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.observe("check_sum_same", check_sum_same, concurrency::unlimited)
     .input_family("sum2"_in("event"));
 
-  g.make<test::products_for_output>().output(
-    "save", &test::products_for_output::save, concurrency::serial);
+  g.make<experimental::test::products_for_output>().output(
+    "save", &experimental::test::products_for_output::save, concurrency::serial);
 
   g.execute();
 

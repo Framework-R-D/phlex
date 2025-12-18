@@ -18,7 +18,10 @@ namespace phlex::experimental {
   class products_consumer;
 
   using end_of_message_ptr = std::shared_ptr<end_of_message>;
-  using framework_driver = async_driver<data_cell_index_ptr>;
+}
+
+namespace phlex {
+  using framework_driver = experimental::async_driver<data_cell_index_ptr>;
 }
 
 #endif // PHLEX_CORE_FWD_HPP

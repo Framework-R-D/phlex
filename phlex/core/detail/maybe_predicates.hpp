@@ -8,12 +8,12 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex {
   class configuration;
+}
 
-  namespace detail {
-    std::optional<std::vector<std::string>> maybe_predicates(configuration const* config);
-  }
+namespace phlex::experimental::detail {
+  std::optional<std::vector<std::string>> maybe_predicates(configuration const* config);
 }
 
 #endif // PHLEX_CORE_DETAIL_MAYBE_PREDICATES_HPP

@@ -1,6 +1,6 @@
 #include "phlex/module.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   int plus_one(int i) noexcept { return i + 1; }

@@ -8,7 +8,7 @@
 #include <string>
 #include <tuple>
 
-using namespace phlex::experimental;
+using namespace phlex;
 using namespace std::string_literals;
 
 namespace {
@@ -58,7 +58,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::array const oproduct_names = {"onumber"s, "otemperature"s, "oname"s};
   std::array const result{"result"s};
 
-  framework_graph g{data_cell_index::base_ptr()};
+  experimental::framework_graph g{data_cell_index::base_ptr()};
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)

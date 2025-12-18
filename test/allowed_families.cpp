@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-using namespace phlex::experimental;
+using namespace phlex;
 using namespace oneapi::tbb;
 
 namespace {
@@ -34,12 +34,12 @@ namespace {
 
 TEST_CASE("Testing families", "[data model]")
 {
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("run", {"job", 1});
   gen.add_layer("subrun", {"run", 1});
   gen.add_layer("event", {"subrun", 1});
 
-  framework_graph g{driver_for_test(gen), 2};
+  experimental::framework_graph g{driver_for_test(gen), 2};
 
   // Wire up providers for each level
   g.provide("run_id_provider", provide_index, concurrency::unlimited)

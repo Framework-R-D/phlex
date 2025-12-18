@@ -6,9 +6,12 @@
 
 #include <string>
 
+namespace phlex {
+  class configuration;
+}
+
 namespace phlex::experimental {
   class algorithm_name;
-  class configuration;
 
   namespace detail {
     algorithm_name make_algorithm_name(configuration const* config, std::string name);

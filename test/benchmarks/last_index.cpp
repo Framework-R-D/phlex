@@ -1,7 +1,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   int last_index(data_cell_index const& id) { return static_cast<int>(id.number()); }

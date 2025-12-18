@@ -9,7 +9,7 @@
 #include <tuple>
 #include <vector>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   // Provider functions
@@ -53,7 +53,7 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
     }
   };
 
-  framework_graph g{gen};
+  experimental::framework_graph g{gen};
 
   // Register providers
   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)

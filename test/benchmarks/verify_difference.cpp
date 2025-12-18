@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {

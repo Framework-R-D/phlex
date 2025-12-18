@@ -5,7 +5,7 @@
 
 #include <numeric>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace types {
   struct Abstract {
@@ -39,10 +39,10 @@ namespace {
 
 TEST_CASE("Test vector of abstract types")
 {
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("event", {"job", 1u, 1u});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
     .output_product("thing"_in("event"));
   g.transform("read_thing", read_abstract).input_family("thing"_in("event")).output_products("sum");

@@ -32,7 +32,7 @@
 #include <atomic>
 #include <string>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
@@ -46,11 +46,11 @@ TEST_CASE("Different data layers of fold", "[graph]")
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("run", {"job", index_limit});
   gen.add_layer("event", {"run", number_limit});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product("number"_in("event"));

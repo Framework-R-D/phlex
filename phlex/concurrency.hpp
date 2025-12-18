@@ -3,7 +3,7 @@
 
 #include <cstddef>
 
-namespace phlex::experimental {
+namespace phlex {
   struct concurrency {
     static concurrency const unlimited;
     static concurrency const serial;

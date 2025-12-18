@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex {
 
   namespace detail {
     template <typename T>

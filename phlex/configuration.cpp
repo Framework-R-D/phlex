@@ -4,7 +4,7 @@
 #include <ranges>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex {
   std::vector<std::string> configuration::keys() const
   {
     std::vector<std::string> result;
