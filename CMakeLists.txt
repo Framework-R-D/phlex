@@ -8,6 +8,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/FNALssi/cetmodules
   GIT_TAG 4.01.01
   GIT_SHALLOW ON
+  EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS 4.01.01
   )
 # ... and the Catch2 unit testing framework
@@ -16,6 +17,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
   GIT_TAG v3.10.0
   GIT_SHALLOW ON
+  EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS
   )
 # ... and Microsoft's C++ Guideline Support Library
@@ -24,6 +26,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/microsoft/GSL
   GIT_TAG v4.2.0
   GIT_SHALLOW ON
+  EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS NAMES Microsoft.GSL
   )
 # ... and the Mimic C++ mocking framework
@@ -32,6 +35,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/DNKpp/mimicpp
   GIT_TAG v8
   GIT_SHALLOW ON
+  EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS
   )
 
