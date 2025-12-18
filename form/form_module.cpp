@@ -146,8 +146,7 @@ PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
 
   // Phlex needs an OBJECT
   // Create the FORM output module
-  auto form_output =
-    m.make<FormOutputModule>(type_map, output_file, technology, std::move(products_to_save));
+  auto form_output = m.make<FormOutputModule>(type_map, output_file, technology, products_to_save);
 
   // Phlex needs a MEMBER FUNCTION to call
   // Register the callback that Phlex will invoke
