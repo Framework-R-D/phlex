@@ -6,39 +6,12 @@
 
 namespace phlex::experimental {
 
-  product_store::product_store(product_store_const_ptr parent,
-                               data_cell_index_ptr id,
+  product_store::product_store(data_cell_index_ptr id,
                                std::string source,
-                               stage processing_stage,
-                               products new_products) :
-    parent_{std::move(parent)},
+                               products new_products,
+                               stage processing_stage) :
     products_{std::move(new_products)},
     id_{std::move(id)},
-    source_{std::move(source)},
-    stage_{processing_stage}
-  {
-  }
-
-  product_store::product_store(product_store_const_ptr parent,
-                               std::size_t data_cell_number,
-                               std::string const& child_layer_name,
-                               std::string source,
-                               products new_products) :
-    parent_{parent},
-    products_{std::move(new_products)},
-    id_{parent->id()->make_child(data_cell_number, child_layer_name)},
-    source_{std::move(source)},
-    stage_{stage::process}
-  {
-  }
-
-  product_store::product_store(product_store_const_ptr parent,
-                               std::size_t data_cell_number,
-                               std::string const& child_layer_name,
-                               std::string source,
-                               stage processing_stage) :
-    parent_{parent},
-    id_{parent->id()->make_child(data_cell_number, child_layer_name)},
     source_{std::move(source)},
     stage_{processing_stage}
   {
@@ -48,70 +21,16 @@ namespace phlex::experimental {
 
   product_store_ptr product_store::base(std::string base_name)
   {
-    return product_store_ptr{
-      new product_store{nullptr, data_cell_index::base_ptr(), std::move(base_name)}};
-  }
-
-  product_store_const_ptr product_store::parent(std::string const& layer_name) const noexcept
-  {
-    auto store = parent_;
-    while (store != nullptr) {
-      if (store->layer_name() == layer_name) {
-        return store;
-      }
-      store = store->parent_;
-    }
-    return nullptr;
-  }
-
-  product_store_const_ptr product_store::store_for_product(std::string const& product_name) const
-  {
-    auto store = shared_from_this();
-    while (store != nullptr) {
-      if (store->contains_product(product_name)) {
-        return store;
-      }
-      store = store->parent_;
-    }
-    return nullptr;
+    return product_store_ptr{new product_store{data_cell_index::base_ptr(), std::move(base_name)}};
   }
 
   product_store_ptr product_store::make_flush() const
   {
-    return product_store_ptr{new product_store{parent_, id_, "[inserted]", stage::flush}};
-  }
-
-  product_store_ptr product_store::make_continuation(std::string source,
-                                                     products new_products) const
-  {
-    return product_store_ptr{
-      new product_store{parent_, id_, std::move(source), stage::process, std::move(new_products)}};
-  }
-
-  product_store_ptr product_store::make_child(std::size_t data_cell_number,
-                                              std::string const& child_layer_name,
-                                              std::string source,
-                                              products new_products)
-  {
-    return product_store_ptr{new product_store{shared_from_this(),
-                                               data_cell_number,
-                                               child_layer_name,
-                                               std::move(source),
-                                               std::move(new_products)}};
-  }
-
-  product_store_ptr product_store::make_child(std::size_t data_cell_number,
-                                              std::string const& child_layer_name,
-                                              std::string source,
-                                              stage processing_stage)
-  {
-    return product_store_ptr{new product_store{
-      shared_from_this(), data_cell_number, child_layer_name, std::move(source), processing_stage}};
+    return product_store_ptr{new product_store{id_, "[inserted]", {}, stage::flush}};
   }
 
   std::string const& product_store::layer_name() const noexcept { return id_->layer_name(); }
   std::string const& product_store::source() const noexcept { return source_; }
-  product_store_const_ptr product_store::parent() const noexcept { return parent_; }
   data_cell_index_ptr const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 

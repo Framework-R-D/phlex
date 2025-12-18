@@ -2,11 +2,13 @@
 #define PHLEX_CORE_EDGE_MAKER_HPP
 
 #include "phlex/core/declared_output.hpp"
+#include "phlex/core/declared_provider.hpp"
 #include "phlex/core/edge_creation_policy.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/multiplexer.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <map>
 #include <memory>
@@ -18,8 +20,12 @@
 #include <vector>
 
 namespace phlex::experimental {
+  using namespace std::string_literals;
 
   using product_name_t = std::string;
+
+  multiplexer::input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
+                                                 declared_providers& providers);
 
   class edge_maker {
   public:
@@ -31,6 +37,7 @@ namespace phlex::experimental {
                     multiplexer& multi,
                     std::map<std::string, filter>& filters,
                     declared_outputs& outputs,
+                    declared_providers& providers,
                     Args&... consumers);
 
   private:
@@ -77,6 +84,7 @@ namespace phlex::experimental {
                               multiplexer& multi,
                               std::map<std::string, filter>& filters,
                               declared_outputs& outputs,
+                              declared_providers& providers,
                               Args&... consumers)
   {
     make_edge(source, multi);
@@ -92,8 +100,17 @@ namespace phlex::experimental {
     // Create normal edges
     multiplexer::head_ports_t head_ports;
     (head_ports.merge(edges(filters, consumers)), ...);
+    // Eventually, we want to look at the filled-in head_ports and
+    // figure out what provider nodes are needed.
+    // For now, we take as input a mapping of declared_providers.
 
-    multi.finalize(std::move(head_ports));
+    if (head_ports.empty()) {
+      // This can happen for jobs that only execute the driver, which is helpful for debugging
+      return;
+    }
+
+    auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
+    multi.finalize(std::move(provider_input_ports));
   }
 }
 

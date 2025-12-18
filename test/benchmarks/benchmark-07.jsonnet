@@ -1,26 +1,31 @@
 {
   source: {
-    plugin: 'benchmarks_source',
-    n_events: 100000
+    plugin: 'generate_layers',
+    layers: {
+      event: { total: 100000 }
+    }
   },
   modules: {
     even_filter: {
       plugin: 'accept_even_ids',
-      product_name: 'id',
+      input: { product: 'id', layer: 'event' },
     },
     b_creator: {
       plugin: 'last_index',
       when: ['even_filter:accept_even_ids'],
-      product_name: 'b',
+      produces: 'b',
     },
     c_creator: {
       plugin: 'last_index',
       when: ['even_filter:accept_even_ids'],
-      product_name: 'c',
+      produces: 'c',
     },
     d: {
       plugin: 'verify_difference',
       expected: 0
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

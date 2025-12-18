@@ -9,10 +9,12 @@ namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
     product_query const& query) const
   {
-    auto const& spec = query.name;
+    auto const& spec = query.spec;
     auto [b, e] = producers_.equal_range(spec.name());
     if (b == e) {
-      spdlog::debug("Failed to find {}. Assuming it is provided by the driver", spec.name());
+      spdlog::debug(
+        "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
+        spec.name());
       return nullptr;
     }
     std::map<std::string, named_output_port const*> candidates;

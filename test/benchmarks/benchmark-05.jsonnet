@@ -1,7 +1,9 @@
 {
   source: {
-    plugin: 'benchmarks_source',
-    n_events: 100000
+    plugin: 'generate_layers',
+    layers: {
+      event: { total: 100000 }
+    }
   },
   modules: {
     b_creator: {
@@ -16,5 +18,8 @@
       plugin: 'verify_difference',
       expected: 0
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

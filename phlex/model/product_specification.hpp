@@ -40,19 +40,7 @@ namespace phlex::experimental {
 
   using product_specifications = std::vector<product_specification>;
 
-  class to_product_specification {
-  public:
-    explicit to_product_specification(algorithm_name const& qualifier) : qualifier_{qualifier} {}
-    product_specification operator()(std::string const& name, type_id type) const
-    {
-      return product_specification{qualifier_, name, std::move(type)};
-    }
-
-  private:
-    algorithm_name const& qualifier_;
-  };
-
-  product_specifications to_product_specifications(std::string const& name,
+  product_specifications to_product_specifications(std::string name,
                                                    std::vector<std::string> output_labels,
                                                    std::vector<type_id> output_types);
 }

@@ -65,7 +65,7 @@ def _is_repo_content(relative_path: Path) -> bool:
     """
     parts = relative_path.parts
     # Accept phlex/**, form/**, build-clang/**, .coverage-generated
-    if len(parts) >= 1 and parts[0] in ("phlex", "form", "build-clang"):
+    if len(parts) >= 1 and parts[0] in ("phlex", "plugins", "form", "build-clang"):
         return True
     if ".coverage-generated" in parts:
         return True

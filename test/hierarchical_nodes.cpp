@@ -18,7 +18,7 @@
 
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "plugins/layer_generator.hpp"
 #include "test/products_for_output.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -28,31 +28,13 @@
 #include <atomic>
 #include <cmath>
 #include <ctime>
-#include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
 namespace {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
-
-  void cells_to_process(framework_driver& driver)
-  {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
-    for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run", "cells_to_process");
-      run_store->add_product<std::time_t>("time", std::time(nullptr));
-      driver.yield(run_store);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event", "cells_to_process");
-        event_store->add_product("number", i + j);
-        driver.yield(event_store);
-      }
-    }
-  }
 
   auto square(unsigned int const num) { return num * num; }
 
@@ -100,7 +82,26 @@ namespace {
 
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
-  framework_graph g{cells_to_process};
+  layer_generator gen;
+  gen.add_layer("run", {"job", index_limit});
+  gen.add_layer("event", {"run", number_limit});
+
+  framework_graph g{driver_for_test(gen)};
+
+  g.provide("provide_time",
+            [](data_cell_index const& index) -> std::time_t {
+              spdlog::info("Providing time for {}", index.to_string());
+              return std::time(nullptr);
+            })
+    .output_product("time"_in("run"));
+
+  g.provide("provide_number",
+            [](data_cell_index const& index) -> unsigned int {
+              auto const event_number = index.number();
+              auto const run_number = index.parent()->number();
+              return event_number + run_number;
+            })
+    .output_product("number"_in("event"));
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family("time"_in("run"))
@@ -123,7 +124,11 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.make<test::products_for_output>().output("save", &test::products_for_output::save).when();
 
-  g.execute();
+  try {
+    g.execute();
+  } catch (std::exception const& e) {
+    spdlog::error(e.what());
+  }
 
   CHECK(g.execution_counts("square") == index_limit * number_limit);
   CHECK(g.execution_counts("add") == index_limit * number_limit);

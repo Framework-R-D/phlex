@@ -31,57 +31,42 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
-#include <ranges>
 #include <string>
-#include <vector>
 
 using namespace phlex::experimental;
 
 namespace {
+  // Provider function
+  unsigned int provide_number(data_cell_index const& index) { return index.number(); }
+
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
-
-  // job -> run -> event layers
-  constexpr auto index_limit = 2u;
-  constexpr auto number_limit = 5u;
-
-  // job -> event levels
-  constexpr auto top_level_event_limit = 10u;
-
-  void cells_to_process(framework_driver& driver)
-  {
-    auto job_store = product_store::base();
-    driver.yield(job_store);
-
-    // job -> run -> event layers
-    for (unsigned i : std::views::iota(0u, index_limit)) {
-      auto run_store = job_store->make_child(i, "run");
-      driver.yield(run_store);
-      for (unsigned j : std::views::iota(0u, number_limit)) {
-        auto event_store = run_store->make_child(j, "event");
-        event_store->add_product("number", j);
-        driver.yield(event_store);
-      }
-    }
-
-    // job -> event layers
-    for (unsigned i : std::views::iota(0u, top_level_event_limit)) {
-      auto tp_store = job_store->make_child(i, "event");
-      tp_store->add_product("number", i);
-      driver.yield(tp_store);
-    }
-  }
 }
 
 TEST_CASE("Different hierarchies used with fold", "[graph]")
 {
-  framework_graph g{cells_to_process};
+  // job -> run -> event layers
+  constexpr auto index_limit = 2u;
+  constexpr auto number_limit = 5u;
+
+  // job -> event layers
+  constexpr auto top_level_event_limit = 10u;
+
+  layer_generator gen;
+  gen.add_layer("run", {"job", index_limit});
+  gen.add_layer("event", {"run", number_limit});
+  gen.add_layer("event", {"job", top_level_event_limit});
+
+  framework_graph g{driver_for_test(gen)};
+
+  // Register provider
+  g.provide("provide_number", provide_number, concurrency::unlimited)
+    .output_product("number"_in("event"));
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
     .input_family("number"_in("event"))

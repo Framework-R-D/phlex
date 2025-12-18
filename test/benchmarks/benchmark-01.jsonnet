@@ -1,11 +1,16 @@
 {
   source: {
-    plugin: 'benchmarks_source',
-    n_events: 100000
+    plugin: 'generate_layers',
+    layers: {
+      event: { total: 100000 }
+    }
   },
   modules: {
     a_creator: {
       plugin: 'last_index',
     },
+    provider: {
+      plugin: 'benchmarks_provider'
+    }
   },
 }

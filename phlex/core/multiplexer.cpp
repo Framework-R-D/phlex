@@ -6,65 +6,28 @@
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <cassert>
 #include <ranges>
 #include <stdexcept>
 
 using namespace std::chrono;
+using namespace phlex::experimental;
 
 namespace {
-  phlex::experimental::product_store_const_ptr store_for(
-    phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::product_query const& label)
+  product_store_const_ptr store_for(product_store_const_ptr store,
+                                    std::string const& port_product_layer)
   {
-    auto const& [product_name, layer] = label;
-    if (layer.empty()) {
-      return store->store_for_product(product_name.full());
-    }
-    if (store->layer_name() == layer and store->contains_product(product_name.full())) {
+    if (store->id()->layer_name() == port_product_layer) {
+      // This store's layer matches what is expected by the port
       return store;
     }
-    auto parent = store->parent(layer);
-    if (not parent) {
-      return nullptr;
-    }
-    if (parent->contains_product(product_name.full())) {
-      return parent;
-    }
-    throw std::runtime_error(
-      fmt::format("Store not available that provides product {}", label.to_string()));
-  }
 
-  struct sender_slot {
-    tbb::flow::receiver<phlex::experimental::message>* port;
-    phlex::experimental::product_store_const_ptr store;
-    void operator()(phlex::experimental::end_of_message_ptr eom, std::size_t message_id) const
-    {
-      port->try_put({store, eom, message_id});
+    if (auto index = store->id()->parent(port_product_layer)) {
+      // This store has a parent layer that matches what is expected by the port
+      return std::make_shared<product_store>(index, store->source());
     }
-  };
 
-  std::vector<sender_slot> senders_for(
-    phlex::experimental::product_store_const_ptr store,
-    phlex::experimental::multiplexer::named_input_ports_t const& ports)
-  {
-    std::vector<sender_slot> result;
-    result.reserve(ports.size());
-    for (auto const& [product_label, port] : ports) {
-      auto store_to_send = store_for(store, product_label);
-      if (not store_to_send) {
-        // This is fine if the store is not expected to contain the product.
-        continue;
-      }
-
-      if (auto const& allowed_layer = product_label.layer; not allowed_layer.empty()) {
-        if (store_to_send->layer_name() != allowed_layer) {
-          continue;
-        }
-      }
-
-      result.push_back({port, store_to_send});
-    }
-    return result;
+    return nullptr;
   }
 }
 
@@ -75,38 +38,36 @@ namespace phlex::experimental {
   {
   }
 
-  void multiplexer::finalize(head_ports_t head_ports) { head_ports_ = std::move(head_ports); }
+  void multiplexer::finalize(input_ports_t provider_input_ports)
+  {
+    // We must have at least one provider port, or there can be no data to process.
+    assert(!provider_input_ports.empty());
+    provider_input_ports_ = std::move(provider_input_ports);
+  }
 
   tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
   {
     ++received_messages_;
-    auto const& [store, eom, message_id] = std::tie(msg.store, msg.eom, msg.id);
+    auto const& [store, eom, message_id, _] = msg;
     if (debug_) {
       spdlog::debug("Multiplexing {} with ID {} (is flush: {})",
                     store->id()->to_string(),
                     message_id,
                     store->is_flush());
     }
-    auto start_time = steady_clock::now();
 
     if (store->is_flush()) {
-      for (auto const& head_port : head_ports_ | std::views::values | std::views::join) {
-        head_port.port->try_put(msg);
+      for (auto const& [_, port] : provider_input_ports_ | std::views::values) {
+        port->try_put(msg);
       }
       return {};
     }
 
-    for (auto const& ports : head_ports_ | std::views::values) {
-      // FIXME: Should make sure that the received store has the same layer name as the most
-      //        derived store required by the algorithm.
-      auto const senders = senders_for(store, ports);
-      if (size(senders) != size(ports)) {
-        // Not enough stores to ports of the node
-        continue;
-      }
+    auto start_time = steady_clock::now();
 
-      for (auto const& sender : senders) {
-        sender(eom, message_id);
+    for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
+      if (auto store_to_send = store_for(store, product_label.layer)) {
+        port->try_put({std::move(store_to_send), eom, message_id});
       }
     }
 

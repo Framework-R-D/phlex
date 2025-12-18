@@ -1,7 +1,9 @@
 {
   source: {
-    plugin: 'source',
-    max_numbers: 10,
+    plugin: 'generate_layers',
+    layers: {
+      event: { parent: "job", total: 10, starting_number: 1 }
+    }
   },
   modules: {
     add: {

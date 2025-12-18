@@ -4,8 +4,14 @@ local g4stage2 = import 'G4Stage2.libsonnet';
 
 {
   source: {
-    plugin: 'mock_workflow_source',
-    n_events: 1,
+    plugin: 'generate_layers',
+    layers: {
+      event: { total: 1 }
+    }
   },
-  modules: singlesgen + g4stage1 + g4stage2,
+  modules: singlesgen + g4stage1 + g4stage2 {
+    provider: {
+      plugin: 'id_provider'
+    }
+  },
 }

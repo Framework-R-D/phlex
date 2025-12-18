@@ -282,7 +282,7 @@ jobs:
 
     - name: Upload coverage bundle
       if: ${{ (steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped') && steps.artifact_runtime.outputs.available == 'true' && github.actor != 'nektos/act' }}
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: coverage-generated
         path: coverage-artifacts/
@@ -302,7 +302,7 @@ jobs:
         fetch-depth: 0
 
     - name: Download coverage bundle
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: coverage-generated
         path: coverage-artifacts
@@ -334,7 +334,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ steps.codecov_targets.outputs.found == 'true' }}
-      uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
       with:
         files: ${{ steps.codecov_targets.outputs.files }}
         flags: unittests
@@ -346,7 +346,7 @@ jobs:
 
     - name: Publish HTML coverage report
       if: ${{ needs.coverage.outputs.has_coverage_html == 'true' }}
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: coverage-html-report
         path: coverage-artifacts/coverage-html/

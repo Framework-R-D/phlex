@@ -2,8 +2,8 @@ name: 'Handle Fix Commit'
 description: 'Commits changes if possible, otherwise creates a patch and comments on the PR.'
 
 inputs:
-  commit-message:
-    description: 'The commit message to use.'
+  tool:
+    description: 'The tool name reported in commit messages and PR comments.'
     required: true
   working-directory:
     description: 'The working directory for git operations.'
@@ -37,7 +37,7 @@ runs:
       if: steps.check_changes.outputs.changes == 'false'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
-        message: 'No automatic fixes were necessary.'
+        message: 'No automatic ${{ inputs.tool }} fixes were necessary.'
 
     - name: Get PR maintainer_can_modify property
       id: pr-properties
@@ -60,14 +60,14 @@ runs:
         cwd: ${{ inputs.working-directory }}
         author_name: "github-actions[bot]"
         author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-        message: ${{ inputs.commit-message }}
+        message: "Apply ${{ inputs.tool }} fixes"
 
     - name: Notify of commit
       if: steps.add_and_commit.conclusion == 'success' && steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: |
-          Automatic fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }}).
+          Automatic ${{ inputs.tool }} fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }}).
           ⚠️ **Note:** Some issues may require manual review and fixing.
 
     - name: Create patch
@@ -100,5 +100,5 @@ runs:
              ```
           3. **Commit the changes:**
              ```bash
-             git commit -am "${{ inputs.commit-message }}"
+             git commit -am "Apply ${{ inputs.tool }} fixes"
              ```

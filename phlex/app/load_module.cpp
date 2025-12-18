@@ -57,7 +57,7 @@ namespace phlex::experimental {
     creator(module_proxy, config);
   }
 
-  detail::next_store_t load_source(boost::json::object const& raw_config)
+  detail::next_index_t load_source(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("plugin");

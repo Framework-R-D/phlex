@@ -29,22 +29,43 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/source.hpp"
-#include "test/cached_execution_source.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
-using namespace test;
 
 namespace {
+  // Provider functions
+  int provide_number(data_cell_index const& index) { return 2 * index.number(); }
+  int provide_another(data_cell_index const& index) { return 3 * index.number(); }
+  int provide_still(data_cell_index const& index) { return 4 * index.number(); }
+
   int call_one(int) noexcept { return 1; }
   int call_two(int, int) noexcept { return 2; }
 }
 
 TEST_CASE("Cached function calls", "[data model]")
 {
-  framework_graph g{detail::create_next<cached_execution_source>()};
+  constexpr unsigned int n_runs{1};
+  constexpr unsigned int n_subruns{2u};
+  constexpr unsigned int n_events{5000u};
+
+  layer_generator gen;
+  gen.add_layer("run", {"job", n_runs});
+  gen.add_layer("subrun", {"run", n_subruns});
+  gen.add_layer("event", {"subrun", n_events});
+
+  framework_graph g{driver_for_test(gen)};
+
+  // Register providers
+  g.provide("provide_number", provide_number, concurrency::unlimited)
+    .output_product("number"_in("run"));
+  g.provide("provide_another", provide_another, concurrency::unlimited)
+    .output_product("another"_in("subrun"));
+  g.provide("provide_still", provide_still, concurrency::unlimited)
+    .output_product("still"_in("event"));
 
   g.transform("A1", call_one, concurrency::unlimited)
     .input_family("number"_in("run"))
