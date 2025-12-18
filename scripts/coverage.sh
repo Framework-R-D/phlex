@@ -104,47 +104,55 @@ usage() {
     # Initialize environment detection before showing paths
     detect_build_environment
 
-    echo "Usage: $0 [COMMAND] [COMMAND...]"
+    echo "Usage: $0 [--preset <coverage-clang|coverage-gcc>] [COMMAND] [COMMAND...]"
     echo ""
     echo "Commands:"
-    echo "  setup     Set up coverage build directory"
+    echo "  setup     Set up coverage build directory (configure and build)"
     echo "  clean     Clean coverage data files"
-    echo "  test      Run tests with coverage"
-    echo "  report    Generate coverage reports"
-    echo "  xml       Generate XML coverage report"
-    echo "  html      Generate HTML coverage report"
-    echo "  view      Open HTML coverage report in browser"
-    echo "  summary   Show coverage summary"
-    echo "  upload    Upload coverage to Codecov"
+    echo "  test      Run tests with coverage instrumentation"
+    echo "  report    Generate primary coverage output (clang: text summary, gcc: gcov data bundle)"
+    echo "  xml       (gcc only) Generate Cobertura XML report"
+    echo "  html      Generate HTML coverage report (supported for both presets)"
+    echo "  view      Open HTML coverage report in browser (supported for both presets)"
+    echo "  summary   Show coverage summary in the terminal"
+    echo "  upload    Upload coverage report to Codecov (clang: lcov, gcc: xml)"
     echo "  all       Run setup, test, and generate all reports"
     echo "  help      Show this help message"
     echo ""
-    echo "Notes:"
-    echo "  - The coverage-clang preset generates LLVM text summaries via 'report', 'summary', 'view', and 'all'."
-    echo "  - Commands 'xml', 'html', and 'upload' require GCC instrumentation (coverage-gcc preset)."
+    echo "Toolchain Workflows (Presets):"
     echo ""
-    echo "Important: Coverage data workflow"
-    echo "  1. After modifying source code, you MUST rebuild before generating reports:"
+    echo "  The --preset flag controls which compiler toolchain is used for coverage."
+    echo ""
+    echo "  Clang (default): --preset coverage-clang"
+    echo "    - Recommended for local development; mirrors the CI workflow."
+    echo "    - Generates fast, accurate coverage data using LLVM's instrumentation."
+    echo "    - Key commands: setup, test, html, view, summary"
+    echo ""
+    echo "  GCC: --preset coverage-gcc"
+    echo "    - Use to generate XML reports for services like Codecov."
+    echo "    - Uses gcov instrumentation."
+    echo "    - Key commands: setup, test, xml, html, upload"
+    echo ""
+    echo "Notes:"
+    echo "  - Default preset is 'coverage-clang' to match the CI workflow."
+    echo "  - After modifying source code, you MUST rebuild before generating reports:"
     echo "       $0 setup test html        # Rebuild → test → generate HTML"
     echo "       $0 all                    # Complete workflow (recommended)"
-    echo "  2. Coverage data (.gcda/.gcno files) become stale when source files change."
-    echo "  3. Stale data causes 'source file is newer than notes file' errors."
     echo ""
     echo "Multiple commands can be specified and will be executed in sequence:"
     echo "  $0 setup test summary"
     echo "  $0 clean setup test html view"
     echo ""
-    echo "Codecov Token Setup (choose one method):"
+    echo "Codecov Token Setup (for 'upload' command):"
     echo "  export CODECOV_TOKEN='your-token'"
-    echo "  echo 'your-token' > ~/.codecov_token && chmod 600 ~/.codecov_token"
     echo ""
     echo "Environment variables:"
     echo "  BUILD_DIR        Override build directory (default: $BUILD_DIR)"
     echo ""
     echo "Examples:"
-    echo "  $0 all                          # Complete workflow (recommended)"
-    echo "  $0 setup test html              # Manual workflow after code changes"
-    echo "  $0 xml && $0 upload             # Generate and upload"
+    echo "  $0 all                          # Complete workflow using clang (default)"
+    echo "  $0 --preset coverage-gcc all    # Complete workflow using gcc"
+    echo "  $0 setup test html view         # Manual workflow after code changes"
 }
 
 check_build_dir() {
@@ -203,7 +211,8 @@ ensure_coverage_configured() {
         if [[ "$build_type" != "Coverage" || "$coverage_enabled" != "ON" ]]; then
             warn "Coverage build cache not configured correctly (BUILD_TYPE=$build_type, ENABLE_COVERAGE=$coverage_enabled)"
             need_setup=1
-        elif [[ "$COVERAGE_PRESET" != "coverage-clang" ]]; then
+        # GCC-specific staleness check for .gcno files
+        elif [[ "$COVERAGE_PRESET" == "coverage-gcc" ]]; then
             find_stale_instrumentation "$BUILD_DIR" "$PROJECT_SOURCE"
             local instrumentation_status=$?
             if [[ $instrumentation_status -eq 1 ]]; then
@@ -234,6 +243,17 @@ run_tests_internal() {
         log "Running tests with coverage..."
     fi
 
+    # For Clang, set the LLVM_PROFILE_FILE env var to collect raw profile data
+    # in a centralized location, mirroring the CI workflow.
+    if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+        local PROFILE_ROOT="$BUILD_DIR/test/profraw"
+        log "Cleaning LLVM profile directory: $PROFILE_ROOT"
+        rm -rf "$PROFILE_ROOT"
+        mkdir -p "$PROFILE_ROOT"
+        export LLVM_PROFILE_FILE="$PROFILE_ROOT/%m-%p.profraw"
+        log "LLVM_PROFILE_FILE set to: $LLVM_PROFILE_FILE"
+    fi
+
     (cd "$BUILD_DIR" && ctest -j "$(nproc)" --output-on-failure)
 
     if [[ "$mode" == "auto" ]]; then
@@ -250,8 +270,13 @@ ensure_tests_current() {
         return 0
     fi
 
+    # For Clang, the workflow is much simpler than for GCC. We don't have the
+    # complex .gcno/.gcda staleness checks. We rely on ensure_coverage_configured
+    # to ensure the coverage build is present; run the `setup` command first if
+    # the coverage build has not been configured yet, then run the tests.
     if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
         ensure_coverage_configured
+        # If tests haven't been run in this session, run them to generate .profraw
         if [[ "${COVERAGE_TESTS_READY:-0}" != "1" ]]; then
             run_tests_internal "auto"
         fi
@@ -259,17 +284,18 @@ ensure_tests_current() {
         return 0
     fi
 
+    # --- GCC-specific logic below ---
     ensure_coverage_configured
 
     check_coverage_freshness
     local freshness_status=$?
 
     case "$freshness_status" in
-        0)
+        0) # Fresh
             COVERAGE_TESTS_READY=1
             return 0
             ;;
-        1)
+        1) # Missing .gcda files
             find_stale_instrumentation "$BUILD_DIR" "$PROJECT_SOURCE"
             local instrumentation_status=$?
             if [[ $instrumentation_status -eq 2 ]]; then
@@ -279,7 +305,7 @@ ensure_tests_current() {
             fi
             run_tests_internal "auto"
             ;;
-        2)
+        2) # Stale .gcno files
             warn "Coverage instrumentation is stale; rebuilding before running tests..."
             setup_coverage
             COVERAGE_TESTS_READY=0
@@ -428,7 +454,7 @@ setup_coverage() {
     if [[ "$needs_reconfigure" == "true" ]]; then
         log "Configuring CMake for coverage build..."
 
-        local preset_name="${COVERAGE_PRESET:-coverage-gcc}"
+        local preset_name="${COVERAGE_PRESET:-coverage-clang}"
         log "Using CMake coverage preset: $preset_name"
         cmake --preset "$preset_name" \
             -G Ninja \
@@ -578,23 +604,7 @@ generate_llvm_report() {
         exit 1
     fi
 
-    detect_build_environment
-
-    if [[ ! -d "$BUILD_DIR" ]] || [[ ! -f "$BUILD_DIR/CMakeCache.txt" ]]; then
-        setup_coverage
-    fi
-
-    local profraw_found
-    profraw_found=$(find "$BUILD_DIR" -name "*.profraw" -type f -size +0c -print -quit 2>/dev/null || true)
-    if [[ -z "$profraw_found" ]]; then
-        warn "No LLVM profile data found; running tests to generate profiles..."
-        run_tests_internal "auto"
-        profraw_found=$(find "$BUILD_DIR" -name "*.profraw" -type f -size +0c -print -quit 2>/dev/null || true)
-        if [[ -z "$profraw_found" ]]; then
-            error "LLVM profile data is still missing after running tests"
-            exit 1
-        fi
-    fi
+    ensure_tests_current
 
     log "Generating LLVM coverage summary..."
     if ! cmake --build "$BUILD_DIR" --target coverage-llvm; then
@@ -625,6 +635,35 @@ generate_llvm_report() {
     fi
 }
 
+generate_llvm_html_report() {
+    log "Generating LLVM HTML report..."
+    # Generate LLVM coverage summary and .info export (also logs summary) before HTML report
+    generate_llvm_report
+
+    local lcov_path="$BUILD_DIR/coverage-llvm.info"
+    if [[ ! -f "$lcov_path" ]]; then
+        error "LLVM LCOV export not found at $lcov_path. Cannot generate HTML report."
+        exit 1
+    fi
+
+    if ! command -v genhtml >/dev/null 2>&1; then
+        error "'genhtml' command not found, which is required for HTML report generation."
+        error "Please install lcov: 'sudo apt-get install lcov' or 'brew install lcov'"
+        exit 1
+    fi
+
+    (cd "$BUILD_DIR" && genhtml -o coverage-html "$lcov_path" --title \
+        "Phlex Coverage Report (Clang)" --show-details --legend --branch-coverage \
+        --ignore-errors mismatch,inconsistent,negative,empty)
+
+    if [[ -d "$BUILD_DIR/coverage-html" ]]; then
+        success "HTML coverage report generated: $BUILD_DIR/coverage-html/"
+    else
+        error "Failed to generate HTML report from LLVM data."
+        exit 1
+    fi
+}
+
 show_summary() {
     ensure_tests_current
     check_build_dir
@@ -632,31 +671,47 @@ show_summary() {
     cmake --build "$BUILD_DIR" --target coverage-summary
 }
 
-view_html() {
-    ensure_tests_current
-    check_build_dir
-
-    if [[ ! -d "$BUILD_DIR/coverage-html" ]]; then
-        log "HTML coverage report not found. Generating it now..."
-        generate_html
-    fi
-
+view_html_internal() {
     log "Opening HTML coverage report..."
     if command -v xdg-open >/dev/null 2>&1; then
         xdg-open "$BUILD_DIR/coverage-html/index.html"
     elif command -v open >/dev/null 2>&1; then
         open "$BUILD_DIR/coverage-html/index.html"
     else
-        echo "HTML report available at: $BUILD_DIR/coverage-html/index.html"
+        local report_path="$BUILD_DIR/coverage-html/index.html"
+        local file_url=""
+        if command -v python3 >/dev/null 2>&1; then
+            file_url="$(python3 -c "import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve().as_uri())" "$report_path")"
+        else
+            file_url="file://$report_path"
+        fi
+        echo "HTML report available at: $file_url"
     fi
 }
 
 upload_codecov() {
     check_build_dir
 
-    if [[ ! -f "$BUILD_DIR/coverage.xml" ]]; then
-        warn "XML coverage report not found. Generate it first with '$0 xml'"
-        exit 1
+    local coverage_file=""
+    if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+        coverage_file="coverage-llvm.info"
+        if [[ ! -f "$BUILD_DIR/$coverage_file" ]]; then
+            warn "Clang LCOV report not found. Generate it first with '$0 report'"
+            exit 1
+        fi
+    else
+        coverage_file="coverage.xml"
+        if [[ ! -f "$BUILD_DIR/$coverage_file" ]]; then
+            warn "GCC XML report not found. Generate it first with '$0 xml'"
+            exit 1
+        fi
+        log "Ensuring coverage XML paths are normalized before upload..."
+        if ! cmake --build "$BUILD_DIR" --target coverage-xml-normalize; then
+            error "Coverage XML failed normalization. Investigate filters/excludes before uploading."
+            exit 1
+        fi
+        log "Coverage XML source roots after normalization:"
+        grep -o '<source>.*</source>' "$BUILD_DIR/coverage.xml" | head -5 | sed 's/^/  /'
     fi
 
     # Check for codecov CLI
@@ -709,11 +764,11 @@ upload_codecov() {
     log "Uploading coverage to Codecov..."
     log "Git root: $GIT_ROOT"
     log "Commit SHA: $COMMIT_SHA"
-    log "Coverage file: $BUILD_DIR/coverage.xml"
+    log "Coverage file: $BUILD_DIR/$coverage_file"
 
     # Build codecov command
     CODECOV_CMD=(codecov upload-coverage
-                 --file coverage.xml
+                 --file "$coverage_file"
                  --commit-sha "$COMMIT_SHA"
                  --working-dir "$GIT_ROOT")
 
@@ -735,8 +790,10 @@ run_all() {
     run_tests
     if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
         generate_llvm_report
+        generate_llvm_html_report
         success "Complete LLVM coverage analysis finished!"
         log "Summary report: $BUILD_DIR/coverage-llvm.txt"
+        log "HTML report: $BUILD_DIR/coverage-html/index.html"
     else
         check_build_dir
         log "Generating GCC coverage report bundle..."
@@ -755,12 +812,7 @@ run_all() {
 }
 
 
-# Select coverage preset: coverage-gcc (default) or coverage-clang
-COVERAGE_PRESET="${COVERAGE_PRESET:-coverage-gcc}"
-if [[ "$1" == "--preset" && -n "$2" ]]; then
-    COVERAGE_PRESET="$2"
-    shift 2
-fi
+# Main script execution starts here
 
 # Execute a single command
 execute_command() {
@@ -792,7 +844,7 @@ execute_command() {
             ;;
         xml)
             if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
-                error "XML report generation is not supported with the coverage-clang preset. Use 'report' or switch to coverage-gcc."
+                error "XML report generation is not supported with the coverage-clang preset. Use the 'coverage-gcc' preset for XML/Codecov reports."
                 exit 1
             else
                 generate_xml
@@ -800,18 +852,22 @@ execute_command() {
             ;;
         html)
             if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
-                error "HTML report generation is not supported with the coverage-clang preset. Use 'report' or switch to coverage-gcc."
-                exit 1
+                generate_llvm_html_report
             else
                 generate_html
             fi
             ;;
         view)
-            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
-                generate_llvm_report
-            else
-                view_html
+            check_build_dir
+            if [[ ! -d "$BUILD_DIR/coverage-html" ]]; then
+                log "HTML coverage report not found. Generating it now..."
+                if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
+                    generate_llvm_html_report
+                else
+                    generate_html
+                fi
             fi
+            view_html_internal
             ;;
         summary)
             if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
@@ -821,10 +877,6 @@ execute_command() {
             fi
             ;;
         upload)
-            if [[ "$COVERAGE_PRESET" == "coverage-clang" ]]; then
-                error "Codecov upload currently supports GCC/gcov outputs. Switch to coverage-gcc to upload XML coverage."
-                exit 1
-            fi
             upload_codecov
             ;;
         all)
@@ -848,27 +900,49 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
-# Parse options
+# Default preset, can be overridden by --preset
+COVERAGE_PRESET="coverage-clang"
+COMMANDS=()
+
+# Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --preset)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                error "Missing value for --preset option"
+                exit 1
+            fi
+            if [[ "$2" != "coverage-clang" && "$2" != "coverage-gcc" ]]; then
+                error "Invalid value for --preset: '$2'. Must be 'coverage-clang' or 'coverage-gcc'."
+                exit 1
+            fi
+            COVERAGE_PRESET="$2"
+            shift 2
+            ;;
         --help|-h|help)
             usage
             exit 0
             ;;
         -*)
             error "Unknown option: $1"
-            echo ""
             usage
             exit 1
             ;;
         *)
-            # Not an option, must be a command
-            break
+            # Collect commands
+            COMMANDS+=("$1")
+            shift
             ;;
     esac
 done
 
+# If no commands were provided, show usage and indicate error
+if [ ${#COMMANDS[@]} -eq 0 ]; then
+    usage
+    exit 1
+fi
+
 # Process all commands in sequence
-for cmd in "$@"; do
+for cmd in "${COMMANDS[@]}"; do
     execute_command "$cmd"
 done
