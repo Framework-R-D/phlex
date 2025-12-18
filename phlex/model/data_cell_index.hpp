@@ -47,9 +47,6 @@ namespace phlex::experimental {
     hash_type hash_{0};
   };
 
-  data_cell_index_ptr id_for(char const* str);
-  data_cell_index_ptr id_for(std::vector<std::size_t> nums);
-  data_cell_index_ptr operator""_id(char const* str, std::size_t);
   std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
 }
 

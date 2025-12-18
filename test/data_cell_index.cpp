@@ -4,23 +4,14 @@
 
 using namespace phlex::experimental;
 
-TEST_CASE("Data layer ID string literal", "[data model]")
-{
-  CHECK(""_id == data_cell_index::base_ptr());
-  auto id = "2"_id;
-  CHECK(*id == *id_for({2}));
-  CHECK(id->hash() != 0ull);
-  CHECK(*"1:2:3:4"_id == *id_for({1, 2, 3, 4}));
-}
-
-TEST_CASE("Hash IDs", "[data model]") { CHECK(""_id->hash() == 0ull); }
-
 TEST_CASE("Verify independent hashes", "[data model]")
 {
   // In the original implementation of the hash algorithm, there was a collision between the hash for
   // "run:0 subrun:0 event: 760" and "run:0 subrun:1 event: 4999".
 
   auto base = data_cell_index::base_ptr();
+  CHECK(base->hash() == 0ull);
+
   auto run = base->make_child(0, "run");
   auto subrun_0 = run->make_child(0, "subrun");
   auto event_760 = subrun_0->make_child(760, "event");
