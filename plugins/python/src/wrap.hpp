@@ -35,7 +35,7 @@ namespace phlex::experimental {
   struct py_config_map;
 
   // Phlex' Module wrapper to register algorithms
-  typedef graph_proxy<void_tag> phlex_module_t;
+  typedef module_graph_proxy<void_tag> phlex_module_t;
   // Returns a new reference.
   PyObject* wrap_module(phlex_module_t* mod);
 
