@@ -79,22 +79,7 @@ namespace phlex::experimental {
     auto& creator =
       create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
 
-    // Automatically specify the 'pymodule' Phlex plugin if the 'py' parameter is specified
-    if (auto const* py = raw_config.if_contains("py")) {
-      if (auto const* cpp = raw_config.if_contains("cpp")) {
-        std::string msg = fmt::format("Both 'cpp' and 'py' parameters specified in for {}", label);
-        if (auto const* cpp_value = cpp->if_string()) {
-          msg += fmt::format("\n  - cpp: {}", *cpp_value);
-        }
-        if (auto const* py_value = py->if_string()) {
-          msg += fmt::format("\n  - py: {}", *py_value);
-        }
-        throw std::runtime_error(msg);
-      }
-      raw_config["cpp"] = "pymodule";
-    }
-
-    configuration const config{raw_config};
+    configuration const config{adjusted_config};
     creator(g.module_proxy(config), config);
   }
 

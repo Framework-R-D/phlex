@@ -1,19 +1,18 @@
 {
   driver: {
-    plugin: 'generate_layers',
+    cpp: 'generate_layers',
     layers: {
       event: { parent: 'job', total: 10, starting_number: 1 }
     }
   },
   sources: {
     provider: {
-      plugin: 'cppsource4py',
+      cpp: 'cppsource4py',
     }
   },
   modules: {
     pyconfig: {
-      plugin: 'pymodule',
-      pyplugin: 'all_config',
+      py: 'all_config',
       input: ['i', 'j'],
       a_bool: false,
       an_int: -37,
