@@ -16,22 +16,22 @@ TEST_CASE("Adjust empty config", "[config]")
 TEST_CASE("Adjust config with py only", "[config]")
 {
   boost::json::object obj;
-  obj["py"] = "my_python_module.py";
+  obj["py"] = "my_python_module";
 
   auto const config = adjust_config("", std::move(obj));
-  CHECK(config.at("py").as_string() == "my_python_module.py");
+  CHECK(config.at("py").as_string() == "my_python_module");
   CHECK(config.at("cpp").as_string() == "pymodule");
 }
 
 TEST_CASE("Both py and cpp specified as strings", "[config]")
 {
   boost::json::object obj;
-  obj["py"] = "my_python_module.py";
+  obj["py"] = "my_python_module";
   obj["cpp"] = "my_other_python_phlex_module";
 
   auto const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed1
   - cpp: my_other_python_phlex_module
-  - py: my_python_module.py)""";
+  - py: my_python_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed1", std::move(obj)),
                     Catch::Matchers::ContainsSubstring(err_msg));
 }
@@ -39,11 +39,11 @@ TEST_CASE("Both py and cpp specified as strings", "[config]")
 TEST_CASE("Both py and cpp specified, py as string", "[config]")
 {
   boost::json::object obj;
-  obj["py"] = "my_python_module.py";
+  obj["py"] = "my_python_module";
   obj["cpp"] = 1;
 
   auto const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed2
-  - py: my_python_module.py)""";
+  - py: my_python_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed2", std::move(obj)),
                     Catch::Matchers::ContainsSubstring(err_msg));
 }
