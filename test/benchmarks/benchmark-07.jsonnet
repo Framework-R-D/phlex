@@ -17,12 +17,12 @@
     },
     b_creator: {
       cpp: 'last_index',
-      when: ['even_filter:accept_even_ids'],
+      experimental_when: ['even_filter:accept_even_ids'],
       produces: 'b',
     },
     c_creator: {
       cpp: 'last_index',
-      when: ['even_filter:accept_even_ids'],
+      experimental_when: ['even_filter:accept_even_ids'],
       produces: 'c',
     },
     d: {

@@ -23,7 +23,7 @@ namespace phlex::experimental {
       registrar_.set_predicates(detail::maybe_predicates(config));
     }
 
-    auto& when(std::vector<std::string> predicates)
+    auto& experimental_when(std::vector<std::string> predicates)
     {
       if (!registrar_.has_predicates()) {
         registrar_.set_predicates(std::move(predicates));
@@ -31,9 +31,9 @@ namespace phlex::experimental {
       return *this;
     }
 
-    auto& when(std::convertible_to<std::string> auto&&... names)
+    auto& experimental_when(std::convertible_to<std::string> auto&&... names)
     {
-      return when({std::forward<decltype(names)>(names)...});
+      return experimental_when({std::forward<decltype(names)>(names)...});
     }
 
     template <std::size_t M>

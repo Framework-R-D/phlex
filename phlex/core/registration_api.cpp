@@ -24,7 +24,7 @@ namespace phlex::experimental {
     });
   }
 
-  void output_api::when(std::vector<std::string> predicates)
+  void output_api::experimental_when(std::vector<std::string> predicates)
   {
     if (!reg_.has_predicates()) {
       reg_.set_predicates(std::move(predicates));

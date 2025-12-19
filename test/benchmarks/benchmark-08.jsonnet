@@ -28,7 +28,7 @@ local max_number = 100000;
     },
     d: {
       cpp: 'verify_even_fibonacci_numbers',
-      when: ['even_filter:accept_even_numbers', 'fibonacci_filter:accept'],
+      experimental_when: ['even_filter:accept_even_numbers', 'fibonacci_filter:accept'],
       consumes: { product: 'a', layer: "event" },
       max_number: max_number,
     },

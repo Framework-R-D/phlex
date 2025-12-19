@@ -313,11 +313,11 @@ namespace phlex::experimental {
                detail::output_function_t&& f,
                concurrency c);
 
-    void when(std::vector<std::string> predicates);
+    void experimental_when(std::vector<std::string> predicates);
 
-    void when(std::convertible_to<std::string> auto&&... names)
+    void experimental_when(std::convertible_to<std::string> auto&&... names)
     {
-      when({std::forward<decltype(names)>(names)...});
+      experimental_when({std::forward<decltype(names)>(names)...});
     }
 
   private:

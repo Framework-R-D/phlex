@@ -95,11 +95,11 @@ TEST_CASE("Two predicates", "[filtering]")
   g.make<sum_numbers>(20u)
     .observe("add_evens", &sum_numbers::add, concurrency::unlimited)
     .input_family("num"_in("event"))
-    .when("evens_only");
+    .experimental_when("evens_only");
   g.make<sum_numbers>(25u)
     .observe("add_odds", &sum_numbers::add, concurrency::unlimited)
     .input_family("num"_in("event"))
-    .when("odds_only");
+    .experimental_when("odds_only");
 
   g.execute();
 
@@ -114,11 +114,11 @@ TEST_CASE("Two predicates in series", "[filtering]")
   g.predicate("evens_only", evens_only, concurrency::unlimited).input_family("num"_in("event"));
   g.predicate("odds_only", odds_only, concurrency::unlimited)
     .input_family("num"_in("event"))
-    .when("evens_only");
+    .experimental_when("evens_only");
   g.make<sum_numbers>(0u)
     .observe("add", &sum_numbers::add, concurrency::unlimited)
     .input_family("num"_in("event"))
-    .when("odds_only");
+    .experimental_when("odds_only");
 
   g.execute();
 
@@ -134,7 +134,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
   g.make<sum_numbers>(0u)
     .observe("add", &sum_numbers::add, concurrency::unlimited)
     .input_family("num"_in("event"))
-    .when("odds_only", "evens_only");
+    .experimental_when("odds_only", "evens_only");
 
   g.execute();
 
@@ -166,7 +166,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
   g.make<collect_numbers>(expected_numbers)
     .observe("collect", &collect_numbers::collect, concurrency::unlimited)
     .input_family("num"_in("event"))
-    .when(predicate_names);
+    .experimental_when(predicate_names);
 
   g.execute();
 
@@ -184,12 +184,12 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
   g.make<check_multiple_numbers>(5 * 100)
     .observe("check_evens", &check_multiple_numbers::add_difference, concurrency::unlimited)
     .input_family("num"_in("event"), "other_num"_in("event")) // <= Note input order
-    .when("evens_only");
+    .experimental_when("evens_only");
 
   g.make<check_multiple_numbers>(-5 * 100)
     .observe("check_odds", &check_multiple_numbers::add_difference, concurrency::unlimited)
     .input_family("other_num"_in("event"), "num"_in("event")) // <= Note input order
-    .when("odds_only");
+    .experimental_when("odds_only");
 
   g.execute();
 

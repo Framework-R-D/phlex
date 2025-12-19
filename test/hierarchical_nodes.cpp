@@ -105,7 +105,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family("time"_in("run"))
-    .when()
+    .experimental_when()
     .output_products("strtime");
   g.transform("square", square, concurrency::unlimited)
     .input_family("number"_in("event"))
@@ -113,7 +113,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
     .input_family("squared_number"_in("event"))
-    .when()
+    .experimental_when()
     .output_products("added_data");
 
   g.transform("scale", scale, concurrency::unlimited)
@@ -124,7 +124,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.make<experimental::test::products_for_output>()
     .output("save", &experimental::test::products_for_output::save)
-    .when();
+    .experimental_when();
 
   try {
     g.execute();
