@@ -94,12 +94,10 @@ int main(int argc, char* argv[])
   }
   try {
     phlex::experimental::run(configurations, max_concurrency);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     std::cerr << e.what() << '\n';
     return 1;
-  }
-  catch (...) {
+  } catch (...) {
     std::cerr << "Unknown exception caught.\n";
     return 1;
   }
