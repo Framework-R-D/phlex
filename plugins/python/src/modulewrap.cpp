@@ -2,10 +2,14 @@
 #include "wrap.hpp"
 
 #include <functional>
+#include <iostream>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+
+// static std::mutex g_py_mutex;
 
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
@@ -14,6 +18,17 @@
 using namespace phlex::experimental;
 using phlex::concurrency;
 using phlex::product_query;
+
+struct PyObjectDeleter {
+  void operator()(PyObject* p) const
+  {
+    if (p) {
+      phlex::experimental::PyGILRAII gil;
+      Py_DECREF(p);
+    }
+  }
+};
+using PyObjectPtr = std::shared_ptr<PyObject>;
 
 // TODO: the layer is currently hard-wired and should come from the product
 // specification instead, but that doesn't exist in Python yet.
@@ -55,12 +70,12 @@ namespace {
     return oss.str();
   }
 
-  static inline PyObject* lifeline_transform(intptr_t arg)
+  static inline PyObject* lifeline_transform(PyObject* arg)
   {
-    if (Py_TYPE((PyObject*)arg) == &PhlexLifeline_Type) {
+    if (Py_TYPE(arg) == &PhlexLifeline_Type) {
       return ((py_lifeline_t*)arg)->m_view;
     }
-    return (PyObject*)arg;
+    return arg;
   }
 
   // callable object managing the callback
@@ -84,18 +99,20 @@ namespace {
         Py_INCREF(pc.m_callable);
         m_callable = pc.m_callable;
       }
+      return *this;
     }
     ~py_callback() { Py_DECREF(m_callable); }
 
     template <typename... Args>
-    intptr_t call(Args... args)
+    PyObjectPtr call(Args... args)
     {
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
+      // std::lock_guard<std::mutex> lock(g_py_mutex);
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args)..., nullptr);
+      PyObject* result = PyObject_CallFunctionObjArgs(
+        (PyObject*)m_callable, lifeline_transform(args.get())..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -103,12 +120,10 @@ namespace {
           error_msg = "Unknown python error";
       }
 
-      decref_all(args...);
-
       if (!error_msg.empty())
         throw std::runtime_error(error_msg.c_str());
 
-      return (intptr_t)result;
+      return PyObjectPtr(result, PyObjectDeleter());
     }
 
     template <typename... Args>
@@ -117,9 +132,10 @@ namespace {
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
+      // std::lock_guard<std::mutex> lock(g_py_mutex);
 
       PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
+        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args.get()..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -128,48 +144,41 @@ namespace {
       } else
         Py_DECREF(result);
 
-      decref_all(args...);
-
       if (!error_msg.empty())
         throw std::runtime_error(error_msg.c_str());
-    }
-
-  private:
-    template <typename... Args>
-    void decref_all(Args... args)
-    {
-      // helper to decrement reference counts of N arguments
-      (Py_DECREF((PyObject*)args), ...);
     }
   };
 
   // use explicit instatiations to ensure that the function signature can
   // be derived by the graph builder
   struct py_callback_1 : public py_callback<1> {
-    intptr_t operator()(intptr_t arg0) { return call(arg0); }
+    PyObjectPtr operator()(PyObjectPtr arg0) { return call(arg0); }
   };
 
   struct py_callback_2 : public py_callback<2> {
-    intptr_t operator()(intptr_t arg0, intptr_t arg1) { return call(arg0, arg1); }
+    PyObjectPtr operator()(PyObjectPtr arg0, PyObjectPtr arg1) { return call(arg0, arg1); }
   };
 
   struct py_callback_3 : public py_callback<3> {
-    intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2)
+    PyObjectPtr operator()(PyObjectPtr arg0, PyObjectPtr arg1, PyObjectPtr arg2)
     {
       return call(arg0, arg1, arg2);
     }
   };
 
   struct py_callback_1v : public py_callback<1> {
-    void operator()(intptr_t arg0) { callv(arg0); }
+    void operator()(PyObjectPtr arg0) { callv(arg0); }
   };
 
   struct py_callback_2v : public py_callback<2> {
-    void operator()(intptr_t arg0, intptr_t arg1) { callv(arg0, arg1); }
+    void operator()(PyObjectPtr arg0, PyObjectPtr arg1) { callv(arg0, arg1); }
   };
 
   struct py_callback_3v : public py_callback<3> {
-    void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
+    void operator()(PyObjectPtr arg0, PyObjectPtr arg1, PyObjectPtr arg2)
+    {
+      callv(arg0, arg1, arg2);
+    }
   };
 
   static std::vector<std::string> cseq(PyObject* coll)
@@ -220,7 +229,7 @@ namespace {
       // for numpy typing, there's no useful way of figuring out the type from the
       // name of the type, only from its string representation, so fall through and
       // let this method return str()
-      if (ann != "ndarray")
+      if (ann != "ndarray" && ann != "list")
         return ann;
 
       // start over for numpy type using result from str()
@@ -292,17 +301,16 @@ namespace {
   }
 
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
-  static intptr_t name##_to_py(cpptype a)                                                          \
+  static PyObjectPtr name##_to_py(cpptype a)                                                       \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    return (intptr_t)topy(a);                                                                      \
+    return PyObjectPtr(topy(a), PyObjectDeleter());                                                \
   }                                                                                                \
                                                                                                    \
-  static cpptype py_to_##name(intptr_t pyobj)                                                      \
+  static cpptype py_to_##name(PyObjectPtr pyobj)                                                   \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
+    cpptype i = (cpptype)frompy(pyobj.get());                                                      \
     return i;                                                                                      \
   }
 
@@ -310,12 +318,23 @@ namespace {
   BASIC_CONVERTER(int, int, PyLong_FromLong, PyLong_AsLong)
   BASIC_CONVERTER(uint, unsigned int, PyLong_FromLong, pylong_or_int_as_ulong)
   BASIC_CONVERTER(long, long, PyLong_FromLong, pylong_as_strictlong)
-  BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
+  // BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
+  static PyObjectPtr ulong_to_py(unsigned long a)
+  {
+    PyGILRAII gil;
+    return PyObjectPtr(PyLong_FromUnsignedLong(a), PyObjectDeleter());
+  }
+  static unsigned long py_to_ulong(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    unsigned long i = (unsigned long)pylong_or_int_as_ulong(pyobj.get());
+    return i;
+  }
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
 #define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
-  static intptr_t name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                     \
+  static PyObjectPtr name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                  \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
@@ -330,7 +349,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
-      return (intptr_t)nullptr;                                                                    \
+      return PyObjectPtr();                                                                        \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
@@ -340,34 +359,121 @@ namespace {
     /* when passing it to the registered Python function */                                        \
     py_lifeline_t* pyll =                                                                          \
       (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
+    new (&pyll->m_source) std::shared_ptr<void>(v);                                                \
     pyll->m_view = np_view; /* steals reference */                                                 \
-    pyll->m_source = v;                                                                            \
                                                                                                    \
-    return (intptr_t)pyll;                                                                         \
+    return PyObjectPtr((PyObject*)pyll, PyObjectDeleter());                                        \
   }
 
-  VECTOR_CONVERTER(vint, int, NPY_INT)
-  VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
-  VECTOR_CONVERTER(vlong, long, NPY_LONG)
-  VECTOR_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  // VECTOR_CONVERTER(vint, int, NPY_INT)
+  static PyObjectPtr vint_to_py(std::shared_ptr<std::vector<int>> const& v)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    if (!v)
+      return PyObjectPtr();
+    PyObject* list = PyList_New(v->size());
+    if (!list) {
+      PyErr_Print();
+      return PyObjectPtr();
+    }
+    for (size_t i = 0; i < v->size(); ++i) {
+      PyObject* item = PyLong_FromLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
+    }
+    return PyObjectPtr(list, PyObjectDeleter());
+  }
+  // VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
+  static PyObjectPtr vuint_to_py(std::shared_ptr<std::vector<unsigned int>> const& v)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    if (!v)
+      return PyObjectPtr();
+    PyObject* list = PyList_New(v->size());
+    if (!list) {
+      PyErr_Print();
+      return PyObjectPtr();
+    }
+    for (size_t i = 0; i < v->size(); ++i) {
+      PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
+    }
+    return PyObjectPtr(list, PyObjectDeleter());
+  }
+  // VECTOR_CONVERTER(vlong, long, NPY_LONG)
+  static PyObjectPtr vlong_to_py(std::shared_ptr<std::vector<long>> const& v)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    if (!v)
+      return PyObjectPtr();
+    PyObject* list = PyList_New(v->size());
+    if (!list) {
+      PyErr_Print();
+      return PyObjectPtr();
+    }
+    for (size_t i = 0; i < v->size(); ++i) {
+      PyObject* item = PyLong_FromLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
+    }
+    return PyObjectPtr(list, PyObjectDeleter());
+  }
+  // VECTOR_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  static PyObjectPtr vulong_to_py(std::shared_ptr<std::vector<unsigned long>> const& v)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    if (!v)
+      return PyObjectPtr();
+    PyObject* list = PyList_New(v->size());
+    if (!list) {
+      PyErr_Print();
+      return PyObjectPtr();
+    }
+    for (size_t i = 0; i < v->size(); ++i) {
+      PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
+    }
+    return PyObjectPtr(list, PyObjectDeleter());
+  }
   VECTOR_CONVERTER(vfloat, float, NPY_FLOAT)
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
 #define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype)                                               \
-  static std::shared_ptr<std::vector<cpptype>> py_to_##name(intptr_t pyobj)                        \
+  static std::shared_ptr<std::vector<cpptype>> py_to_##name(PyObjectPtr pyobj)                     \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
-    if (!pyobj || !PyArray_Check((PyObject*)pyobj)) {                                              \
+    if (!pyobj || !PyArray_Check(pyobj.get())) {                                                   \
       PyErr_Clear(); /* how to report an error? */                                                 \
-      Py_DECREF((PyObject*)pyobj);                                                                 \
       return vec;                                                                                  \
     }                                                                                              \
                                                                                                    \
-    PyArrayObject* arr = (PyArrayObject*)pyobj;                                                    \
+    PyArrayObject* arr = (PyArrayObject*)pyobj.get();                                              \
                                                                                                    \
     /* TODO: flattening the array here seems to be the only workable solution */                   \
     npy_intp* dims = PyArray_DIMS(arr);                                                            \
@@ -381,16 +487,256 @@ namespace {
     vec->reserve(total);                                                                           \
     vec->insert(vec->end(), raw, raw + total);                                                     \
                                                                                                    \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
     return vec;                                                                                    \
   }
 
-  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
-  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
-  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
-  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
-  NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
-  NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+  // NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
+  // NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
+  // NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
+  // NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  // NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
+  // NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+
+  // NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
+  static std::shared_ptr<std::vector<int>> py_to_vint(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<int>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          long val = PyLong_AsLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((int)val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        int* raw = static_cast<int*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  // NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
+  static std::shared_ptr<std::vector<unsigned int>> py_to_vuint(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<unsigned int>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          unsigned long val = PyLong_AsUnsignedLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((unsigned int)val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        unsigned int* raw = static_cast<unsigned int*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  // NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
+  static std::shared_ptr<std::vector<long>> py_to_vlong(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<long>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          long val = PyLong_AsLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        long* raw = static_cast<long*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  // NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  static std::shared_ptr<std::vector<unsigned long>> py_to_vulong(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<unsigned long>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          unsigned long val = PyLong_AsUnsignedLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        unsigned long* raw = static_cast<unsigned long*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  // NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
+  static std::shared_ptr<std::vector<float>> py_to_vfloat(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<float>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          double val = PyFloat_AsDouble(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((float)val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        float* raw = static_cast<float*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  // NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+  static std::shared_ptr<std::vector<double>> py_to_vdouble(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<double>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          double val = PyFloat_AsDouble(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        double* raw = static_cast<double*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
 
 } // unnamed namespace
 
@@ -489,12 +835,18 @@ static PyObject* parse_args(PyObject* args,
     // dictionary is ordered with return last if provide (note: the keys here
     // could be used as input labels, instead of the ones from the configuration,
     // but that is probably not practical in actual use, so they are ignored)
-    PyObject* values = PyDict_Values(annot);
-    for (Py_ssize_t i = 0; i < (PyList_GET_SIZE(values) - (ret ? 1 : 0)); ++i) {
-      PyObject* item = PyList_GET_ITEM(values, i);
-      input_types.push_back(annotation_as_text(item));
+
+    // Re-implementing robust annotation extraction
+    PyObject *key, *val;
+    Py_ssize_t pos = 0;
+
+    while (PyDict_Next(annot, &pos, &key, &val)) {
+      // Skip 'return' annotation as it is handled separately
+      if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0) {
+        continue;
+      }
+      input_types.push_back(annotation_as_text(val));
     }
-    Py_DECREF(values);
   }
   Py_XDECREF(annot);
 
@@ -556,32 +908,32 @@ static bool insert_input_converters(py_phlex_module* mod,
         return false;
       }
 
-      pos += 18;
-
+      std::string suffix = inp_type.substr(pos);
       std::string py_out = cname + "_" + inp + "py";
-      if (inp_type.compare(pos, std::string::npos, "int32]]") == 0) {
-        mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "uint32]]") == 0) {
+
+      if (suffix.find("uint32]]") != std::string::npos) {
         mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
-        mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
+      } else if (suffix.find("int32]]") != std::string::npos) {
+        mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
+      } else if (suffix.find("uint64]]") != std::string::npos) { // id.
         mod->ph_module
           ->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "float32]]") == 0) {
+      } else if (suffix.find("int64]]") != std::string::npos) { // need not be true
+        mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
+          .input_family(product_query{product_specification::create(inp), LAYER})
+          .output_products(py_out);
+      } else if (suffix.find("float32]]") != std::string::npos) {
         mod->ph_module
           ->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "double64]]") == 0) {
+      } else if (suffix.find("float64]]") != std::string::npos) {
         mod->ph_module
           ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
@@ -590,6 +942,23 @@ static bool insert_input_converters(py_phlex_module* mod,
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
         return false;
       }
+    }
+    else if (inp_type == "list[int]") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[float]") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[double]" || inp_type == "list['double']") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module
+        ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
       return false;
@@ -704,7 +1073,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
         ->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
         .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
-    } else if (output_type.compare(pos, std::string::npos, "double64]]") == 0) {
+    } else if (output_type.compare(pos, std::string::npos, "float64]]") == 0) {
       mod->ph_module
         ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
         .input_family(product_query{product_specification::create(py_in), LAYER})
@@ -713,6 +1082,23 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
       PyErr_Format(PyExc_TypeError, "unsupported array output type \"%s\"", output_type.c_str());
       return nullptr;
     }
+  }
+  else if (output_type == "list[int]") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[float]") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[double]" || output_type == "list['double']") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module
+      ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
   } else {
     PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output_type.c_str());
     return nullptr;
