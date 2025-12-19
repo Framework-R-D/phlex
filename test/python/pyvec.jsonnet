@@ -2,16 +2,16 @@
   source: {
     plugin: 'generate_layers',
     layers: {
-      event: { parent: 'job', total: 10, starting_number: 1 }
+      event: { parent: "job", total: 10, starting_number: 1 }
     }
   },
   modules: {
     cppdriver: {
       plugin: 'cppdriver4py',
     },
-    pyadd: {
+    pysum: {
       plugin: 'pymodule',
-      pyplugin: 'adder',
+      pyplugin: 'sumit',
       input: ['i', 'j'],
       output: ['sum'],
     },

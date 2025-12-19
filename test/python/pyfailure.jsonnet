@@ -12,14 +12,8 @@
     pyadd: {
       plugin: 'pymodule',
       pyplugin: 'adder',
-      input: ['i', 'j'],
+      #input: ['i', 'j'],   # commented out to cause a failure
       output: ['sum'],
-    },
-    pyverify: {
-      plugin: 'pymodule',
-      pyplugin: 'verify',
-      input: ['sum'],
-      sum_total: 1,
     },
   },
 }

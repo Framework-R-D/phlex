@@ -1,3 +1,8 @@
+# Phlex provided core plugins
+
+# plugin for running Python algorithms in phlex
+add_subdirectory(python)
+
 add_library(layer_generator layer_generator.cpp)
 target_link_libraries(layer_generator PRIVATE phlex::core)
 

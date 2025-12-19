@@ -2,24 +2,23 @@
   source: {
     plugin: 'generate_layers',
     layers: {
-      event: { parent: 'job', total: 10, starting_number: 1 }
+      event: { parent: "job", total: 10, starting_number: 1 }
     }
   },
   modules: {
     cppdriver: {
       plugin: 'cppdriver4py',
     },
-    pyadd: {
+    pyreduce: {
       plugin: 'pymodule',
-      pyplugin: 'adder',
+      pyplugin: 'reducer',
       input: ['i', 'j'],
-      output: ['sum'],
     },
     pyverify: {
       plugin: 'pymodule',
       pyplugin: 'verify',
       input: ['sum'],
-      sum_total: 1,
+      sum_total: 4,
     },
   },
 }

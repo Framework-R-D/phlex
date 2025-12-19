@@ -6,6 +6,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace phlex::experimental {
@@ -47,6 +48,25 @@ namespace phlex::experimental {
     }
 
     std::vector<std::string> keys() const;
+
+    // Internal function for prototype purposes; do not use as this will change.
+    std::pair<boost::json::kind, bool> prototype_internal_kind(std::string const& key) const
+    {
+      auto const& value = config_.at(key); // may throw
+
+      auto k = value.kind();
+      bool is_array = k == boost::json::kind::array;
+
+      if (is_array) {
+        // The current configuration interface only supports homogenous containers,
+        // thus checking only the first element suffices. (This assumes arrays are
+        // not nested, which is fine for now.)
+        boost::json::array const& arr = value.as_array();
+        k = arr.empty() ? boost::json::kind::null : arr[0].kind();
+      }
+
+      return std::make_pair(k, is_array);
+    }
 
   private:
     boost::json::object config_;

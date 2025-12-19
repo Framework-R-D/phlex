@@ -7,9 +7,9 @@ class TestPYPHLEX:
     @classmethod
     def setup_class(cls):
         """Set up the test class."""
-        import pyphlex  # noqa: F401
+        import phlexpy  # noqa: F401
 
-        __all__ = ["pyphlex"]  # noqa: F841  # For CodeQL
+        __all__ = ["phlexpy"]  # noqa: F841  # For CodeQL
 
     def test01_phlex_existence(self):
         """Test existence of the phlex namespace."""

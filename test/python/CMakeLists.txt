@@ -57,6 +57,7 @@ except ImportError:
 
   check_python_module_version("cppyy" "3.6.0" HAS_CPPYY)
   check_python_module_version("numba" "0.61.0" HAS_NUMBA)
+  check_python_module_version("numpy" "2.0.0" HAS_NUMPY)
 
   if(HAS_CPPYY)
 
@@ -71,50 +72,77 @@ except ImportError:
       set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
     endif()
 
-    # C++ helper to provide a driver
-    add_library(py_cppdriver MODULE driver.cpp)
-    target_link_libraries(py_cppdriver PRIVATE Boost::json phlex::core)
-
-    # Phlex module to run Python algorithms
-    add_library(pymodule MODULE pymodule.cpp)
-    include_directories(pymodule, ${Python_INCLUDE_DIRS})
-    target_link_libraries(
-      pymodule
-      PRIVATE phlex::module ${Python_LIBRARIES}
-      PUBLIC Python::Python
-      )
-
-    # tests of the python support modules
+    # tests of the python support modules (relies on cppyy)
     add_test(
       NAME py:phlex
       COMMAND ${PYTHON_TEST_EXECUTABLE} -m pytest test_phlex.py
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       )
 
-    # phlex-based tests
-    add_test(NAME py:add COMMAND phlex -c
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet
-             )
-
-    set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
-    if(DEFINED ENV{VIRTUAL_ENV})
-      set(TEST_PYTHONPATH
-          ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH}
-          )
-    endif()
-    set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
-
     set_property(
       TEST py:phlex PROPERTY ENVIRONMENT
                              "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
       )
 
-    set_property(
-      TEST py:add
-      PROPERTY
-        ENVIRONMENT
-        "PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-      )
+  endif()
 
-  endif() # cppyy available
+  set(ACTIVE_PY_CPHLEX_TESTS "")
+
+  # C++ helper to provide a driver
+  add_library(cppdriver4py MODULE driver.cpp)
+  target_link_libraries(cppdriver4py PRIVATE phlex::module)
+
+  # numpy support if installed
+  if(HAS_NUMPY)
+
+    # phlex-based tests that require numpy support
+    add_test(NAME py:vec COMMAND phlex -c
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet
+             )
+    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
+  endif()
+
+  # phlex-based tests (no cppyy dependency)
+  add_test(NAME py:add COMMAND phlex -c
+                               ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet
+           )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
+
+  add_test(NAME py:config COMMAND phlex -c
+                                  ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet
+           )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
+
+  add_test(NAME py:reduce COMMAND phlex -c
+                                  ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet
+           )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
+
+  # "failing" tests for checking error paths
+  add_test(
+    NAME py:failure
+    COMMAND
+      ${CMAKE_CURRENT_SOURCE_DIR}/failing_test_wrap.sh
+      ${PROJECT_BINARY_DIR}/bin/phlex -c
+      ${CMAKE_CURRENT_SOURCE_DIR}/pyfailure.jsonnet
+    )
+  set_tests_properties(
+    py:failure PROPERTIES PASS_REGULAR_EXPRESSION
+                          "property \"input\" does not exist"
+    )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
+
+  set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
+  if(DEFINED ENV{VIRTUAL_ENV})
+    set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB}:${Python_SITEARCH})
+  endif()
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
+
+  set_tests_properties(
+    ${ACTIVE_PY_CPHLEX_TESTS}
+    PROPERTIES
+      ENVIRONMENT
+      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+    )
+
 endif() # Python available
