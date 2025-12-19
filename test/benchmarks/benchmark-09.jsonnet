@@ -1,8 +1,13 @@
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
       event: { total: 100000 }
+    }
+  },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
     }
   },
   modules: {
@@ -21,8 +26,5 @@
       when: ['even_filter:accept_even_numbers'],
       consumes: { product: 'b', layer: "event" }
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

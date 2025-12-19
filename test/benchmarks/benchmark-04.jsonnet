@@ -1,8 +1,13 @@
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
       event: { total: 100000 }
+    }
+  },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
     }
   },
   modules: {
@@ -13,8 +18,5 @@
       plugin: 'read_index',
       consumes: { product: 'a', layer: "event" }
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

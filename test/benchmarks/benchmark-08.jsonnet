@@ -1,10 +1,15 @@
 local max_number = 100000;
 
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
       event: { total: max_number }
+    }
+  },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
     }
   },
   modules: {
@@ -27,8 +32,5 @@ local max_number = 100000;
       consumes: { product: 'a', layer: "event" },
       max_number: max_number,
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

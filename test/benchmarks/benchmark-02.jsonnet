@@ -1,8 +1,13 @@
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
       event: { total: 100000 }
+    }
+  },
+  sources: {
+    provider: {
+      plugin: 'benchmarks_provider'
     }
   },
   modules: {
@@ -14,8 +19,5 @@
       plugin: 'last_index',
       product_name: "a2"
     },
-    provider: {
-      plugin: 'benchmarks_provider'
-    }
   },
 }

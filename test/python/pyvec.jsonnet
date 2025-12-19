@@ -1,14 +1,16 @@
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
     layers: {
-      event: { parent: "job", total: 10, starting_number: 1 }
+      event: { parent: 'job', total: 10, starting_number: 1 }
+    }
+  },
+  sources: {
+    provider: {
+      plugin: 'cppsource4py',
     }
   },
   modules: {
-    cppdriver: {
-      plugin: 'cppdriver4py',
-    },
     pysum: {
       plugin: 'pymodule',
       pyplugin: 'sumit',

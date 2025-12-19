@@ -89,8 +89,8 @@ except ImportError:
   set(ACTIVE_PY_CPHLEX_TESTS "")
 
   # C++ helper to provide a driver
-  add_library(cppdriver4py MODULE driver.cpp)
-  target_link_libraries(cppdriver4py PRIVATE phlex::module)
+  add_library(cppsource4py MODULE source.cpp)
+  target_link_libraries(cppsource4py PRIVATE phlex::module)
 
   # numpy support if installed
   if(HAS_NUMPY)

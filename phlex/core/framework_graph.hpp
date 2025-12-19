@@ -6,13 +6,14 @@
 #include "phlex/core/end_of_message.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/glue.hpp"
-#include "phlex/core/graph_proxy.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/message_sender.hpp"
 #include "phlex/core/multiplexer.hpp"
 #include "phlex/core/node_catalog.hpp"
+#include "phlex/driver.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/module.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 #include "phlex/utilities/resource_usage.hpp"
@@ -58,7 +59,12 @@ namespace phlex::experimental {
     std::size_t execution_counts(std::string const& node_name) const;
     std::size_t product_counts(std::string const& node_name) const;
 
-    graph_proxy<void_tag> proxy(configuration const& config)
+    module_graph_proxy<void_tag> module_proxy(configuration const& config)
+    {
+      return {config, graph_, nodes_, registration_errors_};
+    }
+
+    source_graph_proxy<void_tag> source_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
     }

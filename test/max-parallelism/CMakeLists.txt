@@ -3,6 +3,9 @@ include(NProc)
 add_library(check_parallelism MODULE check_parallelism.cpp)
 target_link_libraries(check_parallelism PRIVATE Boost::json phlex::core)
 
+add_library(provide_parallelism MODULE provide_parallelism.cpp)
+target_link_libraries(provide_parallelism PRIVATE phlex::core)
+
 configure_file(
   check_parallelism_default.jsonnet.in check_parallelism_default.jsonnet @ONLY
   )

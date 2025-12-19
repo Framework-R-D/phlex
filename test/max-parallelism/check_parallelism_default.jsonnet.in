@@ -1,6 +1,11 @@
 {
-  source: {
+  driver: {
     plugin: 'generate_layers',
+  },
+  sources: {
+    parallelism_provider: {
+      plugin: 'provide_parallelism',
+    }
   },
   modules: {
     verify: {

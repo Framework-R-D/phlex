@@ -16,7 +16,7 @@
 // Note that 'total' refers to the total number of data cells *per* parent.
 // ==============================================================================================
 
-#include "phlex/source.hpp"
+#include "phlex/driver.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include "phlex/core/framework_graph.hpp"
@@ -52,4 +52,4 @@ namespace {
   };
 }
 
-PHLEX_EXPERIMENTAL_REGISTER_SOURCE(generate_layers)
+PHLEX_EXPERIMENTAL_REGISTER_DRIVER(generate_layers)
