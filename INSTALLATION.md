@@ -36,12 +36,13 @@ If you encounter trouble, consult the [installation instructions from the Spack 
 
 Step 3: make spack available at the command line.
 ```bash
-source ${HOME}/spack/share/spack/setup-env.sh
+source ${PHLEX_WORK_DIR}/spack/share/spack/setup-env.sh
 ```
 `which spack` will show that `spack` is a bash function. 
 
+Step 4: run the `spack bootstrap now` command to make sure that `${HOME}/.spack` exists.
 
-Step 4: Modify the Spack configuration to avoid filling `/tmp`.
+Step 5: Modify the Spack configuration to avoid filling `/tmp`.
 This is not at all related to Phlex, but until there is spack documentation describing this, we recommend it as good practice.
 
 Run the following, which will open an editor.
@@ -59,8 +60,8 @@ config:
 
 ### Ensuring a sufficient compiler
 
-Step 5: ensure that spack has access to a new enough GCC.
-Currently this means GCC 14.
+Step 6: ensure that spack has access to a new enough GCC.
+Currently this means GCC 14. 
 
 Run `spack compilers` to see what compilers Spack knows about.
 It may tell you to run `spack compiler find` to autodetect compilers.
@@ -72,11 +73,11 @@ If you don't have GCC 14 or newer, then install GCC 14:
 spack install -j 12 gcc@14  # choose a suitable number of jobs for your machine
 ```
 
-Building GCC may take
+Building GCC may take a while (30 minutes or so on a 12 core machine). 
 
 ### Creating and installing the Phlex environment
 
-Step 6: Add the Spack recipe repositories needed by Phlex:
+Step 7: Add the Spack recipe repositories needed by Phlex:
 
 ```bash
 spack repo add https://github.com/FNALssi/fnal_art.git
@@ -85,7 +86,7 @@ spack repo add https://github.com/Framework-R-D/phlex-spack-recipes.git
 
 After you have done this, `spack repo list` should show that you have (among others) a repository named `phlex` available to Spack.
 
-Step 7: Create a spack environment and install phlex
+Step 8: Create a spack environment and install phlex
 
 To guide the creation of the environment, download the environment configuration file, and create the environment it describes:
 
