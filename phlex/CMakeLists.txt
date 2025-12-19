@@ -24,15 +24,27 @@ install(FILES concurrency.hpp module.hpp source.hpp DESTINATION include/phlex)
 
 cet_make_library(
   LIBRARY_NAME
+  phlex_configuration_internal
+  SHARED
+  SOURCE
+  configuration.cpp
+  LIBRARIES
+  PRIVATE
+  Boost::json
+  phlex::core
+  )
+
+cet_make_library(
+  LIBRARY_NAME
   phlex_configuration
   EXPORT_NAME
   configuration
   INTERFACE
-  SOURCE
-  configuration.cpp
+  NO_SOURCE
   LIBRARIES
   Boost::json
   phlex::core
+  phlex_configuration_internal
   )
 install(FILES configuration.hpp DESTINATION include/phlex)
 
