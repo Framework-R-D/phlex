@@ -21,6 +21,7 @@ cet_make_library(
   )
 
 install(FILES concurrency.hpp module.hpp source.hpp DESTINATION include/phlex)
+install(FILES detail/plugin_macros.hpp DESTINATION include/phlex/detail)
 
 cet_make_library(
   LIBRARY_NAME
