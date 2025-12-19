@@ -156,11 +156,26 @@ Provides convenient commands for managing code coverage analysis.
 
 ```bash
 # From repository root
-./scripts/coverage.sh [COMMAND] [COMMAND...]
+./scripts/coverage.sh [--preset <coverage-clang|coverage-gcc>] [COMMAND] [COMMAND...]
 
 # Multiple commands in sequence
 ./scripts/coverage.sh setup test xml html
 ```
+
+#### Presets
+
+The `--preset` flag controls the toolchain and instrumentation method:
+
+- **`coverage-clang`** (Default):
+  - Uses LLVM source-based coverage.
+  - Best for local development (fast, accurate).
+  - Generates high-fidelity HTML reports.
+  - Key commands: `setup`, `test`, `html`, `view`, `summary`.
+
+- **`coverage-gcc`**:
+  - Uses `gcov` instrumentation.
+  - Best for CI pipelines requiring XML output (e.g., Codecov).
+  - Key commands: `setup`, `test`, `xml`, `upload`.
 
 #### Commands
 

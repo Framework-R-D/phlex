@@ -31,9 +31,11 @@ static int ll_clear(py_lifeline_t* pyobj)
 
 static void ll_dealloc(py_lifeline_t* pyobj)
 {
+  PyObject_GC_UnTrack(pyobj);
   Py_CLEAR(pyobj->m_view);
   typedef std::shared_ptr<void> generic_shared_t;
   pyobj->m_source.~generic_shared_t();
+  Py_TYPE(pyobj)->tp_free((PyObject*)pyobj);
 }
 
 // clang-format off
