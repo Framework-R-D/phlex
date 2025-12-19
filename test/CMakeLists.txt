@@ -6,10 +6,15 @@ include(CetTest)
 cet_test_env(SPDLOG_LEVEL=debug)
 
 cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core)
-cet_test(adjust_config USE_CATCH2_MAIN SOURCE adjust_config.cpp LIBRARIES
+cet_test(
+  adjust_config
+  USE_CATCH2_MAIN
+  SOURCE
+  adjust_config.cpp
+  LIBRARIES
   run_phlex
   Boost::json
-         )
+  )
 cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
          phlex::configuration
          )
