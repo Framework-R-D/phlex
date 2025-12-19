@@ -11,6 +11,10 @@ If you already have a new-enough version of Spack installed, you can skip to ste
 
 Step 1: create a working directory for phlex use:
 
+Installing software with Spack can require transient use of substantial disk space as packages are downloaded and built.
+The recommended way to avoid this problem is installing Spack (step 3, below) in a directory in which you have ample storage room.
+These instructions do that by putting the entire working installation on `/scratch`; adjust this as your needs dictate.
+
 ```bash
 export PHLEX_WORK_DIR="/scratch/$(id -un)/phlex-work-dir"
 mkdir -p ${PHLEX_WORK_DIR}
@@ -30,7 +34,10 @@ should tell you there is no spack in your PATH.
 
 Step 3: install Spack
 
-Follow the [installation instructions from the Spack project]( https://spack-tutorial.readthedocs.io/en/latest/tutorial_basics.html#basics-tutorial).
+```bash
+git clone --depth=2 https://github.com/spack/spack.git
+```
+If you encounter trouble, consult the [installation instructions from the Spack project]( https://spack-tutorial.readthedocs.io/en/latest/tutorial_basics.html#basics-tutorial).
 
 Step 4: make spack available at the command line.
 ```bash
