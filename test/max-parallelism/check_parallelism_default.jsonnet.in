@@ -1,15 +1,15 @@
 {
   driver: {
-    plugin: 'generate_layers',
+    cpp: 'generate_layers',
   },
   sources: {
     parallelism_provider: {
-      plugin: 'provide_parallelism',
+      cpp: 'provide_parallelism',
     }
   },
   modules: {
     verify: {
-      plugin: 'check_parallelism',
+      cpp: 'check_parallelism',
       expected_parallelism: @NPROC@,
     },
   },

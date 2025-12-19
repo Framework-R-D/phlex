@@ -4,14 +4,14 @@ local g4stage2 = import 'G4Stage2.libsonnet';
 
 {
   driver: {
-    plugin: 'generate_layers',
+    cpp: 'generate_layers',
     layers: {
       event: { total: 1 }
     }
   },
   sources: {
     provider: {
-      plugin: 'id_provider'
+      cpp: 'id_provider'
     }
   },
   modules: singlesgen + g4stage1 + g4stage2,

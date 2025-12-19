@@ -47,20 +47,45 @@ namespace phlex::experimental {
     }
   }
 
+  namespace detail {
+    boost::json::object adjust_config(std::string const& label, boost::json::object raw_config)
+    {
+      raw_config["module_label"] = label;
+
+      // Automatically specify the 'pymodule' Phlex plugin if the 'py' parameter is specified
+      if (auto const* py = raw_config.if_contains("py")) {
+        if (auto const* cpp = raw_config.if_contains("cpp")) {
+          std::string msg = fmt::format("Both 'cpp' and 'py' parameters specified for {}", label);
+          if (auto const* cpp_value = cpp->if_string()) {
+            msg += fmt::format("\n  - cpp: {}", *cpp_value);
+          }
+          if (auto const* py_value = py->if_string()) {
+            msg += fmt::format("\n  - py: {}", *py_value);
+          }
+          throw std::runtime_error(msg);
+        }
+        raw_config["cpp"] = "pymodule";
+      }
+
+      return raw_config;
+    }
+  }
+
   void load_module(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const& spec = value_to<std::string>(raw_config.at("plugin"));
+    auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
+
+    auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto& creator =
       create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
-    raw_config["module_label"] = label;
 
-    configuration const config{raw_config};
+    configuration const config{adjusted_config};
     creator(g.module_proxy(config), config);
   }
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const& spec = value_to<std::string>(raw_config.at("plugin"));
+    auto const& spec = value_to<std::string>(raw_config.at("cpp"));
     auto& creator =
       create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
 
@@ -76,7 +101,7 @@ namespace phlex::experimental {
   detail::next_index_t load_driver(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
-    auto const& spec = config.get<std::string>("plugin");
+    auto const& spec = config.get<std::string>("cpp");
     create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
     return create_driver(config);
   }
