@@ -21,32 +21,27 @@ mkdir -p ${PHLEX_WORK_DIR}
 cd ${PHLEX_WORK_DIR}
 ```
 
-Step 2: remove any previous user-level Spack installation
-```bash
-rm -rf $HOME/.spack
-```
-
 Then make sure you don't already have a spack  command on your PATH:
 ```bash 
 which spack
 ```
 should tell you there is no spack in your PATH.
 
-Step 3: install Spack
+Step 2: install Spack
 
 ```bash
 git clone --depth=2 https://github.com/spack/spack.git
 ```
 If you encounter trouble, consult the [installation instructions from the Spack project]( https://spack-tutorial.readthedocs.io/en/latest/tutorial_basics.html#basics-tutorial).
 
-Step 4: make spack available at the command line.
+Step 3: make spack available at the command line.
 ```bash
 source ${HOME}/spack/share/spack/setup-env.sh
 ```
 `which spack` will show that `spack` is a bash function. 
 
 
-Step 5: Modify the Spack configuration to avoid filling `/tmp`.
+Step 4: Modify the Spack configuration to avoid filling `/tmp`.
 This is not at all related to Phlex, but until there is spack documentation describing this, we recommend it as good practice.
 
 Run the following, which will open an editor.
@@ -64,8 +59,8 @@ config:
 
 ### Ensuring a sufficient compiler
 
-Step 6: ensure that spack has access to a new enough GCC.
-Currently this means GCC 14. 
+Step 5: ensure that spack has access to a new enough GCC.
+Currently this means GCC 14.
 
 Run `spack compilers` to see what compilers Spack knows about.
 It may tell you to run `spack compiler find` to autodetect compilers.
@@ -81,7 +76,7 @@ Building GCC may take
 
 ### Creating and installing the Phlex environment
 
-Step 7: Add the Spack recipe repositories needed by Phlex:
+Step 6: Add the Spack recipe repositories needed by Phlex:
 
 ```bash
 spack repo add https://github.com/FNALssi/fnal_art.git
@@ -90,7 +85,7 @@ spack repo add https://github.com/Framework-R-D/phlex-spack-recipes.git
 
 After you have done this, `spack repo list` should show that you have (among others) a repository named `phlex` available to Spack.
 
-Step 8: Create a spack environment and install phlex
+Step 7: Create a spack environment and install phlex
 
 To guide the creation of the environment, download the environment configuration file, and create the environment it describes:
 
