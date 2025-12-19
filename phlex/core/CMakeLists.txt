@@ -73,16 +73,10 @@ install(
         upstream_predicates.hpp
   DESTINATION include/phlex/core
   )
-install(
-  FILES fold/send.hpp
-  DESTINATION include/phlex/core/fold
-  )
-install(
-  FILES detail/make_algorithm_name.hpp
-  detail/maybe_predicates.hpp
-  detail/filter_impl.hpp
-  DESTINATION include/phlex/core/detail
-  )
+install(FILES fold/send.hpp DESTINATION include/phlex/core/fold)
+install(FILES detail/make_algorithm_name.hpp detail/maybe_predicates.hpp
+              detail/filter_impl.hpp DESTINATION include/phlex/core/detail
+        )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
 
 # AppleClang 15.0 still treats std::views::join as experimental
