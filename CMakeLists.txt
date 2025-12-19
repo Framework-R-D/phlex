@@ -69,11 +69,10 @@ add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
-     AND CMAKE_COMPILER_VERSION VERSION_LESS "15"
      )
-    # GCC 14.1 issues many false positives re. array-bounds and
+    # GCC 14.1+ issues many false positives re. array-bounds and
     # stringop-overflow
-    add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
+    add_compile_options(-Wno-array-bounds -Wno-stringop-overflow -Wno-maybe-uninitialized)
   endif()
 endif()
 
@@ -104,7 +103,8 @@ if(ENABLE_TSAN)
       -g
       -O1
       # Ensure no optimizations interfere with TSan
-      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-optimize-sibling-calls>"
       )
     add_link_options(-fsanitize=thread)
   else()
@@ -128,7 +128,8 @@ if(ENABLE_ASAN)
       -g
       -O1
       # Ensure no optimizations interfere with ASan
-      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-optimize-sibling-calls>"
       )
     add_link_options(-fsanitize=address)
   else()
