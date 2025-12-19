@@ -92,5 +92,13 @@ int main(int argc, char* argv[])
   if (not vm["parallel"].defaulted()) {
     max_concurrency = vm["parallel"].as<int>();
   }
-  phlex::experimental::run(configurations, max_concurrency);
+  try {
+    phlex::experimental::run(configurations, max_concurrency);
+  } catch (std::exception const& e) {
+    std::cerr << e.what() << '\n';
+    return 1;
+  } catch (...) {
+    std::cerr << "Unknown exception caught.\n";
+    return 1;
+  }
 }
