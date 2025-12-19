@@ -55,15 +55,14 @@ namespace phlex::experimental {
     raw_config["module_label"] = label;
 
     configuration const config{raw_config};
-    auto module_proxy = g.proxy(config);
-    creator(module_proxy, config);
+    creator(g.module_proxy(config), config);
   }
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
     auto const& spec = value_to<std::string>(raw_config.at("plugin"));
     auto& creator =
-      create_source.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_source"));
+      create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
@@ -71,8 +70,7 @@ namespace phlex::experimental {
     raw_config["module_label"] = label;
 
     configuration const config{raw_config};
-    auto source_proxy = g.proxy(config);
-    creator(source_proxy, config);
+    creator(g.source_proxy(config), config);
   }
 
   detail::next_index_t load_driver(boost::json::object const& raw_config)
