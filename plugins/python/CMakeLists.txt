@@ -69,6 +69,8 @@ except ImportError:
     PUBLIC Python::Python
     )
 
+  install(TARGETS pymodule LIBRARY DESTINATION lib)
+
   # numpy support if installed
   if(HAS_NUMPY)
 

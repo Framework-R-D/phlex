@@ -49,6 +49,7 @@ install(
         declared_observer.hpp
         declared_output.hpp
         declared_predicate.hpp
+        declared_provider.hpp
         declared_transform.hpp
         declared_unfold.hpp
         edge_creation_policy.hpp
@@ -71,6 +72,16 @@ install(
         store_counters.hpp
         upstream_predicates.hpp
   DESTINATION include/phlex/core
+  )
+install(
+  FILES fold/send.hpp
+  DESTINATION include/phlex/core/fold
+  )
+install(
+  FILES detail/make_algorithm_name.hpp
+  detail/maybe_predicates.hpp
+  detail/filter_impl.hpp
+  DESTINATION include/phlex/core/detail
   )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
 
