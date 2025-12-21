@@ -68,11 +68,12 @@ option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
-     )
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1")
     # GCC 14.1+ issues many false positives re. array-bounds and
     # stringop-overflow
-    add_compile_options(-Wno-array-bounds -Wno-stringop-overflow -Wno-maybe-uninitialized)
+    add_compile_options(
+      -Wno-array-bounds -Wno-stringop-overflow -Wno-maybe-uninitialized
+      )
   endif()
 endif()
 
