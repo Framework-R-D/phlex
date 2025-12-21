@@ -229,7 +229,7 @@ namespace {
       // for numpy typing, there's no useful way of figuring out the type from the
       // name of the type, only from its string representation, so fall through and
       // let this method return str()
-      if (ann != "ndarray")
+      if (ann != "ndarray" && ann != "list")
         return ann;
 
       // start over for numpy type using result from str()
@@ -651,8 +651,86 @@ namespace {
     }
     return vec;
   }
-  NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
-  NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+  // NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
+  static std::shared_ptr<std::vector<float>> py_to_vfloat(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<float>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          double val = PyFloat_AsDouble(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((float)val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        float* raw = static_cast<float*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  // NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+  static std::shared_ptr<std::vector<double>> py_to_vdouble(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    // std::lock_guard<std::mutex> lock(g_py_mutex);
+    auto vec = std::make_shared<std::vector<double>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          double val = PyFloat_AsDouble(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        double* raw = static_cast<double*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
 #endif
 
 } // unnamed namespace
@@ -862,7 +940,24 @@ static bool insert_input_converters(py_phlex_module* mod,
       }
     }
 #endif
-    else {
+    else if (inp_type == "list[int]") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[float]") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module
+        ->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[double]" || inp_type == "list['double']") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module
+        ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else {
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
       return false;
     }
@@ -988,7 +1083,23 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     }
   }
 #endif
-  else {
+  else if (output_type == "list[int]") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[float]") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[double]" || output_type == "list['double']") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module
+      ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else {
     PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output_type.c_str());
     return nullptr;
   }

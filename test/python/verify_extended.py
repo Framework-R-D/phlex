@@ -91,34 +91,60 @@ class VerifierDouble:
         assert abs(value - self._sum_total) < 1e-5
 
 
+class VerifierBool:
+    """Verify bool values."""
+
+    __name__ = "verifier_bool"
+
+    def __init__(self, expected: bool):
+        """Initialize with expected value."""
+        self._expected = expected
+
+    def __call__(self, value: bool) -> None:
+        """Check if value matches expected."""
+        print(f"VerifierBool: value={value}, expected={self._expected}")
+        assert value == self._expected
+
+
 def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     """Register observers for the test."""
     try:
         m.observe(VerifierInt(config["sum_total"]), input_family=config["input_int"])
     except (KeyError, TypeError):
-        pass  # Optional configuration, skip if missing
+        # Optional configuration, skip if missing
+        pass
+
+    try:
+        m.observe(VerifierBool(config["expected_bool"]), input_family=config["input_bool"])
+    except (KeyError, TypeError):
+        pass
 
     try:
         m.observe(VerifierUInt(config["sum_total"]), input_family=config["input_uint"])
     except (KeyError, TypeError):
-        pass  # Optional configuration, skip if missing
+        # Optional configuration, skip if missing
+        pass
 
     try:
         m.observe(VerifierLong(config["sum_total"]), input_family=config["input_long"])
     except (KeyError, TypeError):
-        pass  # Optional configuration, skip if missing
+        # Optional configuration, skip if missing
+        pass
 
     try:
         m.observe(VerifierULong(config["sum_total"]), input_family=config["input_ulong"])
     except (KeyError, TypeError):
-        pass  # Optional configuration, skip if missing
+        # Optional configuration, skip if missing
+        pass
 
     try:
         m.observe(VerifierFloat(config["sum_total"]), input_family=config["input_float"])
     except (KeyError, TypeError):
-        pass  # Optional configuration, skip if missing
+        # Optional configuration, skip if missing
+        pass
 
     try:
         m.observe(VerifierDouble(config["sum_total"]), input_family=config["input_double"])
     except (KeyError, TypeError):
-        pass  # Optional configuration, skip if missing
+        # Optional configuration, skip if missing
+        pass

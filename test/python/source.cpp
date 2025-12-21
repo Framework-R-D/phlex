@@ -53,4 +53,9 @@ PHLEX_EXPERIMENTAL_REGISTER_PROVIDERS(s)
      "provide_ul2",
      [](data_cell_index const& id) -> uint64_t { return 100 - (uint64_t)(id.number() % 101); })
     .output_product("ul2"_in("job"));
+
+  s.provide("provide_b1", [](data_cell_index const& id) -> bool { return (id.number() % 2) == 0; })
+    .output_product("b1"_in("job"));
+  s.provide("provide_b2", [](data_cell_index const& id) -> bool { return (id.number() % 2) != 0; })
+    .output_product("b2"_in("job"));
 }

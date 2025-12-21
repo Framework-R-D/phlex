@@ -79,6 +79,19 @@ def collect_double(i: double, j: double) -> npt.NDArray[np.float64]:
     return np.array([i, j], dtype=np.float64)
 
 
+def and_bool(i: bool, j: bool) -> bool:
+    """And two booleans.
+
+    Args:
+        i (bool): First input.
+        j (bool): Second input.
+
+    Returns:
+        bool: Logical AND of the two inputs.
+    """
+    return i and j
+
+
 def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     """Register algorithms.
 
@@ -99,6 +112,10 @@ def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
 
     m.transform(
         add_unsigned, input_family=config["input_uint"], output_products=config["output_uint"]
+    )
+
+    m.transform(
+        and_bool, input_family=config["input_bool"], output_products=config["output_bool"]
     )
 
     m.transform(
