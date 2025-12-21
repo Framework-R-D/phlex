@@ -947,8 +947,7 @@ static bool insert_input_converters(py_phlex_module* mod,
         .output_products(py_out);
     } else if (inp_type == "list[float]") {
       std::string py_out = cname + "_" + inp + "py";
-      mod->ph_module
-        ->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
+      mod->ph_module->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
         .input_family(product_query{product_specification::create(inp), LAYER})
         .output_products(py_out);
     } else if (inp_type == "list[double]" || inp_type == "list['double']") {
