@@ -4,10 +4,10 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
-#include <mutex>
 
 // static std::mutex g_py_mutex;
 
@@ -20,12 +20,13 @@
 using namespace phlex::experimental;
 
 struct PyObjectDeleter {
-    void operator()(PyObject* p) const {
-        if (p) {
-            phlex::experimental::PyGILRAII gil;
-            Py_DECREF(p);
-        }
+  void operator()(PyObject* p) const
+  {
+    if (p) {
+      phlex::experimental::PyGILRAII gil;
+      Py_DECREF(p);
     }
+  }
 };
 using PyObjectPtr = std::shared_ptr<PyObject>;
 
@@ -110,8 +111,8 @@ namespace {
       PyGILRAII gil;
       // std::lock_guard<std::mutex> lock(g_py_mutex);
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args.get())..., nullptr);
+      PyObject* result = PyObject_CallFunctionObjArgs(
+        (PyObject*)m_callable, lifeline_transform(args.get())..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -174,7 +175,10 @@ namespace {
   };
 
   struct py_callback_3v : public py_callback<3> {
-    void operator()(PyObjectPtr arg0, PyObjectPtr arg1, PyObjectPtr arg2) { callv(arg0, arg1, arg2); }
+    void operator()(PyObjectPtr arg0, PyObjectPtr arg1, PyObjectPtr arg2)
+    {
+      callv(arg0, arg1, arg2);
+    }
   };
 
   static std::vector<std::string> cseq(PyObject* coll)
@@ -367,20 +371,21 @@ namespace {
   {
     PyGILRAII gil;
     // std::lock_guard<std::mutex> lock(g_py_mutex);
-    if (!v) return PyObjectPtr();
+    if (!v)
+      return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
     if (!list) {
-        PyErr_Print();
-        return PyObjectPtr();
+      PyErr_Print();
+      return PyObjectPtr();
     }
     for (size_t i = 0; i < v->size(); ++i) {
-        PyObject* item = PyLong_FromLong((*v)[i]);
-        if (!item) {
-            PyErr_Print();
-            Py_DECREF(list);
-            return PyObjectPtr();
-        }
-        PyList_SET_ITEM(list, i, item);
+      PyObject* item = PyLong_FromLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
     }
     return PyObjectPtr(list, PyObjectDeleter());
   }
@@ -389,20 +394,21 @@ namespace {
   {
     PyGILRAII gil;
     // std::lock_guard<std::mutex> lock(g_py_mutex);
-    if (!v) return PyObjectPtr();
+    if (!v)
+      return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
     if (!list) {
-        PyErr_Print();
-        return PyObjectPtr();
+      PyErr_Print();
+      return PyObjectPtr();
     }
     for (size_t i = 0; i < v->size(); ++i) {
-        PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
-        if (!item) {
-            PyErr_Print();
-            Py_DECREF(list);
-            return PyObjectPtr();
-        }
-        PyList_SET_ITEM(list, i, item);
+      PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
     }
     return PyObjectPtr(list, PyObjectDeleter());
   }
@@ -411,20 +417,21 @@ namespace {
   {
     PyGILRAII gil;
     // std::lock_guard<std::mutex> lock(g_py_mutex);
-    if (!v) return PyObjectPtr();
+    if (!v)
+      return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
     if (!list) {
-        PyErr_Print();
-        return PyObjectPtr();
+      PyErr_Print();
+      return PyObjectPtr();
     }
     for (size_t i = 0; i < v->size(); ++i) {
-        PyObject* item = PyLong_FromLong((*v)[i]);
-        if (!item) {
-            PyErr_Print();
-            Py_DECREF(list);
-            return PyObjectPtr();
-        }
-        PyList_SET_ITEM(list, i, item);
+      PyObject* item = PyLong_FromLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
     }
     return PyObjectPtr(list, PyObjectDeleter());
   }
@@ -433,20 +440,21 @@ namespace {
   {
     PyGILRAII gil;
     // std::lock_guard<std::mutex> lock(g_py_mutex);
-    if (!v) return PyObjectPtr();
+    if (!v)
+      return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
     if (!list) {
-        PyErr_Print();
-        return PyObjectPtr();
+      PyErr_Print();
+      return PyObjectPtr();
     }
     for (size_t i = 0; i < v->size(); ++i) {
-        PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
-        if (!item) {
-            PyErr_Print();
-            Py_DECREF(list);
-            return PyObjectPtr();
-        }
-        PyList_SET_ITEM(list, i, item);
+      PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
+      if (!item) {
+        PyErr_Print();
+        Py_DECREF(list);
+        return PyObjectPtr();
+      }
+      PyList_SET_ITEM(list, i, item);
     }
     return PyObjectPtr(list, PyObjectDeleter());
   }
@@ -490,36 +498,36 @@ namespace {
     // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<int>>();
     PyObject* obj = pyobj.get();
-    
+
     if (obj) {
-        if (PyList_Check(obj)) {
-            size_t size = PyList_Size(obj);
-            vec->reserve(size);
-            for (size_t i = 0; i < size; ++i) {
-                PyObject* item = PyList_GetItem(obj, i);
-                if (!item) {
-                    PyErr_Print();
-                    break;
-                }
-                long val = PyLong_AsLong(item);
-                if (PyErr_Occurred()) {
-                    PyErr_Print();
-                    break;
-                }
-                vec->push_back((int)val);
-            }
-        } else if (PyArray_Check(obj)) {
-            PyArrayObject* arr = (PyArrayObject*)obj;
-            npy_intp* dims = PyArray_DIMS(arr);
-            int nd = PyArray_NDIM(arr);
-            size_t total = 1;
-            for (int i = 0; i < nd; ++i)
-              total *= static_cast<size_t>(dims[i]);
-            
-            int* raw = static_cast<int*>(PyArray_DATA(arr));
-            vec->reserve(total);
-            vec->insert(vec->end(), raw, raw + total);
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          long val = PyLong_AsLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((int)val);
         }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        int* raw = static_cast<int*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
     }
     return vec;
   }
@@ -530,36 +538,36 @@ namespace {
     // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<unsigned int>>();
     PyObject* obj = pyobj.get();
-    
+
     if (obj) {
-        if (PyList_Check(obj)) {
-            size_t size = PyList_Size(obj);
-            vec->reserve(size);
-            for (size_t i = 0; i < size; ++i) {
-                PyObject* item = PyList_GetItem(obj, i);
-                if (!item) {
-                    PyErr_Print();
-                    break;
-                }
-                unsigned long val = PyLong_AsUnsignedLong(item);
-                if (PyErr_Occurred()) {
-                    PyErr_Print();
-                    break;
-                }
-                vec->push_back((unsigned int)val);
-            }
-        } else if (PyArray_Check(obj)) {
-            PyArrayObject* arr = (PyArrayObject*)obj;
-            npy_intp* dims = PyArray_DIMS(arr);
-            int nd = PyArray_NDIM(arr);
-            size_t total = 1;
-            for (int i = 0; i < nd; ++i)
-              total *= static_cast<size_t>(dims[i]);
-            
-            unsigned int* raw = static_cast<unsigned int*>(PyArray_DATA(arr));
-            vec->reserve(total);
-            vec->insert(vec->end(), raw, raw + total);
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          unsigned long val = PyLong_AsUnsignedLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((unsigned int)val);
         }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        unsigned int* raw = static_cast<unsigned int*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
     }
     return vec;
   }
@@ -570,36 +578,36 @@ namespace {
     // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<long>>();
     PyObject* obj = pyobj.get();
-    
+
     if (obj) {
-        if (PyList_Check(obj)) {
-            size_t size = PyList_Size(obj);
-            vec->reserve(size);
-            for (size_t i = 0; i < size; ++i) {
-                PyObject* item = PyList_GetItem(obj, i);
-                if (!item) {
-                    PyErr_Print();
-                    break;
-                }
-                long val = PyLong_AsLong(item);
-                if (PyErr_Occurred()) {
-                    PyErr_Print();
-                    break;
-                }
-                vec->push_back(val);
-            }
-        } else if (PyArray_Check(obj)) {
-            PyArrayObject* arr = (PyArrayObject*)obj;
-            npy_intp* dims = PyArray_DIMS(arr);
-            int nd = PyArray_NDIM(arr);
-            size_t total = 1;
-            for (int i = 0; i < nd; ++i)
-              total *= static_cast<size_t>(dims[i]);
-            
-            long* raw = static_cast<long*>(PyArray_DATA(arr));
-            vec->reserve(total);
-            vec->insert(vec->end(), raw, raw + total);
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          long val = PyLong_AsLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
         }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        long* raw = static_cast<long*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
     }
     return vec;
   }
@@ -610,36 +618,36 @@ namespace {
     // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<unsigned long>>();
     PyObject* obj = pyobj.get();
-    
+
     if (obj) {
-        if (PyList_Check(obj)) {
-            size_t size = PyList_Size(obj);
-            vec->reserve(size);
-            for (size_t i = 0; i < size; ++i) {
-                PyObject* item = PyList_GetItem(obj, i);
-                if (!item) {
-                    PyErr_Print();
-                    break;
-                }
-                unsigned long val = PyLong_AsUnsignedLong(item);
-                if (PyErr_Occurred()) {
-                    PyErr_Print();
-                    break;
-                }
-                vec->push_back(val);
-            }
-        } else if (PyArray_Check(obj)) {
-            PyArrayObject* arr = (PyArrayObject*)obj;
-            npy_intp* dims = PyArray_DIMS(arr);
-            int nd = PyArray_NDIM(arr);
-            size_t total = 1;
-            for (int i = 0; i < nd; ++i)
-              total *= static_cast<size_t>(dims[i]);
-            
-            unsigned long* raw = static_cast<unsigned long*>(PyArray_DATA(arr));
-            vec->reserve(total);
-            vec->insert(vec->end(), raw, raw + total);
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          unsigned long val = PyLong_AsUnsignedLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
         }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        unsigned long* raw = static_cast<unsigned long*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
     }
     return vec;
   }
@@ -750,11 +758,11 @@ static PyObject* parse_args(PyObject* args,
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(annot, &pos, &key, &val)) {
-        // Skip 'return' annotation as it is handled separately
-        if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0) {
-            continue;
-        }
-        input_types.push_back(annotation_as_text(val));
+      // Skip 'return' annotation as it is handled separately
+      if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0) {
+        continue;
+      }
+      input_types.push_back(annotation_as_text(val));
     }
   }
   Py_XDECREF(annot);
