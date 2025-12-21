@@ -117,6 +117,7 @@ def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     try:
         m.observe(VerifierBool(config["expected_bool"]), input_family=config["input_bool"])
     except (KeyError, TypeError):
+        # Optional configuration, skip if missing
         pass
 
     try:
