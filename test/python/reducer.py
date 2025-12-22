@@ -11,6 +11,7 @@ to ensure these either don't happen or are properly resolved by Phlex:
    lifetime issues (if they are not).
 """
 
+
 def add(i: int, j: int) -> int:
     """Add the inputs together and return the sum total.
 
@@ -49,24 +50,13 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     """
     # first recieve the same input x4 but return "different" output
     for i in range(4):
-        m.transform(add,
-                    name = "reduce%d" % i,
-                    input_family = config["input"],
-                    output_products = ["sum%d" % i])
+        m.transform(
+            add, name="reduce%d" % i, input_family=config["input"], output_products=["sum%d" % i]
+        )
 
     # now reduce them pair-wise
-    m.transform(add,
-                name = "reduce01",
-                input_family = ["sum0", "sum1"],
-                output_products = ["sum01"])
-    m.transform(add,
-                name = "reduce23",
-                input_family = ["sum2", "sum3"],
-                output_products = ["sum23"])
+    m.transform(add, name="reduce01", input_family=["sum0", "sum1"], output_products=["sum01"])
+    m.transform(add, name="reduce23", input_family=["sum2", "sum3"], output_products=["sum23"])
 
     # once more (and the configuration will add a verifier)
-    m.transform(add,
-                name = "reduce",
-                input_family = ["sum01", "sum23"],
-                output_products = ["sum"])
-
+    m.transform(add, name="reduce", input_family=["sum01", "sum23"], output_products=["sum"])

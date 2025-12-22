@@ -5,6 +5,7 @@ all supported types. It then verifies whether this is properly translated
 to Python. The actual run is a noop.
 """
 
+
 class ConfigConsumer:
     """A callable class that "needs" every configuration type.
 
@@ -12,7 +13,7 @@ class ConfigConsumer:
         __name__ (str): Identifier for Phlex.
     """
 
-    __name__ = 'config_consumer'
+    __name__ = "config_consumer"
 
     def __init__(self, config):
         """Create a config consumer object.
@@ -28,18 +29,18 @@ class ConfigConsumer:
             None
         """
         # builtin types
-        assert config['a_bool'] == False # noqa: E712  # we really want to check False
-        assert config['an_int'] == -37
-        assert config['a_uint'] ==  18446744073709551616
-        assert config['a_float'] == 3.1415
-        assert config['a_string'] == 'foo'
+        assert config["a_bool"] == False  # noqa: E712  # we really want to check False
+        assert config["an_int"] == -37
+        assert config["a_uint"] == 18446744073709551616
+        assert config["a_float"] == 3.1415
+        assert config["a_string"] == "foo"
 
         # collection types
-        assert config['some_bools'] == (False, True)
-        assert config['some_ints'] == (-1, 42, -55)
-        assert config['some_uints'] == (18446744073709551616, 29, 137)
-        assert config['some_floats'] == (3.1415, 2.71828)
-        assert config['some_strings'] == ('aap', 'noot', 'mies')
+        assert config["some_bools"] == (False, True)
+        assert config["some_ints"] == (-1, 42, -55)
+        assert config["some_uints"] == (18446744073709551616, 29, 137)
+        assert config["some_floats"] == (3.1415, 2.71828)
+        assert config["some_strings"] == ("aap", "noot", "mies")
 
     def __call__(self, i: int, j: int) -> None:
         """Dummy routine to do something.
@@ -71,5 +72,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         None
     """
     config_consumer = ConfigConsumer(config)
-    m.observe(config_consumer, input_family = config["input"])
-
+    m.observe(config_consumer, input_family=config["input"])

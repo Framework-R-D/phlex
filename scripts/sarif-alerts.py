@@ -1,4 +1,5 @@
 """A simple tool to print SARIF results from one or more SARIF files."""
+
 import argparse
 import json
 from pathlib import Path

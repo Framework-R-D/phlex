@@ -232,7 +232,7 @@ set -euo pipefail
 # Use pip to install tooling that is not packaged in Spack
 . /entrypoint.sh
 
-PYTHONDONTWRITEBYTECODE=1 pip --isolated --no-input --disable-pip-version-check --no-cache-dir install --prefix /usr/local ruff
+PYTHONDONTWRITEBYTECODE=1 pip --isolated --no-input --disable-pip-version-check --no-cache-dir install --prefix /usr/local ruff mypy
 rm -rf ~/.spack
 INSTALL_PYTHON_TOOLS
 
