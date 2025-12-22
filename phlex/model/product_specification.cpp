@@ -28,23 +28,6 @@ namespace phlex::experimental {
     return qualifier + "/" + name_;
   }
 
-  bool product_specification::operator==(product_specification const& other) const
-  {
-    return std::tie(qualifier_, name_, type_id_) ==
-           std::tie(other.qualifier_, other.name_, other.type_id_);
-  }
-
-  bool product_specification::operator!=(product_specification const& other) const
-  {
-    return !operator==(other);
-  }
-
-  bool product_specification::operator<(product_specification const& other) const
-  {
-    return std::tie(qualifier_, name_, type_id_) <
-           std::tie(other.qualifier_, other.name_, type_id_);
-  }
-
   product_specification product_specification::create(char const* c)
   {
     return create(std::string{c});

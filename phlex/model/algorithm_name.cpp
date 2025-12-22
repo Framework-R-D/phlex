@@ -55,20 +55,6 @@ namespace phlex::experimental {
     return false;
   }
 
-  auto algorithm_name::cmp_tuple() const { return std::tie(plugin_, algorithm_, fields_); }
-
-  bool algorithm_name::operator==(algorithm_name const& other) const
-  {
-    return cmp_tuple() == other.cmp_tuple();
-  }
-
-  bool algorithm_name::operator!=(algorithm_name const& other) const { return !operator==(other); }
-
-  bool algorithm_name::operator<(algorithm_name const& other) const
-  {
-    return cmp_tuple() < other.cmp_tuple();
-  }
-
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string{spec}); }
   algorithm_name algorithm_name::create(std::string const& spec)
   {
