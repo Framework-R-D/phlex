@@ -140,6 +140,21 @@ except Exception:
            )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
+  add_test(NAME py:coverage COMMAND phlex -c
+                                    ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet
+           )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
+
+  add_test(NAME py:mismatch
+           COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c
+                   ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
+           )
+  set_tests_properties(
+    py:mismatch PROPERTIES PASS_REGULAR_EXPRESSION
+                           "number of inputs .* does not match number of annotation types"
+    )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch)
+
   # "failing" tests for checking error paths
   add_test(NAME py:failure
            COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c
