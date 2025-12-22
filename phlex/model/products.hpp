@@ -4,13 +4,11 @@
 #include "phlex/model/product_specification.hpp"
 
 #include <cassert>
-#include <cstring>
 #include <memory>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 
 namespace phlex::experimental {
 
@@ -77,18 +75,10 @@ namespace phlex::experimental {
         throw std::runtime_error("No product exists with the name '" + product_name + "'.");
       }
 
-      // Should be able to use dynamic_cast a la:
-      //
-      //   if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
-      //     return t->obj;
-      //   }
-      //
-      // Unfortunately, this doesn't work well whenever products are inserted across
-      // modules and shared object libraries.
+      auto const* available_product = it->second.get();
 
-      auto available_product = it->second.get();
-      if (std::strcmp(typeid(T).name(), available_product->type().name()) == 0) {
-        return reinterpret_cast<product<T> const*>(available_product)->obj;
+      if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product)) {
+        return desired_product->obj;
       }
 
       throw_mismatched_type(product_name, typeid(T).name(), available_product->type().name());
