@@ -6,9 +6,9 @@
 
 using namespace phlex::experimental::test;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
-  using inputs = phlex::experimental::data_cell_index;
+  using inputs = phlex::data_cell_index;
   using outputs = std::tuple<simb::MCTruths, beam::ProtoDUNEBeamEvents, sim::ProtoDUNEbeamsims>;
   define_algorithm<inputs, outputs>(m, config);
 }

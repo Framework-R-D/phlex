@@ -39,7 +39,7 @@
 #include <atomic>
 #include <string>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   // Provider function
@@ -57,12 +57,12 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
   // job -> event layers
   constexpr auto top_level_event_limit = 10u;
 
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("run", {"job", index_limit});
   gen.add_layer("event", {"run", number_limit});
   gen.add_layer("event", {"job", top_level_event_limit});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)

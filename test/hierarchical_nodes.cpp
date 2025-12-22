@@ -30,7 +30,7 @@
 #include <ctime>
 #include <string>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   constexpr auto index_limit = 2u;
@@ -82,11 +82,11 @@ namespace {
 
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("run", {"job", index_limit});
   gen.add_layer("event", {"run", number_limit});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_time",
             [](data_cell_index const& index) -> std::time_t {
@@ -105,7 +105,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family("time"_in("run"))
-    .when()
+    .experimental_when()
     .output_products("strtime");
   g.transform("square", square, concurrency::unlimited)
     .input_family("number"_in("event"))
@@ -113,7 +113,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
     .input_family("squared_number"_in("event"))
-    .when()
+    .experimental_when()
     .output_products("added_data");
 
   g.transform("scale", scale, concurrency::unlimited)
@@ -122,7 +122,9 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.observe("print_result", print_result, concurrency::unlimited)
     .input_family("result"_in("run"), "strtime"_in("run"));
 
-  g.make<test::products_for_output>().output("save", &test::products_for_output::save).when();
+  g.make<experimental::test::products_for_output>()
+    .output("save", &experimental::test::products_for_output::save)
+    .experimental_when();
 
   try {
     g.execute();

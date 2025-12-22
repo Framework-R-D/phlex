@@ -17,7 +17,7 @@ using namespace std::string_literals;
 
 namespace {
 
-  std::vector<std::size_t> all_numbers(phlex::experimental::data_cell_index const& id)
+  std::vector<std::size_t> all_numbers(phlex::data_cell_index const& id)
   {
     if (!id.has_parent()) {
       return {};
@@ -34,7 +34,7 @@ namespace {
 
 }
 
-namespace phlex::experimental {
+namespace phlex {
 
   data_cell_index::data_cell_index() :
     layer_name_{"job"}, layer_hash_{phlex::experimental::hash(layer_name_)}
@@ -57,7 +57,7 @@ namespace phlex::experimental {
   data_cell_index const& data_cell_index::base() { return *base_ptr(); }
   data_cell_index_ptr data_cell_index::base_ptr()
   {
-    static phlex::experimental::data_cell_index_ptr base_id{new data_cell_index};
+    static data_cell_index_ptr base_id{new data_cell_index};
     return base_id;
   }
 
@@ -107,31 +107,6 @@ namespace phlex::experimental {
     return std::lexicographical_compare(
       begin(these_numbers), end(these_numbers), begin(those_numbers), end(those_numbers));
   }
-
-  data_cell_index_ptr id_for(std::vector<std::size_t> nums)
-  {
-    auto current = data_cell_index::base_ptr();
-    for (auto const num : nums) {
-      current = current->make_child(num, "");
-    }
-    return current;
-  }
-
-  data_cell_index_ptr id_for(char const* c_str)
-  {
-    std::vector<std::string> strs;
-    split(strs, c_str, boost::is_any_of(":"));
-
-    erase_if(strs, [](auto& str) { return empty(str); });
-
-    std::vector<std::size_t> nums;
-    std::transform(begin(strs), end(strs), back_inserter(nums), [](auto const& str) {
-      return std::stoull(str);
-    });
-    return id_for(std::move(nums));
-  }
-
-  data_cell_index_ptr operator""_id(char const* c_str, std::size_t) { return id_for(c_str); }
 
   data_cell_index_ptr data_cell_index::parent() const noexcept { return parent_; }
 

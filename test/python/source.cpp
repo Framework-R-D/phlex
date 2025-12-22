@@ -1,9 +1,9 @@
 #include "phlex/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
-PHLEX_EXPERIMENTAL_REGISTER_PROVIDERS(s)
+PHLEX_REGISTER_PROVIDERS(s)
 {
   s.provide("provide_i", [](data_cell_index const& id) -> int { return id.number(); })
     .output_product("i"_in("job"));

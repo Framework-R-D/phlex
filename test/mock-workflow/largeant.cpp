@@ -7,7 +7,7 @@
 
 using namespace phlex::experimental::test;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   using assns =
     phlex::experimental::association<simb::MCParticle, simb::MCTruth, sim::GeneratedParticleInfo>;

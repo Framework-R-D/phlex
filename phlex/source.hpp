@@ -28,7 +28,7 @@ namespace phlex::experimental {
   }
 }
 
-#define PHLEX_EXPERIMENTAL_REGISTER_PROVIDERS(...)                                                 \
+#define PHLEX_REGISTER_PROVIDERS(...)                                                              \
   PHLEX_DETAIL_REGISTER_PLUGIN(                                                                    \
     phlex::experimental::source_graph_proxy, create, create_source, __VA_ARGS__)
 

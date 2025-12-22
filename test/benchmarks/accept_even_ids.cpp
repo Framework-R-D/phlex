@@ -3,9 +3,9 @@
 
 #include <string>
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
-  using namespace phlex::experimental;
+  using namespace phlex;
   m.predicate(
      "accept_even_ids",
      [](data_cell_index const& id) { return id.number() % 2 == 0; },

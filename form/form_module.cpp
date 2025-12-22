@@ -104,7 +104,7 @@ namespace {
 
 }
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   std::cout << "Registering FORM output module...\n";
 

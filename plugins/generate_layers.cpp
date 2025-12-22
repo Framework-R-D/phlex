@@ -26,7 +26,7 @@
 
 #include <string>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   class generate_layers {
@@ -48,7 +48,7 @@ namespace {
     void next(framework_driver& driver) { gen_(driver); }
 
   private:
-    layer_generator gen_;
+    experimental::layer_generator gen_;
   };
 }
 

@@ -45,6 +45,7 @@ TEST_CASE("Filter decision", "[filtering]")
 
 TEST_CASE("Filter data map", "[filtering]")
 {
+  using phlex::operator""_in;
   std::vector const data_products_to_cache{"a"_in("spill"), "b"_in("spill")};
   data_map data{data_products_to_cache};
 

@@ -15,8 +15,11 @@
 #include <tuple>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex {
   class configuration;
+}
+
+namespace phlex::experimental {
   struct node_catalog;
 
   namespace detail {

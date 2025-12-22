@@ -23,7 +23,7 @@
     },
     d: {
       cpp: 'read_index',
-      when: ['even_filter:accept_even_numbers'],
+      experimental_when: ['even_filter:accept_even_numbers'],
       consumes: { product: 'b', layer: "event" }
     },
   },

@@ -31,7 +31,7 @@ namespace phlex::experimental {
   }
 }
 
-#define PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(...)                                                \
+#define PHLEX_REGISTER_ALGORITHMS(...)                                                             \
   PHLEX_DETAIL_REGISTER_PLUGIN(                                                                    \
     phlex::experimental::module_graph_proxy, create, create_module, __VA_ARGS__)
 

@@ -10,7 +10,7 @@ using namespace phlex::experimental;
 // clang-format off
 struct phlex::experimental::py_config_map {
   PyObject_HEAD
-  phlex::experimental::configuration const* ph_config;
+  phlex::configuration const* ph_config;
   PyObject* ph_config_cache;
 };
 // clang-format on

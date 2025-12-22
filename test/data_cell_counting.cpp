@@ -53,6 +53,7 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
   auto const subrun_hash_value = hash(run_hash_value, "subrun");
   auto const event_hash_value = hash(subrun_hash_value, "event");
 
+  using phlex::data_cell_index;
   auto job_index = data_cell_index::base_ptr();
   counters.update(job_index);
   for (std::size_t i = 0; i != nruns; ++i) {

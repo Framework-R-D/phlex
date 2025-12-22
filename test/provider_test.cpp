@@ -6,7 +6,7 @@
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace toy {
   struct VertexCollection {
@@ -33,10 +33,10 @@ TEST_CASE("provider_test")
   // constexpr auto max_events{1'000'000u};
   spdlog::flush_on(spdlog::level::trace);
 
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("spill", {"job", max_events, 1u});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
     .output_product("happy_vertices"_in("spill"));

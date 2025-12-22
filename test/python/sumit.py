@@ -46,7 +46,7 @@ def sum_array(coll: npt.NDArray[np.int32]) -> int:
     return sum(coll)
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms exercising numpy arrays.
 
     Use the standard Phlex `transform` registration to insert a node

@@ -30,9 +30,11 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex {
   class configuration;
+}
 
+namespace phlex::experimental {
   class layer_sentry {
   public:
     layer_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);

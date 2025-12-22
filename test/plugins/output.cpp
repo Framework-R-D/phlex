@@ -1,10 +1,10 @@
 #include "phlex/module.hpp"
 #include "test/products_for_output.hpp"
 
-using namespace phlex::experimental::test;
+using namespace phlex;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
+PHLEX_REGISTER_ALGORITHMS(m)
 {
-  m.make<products_for_output>().output(
-    "save", &products_for_output::save, phlex::experimental::concurrency::unlimited);
+  using experimental::test::products_for_output;
+  m.make<products_for_output>().output("save", &products_for_output::save, concurrency::unlimited);
 }

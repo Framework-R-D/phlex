@@ -1,12 +1,12 @@
 #include "phlex/module.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   int plus_one(int i) noexcept { return i + 1; }
 }
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
+PHLEX_REGISTER_ALGORITHMS(m)
 {
   m.transform("plus_one", plus_one, concurrency::unlimited)
     .input_family("a"_in("event"))

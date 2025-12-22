@@ -9,7 +9,7 @@
 #include <tuple>
 
 using namespace std::string_literals;
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   // Provider functions
@@ -62,7 +62,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::array const product_names{"number"_in("job"), "temperature"_in("job"), "name"_in("job")};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
-  framework_graph g{data_cell_index::base_ptr()};
+  experimental::framework_graph g{data_cell_index::base_ptr()};
 
   // Register providers for the input products
   g.provide("provide_number", provide_number, concurrency::unlimited)

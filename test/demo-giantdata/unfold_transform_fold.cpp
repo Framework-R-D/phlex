@@ -11,7 +11,7 @@
 
 #include <atomic>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   // Tracks pipeline execution to verify that fold operations begin before all unfold
@@ -45,12 +45,12 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   tracker.total_expected = n_spills * apas_per_spill;
 
   // Create data layers using layer generator
-  layer_generator gen;
+  experimental::layer_generator gen;
   gen.add_layer("run", {"job", n_runs});
   gen.add_layer("subrun", {"run", n_subruns});
   gen.add_layer("spill", {"subrun", n_spills});
 
-  framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_wgen",
             [](data_cell_index const& spill_index) {

@@ -4,6 +4,6 @@
 namespace phlex::experimental::detail {
   std::optional<std::vector<std::string>> maybe_predicates(configuration const* config)
   {
-    return config->get_if_present<std::vector<std::string>>("when");
+    return config->get_if_present<std::vector<std::string>>("experimental_when");
   }
 }

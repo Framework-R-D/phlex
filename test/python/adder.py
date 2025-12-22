@@ -24,7 +24,7 @@ def add(i: int, j: int) -> int:
     return i + j
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register the `add` algorithm as a transformation.
 
     Use the standard Phlex `transform` registration to insert a node

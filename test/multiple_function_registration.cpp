@@ -8,7 +8,7 @@
 #include <numeric>
 #include <vector>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
 namespace {
   auto square_numbers(std::vector<unsigned> const& numbers)
@@ -41,7 +41,7 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  framework_graph g{data_cell_index::base_ptr()};
+  experimental::framework_graph g{data_cell_index::base_ptr()};
 
   g.provide("provide_numbers",
             [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })

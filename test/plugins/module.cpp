@@ -3,9 +3,9 @@
 
 #include <cassert>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m)
+PHLEX_REGISTER_ALGORITHMS(m)
 {
   m.transform("add", test::add, concurrency::unlimited)
     .input_family("i"_in("event"), "j"_in("event"))

@@ -16,8 +16,11 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex {
   class configuration;
+}
+
+namespace phlex::experimental {
   // ==============================================================================
   // Registering user functions
 

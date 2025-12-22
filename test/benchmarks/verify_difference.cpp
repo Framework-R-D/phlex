@@ -2,9 +2,9 @@
 
 #include <cassert>
 
-using namespace phlex::experimental;
+using namespace phlex;
 
-PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   m.observe(
      "verify_difference",
