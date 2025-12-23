@@ -27,8 +27,8 @@ find_program(LCOV_EXECUTABLE lcov)
 find_program(GENHTML_EXECUTABLE genhtml)
 find_program(GCOVR_EXECUTABLE gcovr)
 
-# Find Python3 and normalization scripts
-find_package(Python3 COMPONENTS Interpreter)
+# Find Python and normalization scripts
+find_package(Python COMPONENTS Interpreter)
 
 # Find CTest coverage tool
 find_program(
