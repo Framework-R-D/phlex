@@ -9,7 +9,6 @@
         "files.associations": {
             "*.yml": "yaml",
             "*.yaml": "yaml",
-            "codecov.yml": "plaintext"
         },
         "files.exclude": {
             "**/local/.*/**": true,
