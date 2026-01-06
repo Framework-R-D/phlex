@@ -255,10 +255,6 @@ USER root
 # Dev image additions (tooling and dev user configuration)
 
 FROM base AS dev
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=1000
-ENV HOME=/home/$USERNAME
 ENV SPACK_GROUP=spack
 
 ########################################################################
@@ -281,16 +277,7 @@ INSTALL_DEV_PACKAGES
 ########################################################################
 # Create developer user and grant access to the shared spack group
 
-RUN <<'CREATE_DEV_USER'
-set -euo pipefail
-
-# Create developer user and grant access to the shared spack group
-groupadd --gid $USER_GID $USERNAME
-useradd --uid $USER_UID --gid $USER_GID --create-home $USERNAME
-echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME
-chmod 0440 /etc/sudoers.d/$USERNAME
-usermod -aG $SPACK_GROUP $USERNAME
-CREATE_DEV_USER
+# (User creation removed to be handled by devcontainer or runtime environment)
 
 ########################################################################
 # Prepare workspace directory writable by the developer group
@@ -299,8 +286,7 @@ RUN <<'PREP_DEV_WORKSPACE'
 set -euo pipefail
 
 # Prepare workspace directory writable by the developer group
-mkdir -p /workspaces/phlex
-chown $USERNAME:$USERNAME /workspaces
+mkdir -p /workspaces
 chgrp $SPACK_GROUP /workspaces
 chmod g+rwX /workspaces
 PREP_DEV_WORKSPACE
@@ -341,7 +327,5 @@ apt-get clean
 rm -rf /var/lib/apt/lists/*
 INSTALL_GH_CLI
 
-USER $USERNAME
-WORKDIR /workspaces/phlex
 SHELL ["/bin/bash", "-c"]
 HEALTHCHECK CMD curl -f https://github.com || exit 1
