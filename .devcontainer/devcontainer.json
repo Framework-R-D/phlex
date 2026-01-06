@@ -49,7 +49,6 @@
                 "charliermarsh.ruff",
                 "cheshirekow.cmake-format",
                 "chrisjsewell.myst-tml-syntax",
-                "codecov.codecov",
                 "codeium.codeium",
                 "codeium.windsurf-cpptools",
                 "codeium.windsurfpyright",
