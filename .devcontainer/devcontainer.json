@@ -27,6 +27,7 @@
                         "icon": "terminal-bash"
                     }
                 },
+                "terminal.integrated.shellIntegration.suggestEnablement": false,
                 "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
                 "python.analysis.extraPaths": [
                     "${workspaceFolder}/build",
