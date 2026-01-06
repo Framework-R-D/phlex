@@ -1,0 +1,18 @@
+# act configuration for local workflow testing on the host
+# See: https://nektosact.com/usage/index.html
+#
+# NOTE: act cannot run inside the devcontainer due to nested container limitations.
+# Use this configuration when running act on the host machine.
+
+# Default image for jobs without explicit container
+# Medium = Ubuntu with common build tools
+-P=ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# Container architecture
+--container-architecture=linux/amd64
+
+# Store artifacts in local directory
+--artifact-server-path=.act-artifacts
+
+# Optional: Use existing GitHub token if available
+# --secret-file=.secrets
