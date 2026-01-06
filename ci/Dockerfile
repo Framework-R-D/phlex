@@ -152,7 +152,7 @@ set -euo pipefail
 
 spack --timestamp install --fail-fast -j $parallelism -p 1 \
   --no-add --only-concrete --no-check-signature \
-  cmake lcov ninja py-cmake-format py-gcovr py-pip
+  cmake lcov ninja py-gcovr py-pip
 
 spack clean -dfs
 INSTALL_TOOLING_CORE
@@ -222,19 +222,6 @@ fi
 EXPORT_BUILDCACHE
 
 ########################################################################
-# Install ancillary Python tools (ruff) outside Spack
-
-RUN <<'INSTALL_PYTHON_TOOLS'
-set -euo pipefail
-
-# Use pip to install tooling that is not packaged in Spack
-. /entrypoint.sh
-
-PYTHONDONTWRITEBYTECODE=1 pip --isolated --no-input --disable-pip-version-check --no-cache-dir install --prefix /usr/local ruff
-rm -rf ~/.spack
-INSTALL_PYTHON_TOOLS
-
-########################################################################
 # Remove transient files used during build
 
 RUN <<'CLEAN_TEMP_FILES'
@@ -256,6 +243,27 @@ USER root
 
 FROM base AS dev
 ENV SPACK_GROUP=spack
+
+########################################################################
+# Install developer tooling (py-cmake-format, ruff)
+
+RUN <<'INSTALL_DEV_TOOLING'
+set -euo pipefail
+
+# Install developer tooling not needed for CI
+. /entrypoint.sh
+
+# Install py-cmake-format via Spack
+spack --timestamp install --fail-fast -j $parallelism -p 1 \
+  --no-add --only-concrete --no-check-signature \
+  py-cmake-format
+
+spack clean -dfs
+
+# Install ruff via pip
+PYTHONDONTWRITEBYTECODE=1 pip --isolated --no-input --disable-pip-version-check --no-cache-dir install --prefix /usr/local ruff
+rm -rf ~/.spack
+INSTALL_DEV_TOOLING
 
 ########################################################################
 # Install additional system packages needed for developer tooling
