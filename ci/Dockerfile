@@ -3,8 +3,9 @@
 # Multi-target Dockerfile for building the Phlex CI and development images.
 
 # Podman instructions for building tagged images with this file:
-#   $ podman build --target ci   --tag phlex-ci:<tag>   .
-#   $ podman build --target dev  --tag phlex-dev:<tag>  .
+#
+#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target ci   --tag phlex-ci:<tag>  .
+#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target dev  --tag phlex-dev:<tag> .
 #   $ podman login ghcr.io --username <username> -p <token>
 #   $ podman push phlex-ci:<tag>  ghcr.io/framework-r-d/phlex-ci:<tag>
 #   $ podman push phlex-dev:<tag> ghcr.io/framework-r-d/phlex-dev:<tag>
