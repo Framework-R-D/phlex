@@ -1,17 +1,13 @@
 {
     "name": "Phlex CI Dev Container",
-    "image": "ghcr.io/framework-r-d/phlex-dev:latest",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "options": [
+            "--format=docker"
+        ]
+    },
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "vscode",
-    "features": {
-        "ghcr.io/devcontainers/features/common-utils:2": {
-            "username": "vscode",
-            "userUid": "1000",
-            "userGid": "1000",
-            "configureZshAsDefaultShell": false
-        }
-    },
-    "postCreateCommand": "sudo usermod -aG spack vscode && echo '. /entrypoint.sh' >> /home/vscode/.bashrc",
     "containerEnv": {
         "GH_CONFIG_DIR": "/home/vscode/.config/gh"
     },
@@ -22,6 +18,16 @@
     "customizations": {
         "vscode": {
             "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "/bin/bash",
+                        "args": [
+                            "-i"
+                        ],
+                        "icon": "terminal-bash"
+                    }
+                },
                 "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
                 "python.analysis.extraPaths": [
                     "${workspaceFolder}/build",
