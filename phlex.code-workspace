@@ -42,16 +42,6 @@
             "**/build/_deps/**": true,
             "**/build/CMakeFiles/**": true
         },
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "terminal.integrated.profiles.linux": {
-            "bash": {
-                "path": "/bin/bash",
-                "args": [],
-                "env": {
-                    "BASH_ENV": "/entrypoint.sh"
-                }
-            }
-        },
         "python.languageServer": "Pylance",
         "python.analysis.typeCheckingMode": "basic",
         "python.analysis.diagnosticMode": "workspace",
