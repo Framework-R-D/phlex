@@ -11,7 +11,7 @@
             "configureZshAsDefaultShell": false
         }
     },
-    "postCreateCommand": "sudo usermod -aG spack vscode",
+    "postCreateCommand": "sudo usermod -aG spack vscode && echo '. /entrypoint.sh' >> /home/vscode/.bashrc",
     "containerEnv": {
         "GH_CONFIG_DIR": "/home/vscode/.config/gh"
     },
@@ -22,16 +22,6 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "terminal.integrated.defaultProfile.linux": "Phlex Dev",
-                "terminal.integrated.profiles.linux": {
-                    "Phlex Dev": {
-                        "path": "/bin/bash",
-                        "args": [
-                            "-c",
-                            ". /entrypoint.sh && exec bash"
-                        ]
-                    }
-                },
                 "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
                 "python.analysis.extraPaths": [
                     "${workspaceFolder}/build",
