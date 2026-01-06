@@ -2,6 +2,16 @@
     "name": "Phlex CI Dev Container",
     "image": "ghcr.io/framework-r-d/phlex-dev:latest",
     "workspaceFolder": "/workspaces/phlex",
+    "remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "username": "vscode",
+            "userUid": "1000",
+            "userGid": "1000",
+            "configureZshAsDefaultShell": false
+        }
+    },
+    "postCreateCommand": "sudo usermod -aG spack vscode",
     "containerEnv": {
         "GH_CONFIG_DIR": "/home/vscode/.config/gh"
     },
