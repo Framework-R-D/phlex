@@ -12,7 +12,6 @@
         "GH_CONFIG_DIR": "/home/vscode/.config/gh"
     },
     "mounts": [
-        "source=${env:XDG_RUNTIME_DIR}/podman/podman.sock,target=/var/run/docker.sock,type=bind",
         "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
     ],
     "customizations": {
