@@ -32,7 +32,7 @@
                 "python.analysis.extraPaths": [
                     "${workspaceFolder}/build",
                     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
-                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python3.14/site-packages"
+                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
                 ],
                 "cmake.cmakePath": "${workspaceFolder}/.devcontainer/cmake_wrapper.sh",
                 "cmake.ctestPath": "${workspaceFolder}/.devcontainer/ctest_wrapper.sh",
