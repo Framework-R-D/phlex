@@ -13,8 +13,10 @@
 
 # where <tag> is the date (e.g. "2025-08-12").
 
-FROM gcc:15.2.0 AS base
 ARG parallelism=18
+
+FROM gcc:15.2.0 AS base
+ARG parallelism
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -243,6 +245,7 @@ USER root
 # Dev image additions (tooling and dev user configuration)
 
 FROM base AS dev
+ARG parallelism
 ENV SPACK_GROUP=spack
 
 ########################################################################
