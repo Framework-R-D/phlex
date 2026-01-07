@@ -1,5 +1,25 @@
 # GitHub Copilot Instructions for Phlex Project
 
+## Project Context & Workflow
+
+### Repository Ecosystem
+
+- **Primary Repository**: `Framework-R-D/phlex`
+- **Design & Documentation**: `Framework-R-D/phlex-design` (contains design docs, coding guidelines, etc.)
+- **Dependencies**: Critical dependency on `FNALssi/cetmodules` for the build system.
+- **Container Images**:
+  - `phlex-ci`: Used by automated CI checks.
+  - `phlex-dev`: Used for VSCode devcontainers and local development.
+
+### Development Workflow
+
+- **Model**: Fork-based development. Developers should work on branches within their own forks.
+- **Upstreaming**: Changes are upstreamed via Pull Requests (PRs) to the primary repository `Framework-R-D/phlex`.
+- **Quality Standards**:
+  - Adhere to design and coding guidelines in `Framework-R-D/phlex-design`.
+  - Ensure code passes CI checks using the `phlex-ci` environment.
+  - Minimize changes required for upstreaming.
+
 ## Communication Guidelines
 
 ### Professional Colleague Interaction
