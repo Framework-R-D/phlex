@@ -52,6 +52,12 @@ if [ ! -L "$python_link" ]; then
   exit 1
 fi
 
+# Verify the symlink target is a valid directory
+if [ ! -d "$python_link" ]; then
+  echo "ERROR: Symlink $python_link does not point to a valid directory" >&2
+  exit 1
+fi
+
 echo "Python symlink validated: $python_link -> $(readlink "$python_link")"
 VALIDATE_PYTHON_SYMLINK
 
