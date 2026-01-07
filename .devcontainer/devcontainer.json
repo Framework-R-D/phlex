@@ -12,7 +12,7 @@
         "GH_CONFIG_DIR": "/home/vscode/.config/gh"
     },
     "mounts": [
-        "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
+        "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly,required=false"
     ],
     "customizations": {
         "vscode": {
@@ -49,9 +49,7 @@
                 "charliermarsh.ruff",
                 "cheshirekow.cmake-format",
                 "chrisjsewell.myst-tml-syntax",
-                "codeium.codeium",
-                "codeium.windsurf-cpptools",
-                "codeium.windsurfpyright",
+
                 "davidanson.vscode-markdownlint",
                 "donjayamanne.githistory",
                 "dotjoshjohnson.xml",
@@ -66,11 +64,11 @@
                 "lextudio.restructuredtext-pack",
                 "lfs.vscode-emacs-friendly",
                 "links-req-tracer.links-requirement-tracer",
-                "llvm-vs-code-extensions.vscode-clangd",
+
                 "ms-python.debugpy",
                 "ms-python.mypy-type-checker",
                 "ms-python.pylint",
-                "ms-python.python",
+
                 "ms-python.vscode-pylance",
                 "ms-python.vscode-python-envs",
                 "ms-vscode.cmake-tools",
@@ -82,7 +80,7 @@
                 "ms-vscode.makefile-tools",
                 "ms-vscode.vscode-websearchforcopilot",
                 "redhat.vscode-yaml",
-                "saoudrizwan.claude-dev",
+
                 "shd101wyy.markdown-preview-enhanced",
                 "swyddfa.esbonio",
                 "trond-snekvik.simple-rst",
