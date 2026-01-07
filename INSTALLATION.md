@@ -16,7 +16,7 @@ The recommended way to avoid this problem is installing Spack (step 3, below) in
 These instructions do that by putting the entire working installation on `/scratch`; adjust this as your needs dictate.
 
 ```bash
-export PHLEX_WORK_DIR="/scratch/$(id -un)/phlex-work-dir"
+export PHLEX_WORK_DIR="/scratch/$(id -un)/phlex-work-dir" # adjust as needed
 mkdir -p ${PHLEX_WORK_DIR}
 cd ${PHLEX_WORK_DIR}
 ```
@@ -40,7 +40,9 @@ source ${PHLEX_WORK_DIR}/spack/share/spack/setup-env.sh
 ```
 `which spack` will show that `spack` is a bash function. 
 
-Step 4: run the `spack bootstrap now` command to make sure that `${HOME}/.spack` exists.
+Step 4: run the `spack bootstrap now` command to make sure that `${HOME}/.spack` exists and is populated properly.
+
+This command can take several minutes, but it only needs to be run once.
 
 Step 5: Modify the Spack configuration to avoid filling `/tmp`.
 This is not at all related to Phlex, but until there is spack documentation describing this, we recommend it as good practice.
@@ -51,6 +53,7 @@ spack config edit config
 ```
 Modify the file to include a new key, `build_stage`.
 `config` key may already be in the file and may already contain other keys. 
+Pay careful attention to the indentation and spacing; YAML is sensitive to these.
 
 ```yaml
 config:
