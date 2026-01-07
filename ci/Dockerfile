@@ -289,7 +289,7 @@ INSTALL_DEV_PACKAGES
 ########################################################################
 # Create developer user and grant access to the shared spack group
 
-# (User creation removed to be handled by devcontainer or runtime environment)
+# User creation moved to .devcontainer/Dockerfile to support flexible runtime environments
 
 ########################################################################
 # Prepare workspace directory writable by the developer group
