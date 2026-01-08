@@ -20,10 +20,11 @@ cet_make_library(
   phlex::graph
   phlex::utilities
   TBB::tbb
-  )
+)
 
 install(
-  FILES algorithm_name.hpp
+    FILES
+        algorithm_name.hpp
         fwd.hpp
         handle.hpp
         data_cell_counter.hpp
@@ -34,8 +35,8 @@ install(
         product_store.hpp
         products.hpp
         type_id.hpp
-  DESTINATION include/phlex/model
-  )
+    DESTINATION include/phlex/model
+)
 
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})
 
@@ -51,4 +52,4 @@ cet_make_library(
   phlex_model
   spdlog::spdlog
   TBB::tbb
-  )
+)

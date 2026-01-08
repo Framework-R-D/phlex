@@ -10,10 +10,11 @@ cet_make_library(
   Boost::boost
   PUBLIC
   spdlog::spdlog
-  )
+)
 
 install(
-  FILES async_driver.hpp
+    FILES
+        async_driver.hpp
         hashing.hpp
         max_allowed_parallelism.hpp
         resource_usage.hpp
@@ -22,8 +23,8 @@ install(
         sleep_for.hpp
         string_literal.hpp
         thread_counter.hpp
-  DESTINATION include/phlex/utilities
-  )
+    DESTINATION include/phlex/utilities
+)
 
 target_include_directories(phlex_utilities PRIVATE ${PROJECT_SOURCE_DIR})
 
@@ -39,4 +40,4 @@ cet_make_library(
   phlex_utilities
   TBB::tbb
   spdlog::spdlog
-  )
+)

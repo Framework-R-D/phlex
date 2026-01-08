@@ -12,7 +12,7 @@ cet_make_library(
   PRIVATE
   Boost::json
   phlex::core
-  )
+)
 
 install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
 
@@ -21,9 +21,14 @@ target_compile_definitions(run_phlex PRIVATE BOOST_DLL_USE_STD_FS)
 
 add_executable(phlex phlex.cpp)
 target_link_libraries(
-  phlex PRIVATE Boost::json Boost::program_options run_phlex phlex::core
-                jsonnet::lib
-  )
+    phlex
+    PRIVATE
+        Boost::json
+        Boost::program_options
+        run_phlex
+        phlex::core
+        jsonnet::lib
+)
 
 set_target_properties(phlex PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 install(TARGETS phlex RUNTIME DESTINATION bin)

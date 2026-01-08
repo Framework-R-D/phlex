@@ -41,9 +41,10 @@ cet_make_library(
   phlex::graph
   Boost::json
   spdlog::spdlog
-  )
+)
 install(
-  FILES concepts.hpp
+    FILES
+        concepts.hpp
         consumer.hpp
         declared_fold.hpp
         declared_observer.hpp
@@ -71,19 +72,24 @@ install(
         registration_api.hpp
         store_counters.hpp
         upstream_predicates.hpp
-  DESTINATION include/phlex/core
-  )
+    DESTINATION include/phlex/core
+)
 install(FILES fold/send.hpp DESTINATION include/phlex/core/fold)
-install(FILES detail/make_algorithm_name.hpp detail/maybe_predicates.hpp
-              detail/filter_impl.hpp DESTINATION include/phlex/core/detail
-        )
+install(
+    FILES
+        detail/make_algorithm_name.hpp
+        detail/maybe_predicates.hpp
+        detail/filter_impl.hpp
+    DESTINATION include/phlex/core/detail
+)
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
 
 # AppleClang 15.0 still treats std::views::join as experimental
-if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION
-                                                   VERSION_GREATER_EQUAL "14.5"
-   )
-  target_compile_options(phlex_core PRIVATE "-fexperimental-library")
+if(
+    CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.5"
+)
+    target_compile_options(phlex_core PRIVATE "-fexperimental-library")
 endif()
 
 # Interface library
@@ -102,4 +108,4 @@ cet_make_library(
   phlex::utilities
   Boost::json
   TBB::tbb
-  )
+)

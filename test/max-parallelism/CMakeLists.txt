@@ -7,8 +7,10 @@ add_library(provide_parallelism MODULE provide_parallelism.cpp)
 target_link_libraries(provide_parallelism PRIVATE phlex::core)
 
 configure_file(
-  check_parallelism_default.jsonnet.in check_parallelism_default.jsonnet @ONLY
-  )
+    check_parallelism_default.jsonnet.in
+    check_parallelism_default.jsonnet
+    @ONLY
+)
 cet_test(
   job:check_parallelism_default
   HANDBUILT
@@ -20,11 +22,13 @@ cet_test(
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
-  )
+)
 
 configure_file(
-  check_parallelism_cli.jsonnet check_parallelism_cli.jsonnet COPYONLY
-  )
+    check_parallelism_cli.jsonnet
+    check_parallelism_cli.jsonnet
+    COPYONLY
+)
 cet_test(
   job:check_parallelism_cli
   HANDBUILT
@@ -38,11 +42,13 @@ cet_test(
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
-  )
+)
 
 configure_file(
-  check_parallelism_config.jsonnet check_parallelism_config.jsonnet COPYONLY
-  )
+    check_parallelism_config.jsonnet
+    check_parallelism_config.jsonnet
+    COPYONLY
+)
 cet_test(
   job:check_parallelism_config
   HANDBUILT
@@ -54,12 +60,13 @@ cet_test(
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
-  )
+)
 
 configure_file(
-  check_parallelism_cli_over_config.jsonnet
-  check_parallelism_cli_over_config.jsonnet COPYONLY
-  )
+    check_parallelism_cli_over_config.jsonnet
+    check_parallelism_cli_over_config.jsonnet
+    COPYONLY
+)
 cet_test(
   job:check_parallelism_cli_over_config
   HANDBUILT
@@ -73,4 +80,4 @@ cet_test(
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
-  )
+)
