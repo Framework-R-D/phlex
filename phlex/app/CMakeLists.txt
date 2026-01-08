@@ -14,6 +14,7 @@ cet_make_library(
   # that will be including phlex/driver.hpp
   phlex::core
   Boost::json
+  Boost::boost
 )
 
 install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
