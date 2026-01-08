@@ -83,6 +83,11 @@ namespace phlex::experimental {
     template <typename T>
     consteval unsigned char make_type_id_helper_integral()
     {
+      // Special case plain `char` in case it's unsigned
+      if constexpr (std::is_same_v<char, T>) {
+        return static_cast<unsigned char>(type_id::builtin::char_v);
+      }
+
       unsigned char id = 0;
       // The following are integral types so we also need to get their signedness
       if constexpr (std::is_unsigned_v<T>) {
