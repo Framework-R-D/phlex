@@ -14,14 +14,14 @@ cet_test(
   LIBRARIES
   run_phlex
   Boost::json
-  )
+)
 cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
          phlex::configuration
-         )
+)
 cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities)
 cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
-         )
+)
 cet_test(type_id SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
 cet_test(
   yielding_driver
@@ -31,7 +31,7 @@ cet_test(
   phlex::core
   TBB::tbb
   spdlog::spdlog
-  )
+)
 
 cet_test(
   allowed_families
@@ -42,7 +42,7 @@ cet_test(
   phlex::core
   Boost::json
   layer_generator
-  )
+)
 cet_test(
   vector_of_abstract_types
   USE_CATCH2_MAIN
@@ -51,7 +51,7 @@ cet_test(
   LIBRARIES
   phlex::core
   layer_generator
-  )
+)
 cet_test(
   cached_execution
   USE_CATCH2_MAIN
@@ -61,7 +61,7 @@ cet_test(
   phlex::core
   Boost::json
   layer_generator
-  )
+)
 cet_test(
   class_registration
   USE_CATCH2_MAIN
@@ -70,7 +70,7 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  )
+)
 cet_test(
   different_hierarchies
   USE_CATCH2_MAIN
@@ -80,10 +80,10 @@ cet_test(
   phlex::core
   spdlog::spdlog
   layer_generator
-  )
+)
 cet_test(filter_impl USE_CATCH2_MAIN SOURCE filter_impl.cpp LIBRARIES
          phlex::core
-         )
+)
 cet_test(
   filter
   USE_CATCH2_MAIN
@@ -92,7 +92,7 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  )
+)
 cet_test(
   framework_graph
   USE_CATCH2_MAIN
@@ -102,7 +102,7 @@ cet_test(
   phlex::core
   Boost::json
   layer_generator
-  )
+)
 cet_test(
   function_registration
   USE_CATCH2_MAIN
@@ -111,7 +111,7 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
-  )
+)
 cet_test(
   hierarchical_nodes
   USE_CATCH2_MAIN
@@ -123,7 +123,7 @@ cet_test(
   phlex::core
   spdlog::spdlog
   layer_generator
-  )
+)
 cet_test(
   layer_generator_test
   USE_CATCH2_MAIN
@@ -132,7 +132,7 @@ cet_test(
   LIBRARIES
   phlex::core
   layer_generator
-  )
+)
 cet_test(
   multiple_function_registration
   USE_CATCH2_MAIN
@@ -141,7 +141,7 @@ cet_test(
   LIBRARIES
   Boost::json
   phlex::core
-  )
+)
 cet_test(
   data_cell_counting
   USE_CATCH2_MAIN
@@ -150,19 +150,19 @@ cet_test(
   LIBRARIES
   phlex::model
   phlex::utilities
-  )
+)
 cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
          phlex::model
-         )
+)
 cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
          phlex::core
-         )
+)
 cet_test(product_matcher USE_CATCH2_MAIN SOURCE product_matcher.cpp LIBRARIES
          phlex::model
-         )
+)
 cet_test(product_store USE_CATCH2_MAIN SOURCE product_store.cpp LIBRARIES
          phlex::core
-         )
+)
 cet_test(
   fold
   USE_CATCH2_MAIN
@@ -172,7 +172,7 @@ cet_test(
   phlex::core
   spdlog::spdlog
   layer_generator
-  )
+)
 cet_test(
   replicated
   USE_CATCH2_MAIN
@@ -182,7 +182,7 @@ cet_test(
   TBB::tbb
   phlex::utilities
   spdlog::spdlog
-  )
+)
 cet_test(
   serializer
   USE_CATCH2_MAIN
@@ -193,10 +193,10 @@ cet_test(
   TBB::tbb
   phlex::graph
   spdlog::spdlog
-  )
+)
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
          phlex::core
-         )
+)
 cet_test(
   provider_test
   USE_CATCH2_MAIN
@@ -205,7 +205,7 @@ cet_test(
   LIBRARIES
   phlex::core
   layer_generator
-  )
+)
 cet_test(
   type_distinction
   USE_CATCH2_MAIN
@@ -214,7 +214,7 @@ cet_test(
   LIBRARIES
   spdlog::spdlog
   phlex::core
-  )
+)
 cet_test(
   unfold
   USE_CATCH2_MAIN
@@ -226,7 +226,7 @@ cet_test(
   TBB::tbb
   spdlog::spdlog
   layer_generator
-  )
+)
 
 add_subdirectory(benchmarks)
 
