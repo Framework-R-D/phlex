@@ -7,11 +7,9 @@
 #include <stdexcept>
 #include <vector>
 
-#ifdef PHLEX_HAVE_NUMPY
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
 #include <numpy/arrayobject.h>
-#endif
 
 using namespace phlex::experimental;
 using phlex::concurrency;
@@ -316,7 +314,6 @@ namespace {
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
-#ifdef PHLEX_HAVE_NUMPY
 #define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
   static intptr_t name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                     \
   {                                                                                                \
@@ -394,7 +391,6 @@ namespace {
   NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
   NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
   NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
-#endif
 
 } // unnamed namespace
 
@@ -549,7 +545,6 @@ static bool insert_input_converters(py_phlex_module* mod,
       INSERT_INPUT_CONVERTER(float, cname, inp);
     else if (inp_type == "double")
       INSERT_INPUT_CONVERTER(double, cname, inp);
-#ifdef PHLEX_HAVE_NUMPY
     else if (inp_type.compare(0, 13, "numpy.ndarray") == 0) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
@@ -595,9 +590,7 @@ static bool insert_input_converters(py_phlex_module* mod,
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
         return false;
       }
-    }
-#endif
-    else {
+    } else {
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
       return false;
     }
@@ -676,7 +669,6 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     INSERT_OUTPUT_CONVERTER(float, cname, output);
   else if (output_type == "double")
     INSERT_OUTPUT_CONVERTER(double, cname, output);
-#ifdef PHLEX_HAVE_NUMPY
   else if (output_type.compare(0, 13, "numpy.ndarray") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
@@ -721,9 +713,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
       PyErr_Format(PyExc_TypeError, "unsupported array output type \"%s\"", output_type.c_str());
       return nullptr;
     }
-  }
-#endif
-  else {
+  } else {
     PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output_type.c_str());
     return nullptr;
   }
