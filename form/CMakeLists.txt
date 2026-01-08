@@ -15,7 +15,7 @@ include_directories(${PROJECT_SOURCE_DIR}/form)
 # ROOT Storage toggle
 option(FORM_USE_ROOT_STORAGE "Enable ROOT Storage" ON)
 if(FORM_USE_ROOT_STORAGE)
-    add_definitions(-DUSE_ROOT_STORAGE)
+  add_definitions(-DUSE_ROOT_STORAGE)
 endif()
 
 # Add sub directories
@@ -25,7 +25,7 @@ add_subdirectory(util)
 add_subdirectory(persistence)
 add_subdirectory(storage)
 if(FORM_USE_ROOT_STORAGE)
-    add_subdirectory(root_storage)
+  add_subdirectory(root_storage)
 endif()
 
 add_library(form_module MODULE form_module.cpp)

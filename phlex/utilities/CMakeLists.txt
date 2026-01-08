@@ -13,17 +13,17 @@ cet_make_library(
 )
 
 install(
-    FILES
-        async_driver.hpp
-        hashing.hpp
-        max_allowed_parallelism.hpp
-        resource_usage.hpp
-        simple_ptr_map.hpp
-        sized_tuple.hpp
-        sleep_for.hpp
-        string_literal.hpp
-        thread_counter.hpp
-    DESTINATION include/phlex/utilities
+  FILES
+    async_driver.hpp
+    hashing.hpp
+    max_allowed_parallelism.hpp
+    resource_usage.hpp
+    simple_ptr_map.hpp
+    sized_tuple.hpp
+    sleep_for.hpp
+    string_literal.hpp
+    thread_counter.hpp
+  DESTINATION include/phlex/utilities
 )
 
 target_include_directories(phlex_utilities PRIVATE ${PROJECT_SOURCE_DIR})

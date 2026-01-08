@@ -3,17 +3,14 @@ target_include_directories(timed_busy PRIVATE ${PROJECT_SOURCE_DIR})
 
 add_library(algorithm INTERFACE)
 target_include_directories(algorithm INTERFACE ${PROJECT_SOURCE_DIR})
-target_link_libraries(
-    algorithm
-    INTERFACE timed_busy phlex::module spdlog::spdlog
-)
+target_link_libraries(algorithm INTERFACE timed_busy phlex::module spdlog::spdlog)
 
 add_library(id_provider MODULE id_provider.cpp)
 target_link_libraries(id_provider PRIVATE phlex::module)
 
 function(add_module NAME)
-    add_library(${NAME} MODULE ${NAME}.cpp)
-    target_link_libraries(${NAME} PRIVATE algorithm)
+  add_library(${NAME} MODULE ${NAME}.cpp)
+  target_link_libraries(${NAME} PRIVATE algorithm)
 endfunction()
 
 add_module(ion_and_scint)

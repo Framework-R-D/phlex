@@ -26,30 +26,20 @@ add_library(accept_even_numbers MODULE accept_even_numbers.cpp)
 target_link_libraries(accept_even_numbers PRIVATE phlex::module)
 
 add_library(accept_fibonacci_numbers MODULE accept_fibonacci_numbers.cpp)
-target_link_libraries(
-    accept_fibonacci_numbers
-    PRIVATE phlex::module fibonacci_numbers
-)
+target_link_libraries(accept_fibonacci_numbers PRIVATE phlex::module fibonacci_numbers)
 
-add_library(
-    verify_even_fibonacci_numbers
-    MODULE
-    verify_even_fibonacci_numbers.cpp
-)
-target_link_libraries(
-    verify_even_fibonacci_numbers
-    PRIVATE phlex::module fibonacci_numbers
-)
+add_library(verify_even_fibonacci_numbers MODULE verify_even_fibonacci_numbers.cpp)
+target_link_libraries(verify_even_fibonacci_numbers PRIVATE phlex::module fibonacci_numbers)
 
 add_library(verify_difference MODULE verify_difference.cpp)
 target_link_libraries(verify_difference PRIVATE phlex::module)
 
 foreach(
-    I
-    IN
-    ITEMS 01 02 03 04 05 06 07 08 09
+  I
+  IN
+  ITEMS 01 02 03 04 05 06 07 08 09
 )
-    cet_test(
+  cet_test(
       benchmark:${I}
       HANDBUILT
       TEST_EXEC
@@ -60,5 +50,5 @@ foreach(
       TEST_PROPERTIES
       ENVIRONMENT
       PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}
-    )
+  )
 endforeach()

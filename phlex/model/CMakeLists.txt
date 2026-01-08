@@ -23,19 +23,19 @@ cet_make_library(
 )
 
 install(
-    FILES
-        algorithm_name.hpp
-        fwd.hpp
-        handle.hpp
-        data_cell_counter.hpp
-        data_layer_hierarchy.hpp
-        data_cell_index.hpp
-        product_matcher.hpp
-        product_specification.hpp
-        product_store.hpp
-        products.hpp
-        type_id.hpp
-    DESTINATION include/phlex/model
+  FILES
+    algorithm_name.hpp
+    fwd.hpp
+    handle.hpp
+    data_cell_counter.hpp
+    data_layer_hierarchy.hpp
+    data_cell_index.hpp
+    product_matcher.hpp
+    product_specification.hpp
+    product_store.hpp
+    products.hpp
+    type_id.hpp
+  DESTINATION include/phlex/model
 )
 
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})

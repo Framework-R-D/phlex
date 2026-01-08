@@ -1,8 +1,8 @@
 # Copyright (C) 2025 ...
 
 if(FORM_USE_ROOT_STORAGE)
-    add_subdirectory(data_products)
-    cet_test(
+  add_subdirectory(data_products)
+  cet_test(
       WriteVector
       SOURCE
       writer.cpp
@@ -12,10 +12,10 @@ if(FORM_USE_ROOT_STORAGE)
       form_test_data_products
       TEST_ARGS
       "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
-    )
-    target_include_directories(WriteVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
+  )
+  target_include_directories(WriteVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
-    cet_test(
+  cet_test(
       ReadVector
       SOURCE
       reader.cpp
@@ -27,8 +27,8 @@ if(FORM_USE_ROOT_STORAGE)
       TEST_PROPERTIES
       DEPENDS
       WriteVector
-    )
-    target_include_directories(ReadVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
+  )
+  target_include_directories(ReadVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
 endif()
 
 cet_test(

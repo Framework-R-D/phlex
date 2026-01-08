@@ -239,5 +239,5 @@ add_subdirectory(demo-giantdata)
 add_subdirectory(python)
 
 if(PHLEX_USE_FORM)
-    add_subdirectory(form)
+  add_subdirectory(form)
 endif()
