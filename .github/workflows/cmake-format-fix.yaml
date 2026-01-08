@@ -46,27 +46,13 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install cmake-format
-        run: pip install cmakelang
+      - name: Install gersemi
+        run: pip install gersemi
 
       - name: Apply CMake formatting
         run: |
-          cd phlex-src
           echo "Applying CMake formatting..."
-
-          # Find all CMake files
-          cmake_files=$(find . -type f \( -name "CMakeLists.txt" -o -name "CMakeLists.txt.in" -o -name "*.cmake" -o -name "*.cmake.in" \) ! -path "*/build/*" ! -path "*/_deps/*")
-
-          if [ -z "$cmake_files" ]; then
-            echo "No CMake files found to format"
-            exit 0
-          fi
-
-          # Format each file
-          for file in $cmake_files; do
-            echo "Formatting $file..."
-            cmake-format -i "$file"
-          done
+          gersemi -i phlex-src
 
       - name: Handle fix commit
         uses: ./phlex-src/.github/actions/handle-fix-commit
