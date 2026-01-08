@@ -11,6 +11,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 
 using namespace std::string_literals;
 
@@ -57,10 +58,10 @@ namespace phlex::experimental {
         if (auto const* cpp = raw_config.if_contains("cpp")) {
           std::string msg = fmt::format("Both 'cpp' and 'py' parameters specified for {}", label);
           if (auto const* cpp_value = cpp->if_string()) {
-            msg += fmt::format("\n  - cpp: {}", *cpp_value);
+            msg += fmt::format("\n  - cpp: {}", std::string_view(*cpp_value));
           }
           if (auto const* py_value = py->if_string()) {
-            msg += fmt::format("\n  - py: {}", *py_value);
+            msg += fmt::format("\n  - py: {}", std::string_view(*py_value));
           }
           throw std::runtime_error(msg);
         }
