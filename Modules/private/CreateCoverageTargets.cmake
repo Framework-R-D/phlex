@@ -27,8 +27,8 @@ find_program(LCOV_EXECUTABLE lcov)
 find_program(GENHTML_EXECUTABLE genhtml)
 find_program(GCOVR_EXECUTABLE gcovr)
 
-# Find Python3 and normalization scripts
-find_package(Python3 COMPONENTS Interpreter)
+# Find Python and normalization scripts
+find_package(Python COMPONENTS Interpreter)
 
 # Find CTest coverage tool
 find_program(LLVM_COV_EXECUTABLE NAMES llvm-cov-21 llvm-cov DOC "LLVM coverage tool")
@@ -183,7 +183,7 @@ function(_create_coverage_targets_impl)
         ${CMAKE_COMMAND} -E echo
         "[Coverage] Exporting LLVM coverage data to LCOV (${LLVM_COV_LCOV_OUTPUT})"
       COMMAND
-        ${Python3_EXECUTABLE} "${LLVM_COV_EXPORT_SCRIPT}" ${LLVM_COV_LCOV_OUTPUT}
+        ${Python_EXECUTABLE} "${LLVM_COV_EXPORT_SCRIPT}" ${LLVM_COV_LCOV_OUTPUT}
         ${LLVM_COV_EXECUTABLE} export ${LLVM_COV_OBJECTS} -instr-profile=${LLVM_PROFDATA_OUTPUT}
         "-ignore-filename-regex=${LLVM_COV_EXCLUDE_REGEX}" --format=lcov
       COMMENT "Exporting LLVM coverage data to LCOV"
@@ -196,12 +196,12 @@ function(_create_coverage_targets_impl)
     # Normalization target for llvm-cov output (if Python script exists)
     set(_normalize_llvm_script "${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py")
     set(LLVM_COV_NORMALIZED_STAMP ${CMAKE_BINARY_DIR}/coverage-llvm-normalized.stamp)
-    if(Python3_FOUND AND EXISTS "${_normalize_llvm_script}")
+    if(Python_FOUND AND EXISTS "${_normalize_llvm_script}")
       add_custom_command(
         OUTPUT ${LLVM_COV_NORMALIZED_STAMP}
         DEPENDS ${LLVM_COV_LCOV_OUTPUT}
         COMMAND
-          ${Python3_EXECUTABLE} "${_normalize_llvm_script}" --repo-root "${PROJECT_SOURCE_DIR}"
+          ${Python_EXECUTABLE} "${_normalize_llvm_script}" --repo-root "${PROJECT_SOURCE_DIR}"
           --coverage-root "${PROJECT_SOURCE_DIR}" --coverage-alias "${PROJECT_SOURCE_DIR}"
           "${LLVM_COV_LCOV_OUTPUT}"
         COMMAND ${CMAKE_COMMAND} -E touch ${LLVM_COV_NORMALIZED_STAMP}
@@ -216,7 +216,7 @@ function(_create_coverage_targets_impl)
         coverage-llvm-normalize
         COMMAND
           ${CMAKE_COMMAND} -E echo
-          "ERROR: Python3 or normalize_coverage_lcov.py not found. Cannot normalize LLVM coverage report."
+          "ERROR: Python or normalize_coverage_lcov.py not found. Cannot normalize LLVM coverage report."
         COMMAND exit 1
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Failed to normalize LLVM coverage report"
@@ -287,11 +287,11 @@ function(_create_coverage_targets_impl)
 
   set(_coverage_symlink_script "${PROJECT_SOURCE_DIR}/scripts/create_coverage_symlinks.py")
   set(_coverage_symlink_root "${PROJECT_SOURCE_DIR}/.coverage-generated")
-  if(Python3_FOUND AND EXISTS "${_coverage_symlink_script}")
+  if(Python_FOUND AND EXISTS "${_coverage_symlink_script}")
     add_custom_target(
       coverage-symlink-prepare
       COMMAND
-        ${Python3_EXECUTABLE} "${_coverage_symlink_script}" --build-root "${CMAKE_BINARY_DIR}"
+        ${Python_EXECUTABLE} "${_coverage_symlink_script}" --build-root "${CMAKE_BINARY_DIR}"
         --output-root "${_coverage_symlink_root}"
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMENT "Preparing generated symlink tree (.coverage-generated)"
@@ -304,7 +304,7 @@ function(_create_coverage_targets_impl)
       COMMAND ${CMAKE_COMMAND} -E make_directory "${_coverage_symlink_root}"
       COMMAND
         ${CMAKE_COMMAND} -E echo
-        "WARNING: Python3 or create_coverage_symlinks.py missing; generated symlink tree will be empty."
+        "WARNING: Python or create_coverage_symlinks.py missing; generated symlink tree will be empty."
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMENT "Preparing generated symlink tree (.coverage-generated)"
     )
@@ -383,11 +383,11 @@ function(_create_coverage_targets_impl)
     )
 
     # HTML normalization target (depends on symlink preparation)
-    if(Python3_FOUND AND EXISTS "${_normalize_lcov_script}")
+    if(Python_FOUND AND EXISTS "${_normalize_lcov_script}")
       add_custom_target(
         coverage-html-normalize
         COMMAND
-          ${Python3_EXECUTABLE} "${_normalize_lcov_script}" --repo-root "${PROJECT_SOURCE_DIR}"
+          ${Python_EXECUTABLE} "${_normalize_lcov_script}" --repo-root "${PROJECT_SOURCE_DIR}"
           --coverage-root "${PROJECT_SOURCE_DIR}" --coverage-alias "${PROJECT_SOURCE_DIR}"
           "${CMAKE_BINARY_DIR}/coverage.info.final"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -400,7 +400,7 @@ function(_create_coverage_targets_impl)
         coverage-html-normalize
         COMMAND
           ${CMAKE_COMMAND} -E echo
-          "ERROR: Python3 or normalize_coverage_lcov.py not found. Cannot normalize HTML coverage report."
+          "ERROR: Python or normalize_coverage_lcov.py not found. Cannot normalize HTML coverage report."
         COMMAND exit 1
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Failed to normalize LCOV HTML coverage report"
@@ -469,11 +469,11 @@ function(_create_coverage_targets_impl)
     )
 
     # XML normalization target (depends on symlink preparation)
-    if(Python3_FOUND AND EXISTS "${_normalize_xml_script}")
+    if(Python_FOUND AND EXISTS "${_normalize_xml_script}")
       add_custom_target(
         coverage-xml-normalize
         COMMAND
-          ${Python3_EXECUTABLE} "${_normalize_xml_script}" --repo-root "${PROJECT_SOURCE_DIR}"
+          ${Python_EXECUTABLE} "${_normalize_xml_script}" --repo-root "${PROJECT_SOURCE_DIR}"
           --source-dir "${PROJECT_SOURCE_DIR}" --path-map
           "${CMAKE_BINARY_DIR}=${PROJECT_SOURCE_DIR}/.coverage-generated"
           "${CMAKE_BINARY_DIR}/coverage.xml"
@@ -487,7 +487,7 @@ function(_create_coverage_targets_impl)
         coverage-xml-normalize
         COMMAND
           ${CMAKE_COMMAND} -E echo
-          "ERROR: Python3 or normalize_coverage_xml.py not found. Cannot normalize XML coverage report."
+          "ERROR: Python or normalize_coverage_xml.py not found. Cannot normalize XML coverage report."
         COMMAND exit 1
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Failed to normalize XML coverage report"
