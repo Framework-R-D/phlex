@@ -264,8 +264,10 @@ spack --timestamp install --fail-fast -j $parallelism -p 1 \
 
 spack clean -dfs
 
-# Install ruff via pip
-PYTHONDONTWRITEBYTECODE=1 pip --isolated --no-input --disable-pip-version-check --no-cache-dir install --prefix /usr/local ruff
+# Install ruff and gersemi via pip
+PYTHONDONTWRITEBYTECODE=1 \
+  pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
+  --prefix /usr/local ruff gersemi
 rm -rf ~/.spack
 INSTALL_DEV_TOOLING
 
