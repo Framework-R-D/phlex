@@ -85,9 +85,9 @@ namespace phlex::experimental {
     {
       // Special case plain `char` in case it's unsigned
       if constexpr (std::is_same_v<char, T>) {
-         return static_cast<unsigned char>(type_id::builtin::char_v);
+        return static_cast<unsigned char>(type_id::builtin::char_v);
       }
-  
+
       unsigned char id = 0;
       // The following are integral types so we also need to get their signedness
       if constexpr (std::is_unsigned_v<T>) {
