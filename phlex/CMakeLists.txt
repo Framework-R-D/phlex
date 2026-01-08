@@ -18,7 +18,7 @@ cet_make_library(
   Boost::json
   phlex::core
   phlex::configuration
-  )
+)
 
 install(FILES concurrency.hpp module.hpp source.hpp DESTINATION include/phlex)
 install(FILES detail/plugin_macros.hpp DESTINATION include/phlex/detail)
@@ -33,7 +33,7 @@ cet_make_library(
   PRIVATE
   Boost::json
   phlex::core
-  )
+)
 
 cet_make_library(
   LIBRARY_NAME
@@ -46,7 +46,7 @@ cet_make_library(
   Boost::json
   phlex::core
   phlex_configuration_internal
-  )
+)
 install(FILES configuration.hpp DESTINATION include/phlex)
 
 add_subdirectory(app)

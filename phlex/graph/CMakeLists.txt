@@ -10,11 +10,12 @@ cet_make_library(
   TBB::tbb
   phlex::utilities
   fmt::fmt
-  )
+)
 
-install(FILES serial_node.hpp serializer_node.hpp
-        DESTINATION include/phlex/graph
-        )
+install(
+  FILES serial_node.hpp serializer_node.hpp
+  DESTINATION include/phlex/graph
+)
 
 target_include_directories(phlex_graph PRIVATE ${PROJECT_SOURCE_DIR})
 
@@ -29,4 +30,4 @@ cet_make_library(
   LIBRARIES
   phlex_graph
   TBB::tbb
-  )
+)

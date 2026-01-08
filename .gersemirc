@@ -2,3 +2,4 @@
 # level of configuration as cmake-format. The previous settings from
 # .cmake-format.json (dangle_align and dangle_parens) are not
 # supported and have no direct equivalents.
+indent: 2

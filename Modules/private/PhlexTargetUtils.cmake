@@ -8,8 +8,10 @@ include_guard()
 # Recursively gather all build system targets starting from a source directory
 function(phlex_gather_targets_recursive out_var directory)
   get_directory_property(
-    _this_dir_targets DIRECTORY "${directory}" BUILDSYSTEM_TARGETS
-    )
+    _this_dir_targets
+    DIRECTORY "${directory}"
+    BUILDSYSTEM_TARGETS
+  )
   if(_this_dir_targets)
     list(APPEND _collected ${_this_dir_targets})
   endif()
@@ -23,10 +25,7 @@ function(phlex_gather_targets_recursive out_var directory)
   if(_collected)
     list(REMOVE_DUPLICATES _collected)
   endif()
-  set(${out_var}
-      "${_collected}"
-      PARENT_SCOPE
-      )
+  set(${out_var} "${_collected}" PARENT_SCOPE)
 endfunction()
 
 # Collect all targets of a given type (EXECUTABLE, STATIC_LIBRARY,
@@ -44,10 +43,7 @@ function(phlex_collect_targets_by_type out_var type)
       list(APPEND _filtered ${_t})
     endif()
   endforeach()
-  set(${out_var}
-      "${_filtered}"
-      PARENT_SCOPE
-      )
+  set(${out_var} "${_filtered}" PARENT_SCOPE)
 endfunction()
 
 # Collect absolute source files for a target
@@ -86,8 +82,5 @@ function(phlex_collect_target_sources out_var target)
   if(_accum)
     list(REMOVE_DUPLICATES _accum)
   endif()
-  set(${out_var}
-      "${_accum}"
-      PARENT_SCOPE
-      )
+  set(${out_var} "${_accum}" PARENT_SCOPE)
 endfunction()

@@ -1,7 +1,11 @@
 add_library(
-  giantdata SHARED waveforms.cpp waveform_generator_input.cpp
-                   waveform_generator.cpp user_algorithms.cpp
-  )
+  giantdata
+  SHARED
+  waveforms.cpp
+  waveform_generator_input.cpp
+  waveform_generator.cpp
+  user_algorithms.cpp
+)
 target_link_libraries(giantdata PRIVATE TBB::tbb)
 
 cet_test(
@@ -13,4 +17,4 @@ cet_test(
   phlex::core
   layer_generator
   USE_CATCH2_MAIN
-  )
+)
