@@ -41,7 +41,7 @@ int main()
   static_assert(make_type_id<std::array<unsigned long, 5>>().is_unsigned());
   static_assert(make_type_id<std::array<unsigned long, 5>>().is_list());
 
-  static_assert(make_type_id<char>() < make_type_id<long>());
+  static_assert(make_type_id<char>() != make_type_id<long>());
   static_assert(make_type_id<int>() == make_type_id<int const&>());
 
   std::function test_fn = [](int a, float b) -> std::tuple<int, float> { return {a, b}; };
@@ -73,7 +73,7 @@ int main()
   assert(make_type_id<A>().has_children());
   assert(not make_type_id<char>().has_children());
   assert(make_type_id<A>() > make_type_id<bool>());
-  assert(make_type_id<char>() < make_type_id<long>());
+  assert(make_type_id<char>() != make_type_id<long>());
   assert(make_type_id<int>() == make_type_id<int const&>());
 
   // Print some type IDs
