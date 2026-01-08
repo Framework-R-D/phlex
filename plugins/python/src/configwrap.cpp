@@ -15,17 +15,12 @@ struct phlex::experimental::py_config_map {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_configuration(configuration const* config)
+PyObject* phlex::experimental::wrap_configuration(configuration const& config)
 {
-  if (!config) {
-    PyErr_SetString(PyExc_ValueError, "provided configuration is null");
-    return nullptr;
-  }
-
   py_config_map* pyconfig =
     (py_config_map*)PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr);
 
-  pyconfig->ph_config = config;
+  pyconfig->ph_config = &config;
 
   return (PyObject*)pyconfig;
 }

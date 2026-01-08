@@ -29,15 +29,10 @@ struct phlex::experimental::py_phlex_module {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_module(phlex_module_t* module_)
+PyObject* phlex::experimental::wrap_module(phlex_module_t& module_)
 {
-  if (!module_) {
-    PyErr_SetString(PyExc_ValueError, "provided module is null");
-    return nullptr;
-  }
-
   py_phlex_module* pymod = PyObject_New(py_phlex_module, &PhlexModule_Type);
-  pymod->ph_module = module_;
+  pymod->ph_module = &module_;
 
   return (PyObject*)pymod;
 }

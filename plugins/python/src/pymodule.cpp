@@ -27,8 +27,8 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   if (mod) {
     PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_REGISTER_ALGORITHMS");
     if (reg) {
-      PyObject* pym = wrap_module(&m);
-      PyObject* pyconfig = wrap_configuration(&config);
+      PyObject* pym = wrap_module(m);
+      PyObject* pyconfig = wrap_configuration(config);
       if (pym && pyconfig) {
         PyObject* res = PyObject_CallFunctionObjArgs(reg, pym, pyconfig, nullptr);
         Py_XDECREF(res);
