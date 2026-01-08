@@ -111,6 +111,9 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
           PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(), cvalue[i].size());
           PyTuple_SetItem(pyvalue, i, item);
         }
+      } else if (k.first == boost::json::kind::null) {
+        // special case: empty array
+        pyvalue = PyTuple_New(0);
       }
     } else {
       if (k.first == boost::json::kind::bool_) {

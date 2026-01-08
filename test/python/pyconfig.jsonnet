@@ -24,6 +24,7 @@
       some_uints: [18446744073709551616, 29, 137],
       some_floats: [3.1415, 2.71828],
       some_strings: ['aap', 'noot', 'mies'],
+      empty: [],
     },
   },
 }

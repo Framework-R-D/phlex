@@ -41,6 +41,9 @@ class ConfigConsumer:
         assert config['some_floats'] == (3.1415, 2.71828)
         assert config['some_strings'] == ('aap', 'noot', 'mies')
 
+        # special case of empty collection
+        assert config['empty'] == ()
+
     def __call__(self, i: int, j: int) -> None:
         """Dummy routine to do something.
 
