@@ -25,9 +25,7 @@ namespace phlex::experimental {
 
     void set_type(type_id&& type) { type_id_ = std::move(type); }
 
-    bool operator==(product_specification const& other) const;
-    bool operator!=(product_specification const& other) const;
-    bool operator<(product_specification const& other) const;
+    auto operator<=>(product_specification const&) const = default;
 
     static product_specification create(char const* c);
     static product_specification create(std::string const& s);
