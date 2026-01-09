@@ -12,7 +12,7 @@
         "GH_CONFIG_DIR": "/home/vscode/.config/gh"
     },
     "mounts": [
-        "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly,required=false"
+        "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
     ],
     "customizations": {
         "vscode": {
