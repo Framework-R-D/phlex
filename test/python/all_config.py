@@ -30,7 +30,7 @@ class ConfigConsumer:
         # builtin types
         assert config['a_bool'] == False # noqa: E712  # we really want to check False
         assert config['an_int'] == -37
-        assert type(config['a_uint']) == int
+        assert type(config['a_uint']) is int
         assert config['a_uint'] == 18446744073709549568
         assert config['a_float'] == 3.1415
         assert config['a_string'] == 'foo'
@@ -38,7 +38,7 @@ class ConfigConsumer:
         # collection types
         assert config['some_bools'] == (False, True)
         assert config['some_ints'] == (-1, 42, -55)
-        assert type(config['some_uints'][0]) == int
+        assert type(config['some_uints'][0]) is int
         assert config['some_uints'] == (18446744073709549568, 29, 137)
         assert config['some_floats'] == (3.1415, 2.71828)
         assert config['some_strings'] == ('aap', 'noot', 'mies')

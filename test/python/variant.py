@@ -6,7 +6,6 @@ functions for registration with the proper C++ types.
 """
 
 import copy
-import types
 from typing import Any, Callable
 
 
