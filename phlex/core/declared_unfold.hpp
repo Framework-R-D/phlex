@@ -152,7 +152,7 @@ namespace phlex::experimental {
               std::index_sequence<Is...>)
     {
       ++calls_;
-      Object obj(std::get<Is>(input_).retrieve(messages)...);
+      Object obj(std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
       std::size_t counter = 0;
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
