@@ -7,10 +7,8 @@
 
 #include "wrap.hpp"
 
-#ifdef PHLEX_HAVE_NUMPY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
 #include <numpy/arrayobject.h>
-#endif
 
 using namespace phlex::experimental;
 
@@ -48,7 +46,6 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   }
 }
 
-#ifdef PHLEX_HAVE_NUMPY
 static void import_numpy(bool control_interpreter)
 {
   static std::atomic<bool> numpy_imported{false};
@@ -61,14 +58,11 @@ static void import_numpy(bool control_interpreter)
     }
   }
 }
-#endif
 
 static bool initialize()
 {
   if (Py_IsInitialized()) {
-#ifdef PHLEX_HAVE_NUMPY
     import_numpy(false);
-#endif
     return true;
   }
 
@@ -122,9 +116,7 @@ static bool initialize()
     return false;
 
   // load numpy (see also above, if already initialized)
-#ifdef PHLEX_HAVE_NUMPY
   import_numpy(true);
-#endif
 
   // TODO: the GIL should first be released on the main thread and this seems
   // to be the only place to do it. However, there is no equivalent place to
