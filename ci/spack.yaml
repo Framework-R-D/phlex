@@ -5,8 +5,9 @@ spack:
   - cmake
   - lcov
   - ninja
-  - py-cmake-format
+  - python
   - py-gcovr
+  - py-numpy
   - py-pip # Needed temporarily for ruff installation
   - |
       llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib targets=x86
