@@ -4,18 +4,23 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
-def add(i: int, j: int) -> int:
+from numbers import Number
+
+from variant import Variant
+
+
+def add(i: Number, j: Number) -> Number:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together
     to arrive at their total.
 
     Args:
-        i (int): First input.
-        j (int): Second input.
+        i (Number): First input.
+        j (Number): Second input.
 
     Returns:
-        int: Sum of the two inputs.
+        Number: Sum of the two inputs.
 
     Examples:
         >>> add(1, 2)
@@ -39,7 +44,8 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    m.transform(add,
+    int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
+    m.transform(int_adder,
                 input_family = config["input"],
                 output_products = config["output"])
 

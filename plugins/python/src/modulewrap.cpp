@@ -513,8 +513,16 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
+  // special case of Phlex Variant wrapper
+  PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
+  if (wrapped_callable) {
+    callable = wrapped_callable;
+  } else {
+    PyErr_Clear();
+    Py_INCREF(callable);
+  }
+
   // no common errors detected; actual registration may have more checks
-  Py_INCREF(callable);
   return callable;
 }
 
