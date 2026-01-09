@@ -3,8 +3,9 @@
 # Multi-target Dockerfile for building the Phlex CI and development images.
 
 # Podman instructions for building tagged images with this file:
-#   $ podman build --target ci   --tag phlex-ci:<tag>   .
-#   $ podman build --target dev  --tag phlex-dev:<tag>  .
+#
+#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target ci   --tag phlex-ci:<tag>  .
+#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target dev  --tag phlex-dev:<tag> .
 #   $ podman login ghcr.io --username <username> -p <token>
 #   $ podman push phlex-ci:<tag>  ghcr.io/framework-r-d/phlex-ci:<tag>
 #   $ podman push phlex-dev:<tag> ghcr.io/framework-r-d/phlex-dev:<tag>
@@ -12,9 +13,12 @@
 
 # where <tag> is the date (e.g. "2025-08-12").
 
-FROM gcc:15.2.0 AS base
 ARG parallelism=18
 
+FROM gcc:15.2.0 AS base
+ARG parallelism
+
+ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV SPACK_USER_CONFIG_PATH=/dev/null
@@ -72,8 +76,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN <<'CONFIGURE_SPACK_DEFAULTS'
 set -euo pipefail
 
-. /spack/share/spack/setup-env.sh
-
 SPACK_REPO_ROOT=/opt/spack-repos
 rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes"
 mkdir -p "$SPACK_REPO_ROOT"
@@ -83,12 +85,11 @@ chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
-spack --timestamp repo remove phlex >/dev/null 2>&1 || true
-spack --timestamp repo remove fnal_art >/dev/null 2>&1 || true
-spack --timestamp repo add --scope site /opt/spack-repos/phlex-spack-recipes/spack_repo/phlex
-spack --timestamp repo add --scope site /opt/spack-repos/fnal_art/spack_repo/fnal_art
-spack --timestamp repo set --scope site --destination /spack/var/spack/repos/builtin builtin
+. /spack/share/spack/setup-env.sh
 
+spack --timestamp repo add --scope site $SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex
+spack --timestamp repo add --scope site $SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art
+spack --timestamp repo set --scope site --destination $SPACK_REPO_ROOT builtin
 spack --timestamp compiler find
 
 
@@ -154,7 +155,7 @@ set -euo pipefail
 
 spack --timestamp install --fail-fast -j $parallelism -p 1 \
   --no-add --only-concrete --no-check-signature \
-  cmake lcov ninja py-cmake-format py-gcovr py-pip
+  cmake lcov ninja py-gcovr py-pip
 
 spack clean -dfs
 INSTALL_TOOLING_CORE
@@ -224,19 +225,6 @@ fi
 EXPORT_BUILDCACHE
 
 ########################################################################
-# Install ancillary Python tools (ruff) outside Spack
-
-RUN <<'INSTALL_PYTHON_TOOLS'
-set -euo pipefail
-
-# Use pip to install tooling that is not packaged in Spack
-. /entrypoint.sh
-
-PYTHONDONTWRITEBYTECODE=1 pip --isolated --no-input --disable-pip-version-check --no-cache-dir install --prefix /usr/local ruff
-rm -rf ~/.spack
-INSTALL_PYTHON_TOOLS
-
-########################################################################
 # Remove transient files used during build
 
 RUN <<'CLEAN_TEMP_FILES'
@@ -257,11 +245,31 @@ USER root
 # Dev image additions (tooling and dev user configuration)
 
 FROM base AS dev
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=1000
-ENV HOME=/home/$USERNAME
+ARG parallelism
 ENV SPACK_GROUP=spack
+
+########################################################################
+# Install developer tooling (py-cmake-format, ruff)
+
+RUN <<'INSTALL_DEV_TOOLING'
+set -euo pipefail
+
+# Install developer tooling not needed for CI
+. /entrypoint.sh
+
+# Install py-cmake-format via Spack
+spack --timestamp install --fail-fast -j $parallelism -p 1 \
+  --no-add --only-concrete --no-check-signature \
+  py-cmake-format
+
+spack clean -dfs
+
+# Install ruff and gersemi via pip
+PYTHONDONTWRITEBYTECODE=1 \
+  pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
+  --prefix /usr/local ruff gersemi
+rm -rf ~/.spack
+INSTALL_DEV_TOOLING
 
 ########################################################################
 # Install additional system packages needed for developer tooling
@@ -283,16 +291,7 @@ INSTALL_DEV_PACKAGES
 ########################################################################
 # Create developer user and grant access to the shared spack group
 
-RUN <<'CREATE_DEV_USER'
-set -euo pipefail
-
-# Create developer user and grant access to the shared spack group
-groupadd --gid $USER_GID $USERNAME
-useradd --uid $USER_UID --gid $USER_GID --create-home $USERNAME
-echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME
-chmod 0440 /etc/sudoers.d/$USERNAME
-usermod -aG $SPACK_GROUP $USERNAME
-CREATE_DEV_USER
+# User creation moved to .devcontainer/Dockerfile to support flexible runtime environments
 
 ########################################################################
 # Prepare workspace directory writable by the developer group
@@ -301,8 +300,7 @@ RUN <<'PREP_DEV_WORKSPACE'
 set -euo pipefail
 
 # Prepare workspace directory writable by the developer group
-mkdir -p /workspaces/phlex
-chown $USERNAME:$USERNAME /workspaces
+mkdir -p /workspaces
 chgrp $SPACK_GROUP /workspaces
 chmod g+rwX /workspaces
 PREP_DEV_WORKSPACE
@@ -343,7 +341,5 @@ apt-get clean
 rm -rf /var/lib/apt/lists/*
 INSTALL_GH_CLI
 
-USER $USERNAME
-WORKDIR /workspaces/phlex
 SHELL ["/bin/bash", "-c"]
 HEALTHCHECK CMD curl -f https://github.com || exit 1
