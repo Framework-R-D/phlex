@@ -141,7 +141,7 @@ namespace phlex::experimental {
     template <std::size_t... Is>
     auto call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
+      return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
     }
 
     std::size_t num_calls() const final { return calls_.load(); }

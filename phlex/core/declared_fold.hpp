@@ -148,7 +148,7 @@ namespace phlex::experimental {
             .first;
       }
       ++calls_;
-      return std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(messages)...);
+      return std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
