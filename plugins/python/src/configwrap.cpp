@@ -15,17 +15,12 @@ struct phlex::experimental::py_config_map {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_configuration(configuration const* config)
+PyObject* phlex::experimental::wrap_configuration(configuration const& config)
 {
-  if (!config) {
-    PyErr_SetString(PyExc_ValueError, "provided configuration is null");
-    return nullptr;
-  }
-
   py_config_map* pyconfig =
     (py_config_map*)PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr);
 
-  pyconfig->ph_config = config;
+  pyconfig->ph_config = &config;
 
   return (PyObject*)pyconfig;
 }
@@ -73,6 +68,11 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
 
   std::string ckey = PyUnicode_AsUTF8(pykey);
 
+  // Note: Python3.14 adds PyLong_FromInt64/PyLong_FromUInt64 to replace the
+  // long long variants
+  static_assert(sizeof(long long) >= sizeof(int64_t));
+  static_assert(sizeof(unsigned long long) >= sizeof(uint64_t));
+
   try {
     auto k = pycmap->ph_config->prototype_internal_kind(ckey);
     if (k.second /* is array */) {
@@ -87,14 +87,16 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::int64_t>>(ckey);
         pyvalue = PyTuple_New(cvalue.size());
         for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-          PyObject* item = PyLong_FromLong(cvalue[i]);
+          // Note Python3.14 is expected to add PyLong_FromInt64
+          PyObject* item = PyLong_FromLongLong(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::uint64) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::uint64_t>>(ckey);
         pyvalue = PyTuple_New(cvalue.size());
         for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-          PyObject* item = PyLong_FromUnsignedLong(cvalue[i]);
+          // Note Python3.14 is expected to add PyLong_FromUInt64
+          PyObject* item = PyLong_FromUnsignedLongLong(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::double_) {
@@ -111,6 +113,9 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
           PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(), cvalue[i].size());
           PyTuple_SetItem(pyvalue, i, item);
         }
+      } else if (k.first == boost::json::kind::null) {
+        // special case: empty array
+        pyvalue = PyTuple_New(0);
       }
     } else {
       if (k.first == boost::json::kind::bool_) {
@@ -118,10 +123,12 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         pyvalue = PyBool_FromLong((long)cvalue);
       } else if (k.first == boost::json::kind::int64) {
         auto cvalue = pycmap->ph_config->get<std::int64_t>(ckey);
-        pyvalue = PyLong_FromLong(cvalue);
+        // Note Python3.14 is expected to add PyLong_FromInt64
+        pyvalue = PyLong_FromLongLong(cvalue);
       } else if (k.first == boost::json::kind::uint64) {
         auto cvalue = pycmap->ph_config->get<std::uint64_t>(ckey);
-        pyvalue = PyLong_FromUnsignedLong(cvalue);
+        // Note Python3.14 is expected to add PyLong_FromUInt64
+        pyvalue = PyLong_FromUnsignedLongLong(cvalue);
       } else if (k.first == boost::json::kind::double_) {
         auto cvalue = pycmap->ph_config->get<double>(ckey);
         pyvalue = PyFloat_FromDouble(cvalue);

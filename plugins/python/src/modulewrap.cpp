@@ -29,15 +29,10 @@ struct phlex::experimental::py_phlex_module {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_module(phlex_module_t* module_)
+PyObject* phlex::experimental::wrap_module(phlex_module_t& module_)
 {
-  if (!module_) {
-    PyErr_SetString(PyExc_ValueError, "provided module is null");
-    return nullptr;
-  }
-
   py_phlex_module* pymod = PyObject_New(py_phlex_module, &PhlexModule_Type);
-  pymod->ph_module = module_;
+  pymod->ph_module = &module_;
 
   return (PyObject*)pymod;
 }
@@ -518,8 +513,16 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
+  // special case of Phlex Variant wrapper
+  PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
+  if (wrapped_callable) {
+    callable = wrapped_callable;
+  } else {
+    PyErr_Clear();
+    Py_INCREF(callable);
+  }
+
   // no common errors detected; actual registration may have more checks
-  Py_INCREF(callable);
   return callable;
 }
 
