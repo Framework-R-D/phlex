@@ -82,7 +82,7 @@ namespace {
         // Create FORM product with metadata
         products.emplace_back(product_name,           // label, from map key
                               product_ptr->address(), // data,  from phlex product_base
-                              product_ptr->type()     // type,  from phlex product_base
+                              &product_ptr->type()    // type, from phlex product_base
         );
       }
 
@@ -112,14 +112,14 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   auto type_map = std::make_shared<form::experimental::product_type_names>();
 
   // Register some fundamental type for simple products
-  type_map->names[std::type_index(typeid(int))] = "int";
-  type_map->names[std::type_index(typeid(long))] = "long";
-  type_map->names[std::type_index(typeid(float))] = "float";
-  type_map->names[std::type_index(typeid(double))] = "double";
-  type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
-  type_map->names[std::type_index(typeid(std::vector<long>))] = "std::vector<long>";
-  type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
-  type_map->names[std::type_index(typeid(std::vector<double>))] = "std::vector<double>";
+  type_map->names[typeid(int).name()] = "int";
+  type_map->names[typeid(long).name()] = "long";
+  type_map->names[typeid(float).name()] = "float";
+  type_map->names[typeid(double).name()] = "double";
+  type_map->names[typeid(std::vector<int>).name()] = "std::vector<int>";
+  type_map->names[typeid(std::vector<long>).name()] = "std::vector<long>";
+  type_map->names[typeid(std::vector<float>).name()] = "std::vector<float>";
+  type_map->names[typeid(std::vector<double>).name()] = "std::vector<double>";
 
   // Extract configuration from Phlex config
   std::string output_file = config.get<std::string>("output_file", "output.root");

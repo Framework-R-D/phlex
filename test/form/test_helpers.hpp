@@ -6,7 +6,6 @@
 
 #include <memory>
 #include <string>
-#include <typeindex>
 
 namespace form::experimental {
 
@@ -14,15 +13,15 @@ namespace form::experimental {
   template <typename T>
   void registerType(product_type_names& map, std::string const& name)
   {
-    map.names[std::type_index(typeid(T))] = name;
+    map.names[typeid(T).name()] = name;
   }
 
   // Register vector types automatically
   template <typename T>
   void registerVectorType(product_type_names& map, std::string const& base_name)
   {
-    map.names[std::type_index(typeid(T))] = base_name;
-    map.names[std::type_index(typeid(std::vector<T>))] = "std::vector<" + base_name + ">";
+    map.names[typeid(T).name()] = base_name;
+    map.names[typeid(std::vector<T>).name()] = "std::vector<" + base_name + ">";
   }
 
   inline std::shared_ptr<product_type_names> createTypeMap()

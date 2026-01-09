@@ -38,7 +38,7 @@ void ROOT_TTree_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
   return;
 }
 
-void ROOT_TTree_ContainerImp::setupWrite(std::string const& /* type*/)
+void ROOT_TTree_ContainerImp::setupWrite(std::type_info const& /*type*/)
 {
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TTree_ContainerImp::setupWrite no file attached");
@@ -69,7 +69,7 @@ void ROOT_TTree_ContainerImp::commit()
   throw std::runtime_error("ROOT_TTree_ContainerImp::commit not implemented");
 }
 
-bool ROOT_TTree_ContainerImp::read(int /* id*/, void const** /* data*/, std::string const& /* type*/)
+bool ROOT_TTree_ContainerImp::read(int /* id*/, void const** /* data*/, std::type_info const& /* type*/)
 {
   throw std::runtime_error("ROOT_TTree_ContainerImp::read not implemented");
 }

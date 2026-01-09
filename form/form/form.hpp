@@ -9,20 +9,20 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <typeindex>
+#include <typeinfo>
 #include <unordered_map>
 #include <vector>
 
 namespace form::experimental {
 
   struct product_type_names {
-    std::unordered_map<std::type_index, std::string> names;
+    std::unordered_map<std::string, std::string> names;
   };
 
   struct product_with_name {
     std::string label;
     void const* data;
-    std::type_index type;
+    std::type_info const* type;
   };
 
   class form_interface {

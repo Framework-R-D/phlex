@@ -80,8 +80,8 @@ int main(int argc, char** argv)
       std::string const creator = "Toy_Tracker";
 
       form::experimental::product_with_name pb = {
-        "trackStart", &track_start_x, std::type_index{typeid(std::vector<float>)}};
-      type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+        "trackStart", &track_start_x, &typeid(std::vector<float>)};
+      type_map->names[typeid(std::vector<float>).name()] = "std::vector<float>";
       products.push_back(pb);
 
       std::vector<int> track_n_hits;
@@ -94,8 +94,8 @@ int main(int argc, char** argv)
                 << ", check = " << check << std::endl;
 
       form::experimental::product_with_name pb_int = {
-        "trackNumberHits", &track_n_hits, std::type_index{typeid(std::vector<int>)}};
-      type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
+        "trackNumberHits", &track_n_hits, &typeid(std::vector<int>)};
+      type_map->names[typeid(std::vector<int>).name()] = "std::vector<int>";
       products.push_back(pb_int);
 
       std::vector<TrackStart> start_points = tracker();
@@ -106,8 +106,8 @@ int main(int argc, char** argv)
                 << ", checkPoints = " << checkPoints << std::endl;
 
       form::experimental::product_with_name pb_points = {
-        "trackStartPoints", &start_points, std::type_index{typeid(std::vector<TrackStart>)}};
-      type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
+        "trackStartPoints", &start_points, &typeid(std::vector<TrackStart>)};
+      type_map->names[typeid(std::vector<TrackStart>).name()] = "std::vector<TrackStart>";
       products.push_back(pb_points);
 
       form.write(creator, segment_id, products);
@@ -129,8 +129,8 @@ int main(int argc, char** argv)
     std::string const creator = "Toy_Tracker_Event";
 
     form::experimental::product_with_name pb = {
-      "trackStartX", &track_x, std::type_index{typeid(std::vector<float>)}};
-    type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+      "trackStartX", &track_x, &typeid(std::vector<float>)};
+    type_map->names[typeid(std::vector<float>).name()] = "std::vector<float>";
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << std::endl;
 

@@ -63,16 +63,17 @@ void ROOT_TBranch_ContainerImp::setParent(std::shared_ptr<IStorage_Container> pa
   return;
 }
 
-void ROOT_TBranch_ContainerImp::setupWrite(std::string const& type)
+void ROOT_TBranch_ContainerImp::setupWrite(std::type_info const& type)
 {
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::setupWrite no tree found");
   }
 
-  auto dictInfo = TDictionary::GetDictionary(type.c_str());
+  auto dictInfo = TDictionary::GetDictionary(type);
   if (m_branch == nullptr) {
     if (!dictInfo) {
-      throw std::runtime_error("ROOT_TBranch_ContainerImp::setupWrite unsupported type: " + type);
+      throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::setupWrite unsupported type: "} +
+                               type.name());
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
@@ -117,7 +118,7 @@ void ROOT_TBranch_ContainerImp::commit()
   return;
 }
 
-bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::string const& type)
+bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info const& type)
 {
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::read no file attached");
@@ -138,18 +139,27 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::string cons
     return false;
 
   void* branchBuffer = nullptr;
-  auto dictInfo = TClass::GetClass(type.c_str());
+  auto dictInfo = TDictionary::GetDictionary(type);
   int branchStatus = 0;
-  if (dictInfo) {
-    branchBuffer = dictInfo->New();
-    branchStatus = m_tree->SetBranchAddress(
-      col_name().c_str(), &branchBuffer, TClass::GetClass(type.c_str()), EDataType::kOther_t, true);
-  } else {
-    //Assume this is a fundamental type like int or double
-    auto fundInfo = static_cast<TDataType*>(TDictionary::GetDictionary(type.c_str()));
+  if (!dictInfo) {
+    throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read unsupported type: "} +
+                             type.name());
+  }
+
+  if (dictInfo->Property() & EProperty::kIsFundamental) {
+    auto fundInfo = static_cast<TDataType*>(dictInfo);
     branchBuffer = new char[fundInfo->Size()];
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), &branchBuffer, nullptr, EDataType(fundInfo->GetType()), true);
+  } else {
+    auto klass = TClass::GetClass(type);
+    if (!klass) {
+      throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass for type: "} +
+                               type.name());
+    }
+    branchBuffer = klass->New();
+    branchStatus =
+      m_tree->SetBranchAddress(col_name().c_str(), &branchBuffer, klass, EDataType::kOther_t, true);
   }
 
   if (branchStatus < 0) {

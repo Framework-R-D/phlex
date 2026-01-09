@@ -3,6 +3,7 @@
 #include "form.hpp"
 
 #include <stdexcept>
+#include <typeinfo>
 
 namespace form::experimental {
 
@@ -32,12 +33,12 @@ namespace form::experimental {
       throw std::runtime_error("No configuration found for product: " + pb.label);
     }
 
-    std::string const type = m_type_map->names[pb.type];
+    (void)m_type_map->names.at(pb.type->name());
 
-    std::map<std::string, std::string> products = {{pb.label, type}};
+    std::map<std::string, std::type_info const*> products = {{pb.label, pb.type}};
     m_pers->createContainers(creator, products);
 
-    m_pers->registerWrite(creator, pb.label, pb.data, type);
+    m_pers->registerWrite(creator, pb.label, pb.data, *pb.type);
 
     m_pers->commitOutput(creator, segment_id);
   }
@@ -56,18 +57,17 @@ namespace form::experimental {
     }
 
     // FIXME: Really only needed on first call
-    std::map<std::string, std::string> product_types;
+    std::map<std::string, std::type_info const*> product_types;
     for (auto const& pb : products) {
-      std::string const& type = m_type_map->names[pb.type];
-      product_types.insert(std::make_pair(pb.label, type));
+      product_types.insert(std::make_pair(pb.label, pb.type));
     }
 
     m_pers->createContainers(creator, product_types);
 
     for (auto const& pb : products) {
-      std::string const& type = m_type_map->names[pb.type];
+      (void)m_type_map->names.at(pb.type->name());
       // FIXME: We could consider checking id to be identical for all product bases here
-      m_pers->registerWrite(creator, pb.label, pb.data, type);
+      m_pers->registerWrite(creator, pb.label, pb.data, *pb.type);
     }
 
     m_pers->commitOutput(creator, segment_id);
@@ -83,8 +83,11 @@ namespace form::experimental {
       throw std::runtime_error("No configuration found for product: " + pb.label);
     }
 
-    std::string type = m_type_map->names[pb.type];
+    std::string type;
+    m_pers->read(creator, pb.label, segment_id, &pb.data, *pb.type);
 
-    m_pers->read(creator, pb.label, segment_id, &pb.data, type);
+    // Validate that we know how to map this runtime string back to the expected C++ type.
+    // (This keeps the previous "type must be known" check behavior.)
+    (void)m_type_map->names.at(pb.type->name());
   }
 }

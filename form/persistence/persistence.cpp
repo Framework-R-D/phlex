@@ -4,6 +4,9 @@
 
 #include <algorithm>
 #include <cstring>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 #include <utility>
 
 using namespace form::detail::experimental;
@@ -31,13 +34,13 @@ void Persistence::configureOutputItems(
 }
 
 void Persistence::createContainers(std::string const& creator,
-                                   std::map<std::string, std::string> const& products)
+                                   std::map<std::string, std::type_info const*> const& products)
 {
-  std::map<std::unique_ptr<Placement>, std::string> containers;
+  std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
   for (auto const& [label, type] : products) {
     containers.insert(std::make_pair(getPlacement(creator, label), type));
   }
-  containers.insert(std::make_pair(getPlacement(creator, "index"), "std::string"));
+  containers.insert(std::make_pair(getPlacement(creator, "index"), &typeid(std::string)));
   m_store->createContainers(containers, m_tech_settings);
   return;
 }
@@ -45,7 +48,7 @@ void Persistence::createContainers(std::string const& creator,
 void Persistence::registerWrite(std::string const& creator,
                                 std::string const& label,
                                 void const* data,
-                                std::string const& type)
+                                std::type_info const& type)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
   m_store->fillContainer(*plcmnt, data, type);
@@ -55,7 +58,7 @@ void Persistence::registerWrite(std::string const& creator,
 void Persistence::commitOutput(std::string const& creator, std::string const& id)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, "index");
-  m_store->fillContainer(*plcmnt, &id, "std::string");
+  m_store->fillContainer(*plcmnt, &id, typeid(std::string));
   m_store->commitContainers(*plcmnt);
   return;
 }
@@ -64,7 +67,7 @@ void Persistence::read(std::string const& creator,
                        std::string const& label,
                        std::string const& id,
                        void const** data,
-                       std::string& type)
+                       const std::type_info& type)
 {
   std::unique_ptr<Token> token = getToken(creator, label, id);
   m_store->readContainer(*token, data, type, m_tech_settings);

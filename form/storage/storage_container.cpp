@@ -13,13 +13,13 @@ std::string const& Storage_Container::name() { return m_name; }
 
 void Storage_Container::setFile(std::shared_ptr<IStorage_File> file) { m_file = file; }
 
-void Storage_Container::setupWrite(std::string const& /* type*/) { return; }
+void Storage_Container::setupWrite(std::type_info const& /*type*/) { return; }
 
 void Storage_Container::fill(void const* /* data*/) { return; }
 
 void Storage_Container::commit() { return; }
 
-bool Storage_Container::read(int /* id*/, void const** /*data*/, std::string const& /* type*/)
+bool Storage_Container::read(int /* id*/, void const** /*data*/, std::type_info const& /* type*/)
 {
   return false;
 }

@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <typeinfo>
 
 class TFile;
 class TTree;
@@ -22,10 +23,10 @@ namespace form::detail::experimental {
     ROOT_TTree_ContainerImp& operator=(ROOT_TTree_ContainerImp& other) = delete;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
-    void setupWrite(std::string const& type = "") override;
+    void setupWrite(std::type_info const& type = typeid(void)) override;
     void fill(void const* data) override;
     void commit() override;
-    bool read(int id, void const** data, std::string const& type) override;
+    bool read(int id, void const** data, std::type_info const& type) override;
 
     TTree* getTTree();
 
