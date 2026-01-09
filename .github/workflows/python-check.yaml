@@ -89,7 +89,7 @@ jobs:
 
         echo "➡️ Checking Python code with ruff..."
         echo "::group::Running ruff check"
-        if ! ruff check; then
+        if ! ruff check --target-version py312; then
           failed=1
           echo "::endgroup::"
           echo "::error:: Ruff check failed."

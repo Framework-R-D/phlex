@@ -56,7 +56,7 @@ jobs:
           echo "Fixing Python format with ruff"
           ruff format . || true
           echo "Fixing Python linter issues with ruff"
-          ruff check --fix . || true
+          ruff check --fix --target-version py312 . || true
 
       - name: Handle fix commit
         uses: ./phlex-src/.github/actions/handle-fix-commit
