@@ -4,12 +4,19 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
-from numbers import Number
+from typing import Protocol, TypeVar
 
 from variant import Variant
 
 
-def add(i: Number, j: Number) -> Number:
+class AddableProtocol[T](Protocol):
+    """Typer bound for any types that can be added."""
+    def __add__(self, other: T) -> T: ...  # noqa: D105
+
+Addable = TypeVar('Addable', bound=AddableProtocol)
+
+
+def add(i: Addable, j: Addable) -> Addable:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together
