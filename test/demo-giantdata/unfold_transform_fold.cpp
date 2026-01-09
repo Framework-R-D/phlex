@@ -36,7 +36,7 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   // Test parameters - moderate scale to ensure sustained concurrent execution
   constexpr std::size_t n_runs = 1;
   constexpr std::size_t n_subruns = 1;
-  constexpr std::size_t n_spills = 20;
+  constexpr std::size_t n_spills = 100;
   constexpr int apas_per_spill = 20;
   constexpr std::size_t wires_per_spill = apas_per_spill * 256ull;
   constexpr std::size_t chunksize = 256;

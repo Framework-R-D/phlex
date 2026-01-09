@@ -4,6 +4,7 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
+
 def add(i: int, j: int) -> int:
     """Add the inputs together and return the sum total.
 
@@ -39,7 +40,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    m.transform(add,
-                input_family = config["input"],
-                output_products = config["output"])
-
+    m.transform(add, input_family=config["input"], output_products=config["output"])

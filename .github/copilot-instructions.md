@@ -119,3 +119,58 @@ All Markdown files must strictly follow these markdownlint rules:
 - **MD034**: No bare URLs (for example, use a markdown link like `[text](destination)` instead of a plain URL)
 - **MD036**: Use # headings, not **Bold:** for titles
 - **MD040**: Always specify code block language (for example, use '```bash', '```python', '```text', etc.)
+
+## Development & Testing Workflows
+
+### Build and Test
+
+- **Environment**: Always source `setup-env.sh` before building or testing. This applies to all environments (Dev Container, local machine, HPC).
+- **Configuration**:
+  - **Presets**: Prefer `CMakePresets.json` workflows (e.g., `cmake --preset default`).
+  - **Generator**: Prefer `Ninja` over `Makefiles` when available (`-G Ninja`).
+- **Build**:
+  - **Parallelism**: Always use multiple cores. Ninja does this by default. For `make`, use `cmake --build build -j $(nproc)`.
+- **Test**:
+  - **Parallelism**: Run tests in parallel using `ctest -j $(nproc)` or `ctest --parallel <N>`.
+  - **Selection**: Run specific tests with `ctest -R "regex"` (e.g., `ctest -R "py:*"`).
+  - **Debugging**: Use `ctest --output-on-failure` to see logs for failed tests.
+
+### Python Integration
+
+- **Naming**: Avoid naming Python test scripts `types.py` or other names that shadow standard library modules. This causes obscure import errors (e.g., `ModuleNotFoundError: No module named 'numpy'`).
+- **PYTHONPATH**: When running tests in Spack environments, ensure `PYTHONPATH` includes `site-packages`. In CMake, explicitly add `Python_SITELIB` and `Python_SITEARCH` to `TEST_PYTHONPATH`.
+- **Test Structure**:
+  - **C++ Driver**: Provides data streams (e.g., `test/python/driver.cpp`).
+  - **Jsonnet Config**: Wires the graph (e.g., `test/python/pytypes.jsonnet`).
+  - **Python Script**: Implements algorithms (e.g., `test/python/test_types.py`).
+- **Type Conversion**: `plugins/python/src/modulewrap.cpp` handles C++ $\leftrightarrow$ Python conversion.
+  - **Mechanism**: Uses string comparison of type names (e.g., `"float64]]"`). This is brittle.
+  - **Requirement**: Ensure converters exist for all types used in tests (e.g., `float`, `double`, `unsigned int`, and their vector equivalents).
+  - **Warning**: Exact type matches are required. `numpy.float32` != `float`.
+
+### Coverage Analysis
+
+- **Tooling**: The project uses LLVM source-based coverage.
+- **Requirement**: The `phlex` binary must catch exceptions in `main` to ensure coverage data is flushed to disk even when tests fail/crash.
+- **Generation**:
+  - **CMake Targets**: `coverage-xml`, `coverage-html` (if configured).
+  - **Manual**:
+    1.  Run tests with `LLVM_PROFILE_FILE` set (e.g., `export LLVM_PROFILE_FILE="profraw/%m-%p.profraw"`).
+    2.  Merge profiles: `llvm-profdata merge -sparse profraw/*.profraw -o coverage.profdata`.
+    3.  Generate report: `llvm-cov show -instr-profile=coverage.profdata -format=html ...`
+
+### Local GitHub Actions Testing (`act`)
+
+- **Tool**: Use `act` to run GitHub Actions workflows locally.
+- **Configuration**: Ensure `.actrc` exists in the workspace root with the following content to use a compatible runner image:
+  ```text
+  -P ubuntu-latest=catthehacker/ubuntu:act-latest
+  ```
+- **Usage**:
+  - List jobs: `act -l`
+  - Run specific job: `act -j <job_name>` (e.g., `act -j python-check`)
+  - Run specific event: `act pull_request`
+- **Troubleshooting**:
+  - **Docker Socket**: `act` requires access to the Docker socket. In dev containers, this may require specific mount configurations or permissions.
+  - **Artifacts**: `act` creates a `phlex-src` directory (or similar) for checkout. Ensure this is cleaned up or ignored by tools like `mypy`.
+

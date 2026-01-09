@@ -4,6 +4,7 @@ Test algorithms produce outputs. To ensure that a test is run correctly,
 this observer verifies its result against the expected value.
 """
 
+
 class Verifier:
     """A callable class that can assert an expected value.
 
@@ -22,7 +23,7 @@ class Verifier:
         AssertionError
     """
 
-    __name__ = 'verifier'
+    __name__ = "verifier"
 
     def __init__(self, sum_total: int):
         """Create a verifier object.
@@ -68,5 +69,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         None
     """
     assert_sum = Verifier(config["sum_total"])
-    m.observe(assert_sum, input_family = config["input"])
-
+    m.observe(assert_sum, input_family=config["input"])
