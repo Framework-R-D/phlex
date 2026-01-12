@@ -13,7 +13,7 @@ class AddableProtocol[T](Protocol):
     """Typer bound for any types that can be added."""
 
     def __add__(self, other: T) -> T:  # noqa: D105
-        ...
+        ...  # codeql[py/ineffectual-statement]
 
 
 Addable = TypeVar("Addable", bound=AddableProtocol)
