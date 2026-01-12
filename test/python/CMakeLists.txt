@@ -95,19 +95,13 @@ set(ACTIVE_PY_CPHLEX_TESTS "")
     add_test(NAME py:vec COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet)
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
 
-    add_test(NAME py:vectypes
-             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet
-             )
+    add_test(NAME py:vectypes COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet)
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
-    add_test(NAME py:veclists
-             COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet
-             )
+    add_test(NAME py:veclists COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
 
-    add_test(NAME py:types COMMAND phlex -c
-                                   ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet
-             )
+    add_test(NAME py:types COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet)
     list(APPEND ACTIVE_PY_CPHLEX_TESTS py:types)
   endif()
 
@@ -125,20 +119,18 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 add_test(NAME py:reduce COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
-  add_test(NAME py:coverage
-           COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet
-           )
+  add_test(NAME py:coverage COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
 
-  add_test(NAME py:mismatch
-           COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
-           )
+  add_test(
+    NAME py:mismatch
+    COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
+  )
   set_tests_properties(
     py:mismatch
-    PROPERTIES PASS_REGULAR_EXPRESSION
-               "number of inputs .* does not match number of annotation types"
-    )
+    PROPERTIES
+      PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch)
 
   # "failing" tests for checking error paths
