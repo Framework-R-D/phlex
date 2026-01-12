@@ -8,7 +8,7 @@ warn_unreachable = true
 disable_error_code = "annotation-unchecked"
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 99
 
 [tool.ruff.lint]
