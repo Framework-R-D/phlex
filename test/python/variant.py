@@ -73,7 +73,7 @@ class Variant:
             AssertionError: To indicate incorrect usage, unless overridden.
         """
         assert self._allow_call, (
-            f"TypedVariant '{self.__name__}' was called directly. "
+            f"Variant '{self.__name__}' was called directly. "
             f"The framework should extract phlex_callable instead."
         )
         return self.phlex_callable(*args, **kwargs)  # type: ignore
