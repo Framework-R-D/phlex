@@ -21,7 +21,8 @@ def sum_array_int32(coll: npt.NDArray[np.int32]) -> int:
 
 
 def collectify_uint32(
-    i: "unsigned int", j: "unsigned int"  # type: ignore # noqa: F722
+    i: "unsigned int",
+    j: "unsigned int",  # type: ignore # noqa: F722
 ) -> npt.NDArray[np.uint32]:
     """Create a uint32 array from two integers."""
     return np.array([i, j], dtype=np.uint32)
@@ -47,7 +48,8 @@ def sum_array_int64(coll: npt.NDArray[np.int64]) -> "long":  # type: ignore # no
 
 
 def collectify_uint64(
-    i: "unsigned long", j: "unsigned long"  # type: ignore # noqa: F722
+    i: "unsigned long",
+    j: "unsigned long",  # type: ignore # noqa: F722
 ) -> npt.NDArray[np.uint64]:
     """Create a uint64 array from two integers."""
     return np.array([i, j], dtype=np.uint64)
@@ -96,7 +98,8 @@ def collectify_int32_list(i: int, j: int) -> list[int]:
 
 
 def collectify_uint32_list(
-    i: "unsigned int", j: "unsigned int"  # type: ignore # noqa: F722
+    i: "unsigned int",
+    j: "unsigned int",  # type: ignore # noqa: F722
 ) -> list[int]:
     """Create a uint32 list from two integers."""
     return [int(i), int(j)]
@@ -108,7 +111,8 @@ def collectify_int64_list(i: "long", j: "long") -> list[int]:  # type: ignore # 
 
 
 def collectify_uint64_list(
-    i: "unsigned long", j: "unsigned long"  # type: ignore # noqa: F722
+    i: "unsigned long",
+    j: "unsigned long",  # type: ignore # noqa: F722
 ) -> list[int]:
     """Create a uint64 list from two integers."""
     return [int(i), int(j)]

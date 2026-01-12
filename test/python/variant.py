@@ -53,7 +53,7 @@ class Variant:
                 of the callable.
             allow_call (bool): Allow this wrapper to forward to the callable.
         """
-        if clone == 'deep':
+        if clone == "deep":
             self.phlex_callable = copy.deepcopy(f)
         elif clone:
             self.phlex_callable = copy.copy(f)
