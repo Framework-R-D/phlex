@@ -14,11 +14,10 @@ namespace {
 
   class FormOutputModule {
   public:
-    FormOutputModule(std::shared_ptr<form::experimental::product_type_names> type_map,
-                     std::string output_file,
+    FormOutputModule(std::string output_file,
                      int technology,
                      std::vector<std::string> const& products_to_save) :
-      m_type_map(type_map), m_output_file(std::move(output_file)), m_technology(technology)
+      m_output_file(std::move(output_file)), m_technology(technology)
     {
       std::cout << "FormOutputModule initialized\n";
       std::cout << "  Output file: " << m_output_file << "\n";
@@ -40,7 +39,7 @@ namespace {
 
       // Initialize FORM interface
       m_form_interface =
-        std::make_unique<form::experimental::form_interface>(type_map, output_cfg, tech_cfg);
+        std::make_unique<form::experimental::form_interface>(output_cfg, tech_cfg);
     }
 
     // This method is called by Phlex - signature must be: void(product_store const&)
@@ -96,7 +95,6 @@ namespace {
     }
 
   private:
-    std::shared_ptr<form::experimental::product_type_names> m_type_map;
     std::string m_output_file;
     int m_technology;
     std::unique_ptr<form::experimental::form_interface> m_form_interface;
@@ -107,19 +105,6 @@ namespace {
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   std::cout << "Registering FORM output module...\n";
-
-  // Create type map
-  auto type_map = std::make_shared<form::experimental::product_type_names>();
-
-  // Register some fundamental type for simple products
-  type_map->names[typeid(int).name()] = "int";
-  type_map->names[typeid(long).name()] = "long";
-  type_map->names[typeid(float).name()] = "float";
-  type_map->names[typeid(double).name()] = "double";
-  type_map->names[typeid(std::vector<int>).name()] = "std::vector<int>";
-  type_map->names[typeid(std::vector<long>).name()] = "std::vector<long>";
-  type_map->names[typeid(std::vector<float>).name()] = "std::vector<float>";
-  type_map->names[typeid(std::vector<double>).name()] = "std::vector<double>";
 
   // Extract configuration from Phlex config
   std::string output_file = config.get<std::string>("output_file", "output.root");
@@ -146,7 +131,7 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 
   // Phlex needs an OBJECT
   // Create the FORM output module
-  auto form_output = m.make<FormOutputModule>(type_map, output_file, technology, products_to_save);
+  auto form_output = m.make<FormOutputModule>(output_file, technology, products_to_save);
 
   // Phlex needs a MEMBER FUNCTION to call
   // Register the callback that Phlex will invoke

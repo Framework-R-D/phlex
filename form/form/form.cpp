@@ -7,10 +7,9 @@
 
 namespace form::experimental {
 
-  form_interface::form_interface(std::shared_ptr<product_type_names> tm,
-                                 config::output_item_config const& output_config,
+  form_interface::form_interface(config::output_item_config const& output_config,
                                  config::tech_setting_config const& tech_config) :
-    m_pers(nullptr), m_type_map(tm)
+    m_pers(nullptr)
   {
     for (auto const& item : output_config.getItems()) {
       m_product_to_config.emplace(item.product_name,
@@ -32,8 +31,6 @@ namespace form::experimental {
     if (it == m_product_to_config.end()) {
       throw std::runtime_error("No configuration found for product: " + pb.label);
     }
-
-    (void)m_type_map->names.at(pb.type->name());
 
     std::map<std::string, std::type_info const*> products = {{pb.label, pb.type}};
     m_pers->createContainers(creator, products);
@@ -65,7 +62,6 @@ namespace form::experimental {
     m_pers->createContainers(creator, product_types);
 
     for (auto const& pb : products) {
-      (void)m_type_map->names.at(pb.type->name());
       // FIXME: We could consider checking id to be identical for all product bases here
       m_pers->registerWrite(creator, pb.label, pb.data, *pb.type);
     }
@@ -83,11 +79,6 @@ namespace form::experimental {
       throw std::runtime_error("No configuration found for product: " + pb.label);
     }
 
-    std::string type;
     m_pers->read(creator, pb.label, segment_id, &pb.data, *pb.type);
-
-    // Validate that we know how to map this runtime string back to the expected C++ type.
-    // (This keeps the previous "type must be known" check behavior.)
-    (void)m_type_map->names.at(pb.type->name());
   }
 }
