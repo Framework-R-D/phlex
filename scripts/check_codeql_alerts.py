@@ -640,7 +640,7 @@ def collect_alerts(
                             f"Failed to write SARIF unknown-location snippet: {exc}",
                             file=sys.stderr,
                         )
-                buckets[baseline_state].append(alert)
+            buckets[baseline_state].append(alert)
     return buckets
 
 

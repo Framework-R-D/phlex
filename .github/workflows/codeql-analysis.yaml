@@ -217,12 +217,25 @@ jobs:
             should_fail=false
           fi
           echo "${prefix}This PR is from a fork. CodeQL comments cannot be posted directly."
+          if [ -z "$comment_file" ] || [ ! -f "$comment_file" ]; then
+            echo "${prefix}Comment file not found. This may indicate a bug in the CodeQL alert script."
+            echo "${prefix}Please check the uploaded debug log artifact for details."
+            if [ "$should_fail" = true ]; then
+              exit 1
+            fi
+            exit 0
+          fi
           echo "${prefix}Displaying comment content in the log:"
           # Read the file line by line and prepend the prefix to avoid issues
           # with special characters in the comment body.
           while IFS= read -r line; do
             echo "${prefix}${line}"
           done < "$comment_file"
+          echo ""
+          echo "${prefix}To view the CodeQL alerts for this PR:"
+          echo "${prefix}1. Download the 'codeql-alerts-debug-log' artifact from this workflow run"
+          echo "${prefix}2. Or ask a maintainer to check the Security > Code scanning alerts tab"
+          echo "${prefix}3. Alerts from fork PRs are uploaded to the base repository's Code Scanning"
           if [ "$should_fail" = true ]; then
             exit 1
           fi
