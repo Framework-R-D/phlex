@@ -167,11 +167,12 @@ Provides convenient commands for managing code coverage analysis.
 | Command | Description |
 |---------|-------------|
 | `setup` | Configure and build with coverage instrumentation |
-| `clean` | Remove coverage data files |
-| `test` | Run tests with coverage collection |
+| `clean` | Remove coverage data files (C++ and Python) |
+| `test` | Run tests with coverage collection (C++ and Python) |
 | `report` | Generate both XML and HTML coverage reports |
 | `xml` | Generate XML coverage report only |
 | `html` | Generate HTML coverage report only |
+| `python` | Generate Python coverage report using pytest-cov |
 | `view` | Open HTML coverage report in browser |
 | `summary` | Show coverage summary in terminal |
 | `upload` | Upload coverage to Codecov |
@@ -185,6 +186,16 @@ The `coverage.sh` script automatically sources `setup-env.sh` if found:
 1. First tries workspace-level: `$WORKSPACE_ROOT/setup-env.sh`
 2. Then tries repository-level: `$PROJECT_SOURCE/scripts/setup-env.sh`
 3. If neither found, assumes environment is already configured
+
+#### Python Coverage Requirements
+
+Python coverage requires the following packages to be installed:
+
+```bash
+pip install pytest pytest-cov
+```
+
+When `ENABLE_COVERAGE=ON` and pytest-cov is available, Python tests will automatically generate coverage reports alongside C++ coverage.
 
 #### Coverage Examples
 
@@ -202,6 +213,12 @@ The `coverage.sh` script automatically sources `setup-env.sh` if found:
 ./scripts/coverage.sh xml      # Generate XML report
 ./scripts/coverage.sh html     # Generate HTML report
 ./scripts/coverage.sh view     # View in browser
+```
+
+**Python coverage only**:
+
+```bash
+./scripts/coverage.sh setup test python
 ```
 
 **Generate and upload to Codecov**:
