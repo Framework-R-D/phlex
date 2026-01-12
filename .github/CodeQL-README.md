@@ -123,5 +123,6 @@ When a PR is opened from a fork, the `GITHUB_TOKEN` does not have permission to 
 - **No permission to comment**: This is expected GitHub behavior for fork PRs and is not a bug.
 
 ## Contact / Ownership
+
 - Consider adding a CODEOWNERS file for the phlex-src tree so triage notifications reach the most appropriate maintainers.
 ```
