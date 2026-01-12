@@ -554,14 +554,12 @@ function(_create_coverage_targets_impl)
 
   # Add Python coverage target if pytest-cov is available
   if(Python3_FOUND)
-    find_program(PYTEST_EXECUTABLE NAMES pytest pytest3)
-    if(PYTEST_EXECUTABLE)
-      execute_process(
-        COMMAND ${Python3_EXECUTABLE} -c "import pytest_cov"
-        RESULT_VARIABLE PYTEST_COV_CHECK
-        OUTPUT_QUIET ERROR_QUIET
-      )
-      if(PYTEST_COV_CHECK EQUAL 0)
+    execute_process(
+      COMMAND ${Python3_EXECUTABLE} -c "import pytest_cov"
+      RESULT_VARIABLE PYTEST_COV_CHECK
+      OUTPUT_QUIET ERROR_QUIET
+    )
+    if(PYTEST_COV_CHECK EQUAL 0)
         add_custom_target(
           coverage-python
           COMMAND
@@ -588,7 +586,6 @@ function(_create_coverage_targets_impl)
           "pytest-cov not found; Python coverage target not available. Install with: pip install pytest-cov"
         )
       endif()
-    endif()
   endif()
 
   message(

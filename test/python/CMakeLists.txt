@@ -39,7 +39,6 @@ endfunction()
 check_python_module_version("cppyy" "3.6.0" HAS_CPPYY)
 check_python_module_version("numba" "0.61.0" HAS_NUMBA)
 check_python_module_version("numpy" "2.0.0" HAS_NUMPY)
-check_python_module_version("pytest" "7.0.0" HAS_PYTEST)
 check_python_module_version("pytest_cov" "4.0.0" HAS_PYTEST_COV)
 
 if(HAS_CPPYY)
