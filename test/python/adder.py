@@ -26,11 +26,11 @@ def add(i: Addable, j: Addable) -> Addable:
     to arrive at their total.
 
     Args:
-        i (Number): First input.
-        j (Number): Second input.
+        i (Addable): First input.
+        j (Addable): Second input.
 
     Returns:
-        Number: Sum of the two inputs.
+        Addable: Sum of the two inputs.
 
     Examples:
         >>> add(1, 2)
