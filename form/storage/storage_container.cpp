@@ -3,6 +3,8 @@
 #include "storage_container.hpp"
 #include "storage_file.hpp"
 
+#include <stdexcept>
+
 using namespace form::detail::experimental;
 
 Storage_Container::Storage_Container(std::string const& name) : m_name(name), m_file(nullptr) {}

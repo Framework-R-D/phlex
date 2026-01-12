@@ -2,6 +2,8 @@
 
 #include "form.hpp"
 
+#include <stdexcept>
+
 namespace form::experimental {
 
   form_interface::form_interface(std::shared_ptr<product_type_names> tm,
