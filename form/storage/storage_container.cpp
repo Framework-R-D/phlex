@@ -19,7 +19,7 @@ void Storage_Container::fill(void const* /* data*/) { return; }
 
 void Storage_Container::commit() { return; }
 
-bool Storage_Container::read(int /* id*/, void const** /*data*/, std::string& /* type*/)
+bool Storage_Container::read(int /* id*/, void const** /*data*/, std::string const& /* type*/)
 {
   return false;
 }

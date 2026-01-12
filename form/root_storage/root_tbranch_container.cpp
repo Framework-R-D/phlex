@@ -117,7 +117,7 @@ void ROOT_TBranch_ContainerImp::commit()
   return;
 }
 
-bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::string& type)
+bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::string const& type)
 {
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::read no file attached");

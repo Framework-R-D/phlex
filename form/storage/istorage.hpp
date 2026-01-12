@@ -58,7 +58,7 @@ namespace form::detail::experimental {
     virtual void setupWrite(std::string const& type = "") = 0;
     virtual void fill(void const* data) = 0;
     virtual void commit() = 0;
-    virtual bool read(int id, void const** data, std::string& type) = 0;
+    virtual bool read(int id, void const** data, std::string const& type) = 0;
 
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
   };

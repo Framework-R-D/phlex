@@ -22,7 +22,7 @@ namespace form::detail::experimental {
     void setupWrite(std::string const& type = "") override;
     void fill(void const* data) override;
     void commit() override;
-    bool read(int id, void const** data, std::string& type) override;
+    bool read(int id, void const** data, std::string const& type) override;
 
     void setAttribute(std::string const& name, std::string const& value) override;
 
