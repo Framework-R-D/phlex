@@ -1,34 +1,42 @@
 """Test coverage for list input converters."""
 
+
 class double(float):  # noqa: N801
     """Dummy class for C++ double type."""
 
     pass
 
+
 def list_int_func(lst: list[int]) -> int:
     """Sum a list of integers."""
     return sum(lst)
 
+
 def list_float_func(lst: list[float]) -> float:
     """Sum a list of floats."""
     return sum(lst)
+
 
 # For double, I'll use string annotation to be safe and match C++ check
 def list_double_func(lst: "list[double]") -> float:  # type: ignore
     """Sum a list of doubles."""
     return sum(lst)
 
+
 def collect_int(i: int) -> list[int]:
     """Collect an integer into a list."""
     return [i]
+
 
 def collect_float(f: float) -> list[float]:
     """Collect a float into a list."""
     return [f]
 
+
 def collect_double(d: "double") -> "list[double]":  # type: ignore
     """Collect a double into a list."""
     return [d]
+
 
 def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     """Register algorithms."""

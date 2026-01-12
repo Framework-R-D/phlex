@@ -114,9 +114,7 @@ def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
         add_unsigned, input_family=config["input_uint"], output_products=config["output_uint"]
     )
 
-    m.transform(
-        and_bool, input_family=config["input_bool"], output_products=config["output_bool"]
-    )
+    m.transform(and_bool, input_family=config["input_bool"], output_products=config["output_bool"])
 
     m.transform(
         collect_float, input_family=config["input_float"], output_products=config["output_vfloat"]
