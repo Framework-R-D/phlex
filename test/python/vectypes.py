@@ -16,13 +16,12 @@ class _CppTypeMeta(type):
 
     def __new__(mcs, name, bases, namespace, cpp_name=None):
         cls = super().__new__(mcs, name, bases, namespace)
-        if cpp_name:
-            cls._cpp_name = cpp_name
+        cls._cpp_name = cpp_name if cpp_name else name
         return cls
 
     @property
     def __name__(cls):
-        return getattr(cls, "_cpp_name", super(type(cls), cls).__name__)
+        return cls._cpp_name
 
 
 class unsigned_int(int, metaclass=_CppTypeMeta, cpp_name="unsigned int"):  # noqa: N801
