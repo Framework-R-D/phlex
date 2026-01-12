@@ -218,8 +218,9 @@ jobs:
           fi
           echo "${prefix}This PR is from a fork. CodeQL comments cannot be posted directly."
           if [ -z "$comment_file" ] || [ ! -f "$comment_file" ]; then
-            echo "${prefix}Comment file not found. This may indicate a bug in the CodeQL alert script."
-            echo "${prefix}Please check the uploaded debug log artifact for details."
+            echo "${prefix}Comment file not found or empty."
+            echo "${prefix}This may occur if no alerts were detected or alert processing failed."
+            echo "${prefix}Please check the 'Check CodeQL SARIF' step and debug log artifact for details."
             if [ "$should_fail" = true ]; then
               exit 1
             fi
