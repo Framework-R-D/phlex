@@ -1,7 +1,5 @@
 """Observers to check for various types in tests."""
 
-import sys
-
 
 class VerifierInt:
     """Verify int values."""
@@ -42,7 +40,6 @@ class VerifierLong:
 
     def __call__(self, value: "long") -> None:  # type: ignore # noqa: F821
         """Check if value matches expected sum."""
-        print(f"VerifierLong: value={value}, expected={self._sum_total}")
         assert value == self._sum_total
 
 
@@ -57,7 +54,6 @@ class VerifierULong:
 
     def __call__(self, value: "unsigned long") -> None:  # type: ignore # noqa: F722
         """Check if value matches expected sum."""
-        print(f"VerifierULong: value={value}, expected={self._sum_total}")
         assert value == self._sum_total
 
 
@@ -72,7 +68,6 @@ class VerifierFloat:
 
     def __call__(self, value: "float") -> None:
         """Check if value matches expected sum."""
-        sys.stderr.write(f"VerifierFloat: value={value}, expected={self._sum_total}\n")
         assert abs(value - self._sum_total) < 1e-5
 
 
@@ -87,7 +82,6 @@ class VerifierDouble:
 
     def __call__(self, value: "double") -> None:  # type: ignore # noqa: F821
         """Check if value matches expected sum."""
-        print(f"VerifierDouble: value={value}, expected={self._sum_total}")
         assert abs(value - self._sum_total) < 1e-5
 
 
@@ -102,7 +96,6 @@ class VerifierBool:
 
     def __call__(self, value: bool) -> None:
         """Check if value matches expected."""
-        print(f"VerifierBool: value={value}, expected={self._expected}")
         assert value == self._expected
 
 

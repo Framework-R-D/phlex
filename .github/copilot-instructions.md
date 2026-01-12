@@ -161,7 +161,7 @@ All Markdown files must strictly follow these markdownlint rules:
   - **C++ Driver**: Provides data streams (e.g., `test/python/driver.cpp`).
   - **Jsonnet Config**: Wires the graph (e.g., `test/python/pytypes.jsonnet`).
   - **Python Script**: Implements algorithms (e.g., `test/python/test_types.py`).
-- **Type Conversion**: `plugins/python/src/modulewrap.cpp` handles C++ $\leftrightarrow$ Python conversion.
+- **Type Conversion**: `plugins/python/src/modulewrap.cpp` handles C++ ↔ Python conversion.
   - **Mechanism**: Uses string comparison of type names (e.g., `"float64]]"`). This is brittle.
   - **Requirement**: Ensure converters exist for all types used in tests (e.g., `float`, `double`, `unsigned int`, and their vector equivalents).
   - **Warning**: Exact type matches are required. `numpy.float32` != `float`.

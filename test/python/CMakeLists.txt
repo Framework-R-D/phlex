@@ -154,8 +154,6 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 
-  message(STATUS "Python_SITELIB: ${Python_SITELIB}")
-  message(STATUS "Python_SITEARCH: ${Python_SITEARCH}")
   set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
   # Always add site-packages to PYTHONPATH for tests, as embedded python might
   # not find them especially in spack environments where they are in
@@ -171,7 +169,6 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
     # Keep this for backward compatibility or if it adds something else
   endif()
   set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
-  message(STATUS "TEST_PYTHONPATH: ${TEST_PYTHONPATH}")
 
 # "failing" tests for checking error paths
 add_test(
