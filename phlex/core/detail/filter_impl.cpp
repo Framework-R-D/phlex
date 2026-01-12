@@ -5,11 +5,13 @@
 #include <string>
 
 namespace {
-  phlex::product_query const output_dummy{phlex::experimental::product_specification{
-    phlex::experimental::algorithm_name{"for_output_only", ""},
-    "for_output_only",
-    phlex::experimental::type_id{}}};
-  std::vector<phlex::product_query> const for_output_only{output_dummy};
+  phlex::product_query const output_dummy{
+    phlex::experimental::product_specification{
+      phlex::experimental::algorithm_name{"for_output_only", ""},
+      "for_output_only",
+      phlex::experimental::type_id{}},
+    "dummy_layer"};
+  phlex::product_queries const for_output_only{output_dummy};
 }
 
 namespace phlex::experimental {
@@ -78,7 +80,7 @@ namespace phlex::experimental {
 
     // Fill slots in the order of the input arguments to the downstream node.
     for (std::size_t i = 0; i != nargs_; ++i) {
-      if (elem[i] or not store->contains_product((*product_names_)[i].spec.full()))
+      if (elem[i] or not store->contains_product((*product_names_)[i].spec().full()))
         continue;
       elem[i] = store;
     }

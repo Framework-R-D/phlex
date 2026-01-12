@@ -25,7 +25,7 @@ namespace phlex {
   {
     using detail::value_decorate_exception;
     auto query_object = jv.as_object();
-    return product_query{.spec = {value_decorate_exception<std::string>(query_object, "product")},
-                         .layer = value_decorate_exception<std::string>(query_object, "layer")};
+    return product_query{{value_decorate_exception<std::string>(query_object, "product")},
+                         value_decorate_exception<std::string>(query_object, "layer")};
   }
 }

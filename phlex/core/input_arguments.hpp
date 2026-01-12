@@ -18,7 +18,7 @@ namespace phlex::experimental {
     product_query query;
     auto retrieve(message const& msg) const
     {
-      return msg.store->get_handle<handle_arg_t>(query.spec.name());
+      return msg.store->get_handle<handle_arg_t>(query.spec().name());
     }
   };
 
