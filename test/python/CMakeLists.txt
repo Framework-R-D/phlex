@@ -38,6 +38,9 @@ endfunction()
 
 check_python_module_version("cppyy" "3.6.0" HAS_CPPYY)
 check_python_module_version("numba" "0.61.0" HAS_NUMBA)
+check_python_module_version("numpy" "2.0.0" HAS_NUMPY)
+check_python_module_version("pytest" "7.0.0" HAS_PYTEST)
+check_python_module_version("pytest_cov" "4.0.0" HAS_PYTEST_COV)
 
 if(HAS_CPPYY)
   # Explicitly define Python executable variable to ensure it is visible in
@@ -51,10 +54,33 @@ if(HAS_CPPYY)
     set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
   endif()
 
+  # Determine pytest command based on coverage support
+  if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
+    set(
+      PYTEST_COMMAND
+      ${PYTHON_TEST_EXECUTABLE}
+      -m
+      pytest
+      --cov=${CMAKE_CURRENT_SOURCE_DIR}
+      --cov-report=term-missing
+      --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
+      --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
+      test_phlex.py
+    )
+    message(STATUS "Python tests will run with coverage reporting (pytest-cov)")
+  else()
+    set(PYTEST_COMMAND ${PYTHON_TEST_EXECUTABLE} -m pytest test_phlex.py)
+    if(ENABLE_COVERAGE AND NOT HAS_PYTEST_COV)
+      message(
+        WARNING "ENABLE_COVERAGE is ON but pytest-cov not found; Python coverage disabled"
+      )
+    endif()
+  endif()
+
   # tests of the python support modules (relies on cppyy)
   add_test(
     NAME py:phlex
-    COMMAND ${PYTHON_TEST_EXECUTABLE} -m pytest test_phlex.py
+    COMMAND ${PYTEST_COMMAND}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 

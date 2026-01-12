@@ -208,6 +208,31 @@ jobs:
           exit 1
         fi
 
+    - name: Generate Python coverage report
+      id: report_python
+      if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
+      shell: bash
+      run: |
+        . /entrypoint.sh
+        cd "$GITHUB_WORKSPACE/phlex-build"
+
+        echo "➡️ Generating Python coverage report..."
+        echo "::group::Running coverage-python target"
+        
+        # Check if pytest-cov is available
+        if python3 -c "import pytest_cov" 2>/dev/null; then
+          if cmake --build . --target coverage-python -v; then
+            echo "::endgroup::"
+            echo "✅ Python coverage report generation succeeded."
+          else
+            echo "::endgroup::"
+            echo "::warning::Python coverage report generation failed (non-fatal)."
+          fi
+        else
+          echo "::endgroup::"
+          echo "::notice::pytest-cov not available; skipping Python coverage report."
+        fi
+
     - name: Capture coverage artifact availability
       id: coverage_outputs
       if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
@@ -228,6 +253,11 @@ jobs:
           echo "has_coverage_llvm_info=true" >> "$GITHUB_OUTPUT"
         else
           echo "has_coverage_llvm_info=false" >> "$GITHUB_OUTPUT"
+        fi
+        if [ -f coverage-python.xml ]; then
+          echo "has_coverage_python_xml=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_coverage_python_xml=false" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Unknown Coverage Report Error
@@ -251,12 +281,14 @@ jobs:
           coverage.profdata \
           coverage.xml \
           coverage.info \
-          coverage.info.final; do
+          coverage.info.final \
+          coverage-python.xml; do
           if [ -f "$file" ]; then
             cp "$file" "$ARTIFACT_DIR/"
           fi
         done
         if [ -d coverage-html ]; then cp -R coverage-html "$ARTIFACT_DIR/"; fi
+        if [ -d coverage-python-html ]; then cp -R coverage-python-html "$ARTIFACT_DIR/"; fi
 
     - name: Detect artifact upload availability
       id: artifact_runtime
@@ -317,6 +349,9 @@ jobs:
         fi
         if [ -f coverage-artifacts/coverage-llvm.info ]; then
           files+=("coverage-artifacts/coverage-llvm.info")
+        fi
+        if [ -f coverage-artifacts/coverage-python.xml ]; then
+          files+=("coverage-artifacts/coverage-python.xml")
         fi
 
         ls -al coverage-artifacts || true

@@ -542,10 +542,51 @@ function(_create_coverage_targets_impl)
     COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcno" -delete
     COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.info*
     COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.xml
+    COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage-python.xml
     COMMAND rm -rf ${CMAKE_BINARY_DIR}/coverage-html
+    COMMAND rm -rf ${CMAKE_BINARY_DIR}/coverage-python-html
+    COMMAND rm -rf ${CMAKE_BINARY_DIR}/.coverage
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Cleaning coverage data files"
+    COMMENT "Cleaning coverage data files (C++ and Python)"
   )
+
+  # Add Python coverage target if pytest-cov is available
+  if(Python3_FOUND)
+    find_program(PYTEST_EXECUTABLE NAMES pytest pytest3)
+    if(PYTEST_EXECUTABLE)
+      execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import pytest_cov"
+        RESULT_VARIABLE PYTEST_COV_CHECK
+        OUTPUT_QUIET ERROR_QUIET
+      )
+      if(PYTEST_COV_CHECK EQUAL 0)
+        add_custom_target(
+          coverage-python
+          COMMAND
+            ${CMAKE_COMMAND} -E echo
+            "[Coverage] Generating Python coverage report using pytest-cov..."
+          COMMAND
+            ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}/test/python
+            ${Python3_EXECUTABLE} -m pytest ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py
+            --cov=${PROJECT_SOURCE_DIR}/test/python --cov-report=term-missing
+            --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
+            --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT "Generating Python coverage report"
+          VERBATIM
+        )
+        message(
+          STATUS
+          "Added 'coverage-python' target for Python test coverage (pytest-cov)"
+        )
+      else()
+        message(
+          STATUS
+          "pytest-cov not found; Python coverage target not available. Install with: pip install pytest-cov"
+        )
+      endif()
+    endif()
+  endif()
 
   message(
     STATUS

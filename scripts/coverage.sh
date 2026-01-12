@@ -108,11 +108,12 @@ usage() {
     echo ""
     echo "Commands:"
     echo "  setup     Set up coverage build directory (configure and build)"
-    echo "  clean     Clean coverage data files"
-    echo "  test      Run tests with coverage instrumentation"
+    echo "  clean     Clean coverage data files (C++ and Python)"
+    echo "  test      Run tests with coverage instrumentation (C++ and Python)"
     echo "  report    Generate primary coverage output (clang: text summary, gcc: gcov data bundle)"
     echo "  xml       (gcc only) Generate Cobertura XML report"
     echo "  html      Generate HTML coverage report (supported for both presets)"
+    echo "  python    Generate Python coverage report using pytest-cov"
     echo "  view      Open HTML coverage report in browser (supported for both presets)"
     echo "  summary   Show coverage summary in the terminal"
     echo "  upload    Upload coverage report to Codecov (clang: lcov, gcc: xml)"
@@ -138,6 +139,7 @@ usage() {
     echo "  - After modifying source code, you MUST rebuild before generating reports:"
     echo "       $0 setup test html        # Rebuild → test → generate HTML"
     echo "       $0 all                    # Complete workflow (recommended)"
+    echo "  - Python coverage requires pytest and pytest-cov installed"
     echo ""
     echo "Multiple commands can be specified and will be executed in sequence:"
     echo "  $0 setup test summary"
@@ -153,6 +155,7 @@ usage() {
     echo "  $0 all                          # Complete workflow using clang (default)"
     echo "  $0 --preset coverage-gcc all    # Complete workflow using gcc"
     echo "  $0 setup test html view         # Manual workflow after code changes"
+    echo "  $0 python                       # Generate Python coverage report"
 }
 
 check_build_dir() {
@@ -811,6 +814,43 @@ run_all() {
     fi
 }
 
+generate_python_coverage() {
+    check_build_dir
+    log "Generating Python coverage report..."
+
+    # Check for pytest and pytest-cov
+    if ! command -v pytest >/dev/null 2>&1; then
+        error "pytest not found. Install it with: pip install pytest pytest-cov"
+        exit 1
+    fi
+
+    if ! python3 -c "import pytest_cov" 2>/dev/null; then
+        error "pytest-cov not found. Install it with: pip install pytest-cov"
+        exit 1
+    fi
+
+    cd "$BUILD_DIR"
+
+    # Run pytest with coverage for Python tests
+    log "Running Python tests with coverage..."
+    if ! cmake --build "$BUILD_DIR" --target coverage-python; then
+        error "Failed to generate Python coverage report"
+        exit 1
+    fi
+
+    local python_xml="$BUILD_DIR/coverage-python.xml"
+    local python_html="$BUILD_DIR/coverage-python-html"
+
+    if [[ -f "$python_xml" ]]; then
+        success "Python coverage XML generated: $python_xml"
+        log "Python coverage XML size: $(wc -c < "$python_xml") bytes"
+    fi
+
+    if [[ -d "$python_html" ]]; then
+        success "Python coverage HTML generated: $python_html/index.html"
+    fi
+}
+
 
 # Main script execution starts here
 
@@ -875,6 +915,9 @@ execute_command() {
             else
                 show_summary
             fi
+            ;;
+        python)
+            generate_python_coverage
             ;;
         upload)
             upload_codecov
