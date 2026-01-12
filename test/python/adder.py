@@ -4,19 +4,33 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
+from typing import Protocol, TypeVar
 
-def add(i: int, j: int) -> int:
+from variant import Variant
+
+
+class AddableProtocol[T](Protocol):
+    """Typer bound for any types that can be added."""
+
+    def __add__(self, other: T) -> T:  # noqa: D105
+        ...
+
+
+Addable = TypeVar('Addable', bound=AddableProtocol)
+
+
+def add(i: Addable, j: Addable) -> Addable:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together
     to arrive at their total.
 
     Args:
-        i (int): First input.
-        j (int): Second input.
+        i (Number): First input.
+        j (Number): Second input.
 
     Returns:
-        int: Sum of the two inputs.
+        Number: Sum of the two inputs.
 
     Examples:
         >>> add(1, 2)
@@ -40,4 +54,5 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    m.transform(add, input_family=config["input"], output_products=config["output"])
+    int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
+    m.transform(int_adder, input_family=config["input"], output_products=config["output"])

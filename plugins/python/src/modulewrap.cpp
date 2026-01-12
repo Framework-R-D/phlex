@@ -9,8 +9,6 @@
 #include <stdexcept>
 #include <vector>
 
-// static std::mutex g_py_mutex;
-
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
 #include <numpy/arrayobject.h>
@@ -109,7 +107,6 @@ namespace {
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
-      // std::lock_guard<std::mutex> lock(g_py_mutex);
 
       PyObject* result = PyObject_CallFunctionObjArgs(
         (PyObject*)m_callable, lifeline_transform(args.get())..., nullptr);
@@ -132,7 +129,6 @@ namespace {
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
-      // std::lock_guard<std::mutex> lock(g_py_mutex);
 
       PyObject* result =
         PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args.get()..., nullptr);
@@ -369,7 +365,6 @@ namespace {
   static PyObjectPtr vint_to_py(std::shared_ptr<std::vector<int>> const& v)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     if (!v)
       return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
@@ -392,7 +387,6 @@ namespace {
   static PyObjectPtr vuint_to_py(std::shared_ptr<std::vector<unsigned int>> const& v)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     if (!v)
       return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
@@ -415,7 +409,6 @@ namespace {
   static PyObjectPtr vlong_to_py(std::shared_ptr<std::vector<long>> const& v)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     if (!v)
       return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
@@ -438,7 +431,6 @@ namespace {
   static PyObjectPtr vulong_to_py(std::shared_ptr<std::vector<unsigned long>> const& v)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     if (!v)
       return PyObjectPtr();
     PyObject* list = PyList_New(v->size());
@@ -501,7 +493,6 @@ namespace {
   static std::shared_ptr<std::vector<int>> py_to_vint(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<int>>();
     PyObject* obj = pyobj.get();
 
@@ -541,7 +532,6 @@ namespace {
   static std::shared_ptr<std::vector<unsigned int>> py_to_vuint(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<unsigned int>>();
     PyObject* obj = pyobj.get();
 
@@ -581,7 +571,6 @@ namespace {
   static std::shared_ptr<std::vector<long>> py_to_vlong(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<long>>();
     PyObject* obj = pyobj.get();
 
@@ -621,7 +610,6 @@ namespace {
   static std::shared_ptr<std::vector<unsigned long>> py_to_vulong(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<unsigned long>>();
     PyObject* obj = pyobj.get();
 
@@ -661,7 +649,6 @@ namespace {
   static std::shared_ptr<std::vector<float>> py_to_vfloat(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<float>>();
     PyObject* obj = pyobj.get();
 
@@ -701,7 +688,6 @@ namespace {
   static std::shared_ptr<std::vector<double>> py_to_vdouble(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
-    // std::lock_guard<std::mutex> lock(g_py_mutex);
     auto vec = std::make_shared<std::vector<double>>();
     PyObject* obj = pyobj.get();
 
@@ -866,8 +852,16 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
+  // special case of Phlex Variant wrapper
+  PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
+  if (wrapped_callable) {
+    callable = wrapped_callable;
+  } else {
+    PyErr_Clear();
+    Py_INCREF(callable);
+  }
+
   // no common errors detected; actual registration may have more checks
-  Py_INCREF(callable);
   return callable;
 }
 
