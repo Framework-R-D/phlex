@@ -5,7 +5,8 @@
 # * coverage: Generates coverage reports from existing coverage data
 # * coverage-html: Generates HTML coverage report using lcov/genhtml
 # * coverage-xml: Generates XML coverage report using gcovr
-# * coverage-clean: Cleans coverage data files
+# * coverage-python: Generates Python coverage report using pytest-cov
+# * coverage-clean: Cleans coverage data files (C++ and Python)
 #
 # ~~~
 # Usage:
@@ -14,6 +15,7 @@
 # Options:
 #   ENABLE_COVERAGE must be ON
 #   Requires: CMake >= 3.22
+#   Python coverage requires pytest and pytest-cov installed
 # ~~~
 
 include_guard()
@@ -567,7 +569,8 @@ function(_create_coverage_targets_impl)
             "[Coverage] Generating Python coverage report using pytest-cov..."
           COMMAND
             ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}/test/python
-            ${Python3_EXECUTABLE} -m pytest ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py
+            PHLEX_INSTALL=${PROJECT_SOURCE_DIR} ${Python3_EXECUTABLE} -m pytest
+            ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py
             --cov=${PROJECT_SOURCE_DIR}/test/python --cov-report=term-missing
             --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
             --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
