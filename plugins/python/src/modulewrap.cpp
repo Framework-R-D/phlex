@@ -855,8 +855,10 @@ static PyObject* parse_args(PyObject* args,
   // special case of Phlex Variant wrapper
   PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
   if (wrapped_callable) {
+    // PyObject_GetAttrString returns a new reference, which we return
     callable = wrapped_callable;
   } else {
+    // No wrapper, use the original callable with incremented reference count
     PyErr_Clear();
     Py_INCREF(callable);
   }
