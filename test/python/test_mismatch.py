@@ -1,9 +1,10 @@
-
 """Test mismatch between input labels and types."""
+
 
 def mismatch_func(a: int, b: int):
     """Add two integers."""
     return a + b
+
 
 def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
     """Register algorithms."""

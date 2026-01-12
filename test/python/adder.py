@@ -16,7 +16,7 @@ class AddableProtocol[T](Protocol):
         ...
 
 
-Addable = TypeVar('Addable', bound=AddableProtocol)
+Addable = TypeVar("Addable", bound=AddableProtocol)
 
 
 def add(i: Addable, j: Addable) -> Addable:
