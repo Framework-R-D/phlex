@@ -30,7 +30,7 @@ find_program(GENHTML_EXECUTABLE genhtml)
 find_program(GCOVR_EXECUTABLE gcovr)
 
 # Find Python and normalization scripts
-find_package(Python COMPONENTS Interpreter)
+find_package(Python 3.12 COMPONENTS Interpreter QUIET)
 
 # Find CTest coverage tool
 find_program(LLVM_COV_EXECUTABLE NAMES llvm-cov-21 llvm-cov DOC "LLVM coverage tool")
@@ -553,9 +553,9 @@ function(_create_coverage_targets_impl)
   )
 
   # Add Python coverage target if pytest-cov is available
-  if(Python3_FOUND)
+  if(Python_FOUND)
     execute_process(
-      COMMAND ${Python3_EXECUTABLE} -c "import pytest_cov"
+      COMMAND ${Python_EXECUTABLE} -c "import pytest_cov"
       RESULT_VARIABLE PYTEST_COV_CHECK
       OUTPUT_QUIET ERROR_QUIET
     )
@@ -567,7 +567,7 @@ function(_create_coverage_targets_impl)
             "[Coverage] Generating Python coverage report using pytest-cov..."
           COMMAND
             ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}/test/python
-            PHLEX_INSTALL=${PROJECT_SOURCE_DIR} ${Python3_EXECUTABLE} -m pytest
+            PHLEX_INSTALL=${PROJECT_SOURCE_DIR} ${Python_EXECUTABLE} -m pytest
             ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py
             --cov=${PROJECT_SOURCE_DIR}/test/python --cov-report=term-missing
             --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
