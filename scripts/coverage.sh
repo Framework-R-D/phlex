@@ -818,13 +818,27 @@ generate_python_coverage() {
     check_build_dir
     log "Generating Python coverage report..."
 
+    # Find Python executable
+    local PYTHON_CMD=""
+    for cmd in python3 python; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+            PYTHON_CMD="$cmd"
+            break
+        fi
+    done
+
+    if [[ -z "$PYTHON_CMD" ]]; then
+        error "Python not found. Install Python 3.12+ and pytest-cov"
+        exit 1
+    fi
+
     # Check for pytest and pytest-cov
     if ! command -v pytest >/dev/null 2>&1; then
         error "pytest not found. Install it with: pip install pytest pytest-cov"
         exit 1
     fi
 
-    if ! python3 -c "import pytest_cov" 2>/dev/null; then
+    if ! "$PYTHON_CMD" -c "import pytest_cov" 2>/dev/null; then
         error "pytest-cov not found. Install it with: pip install pytest-cov"
         exit 1
     fi
