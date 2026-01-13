@@ -126,8 +126,7 @@ static bool initialize()
 
   // Ensure Python finds site-packages from a virtual environment if it exists
   if (char const* python_home = std::getenv("VIRTUAL_ENV")) {
-    wchar_t* whome = Py_DecodeLocale(python_home, nullptr);
-    if (whome) {
+    if (wchar_t* whome = Py_DecodeLocale(python_home, nullptr)) {
       PyConfig_SetString(&config, &config.home, whome);
       PyMem_RawFree(whome);
     }
