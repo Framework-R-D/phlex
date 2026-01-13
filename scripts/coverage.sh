@@ -832,14 +832,14 @@ generate_python_coverage() {
         exit 1
     fi
 
-    # Check for pytest and pytest-cov
-    if ! command -v pytest >/dev/null 2>&1; then
-        error "pytest not found. Install it with: pip install pytest pytest-cov"
+    # Check for pytest and pytest-cov in the selected Python
+    if ! "$PYTHON_CMD" -c "import pytest" 2>/dev/null; then
+        error "pytest not found in $PYTHON_CMD environment. Install it with: $PYTHON_CMD -m pip install pytest pytest-cov"
         exit 1
     fi
 
     if ! "$PYTHON_CMD" -c "import pytest_cov" 2>/dev/null; then
-        error "pytest-cov not found. Install it with: pip install pytest-cov"
+        error "pytest-cov not found in $PYTHON_CMD environment. Install it with: $PYTHON_CMD -m pip install pytest-cov"
         exit 1
     fi
 
