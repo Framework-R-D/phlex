@@ -124,12 +124,11 @@ static bool initialize()
   PyConfig_InitPythonConfig(&config);
   PyConfig_SetString(&config, &config.program_name, L"phlex");
 
-  // Ensure Python finds site-packages from a virtual environment if it exists
-  if (char const* python_home = std::getenv("VIRTUAL_ENV")) {
-    PyConfig_SetBytesString(&config, &config.home, python_home);
+  PyStatus status = Py_InitializeFromConfig(&config);
+  PyConfig_Clear(&config);
+  if (PyStatus_Exception(status)) {
+    throw std::runtime_error("Python initialization failed");
   }
-
-  Py_InitializeFromConfig(&config);
 
   // try again to see if the interpreter is now initialized
   if (!Py_IsInitialized())

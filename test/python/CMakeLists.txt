@@ -1,3 +1,5 @@
+find_package(Python 3.12 COMPONENTS Interpreter REQUIRED)
+
 # Verify installation of necessary python modules for specific tests
 
 function(check_python_module_version MODULE_NAME MIN_VERSION OUT_VAR)
@@ -92,11 +94,26 @@ set_tests_properties(
 )
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 
+# Environment variables required:
 set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH})
+set(
+  PYTHON_TEST_ENVIRONMENT
+  "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+)
 
+set_tests_properties(${ACTIVE_PY_CPHLEX_TESTS} PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
+
+# phlex-based test to ensure that sys.path is sanely set for virtual environment
+set(PY_VIRTUAL_ENV_DIR ${CMAKE_CURRENT_BINARY_DIR}/py_virtual_env)
+execute_process(COMMAND python -m venv ${PY_VIRTUAL_ENV_DIR})
+configure_file(pysyspath.jsonnet.in pysyspath.jsonnet @ONLY)
+add_test(NAME py:syspath COMMAND phlex -c ${CMAKE_CURRENT_BINARY_DIR}/pysyspath.jsonnet)
+
+# Activate the Python virtual environment "by hand".  Requires setting the VIRTUAL_ENV
+# environment variable and prepending to the PATH environment variable.
 set_tests_properties(
-  ${ACTIVE_PY_CPHLEX_TESTS}
+  py:syspath
   PROPERTIES
-    ENVIRONMENT
-      "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+    ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT};VIRTUAL_ENV=${PY_VIRTUAL_ENV_DIR}"
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${PY_VIRTUAL_ENV_DIR}/bin"
 )
