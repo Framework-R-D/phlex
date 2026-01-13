@@ -101,6 +101,24 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 - This includes blank lines - they should contain only the newline character, no spaces or tabs
 - Exception: Markdown two-space line breaks (avoid; use proper paragraph breaks instead)
 
+## Comments and Documentation
+
+### Explain "Why", Not "What" or "How"
+
+The code itself should clearly explain *what* it does and *how* it does it. Comments should reserve themselves for explaining *why* a particular approach was taken or *why* a complex logic exists.
+
+### Avoid Temporal/Meta Comments
+
+Unique "NEW:" or associated markers are not allowed. Git history tracks newness; code comments should describe the current state.
+
+### Remove Dead Code
+
+Do not comment out unused code. Remove it. Git history preserves the old code if needed.
+
+### Explain Absences
+
+If a feature (e.g., lock guards) is conspicuously missing, add a comment explaining why it is not needed (e.g., "Single-threaded context; locks unnecessary").
+
 ## Code Formatting Standards
 
 ### CMake Files
