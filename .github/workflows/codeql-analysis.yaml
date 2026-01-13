@@ -132,7 +132,6 @@ jobs:
           path: ${{ steps.set_log_path.outputs.path }}
           retention-days: 3
 
-      # NEW: Prepare the data for the privileged workflow
       - name: Prepare PR comment data
         if: >-
           github.event_name == 'pull_request' &&
@@ -142,7 +141,6 @@ jobs:
           echo "${{ github.event.pull_request.number }}" > pr_comment_data/pr_number.txt
           cp "${{ steps.check_codeql.outputs.comment_path }}" pr_comment_data/comment_body.md
 
-      # NEW: Upload the data artifact
       - name: Upload PR comment data
         if: >-
           github.event_name == 'pull_request' &&
