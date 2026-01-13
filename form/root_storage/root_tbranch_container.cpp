@@ -8,10 +8,24 @@
 #include "TFile.h"
 #include "TLeaf.h"
 #include "TTree.h"
+#include "TClassEdit.h"
 
 #include <unordered_map>
 
 namespace {
+  // Return the demangled type name
+  std::string DemangleName(const std::type_info& type) {
+    int errorCode;
+    // The TClassEdit version works on both linux and Windows.
+    char* demangledName = TClassEdit::DemangleTypeIdName(type, errorCode);
+    if (errorCode != 0) {
+      // NOTE: Instead of throwing, we could return the mangled name as a fallback.
+      throw std::runtime_error("Failed to demangle type name");
+    }
+    std::string result(demangledName);
+    std::free(demangledName);
+    return result;
+  }
   //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
   //An empty leaf list defaults to Float_t
   std::unordered_map<std::string, std::string> typeNameToLeafList = {{"int", "/I"},
@@ -73,7 +87,7 @@ void ROOT_TBranch_ContainerImp::setupWrite(std::type_info const& type)
   if (m_branch == nullptr) {
     if (!dictInfo) {
       throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::setupWrite unsupported type: "} +
-                               type.name());
+                               DemangleName(type));
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
@@ -143,7 +157,7 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info c
   int branchStatus = 0;
   if (!dictInfo) {
     throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read unsupported type: "} +
-                             type.name());
+                             DemangleName(type));
   }
 
   if (dictInfo->Property() & EProperty::kIsFundamental) {
@@ -155,7 +169,7 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info c
     auto klass = TClass::GetClass(type);
     if (!klass) {
       throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass for type: "} +
-                               type.name());
+                               DemangleName(type));
     }
     branchBuffer = klass->New();
     branchStatus =
