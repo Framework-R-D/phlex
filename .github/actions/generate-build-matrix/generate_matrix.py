@@ -1,4 +1,5 @@
 """Generates a build matrix for CI based on the trigger event and user input."""
+
 import json
 import os
 import re

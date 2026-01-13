@@ -287,11 +287,26 @@ def _to_alert_api(raw: dict) -> Alert:
     instance = raw.get("most_recent_instance") or {}
     loc = instance.get("location") or {}
     location = "(location unavailable)"
+
     if loc:
-        phys = loc.get("physicalLocation") or {}
-        formatted = _format_physical_location(phys)
-        if formatted:
-            location = formatted
+        # Check for nested SARIF format (physicalLocation)
+        phys = loc.get("physicalLocation")
+        if phys:
+            formatted = _format_physical_location(phys)
+            if formatted:
+                location = formatted
+        # Check for flat API format (path, start_line, etc.)
+        elif "path" in loc:
+            path = loc.get("path")
+            start_line = loc.get("start_line")
+            start_col = loc.get("start_column")
+            if start_line:
+                location = f"{path}:{start_line}"
+                if start_col:
+                    location = f"{location}:{start_col}"
+            elif path is not None:
+                location = str(path)
+
     else:
         # If the API instance has no physical location, try to locate using other instances
         # (some alerts expose locations in 'instances' or other fields)
@@ -640,7 +655,7 @@ def collect_alerts(
                             f"Failed to write SARIF unknown-location snippet: {exc}",
                             file=sys.stderr,
                         )
-                buckets[baseline_state].append(alert)
+            buckets[baseline_state].append(alert)
     return buckets
 
 

@@ -95,6 +95,34 @@ Suggested immediate next steps
 3. If you want more thorough coverage, enable the experimental packs temporarily in a non-blocking run, review the alerts, then decide whether to include them in CI permanently.
 4. If you want, I can run a short search and report back exact pack names for GitHub Actions and experimental packs — tell me if you want me to search the public CodeQL repo for matching pack names and list them with links.
 
-Contact / Ownership
+## Viewing CodeQL Alerts
+
+### For Pull Requests from the Same Repository
+
+When a PR is opened from a branch in the same repository (not a fork), the CodeQL workflow will automatically post a comment on the PR with details about any new or resolved alerts.
+
+### For Pull Requests from Forks
+
+When a PR is opened from a fork, the `GITHUB_TOKEN` does not have permission to post comments on the PR due to GitHub's security model. In this case:
+
+1. **The CodeQL analysis workflow uploads artifacts instead of commenting directly**: The `codeql-analysis.yaml` workflow runs the scan and uploads one or more artifacts that contain the alert information for the fork PR.
+
+2. **Artifacts are processed by a separate comment workflow**: The `codeql-comment.yaml` workflow consumes the uploaded artifacts and is responsible for generating any PR comments or additional reporting. You can also download these artifacts from the workflow run's artifacts section for manual inspection.
+
+3. **Check the Security tab**: CodeQL alerts from fork PRs are still uploaded to the Code Scanning alerts in the base repository. Repository maintainers with appropriate permissions can view these alerts by:
+   - Navigating to the repository's Security tab
+   - Clicking on "Code scanning alerts"
+   - Filtering by branch or PR number to find alerts specific to the fork PR
+
+4. **Ask a maintainer**: If you're the fork PR author and need details about the alerts, you can ask a repository maintainer to review the Code Scanning alerts for your PR.
+
+### Understanding the Workflow Behavior
+
+- **New alerts detected**: The workflow will fail to prevent merging code with new security issues.
+- **Fixed alerts only**: The workflow will succeed and provide informational notices.
+- **No permission to comment**: This is expected GitHub behavior for fork PRs and is not a bug.
+
+## Contact / Ownership
+
 - Consider adding a CODEOWNERS file for the phlex-src tree so triage notifications reach the most appropriate maintainers.
 ```

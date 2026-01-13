@@ -27,6 +27,7 @@ def collectify(i: int, j: int) -> npt.NDArray[np.int32]:
     """
     return np.array([i, j], dtype=np.int32)
 
+
 def sum_array(coll: npt.NDArray[np.int32]) -> int:
     """Add the elements of the input collection and return the sum total.
 
@@ -61,10 +62,5 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    m.transform(collectify,
-                input_family = config["input"],
-                output_products = ["my_pyarray"])
-    m.transform(sum_array,
-                input_family = ["my_pyarray"],
-                output_products = config["output"])
-
+    m.transform(collectify, input_family=config["input"], output_products=["my_pyarray"])
+    m.transform(sum_array, input_family=["my_pyarray"], output_products=config["output"])
