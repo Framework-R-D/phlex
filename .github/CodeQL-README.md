@@ -105,9 +105,9 @@ When a PR is opened from a branch in the same repository (not a fork), the CodeQ
 
 When a PR is opened from a fork, the `GITHUB_TOKEN` does not have permission to post comments on the PR due to GitHub's security model. In this case:
 
-1. **The workflow will display alert information in the job logs**: Look for the "Log CodeQL alert changes for forked PR" step in the workflow run. The alert details will be shown there with `::error::` or `::notice::` prefixes.
+1. **The CodeQL analysis workflow uploads artifacts instead of commenting directly**: The `codeql-analysis.yaml` workflow runs the scan and uploads one or more artifacts that contain the alert information for the fork PR.
 
-2. **Download the debug log artifact**: The workflow uploads a `codeql-alerts-debug-log` artifact containing detailed information about the alerts. You can download this from the workflow run's artifacts section.
+2. **Artifacts are processed by a separate comment workflow**: The `codeql-comment.yaml` workflow consumes the uploaded artifacts and is responsible for generating any PR comments or additional reporting. You can also download these artifacts from the workflow run's artifacts section for manual inspection.
 
 3. **Check the Security tab**: CodeQL alerts from fork PRs are still uploaded to the Code Scanning alerts in the base repository. Repository maintainers with appropriate permissions can view these alerts by:
    - Navigating to the repository's Security tab
