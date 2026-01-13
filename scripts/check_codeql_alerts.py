@@ -304,8 +304,8 @@ def _to_alert_api(raw: dict) -> Alert:
                 location = f"{path}:{start_line}"
                 if start_col:
                     location = f"{location}:{start_col}"
-            else:
-                location = path
+            elif path is not None:
+                location = str(path)
 
     else:
         # If the API instance has no physical location, try to locate using other instances
