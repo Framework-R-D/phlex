@@ -168,8 +168,9 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info c
   } else {
     auto klass = TClass::GetClass(type);
     if (!klass) {
-      throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass for type: "} +
-                               DemangleName(type));
+      throw std::runtime_error(
+        std::string{"ROOT_TBranch_ContainerImp::read missing TClass"} +
+        " (col_name='" + col_name() + "', type='" + DemangleName(type) + "')");
     }
     branchBuffer = klass->New();
     branchStatus =
@@ -178,8 +179,9 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info c
 
   if (branchStatus < 0) {
     throw std::runtime_error(
-      "ROOT_TBranch_ContainerImp::read SetBranchAddress() failed with error code " +
-      std::to_string(branchStatus));
+      std::string{"ROOT_TBranch_ContainerImp::read SetBranchAddress() failed"} +
+      " (col_name='" + col_name() + "', type='" + DemangleName(type) + "')" +
+      " with error code " + std::to_string(branchStatus));
   }
 
   Long64_t tentry = m_tree->LoadTree(id);
