@@ -287,7 +287,7 @@ def _to_alert_api(raw: dict) -> Alert:
     instance = raw.get("most_recent_instance") or {}
     loc = instance.get("location") or {}
     location = "(location unavailable)"
-    
+
     if loc:
         # Check for nested SARIF format (physicalLocation)
         phys = loc.get("physicalLocation")
@@ -297,15 +297,15 @@ def _to_alert_api(raw: dict) -> Alert:
                 location = formatted
         # Check for flat API format (path, start_line, etc.)
         elif "path" in loc:
-             path = loc.get("path")
-             start_line = loc.get("start_line")
-             start_col = loc.get("start_column")
-             if start_line:
-                 location = f"{path}:{start_line}"
-                 if start_col:
-                     location = f"{location}:{start_col}"
-             else:
-                 location = path
+            path = loc.get("path")
+            start_line = loc.get("start_line")
+            start_col = loc.get("start_column")
+            if start_line:
+                location = f"{path}:{start_line}"
+                if start_col:
+                    location = f"{location}:{start_col}"
+            else:
+                location = path
 
     else:
         # If the API instance has no physical location, try to locate using other instances
