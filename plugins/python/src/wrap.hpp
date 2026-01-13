@@ -28,7 +28,7 @@ namespace phlex::experimental {
 
   // Create dict-like access to the configuration from Python.
   // Returns a new reference.
-  PyObject* wrap_configuration(configuration const* config);
+  PyObject* wrap_configuration(configuration const& config);
 
   // Python wrapper for Phlex configuration
   extern PyTypeObject PhlexConfig_Type;
@@ -37,7 +37,7 @@ namespace phlex::experimental {
   // Phlex' Module wrapper to register algorithms
   typedef module_graph_proxy<void_tag> phlex_module_t;
   // Returns a new reference.
-  PyObject* wrap_module(phlex_module_t* mod);
+  PyObject* wrap_module(phlex_module_t& mod);
 
   // Python wrapper for Phlex modules
   extern PyTypeObject PhlexModule_Type;
