@@ -7,10 +7,8 @@
 
 #include "wrap.hpp"
 
-#ifdef PHLEX_HAVE_NUMPY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
 #include <numpy/arrayobject.h>
-#endif
 
 using namespace phlex::experimental;
 
@@ -48,7 +46,6 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   }
 }
 
-#ifdef PHLEX_HAVE_NUMPY
 static void import_numpy(bool control_interpreter)
 {
   static std::atomic<bool> numpy_imported{false};
@@ -61,14 +58,50 @@ static void import_numpy(bool control_interpreter)
     }
   }
 }
-#endif
+
+static void add_cmake_prefix_paths_to_syspath(char const* cmake_prefix_path)
+{
+  std::string prefix_path_str(cmake_prefix_path);
+  std::istringstream iss(prefix_path_str);
+  std::string path_entry;
+  std::vector<std::string> site_package_paths;
+
+  // Build site-packages paths from each CMAKE_PREFIX_PATH token
+  while (std::getline(iss, path_entry, ':')) {
+    if (!path_entry.empty()) {
+      std::string version_str =
+        std::to_string(PY_MAJOR_VERSION) + "." + std::to_string(PY_MINOR_VERSION);
+      std::string site_packages = path_entry + "/lib/python" + version_str + "/site-packages";
+      site_package_paths.push_back(site_packages);
+    }
+  }
+
+  // Add each site-packages path to sys.path
+  if (site_package_paths.empty()) {
+    return;
+  }
+
+  if (PyObject* sys = PyImport_ImportModule("sys")) {
+    if (PyObject* sys_path = PyObject_GetAttrString(sys, "path")) {
+      if (PyList_Check(sys_path)) {
+        for (auto const& sp_path : site_package_paths) {
+          if (PyObject* py_path = PyUnicode_FromString(sp_path.c_str())) {
+            // Insert at beginning to prioritize these paths
+            PyList_Insert(sys_path, 0, py_path);
+            Py_DECREF(py_path);
+          }
+        }
+      }
+      Py_DECREF(sys_path);
+    }
+    Py_DECREF(sys);
+  }
+}
 
 static bool initialize()
 {
   if (Py_IsInitialized()) {
-#ifdef PHLEX_HAVE_NUMPY
     import_numpy(false);
-#endif
     return true;
   }
 
@@ -87,31 +120,19 @@ static bool initialize()
     dlopen(info.dli_fname, RTLD_GLOBAL | RTLD_NOW);
   }
 
-#if PY_VERSION_HEX < 0x03020000
-  PyEval_InitThreads();
-#endif
-#if PY_VERSION_HEX < 0x03080000
-  Py_Initialize();
-#else
   PyConfig config;
   PyConfig_InitPythonConfig(&config);
   PyConfig_SetString(&config, &config.program_name, L"phlex");
-  Py_InitializeFromConfig(&config);
-#endif
-#if PY_VERSION_HEX >= 0x03020000
-#if PY_VERSION_HEX < 0x03090000
-  PyEval_InitThreads();
-#endif
-#endif
+
+  PyStatus status = Py_InitializeFromConfig(&config);
+  PyConfig_Clear(&config);
+  if (PyStatus_Exception(status)) {
+    throw std::runtime_error("Python initialization failed");
+  }
+
   // try again to see if the interpreter is now initialized
   if (!Py_IsInitialized())
     throw std::runtime_error("Python can not be initialized");
-
-#if PY_VERSION_HEX < 0x03080000
-  // set the command line arguments on python's sys.argv
-  wchar_t* argv[] = {const_cast<wchar_t*>(L"phlex")};
-  PySys_SetArgv(sizeof(argv) / sizeof(argv[0]), argv);
-#endif
 
   // add custom types
   if (PyType_Ready(&PhlexConfig_Type) < 0)
@@ -121,10 +142,15 @@ static bool initialize()
   if (PyType_Ready(&PhlexLifeline_Type) < 0)
     return false;
 
+  // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
+  //        CMAKE_PREFIX_PATH. Add site-packages directories from CMAKE_PREFIX_PATH
+  //        to sys.path so Python can find packages in Spack views.
+  if (char const* cmake_prefix_path = std::getenv("CMAKE_PREFIX_PATH")) {
+    add_cmake_prefix_paths_to_syspath(cmake_prefix_path);
+  }
+
   // load numpy (see also above, if already initialized)
-#ifdef PHLEX_HAVE_NUMPY
   import_numpy(true);
-#endif
 
   // TODO: the GIL should first be released on the main thread and this seems
   // to be the only place to do it. However, there is no equivalent place to
