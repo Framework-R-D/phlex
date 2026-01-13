@@ -90,6 +90,16 @@ static bool initialize()
   PyConfig config;
   PyConfig_InitPythonConfig(&config);
   PyConfig_SetString(&config, &config.program_name, L"phlex");
+
+  // Ensure Python finds site-packages from a virtual environment if it exists
+  if (char const* python_home = std::getenv("VIRTUAL_ENV")) {
+    wchar_t* whome = Py_DecodeLocale(python_home, nullptr);
+    if (whome) {
+      PyConfig_SetString(&config, &config.home, whome);
+      PyMem_RawFree(whome);
+    }
+  }
+
   Py_InitializeFromConfig(&config);
 #endif
 #if PY_VERSION_HEX >= 0x03020000
@@ -114,6 +124,46 @@ static bool initialize()
     return false;
   if (PyType_Ready(&PhlexLifeline_Type) < 0)
     return false;
+
+  // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
+  //        CMAKE_PREFIX_PATH. Add site-packages directories from CMAKE_PREFIX_PATH
+  //        to sys.path so Python can find packages in Spack views.
+  if (char const* cmake_prefix_path = std::getenv("CMAKE_PREFIX_PATH")) {
+    std::string prefix_path_str(cmake_prefix_path);
+    std::istringstream iss(prefix_path_str);
+    std::string path_entry;
+    std::vector<std::string> site_package_paths;
+
+    // Build site-packages paths from each CMAKE_PREFIX_PATH token
+    while (std::getline(iss, path_entry, ':')) {
+      if (!path_entry.empty()) {
+        std::string version_str =
+          std::to_string(PY_MAJOR_VERSION) + "." + std::to_string(PY_MINOR_VERSION);
+        std::string site_packages = path_entry + "/lib/python" + version_str + "/site-packages";
+        site_package_paths.push_back(site_packages);
+      }
+    }
+
+    // Add each site-packages path to sys.path
+    if (!site_package_paths.empty()) {
+      PyObject* sys = PyImport_ImportModule("sys");
+      if (sys) {
+        PyObject* sys_path = PyObject_GetAttrString(sys, "path");
+        if (sys_path && PyList_Check(sys_path)) {
+          for (auto const& sp_path : site_package_paths) {
+            PyObject* py_path = PyUnicode_FromString(sp_path.c_str());
+            if (py_path) {
+              // Insert at beginning to prioritize these paths
+              PyList_Insert(sys_path, 0, py_path);
+              Py_DECREF(py_path);
+            }
+          }
+        }
+        Py_XDECREF(sys_path);
+        Py_DECREF(sys);
+      }
+    }
+  }
 
   // load numpy (see also above, if already initialized)
   import_numpy(true);
