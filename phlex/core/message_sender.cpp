@@ -7,9 +7,9 @@
 
 namespace phlex::experimental {
   message_sender::message_sender(data_layer_hierarchy& hierarchy,
-                                 multiplexer& mplexer,
+                                 flusher_t& flusher,
                                  std::stack<end_of_message_ptr>& eoms) :
-    hierarchy_{hierarchy}, multiplexer_{mplexer}, eoms_{eoms}
+    hierarchy_{hierarchy}, flusher_{flusher}, eoms_{eoms}
   {
   }
 
@@ -35,7 +35,7 @@ namespace phlex::experimental {
     assert(store->is_flush());
     auto const message_id = ++calls_;
     message const msg{store, nullptr, message_id, original_message_id(store)};
-    multiplexer_.try_put(std::move(msg));
+    flusher_.try_put(std::move(msg));
   }
 
   std::size_t message_sender::original_message_id(product_store_ptr const& store)

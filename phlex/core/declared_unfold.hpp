@@ -110,7 +110,6 @@ namespace phlex::experimental {
           auto const& store = msg.store;
           if (store->is_flush()) {
             flag_for(store->id()->hash()).flush_received(msg.id);
-            std::get<0>(output).try_put(msg);
           } else if (accessor a; stores_.insert(a, store->id()->hash())) {
             std::size_t const original_message_id{msg_counter_};
             generator g{msg.store, this->full_name(), child_layer_name_};

@@ -166,6 +166,26 @@ namespace phlex::experimental {
                nodes_.folds,
                nodes_.unfolds,
                nodes_.transforms);
+
+    // Connect edges between all nodes and the flusher
+    auto connect_with_flusher = [this](auto& consumers) {
+      for (auto& n : consumers | std::views::values) {
+        if constexpr (requires { n->input_port(); }) {
+          make_edge(flusher_, *n->input_port());
+        } else {
+          for (auto* p : n->ports()) {
+            make_edge(flusher_, *p);
+          }
+        }
+      }
+    };
+
+    connect_with_flusher(nodes_.folds);
+    connect_with_flusher(nodes_.observers);
+    connect_with_flusher(nodes_.predicates);
+    connect_with_flusher(nodes_.providers);
+    connect_with_flusher(nodes_.transforms);
+    connect_with_flusher(nodes_.unfolds);
   }
 
   product_store_ptr framework_graph::accept(product_store_ptr store)

@@ -181,8 +181,9 @@ namespace phlex::experimental {
     std::vector<std::string> registration_errors_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
+    flusher_t flusher_{graph_};
     std::stack<end_of_message_ptr> eoms_;
-    message_sender sender_{hierarchy_, multiplexer_, eoms_};
+    message_sender sender_{hierarchy_, flusher_, eoms_};
     std::queue<product_store_ptr> pending_stores_;
     flush_counters counters_;
     std::stack<layer_sentry> layers_;
