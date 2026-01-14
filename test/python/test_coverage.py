@@ -38,7 +38,7 @@ def collect_double(d: "double") -> "list[double]":  # type: ignore
     return [d]
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms."""
     # We need to transform scalar inputs to lists first
     # i, f1, d1 come from cppsource4py

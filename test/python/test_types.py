@@ -92,7 +92,7 @@ def and_bool(i: bool, j: bool) -> bool:
     return i and j
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms.
 
     Args:
