@@ -938,8 +938,7 @@ static bool insert_input_converters(py_phlex_module* mod,
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
         return false;
       }
-    }
-    else if (inp_type == "list[int]") {
+    } else if (inp_type == "list[int]") {
       std::string py_out = cname + "_" + inp + "py";
       mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
         .input_family(product_query{product_specification::create(inp), LAYER})
@@ -1078,8 +1077,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
       PyErr_Format(PyExc_TypeError, "unsupported array output type \"%s\"", output_type.c_str());
       return nullptr;
     }
-  }
-  else if (output_type == "list[int]") {
+  } else if (output_type == "list[int]") {
     auto py_in = "py" + output + "_" + cname;
     mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
       .input_family(product_query{product_specification::create(py_in), LAYER})
