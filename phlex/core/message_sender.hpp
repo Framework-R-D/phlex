@@ -5,14 +5,10 @@
 #include "phlex/core/message.hpp"
 #include "phlex/model/fwd.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
-
 #include <map>
 #include <stack>
 
 namespace phlex::experimental {
-
-  using flusher_t = tbb::flow::broadcast_node<message>;
 
   class message_sender {
   public:
