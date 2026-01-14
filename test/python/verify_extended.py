@@ -99,7 +99,7 @@ class VerifierBool:
         assert value == self._expected
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register observers for the test."""
     try:
         m.observe(VerifierInt(config["sum_total"]), input_family=config["input_int"])

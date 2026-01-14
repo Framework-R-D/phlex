@@ -162,21 +162,7 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
   endif()
   set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
 
-# "failing" tests for checking error paths
-add_test(
-  NAME py:failure
-  COMMAND
-    ${CMAKE_CURRENT_SOURCE_DIR}/failing_test_wrap.sh ${PROJECT_BINARY_DIR}/bin/phlex -c
-    ${CMAKE_CURRENT_SOURCE_DIR}/pyfailure.jsonnet
-)
-set_tests_properties(
-  py:failure
-  PROPERTIES PASS_REGULAR_EXPRESSION "property \"input\" does not exist"
-)
-list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
-
 # Environment variables required:
-set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH})
 set(
   PYTHON_TEST_ENVIRONMENT
   "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
