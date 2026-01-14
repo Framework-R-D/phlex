@@ -98,6 +98,27 @@ if(HAS_NUMPY)
   add_test(NAME py:vectypes COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
+  add_test(NAME py:callback3 COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
+
+  # Expect failure for these tests (check for error propagation and type checking)
+  add_test(NAME py:raise COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet)
+  set_tests_properties(py:raise PROPERTIES WILL_FAIL TRUE)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
+
+  add_test(NAME py:badbool COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet)
+  set_tests_properties(py:badbool PROPERTIES WILL_FAIL TRUE)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
+
+  add_test(NAME py:badint COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet)
+  set_tests_properties(py:badint PROPERTIES WILL_FAIL TRUE)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
+
+  add_test(NAME py:baduint COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet)
+  set_tests_properties(py:baduint PROPERTIES WILL_FAIL TRUE)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
+
+
   add_test(NAME py:veclists COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
 

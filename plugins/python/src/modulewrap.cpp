@@ -317,6 +317,24 @@ namespace {
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
     cpptype i = (cpptype)frompy(pyobj.get());                                                      \
+    if (PyErr_Occurred()) {                                                                        \
+      PyObject *ptype, *pvalue, *ptraceback;                                                       \
+      PyErr_Fetch(&ptype, &pvalue, &ptraceback);                                                   \
+      PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);                                      \
+      std::string msg = "Python conversion error for type " #name;                                 \
+      if (pvalue) {                                                                                \
+        PyObject* pstr = PyObject_Str(pvalue);                                                     \
+        if (pstr) {                                                                                \
+          msg += ": ";                                                                             \
+          msg += PyUnicode_AsUTF8(pstr);                                                           \
+          Py_DECREF(pstr);                                                                         \
+        }                                                                                          \
+      }                                                                                            \
+      Py_XDECREF(ptype);                                                                           \
+      Py_XDECREF(pvalue);                                                                          \
+      Py_XDECREF(ptraceback);                                                                      \
+      throw std::runtime_error(msg);                                                               \
+    }                                                                                              \
     return i;                                                                                      \
   }
 
