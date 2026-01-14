@@ -38,7 +38,7 @@ namespace form::detail::experimental {
                       std::string const& label,
                       std::string const& id,
                       void const** data,
-                      const std::type_info& type) = 0;
+                      std::type_info const& type) = 0;
   };
 
   std::unique_ptr<IPersistence> createPersistence();
