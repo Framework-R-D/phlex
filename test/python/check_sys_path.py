@@ -35,7 +35,8 @@ class Checker:
                 site-packages is not found in sys.path.
         """
         assert len(sys.path) > 0
-        venv_site_packages = f"{sys.prefix}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
+        venv_site_packages = f"{sys.prefix}/lib/python{sys.version_info.major}." \
+            f"{sys.version_info.minor}/site-packages"
         assert any(p == venv_site_packages for p in sys.path)
 
 
