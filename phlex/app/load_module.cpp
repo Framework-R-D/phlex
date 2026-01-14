@@ -18,6 +18,8 @@ using namespace std::string_literals;
 namespace phlex::experimental {
 
   namespace {
+    constexpr std::string_view pymodule_name{"pymodule"};
+
     // If factory function goes out of scope, then the library is unloaded...and that's
     // bad.
     std::vector<std::function<detail::module_creator_t>> create_module;
@@ -40,7 +42,11 @@ namespace phlex::experimental {
         std::filesystem::path shared_library_path{subdir};
         shared_library_path /= "lib" + spec + ".so";
         if (exists(shared_library_path)) {
-          return dll::import_alias<creator_t>(shared_library_path, symbol_name);
+          // Load pymodule with rtld_global to make Python symbols available to extension modules
+          // (e.g., NumPy). Load all other plugins with rtld_local (default) to avoid symbol collisions.
+          auto const load_mode =
+            (spec == pymodule_name) ? dll::load_mode::rtld_global : dll::load_mode::default_mode;
+          return dll::import_alias<creator_t>(shared_library_path, symbol_name, load_mode);
         }
       }
       throw std::runtime_error("Could not locate library with specification '"s + spec +
@@ -65,7 +71,7 @@ namespace phlex::experimental {
           }
           throw std::runtime_error(msg);
         }
-        raw_config["cpp"] = "pymodule";
+        raw_config["cpp"] = pymodule_name;
       }
 
       return raw_config;

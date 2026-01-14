@@ -105,21 +105,6 @@ static bool initialize()
     return true;
   }
 
-  // TODO: the Python library is already loaded (b/c it's linked with
-  // this module), but its symbols need to be exposed globally to Python
-  // extension modules such as ctypes, yet this module is loaded with
-  // private visibility only. The workaround here locates the library and
-  // reloads (the handle is leaked b/c there's no knowing when it needs
-  // to be offloaded).
-  void* addr = dlsym(RTLD_DEFAULT, "Py_IsInitialized");
-  if (addr) {
-    Dl_info info;
-    if (dladdr(addr, &info) == 0 || info.dli_fname == 0 || info.dli_fname[0] == 0) {
-      throw std::runtime_error("unable to determine linked libpython");
-    }
-    dlopen(info.dli_fname, RTLD_GLOBAL | RTLD_NOW);
-  }
-
   PyConfig config;
   PyConfig_InitPythonConfig(&config);
   PyConfig_SetString(&config, &config.program_name, L"phlex");
