@@ -212,6 +212,16 @@ namespace {
     std::string ann;
     if (!PyUnicode_Check(pyobj)) {
       PyObject* pystr = PyObject_GetAttrString(pyobj, "__name__"); // eg. for classes
+
+      // generics like Union have a __name__ that is not useful for our purposes
+      if (pystr) {
+        char const* cstr = PyUnicode_AsUTF8(pystr);
+        if (cstr && (strcmp(cstr, "Union") == 0 || strcmp(cstr, "Optional") == 0)) {
+          Py_DECREF(pystr);
+          pystr = nullptr;
+        }
+      }
+
       if (!pystr) {
         PyErr_Clear();
         pystr = PyObject_Str(pyobj);

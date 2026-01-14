@@ -60,3 +60,4 @@ target_link_libraries(pymodule PRIVATE phlex::module Python::Python Python::NumP
 target_compile_definitions(pymodule PRIVATE NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION)
 
 install(TARGETS pymodule LIBRARY DESTINATION lib)
+endif()

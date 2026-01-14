@@ -6,7 +6,7 @@ def mismatch_func(a: int, b: int):
     return a + b
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms."""
     # input_family has 1 element, but function takes 2 arguments
     # This should trigger the error in modulewrap.cpp

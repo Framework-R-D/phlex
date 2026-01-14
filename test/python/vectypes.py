@@ -122,7 +122,7 @@ def collectify_float32_list(i: float, j: float) -> list[float]:
     return [i, j]
 
 
-def collectify_float64_list(i: double, j: double) -> list[double]:
+def collectify_float64_list(i: double, j: double) -> list['double']:
     """Create a float64 list from two floats."""
     return [i, j]
 
@@ -183,12 +183,12 @@ def sum_list_float(coll: list[float]) -> float:
     return sum(coll)
 
 
-def sum_list_double(coll: list[double]) -> double:
+def sum_list_double(coll: list['double']) -> double:
     """Sum a list of doubles."""
     return double(sum(coll))
 
 
-def PHLEX_EXPERIMENTAL_REGISTER_ALGORITHMS(m, config):
+def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms for the test."""
     try:
         use_lists = config["use_lists"]
