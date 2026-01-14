@@ -89,21 +89,21 @@ endif()
 
 set(ACTIVE_PY_CPHLEX_TESTS "")
 
-  # numpy support if installed
-  if(HAS_NUMPY)
-    # phlex-based tests that require numpy support
-    add_test(NAME py:vec COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet)
-    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
+# numpy support if installed
+if(HAS_NUMPY)
+  # phlex-based tests that require numpy support
+  add_test(NAME py:vec COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
 
-    add_test(NAME py:vectypes COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet)
-    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
+  add_test(NAME py:vectypes COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
-    add_test(NAME py:veclists COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
-    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
+  add_test(NAME py:veclists COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
 
-    add_test(NAME py:types COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet)
-    list(APPEND ACTIVE_PY_CPHLEX_TESTS py:types)
-  endif()
+  add_test(NAME py:types COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:types)
+endif()
 
 # C++ helper to provide a driver
 add_library(cppsource4py MODULE source.cpp)
@@ -119,48 +119,48 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 add_test(NAME py:reduce COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
-  add_test(NAME py:coverage COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet)
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
+add_test(NAME py:coverage COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
 
-  add_test(
-    NAME py:mismatch
-    COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
-  )
-  set_tests_properties(
-    py:mismatch
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch)
+add_test(
+  NAME py:mismatch
+  COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
+)
+set_tests_properties(
+  py:mismatch
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch)
 
-  # "failing" tests for checking error paths
-  add_test(
-    NAME py:failure
-    COMMAND
-      ${CMAKE_CURRENT_SOURCE_DIR}/failing_test_wrap.sh ${PROJECT_BINARY_DIR}/bin/phlex -c
-      ${CMAKE_CURRENT_SOURCE_DIR}/pyfailure.jsonnet
-  )
-  set_tests_properties(
-    py:failure
-    PROPERTIES PASS_REGULAR_EXPRESSION "property \"input\" does not exist"
-  )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
+# "failing" tests for checking error paths
+add_test(
+  NAME py:failure
+  COMMAND
+    ${CMAKE_CURRENT_SOURCE_DIR}/failing_test_wrap.sh ${PROJECT_BINARY_DIR}/bin/phlex -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/pyfailure.jsonnet
+)
+set_tests_properties(
+  py:failure
+  PROPERTIES PASS_REGULAR_EXPRESSION "property \"input\" does not exist"
+)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 
-  set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
-  # Always add site-packages to PYTHONPATH for tests, as embedded python might
-  # not find them especially in spack environments where they are in
-  # non-standard locations
-  if(Python_SITELIB)
-    set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB})
-  endif()
-  if(Python_SITEARCH AND NOT "${Python_SITEARCH}" STREQUAL "${Python_SITELIB}")
-    set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITEARCH})
-  endif()
+set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
+# Always add site-packages to PYTHONPATH for tests, as embedded python might
+# not find them especially in spack environments where they are in
+# non-standard locations
+if(Python_SITELIB)
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITELIB})
+endif()
+if(Python_SITEARCH AND NOT "${Python_SITEARCH}" STREQUAL "${Python_SITELIB}")
+  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${Python_SITEARCH})
+endif()
 
-  if(DEFINED ENV{VIRTUAL_ENV})
-    # Keep this for backward compatibility or if it adds something else
-  endif()
-  set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
+if(DEFINED ENV{VIRTUAL_ENV})
+  # Keep this for backward compatibility or if it adds something else
+endif()
+set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
 
 # Environment variables required:
 set(
