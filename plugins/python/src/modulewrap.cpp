@@ -88,18 +88,24 @@ namespace {
     }
     py_callback(py_callback const& pc)
     {
+      PyGILRAII gil;
       Py_INCREF(pc.m_callable);
       m_callable = pc.m_callable;
     }
     py_callback& operator=(py_callback const& pc)
     {
       if (this != &pc) {
+        PyGILRAII gil;
         Py_INCREF(pc.m_callable);
         m_callable = pc.m_callable;
       }
       return *this;
     }
-    ~py_callback() { Py_DECREF(m_callable); }
+    ~py_callback()
+    {
+      PyGILRAII gil;
+      Py_DECREF(m_callable);
+    }
 
     template <typename... Args>
     PyObjectPtr call(Args... args)
