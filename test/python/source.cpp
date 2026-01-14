@@ -11,6 +11,8 @@ PHLEX_REGISTER_PROVIDERS(s)
   s.provide("provide_j",
             [](data_cell_index const& id) -> int { return 1 - (int)(id.number() % 2); })
     .output_product("j"_in("job"));
+  s.provide("provide_k", [](data_cell_index const&) -> int { return 0; })
+    .output_product("k"_in("job"));
 
   s.provide("provide_f1",
             [](data_cell_index const& id) -> float { return (float)((id.number() % 100) / 100.0); })

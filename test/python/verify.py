@@ -54,6 +54,20 @@ class Verifier:
         assert value == self._sum_total
 
 
+class BoolVerifier:
+    """Verifier for boolean values."""
+
+    __name__ = "bool_verifier"
+
+    def __init__(self, expected: bool):
+        """Create a boolean verifier."""
+        self._expected = expected
+
+    def __call__(self, value: bool) -> None:
+        """Verify the boolean value."""
+        assert value == self._expected
+
+
 def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register an instance of `Verifier` as an observer.
 
@@ -68,5 +82,13 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
+    try:
+        expected = config["expected_bool"]
+        v = BoolVerifier(expected)
+        m.observe(v, input_family=config["input"])
+        return
+    except Exception:
+        pass
+
     assert_sum = Verifier(config["sum_total"])
     m.observe(assert_sum, input_family=config["input"])
