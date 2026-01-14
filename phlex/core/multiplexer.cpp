@@ -13,17 +13,17 @@
 using namespace phlex::experimental;
 
 namespace {
-  product_store_const_ptr store_for(product_store_const_ptr store,
-                                    std::string const& port_product_layer)
+  phlex::data_cell_index_ptr index_for(phlex::data_cell_index_ptr const index,
+                                       std::string const& port_product_layer)
   {
-    if (store->index()->layer_name() == port_product_layer) {
-      // This store's layer matches what is expected by the port
-      return store;
+    if (index->layer_name() == port_product_layer) {
+      // This index's layer matches what is expected by the port
+      return index;
     }
 
-    if (auto index = store->index()->parent(port_product_layer)) {
-      // This store has a parent layer that matches what is expected by the port
-      return std::make_shared<product_store>(index, store->source());
+    if (auto parent_index = index->parent(port_product_layer)) {
+      // This index has a parent layer that matches what is expected by the port
+      return parent_index;
     }
 
     return nullptr;
@@ -31,43 +31,68 @@ namespace {
 }
 
 namespace phlex::experimental {
-
-  multiplexer::multiplexer(tbb::flow::graph& g, bool debug) :
-    base{g, tbb::flow::unlimited, std::bind_front(&multiplexer::multiplex, this)}, debug_{debug}
+  layer_sentry::layer_sentry(flush_counters& counters,
+                             flusher_t& flusher,
+                             data_cell_index_ptr index,
+                             std::size_t const message_id) :
+    counters_{counters}, flusher_{flusher}, index_{index}, message_id_{message_id}
   {
+    counters_.update(index_);
   }
 
-  void multiplexer::finalize(input_ports_t provider_input_ports)
+  layer_sentry::~layer_sentry()
+  {
+    // To consider: We may want to skip the following logic if the framework prematurely
+    //              needs to shut down.  Keeping it enabled allows in-flight folds to
+    //              complete.  However, in some cases it may not be desirable to do this.
+    auto flush_result = counters_.extract(index_);
+    flush_counts_ptr result;
+    if (not flush_result.empty()) {
+      result = std::make_shared<flush_counts const>(std::move(flush_result));
+    }
+    flusher_.try_put({index_, std::move(result), message_id_});
+  }
+
+  std::size_t layer_sentry::depth() const { return index_->depth(); }
+
+  multiplexer::multiplexer(tbb::flow::graph& g) : flusher_{g} {}
+
+  void multiplexer::finalize(provider_input_ports_t provider_input_ports)
   {
     // We must have at least one provider port, or there can be no data to process.
     assert(!provider_input_ports.empty());
     provider_input_ports_ = std::move(provider_input_ports);
   }
 
-  tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
+  data_cell_index_ptr multiplexer::route(data_cell_index_ptr const index)
   {
-    ++received_messages_;
-    auto const& [store, message_id, _] = msg;
-    if (debug_) {
-      spdlog::debug("Multiplexing {} with ID {} (is flush: {})",
-                    store->index()->to_string(),
-                    message_id,
-                    store->is_flush());
-    }
+    backout_to(index);
 
-    if (store->is_flush()) {
-      for (auto const& [_, port] : provider_input_ports_ | std::views::values) {
-        port->try_put(msg);
-      }
-      return {};
-    }
+    auto message_id = received_indices_.fetch_add(1);
+    layers_.emplace(counters_, flusher_, index, message_id);
 
     for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
-      if (auto store_to_send = store_for(store, product_label.layer())) {
-        port->try_put({std::move(store_to_send), message_id});
+      if (auto index_to_send = index_for(index, product_label.layer())) {
+        port->try_put({std::move(index_to_send), message_id});
       }
     }
 
-    return {};
+    return index;
+  }
+
+  void multiplexer::backout_to(data_cell_index_ptr const index)
+  {
+    assert(index);
+    auto const new_depth = index->depth();
+    while (not empty(layers_) and new_depth <= layers_.top().depth()) {
+      layers_.pop();
+    }
+  }
+
+  void multiplexer::drain()
+  {
+    while (not empty(layers_)) {
+      layers_.pop();
+    }
   }
 }

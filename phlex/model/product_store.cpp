@@ -6,14 +6,8 @@
 
 namespace phlex::experimental {
 
-  product_store::product_store(data_cell_index_ptr id,
-                               std::string source,
-                               products new_products,
-                               stage processing_stage) :
-    products_{std::move(new_products)},
-    id_{std::move(id)},
-    source_{std::move(source)},
-    stage_{processing_stage}
+  product_store::product_store(data_cell_index_ptr id, std::string source, products new_products) :
+    products_{std::move(new_products)}, id_{std::move(id)}, source_{std::move(source)}
   {
   }
 
@@ -24,15 +18,9 @@ namespace phlex::experimental {
     return product_store_ptr{new product_store{data_cell_index::base_ptr(), std::move(base_name)}};
   }
 
-  product_store_ptr product_store::make_flush() const
-  {
-    return product_store_ptr{new product_store{id_, "[inserted]", {}, stage::flush}};
-  }
-
   std::string const& product_store::layer_name() const noexcept { return id_->layer_name(); }
   std::string const& product_store::source() const noexcept { return source_; }
   data_cell_index_ptr const& product_store::index() const noexcept { return id_; }
-  bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
   bool product_store::contains_product(std::string const& product_name) const
   {

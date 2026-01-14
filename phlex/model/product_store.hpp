@@ -18,8 +18,7 @@ namespace phlex::experimental {
   public:
     explicit product_store(data_cell_index_ptr id,
                            std::string source = "Source",
-                           products new_products = {},
-                           stage processing_stage = stage::process);
+                           products new_products = {});
     ~product_store();
     static product_store_ptr base(std::string base_name = "Source");
 
@@ -30,9 +29,7 @@ namespace phlex::experimental {
 
     std::string const& layer_name() const noexcept;
     std::string const& source() const noexcept;
-    product_store_ptr make_flush() const;
     data_cell_index_ptr const& index() const noexcept;
-    bool is_flush() const noexcept;
 
     // Product interface
     bool contains_product(std::string const& key) const;
@@ -55,7 +52,6 @@ namespace phlex::experimental {
     data_cell_index_ptr id_;
     std::string
       source_; // FIXME: Should not have to copy the string (the source should outlive the product store)
-    stage stage_;
   };
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);

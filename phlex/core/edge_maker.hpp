@@ -24,8 +24,8 @@ namespace phlex::experimental {
 
   using product_name_t = std::string;
 
-  multiplexer::input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
-                                                 declared_providers& providers);
+  multiplexer::provider_input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
+                                                          declared_providers& providers);
 
   class edge_maker {
   public:
@@ -33,8 +33,7 @@ namespace phlex::experimental {
     edge_maker(Args&... args);
 
     template <typename... Args>
-    void operator()(tbb::flow::input_node<message>& source,
-                    multiplexer& multi,
+    void operator()(multiplexer& multi,
                     std::map<std::string, filter>& filters,
                     declared_outputs& outputs,
                     declared_providers& providers,
@@ -80,15 +79,12 @@ namespace phlex::experimental {
   }
 
   template <typename... Args>
-  void edge_maker::operator()(tbb::flow::input_node<message>& source,
-                              multiplexer& multi,
+  void edge_maker::operator()(multiplexer& multi,
                               std::map<std::string, filter>& filters,
                               declared_outputs& outputs,
                               declared_providers& providers,
                               Args&... consumers)
   {
-    make_edge(source, multi);
-
     // Create edges to outputs
     for (auto const& [output_name, output_node] : outputs) {
       for (auto& [_, provider] : providers) {

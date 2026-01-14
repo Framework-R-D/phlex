@@ -1,31 +1,27 @@
 #include "phlex/core/store_counters.hpp"
+#include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_counter.hpp"
 
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
+#include <cassert>
+
 namespace phlex::experimental {
 
-  void store_flag::flush_received(std::size_t const original_message_id)
-  {
-    flush_received_ = true;
-    original_message_id_ = original_message_id;
-  }
+  void store_flag::flush_received() { flush_received_ = true; }
 
   bool store_flag::is_complete() const noexcept { return processed_ and flush_received_; }
 
   void store_flag::mark_as_processed() noexcept { processed_ = true; }
 
-  unsigned int store_flag::original_message_id() const noexcept { return original_message_id_; }
-
-  void detect_flush_flag::mark_flush_received(data_cell_index::hash_type const hash,
-                                              std::size_t const original_message_id)
+  void detect_flush_flag::mark_flush_received(data_cell_index::hash_type const hash)
   {
     flag_accessor fa;
     if (flags_.insert(fa, hash)) {
       fa->second = std::make_unique<store_flag>();
     }
-    fa->second->flush_received(original_message_id);
+    fa->second->flush_received();
   }
 
   void detect_flush_flag::mark_processed(data_cell_index::hash_type const hash)
@@ -37,10 +33,9 @@ namespace phlex::experimental {
     fa->second->mark_as_processed();
   }
 
-  bool detect_flush_flag::done_with(product_store_const_ptr const& store)
+  bool detect_flush_flag::done_with(data_cell_index::hash_type const hash)
   {
-    auto const h = store->index()->hash();
-    if (flag_accessor fa; flags_.find(fa, h) && fa->second->is_complete()) {
+    if (flag_accessor fa; flags_.find(fa, hash) && fa->second->is_complete()) {
       return flags_.erase(fa);
     }
     return false;
@@ -48,17 +43,17 @@ namespace phlex::experimental {
 
   // =====================================================================================
 
-  void store_counter::set_flush_value(product_store_const_ptr const& store,
+  void store_counter::set_flush_value(flush_counts_ptr counts,
                                       std::size_t const original_message_id)
   {
-    if (not store->contains_product("[flush]")) {
+    if (not counts) {
       return;
     }
 
 #ifdef __cpp_lib_atomic_shared_ptr
-    flush_counts_ = store->get_product<flush_counts_ptr>("[flush]");
+    flush_counts_ = counts;
 #else
-    atomic_store(&flush_counts_, store->get_product<flush_counts_ptr>("[flush]"));
+    atomic_store(&flush_counts_, counts);
 #endif
     original_message_id_ = original_message_id;
   }

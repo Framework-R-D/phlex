@@ -22,7 +22,6 @@ cet_make_library(
   glue.cpp
   input_arguments.cpp
   message.cpp
-  message_sender.cpp
   node_catalog.cpp
   multiplexer.cpp
   products_consumer.cpp
@@ -61,7 +60,6 @@ install(
     graph_proxy.hpp
     input_arguments.hpp
     message.hpp
-    message_sender.hpp
     multiplexer.hpp
     node_catalog.hpp
     product_query.hpp
