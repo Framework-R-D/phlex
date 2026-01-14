@@ -2,7 +2,7 @@ name: "CodeQL - Post Comment"
 
 on:
   workflow_run:
-    workflows: ["CodeQL - Analyze (C++, Python, Actions)"]
+    workflows: ["CodeQL Analysis"]
     types:
       - completed
 
