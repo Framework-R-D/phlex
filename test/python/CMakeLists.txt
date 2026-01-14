@@ -70,18 +70,12 @@ if(HAS_CPPYY)
   else()
     set(PYTEST_COMMAND ${PYTHON_TEST_EXECUTABLE} -m pytest test_phlex.py)
     if(ENABLE_COVERAGE AND NOT HAS_PYTEST_COV)
-      message(
-        WARNING "ENABLE_COVERAGE is ON but pytest-cov not found; Python coverage disabled"
-      )
+      message(WARNING "ENABLE_COVERAGE is ON but pytest-cov not found; Python coverage disabled")
     endif()
   endif()
 
   # tests of the python support modules (relies on cppyy)
-  add_test(
-    NAME py:phlex
-    COMMAND ${PYTEST_COMMAND}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+  add_test(NAME py:phlex COMMAND ${PYTEST_COMMAND} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
   set_property(TEST py:phlex PROPERTY ENVIRONMENT "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}")
 endif()
