@@ -160,8 +160,11 @@ jobs:
         mkdir -p "$PROFILE_ROOT"
         export LLVM_PROFILE_FILE="$PROFILE_ROOT/%m-%p.profraw"
 
+        # Enable Python plugin debug diagnostics
+        export PHLEX_PYTHON_DEBUG=1
+
         echo "::group::Running ctest for coverage"
-        if ctest --progress --output-on-failure -j "$(nproc)"; then
+        if ctest --progress --verbose --output-on-failure -j "$(nproc)"; then
           echo "::endgroup::"
           echo "✅ All tests passed."
         else
