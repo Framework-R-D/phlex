@@ -20,7 +20,7 @@ def bad_bool(a: int) -> bool:
 
 
 # Invalid long return (float)
-def bad_long(a: int) -> int:
+def bad_long(a: int) -> "long":  # type: ignore
     """Return a float instead of an int."""
     return 1.5  # type: ignore
 
@@ -32,9 +32,15 @@ class unsigned_int(int):
 
 
 # Invalid uint return (negative)
-def bad_uint(a: int) -> unsigned_int:
+def bad_uint(a: int) -> "unsigned int":  # type: ignore
     """Return a negative value for unsigned int."""
     return -5  # type: ignore
+
+
+# Function with mismatching annotation count vs config inputs
+def two_args(a: int, b: int) -> int:
+    """Sum two integers."""
+    return a + b
 
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
@@ -54,3 +60,5 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         m.transform(bad_long, input_family=config["input"], output_products=config["output"])
     elif mode == "bad_uint":
         m.transform(bad_uint, input_family=config["input"], output_products=config["output"])
+    elif mode == "mismatch":
+        m.transform(two_args, input_family=config["input"], output_products=config["output"])

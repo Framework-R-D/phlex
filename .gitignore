@@ -1,7 +1,7 @@
 # Build directories
-/build/
-/build-cov/
-/_build/
+build/
+build-cov/
+_build/
 *.dir/
 /phlex-src/
 /phlex-build/
@@ -15,8 +15,7 @@ _codeql_detected_source_root
 
 # Coverage reports
 /coverage.profdata
-/coverage_report.txt
-/coverage_report_*.txt
+/coverage_*.txt
 /coverage.xml
 /coverage.info
 /coverage-html/
