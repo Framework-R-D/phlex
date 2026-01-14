@@ -118,7 +118,6 @@ if(HAS_NUMPY)
   set_tests_properties(py:baduint PROPERTIES WILL_FAIL TRUE)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
-
   add_test(NAME py:veclists COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
 
