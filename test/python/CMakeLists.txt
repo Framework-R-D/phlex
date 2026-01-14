@@ -118,6 +118,12 @@ if(HAS_NUMPY)
   set_tests_properties(py:baduint PROPERTIES WILL_FAIL TRUE)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
+  add_test(NAME py:mismatch_ann COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_annotations.jsonnet)
+  set_tests_properties(py:mismatch_ann PROPERTIES
+      PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
+  )
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_ann)
+
   add_test(NAME py:veclists COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
 
