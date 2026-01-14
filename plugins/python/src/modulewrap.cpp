@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include <cstdlib>
 
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
@@ -16,6 +17,12 @@
 using namespace phlex::experimental;
 using phlex::concurrency;
 using phlex::product_query;
+
+static bool is_debug_enabled()
+{
+  static char const* env = std::getenv("PHLEX_PYTHON_DEBUG");
+  return env && std::string(env) == "1";
+}
 
 struct PyObjectDeleter {
   void operator()(PyObject* p) const
@@ -112,6 +119,9 @@ namespace {
     template <typename... Args>
     PyObjectPtr call(Args... args)
     {
+      if (is_debug_enabled())
+        std::cerr << "[PY_DEBUG] py_callback::call invoking python function" << std::endl;
+
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
@@ -119,14 +129,20 @@ namespace {
       PyObject* result = PyObject_CallFunctionObjArgs(
         (PyObject*)m_callable, lifeline_transform(args.get())..., nullptr);
 
+      if (is_debug_enabled())
+        std::cerr << "[PY_DEBUG] py_callback::call returned " << (result ? "success" : "failure") << std::endl;
+
       std::string error_msg;
       if (!result) {
         if (!msg_from_py_error(error_msg))
           error_msg = "Unknown python error";
       }
 
-      if (!error_msg.empty())
+      if (!error_msg.empty()) {
+        if (is_debug_enabled())
+           std::cerr << "[PY_DEBUG] Python error: " << error_msg << std::endl;
         throw std::runtime_error(error_msg.c_str());
+      }
 
       return PyObjectPtr(result, PyObjectDeleter());
     }
@@ -134,12 +150,18 @@ namespace {
     template <typename... Args>
     void callv(Args... args)
     {
+      if (is_debug_enabled())
+        std::cerr << "[PY_DEBUG] py_callback::callv invoking python function" << std::endl;
+
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
 
       PyObject* result =
         PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args.get()..., nullptr);
+
+      if (is_debug_enabled())
+        std::cerr << "[PY_DEBUG] py_callback::callv returned " << (result ? "success" : "failure") << std::endl;
 
       std::string error_msg;
       if (!result) {
@@ -148,8 +170,11 @@ namespace {
       } else
         Py_DECREF(result);
 
-      if (!error_msg.empty())
+      if (!error_msg.empty()) {
+        if (is_debug_enabled())
+           std::cerr << "[PY_DEBUG] Python error: " << error_msg << std::endl;
         throw std::runtime_error(error_msg.c_str());
+      }
     }
   };
 
@@ -326,6 +351,7 @@ namespace {
     PyGILRAII gil;                                                                                 \
     cpptype i = (cpptype)frompy(pyobj.get());                                                      \
     if (PyErr_Occurred()) {                                                                        \
+      if (is_debug_enabled()) std::cerr << "[PY_DEBUG] Python error occurred in conversion for " #name << std::endl; \
       PyObject *ptype, *pvalue, *ptraceback;                                                       \
       PyErr_Fetch(&ptype, &pvalue, &ptraceback);                                                   \
       PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);                                      \
@@ -341,6 +367,7 @@ namespace {
       Py_XDECREF(ptype);                                                                           \
       Py_XDECREF(pvalue);                                                                          \
       Py_XDECREF(ptraceback);                                                                      \
+      if (is_debug_enabled()) std::cerr << "[PY_DEBUG] Throwing C++ exception: " << msg << std::endl; \
       throw std::runtime_error(msg);                                                               \
     }                                                                                              \
     return i;                                                                                      \
