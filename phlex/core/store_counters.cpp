@@ -1,4 +1,5 @@
 #include "phlex/core/store_counters.hpp"
+#include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_counter.hpp"
 
 #include "fmt/std.h"
@@ -17,6 +18,12 @@ namespace phlex::experimental {
   void store_flag::mark_as_processed() noexcept { processed_ = true; }
 
   unsigned int store_flag::original_message_id() const noexcept { return original_message_id_; }
+
+  void detect_flush_flag::receive_flush(message const& msg)
+  {
+    assert(msg.store->is_flush());
+    flag_for(msg.store->id()->hash()).flush_received(msg.original_id);
+  }
 
   store_flag& detect_flush_flag::flag_for(data_cell_index::hash_type const hash)
   {

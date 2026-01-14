@@ -107,7 +107,7 @@ namespace phlex::experimental {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
                 if (store->is_flush()) {
-                  flag_for(store->index()->hash()).flush_received(msg.id);
+                  receive_flush(msg);
                 } else if (accessor a; stores_.insert(a, store->index()->hash())) {
                   std::size_t const original_message_id{msg_counter_};
                   generator g{msg.store, this->full_name(), child_layer_name_};

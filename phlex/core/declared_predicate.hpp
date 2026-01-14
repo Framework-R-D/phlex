@@ -81,7 +81,7 @@ namespace phlex::experimental {
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
           predicate_result result{};
           if (store->is_flush()) {
-            flag_for(store->index()->hash()).flush_received(message_id);
+            receive_flush(msg);
           } else if (const_accessor a; results_.find(a, store->index()->hash())) {
             result = {message_id, a->second.result};
           } else if (accessor a; results_.insert(a, store->index()->hash())) {
