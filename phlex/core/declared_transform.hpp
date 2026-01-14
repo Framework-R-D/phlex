@@ -93,7 +93,7 @@ namespace phlex::experimental {
                      std::tie(msg.store, msg.eom, msg.id);
                    auto& [stay_in_graph, to_output] = output;
                    if (store->is_flush()) {
-                     flag_for(store->id()->hash()).flush_received(msg.original_id);
+                     receive_flush(msg);
                    } else {
                      accessor a;
                      if (stores_.insert(a, store->id()->hash())) {

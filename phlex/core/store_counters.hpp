@@ -29,6 +29,7 @@ namespace phlex::experimental {
 
   class detect_flush_flag {
   protected:
+    void receive_flush(message const& msg);
     store_flag& flag_for(data_cell_index::hash_type hash);
     bool done_with(product_store_const_ptr const& store);
 
