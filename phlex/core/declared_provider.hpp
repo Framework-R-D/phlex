@@ -74,7 +74,6 @@ namespace phlex::experimental {
 
           if (msg.store->is_flush()) {
             flag_for(msg.store->index()->hash()).flush_received(msg.original_id);
-            stay_in_graph.try_put(msg);
           } else {
             // Check cache first
             auto index_hash = msg.store->index()->hash();

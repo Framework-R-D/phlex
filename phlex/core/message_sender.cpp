@@ -5,7 +5,7 @@
 #include <cassert>
 
 namespace phlex::experimental {
-  message_sender::message_sender(multiplexer& mplexer) : multiplexer_{mplexer} {}
+  message_sender::message_sender(flusher_t& flusher) : flusher_{flusher} {}
 
   message message_sender::make_message(product_store_ptr store)
   {
@@ -22,7 +22,7 @@ namespace phlex::experimental {
     assert(store->is_flush());
     auto const message_id = ++calls_;
     message const msg{store, message_id, original_message_id(store)};
-    multiplexer_.try_put(std::move(msg));
+    flusher_.try_put(std::move(msg));
   }
 
   std::size_t message_sender::original_message_id(product_store_ptr const& store)

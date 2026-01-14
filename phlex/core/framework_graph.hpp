@@ -181,7 +181,8 @@ namespace phlex::experimental {
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     tbb::flow::function_node<message> hierarchy_node_;
-    message_sender sender_{multiplexer_};
+    flusher_t flusher_{graph_};
+    message_sender sender_{flusher_};
     std::queue<product_store_ptr> pending_stores_;
     flush_counters counters_;
     std::stack<layer_sentry> layers_;

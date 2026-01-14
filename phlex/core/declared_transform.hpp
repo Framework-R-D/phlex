@@ -93,8 +93,6 @@ namespace phlex::experimental {
                    auto& [stay_in_graph, to_output] = output;
                    if (store->is_flush()) {
                      flag_for(store->index()->hash()).flush_received(msg.original_id);
-                     stay_in_graph.try_put(msg);
-                     to_output.try_put(msg);
                    } else {
                      accessor a;
                      if (stores_.insert(a, store->index()->hash())) {

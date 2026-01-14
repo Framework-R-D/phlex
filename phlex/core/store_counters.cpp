@@ -8,8 +8,8 @@ namespace phlex::experimental {
 
   void store_flag::flush_received(std::size_t const original_message_id)
   {
-    flush_received_ = true;
     original_message_id_ = original_message_id;
+    flush_received_ = true;
   }
 
   bool store_flag::is_complete() const noexcept { return processed_ and flush_received_; }
@@ -21,7 +21,9 @@ namespace phlex::experimental {
   store_flag& detect_flush_flag::flag_for(data_cell_index::hash_type const hash)
   {
     flag_accessor fa;
-    flags_.emplace(fa, hash, std::make_unique<store_flag>());
+    if (flags_.insert(fa, hash)) {
+      fa->second = std::make_unique<store_flag>();
+    }
     return *fa->second;
   }
 
