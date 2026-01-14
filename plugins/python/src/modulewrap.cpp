@@ -20,7 +20,7 @@ using phlex::product_query;
 struct PyObjectDeleter {
   void operator()(PyObject* p) const
   {
-    if (p) {
+    if (p && Py_IsInitialized()) {
       phlex::experimental::PyGILRAII gil;
       Py_DECREF(p);
     }
@@ -103,8 +103,10 @@ namespace {
     }
     ~py_callback()
     {
-      PyGILRAII gil;
-      Py_DECREF(m_callable);
+      if (Py_IsInitialized()) {
+        PyGILRAII gil;
+        Py_DECREF(m_callable);
+      }
     }
 
     template <typename... Args>
