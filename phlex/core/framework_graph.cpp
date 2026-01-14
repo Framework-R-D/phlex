@@ -172,18 +172,33 @@ namespace phlex::experimental {
                nodes_.unfolds,
                nodes_.transforms);
 
-    // Connect edges between all nodes and the flusher
-    auto connect_with_flusher = [this](auto& consumers) {
-      for (auto& n : consumers | std::views::values) {
-        if constexpr (requires { n->input_port(); }) {
-          make_edge(flusher_, *n->input_port());
-        } else {
-          for (auto* p : n->ports()) {
-            make_edge(flusher_, *p);
+    std::map<std::string, flusher_t*> flushers_from_unfolds;
+    for (auto const& n : nodes_.unfolds | std::views::values) {
+      flushers_from_unfolds.try_emplace(n->child_layer(), &n->flusher());
+    }
+
+    // Connect edges between all nodes, the graph-wide flusher, and the unfolds' flushers
+    auto connect_with_flusher =
+      [this, unfold_flushers = std::move(flushers_from_unfolds)](auto& consumers) {
+        for (auto& n : consumers | std::views::values) {
+          std::set<flusher_t*> flushers;
+          // For providers
+          if constexpr (requires { n->output_product(); }) {
+            make_edge(flusher_, n->flush_port());
+          } else {
+            for (product_query const& pq : n->input()) {
+              if (auto it = unfold_flushers.find(pq.layer()); it != unfold_flushers.end()) {
+                flushers.insert(it->second);
+              } else {
+                flushers.insert(&flusher_);
+              }
+            }
+            for (flusher_t* flusher : flushers) {
+              make_edge(*flusher, n->flush_port());
+            }
           }
         }
-      }
-    };
+      };
 
     connect_with_flusher(nodes_.folds);
     connect_with_flusher(nodes_.observers);

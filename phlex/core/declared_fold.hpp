@@ -19,6 +19,7 @@
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <atomic>
 #include <cassert>
@@ -42,6 +43,7 @@ namespace phlex::experimental {
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
+    virtual tbb::flow::receiver<message>& flush_port() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
@@ -75,52 +77,58 @@ namespace phlex::experimental {
       initializer_{std::move(initializer)},
       output_{to_product_specifications(full_name(), std::move(output), make_type_ids<R>())},
       partition_{std::move(partition)},
+      flush_receiver_{
+        g,
+        tbb::flow::unlimited,
+        [this](message const& msg) -> tbb::flow::continue_msg {
+          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+          if (store->index()->layer_name() != partition_) {
+            return {};
+          }
+
+          counter_for(store->index()->hash()).set_flush_value(store, original_message_id);
+          emit_and_evict_if_done(store->index());
+          return {};
+        }},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      fold_{g,
-            concurrency,
-            [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto& outputs) {
-              // N.B. The assumption is that a fold will *never* need to cache
-              //      the product store it creates.  Any flush messages *do not* need
-              //      to be propagated to downstream nodes.
-              auto const& msg = most_derived(messages);
-              auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+      fold_{
+        g, concurrency, [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto&) {
+          // N.B. The assumption is that a fold will *never* need to cache
+          //      the product store it creates.  Any flush messages *do not* need
+          //      to be propagated to downstream nodes.
+          auto const& msg = most_derived(messages);
+          auto const& store = msg.store;
 
-              if (not store->is_flush() and not store->index()->parent(partition_)) {
-                return;
-              }
+          assert(not store->is_flush());
 
-              if (store->is_flush()) {
-                // Downstream nodes always get the flush.
-                get<0>(outputs).try_put(msg);
-                if (store->index()->layer_name() != partition_) {
-                  return;
-                }
-              }
+          if (not store->index()->parent(partition_)) {
+            return;
+          }
 
-              auto const& fold_index =
-                store->is_flush() ? store->index() : store->index()->parent(partition_);
-              assert(fold_index);
-              auto const& id_hash_for_counter = fold_index->hash();
+          auto const& fold_index = store->index()->parent(partition_);
+          assert(fold_index);
+          auto const& id_hash_for_counter = fold_index->hash();
 
-              if (store->is_flush()) {
-                counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
-              } else {
-                call(ft, messages, std::make_index_sequence<N>{});
-                counter_for(id_hash_for_counter).increment(store->index()->layer_hash());
-              }
+          call(ft, messages, std::make_index_sequence<N>{});
+          counter_for(id_hash_for_counter).increment(store->index()->layer_hash());
 
-              if (auto counter = done_with(id_hash_for_counter)) {
-                auto parent = std::make_shared<product_store>(fold_index, this->full_name());
-                commit_(*parent);
-                ++product_count_;
-                get<0>(outputs).try_put({parent, counter->original_message_id()});
-              }
-            }}
+          emit_and_evict_if_done(fold_index);
+        }}
     {
       make_edge(join_, fold_);
     }
 
   private:
+    void emit_and_evict_if_done(data_cell_index_ptr const& fold_index)
+    {
+      if (auto counter = done_with(fold_index->hash())) {
+        auto parent = std::make_shared<product_store>(fold_index, this->full_name());
+        commit_(*parent);
+        ++product_count_;
+        output_port<0>(fold_).try_put({parent, counter->original_message_id()});
+      }
+    }
+
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
       return receiver_for<N>(join_, input(), product_label);
@@ -128,6 +136,7 @@ namespace phlex::experimental {
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
+    tbb::flow::receiver<message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(fold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
     product_specifications const& output() const override { return output_; }
@@ -177,6 +186,7 @@ namespace phlex::experimental {
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     std::string partition_;
+    tbb::flow::function_node<message> flush_receiver_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;
     tbb::concurrent_unordered_map<data_cell_index, std::unique_ptr<R>> results_;

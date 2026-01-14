@@ -22,7 +22,7 @@ namespace phlex::experimental {
   void detect_flush_flag::receive_flush(message const& msg)
   {
     assert(msg.store->is_flush());
-    flag_for(msg.store->id()->hash()).flush_received(msg.original_id);
+    flag_for(msg.store->index()->hash()).flush_received(msg.original_id);
   }
 
   store_flag& detect_flush_flag::flag_for(data_cell_index::hash_type const hash)

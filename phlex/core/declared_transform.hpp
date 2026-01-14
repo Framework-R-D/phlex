@@ -46,6 +46,7 @@ namespace phlex::experimental {
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
+    virtual tbb::flow::receiver<message>& flush_port() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
 
@@ -84,6 +85,15 @@ namespace phlex::experimental {
       declared_transform{std::move(name), std::move(predicates), std::move(input_products)},
       output_{to_product_specifications(
         full_name(), std::move(output), make_output_type_ids<function_t>())},
+      flush_receiver_{g,
+                      tbb::flow::unlimited,
+                      [this](message const& msg) -> tbb::flow::continue_msg {
+                        receive_flush(msg);
+                        if (done_with(msg.store)) {
+                          stores_.erase(msg.store->index()->hash());
+                        }
+                        return {};
+                      }},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       transform_{g,
                  concurrency,
@@ -91,9 +101,10 @@ namespace phlex::experimental {
                    auto const& msg = most_derived(messages);
                    auto const& [store, message_id] = std::tie(msg.store, msg.id);
                    auto& [stay_in_graph, to_output] = output;
-                   if (store->is_flush()) {
-                     receive_flush(msg);
-                   } else {
+
+                   assert(not store->is_flush());
+
+                   {
                      accessor a;
                      if (stores_.insert(a, store->index()->hash())) {
                        auto result = call(ft, messages, std::make_index_sequence<N>{});
@@ -131,6 +142,7 @@ namespace phlex::experimental {
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
+    tbb::flow::receiver<message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
     tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
     product_specifications const& output() const override { return output_; }
@@ -153,6 +165,7 @@ namespace phlex::experimental {
 
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
+    tbb::flow::function_node<message> flush_receiver_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;
     stores_t stores_;

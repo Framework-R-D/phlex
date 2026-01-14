@@ -40,6 +40,7 @@ namespace phlex::experimental {
                        product_queries input_products);
     virtual ~declared_predicate();
 
+    virtual tbb::flow::receiver<message>& flush_port() = 0;
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
 
   protected:
@@ -72,6 +73,15 @@ namespace phlex::experimental {
                    AlgorithmBits alg,
                    product_queries input_products) :
       declared_predicate{std::move(name), std::move(predicates), std::move(input_products)},
+      flush_receiver_{g,
+                      tbb::flow::unlimited,
+                      [this](message const& msg) -> tbb::flow::continue_msg {
+                        receive_flush(msg);
+                        if (done_with(msg.store)) {
+                          results_.erase(msg.store->index()->hash());
+                        }
+                        return {};
+                      }},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       predicate_{
         g,
@@ -79,10 +89,11 @@ namespace phlex::experimental {
         [this, ft = alg.release_algorithm()](messages_t<N> const& messages) -> predicate_result {
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
+
+          assert(not store->is_flush());
+
           predicate_result result{};
-          if (store->is_flush()) {
-            receive_flush(msg);
-          } else if (const_accessor a; results_.find(a, store->index()->hash())) {
+          if (const_accessor a; results_.find(a, store->index()->hash())) {
             result = {message_id, a->second.result};
           } else if (accessor a; results_.insert(a, store->index()->hash())) {
             bool const rc = call(ft, messages, std::make_index_sequence<N>{});
@@ -109,6 +120,7 @@ namespace phlex::experimental {
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
+    tbb::flow::receiver<message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
 
     template <std::size_t... Is>
@@ -121,6 +133,7 @@ namespace phlex::experimental {
     std::size_t num_calls() const final { return calls_.load(); }
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
+    tbb::flow::function_node<message> flush_receiver_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>, predicate_result> predicate_;
     results_t results_;

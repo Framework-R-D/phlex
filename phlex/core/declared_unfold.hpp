@@ -57,13 +57,18 @@ namespace phlex::experimental {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
-                    product_queries input_products);
+                    product_queries input_products,
+                    std::string child_layer);
     virtual ~declared_unfold();
 
+    virtual tbb::flow::receiver<message>& flush_port() = 0;
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
+    virtual flusher_t& flusher() = 0;
+
+    std::string const& child_layer() const noexcept { return child_layer_; }
 
   protected:
     using stores_t = tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr>;
@@ -71,6 +76,9 @@ namespace phlex::experimental {
     using const_accessor = stores_t::const_accessor;
 
     void report_cached_stores(stores_t const& stores) const;
+
+  private:
+    std::string child_layer_;
   };
 
   using declared_unfold_ptr = std::unique_ptr<declared_unfold>;
@@ -94,35 +102,48 @@ namespace phlex::experimental {
                 product_queries product_labels,
                 std::vector<std::string> output_products,
                 std::string child_layer_name) :
-      declared_unfold{std::move(name), std::move(predicates), std::move(product_labels)},
+      declared_unfold{std::move(name),
+                      std::move(predicates),
+                      std::move(product_labels),
+                      std::move(child_layer_name)},
       output_{to_product_specifications(full_name(),
                                         std::move(output_products),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
-      child_layer_name_{std::move(child_layer_name)},
+      flush_receiver_{g,
+                      tbb::flow::unlimited,
+                      [this](message const& msg) -> tbb::flow::continue_msg {
+                        receive_flush(msg);
+                        if (done_with(msg.store)) {
+                          stores_.erase(msg.store->index()->hash());
+                        }
+                        return {};
+                      }},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       unfold_{g,
               concurrency,
               [this, p = std::move(predicate), ufold = std::move(unfold)](
-                messages_t<N> const& messages, auto& output) {
+                messages_t<N> const& messages, auto&) {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
-                if (store->is_flush()) {
-                  receive_flush(msg);
-                } else if (accessor a; stores_.insert(a, store->index()->hash())) {
+
+                assert(not store->is_flush());
+
+                if (accessor a; stores_.insert(a, store->index()->hash())) {
                   std::size_t const original_message_id{msg_counter_};
-                  generator g{msg.store, this->full_name(), child_layer_name_};
+                  generator g{msg.store, this->full_name(), child_layer()};
                   call(p, ufold, msg.store->index(), g, messages, std::make_index_sequence<N>{});
 
                   message const flush_msg{
                     g.flush_store(), msg_counter_.fetch_add(1), original_message_id};
-                  std::get<0>(output).try_put(flush_msg);
+                  flusher_.try_put(flush_msg);
                   flag_for(store->index()->hash()).mark_as_processed();
                 }
 
                 if (done_with(store)) {
                   stores_.erase(store->index()->hash());
                 }
-              }}
+              }},
+      flusher_{g}
     {
       make_edge(join_, unfold_);
     }
@@ -136,9 +157,11 @@ namespace phlex::experimental {
     }
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
+    tbb::flow::receiver<message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
     product_specifications const& output() const override { return output_; }
+    flusher_t& flusher() override { return flusher_; }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,
@@ -154,7 +177,7 @@ namespace phlex::experimental {
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
         products new_products;
-        auto new_id = unfolded_id->make_child(counter, child_layer_name_);
+        auto new_id = unfolded_id->make_child(counter, child_layer());
         if constexpr (requires { std::invoke(unfold, obj, running_value, *new_id); }) {
           auto [next_value, prods] = std::invoke(unfold, obj, running_value, *new_id);
           new_products.add_all(output_, std::move(prods));
@@ -171,7 +194,7 @@ namespace phlex::experimental {
 
         // Every data cell needs a flush (for now)
         message const child_flush_msg{child->make_flush(), msg_counter_.fetch_add(1)};
-        output_port<0>(unfold_).try_put(child_flush_msg);
+        flusher_.try_put(child_flush_msg);
       }
     }
 
@@ -180,9 +203,10 @@ namespace phlex::experimental {
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
     product_specifications output_;
-    std::string child_layer_name_;
+    tbb::flow::function_node<message> flush_receiver_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;
+    flusher_t flusher_;
     tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr> stores_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
