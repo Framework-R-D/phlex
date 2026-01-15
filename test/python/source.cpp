@@ -41,19 +41,20 @@ PHLEX_REGISTER_PROVIDERS(s)
      [](data_cell_index const& id) -> unsigned int { return 1 - (unsigned int)(id.number() % 2); })
     .output_product("u2"_in("job"));
 
-  s.provide("provide_l1",
-            [](data_cell_index const& id) -> int64_t { return (int64_t)(id.number() % 2); })
+  s.provide("provide_l1", [](data_cell_index const& id) -> long { return (long)(id.number() % 2); })
     .output_product("l1"_in("job"));
   s.provide("provide_l2",
-            [](data_cell_index const& id) -> int64_t { return 1 - (int64_t)(id.number() % 2); })
+            [](data_cell_index const& id) -> long { return 1 - (long)(id.number() % 2); })
     .output_product("l2"_in("job"));
 
-  s.provide("provide_ul1",
-            [](data_cell_index const& id) -> uint64_t { return (uint64_t)(id.number() % 101); })
-    .output_product("ul1"_in("job"));
   s.provide(
-     "provide_ul2",
-     [](data_cell_index const& id) -> uint64_t { return 100 - (uint64_t)(id.number() % 101); })
+     "provide_ul1",
+     [](data_cell_index const& id) -> unsigned long { return (unsigned long)(id.number() % 101); })
+    .output_product("ul1"_in("job"));
+  s.provide("provide_ul2",
+            [](data_cell_index const& id) -> unsigned long {
+              return 100 - (unsigned long)(id.number() % 101);
+            })
     .output_product("ul2"_in("job"));
 
   s.provide("provide_b1", [](data_cell_index const& id) -> bool { return (id.number() % 2) == 0; })
