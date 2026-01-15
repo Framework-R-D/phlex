@@ -119,7 +119,6 @@ if(HAS_NUMPY)
     py:baduint
     PROPERTIES
       WILL_FAIL TRUE
-      ENVIRONMENT "PHLEX_PYTHON_DEBUG=1"
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
