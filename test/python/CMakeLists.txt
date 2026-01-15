@@ -15,12 +15,17 @@ try:
         sys.exit(0)
     else:
         sys.exit(2)  # Version too low
-except ImportError:
+except ImportError as e:
+    print(f'ImportError: {e}')
     sys.exit(1)
-except Exception:
+except Exception as e:
+    print(f'Exception: {e}')
     sys.exit(1)"
     RESULT_VARIABLE _module_check_result
+    OUTPUT_VARIABLE _module_check_out
+    ERROR_VARIABLE _module_check_err
   )
+  message(STATUS "Check ${MODULE_NAME}: Res=${_module_check_result} Out=${_module_check_out} Err=${_module_check_err}")
 
   if(_module_check_result EQUAL 0)
     set(${OUT_VAR} TRUE PARENT_SCOPE)
