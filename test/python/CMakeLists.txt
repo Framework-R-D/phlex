@@ -194,6 +194,9 @@ set_tests_properties(
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 
 set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
+# Add the python plugin source directory to PYTHONPATH so tests can use phlex package
+set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${PROJECT_SOURCE_DIR}/plugins/python/python)
+
 # Always add site-packages to PYTHONPATH for tests, as embedded python might
 # not find them especially in spack environments where they are in
 # non-standard locations
