@@ -2,13 +2,10 @@
 #include "wrap.hpp"
 
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
-#include <cstdlib>
 
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
@@ -353,18 +350,7 @@ namespace {
   BASIC_CONVERTER(int, int, PyLong_FromLong, PyLong_AsLong)
   BASIC_CONVERTER(uint, unsigned int, PyLong_FromLong, pylong_or_int_as_ulong)
   BASIC_CONVERTER(long, long, PyLong_FromLong, pylong_as_strictlong)
-  // BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
-  static PyObjectPtr ulong_to_py(unsigned long a)
-  {
-    PyGILRAII gil;
-    return PyObjectPtr(PyLong_FromUnsignedLong(a), PyObjectDeleter());
-  }
-  static unsigned long py_to_ulong(PyObjectPtr pyobj)
-  {
-    PyGILRAII gil;
-    unsigned long i = (unsigned long)pylong_or_int_as_ulong(pyobj.get());
-    return i;
-  }
+  BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
@@ -400,94 +386,10 @@ namespace {
     return PyObjectPtr((PyObject*)pyll, PyObjectDeleter());                                        \
   }
 
-  // VECTOR_CONVERTER(vint, int, NPY_INT)
-  static PyObjectPtr vint_to_py(std::shared_ptr<std::vector<int>> const& v)
-  {
-    PyGILRAII gil;
-    if (!v)
-      return PyObjectPtr();
-    PyObject* list = PyList_New(v->size());
-    if (!list) {
-      PyErr_Print();
-      return PyObjectPtr();
-    }
-    for (size_t i = 0; i < v->size(); ++i) {
-      PyObject* item = PyLong_FromLong((*v)[i]);
-      if (!item) {
-        PyErr_Print();
-        Py_DECREF(list);
-        return PyObjectPtr();
-      }
-      PyList_SET_ITEM(list, i, item);
-    }
-    return PyObjectPtr(list, PyObjectDeleter());
-  }
-  // VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
-  static PyObjectPtr vuint_to_py(std::shared_ptr<std::vector<unsigned int>> const& v)
-  {
-    PyGILRAII gil;
-    if (!v)
-      return PyObjectPtr();
-    PyObject* list = PyList_New(v->size());
-    if (!list) {
-      PyErr_Print();
-      return PyObjectPtr();
-    }
-    for (size_t i = 0; i < v->size(); ++i) {
-      PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
-      if (!item) {
-        PyErr_Print();
-        Py_DECREF(list);
-        return PyObjectPtr();
-      }
-      PyList_SET_ITEM(list, i, item);
-    }
-    return PyObjectPtr(list, PyObjectDeleter());
-  }
-  // VECTOR_CONVERTER(vlong, long, NPY_LONG)
-  static PyObjectPtr vlong_to_py(std::shared_ptr<std::vector<long>> const& v)
-  {
-    PyGILRAII gil;
-    if (!v)
-      return PyObjectPtr();
-    PyObject* list = PyList_New(v->size());
-    if (!list) {
-      PyErr_Print();
-      return PyObjectPtr();
-    }
-    for (size_t i = 0; i < v->size(); ++i) {
-      PyObject* item = PyLong_FromLong((*v)[i]);
-      if (!item) {
-        PyErr_Print();
-        Py_DECREF(list);
-        return PyObjectPtr();
-      }
-      PyList_SET_ITEM(list, i, item);
-    }
-    return PyObjectPtr(list, PyObjectDeleter());
-  }
-  // VECTOR_CONVERTER(vulong, unsigned long, NPY_ULONG)
-  static PyObjectPtr vulong_to_py(std::shared_ptr<std::vector<unsigned long>> const& v)
-  {
-    PyGILRAII gil;
-    if (!v)
-      return PyObjectPtr();
-    PyObject* list = PyList_New(v->size());
-    if (!list) {
-      PyErr_Print();
-      return PyObjectPtr();
-    }
-    for (size_t i = 0; i < v->size(); ++i) {
-      PyObject* item = PyLong_FromUnsignedLong((*v)[i]);
-      if (!item) {
-        PyErr_Print();
-        Py_DECREF(list);
-        return PyObjectPtr();
-      }
-      PyList_SET_ITEM(list, i, item);
-    }
-    return PyObjectPtr(list, PyObjectDeleter());
-  }
+  VECTOR_CONVERTER(vint, int, NPY_INT)
+  VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
+  VECTOR_CONVERTER(vlong, long, NPY_LONG)
+  VECTOR_CONVERTER(vulong, unsigned long, NPY_ULONG)
   VECTOR_CONVERTER(vfloat, float, NPY_FLOAT)
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
@@ -521,14 +423,6 @@ namespace {
     return vec;                                                                                    \
   }
 
-  // NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
-  // NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
-  // NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
-  // NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
-  // NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
-  // NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
-
-  // NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
   static std::shared_ptr<std::vector<int>> py_to_vint(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
@@ -567,7 +461,6 @@ namespace {
     }
     return vec;
   }
-  // NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
   static std::shared_ptr<std::vector<unsigned int>> py_to_vuint(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
@@ -606,7 +499,6 @@ namespace {
     }
     return vec;
   }
-  // NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
   static std::shared_ptr<std::vector<long>> py_to_vlong(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
@@ -645,7 +537,6 @@ namespace {
     }
     return vec;
   }
-  // NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
   static std::shared_ptr<std::vector<unsigned long>> py_to_vulong(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
@@ -684,7 +575,6 @@ namespace {
     }
     return vec;
   }
-  // NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
   static std::shared_ptr<std::vector<float>> py_to_vfloat(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
@@ -723,7 +613,6 @@ namespace {
     }
     return vec;
   }
-  // NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
   static std::shared_ptr<std::vector<double>> py_to_vdouble(PyObjectPtr pyobj)
   {
     PyGILRAII gil;
