@@ -6,7 +6,7 @@ real. It serves as a "Hello, World" equivalent for running Python code.
 
 from typing import Protocol, TypeVar
 
-from variant import AdjustAnnotations
+from phlex import AdjustAnnotations
 
 
 class AddableProtocol[T](Protocol):
