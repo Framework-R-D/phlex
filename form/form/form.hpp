@@ -9,26 +9,20 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <typeindex>
-#include <unordered_map>
+#include <typeinfo>
 #include <vector>
 
 namespace form::experimental {
 
-  struct product_type_names {
-    std::unordered_map<std::type_index, std::string> names;
-  };
-
   struct product_with_name {
     std::string label;
     void const* data;
-    std::type_index type;
+    std::type_info const* type;
   };
 
   class form_interface {
   public:
-    form_interface(std::shared_ptr<product_type_names> tm,
-                   config::output_item_config const& output_config,
+    form_interface(config::output_item_config const& output_config,
                    config::tech_setting_config const& tech_config);
     ~form_interface() = default;
 
@@ -46,7 +40,6 @@ namespace form::experimental {
 
   private:
     std::unique_ptr<form::detail::experimental::IPersistence> m_pers;
-    std::shared_ptr<product_type_names> m_type_map;
     std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
   };
 }

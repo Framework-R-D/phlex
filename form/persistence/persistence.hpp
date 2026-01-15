@@ -32,18 +32,18 @@ namespace form::detail::experimental {
       form::experimental::config::output_item_config const& output_items) override;
 
     void createContainers(std::string const& creator,
-                          std::map<std::string, std::string> const& products) override;
+                          std::map<std::string, std::type_info const*> const& products) override;
     void registerWrite(std::string const& creator,
                        std::string const& label,
                        void const* data,
-                       std::string const& type) override;
+                       std::type_info const& type) override;
     void commitOutput(std::string const& creator, std::string const& id) override;
 
     void read(std::string const& creator,
               std::string const& label,
               std::string const& id,
               void const** data,
-              std::string& type) override;
+              std::type_info const& type) override;
 
   private:
     std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);

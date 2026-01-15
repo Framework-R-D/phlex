@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 namespace form::detail::experimental {
@@ -20,11 +21,11 @@ namespace form::detail::experimental {
     virtual ~IStorage() = default;
 
     virtual void createContainers(
-      std::map<std::unique_ptr<Placement>, std::string> const& containers,
+      std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
       form::experimental::config::tech_setting_config const& settings) = 0;
     virtual void fillContainer(Placement const& plcmnt,
                                void const* data,
-                               std::string const& type) = 0;
+                               std::type_info const& type) = 0;
     virtual void commitContainers(Placement const& plcmnt) = 0;
 
     virtual int getIndex(Token const& token,
@@ -32,7 +33,7 @@ namespace form::detail::experimental {
                          form::experimental::config::tech_setting_config const& settings) = 0;
     virtual void readContainer(Token const& token,
                                void const** data,
-                               std::string& type,
+                               std::type_info const& type,
                                form::experimental::config::tech_setting_config const& settings) = 0;
   };
 
@@ -55,10 +56,10 @@ namespace form::detail::experimental {
     virtual std::string const& name() = 0;
 
     virtual void setFile(std::shared_ptr<IStorage_File> file) = 0;
-    virtual void setupWrite(std::string const& type = "") = 0;
+    virtual void setupWrite(std::type_info const& type = typeid(void)) = 0;
     virtual void fill(void const* data) = 0;
     virtual void commit() = 0;
-    virtual bool read(int id, void const** data, std::string& type) = 0;
+    virtual bool read(int id, void const** data, std::type_info const& type) = 0;
 
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
   };

@@ -36,9 +36,6 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
 
-  std::shared_ptr<form::experimental::product_type_names> type_map =
-    form::experimental::createTypeMap();
-
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::output_item_config output_config;
   output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
@@ -54,7 +51,7 @@ int main(int argc, char** argv)
   tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"]
     .emplace_back("force_streamer_field", "true");
 
-  form::experimental::form_interface form(type_map, output_config, tech_config);
+  form::experimental::form_interface form(output_config, tech_config);
 
   ToyTracker tracker(4 * 1024);
 
@@ -80,8 +77,7 @@ int main(int argc, char** argv)
       std::string const creator = "Toy_Tracker";
 
       form::experimental::product_with_name pb = {
-        "trackStart", &track_start_x, std::type_index{typeid(std::vector<float>)}};
-      type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+        "trackStart", &track_start_x, &typeid(std::vector<float>)};
       products.push_back(pb);
 
       std::vector<int> track_n_hits;
@@ -94,8 +90,7 @@ int main(int argc, char** argv)
                 << ", check = " << check << std::endl;
 
       form::experimental::product_with_name pb_int = {
-        "trackNumberHits", &track_n_hits, std::type_index{typeid(std::vector<int>)}};
-      type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
+        "trackNumberHits", &track_n_hits, &typeid(std::vector<int>)};
       products.push_back(pb_int);
 
       std::vector<TrackStart> start_points = tracker();
@@ -106,8 +101,7 @@ int main(int argc, char** argv)
                 << ", checkPoints = " << checkPoints << std::endl;
 
       form::experimental::product_with_name pb_points = {
-        "trackStartPoints", &start_points, std::type_index{typeid(std::vector<TrackStart>)}};
-      type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
+        "trackStartPoints", &start_points, &typeid(std::vector<TrackStart>)};
       products.push_back(pb_points);
 
       form.write(creator, segment_id, products);
@@ -129,8 +123,7 @@ int main(int argc, char** argv)
     std::string const creator = "Toy_Tracker_Event";
 
     form::experimental::product_with_name pb = {
-      "trackStartX", &track_x, std::type_index{typeid(std::vector<float>)}};
-    type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+      "trackStartX", &track_x, &typeid(std::vector<float>)};
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << std::endl;
 

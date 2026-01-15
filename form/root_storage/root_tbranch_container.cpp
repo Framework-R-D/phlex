@@ -5,6 +5,7 @@
 #include "root_ttree_container.hpp"
 
 #include "TBranch.h"
+#include "TClassEdit.h"
 #include "TFile.h"
 #include "TLeaf.h"
 #include "TTree.h"
@@ -12,6 +13,20 @@
 #include <unordered_map>
 
 namespace {
+  // Return the demangled type name
+  std::string DemangleName(std::type_info const& type)
+  {
+    int errorCode;
+    // The TClassEdit version works on both linux and Windows.
+    char* demangledName = TClassEdit::DemangleTypeIdName(type, errorCode);
+    if (errorCode != 0) {
+      // NOTE: Instead of throwing, we could return the mangled name as a fallback.
+      throw std::runtime_error("Failed to demangle type name");
+    }
+    std::string result(demangledName);
+    std::free(demangledName);
+    return result;
+  }
   //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
   //An empty leaf list defaults to Float_t
   std::unordered_map<std::string, std::string> typeNameToLeafList = {{"int", "/I"},
@@ -63,16 +78,18 @@ void ROOT_TBranch_ContainerImp::setParent(std::shared_ptr<IStorage_Container> pa
   return;
 }
 
-void ROOT_TBranch_ContainerImp::setupWrite(std::string const& type)
+void ROOT_TBranch_ContainerImp::setupWrite(std::type_info const& type)
 {
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::setupWrite no tree found");
   }
 
-  auto dictInfo = TDictionary::GetDictionary(type.c_str());
+  auto dictInfo = TDictionary::GetDictionary(type);
   if (m_branch == nullptr) {
     if (!dictInfo) {
-      throw std::runtime_error("ROOT_TBranch_ContainerImp::setupWrite unsupported type: " + type);
+      throw std::runtime_error(
+        std::string{"ROOT_TBranch_ContainerImp::setupWrite unsupported type: "} +
+        DemangleName(type));
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
@@ -117,7 +134,7 @@ void ROOT_TBranch_ContainerImp::commit()
   return;
 }
 
-bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::string& type)
+bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info const& type)
 {
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_ContainerImp::read no file attached");
@@ -138,23 +155,34 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::string& typ
     return false;
 
   void* branchBuffer = nullptr;
-  auto dictInfo = TClass::GetClass(type.c_str());
+  auto dictInfo = TDictionary::GetDictionary(type);
   int branchStatus = 0;
-  if (dictInfo) {
-    branchBuffer = dictInfo->New();
-    branchStatus = m_tree->SetBranchAddress(
-      col_name().c_str(), &branchBuffer, TClass::GetClass(type.c_str()), EDataType::kOther_t, true);
-  } else {
-    //Assume this is a fundamental type like int or double
-    auto fundInfo = static_cast<TDataType*>(TDictionary::GetDictionary(type.c_str()));
+  if (!dictInfo) {
+    throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read unsupported type: "} +
+                             DemangleName(type));
+  }
+
+  if (dictInfo->Property() & EProperty::kIsFundamental) {
+    auto fundInfo = static_cast<TDataType*>(dictInfo);
     branchBuffer = new char[fundInfo->Size()];
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), &branchBuffer, nullptr, EDataType(fundInfo->GetType()), true);
+  } else {
+    auto klass = TClass::GetClass(type);
+    if (!klass) {
+      throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass"} +
+                               " (col_name='" + col_name() + "', type='" + DemangleName(type) +
+                               "')");
+    }
+    branchBuffer = klass->New();
+    branchStatus =
+      m_tree->SetBranchAddress(col_name().c_str(), &branchBuffer, klass, EDataType::kOther_t, true);
   }
 
   if (branchStatus < 0) {
     throw std::runtime_error(
-      "ROOT_TBranch_ContainerImp::read SetBranchAddress() failed with error code " +
+      std::string{"ROOT_TBranch_ContainerImp::read SetBranchAddress() failed"} + " (col_name='" +
+      col_name() + "', type='" + DemangleName(type) + "')" + " with error code " +
       std::to_string(branchStatus));
   }
 
