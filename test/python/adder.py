@@ -6,7 +6,7 @@ real. It serves as a "Hello, World" equivalent for running Python code.
 
 from typing import Protocol, TypeVar
 
-from variant import Variant
+from variant import AdjustAnnotations
 
 
 class AddableProtocol[T](Protocol):
@@ -54,5 +54,5 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
+    int_adder = AdjustAnnotations(add, {"i": int, "j": int, "return": int}, "iadd")
     m.transform(int_adder, input_family=config["input"], output_products=config["output"])
