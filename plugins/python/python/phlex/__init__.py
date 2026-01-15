@@ -1,8 +1,6 @@
-"""Annotation helper for C++ typing variants.
+"""Phlex Python Utilities.
 
-Python algorithms are generic, like C++ templates, but the Phlex registration
-process requires a single unique signature. These helpers generate annotated
-functions for registration with the proper C++ types.
+Call helpers and type annotation tools for the Phlex framework.
 """
 
 import copy
@@ -63,6 +61,12 @@ class AdjustAnnotations:
         self.__name__ = name
         self._allow_call = allow_call
 
+        # Expose __code__ from the underlying callable if available, to aid
+        # introspection (e.g. by C++ modulewrap).
+        self.__code__ = getattr(self.phlex_callable, "__code__", None)
+        self.__defaults__ = getattr(self.phlex_callable, "__defaults__", None)
+        self.__kwdefaults__ = getattr(self.phlex_callable, "__kwdefaults__", None)
+
     def __call__(self, *args, **kwargs):
         """Raises an error if called directly.
 
@@ -77,6 +81,3 @@ class AdjustAnnotations:
             f"The framework should extract phlex_callable instead."
         )
         return self.phlex_callable(*args, **kwargs)  # type: ignore
-
-
-Variant = AdjustAnnotations
