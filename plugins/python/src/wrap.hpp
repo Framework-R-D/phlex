@@ -20,8 +20,6 @@
 
 #include <memory>
 #include <string>
-#include <cstdio>
-#include <cstdlib>
 
 #include "phlex/configuration.hpp"
 #include "phlex/module.hpp"
