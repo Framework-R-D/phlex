@@ -152,6 +152,7 @@ All Markdown files must strictly follow these markdownlint rules:
   - **Parallelism**: Run tests in parallel using `ctest -j $(nproc)` or `ctest --parallel <N>`.
   - **Selection**: Run specific tests with `ctest -R "regex"` (e.g., `ctest -R "py:*"`).
   - **Debugging**: Use `ctest --output-on-failure` to see logs for failed tests.
+  - **Guard against known or suspected stalling tests**: Use `ctest --test-timeout` to set the per-test time limit (e.g. `90`) for 90s, _vs_ the default of 1500s.
 
 ### Python Integration
 
