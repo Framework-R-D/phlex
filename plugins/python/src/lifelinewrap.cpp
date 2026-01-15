@@ -31,10 +31,13 @@ static int ll_clear(py_lifeline_t* pyobj)
 
 static void ll_dealloc(py_lifeline_t* pyobj)
 {
+  // This type participates in GC; untrack before clearing references so the
+  // collector does not traverse a partially torn-down object during dealloc.
   PyObject_GC_UnTrack(pyobj);
   Py_CLEAR(pyobj->m_view);
   typedef std::shared_ptr<void> generic_shared_t;
   pyobj->m_source.~generic_shared_t();
+  // Use tp_free to pair with tp_alloc for GC-tracked Python objects.
   Py_TYPE(pyobj)->tp_free((PyObject*)pyobj);
 }
 
