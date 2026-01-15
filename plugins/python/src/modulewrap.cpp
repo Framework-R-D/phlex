@@ -28,8 +28,10 @@ struct PyObjectDeleter {
   void operator()(PyObject* p) const
   {
     if (p && Py_IsInitialized()) {
+      if (is_debug_enabled()) std::cerr << "[PY_DEBUG] PyObjectDeleter " << (void*)p << std::endl;
       phlex::experimental::PyGILRAII gil;
       Py_DECREF(p);
+      if (is_debug_enabled()) std::cerr << "[PY_DEBUG] PyObjectDeleter done" << std::endl;
     }
   }
 };
