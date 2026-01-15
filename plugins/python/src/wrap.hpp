@@ -62,10 +62,7 @@ namespace phlex::experimental {
     PyGILState_STATE m_GILState;
 
   public:
-    PyGILRAII()
-    {
-      m_GILState = PyGILState_Ensure();
-    }
+    PyGILRAII() { m_GILState = PyGILState_Ensure(); }
     ~PyGILRAII()
     {
       if (Py_IsInitialized()) {
