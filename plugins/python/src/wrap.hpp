@@ -20,6 +20,8 @@
 
 #include <memory>
 #include <string>
+#include <cstdio>
+#include <cstdlib>
 
 #include "phlex/configuration.hpp"
 #include "phlex/module.hpp"
@@ -61,12 +63,31 @@ namespace phlex::experimental {
   class PyGILRAII {
     PyGILState_STATE m_GILState;
 
+    static bool is_debug()
+    {
+      static bool debug = [] {
+        char const* env = std::getenv("PHLEX_PYTHON_DEBUG");
+        return env && std::string(env) == "1";
+      }();
+      return debug;
+    }
+
   public:
-    PyGILRAII() : m_GILState(PyGILState_Ensure()) {}
+    PyGILRAII()
+    {
+      // Basic debug for SegFault hunting - unlikely to output if crash happens immediately in Ensure,
+      // but useful to trace flow. Use fprintf/stderr to bypass buffering.
+      if (is_debug())
+        fprintf(stderr, "[PY_DEBUG] GIL Ensure\n");
+      m_GILState = PyGILState_Ensure();
+    }
     ~PyGILRAII()
     {
-      if (Py_IsInitialized())
+      if (Py_IsInitialized()) {
+        if (is_debug())
+          fprintf(stderr, "[PY_DEBUG] GIL Release\n");
         PyGILState_Release(m_GILState);
+      }
     }
   };
 
