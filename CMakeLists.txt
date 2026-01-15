@@ -49,6 +49,11 @@ project(phlex VERSION 0.1.0 LANGUAGES CXX)
 cet_cmake_env()
 # ##############################################################################
 
+# Set CI/test timeouts to a conservative value to avoid long stalls in CI.
+# Use cache variables so generated CTest/Dart files pick this up when configured.
+set(DART_TESTING_TIMEOUT 90 CACHE STRING "Timeout (s) for Dart/CTest runs")
+set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
+
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
