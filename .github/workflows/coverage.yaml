@@ -161,7 +161,7 @@ jobs:
         export LLVM_PROFILE_FILE="$PROFILE_ROOT/%m-%p.profraw"
 
         echo "::group::Running ctest for coverage"
-        if ctest --progress --output-on-failure -j "$(nproc)"; then
+        if ctest --progress --output-on-failure --test-timeout 90 -j "$(nproc)"; then
           echo "::endgroup::"
           echo "✅ All tests passed."
         else
