@@ -116,7 +116,12 @@ if(HAS_NUMPY)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
 
   add_test(NAME py:baduint COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet)
-  set_tests_properties(py:baduint PROPERTIES WILL_FAIL TRUE)
+  set_tests_properties(
+    py:baduint
+    PROPERTIES
+      WILL_FAIL TRUE
+      ENVIRONMENT "PHLEX_PYTHON_DEBUG=1"
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
   add_test(
@@ -169,7 +174,7 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch)
 add_test(
   NAME py:failure
   COMMAND
-    ${CMAKE_CURRENT_SOURCE_DIR}/failing_test_wrap.sh ${PROJECT_BINARY_DIR}/bin/phlex -c
+    ${PROJECT_BINARY_DIR}/bin/phlex -c
     ${CMAKE_CURRENT_SOURCE_DIR}/pyfailure.jsonnet
 )
 set_tests_properties(
