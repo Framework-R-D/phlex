@@ -343,6 +343,7 @@ namespace {
       Py_XDECREF(ptraceback);                                                                      \
       throw std::runtime_error(msg);                                                               \
     }                                                                                              \
+    pyobj.reset();                                                                                 \
     return i;                                                                                      \
   }
 
