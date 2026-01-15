@@ -25,7 +25,10 @@ except Exception as e:
     OUTPUT_VARIABLE _module_check_out
     ERROR_VARIABLE _module_check_err
   )
-  message(STATUS "Check ${MODULE_NAME}: Res=${_module_check_result} Out=${_module_check_out} Err=${_module_check_err}")
+  message(
+    STATUS
+    "Check ${MODULE_NAME}: Res=${_module_check_result} Out=${_module_check_out} Err=${_module_check_err}"
+  )
 
   if(_module_check_result EQUAL 0)
     set(${OUT_VAR} TRUE PARENT_SCOPE)
