@@ -105,8 +105,7 @@ if(HAS_NUMPY)
   add_test(NAME py:raise COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet)
   set_tests_properties(
     py:raise
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
+    PROPERTIES PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
 
@@ -114,7 +113,8 @@ if(HAS_NUMPY)
   set_tests_properties(
     py:badbool
     PROPERTIES
-      PASS_REGULAR_EXPRESSION "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
+      PASS_REGULAR_EXPRESSION
+        "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
 
@@ -122,7 +122,8 @@ if(HAS_NUMPY)
   set_tests_properties(
     py:badint
     PROPERTIES
-      PASS_REGULAR_EXPRESSION "Python conversion error for type long: int/long conversion expects an integer object"
+      PASS_REGULAR_EXPRESSION
+        "Python conversion error for type long: int/long conversion expects an integer object"
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
 
@@ -130,7 +131,8 @@ if(HAS_NUMPY)
   set_tests_properties(
     py:baduint
     PROPERTIES
-      PASS_REGULAR_EXPRESSION "Python conversion error for type uint: can't convert negative value to unsigned long"
+      PASS_REGULAR_EXPRESSION
+        "Python conversion error for type uint: can't convert negative value to unsigned long"
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
