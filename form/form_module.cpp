@@ -38,8 +38,7 @@ namespace {
       }
 
       // Initialize FORM interface
-      m_form_interface =
-        std::make_unique<form::experimental::form_interface>(output_cfg, tech_cfg);
+      m_form_interface = std::make_unique<form::experimental::form_interface>(output_cfg, tech_cfg);
     }
 
     // This method is called by Phlex - signature must be: void(product_store const&)

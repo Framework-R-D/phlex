@@ -67,7 +67,7 @@ void Persistence::read(std::string const& creator,
                        std::string const& label,
                        std::string const& id,
                        void const** data,
-                       const std::type_info& type)
+                       std::type_info const& type)
 {
   std::unique_ptr<Token> token = getToken(creator, label, id);
   m_store->readContainer(*token, data, type, m_tech_settings);

@@ -5,16 +5,17 @@
 #include "root_ttree_container.hpp"
 
 #include "TBranch.h"
+#include "TClassEdit.h"
 #include "TFile.h"
 #include "TLeaf.h"
 #include "TTree.h"
-#include "TClassEdit.h"
 
 #include <unordered_map>
 
 namespace {
   // Return the demangled type name
-  std::string DemangleName(const std::type_info& type) {
+  std::string DemangleName(std::type_info const& type)
+  {
     int errorCode;
     // The TClassEdit version works on both linux and Windows.
     char* demangledName = TClassEdit::DemangleTypeIdName(type, errorCode);
@@ -86,8 +87,9 @@ void ROOT_TBranch_ContainerImp::setupWrite(std::type_info const& type)
   auto dictInfo = TDictionary::GetDictionary(type);
   if (m_branch == nullptr) {
     if (!dictInfo) {
-      throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::setupWrite unsupported type: "} +
-                               DemangleName(type));
+      throw std::runtime_error(
+        std::string{"ROOT_TBranch_ContainerImp::setupWrite unsupported type: "} +
+        DemangleName(type));
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
@@ -168,9 +170,9 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info c
   } else {
     auto klass = TClass::GetClass(type);
     if (!klass) {
-      throw std::runtime_error(
-        std::string{"ROOT_TBranch_ContainerImp::read missing TClass"} +
-        " (col_name='" + col_name() + "', type='" + DemangleName(type) + "')");
+      throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass"} +
+                               " (col_name='" + col_name() + "', type='" + DemangleName(type) +
+                               "')");
     }
     branchBuffer = klass->New();
     branchStatus =
@@ -179,9 +181,9 @@ bool ROOT_TBranch_ContainerImp::read(int id, void const** data, std::type_info c
 
   if (branchStatus < 0) {
     throw std::runtime_error(
-      std::string{"ROOT_TBranch_ContainerImp::read SetBranchAddress() failed"} +
-      " (col_name='" + col_name() + "', type='" + DemangleName(type) + "')" +
-      " with error code " + std::to_string(branchStatus));
+      std::string{"ROOT_TBranch_ContainerImp::read SetBranchAddress() failed"} + " (col_name='" +
+      col_name() + "', type='" + DemangleName(type) + "')" + " with error code " +
+      std::to_string(branchStatus));
   }
 
   Long64_t tentry = m_tree->LoadTree(id);

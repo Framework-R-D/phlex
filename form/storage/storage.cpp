@@ -72,7 +72,9 @@ void Storage::createContainers(
   return;
 }
 
-void Storage::fillContainer(Placement const& plcmnt, void const* data, std::type_info const& /* type*/)
+void Storage::fillContainer(Placement const& plcmnt,
+                            void const* data,
+                            std::type_info const& /* type*/)
 {
   // Use file+container as composite key
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());

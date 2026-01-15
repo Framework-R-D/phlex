@@ -36,7 +36,6 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
 
-
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::output_item_config output_config;
   output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
@@ -52,7 +51,7 @@ int main(int argc, char** argv)
   tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"]
     .emplace_back("force_streamer_field", "true");
 
-    form::experimental::form_interface form(output_config, tech_config);
+  form::experimental::form_interface form(output_config, tech_config);
 
   ToyTracker tracker(4 * 1024);
 

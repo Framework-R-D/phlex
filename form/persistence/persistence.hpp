@@ -43,7 +43,7 @@ namespace form::detail::experimental {
               std::string const& label,
               std::string const& id,
               void const** data,
-              const std::type_info& type) override;
+              std::type_info const& type) override;
 
   private:
     std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);

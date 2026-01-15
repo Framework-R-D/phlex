@@ -30,9 +30,12 @@ namespace form::detail::experimental {
     ~Storage() = default;
 
     using table_t = form::experimental::config::tech_setting_config::table_t;
-    void createContainers(std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
-                          form::experimental::config::tech_setting_config const& settings) override;
-    void fillContainer(Placement const& plcmnt, void const* data, std::type_info const& type) override;
+    void createContainers(
+      std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
+      form::experimental::config::tech_setting_config const& settings) override;
+    void fillContainer(Placement const& plcmnt,
+                       void const* data,
+                       std::type_info const& type) override;
     void commitContainers(Placement const& plcmnt) override;
 
     int getIndex(Token const& token,
