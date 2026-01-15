@@ -75,13 +75,13 @@ add_compile_options(
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(
-    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
-    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15"
-  )
-    # GCC 14.1 issues many false positives re. array-bounds and
-    # stringop-overflow
-    add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15")
+      add_compile_options(-Wno-stringop-overflow)
+    endif()
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16")
+      add_compile_options(-Wno-array-bounds)
+    endif()
   endif()
 endif()
 
