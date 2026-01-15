@@ -157,13 +157,13 @@ All Markdown files must strictly follow these markdownlint rules:
 ### Python Integration
 
 - **Naming**: Avoid naming Python test scripts `types.py` or other names that shadow standard library modules. This causes obscure import errors (e.g., `ModuleNotFoundError: No module named 'numpy'`).
-- **PYTHONPATH**: When running tests in Spack environments, ensure `PYTHONPATH` includes `site-packages`. In CMake, explicitly add `Python_SITELIB` and `Python_SITEARCH` to `TEST_PYTHONPATH`.
+- **PYTHONPATH**: Only include paths that contain user Python modules loaded by Phlex (for example, the source directory and any build output directory that houses generated modules). Do not append system/Spack/venv `site-packages`; `pymodule.cpp` handles CMAKE_PREFIX_PATH and virtual-environment path adjustments.
 - **Test Structure**:
   - **C++ Driver**: Provides data streams (e.g., `test/python/driver.cpp`).
   - **Jsonnet Config**: Wires the graph (e.g., `test/python/pytypes.jsonnet`).
   - **Python Script**: Implements algorithms (e.g., `test/python/test_types.py`).
 - **Type Conversion**: `plugins/python/src/modulewrap.cpp` handles C++ ↔ Python conversion.
-  - **Mechanism**: Uses string comparison of type names (e.g., `"float64]]"`). This is brittle.
+  - **Mechanism**: Uses substring matching on type names (for example, `"float64]]"`). This is brittle.
   - **Requirement**: Ensure converters exist for all types used in tests (e.g., `float`, `double`, `unsigned int`, and their vector equivalents).
   - **Warning**: Exact type matches are required. `numpy.float32` != `float`.
 

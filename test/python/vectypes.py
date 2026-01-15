@@ -195,78 +195,82 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     except (KeyError, TypeError):
         use_lists = False
 
-    # int32
-    m.transform(
-        collectify_int32_list if use_lists else collectify_int32,
-        input_family=config["input_int32"],
-        output_products=["arr_int32"],
-    )
-    m.transform(
-        sum_list_int32 if use_lists else sum_array_int32,
-        input_family=["arr_int32"],
-        output_products=config["output_int32"],
-        name="sum_int32",
-    )
+    specs = [
+        (
+            "int32",
+            collectify_int32_list,
+            collectify_int32,
+            sum_list_int32,
+            sum_array_int32,
+            "input_int32",
+            "output_int32",
+            "sum_int32",
+        ),
+        (
+            "uint32",
+            collectify_uint32_list,
+            collectify_uint32,
+            sum_list_uint32,
+            sum_array_uint32,
+            "input_uint32",
+            "output_uint32",
+            "sum_uint32",
+        ),
+        (
+            "int64",
+            collectify_int64_list,
+            collectify_int64,
+            sum_list_int64,
+            sum_array_int64,
+            "input_int64",
+            "output_int64",
+            "sum_int64",
+        ),
+        (
+            "uint64",
+            collectify_uint64_list,
+            collectify_uint64,
+            sum_list_uint64,
+            sum_array_uint64,
+            "input_uint64",
+            "output_uint64",
+            "sum_uint64",
+        ),
+        (
+            "float32",
+            collectify_float32_list,
+            collectify_float32,
+            sum_list_float,
+            sum_array_float32,
+            "input_float32",
+            "output_float32",
+            None,
+        ),
+        (
+            "float64",
+            collectify_float64_list,
+            collectify_float64,
+            sum_list_double,
+            sum_array_float64,
+            "input_float64",
+            "output_float64",
+            None,
+        ),
+    ]
 
-    # uint32
-    m.transform(
-        collectify_uint32_list if use_lists else collectify_uint32,
-        input_family=config["input_uint32"],
-        output_products=["arr_uint32"],
-    )
-    m.transform(
-        sum_list_uint32 if use_lists else sum_array_uint32,
-        input_family=["arr_uint32"],
-        output_products=config["output_uint32"],
-        name="sum_uint32",
-    )
+    for name, list_collect, arr_collect, list_sum, arr_sum, in_key, out_key, sum_name in specs:
+        arr_name = f"arr_{name}"
+        m.transform(
+            list_collect if use_lists else arr_collect,
+            input_family=config[in_key],
+            output_products=[arr_name],
+        )
 
-    # int64
-    m.transform(
-        collectify_int64_list if use_lists else collectify_int64,
-        input_family=config["input_int64"],
-        output_products=["arr_int64"],
-    )
-    m.transform(
-        sum_list_int64 if use_lists else sum_array_int64,
-        input_family=["arr_int64"],
-        output_products=config["output_int64"],
-        name="sum_int64",
-    )
+        sum_kwargs = {
+            "input_family": [arr_name],
+            "output_products": config[out_key],
+        }
+        if sum_name:
+            sum_kwargs["name"] = sum_name
 
-    # uint64
-    m.transform(
-        collectify_uint64_list if use_lists else collectify_uint64,
-        input_family=config["input_uint64"],
-        output_products=["arr_uint64"],
-    )
-    m.transform(
-        sum_list_uint64 if use_lists else sum_array_uint64,
-        input_family=["arr_uint64"],
-        output_products=config["output_uint64"],
-        name="sum_uint64",
-    )
-
-    # float32
-    m.transform(
-        collectify_float32_list if use_lists else collectify_float32,
-        input_family=config["input_float32"],
-        output_products=["arr_float32"],
-    )
-    m.transform(
-        sum_list_float if use_lists else sum_array_float32,
-        input_family=["arr_float32"],
-        output_products=config["output_float32"],
-    )
-
-    # float64
-    m.transform(
-        collectify_float64_list if use_lists else collectify_float64,
-        input_family=config["input_float64"],
-        output_products=["arr_float64"],
-    )
-    m.transform(
-        sum_list_double if use_lists else sum_array_float64,
-        input_family=["arr_float64"],
-        output_products=config["output_float64"],
-    )
+        m.transform(list_sum if use_lists else arr_sum, **sum_kwargs)
