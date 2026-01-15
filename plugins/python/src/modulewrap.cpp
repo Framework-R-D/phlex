@@ -329,7 +329,7 @@ namespace {
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
     if (ul == (unsigned long)-1 && PyErr_Occurred() && PyLong_Check(pyobject)) {
       PyErr_Clear();
-      long i = PyLong_AS_LONG(pyobject);
+      long i = PyLong_AsLong(pyobject);
       if (0 <= i) {
         ul = (unsigned long)i;
       } else {
