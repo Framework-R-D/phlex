@@ -655,107 +655,106 @@ namespace {
 
 } // unnamed namespace
 
-  // Helper class to extract annotations in argument definition order.
-  //
-  // Rationale:
-  // The __annotations__ dictionary does not guarantee any iteration order
-  // relative to the function arguments (especially in older Python versions
-  // or for certain callable types). Iterating blindly over __annotations__
-  // can yield input types in a permuted order, causing Phlex to bind
-  // C++ inputs to the wrong Python arguments (e.g. matching an 'int' product
-  // to a 'float' argument).
-  //
-  // This class attempts to retrieve the bytecode object (__code__) to access
-  // co_varnames, which provides the authoritative argument order. It falls
-  // back to dictionary iteration only if introspection fails.
-  //
-  // This logic mirrors the Python test class variant.py originally from PR #245.
-  class AdjustAnnotations {
-    PyObject* m_callable;
-    PyObject* m_annotations;
+// Helper class to extract annotations in argument definition order.
+//
+// Rationale:
+// The __annotations__ dictionary does not guarantee any iteration order
+// relative to the function arguments (especially in older Python versions
+// or for certain callable types). Iterating blindly over __annotations__
+// can yield input types in a permuted order, causing Phlex to bind
+// C++ inputs to the wrong Python arguments (e.g. matching an 'int' product
+// to a 'float' argument).
+//
+// This class attempts to retrieve the bytecode object (__code__) to access
+// co_varnames, which provides the authoritative argument order. It falls
+// back to dictionary iteration only if introspection fails.
+//
+// This logic mirrors the Python test class variant.py originally from PR #245.
+class AdjustAnnotations {
+  PyObject* m_callable;
+  PyObject* m_annotations;
 
-  public:
-    AdjustAnnotations(PyObject* callable) : m_callable(callable), m_annotations(nullptr)
-    {
-      PyObject* name = PyUnicode_FromString("__annotations__");
-      m_annotations = PyObject_GetAttr(m_callable, name);
-      if (!m_annotations) {
-        PyErr_Clear();
-        // the callable may be an instance with a __call__ method
-        PyObject* call = PyObject_GetAttrString(m_callable, "__call__");
-        if (call) {
-          m_annotations = PyObject_GetAttr(call, name);
-          Py_DECREF(call);
-        }
+public:
+  AdjustAnnotations(PyObject* callable) : m_callable(callable), m_annotations(nullptr)
+  {
+    PyObject* name = PyUnicode_FromString("__annotations__");
+    m_annotations = PyObject_GetAttr(m_callable, name);
+    if (!m_annotations) {
+      PyErr_Clear();
+      // the callable may be an instance with a __call__ method
+      PyObject* call = PyObject_GetAttrString(m_callable, "__call__");
+      if (call) {
+        m_annotations = PyObject_GetAttr(call, name);
+        Py_DECREF(call);
       }
-      Py_DECREF(name);
+    }
+    Py_DECREF(name);
+  }
+
+  ~AdjustAnnotations() { Py_XDECREF(m_annotations); }
+
+  void get_input_types(std::vector<std::string>& types)
+  {
+    if (!m_annotations || !PyDict_Check(m_annotations)) {
+      return;
     }
 
-    ~AdjustAnnotations() { Py_XDECREF(m_annotations); }
-
-    void get_input_types(std::vector<std::string>& types)
-    {
-      if (!m_annotations || !PyDict_Check(m_annotations)) {
-        return;
+    // Try to use the code object to get the argument names in order
+    PyObject* code = PyObject_GetAttrString(m_callable, "__code__");
+    if (!code) {
+      PyErr_Clear();
+      PyObject* call = PyObject_GetAttrString(m_callable, "__call__");
+      if (call) {
+        code = PyObject_GetAttrString(call, "__code__");
+        Py_DECREF(call);
       }
+    }
 
-      // Try to use the code object to get the argument names in order
-      PyObject* code = PyObject_GetAttrString(m_callable, "__code__");
-      if (!code) {
-        PyErr_Clear();
-        PyObject* call = PyObject_GetAttrString(m_callable, "__call__");
-        if (call) {
-          code = PyObject_GetAttrString(call, "__code__");
-          Py_DECREF(call);
-        }
-      }
-
-      bool found = false;
-      if (code) {
-        PyObject* varnames = PyObject_GetAttrString(code, "co_varnames");
-        PyObject* argcount = PyObject_GetAttrString(code, "co_argcount");
-        if (varnames && argcount) {
-          long count = PyLong_AsLong(argcount);
-          for (long i = 0; i < count; ++i) {
-            PyObject* name = PyTuple_GetItem(varnames, i);
-            if (name) {
-              PyObject* type = PyDict_GetItem(m_annotations, name);
-              if (type) {
-                types.push_back(annotation_as_text(type));
-                found = true;
-              }
+    bool found = false;
+    if (code) {
+      PyObject* varnames = PyObject_GetAttrString(code, "co_varnames");
+      PyObject* argcount = PyObject_GetAttrString(code, "co_argcount");
+      if (varnames && argcount) {
+        long count = PyLong_AsLong(argcount);
+        for (long i = 0; i < count; ++i) {
+          PyObject* name = PyTuple_GetItem(varnames, i);
+          if (name) {
+            PyObject* type = PyDict_GetItem(m_annotations, name);
+            if (type) {
+              types.push_back(annotation_as_text(type));
+              found = true;
             }
           }
         }
-        Py_XDECREF(varnames);
-        Py_XDECREF(argcount);
-        Py_DECREF(code);
       }
-
-      // Fallback to dictionary iteration if code object was not helpful
-      if (!found) {
-        PyObject *key, *val;
-        Py_ssize_t pos = 0;
-        while (PyDict_Next(m_annotations, &pos, &key, &val)) {
-          if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0) {
-            continue;
-          }
-          types.push_back(annotation_as_text(val));
-        }
-      }
+      Py_XDECREF(varnames);
+      Py_XDECREF(argcount);
+      Py_DECREF(code);
     }
 
-    void get_return_type(std::vector<std::string>& types)
-    {
-      if (m_annotations && PyDict_Check(m_annotations)) {
-        PyObject* ret = PyDict_GetItemString(m_annotations, "return");
-        if (ret) {
-          types.push_back(annotation_as_text(ret));
+    // Fallback to dictionary iteration if code object was not helpful
+    if (!found) {
+      PyObject *key, *val;
+      Py_ssize_t pos = 0;
+      while (PyDict_Next(m_annotations, &pos, &key, &val)) {
+        if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0) {
+          continue;
         }
+        types.push_back(annotation_as_text(val));
       }
     }
-  };
+  }
 
+  void get_return_type(std::vector<std::string>& types)
+  {
+    if (m_annotations && PyDict_Check(m_annotations)) {
+      PyObject* ret = PyDict_GetItemString(m_annotations, "return");
+      if (ret) {
+        types.push_back(annotation_as_text(ret));
+      }
+    }
+  }
+};
 
 #define INSERT_INPUT_CONVERTER(name, alg, inp)                                                     \
   mod->ph_module->transform("py" #name "_" + inp + "_" + alg, name##_to_py, concurrency::serial)   \
