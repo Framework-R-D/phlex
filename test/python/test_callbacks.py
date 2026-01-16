@@ -25,7 +25,6 @@ def bad_long(a: int) -> "long":  # type: ignore # noqa: F821
     return 1.5  # type: ignore
 
 
-
 # Invalid uint return (negative)
 def bad_uint(a: int) -> "unsigned int":  # type: ignore # noqa: F722
     """Return a negative value for unsigned int."""
