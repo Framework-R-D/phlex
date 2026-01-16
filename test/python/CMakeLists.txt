@@ -237,3 +237,7 @@ set_tests_properties(
     ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT};VIRTUAL_ENV=${PY_VIRTUAL_ENV_DIR}"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${PY_VIRTUAL_ENV_DIR}/bin"
 )
+
+# Unit tests for the phlex python package
+add_test(NAME py:unit_annotations COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit_test_annotations.py)
+set_tests_properties(py:unit_annotations PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
