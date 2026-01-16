@@ -181,7 +181,7 @@ jobs:
 
         echo "➡️ Running tests..."
         echo "::group::Running ctest"
-        if ctest --progress --output-on-failure -j "$(nproc)"; then
+        if ctest --progress --output-on-failure --test-timeout 90 -j "$(nproc)"; then
           echo "::endgroup::"
           echo "✅ All tests passed."
         else
