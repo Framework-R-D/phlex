@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 import unittest
-import copy
+
 from phlex import AdjustAnnotations
+
 
 def example_func(a, b=1):
     return a + b
+
 
 class TestAdjustAnnotations(unittest.TestCase):
     def test_initialization(self):
         ann = {"a": int, "b": int, "return": int}
         wrapper = AdjustAnnotations(example_func, ann, "example_wrapper")
-        
+
         self.assertEqual(wrapper.__name__, "example_wrapper")
         self.assertEqual(wrapper.__annotations__, ann)
         self.assertEqual(wrapper.phlex_callable, example_func)
@@ -33,26 +35,31 @@ class TestAdjustAnnotations(unittest.TestCase):
         # but let's test the flag logic in AdjustAnnotations
         wrapper = AdjustAnnotations(example_func, {}, "clone_shallow", clone=True)
         # function copy is same object
-        self.assertEqual(wrapper.phlex_callable, example_func) 
-        
+        self.assertEqual(wrapper.phlex_callable, example_func)
+
         # Test valid copy logic with a mutable callable
         class CallableObj:
-            def __call__(self): pass
-        
+            def __call__(self):
+                pass
+
         obj = CallableObj()
         wrapper_obj = AdjustAnnotations(obj, {}, "obj_clone", clone=True)
-        self.assertNotEqual(id(wrapper_obj.phlex_callable), id(obj)) # copy was made?
+        self.assertNotEqual(id(wrapper_obj.phlex_callable), id(obj))  # copy was made?
         # copy.copy of a custom object usually creates a new instance if generic
 
     def test_clone_deep(self):
         class Container:
-            def __init__(self): self.data = [1]
-            def __call__(self): return self.data[0]
-        
+            def __init__(self):
+                self.data = [1]
+
+            def __call__(self):
+                return self.data[0]
+
         c = Container()
         wrapper = AdjustAnnotations(c, {}, "deep_clone", clone="deep")
         self.assertNotEqual(id(wrapper.phlex_callable), id(c))
         self.assertNotEqual(id(wrapper.phlex_callable.data), id(c.data))
+
 
 if __name__ == "__main__":
     unittest.main()
