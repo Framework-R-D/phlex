@@ -9,9 +9,14 @@ function(check_python_module_version MODULE_NAME MIN_VERSION OUT_VAR)
       "import sys
 try:
     import ${MODULE_NAME}
-    from packaging.version import parse as parse_version
     installed_version = getattr(${MODULE_NAME}, '__version__', None)
-    if parse_version(installed_version) >= parse_version('${MIN_VERSION}'):
+    if not installed_version:
+        sys.exit(2)
+
+    def parse(v):
+        return tuple(map(int, v.split('.')[:3]))
+
+    if parse(installed_version) >= parse('${MIN_VERSION}'):
         sys.exit(0)
     else:
         sys.exit(2)  # Version too low
