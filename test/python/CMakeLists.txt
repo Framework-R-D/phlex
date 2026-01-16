@@ -239,5 +239,8 @@ set_tests_properties(
 )
 
 # Unit tests for the phlex python package
-add_test(NAME py:unit_annotations COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit_test_annotations.py)
+add_test(
+  NAME py:unit_annotations
+  COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit_test_annotations.py
+)
 set_tests_properties(py:unit_annotations PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
