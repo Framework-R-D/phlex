@@ -18,6 +18,10 @@ inputs:
   pr-info-repo:
     description: 'The repository of the PR'
     required: true
+  retry-attempts:
+    description: 'The number of times to retry pushing the commit.'
+    required: false
+    default: '6'
 
 runs:
   using: "composite"
@@ -53,21 +57,50 @@ runs:
           core.setOutput('maintainer_can_modify', pr.maintainer_can_modify);
     - name: Commit fixes
       if: steps.check_changes.outputs.changes == 'true' && (inputs.pr-info-repo == github.repository || steps.pr-properties.outputs.maintainer_can_modify == 'true')
-      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
-      id: add_and_commit
-      with:
-        token: ${{ inputs.token }}
-        cwd: ${{ inputs.working-directory }}
-        author_name: "github-actions[bot]"
-        author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-        message: "Apply ${{ inputs.tool }} fixes"
+      id: commit_and_push
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        export GITHUB_TOKEN=${{ inputs.token }}
+        echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+        trap 'rm -f ~/.git-credentials' EXIT
+        git config --local credential.helper 'store --file ~/.git-credentials'
+
+        git add -u
+        git commit -m "Apply ${{ inputs.tool }} fixes"
+
+        for i in $(seq 1 ${{ inputs.retry-attempts }}); do
+          if git push origin HEAD:${{ inputs.pr-info-ref }}; then
+            echo "Push successful on attempt $i."
+            COMMIT_SHA=$(git rev-parse HEAD)
+            echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+            echo "pushed=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          if [ $i -eq ${{ inputs.retry-attempts }} ]; then
+            break
+          fi
+          echo "Push failed on attempt $i. Fetching and rebasing before retry..."
+          git fetch origin
+          if ! git rebase origin/${{ inputs.pr-info-ref }}; then
+            echo "::error::Automatic rebase failed. Please resolve conflicts manually."
+            exit 1
+          fi
+          echo "Waiting before retry..."
+          sleep $((5 * i))
+        done
+        echo "::error::Failed to push changes after multiple retries."
+        exit 1
 
     - name: Notify of commit
-      if: steps.add_and_commit.conclusion == 'success' && steps.add_and_commit.outputs.committed == 'true' && steps.add_and_commit.outputs.pushed == 'true'
+      if: steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: |
-          Automatic ${{ inputs.tool }} fixes pushed (commit ${{ steps.add_and_commit.outputs.commit_sha }}).
+          Automatic ${{ inputs.tool }} fixes pushed (commit ${{ steps.commit_and_push.outputs.commit_sha }}).
           ⚠️ **Note:** Some issues may require manual review and fixing.
 
     - name: Create patch
