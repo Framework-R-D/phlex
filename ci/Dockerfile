@@ -249,20 +249,13 @@ ARG parallelism
 ENV SPACK_GROUP=spack
 
 ########################################################################
-# Install developer tooling (py-cmake-format, ruff)
+# Install developer tooling (gersemi, ruff)
 
 RUN <<'INSTALL_DEV_TOOLING'
 set -euo pipefail
 
 # Install developer tooling not needed for CI
 . /entrypoint.sh
-
-# Install py-cmake-format via Spack
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
-  --no-add --only-concrete --no-check-signature \
-  py-cmake-format
-
-spack clean -dfs
 
 # Install ruff and gersemi via pip
 PYTHONDONTWRITEBYTECODE=1 \
