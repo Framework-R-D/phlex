@@ -25,3 +25,15 @@ runs:
           core.setOutput('ref', pr.data.head.ref);
           core.setOutput('sha', pr.data.head.sha);
           core.setOutput('repo', pr.data.head.repo.full_name);
+    - name: React to comment
+      if: github.event_name == 'issue_comment'
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      continue-on-error: true
+      with:
+        script: |
+          github.rest.reactions.createForIssueComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            comment_id: context.payload.comment.id,
+            content: 'eyes'
+          });
