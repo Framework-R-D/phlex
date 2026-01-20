@@ -59,7 +59,7 @@ runs:
       run: |
         git config --local user.name "github-actions[bot]"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git remote set-url origin "https://x-access-token:${{ inputs.token }}@github.com/${{ github.repository }}"
+        git remote set-url origin "https://x-access-token:${{ inputs.token }}@github.com/${{ inputs.pr-info-repo }}"
         git add .
         git commit -m "Apply ${{ inputs.tool }} fixes"
         for i in {1..6}; do
