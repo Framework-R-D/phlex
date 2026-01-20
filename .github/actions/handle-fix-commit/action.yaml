@@ -66,6 +66,7 @@ runs:
 
         export GITHUB_TOKEN=${{ inputs.token }}
         echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+        trap 'rm -f ~/.git-credentials' EXIT
         git config --local credential.helper 'store --file ~/.git-credentials'
 
         git add -u
