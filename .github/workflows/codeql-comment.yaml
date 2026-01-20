@@ -13,7 +13,7 @@ permissions:
 jobs:
   post-comment:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Download PR comment data
         uses: actions/download-artifact@fa0a91b85d4f404e8442c7c958156baef1102941 # v4.1.8
