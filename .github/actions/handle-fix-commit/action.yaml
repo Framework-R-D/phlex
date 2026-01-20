@@ -18,6 +18,10 @@ inputs:
   pr-info-repo:
     description: 'The repository of the PR'
     required: true
+  retry-attempts:
+    description: 'The number of times to retry pushing the commit.'
+    required: false
+    default: '6'
 
 runs:
   using: "composite"
@@ -59,10 +63,15 @@ runs:
       run: |
         git config --local user.name "github-actions[bot]"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git remote set-url origin "https://x-access-token:${{ inputs.token }}@github.com/${{ inputs.pr-info-repo }}"
-        git add .
+
+        export GITHUB_TOKEN=${{ inputs.token }}
+        echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+        git config --local credential.helper 'store --file ~/.git-credentials'
+
+        git add -u
         git commit -m "Apply ${{ inputs.tool }} fixes"
-        for i in {1..6}; do
+
+        for i in $(seq 1 ${{ inputs.retry-attempts }}); do
           if git push origin HEAD:${{ inputs.pr-info-ref }}; then
             echo "Push successful on attempt $i."
             COMMIT_SHA=$(git rev-parse HEAD)
@@ -70,7 +79,7 @@ runs:
             echo "pushed=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-          if [ $i -eq 6 ]; then
+          if [ $i -eq ${{ inputs.retry-attempts }} ]; then
             break
           fi
           echo "Push failed on attempt $i. Fetching and rebasing before retry..."
