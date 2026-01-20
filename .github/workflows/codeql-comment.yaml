@@ -13,7 +13,13 @@ permissions:
 jobs:
   post-comment:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled'
+    # This job runs on both 'success' and 'failure' of the 'CodeQL Analysis' workflow.
+    # The upstream workflow intentionally fails if it finds new alerts, but it uploads
+    # the comment artifact before doing so. This condition ensures the comment is posted
+    # in both cases (new alerts found, or existing alerts resolved).
+    # The workflow is resilient to other failures because the 'Post Comment' step
+    # only runs if the artifact was successfully downloaded.
+    if: github.event.workflow_run.event == 'pull_request' && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
     steps:
       - name: Download PR comment data
         uses: actions/download-artifact@fa0a91b85d4f404e8442c7c958156baef1102941 # v4.1.8
