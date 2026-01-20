@@ -57,26 +57,30 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git remote set-url origin "https://x-access-token:${{ inputs.token }}@github.com/${{ github.repository }}"
         git add .
         git commit -m "Apply ${{ inputs.tool }} fixes"
-        COMMIT_SHA=$(git rev-parse HEAD)
-        echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
-        for i in {1..5}; do
+        for i in {1..6}; do
           if git push origin HEAD:${{ inputs.pr-info-ref }}; then
             echo "Push successful on attempt $i."
+            COMMIT_SHA=$(git rev-parse HEAD)
+            echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
             echo "pushed=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-          echo "Push failed on attempt $i. Waiting before retry..."
-          sleep $((5 * i))
-          echo "Fetching and rebasing..."
+          if [ $i -eq 6 ]; then
+            break
+          fi
+          echo "Push failed on attempt $i. Fetching and rebasing before retry..."
           git fetch origin
           if ! git rebase origin/${{ inputs.pr-info-ref }}; then
             echo "::error::Automatic rebase failed. Please resolve conflicts manually."
             exit 1
           fi
+          echo "Waiting before retry..."
+          sleep $((5 * i))
         done
         echo "::error::Failed to push changes after multiple retries."
         exit 1
