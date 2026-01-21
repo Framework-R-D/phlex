@@ -19,15 +19,6 @@ sudo apt-get install -y --no-install-recommends \
     software-properties-common \
     sudo
 
-# Add repository for GCC 15 and install it
-sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-sudo apt-get update
-sudo apt-get install -y --no-install-recommends gcc-15 g++-15
-
-# Set GCC 15 as the default
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
-
 echo "--> System-level dependencies installed successfully."
 
 echo "--> Installing and configuring Spack..."
@@ -45,6 +36,7 @@ cat <<'EOF' > /tmp/snapshot-spack.yaml
 spack:
   specs:
   - phlex
+  - gcc@15.2.0
   - catch2
   - cmake
   - lcov
@@ -74,12 +66,12 @@ spack:
       require:
       - "+form"
       - "cxxstd=20"
-      - "%gcc@15"
+      - "%gcc@15.2.0"
 
 
-    # GCC 15 uses C23 as the default C language, and the versions of
-    # libunwind and unuran available in Spack (as of 8/12/2024) do not
-    # yet support C23.
+    # GCC 15 uses C23 as the default C language, and some packages
+    # (e.g. libunwind, unuran) do not yet support it. We enforce C17
+    # for compatibility.
     libunwind:
       require:
       - "cflags='-std=c17'"
@@ -155,7 +147,7 @@ echo "--> Spack and Python tools setup complete."
 echo "--> Installing additional developer tools (act, gh)..."
 
 # Install GitHub'"'"'s act CLI
-download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | grep -Ee '"'"'browser_download_url": .*/act_Linux_x86_64\.'"'"' | cut -d '"'"'"'"' -f 4)
+download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | grep -o '"browser_download_url": "[^"]*act_Linux_x86_64[^"]*"' | cut -d '"' -f 4)
 if [ -z "$download_url" ]; then
   echo "Failed to determine act download URL" >&2
   exit 1
