@@ -23,13 +23,13 @@ echo "--> System-level dependencies installed successfully."
 
 echo "--> Installing and configuring Spack..."
 
-# Clone Spack and set up directories with sudo
-sudo git clone --depth=2 https://github.com/spack/spack.git /spack
-sudo groupadd --gid 2000 spack || true # Use || true in case group exists
-sudo mkdir -p /opt/spack-stage /opt/spack-cache/downloads /opt/spack-cache/misc /opt/spack-environments
-sudo chgrp -R spack /spack /opt/spack-stage /opt/spack-cache /opt/spack-environments
-sudo chmod -R g+rwX /spack /opt/spack-stage /opt/spack-cache /opt/spack-environments
-sudo find /spack /opt/spack-stage /opt/spack-cache /opt/spack-environments -type d -exec chmod g+s {} +
+# Create a user-owned directory for Spack to be installed into
+export SPACK_DEV_ROOT="/opt/spack-dev"
+sudo mkdir -p "$SPACK_DEV_ROOT"
+sudo chown -R "$(id -u):$(id -g)" "$SPACK_DEV_ROOT"
+
+# Clone Spack
+git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
 
 # Create the spack.yaml file in /tmp as the current user
 cat <<'EOF' > /tmp/snapshot-spack.yaml
@@ -88,60 +88,57 @@ spack:
       - "cxxstd=20"
 EOF
 
-# Run all Spack operations within a single sudo shell session to ensure a consistent environment
-sudo bash -c '
-set -euo pipefail
+# All Spack operations can now be run as the regular user
+(
+  set -euo pipefail
 
-echo "--> Configuring Spack repositories and settings..."
+  echo "--> Configuring Spack repositories and settings..."
 
-# Set environment variables for Spack
-export SPACK_USER_CONFIG_PATH=/dev/null
-export SPACK_DISABLE_LOCAL_CONFIG=true
-. /spack/share/spack/setup-env.sh
+  # Set environment variables for Spack
+  export SPACK_USER_CONFIG_PATH=/dev/null
+  export SPACK_DISABLE_LOCAL_CONFIG=true
+  # shellcheck source=/dev/null
+  . "${SPACK_DEV_ROOT}/spack/share/spack/setup-env.sh"
 
-# Configure Spack repos
-SPACK_REPO_ROOT=/opt/spack-repos
-mkdir -p "$SPACK_REPO_ROOT"
-git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
-git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
-chgrp -R spack "$SPACK_REPO_ROOT"
-chmod -R g+rwX "$SPACK_REPO_ROOT"
-find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
+  # Configure Spack repos
+  SPACK_REPO_ROOT="${SPACK_DEV_ROOT}/spack-repos"
+  mkdir -p "$SPACK_REPO_ROOT"
+  git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
+  git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
 
-spack repo add --scope site "$SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex"
-spack repo add --scope site "$SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art"
-spack repo set --scope site --destination "$SPACK_REPO_ROOT" builtin
-spack compiler find
-spack external find --exclude python
+  spack repo add --scope site "$SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex"
+  spack repo add --scope site "$SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art"
+  spack repo set --scope site --destination "$SPACK_REPO_ROOT" builtin
+  spack compiler find
+  spack external find --exclude python
 
-spack config --scope defaults add config:build_stage:/opt/spack-stage
-spack config --scope defaults add config:source_cache:/opt/spack-cache/downloads
-spack config --scope defaults add config:misc_cache:/opt/spack-cache/misc
+  spack config --scope defaults add "config:build_stage:${SPACK_DEV_ROOT}/spack-stage"
+  spack config --scope defaults add "config:source_cache:${SPACK_DEV_ROOT}/spack-cache/downloads"
+  spack config --scope defaults add "config:misc_cache:${SPACK_DEV_ROOT}/spack-cache/misc"
 
-echo "--> Installing all Spack packages..."
+  echo "--> Installing all Spack packages..."
 
-# Create, activate, and concretize the Spack environment
-PHLEX_SPACK_ENV=/opt/spack-environments/phlex-ci
-spack env create -d "$PHLEX_SPACK_ENV" /tmp/snapshot-spack.yaml
-spack env activate -d "$PHLEX_SPACK_ENV"
-spack concretize
+  # Create, activate, and concretize the Spack environment
+  PHLEX_SPACK_ENV="${SPACK_DEV_ROOT}/spack-environments/phlex-ci"
+  spack env create -d "$PHLEX_SPACK_ENV" /tmp/snapshot-spack.yaml
+  spack env activate -d "$PHLEX_SPACK_ENV"
+  spack concretize
 
-# Install all packages
-spack install --fail-fast -j "$(nproc)"
+  # Install all packages
+  spack install --fail-fast -j "$(nproc)"
 
-echo "--> Spack packages installed. Cleaning up..."
+  echo "--> Spack packages installed. Cleaning up..."
 
-# Install ruff and gersemi via pip
-echo "--> Installing developer tools (ruff, gersemi)..."
-PYTHONDONTWRITEBYTECODE=1 \
-  pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
-  --prefix /usr/local ruff gersemi
+  # Install ruff and gersemi via pip
+  echo "--> Installing developer tools (ruff, gersemi)..."
+  PYTHONDONTWRITEBYTECODE=1 \
+    pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
+    ruff gersemi
 
-# Clean all Spack caches
-echo "--> Cleaning Spack caches..."
-spack clean --all
-'
-
+  # Clean all Spack caches
+  echo "--> Cleaning Spack caches..."
+  spack clean --all
+)
 echo "--> Spack and Python tools setup complete."
 
 echo "--> Installing additional developer tools (act, gh)..."
