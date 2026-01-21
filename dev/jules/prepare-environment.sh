@@ -11,13 +11,21 @@ echo "--> Installing and configuring system-level dependencies..."
 # Use sudo for all system-level package management
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends \
+    build-essential \
     ca-certificates \
     curl \
     git \
     gnupg \
     locales-all \
+    lsb-release \
     software-properties-common \
     sudo
+
+echo "--> Verifying execution environment..."
+echo "    Distributor ID: $(lsb_release -is)"
+echo "    Release:        $(lsb_release -rs)"
+echo "    Codename:       $(lsb_release -cs)"
+echo "    Architecture:   $(uname -m)"
 
 echo "--> System-level dependencies installed successfully."
 
