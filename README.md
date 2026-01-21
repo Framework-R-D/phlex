@@ -19,3 +19,7 @@ Clone that repository and follow the instructions there to begin using Phlex.
 ## Developing Phlex
 
 Instructions for the development of Phlex itself are in the [developer notes](DEVELOPING.md)
+
+## CI/CD
+
+This repository provides a suite of reusable GitHub Actions workflows for building, testing, and formatting C++ and Python projects. For comprehensive instructions on how to use these workflows in your own project, please see the [reusable workflows guide](./.github/REUSABLE_WORKFLOWS.md).
