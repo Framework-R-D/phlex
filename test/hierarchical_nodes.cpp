@@ -134,7 +134,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   CHECK(g.execution_count("square") == index_limit * number_limit);
   CHECK(g.execution_count("add") == index_limit * number_limit);
-  CHECK(g.execution_count("get_the_time") >= index_limit);
+  CHECK(g.execution_count("get_the_time") == index_limit);
   CHECK(g.execution_count("scale") == index_limit);
   CHECK(g.execution_count("print_result") == index_limit);
 }
