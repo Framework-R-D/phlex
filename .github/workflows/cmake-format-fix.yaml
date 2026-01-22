@@ -25,7 +25,7 @@ permissions:
   contents: write
 
 env:
-  local-checkout-path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
 
 jobs:
   parse-command:
@@ -56,7 +56,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: ${{ env.local-checkout-path }}
+          path: ${{ env.local_checkout_path }}
           ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.parse-command.outputs.ref }}
           repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.parse-command.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
@@ -72,13 +72,13 @@ jobs:
       - name: Apply CMake formatting
         run: |
           echo "Applying CMake formatting..."
-          gersemi -i ${{ env.local-checkout-path }}
+          gersemi -i ${{ env.local_checkout_path }}
 
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: cmake-format
-          working-directory: ${{ env.local-checkout-path }}
+          working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.parse-command.outputs.ref }}
           pr-info-repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.parse-command.outputs.repo }}

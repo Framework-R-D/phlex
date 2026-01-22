@@ -30,7 +30,7 @@ on:
         type: string
 
 env:
-  local-checkout-path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
 
 jobs:
   pre-check:
@@ -59,13 +59,13 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: 0
-        path: ${{ env.local-checkout-path }}
+        path: ${{ env.local_checkout_path }}
 
     - name: Detect workflow changes
       id: filter
       uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
-        repo-path: ${{ env.local-checkout-path }}
+        repo-path: ${{ env.local_checkout_path }}
         base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
         head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || github.event.pull_request.head.sha || github.sha }}
         include-globs: |
@@ -99,7 +99,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        path: ${{ env.local-checkout-path }}
+        path: ${{ env.local_checkout_path }}
 
     - name: Announce actionlint check
       run: echo "➡️ Running actionlint check..."
@@ -108,7 +108,7 @@ jobs:
       id: lint
       run: |
         docker run --rm \
-          -v "${{ github.workspace }}/${{ env.local-checkout-path }}:/work" \
+          -v "${{ github.workspace }}/${{ env.local_checkout_path }}:/work" \
           -w /work \
           rhysd/actionlint:latest \
           -config-file .github/actionlint.yaml

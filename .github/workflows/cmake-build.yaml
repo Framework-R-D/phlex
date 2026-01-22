@@ -64,8 +64,8 @@ permissions:
 env:
   BUILD_TYPE: Release
   CICOLOR_FORCE: 1
-  local-checkout-path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
-  local-build-path: ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local_build_path: ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}
 
 jobs:
   pre-check:
@@ -136,13 +136,13 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          path: ${{ env.local-checkout-path }}
+          path: ${{ env.local_checkout_path }}
 
       - name: Detect C++ and CMake changes
         id: filter
         uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
         with:
-          repo-path: ${{ env.local-checkout-path }}
+          repo-path: ${{ env.local_checkout_path }}
           base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
           head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || github.event.pull_request.head.sha || github.sha }}
           file-type: |
@@ -195,14 +195,14 @@ jobs:
     - name: Check out code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        path: ${{ env.local-checkout-path }}
+        path: ${{ env.local_checkout_path }}
         ref: ${{ needs.pre-check.outputs.sha }}
         repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
       with:
-        build-path: ${{ env.local-build-path }}
+        build-path: ${{ env.local_build_path }}
 
     - name: Announce CMake configuration
       run: echo "➡️ Configuring CMake..."
@@ -215,8 +215,8 @@ jobs:
       id: configure
       uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
-        source-path: ${{ env.local-checkout-path }}
-        build-path: ${{ env.local-build-path }}
+        source-path: ${{ env.local_checkout_path }}
+        build-path: ${{ env.local_build_path }}
         build-type: ${{ env.BUILD_TYPE }}
         cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
         extra-options: |
@@ -227,13 +227,13 @@ jobs:
       id: build
       uses: Framework-R-D/phlex/.github/actions/build-cmake@main
       with:
-        build-path: ${{ env.local-build-path }}
+        build-path: ${{ env.local_build_path }}
 
     - name: Run tests
       if: matrix.sanitizer != 'valgrind'
       run: |
         . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/${{ env.local-build-path }}"
+        cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
 
         echo "➡️ Running tests..."
         echo "::group::Running ctest"
@@ -250,7 +250,7 @@ jobs:
       if: matrix.sanitizer == 'valgrind'
       run: |
         . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/${{ env.local-build-path }}"
+        cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
 
         echo "➡️ Running Valgrind tests..."
         echo "::group::Running ctest -T memcheck"
