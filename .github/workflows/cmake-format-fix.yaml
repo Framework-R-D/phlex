@@ -78,7 +78,7 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: cmake-format
-          working-directory: phlex-src
+          working-directory: ${{ env.local-checkout-path }}
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.parse-command.outputs.ref }}
           pr-info-repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.parse-command.outputs.repo }}
