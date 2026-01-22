@@ -7,6 +7,7 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
@@ -88,7 +89,8 @@ namespace phlex::experimental {
                         emit_and_evict_if_done(index);
                         return {};
                       }},
-      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
+      join_{make_join_or_none<N>(
+        g, full_name(), layers())}, // FIXME: This should change to include result product!
       fold_{
         g, concurrency, [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto&) {
           // N.B. The assumption is that a fold will *never* need to cache

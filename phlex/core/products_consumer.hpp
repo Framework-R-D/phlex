@@ -25,6 +25,7 @@ namespace phlex::experimental {
     std::size_t num_inputs() const;
 
     product_queries const& input() const noexcept;
+    std::vector<std::string> const& layers() const noexcept;
     tbb::flow::receiver<message>& port(product_query const& product_label);
 
     virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
@@ -41,6 +42,7 @@ namespace phlex::experimental {
     virtual tbb::flow::receiver<message>& port_for(product_query const& product_label) = 0;
 
     product_queries input_products_;
+    std::vector<std::string> layers_;
   };
 }
 

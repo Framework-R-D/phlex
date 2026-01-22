@@ -15,17 +15,5 @@ namespace phlex::experimental {
     return output_product_;
   }
 
-  void declared_provider::report_cached_stores(stores_t const& stores) const
-  {
-    if (stores.size() > 0ull) {
-      spdlog::warn("Provider {} has {} cached stores.", full_name(), stores.size());
-    }
-    for (auto const& [hash, store] : stores) {
-      if (not store) {
-        spdlog::warn("Store with hash {} is null!", hash);
-        continue;
-      }
-      spdlog::debug(" => ID: {} (hash: {})", store->index()->to_string(), hash);
-    }
-  }
+  std::string const& declared_provider::layer() const noexcept { return output_product_.layer(); }
 }

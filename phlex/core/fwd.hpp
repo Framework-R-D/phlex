@@ -6,7 +6,6 @@
 #include "oneapi/tbb/flow_graph.h"
 
 namespace phlex::experimental {
-  class component;
   class consumer;
   class declared_output;
   class generator;
@@ -20,7 +19,3 @@ namespace phlex::experimental {
 }
 
 #endif // PHLEX_CORE_FWD_HPP
-
-// Local Variables:
-// mode: c++
-// End:

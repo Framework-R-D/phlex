@@ -14,34 +14,6 @@
 #include <version>
 
 namespace phlex::experimental {
-  class store_flag {
-  public:
-    void flush_received();
-    bool is_complete() const noexcept;
-    void mark_as_processed() noexcept;
-
-  private:
-    std::atomic<bool> flush_received_{false};
-    std::atomic<bool> processed_{false};
-  };
-
-  class detect_flush_flag {
-  protected:
-    void mark_flush_received(data_cell_index::hash_type hash);
-    void mark_processed(data_cell_index::hash_type hash);
-    bool done_with(data_cell_index::hash_type hash);
-
-  private:
-    using flags_t =
-      tbb::concurrent_hash_map<data_cell_index::hash_type, std::unique_ptr<store_flag>>;
-    using flag_accessor = flags_t::accessor;
-    using const_flag_accessor = flags_t::const_accessor;
-
-    flags_t flags_;
-  };
-
-  // =========================================================================
-
   class store_counter {
   public:
     void set_flush_value(flush_counts_ptr counts, std::size_t original_message_id);

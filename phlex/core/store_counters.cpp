@@ -9,40 +9,6 @@
 
 namespace phlex::experimental {
 
-  void store_flag::flush_received() { flush_received_ = true; }
-
-  bool store_flag::is_complete() const noexcept { return processed_ and flush_received_; }
-
-  void store_flag::mark_as_processed() noexcept { processed_ = true; }
-
-  void detect_flush_flag::mark_flush_received(data_cell_index::hash_type const hash)
-  {
-    flag_accessor fa;
-    if (flags_.insert(fa, hash)) {
-      fa->second = std::make_unique<store_flag>();
-    }
-    fa->second->flush_received();
-  }
-
-  void detect_flush_flag::mark_processed(data_cell_index::hash_type const hash)
-  {
-    flag_accessor fa;
-    if (flags_.insert(fa, hash)) {
-      fa->second = std::make_unique<store_flag>();
-    }
-    fa->second->mark_as_processed();
-  }
-
-  bool detect_flush_flag::done_with(data_cell_index::hash_type const hash)
-  {
-    if (flag_accessor fa; flags_.find(fa, hash) && fa->second->is_complete()) {
-      return flags_.erase(fa);
-    }
-    return false;
-  }
-
-  // =====================================================================================
-
   void store_counter::set_flush_value(flush_counts_ptr counts,
                                       std::size_t const original_message_id)
   {

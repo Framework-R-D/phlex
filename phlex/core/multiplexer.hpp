@@ -34,6 +34,8 @@ namespace phlex::experimental {
 
   class multiplexer {
   public:
+    using index_set_node = tbb::flow::broadcast_node<index_message>;
+
     struct named_input_port {
       product_query product_label;
       tbb::flow::receiver<message>* port;
@@ -64,6 +66,9 @@ namespace phlex::experimental {
     flusher_t flusher_;
     flush_counters counters_;
     std::stack<layer_sentry> layers_;
+
+    using broadcasters_t = std::map<std::string, index_set_node>;
+    broadcasters_t broadcasters_;
   };
 
 }

@@ -4,16 +4,12 @@
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/store_counters.hpp"
-#include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 
@@ -33,17 +29,11 @@ namespace phlex::experimental {
 
     std::string full_name() const;
     product_query const& output_product() const noexcept;
+    std::string const& layer() const noexcept;
 
     virtual tbb::flow::receiver<index_message>* input_port() = 0;
-    virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual std::size_t num_calls() const = 0;
-
-  protected:
-    using stores_t = tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr>;
-    using const_accessor = stores_t::const_accessor;
-
-    void report_cached_stores(stores_t const& stores) const;
 
   private:
     algorithm_name name_;
@@ -56,9 +46,7 @@ namespace phlex::experimental {
   // =====================================================================================
 
   template <typename AlgorithmBits>
-  class provider_node : public declared_provider, private detect_flush_flag {
-    using function_t = typename AlgorithmBits::bound_type;
-
+  class provider_node : public declared_provider {
   public:
     using node_ptr_type = declared_provider_ptr;
 
@@ -69,33 +57,12 @@ namespace phlex::experimental {
                   product_query output) :
       declared_provider{std::move(name), output},
       output_{output.spec()},
-      flush_receiver_{g,
-                      tbb::flow::unlimited,
-                      [this](flush_message const& msg) -> tbb::flow::continue_msg {
-                        auto const hash = msg.index->hash();
-                        mark_flush_received(hash);
-                        if (done_with(hash)) {
-                          cache_.erase(hash);
-                        }
-                        return {};
-                      }},
       provider_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](index_message const& index_msg, auto& output) {
                   auto& [stay_in_graph, to_output] = output;
-                  auto const [index, msg_id] = index_msg;
+                  auto const [index, msg_id, _] = index_msg;
 
-                  // Check cache first
-                  auto index_hash = index->hash();
-                  if (const_accessor ca; cache_.find(ca, index_hash)) {
-                    // Cache hit - reuse the cached store
-                    message const new_msg{ca->second, msg_id};
-                    stay_in_graph.try_put(new_msg);
-                    to_output.try_put(new_msg);
-                    return;
-                  }
-
-                  // Cache miss - compute the result
                   auto result = std::invoke(ft, *index);
                   ++calls_;
 
@@ -104,37 +71,24 @@ namespace phlex::experimental {
                   auto store = std::make_shared<product_store>(
                     index, this->full_name(), std::move(new_products));
 
-                  // Store in cache
-                  cache_.emplace(index_hash, store);
-
                   message const new_msg{store, msg_id};
                   stay_in_graph.try_put(new_msg);
                   to_output.try_put(new_msg);
-                  mark_processed(index_hash);
-
-                  if (done_with(index_hash)) {
-                    cache_.erase(index_hash);
-                  }
                 }}
     {
       spdlog::debug(
         "Created provider node {} making output {}", this->full_name(), output.to_string());
     }
 
-    ~provider_node() { report_cached_stores(cache_); }
-
   private:
     tbb::flow::receiver<index_message>* input_port() override { return &provider_; }
-    tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& sender() override { return output_port<0>(provider_); }
 
     std::size_t num_calls() const final { return calls_.load(); }
 
     product_specification output_;
-    tbb::flow::function_node<flush_message> flush_receiver_;
     tbb::flow::multifunction_node<index_message, messages_t<2u>> provider_;
     std::atomic<std::size_t> calls_;
-    stores_t cache_;
   };
 
 }

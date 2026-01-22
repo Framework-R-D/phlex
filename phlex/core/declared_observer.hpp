@@ -5,6 +5,7 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
@@ -16,7 +17,6 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <concepts>
@@ -36,14 +36,6 @@ namespace phlex::experimental {
                       std::vector<std::string> predicates,
                       product_queries input_products);
     virtual ~declared_observer();
-
-    virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
-
-  protected:
-    using hashes_t = tbb::concurrent_hash_map<data_cell_index::hash_type, bool>;
-    using accessor = hashes_t::accessor;
-
-    void report_cached_hashes(hashes_t const& hashes) const;
   };
 
   using declared_observer_ptr = std::unique_ptr<declared_observer>;
@@ -52,7 +44,7 @@ namespace phlex::experimental {
   // =====================================================================================
 
   template <typename AlgorithmBits>
-  class observer_node : public declared_observer, private detect_flush_flag {
+  class observer_node : public declared_observer {
     using InputArgs = typename AlgorithmBits::input_parameter_types;
     using function_t = typename AlgorithmBits::bound_type;
     static constexpr auto N = AlgorithmBits::number_inputs;
@@ -68,41 +60,18 @@ namespace phlex::experimental {
                   AlgorithmBits alg,
                   product_queries input_products) :
       declared_observer{std::move(name), std::move(predicates), std::move(input_products)},
-      flush_receiver_{g,
-                      tbb::flow::unlimited,
-                      [this](flush_message const& msg) -> tbb::flow::continue_msg {
-                        auto const hash = msg.index->hash();
-                        mark_flush_received(hash);
-                        if (done_with(hash)) {
-                          cached_hashes_.erase(hash);
-                        }
-                        return {};
-                      }},
-      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
+      join_{make_join_or_none<N>(g, full_name(), layers())},
       observer_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](
                   messages_t<N> const& messages) -> oneapi::tbb::flow::continue_msg {
-                  auto const& msg = most_derived(messages);
-                  auto const& store = msg.store;
-                  auto const hash = store->index()->hash();
-
-                  if (accessor a; needs_new(store, a)) {
-                    call(ft, messages, std::make_index_sequence<N>{});
-                    a->second = true;
-                    mark_processed(hash);
-                  }
-
-                  if (done_with(hash)) {
-                    cached_hashes_.erase(hash);
-                  }
+                  call(ft, messages, std::make_index_sequence<N>{});
+                  ++calls_;
                   return {};
                 }}
     {
       make_edge(join_, observer_);
     }
-
-    ~observer_node() { report_cached_hashes(cached_hashes_); }
 
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
@@ -112,31 +81,17 @@ namespace phlex::experimental {
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
-    tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
-
-    bool needs_new(product_store_const_ptr const& store, accessor& a)
-    {
-      auto const hash = store->index()->hash();
-      if (cached_hashes_.count(hash) > 0ull) {
-        return false;
-      }
-      return cached_hashes_.insert(a, hash);
-    }
-
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      ++calls_;
       return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>> observer_;
-    hashes_t cached_hashes_;
     std::atomic<std::size_t> calls_;
   };
 }

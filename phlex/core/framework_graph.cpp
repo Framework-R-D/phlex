@@ -152,29 +152,19 @@ namespace phlex::experimental {
         for (auto& n : consumers | std::views::values) {
           std::set<flusher_t*> flushers;
           // For providers
-          if constexpr (requires { n->output_product(); }) {
-            make_edge(multiplexer_.flusher(), n->flush_port());
-          } else {
-            for (product_query const& pq : n->input()) {
-              if (auto it = unfold_flushers.find(pq.layer()); it != unfold_flushers.end()) {
-                flushers.insert(it->second);
-              } else {
-                flushers.insert(&multiplexer_.flusher());
-              }
+          for (product_query const& pq : n->input()) {
+            if (auto it = unfold_flushers.find(pq.layer()); it != unfold_flushers.end()) {
+              flushers.insert(it->second);
+            } else {
+              flushers.insert(&multiplexer_.flusher());
             }
-            for (flusher_t* flusher : flushers) {
-              make_edge(*flusher, n->flush_port());
-            }
+          }
+          for (flusher_t* flusher : flushers) {
+            make_edge(*flusher, n->flush_port());
           }
         }
       };
-
     connect_with_flusher(nodes_.folds);
-    connect_with_flusher(nodes_.observers);
-    connect_with_flusher(nodes_.predicates);
-    connect_with_flusher(nodes_.providers);
-    connect_with_flusher(nodes_.transforms);
-    connect_with_flusher(nodes_.unfolds);
 
     // The hierarchy node is used to report which data layers have been seen by the
     // framework.  To assemble the report, data-cell indices emitted by the input node are
