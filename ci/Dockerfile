@@ -13,10 +13,7 @@
 
 # where <tag> is the date (e.g. "2025-08-12").
 
-ARG parallelism=18
-
 FROM ubuntu:24.04 AS base
-ARG parallelism
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -57,15 +54,30 @@ INSTALL_ESSENTIALS
 ########################################################################
 # Install locale support required by tooling and Spack
 
-RUN <<'INSTALL_LOCALES'
+RUN <<'INSTALL_ESSENTIAL'
 set -euo pipefail
 
 # Install locale support required by tooling and Spack
 apt-get update
-apt-get install -y --no-install-recommends locales-all
+apt-get upgrade -y --no-install-recommends
+apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    cmake \
+    curl \
+    git \
+    gnupg \
+    locales-all \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    lsb-release \
+    ninja-build \
+    software-properties-common \
+    sudo
+apt autoremove -y
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-INSTALL_LOCALES
+INSTALL_ESSENTIAL
 
 ########################################################################
 # Clone Spack checkout used by both CI and dev images
@@ -100,7 +112,7 @@ COPY entrypoint.sh /entrypoint.sh
 ########################################################################
 # Configure Spack: add repos, compilers, externals, and cache locations
 
-RUN <<'CONFIGURE_SPACK_DEFAULTS'
+RUN <<'SPACK_CONFIGURE_DEFAULTS'
 set -euo pipefail
 
 SPACK_REPO_ROOT=/opt/spack-repos
@@ -127,18 +139,16 @@ spack --timestamp compiler find
 #   Spack to build Python.
 spack --timestamp external find --exclude python
 
-spack config --scope defaults rm config:build_stage || true
 spack config --scope defaults add config:build_stage:/opt/spack-stage
-spack config --scope defaults rm config:source_cache || true
 spack config --scope defaults add config:source_cache:/opt/spack-cache/downloads
-spack config --scope defaults rm config:misc_cache || true
 spack config --scope defaults add config:misc_cache:/opt/spack-cache/misc
-CONFIGURE_SPACK_DEFAULTS
+spack config --scope defaults add "config:install_tree:padded_length:255"
+SPACK_CONFIGURE_DEFAULTS
 
 ########################################################################
 # Configure binary mirrors used during installs
 
-RUN <<'CONFIGURE_SPACK_MIRRORS'
+RUN <<'SPACK_CONFIGURE_MIRRORS'
 set -euo pipefail
 
 # Register binary caches for Spack installs and optional local cache volume
@@ -147,9 +157,30 @@ set -euo pipefail
 spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
-  spack --timestamp mirror add --type binary phlex-ci-local /build-cache
+  spack --timestamp mirror add --autopush --unsigned phlex-ci-local /build-cache
 fi
-CONFIGURE_SPACK_MIRRORS
+SPACK_CONFIGURE_MIRRORS
+
+########################################################################
+# Use Spack to install the GCC we want to use
+
+RUN <<'SPACK_INSTALL_GCC'
+set -euo pipefail
+
+# Install GCC outside the Phlex development environment.
+. /spack/share/spack/setup-env.sh
+
+spack install --fail-fast -j "$(nproc)" \
+      gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
+      build_type=Release \
+      languages=c,c++,fortran,lto
+
+spack load gcc@15
+spack --timestamp compiler find
+spack unload gcc@15
+
+spack clean -dfs
+SPACK_INSTALL_GCC
 
 ########################################################################
 # Install GCC 15.2
@@ -172,7 +203,7 @@ INSTALL_GCC
 ########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
 
-RUN <<'CONCRETIZE_ENV'
+RUN <<'SPACK_CONCRETIZE_ENV'
 set -euo pipefail
 
 # Build the phlex-ci environment lockfile with consistent permissions
@@ -187,7 +218,7 @@ spack --timestamp concretize
 chgrp -R spack "$PHLEX_SPACK_ENV"
 chmod -R g+rwX "$PHLEX_SPACK_ENV"
 find "$PHLEX_SPACK_ENV" -type d -exec chmod g+s {} +
-CONCRETIZE_ENV
+SPACK_CONCRETIZE_ENV
 
 ########################################################################
 # Install common tooling layer (CMake, Ninja, coverage tools, etc.)
@@ -198,7 +229,7 @@ set -euo pipefail
 # Install core build utilities through Spack for both images
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
   cmake lcov ninja py-gcovr py-pip
 
@@ -208,76 +239,61 @@ INSTALL_TOOLING_CORE
 ########################################################################
 # Install LLVM toolchain separately for caching efficiency
 
-RUN <<'INSTALL_LLVM'
+RUN <<'SPACK_INSTALL_LLVM'
 set -euo pipefail
 
 # Install LLVM in its own layer to improve cache reuse
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature llvm
 
 spack clean -dfs
-INSTALL_LLVM
+SPACK_INSTALL_LLVM
 
 ########################################################################
 # Install remaining tools (excluding phlex itself) in one layer
 
-RUN <<'INSTALL_REMAINING_PACKAGES'
+RUN <<'SPACK_INSTALL_REMAINING_PACKAGES'
 set -euo pipefail
 
 # Install all concretized packages except phlex to share cache
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
   $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
 
 spack clean -dfs
-INSTALL_REMAINING_PACKAGES
+SPACK_INSTALL_REMAINING_PACKAGES
 
 ########################################################################
 # Install Phlex dependencies (but not Phlex itself) for CI builds
 
-RUN <<'INSTALL_PHLEX_DEPENDENCIES'
+RUN <<'SPACK_INSTALL_PHLEX_DEPENDENCIES'
 set -euo pipefail
 
 # Materialize dependencies needed for CI builds without installing Phlex
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --only dependencies --no-check-signature \
   phlex
 
-spack clean -dfs
-INSTALL_PHLEX_DEPENDENCIES
-
-########################################################################
-# Publish buildcache artifacts if a cache volume is mounted
-
-RUN <<'EXPORT_BUILDCACHE'
-set -euo pipefail
-
-# Export buildcache entries when /build-cache is provided as a volume
-. /entrypoint.sh
-
-if [ -d "/build-cache" ]; then
-  spack --timestamp buildcache create -u --rebuild-index \
+if [ -d "/build-cache" ]; then # Belt and braces
+  spack --timestamp buildcache create -u -j $(nproc) --update-index \
     /build-cache $(spack find --no-groups -LI | \
       sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
-  spack mirror rm phlex-ci-local >/dev/null 2>&1 || true
 fi
-EXPORT_BUILDCACHE
 
-########################################################################
-# Remove transient files used during build
+spack mirror rm phlex-ci-local >/dev/null 2>&1 || true
 
-RUN <<'CLEAN_TEMP_FILES'
-set -euo pipefail
+spack clean -dfs
 
 # Drop the temporary Spack environment descriptor
 rm -f /tmp/spack.yaml
-CLEAN_TEMP_FILES
+
+SPACK_INSTALL_PHLEX_DEPENDENCIES
 
 ########################################################################
 # Finalize CI image stage
@@ -290,7 +306,6 @@ USER root
 # Dev image additions (tooling and dev user configuration)
 
 FROM base AS dev
-ARG parallelism
 ENV SPACK_GROUP=spack
 
 ########################################################################
@@ -305,31 +320,9 @@ set -euo pipefail
 # Install ruff and gersemi via pip
 PYTHONDONTWRITEBYTECODE=1 \
   pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
-  --prefix /usr/local ruff gersemi
+      ruff gersemi
 rm -rf ~/.spack
 INSTALL_DEV_TOOLING
-
-########################################################################
-# Install additional system packages needed for developer tooling
-
-RUN <<'INSTALL_DEV_PACKAGES'
-set -euo pipefail
-
-# Install additional system packages needed for developer tooling
-apt-get update
-apt-get install -y --no-install-recommends \
-  ca-certificates \
-  curl \
-  gnupg \
-  sudo
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-INSTALL_DEV_PACKAGES
-
-########################################################################
-# Create developer user and grant access to the shared spack group
-
-# User creation moved to .devcontainer/Dockerfile to support flexible runtime environments
 
 ########################################################################
 # Prepare workspace directory writable by the developer group

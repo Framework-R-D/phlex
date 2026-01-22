@@ -4,31 +4,47 @@ set -euo pipefail
 # This script prepares a development environment snapshot.
 # It uses sudo for privileged operations.
 
+{ set +x; } >/dev/null 2>&1
 echo "Starting environment snapshot preparation..."
 
 echo "--> Installing and configuring system-level dependencies..."
+set -x
 
 # Use sudo for all system-level package management
-sudo apt-get update
-sudo apt-get install -y --no-install-recommends \
+
+sudo DEBIAN_FRONTEND=noninteractive apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
+    cmake \
     curl \
     git \
     gnupg \
     locales-all \
+    libcurl4-openssl-dev \
+    libssl-dev \
     lsb-release \
+    ninja-build \
     software-properties-common \
     sudo
 
+sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+
+# Set locale
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+{ set +x; } >/dev/null 2>&1
 echo "--> Verifying execution environment..."
 echo "    Distributor ID: $(lsb_release -is)"
 echo "    Release:        $(lsb_release -rs)"
 echo "    Codename:       $(lsb_release -cs)"
 echo "    Architecture:   $(uname -m)"
-
 echo "--> System-level dependencies installed successfully."
-
+exit 1
 echo "--> Installing and configuring Spack..."
 
 # Create a user-owned directory for Spack to be installed into
@@ -39,74 +55,23 @@ sudo chown -R "$(id -u):$(id -g)" "$SPACK_DEV_ROOT"
 # Clone Spack
 git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
 
-# Create the spack.yaml file in /tmp as the current user
-cat <<'EOF' > /tmp/snapshot-spack.yaml
-spack:
-  specs:
-  - phlex
-  - gcc@15.2.0
-  - catch2
-  - cmake
-  - lcov
-  - ninja
-  - python
-  - py-gcovr
-  - py-numpy
-  - py-pip # Needed temporarily for ruff installation
-  - |
-      llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib targets=x86
-
-  view: true
-  concretizer:
-    unify: true
-
-  packages:
-    all:
-      target:
-      - x86_64_v3
-
-    cmake:
-      require:
-      - "~qtgui"
-      - "@4:"
-
-    phlex:
-      require:
-      - "+form"
-      - "cxxstd=20"
-      - "%gcc@15.2.0"
-
-
-    # GCC 15 uses C23 as the default C language, and some packages
-    # (e.g. libunwind, unuran) do not yet support it. We enforce C17
-    # for compatibility.
-    libunwind:
-      require:
-      - "cflags='-std=c17'"
-
-    unuran:
-      require:
-      - "cflags='-std=c17'"
-
-    # ROOT should be built with the same version of the C++ standard
-    # as will be used by Phlex (C++20 for now).
-    root:
-      require:
-      - "~x"  # No graphics libraries required
-      - "cxxstd=20"
-EOF
-
 # All Spack operations can now be run as the regular user
-(
+
+( # Subshell to prevent unwanted leakage of Spack shell environment
+  export SNAPSHOT_SPACK_YAML=/app/ci/spack.yaml
   set -euo pipefail
 
+  { set +x; } >/dev/null 2>&1
   echo "--> Configuring Spack repositories and settings..."
+  set -x
 
   # Set environment variables for Spack
   export SPACK_USER_CONFIG_PATH=/dev/null
   export SPACK_DISABLE_LOCAL_CONFIG=true
   # shellcheck source=/dev/null
+  { set +x; } >/dev/null 2>&1
   . "${SPACK_DEV_ROOT}/spack/share/spack/setup-env.sh"
+  set -x
 
   # Configure Spack repos
   SPACK_REPO_ROOT="${SPACK_DEV_ROOT}/spack-repos"
@@ -123,33 +88,72 @@ EOF
   spack config --scope defaults add "config:build_stage:${SPACK_DEV_ROOT}/spack-stage"
   spack config --scope defaults add "config:source_cache:${SPACK_DEV_ROOT}/spack-cache/downloads"
   spack config --scope defaults add "config:misc_cache:${SPACK_DEV_ROOT}/spack-cache/misc"
+  spack config --scope defaults add "config:install_tree:padded_length:255"
 
-  echo "--> Installing all Spack packages..."
+  spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/phlex-dev-build-cache
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Installing GCC 15.x ..."
+  set -x
+
+  spack install --cache-only --fail-fast -j "$(nproc)" \
+        gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
+        build_type=Release \
+        languages=c,c++,fortran,lto
+
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Concretizing Phlex Spack environment ..."
+  set -x
 
   # Create, activate, and concretize the Spack environment
   PHLEX_SPACK_ENV="${SPACK_DEV_ROOT}/spack-environments/phlex-ci"
-  spack env create -d "$PHLEX_SPACK_ENV" /tmp/snapshot-spack.yaml
+  spack env create -d "$PHLEX_SPACK_ENV" "$SNAPSHOT_SPACK_YAML"
   spack env activate -d "$PHLEX_SPACK_ENV"
   spack concretize
 
-  # Install all packages
-  spack install --fail-fast -j "$(nproc)"
+  { set +x; } >/dev/null 2>&1
+  echo "--> Installing all environment roots except Phlex ..."
+  set -x
 
-  echo "--> Spack packages installed. Cleaning up..."
+  spack --timestamp install --cache-only --fail-fast -j $(nproc) -p 1 \
+        --no-add --only-concrete \
+        $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Installing Phlex dependencies ..."
+  set -x
+
+  spack --timestamp install --cache-only --fail-fast -j $(nproc) -p 1 \
+        --no-add --only-concrete --only dependencies --no-check-signature \
+        phlex
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Spack packages installed."
+  set -x
 
   # Install ruff and gersemi via pip
+  { set +x; } >/dev/null 2>&1
   echo "--> Installing developer tools (ruff, gersemi)..."
+  set -x
+
   PYTHONDONTWRITEBYTECODE=1 \
     pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
     ruff gersemi
 
   # Clean all Spack caches
+  { set +x; } >/dev/null 2>&1
   echo "--> Cleaning Spack caches..."
-  spack clean --all
+  set -x
+
+  spack clean -dfs
 )
+
+{ set +x; } >/dev/null 2>&1
 echo "--> Spack and Python tools setup complete."
 
 echo "--> Installing additional developer tools (act, gh)..."
+set -x
 
 # Install GitHub'"'"'s act CLI
 download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | grep -o '"browser_download_url": "[^"]*act_Linux_x86_64[^"]*"' | cut -d '"' -f 4)
@@ -167,16 +171,16 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githu
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends gh
 
+{ set +x; } >/dev/null 2>&1
 echo "--> Additional developer tools installed successfully."
 
 echo "--> Performing final cleanup..."
+set -x
 
 # Clean apt caches
 sudo apt-get clean
 sudo rm -rf /var/lib/apt/lists/*
 
-# Remove the temporary spack environment file
-rm -f /tmp/snapshot-spack.yaml
-
+{ set +x; } >/dev/null 2>&1
 echo "--> Cleanup complete."
 echo "Environment snapshot preparation is finished."
