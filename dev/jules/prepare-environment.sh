@@ -30,8 +30,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     sudo
 
 sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
-apt-get clean
-rm -rf /var/lib/apt/lists/*
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
 
 # Set locale
 export LANG=en_US.UTF-8
@@ -44,7 +44,7 @@ echo "    Release:        $(lsb_release -rs)"
 echo "    Codename:       $(lsb_release -cs)"
 echo "    Architecture:   $(uname -m)"
 echo "--> System-level dependencies installed successfully."
-exit 1
+
 echo "--> Installing and configuring Spack..."
 
 # Create a user-owned directory for Spack to be installed into
@@ -63,13 +63,6 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
 
   { set +x; } >/dev/null 2>&1
   echo "--> Configuring Spack repositories and settings..."
-  set -x
-
-  # Set environment variables for Spack
-  export SPACK_USER_CONFIG_PATH=/dev/null
-  export SPACK_DISABLE_LOCAL_CONFIG=true
-  # shellcheck source=/dev/null
-  { set +x; } >/dev/null 2>&1
   . "${SPACK_DEV_ROOT}/spack/share/spack/setup-env.sh"
   set -x
 
@@ -83,20 +76,26 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
   spack repo add --scope site "$SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art"
   spack repo set --scope site --destination "$SPACK_REPO_ROOT" builtin
   spack compiler find
-  spack external find --exclude python
+  spack external find --exclude python --exclude automake --exclude autoconf --exclude ccache \
+        --exclude gawk --exclude go --exclude libtool --exclude m4 --exclude npm --exclude pkgconf \
+        --exclude openssh --exclude rust
 
   spack config --scope defaults add "config:build_stage:${SPACK_DEV_ROOT}/spack-stage"
   spack config --scope defaults add "config:source_cache:${SPACK_DEV_ROOT}/spack-cache/downloads"
   spack config --scope defaults add "config:misc_cache:${SPACK_DEV_ROOT}/spack-cache/misc"
   spack config --scope defaults add "config:install_tree:padded_length:255"
 
+  { set +x; } >/dev/null 2>&1
+  spack gpg init
   spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/phlex-dev-build-cache
+  spack buildcache keys -it
+  spack gpg list
 
   { set +x; } >/dev/null 2>&1
   echo "--> Installing GCC 15.x ..."
   set -x
 
-  spack install --cache-only --fail-fast -j "$(nproc)" \
+  spack --timestamp --debug install --cache-only --fail-fast -j "$(nproc)" \
         gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
         build_type=Release \
         languages=c,c++,fortran,lto
