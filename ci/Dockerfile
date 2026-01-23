@@ -13,6 +13,7 @@
 
 # where <tag> is the date (e.g. "2025-08-12").
 
+ARG GPG_KEY_ID
 FROM ubuntu:24.04 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -281,9 +282,30 @@ spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   phlex
 
 if [ -d "/build-cache" ]; then # Belt and braces
-  spack --timestamp buildcache create -u -j $(nproc) --update-index \
-    /build-cache $(spack find --no-groups -LI | \
-      sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+  pushd /
+  # The GPG agent fails to start with "Failed to create '/run/user/0'
+  # directory for GPG" unless we do this.  No idea why this is not the
+  # default.
+  mkdir -p /run/user/0
+  chown root:root /run/user/0
+  chmod 700 /run/user/0
+  # Check if a GPG volume is mounted and has secret keys.
+  if [ -d /run/gpg ] && gpg --homedir /run/gpg --list-secret-keys | grep -q 'sec'; then
+    # We have a private key--use it directly from the volume.
+    export GNUPGHOME=/run/gpg
+    key_id="${GPG_KEY_ID:-$(gpg --list-secret-keys --with-colons | sed -Ene 's&^sec.*:([^:]+):.*$&\1&p' | head -n1)}"
+    spack gpg trust $(gpg --list-keys --with-colons | sed -Ene "s&^pub.*:([^:]+):.*$&\1&p")
+    spack --timestamp buildcache create --sign-with "${key_id}" -j $(nproc) --update-index \
+      /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+    unset GNUPGHOME
+  else
+    # Fall back on unsigned build cache
+    spack --timestamp buildcache create -u -j $(nproc) --update-index \
+      /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+  fi
+  popd
 fi
 
 spack mirror rm phlex-ci-local >/dev/null 2>&1 || true
