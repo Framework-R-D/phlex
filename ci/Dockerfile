@@ -4,8 +4,8 @@
 
 # Podman instructions for building tagged images with this file:
 #
-#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target ci   --tag phlex-ci:<tag>  .
-#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target dev  --tag phlex-dev:<tag> .
+#   $ podman build --format docker [-v ~/.gnupg:/run/gpg] [-v <local-spack-cache>:/build-cache] --target ci   --tag phlex-ci:<tag>  .
+#   $ podman build --format docker [-v ~/.gnupg:/run/gpg] [-v <local-spack-cache>:/build-cache] --target dev  --tag phlex-dev:<tag> .
 #   $ podman login ghcr.io --username <username> -p <token>
 #   $ podman push phlex-ci:<tag>  ghcr.io/framework-r-d/phlex-ci:<tag>
 #   $ podman push phlex-dev:<tag> ghcr.io/framework-r-d/phlex-dev:<tag>
@@ -146,11 +146,14 @@ spack config --scope defaults add config:misc_cache:/opt/spack-cache/misc
 spack config --scope defaults add "config:install_tree:padded_length:255"
 SPACK_CONFIGURE_DEFAULTS
 
+ENV GNUPGHOME=/run/gpg
+ENV SPACK_GNUPGHOME=/run/gpg
+
 ########################################################################
 # Configure binary mirrors used during installs
 
 RUN <<'SPACK_CONFIGURE_MIRRORS'
-set -euo pipefail
+set -euxo pipefail
 
 # Register binary caches for Spack installs and optional local cache volume
 . /spack/share/spack/setup-env.sh
@@ -158,8 +161,10 @@ set -euo pipefail
 spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
-  spack --timestamp mirror add --autopush --unsigned phlex-ci-local /build-cache
+  spack --timestamp mirror add --unsigned phlex-ci-local /build-cache
 fi
+
+spack buildcache keys -it
 SPACK_CONFIGURE_MIRRORS
 
 ########################################################################
@@ -175,6 +180,18 @@ spack install --fail-fast -j "$(nproc)" \
       gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
       build_type=Release \
       languages=c,c++,fortran,lto
+
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
 
 spack load gcc@15
 spack --timestamp compiler find
@@ -234,6 +251,18 @@ spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
   cmake lcov ninja py-gcovr py-pip
 
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
+
 spack clean -dfs
 INSTALL_TOOLING_CORE
 
@@ -248,6 +277,18 @@ set -euo pipefail
 
 spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature llvm
+
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
 
 spack clean -dfs
 SPACK_INSTALL_LLVM
@@ -265,6 +306,18 @@ spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
   $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
 
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
+
 spack clean -dfs
 SPACK_INSTALL_REMAINING_PACKAGES
 
@@ -281,31 +334,16 @@ spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --only dependencies --no-check-signature \
   phlex
 
-if [ -d "/build-cache" ]; then # Belt and braces
-  pushd /
-  # The GPG agent fails to start with "Failed to create '/run/user/0'
-  # directory for GPG" unless we do this.  No idea why this is not the
-  # default.
-  mkdir -p /run/user/0
-  chown root:root /run/user/0
-  chmod 700 /run/user/0
-  # Check if a GPG volume is mounted and has secret keys.
-  if [ -d /run/gpg ] && gpg --homedir /run/gpg --list-secret-keys | grep -q 'sec'; then
-    # We have a private key--use it directly from the volume.
-    export GNUPGHOME=/run/gpg
-    key_id="${GPG_KEY_ID:-$(gpg --list-secret-keys --with-colons | sed -Ene 's&^sec.*:([^:]+):.*$&\1&p' | head -n1)}"
-    spack gpg trust $(gpg --list-keys --with-colons | sed -Ene "s&^pub.*:([^:]+):.*$&\1&p")
-    spack --timestamp buildcache create --sign-with "${key_id}" -j $(nproc) --update-index \
-      /build-cache $(spack find --no-groups -LI | \
-        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
-    unset GNUPGHOME
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
   else
-    # Fall back on unsigned build cache
-    spack --timestamp buildcache create -u -j $(nproc) --update-index \
-      /build-cache $(spack find --no-groups -LI | \
-        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+    key_args=(-u)
   fi
-  popd
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
 
 spack mirror rm phlex-ci-local >/dev/null 2>&1 || true
