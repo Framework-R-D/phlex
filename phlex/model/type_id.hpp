@@ -45,8 +45,11 @@ namespace phlex::experimental {
     constexpr builtin fundamental() const { return static_cast<builtin>(id_ & 0x0F); }
 
     template <class Provider, class Hash, class Flavor>
-    friend constexpr void tag_invoke(
-      boost::hash2::hash_append_tag const&, Provider const&, Hash& h, Flavor const& f, type_id const* v)
+    friend constexpr void tag_invoke(boost::hash2::hash_append_tag const&,
+                                     Provider const&,
+                                     Hash& h,
+                                     Flavor const& f,
+                                     type_id const* v)
     {
       boost::hash2::hash_append(h, f, v->id_);
       if (v->has_children()) {

@@ -44,9 +44,9 @@ namespace phlex::experimental {
           }
           candidates.emplace(producer.node.full(), &producer);
         }
-      }
-      else {
-        spdlog::error("Creator name mismatch between ({}) and {}", query.to_string(), producer.node.full());
+      } else {
+        spdlog::error(
+          "Creator name mismatch between ({}) and {}", query.to_string(), producer.node.full());
       }
     }
 

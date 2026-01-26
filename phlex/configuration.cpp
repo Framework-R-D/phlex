@@ -42,8 +42,10 @@ namespace {
         kind = "HOW??"s;
         break;
       }
-      throw std::runtime_error(fmt::format(
-        "Error retrieving parameter '{}'. Should be a string but is instead a {}", parameter, kind));
+      throw std::runtime_error(
+        fmt::format("Error retrieving parameter '{}'. Should be a string but is instead a {}",
+                    parameter,
+                    kind));
     }
     return std::string(val.get_string());
   }
