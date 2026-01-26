@@ -1,15 +1,15 @@
 {
   event_product(product)::
     {
-        creator: 'input',  
+      creator: 'input',
       suffix: product,
-      layer: "event"
+      layer: 'event',
     },
 
   creator_event_product(creator, product)::
     {
-        creator: creator,  
+      creator: creator,
       suffix: product,
-      layer: "event"
-    }
+      layer: 'event',
+    },
 }
