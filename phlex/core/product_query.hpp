@@ -1,9 +1,9 @@
 #ifndef PHLEX_CORE_PRODUCT_QUERY_HPP
 #define PHLEX_CORE_PRODUCT_QUERY_HPP
 
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 
-#include <iosfwd>
 #include <optional>
 #include <string>
 #include <vector>
@@ -24,7 +24,7 @@ namespace phlex {
 
       required_creator_name(std::string_view rhs) : content_(rhs) {}
 
-      T&& release() {return std::move(content_);}
+      T&& release() { return std::move(content_); }
 
     private:
       std::string content_;
@@ -42,7 +42,7 @@ namespace phlex {
 
       required_layer_name(std::string_view rhs) : content_(rhs) {}
 
-      T&& release() {return std::move(content_);}
+      T&& release() { return std::move(content_); }
 
     private:
       std::string content_;
@@ -55,19 +55,45 @@ namespace phlex {
     std::optional<std::string> suffix;
     std::optional<std::string> stage;
   };
-  
+
   class product_query {
   public:
     product_query() = default; // Required by boost JSON
-    product_query(product_tag&& tag) : creator_(tag.creator.release()), layer_(tag.layer.release()), suffix_(std::move(tag.suffix)), stage_(std::move(tag.stage)) {}
+    product_query(product_tag&& tag) :
+      creator_(tag.creator.release()),
+      layer_(tag.layer.release()),
+      suffix_(std::move(tag.suffix)),
+      stage_(std::move(tag.stage))
+    {
+      if (creator_.empty()) {
+        throw std::runtime_error("Cannot specify product with empty creator name.");
+      }
+      if (layer_.empty()) {
+        throw std::runtime_error("Cannot specify the empty string as a data layer.");
+      }
+    }
     void set_type(experimental::type_id&& type);
 
-    std::string const& creator() const noexcept {return creator_;}
-    std::string const& layer() const noexcept {return layer_;}
-    std::optional<std::string> const& suffix() const noexcept {return suffix_;}
-    std::optional<std::string> const& stage() const noexcept {return stage_;}
-    experimental::type_id const& type() const noexcept {return type_id_;}
+    std::string const& creator() const noexcept { return creator_; }
+    std::string const& layer() const noexcept { return layer_; }
+    std::optional<std::string> const& suffix() const noexcept { return suffix_; }
+    std::optional<std::string> const& stage() const noexcept { return stage_; }
+    experimental::type_id const& type() const noexcept { return type_id_; }
+
+    // Check that all products selected by /other/ would satisfy this query
+    bool match(product_query const& other) const;
+
+    // Check if a product_specification satisfies this query
+    bool match(experimental::product_specification const& spec) const;
+
     std::string to_string() const;
+
+    // temporary additional members for transition
+    experimental::product_specification spec() const;
+    bool operator==(product_query const& rhs) const
+    {
+      return this->spec() == rhs.spec() && this->layer_ == rhs.layer_;
+    }
 
   private:
     std::string creator_;
@@ -78,8 +104,6 @@ namespace phlex {
   };
 
   using product_queries = std::vector<product_query>;
-  std::ostream& operator<<(std::ostream& os, product_query const& label);
-
   namespace detail {
     // C is a container of product_queries
     template <typename C, typename T>
@@ -94,7 +118,7 @@ namespace phlex {
       template <typename T>
       void set_type(C& container)
       {
-        container.at(index_).set_type(make_type_id<T>());
+        container.at(index_).set_type(experimental::make_type_id<T>());
         ++index_;
       }
 

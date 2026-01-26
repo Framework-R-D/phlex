@@ -97,30 +97,34 @@ TEST_CASE("Splitting the processing", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
-    .output_product("max_number"_in("event"));
+    .output_product(
+      product_query({.creator = "input"s, .layer = "event"s, .suffix = "max_number"s}));
   g.provide("provide_ten_numbers", provide_ten_numbers, concurrency::unlimited)
-    .output_product("ten_numbers"_in("event"));
+    .output_product(
+      product_query({.creator = "input"s, .layer = "event"s, .suffix = "ten_numbers"s}));
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
-    .input_family("max_number"_in("event"))
+    .input_family(product_query({.creator = "input"s, .layer = "event"s, .suffix = "max_number"s}))
     .output_products("new_number");
   g.fold("add", add, concurrency::unlimited, "event")
-    .input_family("new_number"_in("lower1"))
+    .input_family(product_query({.creator = "iota"s, .layer = "lower1"s, .suffix = "new_number"s}))
     .output_products("sum1");
-  g.observe("check_sum", check_sum, concurrency::unlimited).input_family("sum1"_in("event"));
+  g.observe("check_sum", check_sum, concurrency::unlimited)
+    .input_family(product_query({.creator = "add"s, .layer = "event"s, .suffix = "sum1"s}));
 
   g.unfold<iterate_through>("iterate_through",
                             &iterate_through::predicate,
                             &iterate_through::unfold,
                             concurrency::unlimited,
                             "lower2")
-    .input_family("ten_numbers"_in("event"))
+    .input_family(product_query({.creator = "input"s, .layer = "event"s, .suffix = "ten_numbers"s}))
     .output_products("each_number");
   g.fold("add_numbers", add_numbers, concurrency::unlimited, "event")
-    .input_family("each_number"_in("lower2"))
+    .input_family(
+      product_query({.creator = "iterate_through"s, .layer = "lower2"s, .suffix = "each_number"s}))
     .output_products("sum2");
   g.observe("check_sum_same", check_sum_same, concurrency::unlimited)
-    .input_family("sum2"_in("event"));
+    .input_family(product_query({.creator = "add_numbers"s, .layer = "event"s, .suffix = "sum2"s}));
 
   g.make<experimental::test::products_for_output>().output(
     "save", &experimental::test::products_for_output::save, concurrency::serial);

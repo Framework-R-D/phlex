@@ -29,10 +29,10 @@ TEST_CASE("Make progress with one thread", "[graph]")
      "provide_number",
      [](data_cell_index const& index) -> unsigned int { return index.number(); },
      concurrency::unlimited)
-    .output_product("number"_in("spill"));
+    .output_product(product_query({.creator = "input"s, .layer = "spill"s, .suffix = "number"s}));
   g.observe(
      "observe_number", [](unsigned int const /*number*/) {}, concurrency::unlimited)
-    .input_family("number"_in("spill"));
+    .input_family(product_query({.creator = "input"s, .layer = "spill"s, .suffix = "number"s}));
   g.execute();
 
   CHECK(gen.emitted_cells("/job/spill") == 1000);
