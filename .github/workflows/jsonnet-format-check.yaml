@@ -1,0 +1,105 @@
+name: Jsonnet Format Check
+run-name: "${{ github.actor }} checking jsonnet format"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+        path: phlex-src
+
+    - name: Detect Jsonnet formatting changes
+      id: filter
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        file-type: jsonnet
+
+  jsonnet-format-check:
+    needs: [pre-check, detect-changes]
+    if: >
+      needs.detect-changes.result == 'skipped' ||
+      (
+        needs.detect-changes.result == 'success' &&
+        needs.detect-changes.outputs.has_changes == 'true'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+        path: phlex-src
+
+    - name: Run jsonnetfmt check
+      id: lint
+      run: |
+        docker run --rm \
+          -v "$(pwd)/phlex-src:/work" \
+          -w /work \
+          google/jsonnet:latest \
+          jsonnetfmt --test $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")
+      continue-on-error: true
+
+    - name: Evaluate jsonnetfmt result
+      if: always()
+      run: |
+        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+          echo "✅ jsonnetfmt check passed."
+        else
+          echo "::error::jsonnetfmt check failed. Please review the output above for details."
+          exit 1
+        fi
+
+  jsonnet-format-check-skipped:
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant Jsonnet changes detected
+      run: echo "::notice::No jsonnet-format relevant changes detected; check skipped."
