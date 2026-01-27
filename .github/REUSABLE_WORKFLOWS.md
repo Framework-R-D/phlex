@@ -24,14 +24,16 @@ To use a workflow, you call it from a workflow file in your own repository's `.g
 ```yaml
 jobs:
   some_job:
-    uses: Framework-R-D/phlex/.github/workflows/<workflow_file_name>.yaml@main
+    uses: Framework-R-D/phlex/.github/workflows/<workflow_file_name>.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
     with:
       # ... inputs for the workflow ...
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
 
-**Note:** Always reference the workflows using the `@main` ref to ensure you are using the latest stable version.
+**Note:** For stability and security, it is highly recommended to pin the workflow to a specific commit SHA rather than a branch like `@main`. Using a mutable branch means you will automatically receive updates, which could include breaking changes or, in a worst-case scenario, malicious code. Pinning to a commit SHA ensures you are using a fixed, reviewed version of the workflow.
+
+For development purposes, you may choose to use `@main` at your own risk to get the latest changes.
 
 ---
 
@@ -59,7 +61,7 @@ Builds and tests your project using CMake.
 ```yaml
 jobs:
   build_and_test:
-    uses: Framework-R-D/phlex/.github/workflows/cmake-build.yaml@main
+    uses: Framework-R-D/phlex/.github/workflows/cmake-build.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
     with:
       # Optional: A list of build combinations to run (e.g., "gcc/asan clang/tsan")
       build-combinations: 'all -clang/valgrind'
@@ -87,7 +89,7 @@ Checks Python code for formatting and type errors using `ruff` and `mypy`.
 ```yaml
 jobs:
   check_python:
-    uses: Framework-R-D/phlex/.github/workflows/python-check.yaml@main
+    uses: Framework-R-D/phlex/.github/workflows/python-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
 ```
 
 **All Inputs:**
@@ -115,7 +117,7 @@ jobs:
       github.event.issue.pull_request &&
       (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
       startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
-    uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@main
+    uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
     with:
       # The ref and repo of the PR need to be retrieved and passed
       ref: ${{ steps.get_pr_info.outputs.ref }}
