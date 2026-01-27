@@ -158,6 +158,20 @@ Automatically formats and fixes Python code using `ruff` and commits the changes
 -  `ref` (string, **required**): The branch or ref to check out.
 -  `repo` (string, **required**): The repository to check out from.
 
+### 5. `markdown-fix.yaml`
+
+Automatically formats Markdown files using `markdownlint` and commits the changes. Typically triggered by an `issue_comment`.
+
+#### Usage Example (in a workflow triggered by `issue_comment`)
+
+*Similar to `cmake-format-fix.yaml`, but triggered by a command like `@<repo>bot markdown-fix`.*
+
+#### All Inputs
+
+-  `checkout-path` (string, optional): Path to check out code to.
+-  `ref` (string, **required**): The branch or ref to check out.
+-  `repo` (string, **required**): The repository to check out from.
+
 ### Other Workflows
 
-The repository also provides `actionlint-check.yaml`, `cmake-format-check.yaml`, and `codeql-analysis.yaml`, which can be used in a similar manner.
+The repository also provides `actionlint-check.yaml`, `cmake-format-check.yaml`, `markdown-check.yaml`, and `codeql-analysis.yaml`, which can be used in a similar manner.
