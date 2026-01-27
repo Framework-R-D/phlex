@@ -1,0 +1,71 @@
+name: Markdown Fix
+run-name: "${{ github.actor }} fixing markdown format"
+
+on:
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    name: Parse command
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        (
+          startsWith(github.event.comment.body, '@phlexbot format') ||
+          startsWith(github.event.comment.body, '@phlexbot markdown-fix')
+        )
+      )
+    outputs:
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo: ${{ steps.get_pr.outputs.repo || github.repository }}
+
+    steps:
+      - name: Get PR Info
+        if: github.event_name == 'issue_comment'
+        id: get_pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+  apply_fixes:
+    runs-on: ubuntu-latest
+    name: Apply fixes
+    needs: pre-check
+    if: ${{ needs.pre-check.result == 'success' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: phlex-src
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
+          token: ${{ secrets.WORKFLOW_PAT }}
+
+      - name: Run markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v11
+        with:
+          globs: |
+            phlex-src/**/*.md
+            !phlex-src/**/CHANGELOG.md
+          fix: true
+
+      - name: Handle fix commit
+        uses: ./phlex-src/.github/actions/handle-fix-commit
+        with:
+          tool: markdownlint
+          working-directory: phlex-src
+          token: ${{ secrets.WORKFLOW_PAT }}
+          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
+          pr-info-repo: ${{ needs.pre-check.outputs.repo }}
