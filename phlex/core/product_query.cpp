@@ -1,9 +1,15 @@
 #include "phlex/core/product_query.hpp"
 
 #include "fmt/format.h"
+#include <boost/hash2/hash_append.hpp>
+#include <boost/hash2/xxhash.hpp>
 
 namespace phlex {
-  void product_query::set_type(experimental::type_id&& type) { type_id_ = std::move(type); }
+  void product_query::set_type(experimental::type_id&& type)
+  {
+    type_id_ = std::move(type);
+    update_hashes();
+  }
 
   // Check that all products selected by /other/ would satisfy this query
   bool product_query::match(product_query const& other) const
@@ -58,5 +64,23 @@ namespace phlex {
       throw std::logic_error("Product suffixes are (temporarily) mandatory");
     }
     return experimental::product_specification::create(*suffix());
+  }
+
+  void product_query::update_hashes()
+  {
+    using namespace boost::hash2;
+    xxhash_64 creator;
+    hash_append(creator, {}, creator_);
+    creator_hash_ = creator.result();
+
+    if (suffix_) {
+      xxhash_64 suffix;
+      hash_append(suffix, {}, *suffix_);
+      suffix_hash_ = suffix.result();
+    }
+
+    xxhash_64 type_id;
+    hash_append(type_id, {}, type_id_);
+    type_hash_ = type_id.result();
   }
 }

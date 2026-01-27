@@ -71,6 +71,7 @@ namespace phlex {
       if (layer_.empty()) {
         throw std::runtime_error("Cannot specify the empty string as a data layer.");
       }
+      update_hashes();
     }
     void set_type(experimental::type_id&& type);
 
@@ -79,6 +80,10 @@ namespace phlex {
     std::optional<std::string> const& suffix() const noexcept { return suffix_; }
     std::optional<std::string> const& stage() const noexcept { return stage_; }
     experimental::type_id const& type() const noexcept { return type_id_; }
+
+    std::uint64_t creator_hash() const { return creator_hash_; }
+    std::uint64_t suffix_hash() const { return suffix_hash_; }
+    std::uint64_t type_hash() const { return type_hash_; }
 
     // Check that all products selected by /other/ would satisfy this query
     bool match(product_query const& other) const;
@@ -101,6 +106,12 @@ namespace phlex {
     std::optional<std::string> suffix_;
     std::optional<std::string> stage_;
     experimental::type_id type_id_;
+
+    std::uint64_t creator_hash_ = 0;
+    std::uint64_t suffix_hash_ = 0;
+    std::uint64_t type_hash_ = 0;
+
+    void update_hashes();
   };
 
   using product_queries = std::vector<product_query>;

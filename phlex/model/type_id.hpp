@@ -7,7 +7,8 @@
 #include "fmt/format.h"
 #include "fmt/ranges.h"
 #include <boost/core/demangle.hpp>
-#include <boost/hash2/hash_append_fwd.hpp>
+#include <boost/hash2/hash_append.hpp>
+#include <boost/hash2/xxhash.hpp>
 #include <boost/pfr/core.hpp>
 #include <boost/pfr/traits.hpp>
 
@@ -43,6 +44,18 @@ namespace phlex::experimental {
     constexpr bool has_children() const { return valid() && (id_ & 0x40); }
 
     constexpr builtin fundamental() const { return static_cast<builtin>(id_ & 0x0F); }
+
+    std::uint64_t hash() {
+      if (hash_ != 0) {
+        // Yes, there's a *very* small chance of a conflict
+        return hash_;
+      }
+
+      boost::hash2::xxhash_64 h;
+      boost::hash2::hash_append(h, {}, *this);
+      hash_ = h.result();
+      return hash_;
+    }
 
     template <class Provider, class Hash, class Flavor>
     friend constexpr void tag_invoke(boost::hash2::hash_append_tag const&,
@@ -89,6 +102,9 @@ namespace phlex::experimental {
 
     // This is used only if the product type is a struct
     std::vector<type_id> children_;
+
+    // Hash
+    std::uint64_t hash_ = 0;
   };
 
   using type_ids = std::vector<type_id>;

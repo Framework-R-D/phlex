@@ -3,64 +3,71 @@
 #include "fmt/format.h"
 #include "fmt/ranges.h"
 #include "spdlog/spdlog.h"
+#include <algorithm>
 #include <ranges>
+#include <set>
 
 namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
     product_query const& query) const
   {
-    // TODO: Update later with correct querying
-    auto [b, e] = producers_.equal_range(query.suffix().value_or(""));
-    if (b == e) {
-      spdlog::debug(
-        "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
-        query.suffix().value_or("\"\""));
+    auto [creator_b, creator_e] = creator_db_.equal_range(query.creator_hash());
+    if (creator_b == creator_e) {
+      spdlog::debug("Found no matching creators for {}. Assuming it comes from a provider.",
+                    query.to_string());
       return nullptr;
     }
-    std::map<std::string, named_output_port const*> candidates;
-    for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
-      // TODO: Definitely not right yet
-      if (producer.node.plugin() == query.creator() ||
-          producer.node.algorithm() == query.creator()) {
-        if (query.type() != producer.type) {
-          spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
-                        "from candidate list.",
-                        query.to_string(),
-                        producer.node.full(),
-                        query.type(),
-                        producer.type);
-        } else {
-          if (query.type().exact_compare(producer.type)) {
-            spdlog::debug("Matched ({}) from {} and types match. Keeping in candidate list.",
-                          query.to_string(),
-                          producer.node.full());
-          } else {
-            spdlog::warn("Matched ({}) from {} and types match, but not exactly (produce {} and "
-                         "consume {}). Keeping in candidate list!",
-                         query.to_string(),
-                         producer.node.full(),
-                         query.type().exact_name(),
-                         producer.type.exact_name());
-          }
-          candidates.emplace(producer.node.full(), &producer);
+    std::set matching_creator = std::ranges::subrange(creator_b, creator_e) | std::views::values |
+                                std::ranges::to<std::set>();
+
+    auto [type_b, type_e] = type_db_.equal_range(query.type_hash());
+    if (type_b == type_e) {
+      throw std::runtime_error(fmt::format(
+        "Found no matching types for {} (require {})", query.to_string(), query.type()));
+    }
+    std::set matching_type =
+      std::ranges::subrange(type_b, type_e) | std::views::values | std::ranges::to<std::set>();
+
+    std::set<named_output_port const*> creator_and_type{};
+    std::ranges::set_intersection(
+      matching_creator, matching_type, std::inserter(creator_and_type, creator_and_type.begin()));
+    if (creator_and_type.empty()) {
+      throw std::runtime_error(
+        fmt::format("Found no creator + type match for {} (required type {})",
+                    query.to_string(),
+                    query.type()));
+    }
+
+    std::set<named_output_port const*> all_matched;
+    if (query.suffix()) {
+      for (auto const* port : creator_and_type) {
+        if (port->suffix == query.suffix()) {
+          all_matched.insert(port);
         }
-      } else {
-        spdlog::error(
-          "Creator name mismatch between ({}) and {}", query.to_string(), producer.node.full());
       }
+      if (all_matched.empty()) {
+        throw std::runtime_error(
+          fmt::format("Of {} creator + type matches for {}, found 0 suffix matches",
+                      creator_and_type.size(),
+                      query.to_string()));
+      }
+    } else {
+      all_matched = std::move(creator_and_type);
     }
-
-    if (candidates.empty()) {
-      throw std::runtime_error("Cannot identify product matching the query " + query.to_string());
-    }
-
-    if (candidates.size() > 1ull) {
-      std::string msg = fmt::format("More than one candidate matches the query {}: \n - {}\n",
-                                    query.to_string(),
-                                    fmt::join(std::views::keys(candidates), "\n - "));
+    if (all_matched.size() > 1) {
+      std::string msg =
+        fmt::format("Found {} duplicate matches for {}", all_matched.size(), query.to_string());
       throw std::runtime_error(msg);
     }
 
-    return candidates.begin()->second;
+    return *all_matched.begin();
+  }
+
+  std::uint64_t edge_creation_policy::hash_string(std::string const& str)
+  {
+    using namespace boost::hash2;
+    xxhash_64 h;
+    hash_append(h, {}, str);
+    return h.result();
   }
 }
