@@ -45,7 +45,8 @@ namespace phlex::experimental {
 
     constexpr builtin fundamental() const { return static_cast<builtin>(id_ & 0x0F); }
 
-    std::uint64_t hash() {
+    std::uint64_t hash()
+    {
       if (hash_ != 0) {
         // Yes, there's a *very* small chance of a conflict
         return hash_;

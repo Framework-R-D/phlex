@@ -1,8 +1,8 @@
 #ifndef PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 #define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 
-#include "phlex/core/message.hpp"
 #include "phlex/core/concepts.hpp"
+#include "phlex/core/message.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 
