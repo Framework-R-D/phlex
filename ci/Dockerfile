@@ -133,7 +133,7 @@ set -euxo pipefail
 
 spack gpg init
 
-spack mirror add --signed phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/phlex-dev-build-cache
+spack mirror add --signed phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
   spack --timestamp mirror add --unsigned phlex-ci-local /build-cache

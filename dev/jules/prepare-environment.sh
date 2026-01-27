@@ -44,8 +44,15 @@ echo "    Release:        $(lsb_release -rs)"
 echo "    Codename:       $(lsb_release -cs)"
 echo "    Architecture:   $(uname -m)"
 echo "--> System-level dependencies installed successfully."
+echo $'\n'
+#echo "--------------------------------------------------------------------------------"
+#echo "--> System packages installed:"
+#apt list | bzip2 -c | gpg --enarmor
+#echo "--------------------------------------------------------------------------------"
+#echo $'\n'
 
 echo "--> Installing and configuring Spack..."
+set -x
 
 # Create a user-owned directory for Spack to be installed into
 export SPACK_DEV_ROOT="/opt/spack-dev"
@@ -63,6 +70,13 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
 
   { set +x; } >/dev/null 2>&1
   echo "--> Configuring Spack repositories and settings..."
+
+  # Set environment variables for Spack
+  export SPACK_USER_CONFIG_PATH=/dev/null
+  export SPACK_DISABLE_LOCAL_CONFIG=true
+
+  { set +x; } >/dev/null 2>&1
+  # shellcheck source=/dev/null
   . "${SPACK_DEV_ROOT}/spack/share/spack/setup-env.sh"
   set -x
 
@@ -72,34 +86,40 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
   git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
   git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
 
+  { set +x; } >/dev/null 2>&1
   spack repo add --scope site "$SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex"
   spack repo add --scope site "$SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art"
   spack repo set --scope site --destination "$SPACK_REPO_ROOT" builtin
-  spack compiler find
-  spack external find --exclude python --exclude automake --exclude autoconf --exclude ccache \
-        --exclude gawk --exclude go --exclude libtool --exclude m4 --exclude npm --exclude pkgconf \
-        --exclude openssh --exclude rust
+  spack compiler find --scope site
+  spack compiler rm --scope site llvm || true
+  spack compilers
+  spack external find --exclude llvm --exclude python --exclude automake --exclude autoconf \
+        --exclude ccache --exclude gawk --exclude go --exclude libtool --exclude m4 --exclude npm \
+        --exclude pkgconf --exclude openssh --exclude rust
 
   spack config --scope defaults add "config:build_stage:${SPACK_DEV_ROOT}/spack-stage"
   spack config --scope defaults add "config:source_cache:${SPACK_DEV_ROOT}/spack-cache/downloads"
   spack config --scope defaults add "config:misc_cache:${SPACK_DEV_ROOT}/spack-cache/misc"
   spack config --scope defaults add "config:install_tree:padded_length:255"
+  spack config --scope defaults add "config:url_fetch_method:curl"
 
   { set +x; } >/dev/null 2>&1
-  spack gpg init
-  spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/phlex-dev-build-cache
-  spack buildcache keys -it
-  spack gpg list
+  spack --timestamp gpg init
+  spack --timestamp mirror add --type binary phlex-ci-scisoft \
+        https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
+  spack --debug --timestamp buildcache list -LNav
+  spack --timestamp buildcache keys -fit
+  spack --timestamp buildcache check-index phlex-ci-scisoft
+  spack --timestamp gpg list
 
   { set +x; } >/dev/null 2>&1
   echo "--> Installing GCC 15.x ..."
   set -x
 
-  spack --timestamp --debug install --cache-only --fail-fast -j "$(nproc)" \
+  spack --timestamp install --cache-only --fail-fast -j "$(nproc)" \
         gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
         build_type=Release \
         languages=c,c++,fortran,lto
-
 
   { set +x; } >/dev/null 2>&1
   echo "--> Concretizing Phlex Spack environment ..."
