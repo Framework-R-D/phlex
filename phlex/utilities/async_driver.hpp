@@ -62,7 +62,7 @@ namespace phlex::experimental {
       std::unique_lock lock{mutex_};
       current_ = std::make_optional(std::move(rt));
       cv_.notify_one();
-      cv_.wait(lock, [&] { return !current_.has_value() or gear_ == states::park; });
+      cv_.wait(lock);
       if (gear_ == states::park) {
         // Can only be in park at this point if the framework needs to prematurely shut down
         throw std::runtime_error("Framework shutdown");
