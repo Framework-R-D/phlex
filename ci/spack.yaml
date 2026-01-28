@@ -15,6 +15,11 @@ spack:
   view: true
   concretizer:
     unify: true
+    reuse:
+      from:
+        - type: external
+        - type: local
+        - type: buildcache
 
   packages:
     all:
@@ -23,6 +28,7 @@ spack:
 
     cmake:
       require:
+      - "%%c,cxx=gcc@13.3.0"
       - "~qtgui"
       - "@4:"
 
