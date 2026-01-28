@@ -1,5 +1,8 @@
 # GitHub Actions Composite Actions
 
+> **Note**
+> This document describes the low-level reusable *actions* used within this repository. For instructions on how to use the complete, high-level *workflows* (e.g., `cmake-build.yaml`) from your own project, please see the guide in [`.github/REUSABLE_WORKFLOWS.md`](../REUSABLE_WORKFLOWS.md).
+
 This directory contains reusable composite actions for Phlex CI/CD workflows.
 
 ## Available Actions
