@@ -5,12 +5,8 @@
 #include <string>
 
 namespace {
-  phlex::product_query const output_dummy{
-    phlex::experimental::product_specification{
-      phlex::experimental::algorithm_name{"for_output_only", ""},
-      "for_output_only",
-      phlex::experimental::type_id{}},
-    "dummy_layer"};
+  phlex::product_query const output_dummy = phlex::product_tag{
+    .creator = "for_output_only"s, .layer = "dummy_layer"s, .suffix = "for_output_only"s};
   phlex::product_queries const for_output_only{output_dummy};
 }
 

@@ -1,38 +1,76 @@
 #include "phlex/core/product_query.hpp"
+#include "phlex/utilities/hashing.hpp"
 
 #include "fmt/format.h"
 
-#include <stdexcept>
-
 namespace phlex {
-  product_query::product_query() = default;
-
-  product_query::product_query(experimental::product_specification spec, std::string layer) :
-    spec_{std::move(spec)}, layer_{std::move(layer)}
+  void product_query::set_type(experimental::type_id&& type)
   {
+    type_id_ = std::move(type);
+    update_hashes();
   }
 
-  product_query experimental::product_tag::operator()(std::string data_layer) &&
+  // Check that all products selected by /other/ would satisfy this query
+  bool product_query::match(product_query const& other) const
   {
-    if (data_layer.empty()) {
-      throw std::runtime_error("Cannot specify the empty string as a data layer.");
+    if (creator_ != other.creator_) {
+      return false;
     }
-    return {std::move(spec), std::move(data_layer)};
+    if (layer_ != other.layer_) {
+      return false;
+    }
+    if (suffix_ && suffix_ != other.suffix_) {
+      return false;
+    }
+    if (stage_ && stage_ != other.stage_) {
+      return false;
+    }
+    // Special case. If other has an unset type_id, ignore this in case it just hasn't been set yet
+    if (type_id_.valid() && other.type_id_.valid() && type_id_ != other.type_id_) {
+      return false;
+    }
+    return true;
+  }
+
+  // Check if a product_specification satisfies this query
+  bool product_query::match(experimental::product_specification const& spec) const
+  {
+    if (creator_ != spec.algorithm()) {
+      return false;
+    }
+    if (type_id_ != spec.type()) {
+      return false;
+    }
+    if (suffix_) {
+      if (*suffix_ != spec.name()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   std::string product_query::to_string() const
   {
-    if (layer_.empty()) {
-      return spec_.full();
+    if (suffix_) {
+      return fmt::format("{}/{} ϵ {}", creator_, *suffix_, layer_);
     }
-    return fmt::format("{} ϵ {}", spec_.full(), layer_);
+    return fmt::format("{} ϵ {}", creator_, layer_);
   }
 
-  experimental::product_tag operator""_in(char const* product_name, std::size_t length)
+  experimental::product_specification product_query::spec() const
   {
-    if (length == 0ull) {
-      throw std::runtime_error("Cannot specify product with empty name.");
+    if (!suffix()) {
+      throw std::logic_error("Product suffixes are (temporarily) mandatory");
     }
-    return {experimental::product_specification::create(product_name)};
+    return experimental::product_specification::create(*suffix());
+  }
+
+  void product_query::update_hashes()
+  {
+    creator_hash_ = experimental::hash(creator_);
+    type_hash_ = type_id_.hash();
+    if (suffix_) {
+      suffix_hash_ = experimental::hash(*suffix_);
+    }
   }
 }
