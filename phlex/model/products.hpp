@@ -6,7 +6,7 @@
 #include <cassert>
 #include <memory>
 #include <string>
-#include <typeindex>
+#include <typeinfo>
 #include <unordered_map>
 #include <utility>
 
@@ -15,7 +15,7 @@ namespace phlex::experimental {
   struct product_base {
     virtual ~product_base() = default;
     virtual void const* address() const = 0;
-    virtual std::type_index type() const = 0;
+    virtual std::type_info const& type() const = 0;
   };
 
   template <typename T>
@@ -28,7 +28,7 @@ namespace phlex::experimental {
     explicit product(T&& prod) : obj{std::move(prod)} {}
 
     void const* address() const final { return &obj; }
-    virtual std::type_index type() const { return std::type_index{typeid(T)}; }
+    std::type_info const& type() const final { return typeid(T); }
     std::remove_cvref_t<T> obj;
   };
 
