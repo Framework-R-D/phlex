@@ -78,12 +78,6 @@ find /spack /opt/spack-stage /opt/spack-cache /opt/spack-environments -type d -e
 PREP_SPACK_GROUP
 
 ########################################################################
-# Stage initial configuration files
-
-COPY spack.yaml /tmp/spack.yaml
-COPY entrypoint.sh /entrypoint.sh
-
-########################################################################
 # Configure Spack: add repos, compilers, externals, and cache locations
 
 RUN <<'SPACK_CONFIGURE_DEFAULTS'
@@ -133,10 +127,10 @@ set -euxo pipefail
 
 spack gpg init
 
-spack mirror add --signed phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
+spack mirror add --signed phlex-dev-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
-  spack --timestamp mirror add --unsigned phlex-ci-local /build-cache
+  spack --timestamp mirror add --unsigned phlex-dev-local /build-cache
 fi
 
 spack buildcache keys -it
@@ -178,6 +172,7 @@ SPACK_INSTALL_GCC
 ########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
 
+COPY spack.yaml /tmp/spack.yaml
 RUN <<'SPACK_CONCRETIZE_ENV'
 set -euo pipefail
 
@@ -197,6 +192,8 @@ SPACK_CONCRETIZE_ENV
 
 ########################################################################
 # Install common tooling layer (CMake, Ninja, coverage tools, etc.)
+
+COPY entrypoint.sh /entrypoint.sh
 
 RUN <<'INSTALL_TOOLING_CORE'
 set -euo pipefail
@@ -303,7 +300,7 @@ if [ -d "/build-cache" ]; then
         sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
 
-spack mirror rm phlex-ci-local >/dev/null 2>&1 || true
+spack mirror rm phlex-dev-local >/dev/null 2>&1 || true
 
 spack clean -dfs
 
@@ -334,10 +331,10 @@ set -euo pipefail
 # Install developer tooling not needed for CI
 . /entrypoint.sh
 
-# Install ruff and gersemi via pip
+# Install ruff, gersemi, and jsonnetfmt via pip
 PYTHONDONTWRITEBYTECODE=1 \
   pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
-      ruff gersemi
+      ruff gersemi jsonnet
 rm -rf ~/.spack
 INSTALL_DEV_TOOLING
 

@@ -105,11 +105,11 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
 
   { set +x; } >/dev/null 2>&1
   spack --timestamp gpg init
-  spack --timestamp mirror add --type binary phlex-ci-scisoft \
+  spack --timestamp mirror add --type binary phlex-dev-scisoft \
         https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
   spack --debug --timestamp buildcache list -LNav
   spack --timestamp buildcache keys -fit
-  spack --timestamp buildcache check-index phlex-ci-scisoft
+  spack --timestamp buildcache check-index phlex-dev-scisoft
   spack --timestamp gpg list
 
   { set +x; } >/dev/null 2>&1
