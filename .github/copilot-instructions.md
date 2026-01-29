@@ -94,7 +94,7 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 
 ## Text Formatting Standards
 
-### CRITICAL: Apply to ALL files you create or edit (bash scripts, Python, C++, YAML, Markdown, etc.)
+**CRITICAL: Apply to ALL files you create or edit (bash scripts, Python, C++, YAML, Markdown, etc.)**
 
 - All text files must have their final line be non-empty and terminated with a single newline character, leaving no trailing blank lines
 - **Never add trailing whitespace on any line** (spaces or tabs at end of lines)

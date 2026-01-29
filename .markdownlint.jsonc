@@ -1,13 +1,15 @@
 {
-  "default": true,
-  "MD012": true,
-  "MD013": false,
-  "MD022": true,
-  "MD031": true,
-  "MD032": true,
-  "MD034": true,
-  "MD036": {
-    "punctuation": ".,;:!?"
-  },
-  "MD040": true
+  "config": {
+    "default": true,
+    "MD012": true,
+    "MD013": false,
+    "MD022": true,
+    "MD031": true,
+    "MD032": true,
+    "MD034": true,
+    "MD036": {
+      "punctuation": ".,;:!?"
+    },
+    "MD040": true
+  }
 }
