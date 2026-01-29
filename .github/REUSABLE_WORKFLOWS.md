@@ -64,7 +64,7 @@ For development purposes, you may choose to use `@main` at your own risk to get 
 
 Builds and tests your project using CMake.
 
-#### Usage Example:
+#### Usage Example
 
 ```yaml
 jobs:
@@ -78,7 +78,7 @@ jobs:
       repo: ${{ github.repository }}
 ```
 
-#### All Inputs:
+#### All Inputs
 
 -  `checkout-path` (string, optional): Path to check out code to.
 -  `build-path` (string, optional): Path for build artifacts.
@@ -93,7 +93,7 @@ jobs:
 
 Checks Python code for formatting and type errors using `ruff` and `mypy`.
 
-#### Usage Example:
+#### Usage Example
 
 ```yaml
 jobs:
@@ -101,7 +101,7 @@ jobs:
     uses: Framework-R-D/phlex/.github/workflows/python-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
 ```
 
-#### All Inputs:
+#### All Inputs
 
 -  `checkout-path` (string, optional): Path to check out code to.
 -  `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Python files have changed.
@@ -112,7 +112,7 @@ jobs:
 
 Automatically formats CMake files using `gersemi` and commits the changes. Typically triggered by an `issue_comment`.
 
-#### Usage Example (in a workflow triggered by `issue_comment`):
+#### Usage Example (in a workflow triggered by `issue_comment`)
 
 ```yaml
 name: 'Bot Commands'
@@ -138,7 +138,7 @@ jobs:
 
 *Note: You would need a preliminary step (`get_pr_info`) to extract the PR's `ref` and `repo` from the `issue_comment` event.*
 
-#### All Inputs:
+#### All Inputs
 
 -  `checkout-path` (string, optional): Path to check out code to.
 -  `ref` (string, **required**): The branch or ref to check out.
@@ -148,11 +148,11 @@ jobs:
 
 Automatically formats and fixes Python code using `ruff` and commits the changes. Typically triggered by an `issue_comment`.
 
-#### Usage Example (in a workflow triggered by `issue_comment`):
+#### Usage Example (in a workflow triggered by `issue_comment`)
 
 *Similar to `cmake-format-fix.yaml`, but triggered by a command like `@<repo>bot python-fix`.*
 
-#### All Inputs:
+#### All Inputs
 
 -  `checkout-path` (string, optional): Path to check out code to.
 -  `ref` (string, **required**): The branch or ref to check out.
