@@ -57,12 +57,10 @@ jobs:
         id: lint
         run: |
           docker run --rm \
-            --user "$(id -u):$(id -g)" \
             -v "$(pwd)/phlex-src:/work" \
             -w /work \
-            --entrypoint sh \
-            bitnami/jsonnet:latest \
-            -c 'jsonnetfmt --in-place $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")'
+            google/jsonnet:latest \
+            jsonnetfmt --in-place $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")
         continue-on-error: true
 
       - name: Handle fix commit
