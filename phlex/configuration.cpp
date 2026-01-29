@@ -39,8 +39,7 @@ namespace {
         kind = "object"s;
         break;
       default:
-        kind = "HOW??"s;
-        break;
+        std::unreachable();
       }
       throw std::runtime_error(
         fmt::format("Error retrieving parameter '{}'. Should be a string but is instead a {}",
