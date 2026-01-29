@@ -11,10 +11,27 @@ on:
         description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
         required: false
         type: string
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      ref:
+        description: "The branch or ref to checkout"
+        required: true
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: true
+        type: string
 
 permissions:
   pull-requests: write
   contents: write
+
+env:
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
 
 jobs:
   pre-check:
@@ -27,7 +44,9 @@ jobs:
         github.event.issue.pull_request &&
         (
           startsWith(github.event.comment.body, '@phlexbot format') ||
-          startsWith(github.event.comment.body, '@phlexbot jsonnet-format-fix')
+          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
+          startsWith(github.event.comment.body, '@phlexbot jsonnet-format-fix') ||
+          startsWith(github.event.comment.body, format('@{0}bot jsonnet-format-fix', github.event.repository.name))
         )
       )
     outputs:
@@ -44,30 +63,32 @@ jobs:
     runs-on: ubuntu-latest
     name: Apply formatting
     needs: pre-check
-    if: ${{ needs.pre-check.result == 'success' }}
+    if: github.event_name == 'workflow_call' || needs.pre-check.result == 'success'
+    container:
+      image: public.ecr.aws/bitnami/jsonnet:latest
+      options: --user root
+
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: phlex-src
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
+          path: ${{ env.local_checkout_path }}
+          ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.pre-check.outputs.ref }}
+          repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Run jsonnetfmt
         id: lint
+        working-directory: ${{ env.local_checkout_path }}
         run: |
-          docker run --rm \
-            -v "$(pwd)/phlex-src:/work" \
-            -w /work \
-            google/jsonnet:latest \
-            jsonnetfmt --in-place $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")
+          jsonnetfmt --in-place $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")
         continue-on-error: true
 
       - name: Handle fix commit
-        uses: ./phlex-src/.github/actions/handle-fix-commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: jsonnet-format
-          working-directory: phlex-src
+          working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
-          pr-info-repo: ${{ needs.pre-check.outputs.repo }}
+          pr-info-ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.pre-check.outputs.ref }}
+          pr-info-repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.pre-check.outputs.repo }}
