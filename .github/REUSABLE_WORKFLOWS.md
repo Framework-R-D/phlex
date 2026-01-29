@@ -171,15 +171,15 @@ Automatically formats and fixes Python code using `ruff` and commits the changes
 -  `ref` (string, **required**): The branch or ref to check out.
 -  `repo` (string, **required**): The repository to check out from.
 
-### 4. `jsonnet-format-fix.yaml`
+### 5. `jsonnet-format-fix.yaml`
 
 Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes. Typically triggered by an `issue_comment`.
 
-#### Usage Example (in a workflow triggered by `issue_comment`)
+#### Usage Example (in a workflow triggered by `issue_comment`):
 
 *Similar to `cmake-format-fix.yaml`, but triggered by a command like `@<repo>bot jsonnet-format-fix`.*
 
-#### All Inputs
+#### All Inputs:
 
 -  `checkout-path` (string, optional): Path to check out code to.
 -  `ref` (string, **required**): The branch or ref to check out.
