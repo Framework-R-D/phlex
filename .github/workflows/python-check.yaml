@@ -80,7 +80,7 @@ jobs:
           echo "::endgroup::"
         fi
 
-  python-check:
+  ruff-check:
     needs: [pre-check, detect-changes]
     if: >
       github.event_name == 'workflow_dispatch' ||
@@ -88,6 +88,8 @@ jobs:
       needs.pre-check.outputs.is_act == 'true' ||
       (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/astral-sh/ruff:alpine
     permissions:
       contents: read
 
@@ -97,45 +99,38 @@ jobs:
       with:
         path: ${{ env.local_checkout_path }}
 
-    - name: Set up Python
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-      with:
-        python-version: '3.x'
-
-    - name: Install Python dependencies
-      run: |
-        pip install ruff mypy
-
-    - name: Run ruff and mypy checks
+    - name: Run ruff check
       working-directory: ${{ env.local_checkout_path }}
       env:
-        FORCE_COLOR: 1  # `ruff`/`colored` crate
+        FORCE_COLOR: 1
       run: |
-        failed=0
-
         echo "➡️ Checking Python code with ruff..."
-        echo "::group::Running ruff check"
-        if ! ruff check; then
-          failed=1
-          echo "::endgroup::"
-          echo "::error:: Ruff check failed."
-        else
-          echo "::endgroup::"
-          echo "✅ Ruff check passed."
-        fi
+        ruff check
 
+  mypy-check:
+    needs: [pre-check, detect-changes]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_call' && inputs.skip-relevance-check == 'true') ||
+      needs.pre-check.outputs.is_act == 'true' ||
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    container:
+      image: mypy/mypy:latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        path: ${{ env.local_checkout_path }}
+
+    - name: Run mypy check
+      working-directory: ${{ env.local_checkout_path }}
+      run: |
         echo "➡️ Checking Python code with mypy..."
-        echo "::group::Running mypy"
-        if ! mypy --color-output .; then
-          failed=1
-          echo "::endgroup::"
-          echo "::error:: MyPy check failed."
-        else
-          echo "::endgroup::"
-          echo "✅ MyPy check passed."
-        fi
-
-        exit $failed
+        mypy --color-output .
 
   python-check-skipped:
     needs: [pre-check, detect-changes]

@@ -50,23 +50,19 @@ jobs:
     runs-on: ubuntu-latest
     name: Apply fixes
     needs: parse-command
+    container:
+      image: ghcr.io/astral-sh/ruff:alpine
     if: github.event_name == 'workflow_call' || needs.parse-command.result == 'success'
     steps:
+      - name: Install git
+        run: apk add --no-cache git
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: ${{ env.local_checkout_path }}
           ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.parse-command.outputs.ref }}
           repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.parse-command.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: '3.x'
-
-      - name: Install Python dependencies
-        run: |
-          pip install ruff
 
       - name: Run ruff format and fix
         working-directory: ${{ env.local_checkout_path }}
