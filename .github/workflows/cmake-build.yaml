@@ -10,6 +10,10 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
     inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
       build-combinations:
         description: |
           A space- or comma-separated list of build combinations to run.
@@ -89,7 +93,7 @@ jobs:
 
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      sha: ${{ (github.event_name == 'workflow_call' && inputs.ref) || steps.pr.outputs.sha || github.sha }}
+      sha: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || (github.event_name == 'workflow_call' && inputs.ref) || steps.pr.outputs.sha || github.sha }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || steps.pr.outputs.repo || github.repository }}
 
     steps:

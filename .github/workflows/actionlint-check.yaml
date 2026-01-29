@@ -9,6 +9,11 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
   workflow_call:
     inputs:
       checkout-path:
@@ -99,6 +104,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
         path: ${{ env.local_checkout_path }}
 
     - name: Announce actionlint check
