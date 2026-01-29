@@ -73,12 +73,10 @@ jobs:
       id: lint
       run: |
         docker run --rm \
-          --user "$(id -u):$(id -g)" \
           -v "$(pwd)/phlex-src:/work" \
           -w /work \
-          --entrypoint sh \
-          bitnami/jsonnet:latest \
-          -c 'jsonnetfmt --test $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")'
+          google/jsonnet:latest \
+          jsonnetfmt --test $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")
       continue-on-error: true
 
     - name: Evaluate jsonnetfmt result
