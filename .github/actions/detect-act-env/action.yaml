@@ -14,7 +14,7 @@ runs:
         ACTOR: ${{ github.actor }}
       run: |
         if [ "$ACTOR" = "nektos/act" ] || [ "${ACT:-}" = "true" ] || [ "${ACT:-}" = "1" ]; then
-          echo "is_act=true" >> $GITHUB_OUTPUT
+          echo "is_act=true" >> "$GITHUB_OUTPUT"
         else
-          echo "is_act=false" >> $GITHUB_OUTPUT
+          echo "is_act=false" >> "$GITHUB_OUTPUT"
         fi

@@ -29,8 +29,8 @@ runs:
         mkdir -p "$GITHUB_WORKSPACE/$BUILD_PATH"
         
         # Set outputs
-        printf 'source-dir=%s/%s\n' "$GITHUB_WORKSPACE" "$SOURCE_PATH" >> $GITHUB_OUTPUT
-        printf 'build-dir=%s/%s\n' "$GITHUB_WORKSPACE" "$BUILD_PATH" >> $GITHUB_OUTPUT
+        printf 'source-dir=%s/%s\n' "$GITHUB_WORKSPACE" "$SOURCE_PATH" >> "$GITHUB_OUTPUT"
+        printf 'build-dir=%s/%s\n' "$GITHUB_WORKSPACE" "$BUILD_PATH" >> "$GITHUB_OUTPUT"
         
         echo "Source directory: $GITHUB_WORKSPACE/$SOURCE_PATH"
         echo "Build directory: $GITHUB_WORKSPACE/$BUILD_PATH"
