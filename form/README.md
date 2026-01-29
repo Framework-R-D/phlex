@@ -10,8 +10,9 @@ Prototype development for I/O infrastructure supporting Phlex
 
 `./test/form/phlex_writer ; ls -l toy.root`
 
-## ROOT checks:
-```
+## ROOT checks
+
+```cpp
 TFile* file =  TFile::Open("toy.root")
 file->ls()
 TTree* tree1 = (TTree*)file->Get("<ToyAlg_Segment>");
@@ -22,6 +23,6 @@ tree1->Scan()
 tree2->Scan()
 ```
 
-# run reader
+## run reader
 
 `./test/form/phlex_reader`
