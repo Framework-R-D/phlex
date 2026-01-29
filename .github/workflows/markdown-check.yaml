@@ -70,10 +70,10 @@ jobs:
         path: phlex-src
 
     - name: Add problem matcher
-      uses: xt0rted/markdownlint-problem-matcher@v1
+      uses: xt0rted/markdownlint-problem-matcher@b643b0751c371f357690337d4549221347c0e1bc # v1.1.0
 
     - name: Run markdownlint
-      uses: DavidAnson/markdownlint-cli2-action@v11
+      uses: DavidAnson/markdownlint-cli2-action@8f3516061301755c97ff833a8e933f09282cc5b5 # v11.0.0
       with:
         globs: |
           phlex-src/**/*.md
