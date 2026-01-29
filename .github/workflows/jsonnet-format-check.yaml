@@ -101,7 +101,7 @@ jobs:
       id: lint
       working-directory: ${{ env.local_checkout_path }}
       run: |
-        jsonnetfmt --test $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")
+        find . \( -name "*.jsonnet" -o -name "*.jsonnet.in" -o -name "*.libsonnet" -o -name "*.libsonnet.in" \) -exec jsonnetfmt --test {} +
       continue-on-error: true
 
     - name: Evaluate jsonnetfmt result

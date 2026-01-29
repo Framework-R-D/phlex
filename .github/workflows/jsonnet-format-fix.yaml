@@ -81,7 +81,7 @@ jobs:
         id: lint
         working-directory: ${{ env.local_checkout_path }}
         run: |
-          jsonnetfmt --in-place $(find . -name "*.jsonnet" -o -name "*.jsonnet.in")
+          find . \( -name "*.jsonnet" -o -name "*.jsonnet.in" -o -name "*.libsonnet" -o -name "*.libsonnet.in" \) -exec jsonnetfmt -i {} +
         continue-on-error: true
 
       - name: Handle fix commit
