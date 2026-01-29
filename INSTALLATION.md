@@ -1,4 +1,4 @@
-## Overview
+# Overview
 
 These instructions are intended to get users (not developers) of Phlex to a working environment, starting from scratch.
 This is not the only way in which this can be done, but this method has been verified on the primary supported OS (Alma Linux 9) and will be supported by the Phlex development team on that platform.
@@ -7,7 +7,7 @@ We assume that you do *not* have an installation of Spack already.
 We only support Spack v1.0 and newer, so if you have an older version of Spack we recommend installation of a new one according to these instructions.
 If you already have a new-enough version of Spack installed, you can skip to step 6.
 
-### Installing Spack
+## Installing Spack
 
 Step 1: create a working directory for phlex use:
 
@@ -22,9 +22,11 @@ cd ${PHLEX_WORK_DIR}
 ```
 
 Then make sure you don't already have a spack  command on your PATH:
+
 ```bash
 which spack
 ```
+
 should tell you there is no spack in your PATH.
 
 Step 2: install Spack
@@ -32,12 +34,15 @@ Step 2: install Spack
 ```bash
 git clone --depth=2 https://github.com/spack/spack.git
 ```
+
 If you encounter trouble, consult the [installation instructions from the Spack project]( https://spack-tutorial.readthedocs.io/en/latest/tutorial_basics.html#basics-tutorial).
 
 Step 3: make spack available at the command line.
+
 ```bash
 source ${PHLEX_WORK_DIR}/spack/share/spack/setup-env.sh
 ```
+
 `which spack` will show that `spack` is a bash function.
 
 Step 4: run the `spack bootstrap now` command to make sure that `${HOME}/.spack` exists and is populated properly.
@@ -48,9 +53,11 @@ Step 5: Modify the Spack configuration to avoid filling `/tmp`.
 This is not at all related to Phlex, but until there is spack documentation describing this, we recommend it as good practice.
 
 Run the following, which will open an editor.
+
 ```bash
 spack config edit config
 ```
+
 Modify the file to include a new key, `build_stage`.
 `config` key may already be in the file and may already contain other keys.
 Pay careful attention to the indentation and spacing; YAML is sensitive to these.
@@ -61,7 +68,7 @@ config:
       - $spack/var/spack/stage
 ```
 
-### Ensuring a sufficient compiler
+## Ensuring a sufficient compiler
 
 Step 6: ensure that spack has access to a new enough GCC.
 Currently this means GCC 14.
@@ -78,7 +85,7 @@ spack install -j 12 gcc@14  # choose a suitable number of jobs for your machine
 
 Building GCC may take a while (30 minutes or so on a 12 core machine).
 
-### Creating and installing the Phlex environment
+## Creating and installing the Phlex environment
 
 Step 7: Add the Spack recipe repositories needed by Phlex:
 
