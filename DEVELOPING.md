@@ -2,7 +2,8 @@
 
 ## Contributions
 
-_[The contribution policy is currently under development.]_
+> [!NOTE]
+> The contribution policy is currently under development.
 
 Except in rare circumstances, changes to the `phlex` repository are proposed and considered through GitHub pull requests (PRs).
 
