@@ -108,10 +108,11 @@ jobs:
     - name: Evaluate jsonnetfmt result
       if: always()
       run: |
-        if [ '${{ steps.lint.outcome }}' = 'success' ]; then
+        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
           echo "✅ jsonnetfmt check passed."
         else
           echo "::error::jsonnetfmt check failed. Please review the output above for details."
+          echo "::error::Comment '@${{ github.event.repository.name }}bot format' or '@${{ github.event.repository.name }}bot jsonnet-format-fix' on the PR to auto-fix."
           exit 1
         fi
 
