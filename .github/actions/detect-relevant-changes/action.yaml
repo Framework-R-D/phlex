@@ -54,7 +54,9 @@ runs:
         DEFAULT_TYPE_PATTERNS[cmake]=$'CMakeLists.txt\n*.cmake'
         DEFAULT_TYPE_PATTERNS[python]=$'*.py'
         DEFAULT_TYPE_PATTERNS[jsonnet]=$'*.jsonnet\n*.libsonnet'
-
+        declare -A NON_GENERATED_TYPES
+        NON_GENERATED_TYPES[jsonnet]="1"
+        
         parse_list() {
           local input="$1"
           printf '%s' "$input" | tr ',' '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'
@@ -126,6 +128,9 @@ runs:
           }
 
           for type in "${REQUESTED_TYPES[@]}"; do
+            if [ -n "${NON_GENERATED_TYPES[$type]}" ]; then
+              continue
+            fi
             patterns=${TYPE_PATTERNS[$type]:-}
             if [ -z "$patterns" ]; then
               echo "::warning::No patterns defined for type '$type'"
