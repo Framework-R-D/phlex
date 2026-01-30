@@ -2,6 +2,6 @@
   event_product(product)::
     {
       product: product,
-      layer: "event"
-    }
+      layer: 'event',
+    },
 }
