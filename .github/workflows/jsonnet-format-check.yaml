@@ -101,13 +101,14 @@ jobs:
       id: lint
       working-directory: ${{ env.local_checkout_path }}
       run: |
-        find . \( -name "*.jsonnet" -o -name "*.jsonnet.in" -o -name "*.libsonnet" -o -name "*.libsonnet.in" \) -exec jsonnetfmt --test {} +
+        find . \( -name "*.jsonnet" -o -name "*.libsonnet" \) -print0 | xargs -0 -r -I {} \
+             bash -c 'jsonnetfmt --test "{}" || (echo "FAILED: {}" && diff -u <(jsonnetfmt "{}") "{}" && exit 1)'
       continue-on-error: true
 
     - name: Evaluate jsonnetfmt result
       if: always()
       run: |
-        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+        if [ '${{ steps.lint.outcome }}' = 'success' ]; then
           echo "✅ jsonnetfmt check passed."
         else
           echo "::error::jsonnetfmt check failed. Please review the output above for details."
