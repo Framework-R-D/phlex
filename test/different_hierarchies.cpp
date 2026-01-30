@@ -66,7 +66,8 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id});
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id});
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
     .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id})
@@ -76,12 +77,14 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
     .output_products("job_sum");
 
   g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
-    .input_family(product_query{.creator = "run_add"_id, .layer = "run"_id, .suffix = "run_sum"_id});
+    .input_family(
+      product_query{.creator = "run_add"_id, .layer = "run"_id, .suffix = "run_sum"_id});
   g.observe("verify_job_sum",
             [](unsigned int actual) {
               CHECK(actual == 20u + 45u); // 20u from nested events, 45u from top-level events
             })
-    .input_family(product_query{.creator = "job_add"_id, .layer = "job"_id, .suffix = "job_sum"_id});
+    .input_family(
+      product_query{.creator = "job_add"_id, .layer = "job"_id, .suffix = "job_sum"_id});
 
   g.execute();
 

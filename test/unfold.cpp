@@ -104,10 +104,12 @@ TEST_CASE("Splitting the processing", "[graph]")
       product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "ten_numbers"_id});
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "max_number"_id})
+    .input_family(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "max_number"_id})
     .output_products("new_number");
   g.fold("add", add, concurrency::unlimited, "event")
-    .input_family(product_query{.creator = "iota"_id, .layer = "lower1"_id, .suffix = "new_number"_id})
+    .input_family(
+      product_query{.creator = "iota"_id, .layer = "lower1"_id, .suffix = "new_number"_id})
     .output_products("sum1");
   g.observe("check_sum", check_sum, concurrency::unlimited)
     .input_family(product_query{.creator = "add"_id, .layer = "event"_id, .suffix = "sum1"_id});
@@ -117,14 +119,16 @@ TEST_CASE("Splitting the processing", "[graph]")
                             &iterate_through::unfold,
                             concurrency::unlimited,
                             "lower2")
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "ten_numbers"_id})
+    .input_family(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "ten_numbers"_id})
     .output_products("each_number");
   g.fold("add_numbers", add_numbers, concurrency::unlimited, "event")
-    .input_family(
-      product_query{.creator = "iterate_through"_id, .layer = "lower2"_id, .suffix = "each_number"_id})
+    .input_family(product_query{
+      .creator = "iterate_through"_id, .layer = "lower2"_id, .suffix = "each_number"_id})
     .output_products("sum2");
   g.observe("check_sum_same", check_sum_same, concurrency::unlimited)
-    .input_family(product_query{.creator = "add_numbers"_id, .layer = "event"_id, .suffix = "sum2"_id});
+    .input_family(
+      product_query{.creator = "add_numbers"_id, .layer = "event"_id, .suffix = "sum2"_id});
 
   g.make<experimental::test::products_for_output>().output(
     "save", &experimental::test::products_for_output::save, concurrency::serial);

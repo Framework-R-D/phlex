@@ -80,8 +80,8 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   };
 
   g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
-    .input_family(
-      product_query{.creator = "WaveformGenerator"_id, .layer = "APA"_id, .suffix = "waves_in_apa"_id})
+    .input_family(product_query{
+      .creator = "WaveformGenerator"_id, .layer = "APA"_id, .suffix = "waves_in_apa"_id})
     .output_products("clamped_waves");
 
   // Add the fold node with instrumentation to detect pipelined execution

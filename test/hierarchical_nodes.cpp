@@ -101,7 +101,8 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               auto const run_number = index.parent()->number();
               return event_number + run_number;
             })
-    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id});
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id});
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "time"_id})
