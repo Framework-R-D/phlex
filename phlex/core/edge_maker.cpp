@@ -19,7 +19,7 @@ namespace phlex::experimental {
         bool found_match = false;
         for (auto const& [_, p] : providers) {
           auto& provider = *p;
-          if (port.product_label == provider.output_product()) {
+          if (port.product_label.match(provider.output_product())) {
             auto it = result.find(provider.full_name());
             if (it == result.cend()) {
               result.try_emplace(provider.full_name(), port.product_label, provider.input_port());

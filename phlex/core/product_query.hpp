@@ -90,10 +90,7 @@ namespace phlex {
 
     // temporary additional members for transition
     experimental::product_specification spec() const;
-    bool operator==(product_query const& rhs) const
-    {
-      return this->spec() == rhs.spec() && this->layer_ == rhs.layer_;
-    }
+    bool operator==(product_query const& rhs) const = default;
 
   private:
     std::string creator_;
