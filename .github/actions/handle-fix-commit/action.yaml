@@ -32,9 +32,9 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         if [[ -n $(git status --porcelain) ]]; then
-          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "changes=true" >> "$GITHUB_OUTPUT"
         else
-          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "changes=false" >> "$GITHUB_OUTPUT"
         fi
 
     - name: No changes to apply
@@ -76,8 +76,8 @@ runs:
           if git push origin HEAD:${{ inputs.pr-info-ref }}; then
             echo "Push successful on attempt $i."
             COMMIT_SHA=$(git rev-parse HEAD)
-            echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
-            echo "pushed=true" >> $GITHUB_OUTPUT
+            echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ $i -eq ${{ inputs.retry-attempts }} ]; then
@@ -110,7 +110,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         git diff > fix.patch
-        echo "patch_name=fix.patch" >> $GITHUB_OUTPUT
+        echo "patch_name=fix.patch" >> "$GITHUB_OUTPUT"
 
     - name: Upload patch
       if: steps.create_patch.outputs.patch_name

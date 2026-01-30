@@ -209,7 +209,7 @@ jobs:
 
     - name: Extract repository name
       id: repo_name
-      run: echo "name=$(echo '${{ needs.pre-check.outputs.repo }}' | sed 's:.*/::')" >> $GITHUB_OUTPUT
+      run: echo "name=$(echo '${{ needs.pre-check.outputs.repo }}' | sed 's:.*/::')" >> "$GITHUB_OUTPUT"
 
     - name: Configure CMake
       id: configure
