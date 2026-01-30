@@ -40,11 +40,11 @@ TEST_CASE("provider_test")
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
     .output_product(
-      product_query({.creator = "input"s, .layer = "spill"s, .suffix = "happy_vertices"s}));
+      product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "happy_vertices"_id});
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
-      product_query({.creator = "input"s, .layer = "spill"s, .suffix = "happy_vertices"s}))
+      product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "happy_vertices"_id})
     .output_products("vertex_data");
 
   g.execute();

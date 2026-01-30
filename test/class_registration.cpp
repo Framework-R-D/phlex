@@ -60,21 +60,21 @@ namespace {
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
   std::array const product_names{
-    product_query({.creator = "input"s, .layer = "job"s, .suffix = "number"s}),
-    product_query({.creator = "input"s, .layer = "job"s, .suffix = "temperature"s}),
-    product_query({.creator = "input"s, .layer = "job"s, .suffix = "name"s})};
+    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "number"_id},
+    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "temperature"_id},
+    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "name"_id}};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   experimental::framework_graph g{data_cell_index::base_ptr()};
 
   // Register providers for the input products
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query({.creator = "input"s, .layer = "job"s, .suffix = "number"s}));
+    .output_product(product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "number"_id});
   g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
     .output_product(
-      product_query({.creator = "input"s, .layer = "job"s, .suffix = "temperature"s}));
+      product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "temperature"_id});
   g.provide("provide_name", provide_name, concurrency::unlimited)
-    .output_product(product_query({.creator = "input"s, .layer = "job"s, .suffix = "name"s}));
+    .output_product(product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "name"_id});
 
   auto glueball = g.make<A>();
   SECTION("No framework")

@@ -8,17 +8,17 @@ using namespace phlex;
 TEST_CASE("Empty specifications", "[data model]")
 {
   CHECK_THROWS_WITH(
-    product_query({.creator = ""s, .layer = "layer"s}),
+    (product_query{.creator = ""_id, .layer = "layer"_id}),
     Catch::Matchers::ContainsSubstring("Cannot specify product with empty creator name."));
   CHECK_THROWS_WITH(
-    product_query({.creator = "creator"s, .layer = ""s}),
+    (product_query{.creator = "creator"_id, .layer = ""_id}),
     Catch::Matchers::ContainsSubstring("Cannot specify the empty string as a data layer."));
 }
 
 TEST_CASE("Product name with data layer", "[data model]")
 {
-  product_query label({.creator = "creator"s, .layer = "event"s, .suffix = "product"s});
-  CHECK(label.creator() == "creator"s);
-  CHECK(label.layer() == "event"s);
-  CHECK(label.suffix() == "product"s);
+  product_query label({.creator = "creator"_id, .layer = "event"_id, .suffix = "product"_id});
+  CHECK(label.creator == "creator"_id);
+  CHECK(label.layer == "event"_id);
+  CHECK(label.suffix == "product"_idq);
 }

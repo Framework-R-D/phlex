@@ -1,84 +1,77 @@
 #ifndef PHLEX_CORE_PRODUCT_QUERY_HPP
 #define PHLEX_CORE_PRODUCT_QUERY_HPP
 
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 
 #include <optional>
 #include <string>
+#include <tuple>
 #include <vector>
 
-// This allows optional<std::string>s to be initialized using ""s syntax
-using std::string_literals::operator""s;
+// Used for the _id and _idq literals
+using namespace phlex::experimental::literals;
+
 namespace phlex {
   namespace detail {
     template <typename T>
-      requires std::is_same_v<std::string, T> // has to be a template for static_assert(false)
+      requires std::is_same_v<experimental::identifier,
+                              T> // has to be a template for static_assert(false)
     class required_creator_name {
     public:
       consteval required_creator_name()
       {
         static_assert(false, "The creator name has not been set in this product_query.");
       }
-      required_creator_name(T&& rhs) : content_(std::forward<T>(rhs)) {}
+      required_creator_name(T&& rhs) : content_(std::forward<T>(rhs))
+      {
+        if (content_.empty()) {
+          throw std::runtime_error("Cannot specify product with empty creator name.");
+        }
+      }
 
-      required_creator_name(std::string_view rhs) : content_(rhs) {}
+      operator T const&() const noexcept { return content_; }
 
-      T&& release() { return std::move(content_); }
+      // For the transition
+      std::string_view get_string_view() const noexcept { return std::string_view(content_); }
 
     private:
-      std::string content_;
+      experimental::identifier content_;
     };
 
     template <typename T>
-      requires std::is_same_v<std::string, T> // has to be a template for static_assert(false)
+      requires std::is_same_v<experimental::identifier,
+                              T> // has to be a template for static_assert(false)
     class required_layer_name {
     public:
       consteval required_layer_name()
       {
         static_assert(false, "The layer name has not been set in this product_query.");
       }
-      required_layer_name(T&& rhs) : content_(std::forward<T>(rhs)) {}
+      required_layer_name(T&& rhs) : content_(std::move(rhs))
+      {
+        if (content_.empty()) {
+          throw std::runtime_error("Cannot specify the empty string as a data layer.");
+        }
+      }
 
-      required_layer_name(std::string_view rhs) : content_(rhs) {}
+      operator T const&() const noexcept { return content_; }
 
-      T&& release() { return std::move(content_); }
+      // For the transition
+      std::string_view get_string_view() const noexcept { return std::string_view(content_); }
 
     private:
-      std::string content_;
+      experimental::identifier content_;
     };
   }
 
-  struct product_tag {
-    detail::required_creator_name<std::string> creator;
-    detail::required_layer_name<std::string> layer;
-    std::optional<std::string> suffix;
-    std::optional<std::string> stage;
-  };
-
-  class product_query {
-  public:
-    product_query() = default; // Required by boost JSON
-    product_query(product_tag&& tag) :
-      creator_(tag.creator.release()),
-      layer_(tag.layer.release()),
-      suffix_(std::move(tag.suffix)),
-      stage_(std::move(tag.stage))
-    {
-      if (creator_.empty()) {
-        throw std::runtime_error("Cannot specify product with empty creator name.");
-      }
-      if (layer_.empty()) {
-        throw std::runtime_error("Cannot specify the empty string as a data layer.");
-      }
-    }
-    void set_type(experimental::type_id&& type);
-
-    std::string const& creator() const noexcept { return creator_; }
-    std::string const& layer() const noexcept { return layer_; }
-    std::optional<std::string> const& suffix() const noexcept { return suffix_; }
-    std::optional<std::string> const& stage() const noexcept { return stage_; }
-    experimental::type_id const& type() const noexcept { return type_id_; }
+  struct product_query {
+    detail::required_creator_name<experimental::identifier> creator;
+    detail::required_layer_name<experimental::identifier> layer;
+    std::optional<experimental::identifier> suffix;
+    std::optional<experimental::identifier> stage;
+    experimental::type_id type;
 
     // Check that all products selected by /other/ would satisfy this query
     bool match(product_query const& other) const;
@@ -88,16 +81,28 @@ namespace phlex {
 
     std::string to_string() const;
 
+    bool operator==(product_query const& rhs) const
+    {
+      using experimental::identifier;
+      return (type == rhs.type) && (identifier(creator) == identifier(rhs.creator)) &&
+             (identifier(layer) == identifier(rhs.layer)) && (suffix == rhs.suffix) &&
+             (stage == rhs.stage);
+    }
+    auto operator<=>(product_query const& rhs) const
+    {
+      using experimental::identifier;
+      return std::tie(type,
+                      static_cast<identifier const&>(creator),
+                      static_cast<identifier const&>(layer),
+                      suffix,
+                      stage) <=> std::tie(rhs.type,
+                                          static_cast<identifier const&>(rhs.creator),
+                                          static_cast<identifier const&>(rhs.layer),
+                                          rhs.suffix,
+                                          rhs.stage);
+    }
     // temporary additional members for transition
     experimental::product_specification spec() const;
-    bool operator==(product_query const& rhs) const = default;
-
-  private:
-    std::string creator_;
-    std::string layer_;
-    std::optional<std::string> suffix_;
-    std::optional<std::string> stage_;
-    experimental::type_id type_id_;
   };
 
   using product_queries = std::vector<product_query>;
@@ -115,7 +120,7 @@ namespace phlex {
       template <typename T>
       void set_type(C& container)
       {
-        container.at(index_).set_type(experimental::make_type_id<T>());
+        container.at(index_).type = experimental::make_type_id<T>();
         ++index_;
       }
 
@@ -137,4 +142,5 @@ namespace phlex {
     populate_types(container);
   }
 }
+
 #endif // PHLEX_CORE_PRODUCT_QUERY_HPP

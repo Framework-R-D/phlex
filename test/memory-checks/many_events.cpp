@@ -19,9 +19,9 @@ int main()
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
-    .output_product(product_query({.creator = "input"s, .layer = "event"s, .suffix = "number"s}));
+    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id});
   g.transform("pass_on", pass_on, concurrency::unlimited)
-    .input_family(product_query({.creator = "input"s, .layer = "event"s, .suffix = "number"s}))
+    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id})
     .output_products("different");
   g.execute();
 }

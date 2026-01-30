@@ -3,25 +3,24 @@
 #include "fmt/format.h"
 
 namespace phlex {
-  void product_query::set_type(experimental::type_id&& type) { type_id_ = std::move(type); }
-
   // Check that all products selected by /other/ would satisfy this query
   bool product_query::match(product_query const& other) const
   {
-    if (creator_ != other.creator_) {
+    using experimental::identifier;
+    if (identifier(creator) != identifier(other.creator)) {
       return false;
     }
-    if (layer_ != other.layer_) {
+    if (identifier(layer) != identifier(other.layer)) {
       return false;
     }
-    if (suffix_ && suffix_ != other.suffix_) {
+    if (suffix && suffix != other.suffix) {
       return false;
     }
-    if (stage_ && stage_ != other.stage_) {
+    if (stage && stage != other.stage) {
       return false;
     }
     // Special case. If other has an unset type_id, ignore this in case it just hasn't been set yet
-    if (type_id_.valid() && other.type_id_.valid() && type_id_ != other.type_id_) {
+    if (type.valid() && other.type.valid() && type != other.type) {
       return false;
     }
     return true;
@@ -30,14 +29,15 @@ namespace phlex {
   // Check if a product_specification satisfies this query
   bool product_query::match(experimental::product_specification const& spec) const
   {
-    if (creator_ != spec.algorithm()) {
+    // string comparisons for now for a gradual transition
+    if (creator.get_string_view() != spec.algorithm()) {
       return false;
     }
-    if (type_id_ != spec.type()) {
+    if (type != spec.type()) {
       return false;
     }
-    if (suffix_) {
-      if (*suffix_ != spec.name()) {
+    if (suffix) {
+      if (std::string_view(*suffix) != spec.name()) {
         return false;
       }
     }
@@ -46,17 +46,18 @@ namespace phlex {
 
   std::string product_query::to_string() const
   {
-    if (suffix_) {
-      return fmt::format("{}/{} ϵ {}", creator_, *suffix_, layer_);
+    if (suffix) {
+      return fmt::format("{}/{} ϵ {}", creator, *suffix, layer);
     }
-    return fmt::format("{} ϵ {}", creator_, layer_);
+    return fmt::format("{} ϵ {}", creator, layer);
   }
 
   experimental::product_specification product_query::spec() const
   {
-    if (!suffix()) {
+    if (!suffix) {
       throw std::logic_error("Product suffixes are (temporarily) mandatory");
     }
-    return experimental::product_specification::create(*suffix());
+    // Not efficient, but this should be temporary
+    return experimental::product_specification::create(std::string(*suffix));
   }
 }

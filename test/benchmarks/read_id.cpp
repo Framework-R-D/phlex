@@ -10,5 +10,5 @@ namespace {
 PHLEX_REGISTER_ALGORITHMS(m)
 {
   m.observe("read_id", read_id, concurrency::unlimited)
-    .input_family(product_query({.creator = "input"s, .layer = "event"s, .suffix = "id"s}));
+    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "id"_id});
 }

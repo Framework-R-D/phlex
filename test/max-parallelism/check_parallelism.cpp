@@ -16,5 +16,5 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
               assert(actual == expected);
             })
     .input_family(
-      product_query({.creator = "input"s, .layer = "job"s, .suffix = "max_parallelism"s}));
+      product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "max_parallelism"_id});
 }
