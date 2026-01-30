@@ -5,39 +5,52 @@ on:
   issue_comment:
     types:
       - created
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
 
 permissions:
   pull-requests: write
   contents: write
 
 jobs:
-  parse-command:
+  pre-check:
     runs-on: ubuntu-latest
-    name: Parse bot command
+    name: Parse command
     if: >
-      github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '@phlexbot format')
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        (
+          startsWith(github.event.comment.body, '@phlexbot format') ||
+          startsWith(github.event.comment.body, '@phlexbot clang-format-fix')
+        )
+      )
     outputs:
-      ref: ${{ steps.get_pr.outputs.ref }}
-      sha: ${{ steps.get_pr.outputs.sha }}
-      repo: ${{ steps.get_pr.outputs.repo }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo: ${{ steps.get_pr.outputs.repo || github.repository }}
 
     steps:
       - name: Get PR Info
+        if: github.event_name == 'issue_comment'
         id: get_pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
   apply_formatting:
     runs-on: ubuntu-latest
     name: Apply formatting
-    needs: parse-command
-    if: ${{ needs.parse-command.result == 'success' }}
+    needs: pre-check
+    if: ${{ needs.pre-check.result == 'success' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: phlex-src
-          ref: ${{ needs.parse-command.outputs.ref }}
-          repository: ${{ needs.parse-command.outputs.repo }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
@@ -53,5 +66,5 @@ jobs:
           tool: clang-format
           working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
-          pr-info-repo: ${{ needs.parse-command.outputs.repo }}
+          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
+          pr-info-repo: ${{ needs.pre-check.outputs.repo }}
