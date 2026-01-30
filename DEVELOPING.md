@@ -2,7 +2,8 @@
 
 ## Contributions
 
-_[The contribution policy is currently under development.]_
+> [!NOTE]
+> The contribution policy is currently under development.
 
 Except in rare circumstances, changes to the `phlex` repository are proposed and considered through GitHub pull requests (PRs).
 
@@ -113,7 +114,6 @@ The project automatically runs coverage analysis on every PR and push to main/de
 5. Uploads to [Codecov](https://codecov.io/gh/Framework-R-D/phlex) via `codecov/codecov-action@v4`
 
 Coverage reports are uploaded to Codecov for tracking and PR integration, with automatic comments on PRs showing coverage changes.
-
 
 ## On GitHub Copilot
 
