@@ -60,4 +60,24 @@ namespace phlex {
     // Not efficient, but this should be temporary
     return experimental::product_specification::create(std::string(*suffix));
   }
+  bool product_query::operator==(product_query const& rhs) const
+  {
+    using experimental::identifier;
+    return (type == rhs.type) && (identifier(creator) == identifier(rhs.creator)) &&
+           (identifier(layer) == identifier(rhs.layer)) && (suffix == rhs.suffix) &&
+           (stage == rhs.stage);
+  }
+  auto product_query::operator<=>(product_query const& rhs) const
+  {
+    using experimental::identifier;
+    return std::tie(type,
+                    static_cast<identifier const&>(creator),
+                    static_cast<identifier const&>(layer),
+                    suffix,
+                    stage) <=> std::tie(rhs.type,
+                                        static_cast<identifier const&>(rhs.creator),
+                                        static_cast<identifier const&>(rhs.layer),
+                                        rhs.suffix,
+                                        rhs.stage);
+  }
 }
