@@ -136,7 +136,7 @@ namespace phlex::experimental {
       using return_type = return_type<typename AlgorithmBits::algorithm_type>;
       using provider_type = provider_node<AlgorithmBits>;
 
-      output.set_type(make_type_id<return_type>());
+      output.type = make_type_id<return_type>();
 
       registrar_.set_creator(
         [this, output = std::move(output)](auto /* predicates */, auto /* output_products */) {
