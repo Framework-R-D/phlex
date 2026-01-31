@@ -670,12 +670,12 @@ namespace {
 // back to dictionary iteration only if introspection fails.
 //
 // This logic mirrors the Python test class variant.py originally from PR #245.
-class AdjustAnnotations {
+class Variant {
   PyObject* m_callable;
   PyObject* m_annotations;
 
 public:
-  AdjustAnnotations(PyObject* callable) : m_callable(callable), m_annotations(nullptr)
+  Variant(PyObject* callable) : m_callable(callable), m_annotations(nullptr)
   {
     PyObject* name = PyUnicode_FromString("__annotations__");
     m_annotations = PyObject_GetAttr(m_callable, name);
@@ -691,7 +691,7 @@ public:
     Py_DECREF(name);
   }
 
-  ~AdjustAnnotations() { Py_XDECREF(m_annotations); }
+  ~Variant() { Py_XDECREF(m_annotations); }
 
   void get_input_types(std::vector<std::string>& types)
   {
@@ -830,7 +830,7 @@ static PyObject* parse_args(PyObject* args,
   // retrieve C++ (matching) types from annotations
   input_types.reserve(input_labels.size());
 
-  AdjustAnnotations adj(callable);
+  Variant adj(callable);
   adj.get_return_type(output_types);
   adj.get_input_types(input_types);
 
