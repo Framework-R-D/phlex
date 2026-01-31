@@ -58,6 +58,7 @@ jobs:
         file-type: |
           cpp
           cmake
+          python
 
     - name: Report detection outcome
       run: |

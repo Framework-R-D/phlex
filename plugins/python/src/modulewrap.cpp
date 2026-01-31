@@ -15,6 +15,17 @@ using namespace phlex::experimental;
 using phlex::concurrency;
 using phlex::product_query;
 
+struct PyObjectDeleter {
+  void operator()(PyObject* p) const
+  {
+    if (p && Py_IsInitialized()) {
+      phlex::experimental::PyGILRAII gil;
+      Py_DECREF(p);
+    }
+  }
+};
+using PyObjectPtr = std::shared_ptr<PyObject>;
+
 // TODO: the layer is currently hard-wired and should come from the product
 // specification instead, but that doesn't exist in Python yet.
 static std::string const LAYER = "job";
@@ -55,12 +66,12 @@ namespace {
     return oss.str();
   }
 
-  static inline PyObject* lifeline_transform(intptr_t arg)
+  static inline PyObject* lifeline_transform(PyObject* arg)
   {
-    if (Py_TYPE((PyObject*)arg) == &PhlexLifeline_Type) {
+    if (Py_TYPE(arg) == &PhlexLifeline_Type) {
       return ((py_lifeline_t*)arg)->m_view;
     }
-    return (PyObject*)arg;
+    return arg;
   }
 
   // callable object managing the callback
@@ -75,27 +86,36 @@ namespace {
     }
     py_callback(py_callback const& pc)
     {
+      PyGILRAII gil;
       Py_INCREF(pc.m_callable);
       m_callable = pc.m_callable;
     }
     py_callback& operator=(py_callback const& pc)
     {
       if (this != &pc) {
+        PyGILRAII gil;
         Py_INCREF(pc.m_callable);
         m_callable = pc.m_callable;
       }
+      return *this;
     }
-    ~py_callback() { Py_DECREF(m_callable); }
+    ~py_callback()
+    {
+      if (Py_IsInitialized()) {
+        PyGILRAII gil;
+        Py_DECREF(m_callable);
+      }
+    }
 
     template <typename... Args>
-    intptr_t call(Args... args)
+    PyObjectPtr call(Args... args)
     {
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args)..., nullptr);
+      PyObject* result = PyObject_CallFunctionObjArgs(
+        (PyObject*)m_callable, lifeline_transform(args.get())..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -103,12 +123,11 @@ namespace {
           error_msg = "Unknown python error";
       }
 
-      decref_all(args...);
-
-      if (!error_msg.empty())
+      if (!error_msg.empty()) {
         throw std::runtime_error(error_msg.c_str());
+      }
 
-      return (intptr_t)result;
+      return PyObjectPtr(result, PyObjectDeleter());
     }
 
     template <typename... Args>
@@ -119,7 +138,7 @@ namespace {
       PyGILRAII gil;
 
       PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
+        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args.get()..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -128,48 +147,42 @@ namespace {
       } else
         Py_DECREF(result);
 
-      decref_all(args...);
-
-      if (!error_msg.empty())
+      if (!error_msg.empty()) {
         throw std::runtime_error(error_msg.c_str());
-    }
-
-  private:
-    template <typename... Args>
-    void decref_all(Args... args)
-    {
-      // helper to decrement reference counts of N arguments
-      (Py_DECREF((PyObject*)args), ...);
+      }
     }
   };
 
   // use explicit instatiations to ensure that the function signature can
   // be derived by the graph builder
   struct py_callback_1 : public py_callback<1> {
-    intptr_t operator()(intptr_t arg0) { return call(arg0); }
+    PyObjectPtr operator()(PyObjectPtr arg0) { return call(arg0); }
   };
 
   struct py_callback_2 : public py_callback<2> {
-    intptr_t operator()(intptr_t arg0, intptr_t arg1) { return call(arg0, arg1); }
+    PyObjectPtr operator()(PyObjectPtr arg0, PyObjectPtr arg1) { return call(arg0, arg1); }
   };
 
   struct py_callback_3 : public py_callback<3> {
-    intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2)
+    PyObjectPtr operator()(PyObjectPtr arg0, PyObjectPtr arg1, PyObjectPtr arg2)
     {
       return call(arg0, arg1, arg2);
     }
   };
 
   struct py_callback_1v : public py_callback<1> {
-    void operator()(intptr_t arg0) { callv(arg0); }
+    void operator()(PyObjectPtr arg0) { callv(arg0); }
   };
 
   struct py_callback_2v : public py_callback<2> {
-    void operator()(intptr_t arg0, intptr_t arg1) { callv(arg0, arg1); }
+    void operator()(PyObjectPtr arg0, PyObjectPtr arg1) { callv(arg0, arg1); }
   };
 
   struct py_callback_3v : public py_callback<3> {
-    void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
+    void operator()(PyObjectPtr arg0, PyObjectPtr arg1, PyObjectPtr arg2)
+    {
+      callv(arg0, arg1, arg2);
+    }
   };
 
   static std::vector<std::string> cseq(PyObject* coll)
@@ -207,6 +220,16 @@ namespace {
     std::string ann;
     if (!PyUnicode_Check(pyobj)) {
       PyObject* pystr = PyObject_GetAttrString(pyobj, "__name__"); // eg. for classes
+
+      // generics like Union have a __name__ that is not useful for our purposes
+      if (pystr) {
+        char const* cstr = PyUnicode_AsUTF8(pystr);
+        if (cstr && (strcmp(cstr, "Union") == 0 || strcmp(cstr, "Optional") == 0)) {
+          Py_DECREF(pystr);
+          pystr = nullptr;
+        }
+      }
+
       if (!pystr) {
         PyErr_Clear();
         pystr = PyObject_Str(pyobj);
@@ -220,7 +243,7 @@ namespace {
       // for numpy typing, there's no useful way of figuring out the type from the
       // name of the type, only from its string representation, so fall through and
       // let this method return str()
-      if (ann != "ndarray")
+      if (ann != "ndarray" && ann != "list")
         return ann;
 
       // start over for numpy type using result from str()
@@ -279,7 +302,7 @@ namespace {
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
     if (ul == (unsigned long)-1 && PyErr_Occurred() && PyLong_Check(pyobject)) {
       PyErr_Clear();
-      long i = PyLong_AS_LONG(pyobject);
+      long i = PyLong_AsLong(pyobject);
       if (0 <= i) {
         ul = (unsigned long)i;
       } else {
@@ -292,17 +315,35 @@ namespace {
   }
 
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
-  static intptr_t name##_to_py(cpptype a)                                                          \
+  static PyObjectPtr name##_to_py(cpptype a)                                                       \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    return (intptr_t)topy(a);                                                                      \
+    return PyObjectPtr(topy(a), PyObjectDeleter());                                                \
   }                                                                                                \
                                                                                                    \
-  static cpptype py_to_##name(intptr_t pyobj)                                                      \
+  static cpptype py_to_##name(PyObjectPtr pyobj)                                                   \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
+    cpptype i = (cpptype)frompy(pyobj.get());                                                      \
+    if (PyErr_Occurred()) {                                                                        \
+      PyObject *ptype, *pvalue, *ptraceback;                                                       \
+      PyErr_Fetch(&ptype, &pvalue, &ptraceback);                                                   \
+      PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);                                      \
+      std::string msg = "Python conversion error for type " #name;                                 \
+      if (pvalue) {                                                                                \
+        PyObject* pstr = PyObject_Str(pvalue);                                                     \
+        if (pstr) {                                                                                \
+          msg += ": ";                                                                             \
+          msg += PyUnicode_AsUTF8(pstr);                                                           \
+          Py_DECREF(pstr);                                                                         \
+        }                                                                                          \
+      }                                                                                            \
+      Py_XDECREF(ptype);                                                                           \
+      Py_XDECREF(pvalue);                                                                          \
+      Py_XDECREF(ptraceback);                                                                      \
+      throw std::runtime_error(msg);                                                               \
+    }                                                                                              \
+    pyobj.reset();                                                                                 \
     return i;                                                                                      \
   }
 
@@ -315,7 +356,7 @@ namespace {
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
 #define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
-  static intptr_t name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                     \
+  static PyObjectPtr name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                  \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
@@ -330,7 +371,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
-      return (intptr_t)nullptr;                                                                    \
+      return PyObjectPtr();                                                                        \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
@@ -340,10 +381,10 @@ namespace {
     /* when passing it to the registered Python function */                                        \
     py_lifeline_t* pyll =                                                                          \
       (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
+    new (&pyll->m_source) std::shared_ptr<void>(v);                                                \
     pyll->m_view = np_view; /* steals reference */                                                 \
-    pyll->m_source = v;                                                                            \
                                                                                                    \
-    return (intptr_t)pyll;                                                                         \
+    return PyObjectPtr((PyObject*)pyll, PyObjectDeleter());                                        \
   }
 
   VECTOR_CONVERTER(vint, int, NPY_INT)
@@ -354,20 +395,19 @@ namespace {
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
 #define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype)                                               \
-  static std::shared_ptr<std::vector<cpptype>> py_to_##name(intptr_t pyobj)                        \
+  static std::shared_ptr<std::vector<cpptype>> py_to_##name(PyObjectPtr pyobj)                     \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
-    if (!pyobj || !PyArray_Check((PyObject*)pyobj)) {                                              \
+    if (!pyobj || !PyArray_Check(pyobj.get())) {                                                   \
       PyErr_Clear(); /* how to report an error? */                                                 \
-      Py_DECREF((PyObject*)pyobj);                                                                 \
       return vec;                                                                                  \
     }                                                                                              \
                                                                                                    \
-    PyArrayObject* arr = (PyArrayObject*)pyobj;                                                    \
+    PyArrayObject* arr = (PyArrayObject*)pyobj.get();                                              \
                                                                                                    \
     /* TODO: flattening the array here seems to be the only workable solution */                   \
     npy_intp* dims = PyArray_DIMS(arr);                                                            \
@@ -381,18 +421,340 @@ namespace {
     vec->reserve(total);                                                                           \
     vec->insert(vec->end(), raw, raw + total);                                                     \
                                                                                                    \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
     return vec;                                                                                    \
   }
 
-  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
-  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
-  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
-  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
-  NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
-  NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+  static std::shared_ptr<std::vector<int>> py_to_vint(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    auto vec = std::make_shared<std::vector<int>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          long val = PyLong_AsLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((int)val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        int* raw = static_cast<int*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  static std::shared_ptr<std::vector<unsigned int>> py_to_vuint(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    auto vec = std::make_shared<std::vector<unsigned int>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          unsigned long val = PyLong_AsUnsignedLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((unsigned int)val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        unsigned int* raw = static_cast<unsigned int*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  static std::shared_ptr<std::vector<long>> py_to_vlong(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    auto vec = std::make_shared<std::vector<long>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          long val = PyLong_AsLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        long* raw = static_cast<long*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  static std::shared_ptr<std::vector<unsigned long>> py_to_vulong(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    auto vec = std::make_shared<std::vector<unsigned long>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          unsigned long val = PyLong_AsUnsignedLong(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        unsigned long* raw = static_cast<unsigned long*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  static std::shared_ptr<std::vector<float>> py_to_vfloat(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    auto vec = std::make_shared<std::vector<float>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          double val = PyFloat_AsDouble(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back((float)val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        float* raw = static_cast<float*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
+  static std::shared_ptr<std::vector<double>> py_to_vdouble(PyObjectPtr pyobj)
+  {
+    PyGILRAII gil;
+    auto vec = std::make_shared<std::vector<double>>();
+    PyObject* obj = pyobj.get();
+
+    if (obj) {
+      if (PyList_Check(obj)) {
+        size_t size = PyList_Size(obj);
+        vec->reserve(size);
+        for (size_t i = 0; i < size; ++i) {
+          PyObject* item = PyList_GetItem(obj, i);
+          if (!item) {
+            PyErr_Print();
+            break;
+          }
+          double val = PyFloat_AsDouble(item);
+          if (PyErr_Occurred()) {
+            PyErr_Print();
+            break;
+          }
+          vec->push_back(val);
+        }
+      } else if (PyArray_Check(obj)) {
+        PyArrayObject* arr = (PyArrayObject*)obj;
+        npy_intp* dims = PyArray_DIMS(arr);
+        int nd = PyArray_NDIM(arr);
+        size_t total = 1;
+        for (int i = 0; i < nd; ++i)
+          total *= static_cast<size_t>(dims[i]);
+
+        double* raw = static_cast<double*>(PyArray_DATA(arr));
+        vec->reserve(total);
+        vec->insert(vec->end(), raw, raw + total);
+      }
+    }
+    return vec;
+  }
 
 } // unnamed namespace
+
+// Helper class to extract annotations in argument definition order.
+//
+// Rationale:
+// The __annotations__ dictionary does not guarantee any iteration order
+// relative to the function arguments (especially in older Python versions
+// or for certain callable types). Iterating blindly over __annotations__
+// can yield input types in a permuted order, causing Phlex to bind
+// C++ inputs to the wrong Python arguments (e.g. matching an 'int' product
+// to a 'float' argument).
+//
+// This class attempts to retrieve the bytecode object (__code__) to access
+// co_varnames, which provides the authoritative argument order. It falls
+// back to dictionary iteration only if introspection fails.
+//
+// This logic mirrors the Python test class variant.py originally from PR #245.
+class Variant {
+  PyObject* m_callable;
+  PyObject* m_annotations;
+
+public:
+  Variant(PyObject* callable) : m_callable(callable), m_annotations(nullptr)
+  {
+    PyObject* name = PyUnicode_FromString("__annotations__");
+    m_annotations = PyObject_GetAttr(m_callable, name);
+    if (!m_annotations) {
+      PyErr_Clear();
+      // the callable may be an instance with a __call__ method
+      PyObject* call = PyObject_GetAttrString(m_callable, "__call__");
+      if (call) {
+        m_annotations = PyObject_GetAttr(call, name);
+        Py_DECREF(call);
+      }
+    }
+    Py_DECREF(name);
+  }
+
+  ~Variant() { Py_XDECREF(m_annotations); }
+
+  void get_input_types(std::vector<std::string>& types)
+  {
+    if (!m_annotations || !PyDict_Check(m_annotations)) {
+      return;
+    }
+
+    // Try to use the code object to get the argument names in order
+    PyObject* code = PyObject_GetAttrString(m_callable, "__code__");
+    if (!code) {
+      PyErr_Clear();
+      PyObject* call = PyObject_GetAttrString(m_callable, "__call__");
+      if (call) {
+        code = PyObject_GetAttrString(call, "__code__");
+        Py_DECREF(call);
+      }
+    }
+
+    bool found = false;
+    if (code) {
+      PyObject* varnames = PyObject_GetAttrString(code, "co_varnames");
+      PyObject* argcount = PyObject_GetAttrString(code, "co_argcount");
+      if (varnames && argcount) {
+        long count = PyLong_AsLong(argcount);
+        for (long i = 0; i < count; ++i) {
+          PyObject* name = PyTuple_GetItem(varnames, i);
+          if (name) {
+            PyObject* type = PyDict_GetItem(m_annotations, name);
+            if (type) {
+              types.push_back(annotation_as_text(type));
+              found = true;
+            }
+          }
+        }
+      }
+      Py_XDECREF(varnames);
+      Py_XDECREF(argcount);
+      Py_DECREF(code);
+    }
+
+    // Fallback to dictionary iteration if code object was not helpful
+    if (!found) {
+      PyObject *key, *val;
+      Py_ssize_t pos = 0;
+      while (PyDict_Next(m_annotations, &pos, &key, &val)) {
+        if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0) {
+          continue;
+        }
+        types.push_back(annotation_as_text(val));
+      }
+    }
+  }
+
+  void get_return_type(std::vector<std::string>& types)
+  {
+    if (m_annotations && PyDict_Check(m_annotations)) {
+      PyObject* ret = PyDict_GetItemString(m_annotations, "return");
+      if (ret) {
+        types.push_back(annotation_as_text(ret));
+      }
+    }
+  }
+};
 
 #define INSERT_INPUT_CONVERTER(name, alg, inp)                                                     \
   mod->ph_module->transform("py" #name "_" + inp + "_" + alg, name##_to_py, concurrency::serial)   \
@@ -468,35 +830,9 @@ static PyObject* parse_args(PyObject* args,
   // retrieve C++ (matching) types from annotations
   input_types.reserve(input_labels.size());
 
-  PyObject* sann = PyUnicode_FromString("__annotations__");
-  PyObject* annot = PyObject_GetAttr(callable, sann);
-  if (!annot) {
-    // the callable may be an instance with a __call__ method
-    PyErr_Clear();
-    PyObject* callm = PyObject_GetAttrString(callable, "__call__");
-    if (callm) {
-      annot = PyObject_GetAttr(callm, sann);
-      Py_DECREF(callm);
-    }
-  }
-  Py_DECREF(sann);
-
-  if (annot && PyDict_Check(annot) && PyDict_Size(annot)) {
-    PyObject* ret = PyDict_GetItemString(annot, "return");
-    if (ret)
-      output_types.push_back(annotation_as_text(ret));
-
-    // dictionary is ordered with return last if provide (note: the keys here
-    // could be used as input labels, instead of the ones from the configuration,
-    // but that is probably not practical in actual use, so they are ignored)
-    PyObject* values = PyDict_Values(annot);
-    for (Py_ssize_t i = 0; i < (PyList_GET_SIZE(values) - (ret ? 1 : 0)); ++i) {
-      PyObject* item = PyList_GET_ITEM(values, i);
-      input_types.push_back(annotation_as_text(item));
-    }
-    Py_DECREF(values);
-  }
-  Py_XDECREF(annot);
+  Variant adj(callable);
+  adj.get_return_type(output_types);
+  adj.get_input_types(input_types);
 
   // ignore None as Python's conventional "void" return, which is meaningless in C++
   if (output_types.size() == 1 && output_types[0] == "None")
@@ -514,8 +850,18 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
+  // special case of Phlex Variant wrapper
+  PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
+  if (wrapped_callable) {
+    // PyObject_GetAttrString returns a new reference, which we return
+    callable = wrapped_callable;
+  } else {
+    // No wrapper, use the original callable with incremented reference count
+    PyErr_Clear();
+    Py_INCREF(callable);
+  }
+
   // no common errors detected; actual registration may have more checks
-  Py_INCREF(callable);
   return callable;
 }
 
@@ -556,32 +902,32 @@ static bool insert_input_converters(py_phlex_module* mod,
         return false;
       }
 
-      pos += 18;
-
+      std::string suffix = inp_type.substr(pos);
       std::string py_out = cname + "_" + inp + "py";
-      if (inp_type.compare(pos, std::string::npos, "int32]]") == 0) {
-        mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "uint32]]") == 0) {
+
+      if (suffix.find("uint32]]") != std::string::npos) {
         mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "int64]]") == 0) { // need not be true
-        mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
+      } else if (suffix.find("int32]]") != std::string::npos) {
+        mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "uint64]]") == 0) { // id.
+      } else if (suffix.find("uint64]]") != std::string::npos) { // id.
         mod->ph_module
           ->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "float32]]") == 0) {
+      } else if (suffix.find("int64]]") != std::string::npos) { // need not be true
+        mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
+          .input_family(product_query{product_specification::create(inp), LAYER})
+          .output_products(py_out);
+      } else if (suffix.find("float32]]") != std::string::npos) {
         mod->ph_module
           ->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
           .output_products(py_out);
-      } else if (inp_type.compare(pos, std::string::npos, "double64]]") == 0) {
+      } else if (suffix.find("float64]]") != std::string::npos) {
         mod->ph_module
           ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
           .input_family(product_query{product_specification::create(inp), LAYER})
@@ -590,6 +936,22 @@ static bool insert_input_converters(py_phlex_module* mod,
         PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
         return false;
       }
+    } else if (inp_type == "list[int]") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[float]") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[double]" || inp_type == "list['double']") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module
+        ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
       return false;
@@ -704,7 +1066,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
         ->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
         .input_family(product_query{product_specification::create(py_in), LAYER})
         .output_products(output);
-    } else if (output_type.compare(pos, std::string::npos, "double64]]") == 0) {
+    } else if (output_type.compare(pos, std::string::npos, "float64]]") == 0) {
       mod->ph_module
         ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
         .input_family(product_query{product_specification::create(py_in), LAYER})
@@ -713,6 +1075,22 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
       PyErr_Format(PyExc_TypeError, "unsupported array output type \"%s\"", output_type.c_str());
       return nullptr;
     }
+  } else if (output_type == "list[int]") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[float]") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[double]" || output_type == "list['double']") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module
+      ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
   } else {
     PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output_type.c_str());
     return nullptr;

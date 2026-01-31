@@ -4,6 +4,7 @@
             "name": "default",
             "hidden": false,
             "cacheVariables": {
+                "PHLEX_USE_FORM": "ON",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
                 "CMAKE_CXX_STANDARD": "20",
                 "CMAKE_CXX_STANDARD_REQUIRED": "YES",
