@@ -7,7 +7,7 @@ import copy
 from typing import Any, Callable
 
 
-class AdjustAnnotations:
+class Variant:
     """Wrapper to associate custom annotations with a callable.
 
     This class wraps a callable and provides custom ``__annotations__`` and
@@ -30,7 +30,7 @@ class AdjustAnnotations:
         >>> def add(i: Number, j: Number) -> Number:
         ...     return i + j
         ...
-        >>> int_adder = AdjustAnnotations(add, {"i": int, "j": int, "return": int}, "iadd")
+        >>> int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
     """
 
     def __init__(
@@ -70,14 +70,14 @@ class AdjustAnnotations:
     def __call__(self, *args, **kwargs):
         """Raises an error if called directly.
 
-        AdjustAnnotations instances should not be called directly. The framework should
+        Variant instances should not be called directly. The framework should
         extract ``phlex_callable`` instead and call that.
 
         Raises:
             AssertionError: To indicate incorrect usage, unless overridden.
         """
         assert self._allow_call, (
-            f"AdjustAnnotations '{self.__name__}' was called directly. "
+            f"Variant '{self.__name__}' was called directly. "
             f"The framework should extract phlex_callable instead."
         )
         return self.phlex_callable(*args, **kwargs)  # type: ignore

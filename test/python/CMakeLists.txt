@@ -68,7 +68,7 @@ if(HAS_CPPYY)
     set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
   endif()
 
-  set(PYTHON_TEST_FILES test_phlex.py unit_test_annotations.py)
+  set(PYTHON_TEST_FILES test_phlex.py unit_test_variant.py)
 
   # Determine pytest command based on coverage support
   if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
@@ -157,15 +157,15 @@ if(HAS_NUMPY)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
   add_test(
-    NAME py:mismatch_ann
-    COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_annotations.jsonnet
+    NAME py:mismatch_variant
+    COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet
   )
   set_tests_properties(
-    py:mismatch_ann
+    py:mismatch_variant
     PROPERTIES
       PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
   )
-  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_ann)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_variant)
 
   add_test(NAME py:veclists COMMAND phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
@@ -257,7 +257,7 @@ set_tests_properties(
 
 # Unit tests for the phlex python package
 add_test(
-  NAME py:unit_annotations
-  COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit_test_annotations.py
+  NAME py:unit_variant
+  COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit_test_variant.py
 )
-set_tests_properties(py:unit_annotations PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
+set_tests_properties(py:unit_variant PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
