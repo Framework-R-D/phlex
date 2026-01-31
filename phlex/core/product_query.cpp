@@ -30,7 +30,7 @@ namespace phlex {
   bool product_query::match(experimental::product_specification const& spec) const
   {
     // string comparisons for now for a gradual transition
-    if (creator.get_string_view() != spec.algorithm()) {
+    if (std::string_view(creator) != spec.algorithm()) {
       return false;
     }
     if (type != spec.type()) {

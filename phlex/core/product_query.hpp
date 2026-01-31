@@ -24,7 +24,7 @@ namespace phlex {
       {
         static_assert(false, "The creator name has not been set in this product_query.");
       }
-      required_creator_name(T&& rhs) : content_(std::forward<T>(rhs))
+      required_creator_name(T&& rhs) : content_(std::move(rhs))
       {
         if (content_.empty()) {
           throw std::runtime_error("Cannot specify product with empty creator name.");
@@ -32,9 +32,6 @@ namespace phlex {
       }
 
       operator T const&() const noexcept { return content_; }
-
-      // For the transition
-      std::string_view get_string_view() const noexcept { return std::string_view(content_); }
 
     private:
       experimental::identifier content_;
@@ -57,9 +54,6 @@ namespace phlex {
       }
 
       operator T const&() const noexcept { return content_; }
-
-      // For the transition
-      std::string_view get_string_view() const noexcept { return std::string_view(content_); }
 
     private:
       experimental::identifier content_;
