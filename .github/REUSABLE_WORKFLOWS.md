@@ -69,6 +69,25 @@ You should follow the instructions in the previous section to create the `WORKFL
 
 For development purposes, you may choose to use `@main` at your own risk to get the latest changes.
 
+#### Emulating Trigger Types and Relevance Checks
+
+When calling a reusable workflow, it's often desirable to emulate the behavior of the calling workflow's trigger. For example, if your workflow is triggered by a manual `workflow_dispatch`, you likely want the reusable workflow to skip its relevance detection and check all files. Conversely, if triggered by a `pull_request`, you want detection enabled.
+
+You can achieve this by passing the appropriate value to the `skip-relevance-check` input:
+
+```yaml
+    with:
+      skip-relevance-check: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment' }}
+```
+
+Additionally, to ensure the reusable workflow can access the correct code in an extra-repository context, always pass the `ref` and `repo`:
+
+```yaml
+    with:
+      ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      repo: ${{ github.repository }}
+```
+
 ---
 
 ## Available Workflows and Their Inputs
@@ -171,15 +190,39 @@ Automatically formats and fixes Python code using `ruff` and commits the changes
 -  `ref` (string, **required**): The branch or ref to check out.
 -  `repo` (string, **required**): The repository to check out from.
 
-### 5. `jsonnet-format-fix.yaml`
+### 5. `jsonnet-format-check.yaml`
+
+Checks Jsonnet files for formatting issues using `jsonnetfmt`.
+
+#### Usage Example
+
+```yaml
+jobs:
+  check_jsonnet:
+    uses: Framework-R-D/phlex/.github/workflows/jsonnet-format-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    with:
+      # Optional: bypass detection and check all files (useful for manual triggers)
+      skip-relevance-check: ${{ github.event_name == 'workflow_dispatch' }}
+```
+
+#### All Inputs
+
+-  `checkout-path` (string, optional): Path to check out code to.
+-  `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Jsonnet files have changed.
+-  `ref` (string, optional): The branch or ref to check out.
+-  `repo` (string, optional): The repository to check out from.
+-  `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+-  `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+
+### 6. `jsonnet-format-fix.yaml`
 
 Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes. Typically triggered by an `issue_comment`.
 
-#### Usage Example (in a workflow triggered by `issue_comment`):
+#### Usage Example (in a workflow triggered by `issue_comment`)
 
 *Similar to `cmake-format-fix.yaml`, but triggered by a command like `@<repo>bot jsonnet-format-fix`.*
 
-#### All Inputs:
+#### All Inputs
 
 -  `checkout-path` (string, optional): Path to check out code to.
 -  `ref` (string, **required**): The branch or ref to check out.
@@ -187,4 +230,4 @@ Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes. 
 
 ### Other Workflows
 
-The repository also provides `actionlint-check.yaml`, `cmake-format-check.yaml`, `jsonnet-format-check.yaml`, and `codeql-analysis.yaml`, which can be used in a similar manner.
+The repository also provides `actionlint-check.yaml`, `cmake-format-check.yaml`, and `codeql-analysis.yaml`, which can be used in a similar manner.

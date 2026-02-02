@@ -25,6 +25,14 @@ on:
         required: false
         type: boolean
         default: false
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: false
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: false
+        type: string
       pr-base-sha:
         description: "Base SHA of the PR for relevance check"
         required: false
@@ -42,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -50,9 +60,17 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      github.event_name != 'workflow_dispatch' &&
-      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
-      needs.pre-check.outputs.is_act != 'true'
+      needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          github.event.inputs == null &&
+          github.event.comment == null
+        )
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -65,6 +83,8 @@ jobs:
       with:
         fetch-depth: 0
         path: ${{ env.local_checkout_path }}
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Detect Jsonnet formatting changes
       id: filter
@@ -101,7 +121,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
         path: ${{ env.local_checkout_path }}
 
     - name: Check Jsonnet formatting
@@ -126,9 +147,17 @@ jobs:
   jsonnet-format-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      github.event_name != 'workflow_dispatch' &&
-      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
       needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          github.event.inputs == null &&
+          github.event.comment == null
+        )
+      ) &&
       (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
 
