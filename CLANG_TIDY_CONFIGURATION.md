@@ -198,7 +198,7 @@ These targets:
 
 The clang-tidy workflows complement the existing formatting workflows:
 
-- **Format checks:** `@phlexbot format` - Fixes C++, CMake, and Jsonnet formatting
+- **Format checks:** `@phlexbot format` - Fixes C++, CMake, Jsonnet, and Markdown formatting
 - **Tidy checks:** `@phlexbot tidy-fix` - Fixes Core Guidelines violations
 
 Both can be run independently or together as needed.
