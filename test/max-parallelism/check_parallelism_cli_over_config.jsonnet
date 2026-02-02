@@ -1,4 +1,4 @@
-local base = import "check_parallelism_default.jsonnet";
+local base = import 'check_parallelism_default.jsonnet';
 
 base {
   max_concurrency: 7,

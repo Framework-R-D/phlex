@@ -5,7 +5,7 @@
 The workflows in `Framework-R-D/phlex/` may be invoked as follows:
 
 1. Automatically as part of CI checks on a PR submitted to `Framework-R-D/phlex`, at PR creation time and thereafter on pushes to the PR branch. This should work whether your PR branch is situated in the primary repository or a fork.
-1. Via triggering comments on the PR (`@phlexbot <action>`).
+1. Via triggering comments on the PR (`@${{ github.event.repository.name }}bot <action>`).
 1. Via the "actions" tab on the project's GitHub web page.
 
 Additionally, you can configure your own fork of Phlex to run CI checks on local PRs, and on its default branch, following the instructions below.
@@ -34,7 +34,7 @@ However, to enable the automatic fixing features (e.g., for `cmake-format-fix` o
 1. **Enable Workflows:** By default, GitHub Actions are disabled on forks. You must manually enable them by going to the `Actions` tab of your forked repository and clicking the "I understand my workflows, go ahead and enable them" button.
 1. **Create the `WORKFLOW_PAT` Secret:** The auto-fix workflows require a Personal Access Token (PAT) with write permissions to commit changes back to your PR branch. Follow the instructions below to create a PAT and add it as a secret named `WORKFLOW_PAT` **to your forked repository's settings**.
 
-Once you have done this, you can trigger the auto-fix workflows by commenting on a pull request in your fork (e.g., `@phlexbot format`).
+Once you have done this, you can trigger the auto-fix workflows by commenting on a pull request in your fork (e.g., `@${{ github.event.repository.name }}bot format`).
 
 ### Creating a Personal Access Token (PAT)
 
@@ -56,7 +56,7 @@ To use a workflow, you call it from a workflow file in your own repository's `.g
 ```yaml
 jobs:
   some_job:
-    uses: Framework-R-D/phlex/.github/workflows/<workflow_file_name>.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/<workflow_file_name>.yaml@<commit_sha>
     with:
       # ... inputs for the workflow ...
     secrets:
@@ -68,6 +68,25 @@ You should follow the instructions in the previous section to create the `WORKFL
 **Note:** For stability and security, it is highly recommended to pin the workflow to a specific commit SHA rather than a branch like `@main`. Using a mutable branch means you will automatically receive updates, which could include breaking changes or, in a worst-case scenario, malicious code. Pinning to a commit SHA ensures you are using a fixed, reviewed version of the workflow.
 
 For development purposes, you may choose to use `@main` at your own risk to get the latest changes.
+
+#### Emulating Trigger Types and Relevance Checks
+
+When calling a reusable workflow, it's often desirable to emulate the behavior of the calling workflow's trigger. For example, if your workflow is triggered by a manual `workflow_dispatch`, you likely want the reusable workflow to skip its relevance detection and check all files. Conversely, if triggered by a `pull_request`, you want detection enabled.
+
+You can achieve this by passing the appropriate value to the `skip-relevance-check` input:
+
+```yaml
+    with:
+      skip-relevance-check: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment' }}
+```
+
+Additionally, to ensure the reusable workflow can access the correct code in an extra-repository context, always pass the `ref` and `repo`:
+
+```yaml
+    with:
+      ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      repo: ${{ github.repository }}
+```
 
 ---
 
@@ -82,7 +101,7 @@ Builds and tests your project using CMake.
 ```yaml
 jobs:
   build_and_test:
-    uses: Framework-R-D/phlex/.github/workflows/cmake-build.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/cmake-build.yaml@<commit_sha>
     with:
       # Optional: A list of build combinations to run (e.g., "gcc/asan clang/tsan")
       build-combinations: 'all -clang/valgrind'
@@ -111,7 +130,7 @@ Checks CMake files for formatting issues using `gersemi`.
 ```yaml
 jobs:
   check_cmake_format:
-    uses: Framework-R-D/phlex/.github/workflows/cmake-format-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/cmake-format-check.yaml@<commit_sha>
 ```
 
 #### All Inputs
@@ -140,7 +159,7 @@ jobs:
       github.event.issue.pull_request &&
       (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
       startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
-    uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@<commit_sha>
     with:
       # The ref and repo of the PR need to be retrieved and passed
       ref: ${{ steps.get_pr_info.outputs.ref }}
@@ -166,7 +185,7 @@ Checks Python code for formatting and type errors using `ruff` and `mypy`.
 ```yaml
 jobs:
   check_python:
-    uses: Framework-R-D/phlex/.github/workflows/python-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/python-check.yaml@<commit_sha>
 ```
 
 #### All Inputs
@@ -195,7 +214,7 @@ jobs:
       github.event.issue.pull_request &&
       (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
       startsWith(github.event.comment.body, format('@{0}bot python-fix', github.event.repository.name))
-    uses: Framework-R-D/phlex/.github/workflows/python-fix.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/python-fix.yaml@<commit_sha>
     with:
       # The ref and repo of the PR need to be retrieved and passed
       ref: ${{ steps.get_pr_info.outputs.ref }}
@@ -219,7 +238,7 @@ Checks Markdown files for formatting issues using `markdownlint`.
 ```yaml
 jobs:
   check_markdown:
-    uses: Framework-R-D/phlex/.github/workflows/markdown-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/markdown-check.yaml@<commit_sha>
 ```
 
 #### All Inputs
@@ -253,7 +272,7 @@ jobs:
         startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
         startsWith(github.event.comment.body, format('@{0}bot markdown-fix', github.event.repository.name))
       )
-    uses: Framework-R-D/phlex/.github/workflows/markdown-fix.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/markdown-fix.yaml@<commit_sha>
     with:
       # The ref and repo of the PR need to be retrieved and passed
       ref: ${{ steps.get_pr_info.outputs.ref }}
@@ -277,7 +296,7 @@ Checks GitHub Actions workflow files for errors and best practices using `action
 ```yaml
 jobs:
   check_actions:
-    uses: Framework-R-D/phlex/.github/workflows/actionlint-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/actionlint-check.yaml@<commit_sha>
 ```
 
 #### All Inputs
@@ -296,7 +315,7 @@ Performs static analysis on the codebase using GitHub CodeQL to identify potenti
 ```yaml
 jobs:
   analyze:
-    uses: Framework-R-D/phlex/.github/workflows/codeql-analysis.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+    uses: Framework-R-D/phlex/.github/workflows/codeql-analysis.yaml@<commit_sha>
 ```
 
 #### All Inputs
@@ -308,6 +327,44 @@ jobs:
 - `pr-head-repo` (string, optional): The full name of the PR head repository.
 - `pr-base-repo` (string, optional): The full name of the PR base repository.
 
+### 5. `jsonnet-format-check.yaml`
+
+Checks Jsonnet files for formatting issues using `jsonnetfmt`.
+
+#### Usage Example
+
+```yaml
+jobs:
+  check_jsonnet:
+    uses: Framework-R-D/phlex/.github/workflows/jsonnet-format-check.yaml@<commit_sha>
+    with:
+      # Optional: bypass detection and check all files (useful for manual triggers)
+      skip-relevance-check: ${{ github.event_name == 'workflow_dispatch' }}
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Jsonnet files have changed.
+- `ref` (string, optional): The branch or ref to check out.
+- `repo` (string, optional): The repository to check out from.
+- `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+- `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+
+### 6. `jsonnet-format-fix.yaml`
+
+Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes. Typically triggered by an `issue_comment`.
+
+#### Usage Example
+
+*Similar to `cmake-format-fix.yaml`, but triggered by a command like `@<repo>bot jsonnet-format-fix`.*
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `ref` (string, **required**): The branch or ref to check out.
+- `repo` (string, **required**): The repository to check out from.
+
 ### Other Workflows
 
-The repository also provides `clang-format-check.yaml`, `clang-format-fix.yaml`, `clang-tidy-check.yaml`, and `clang-tidy-fix.yaml`, which can be used in a similar manner.
+The repository also provides `clang-format-check.yaml`, `clang-format-fix.yaml`, `clang-tidy-check.yaml`, and `clang-tidy-fix.yaml`. However, these workflows are currently **not** available for reuse via `workflow_call` as they are specifically intended for use on this repository and its forks.

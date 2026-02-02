@@ -54,7 +54,11 @@ runs:
         DEFAULT_TYPE_PATTERNS[cmake]=$'CMakeLists.txt\n*.cmake'
         DEFAULT_TYPE_PATTERNS[python]=$'*.py'
         DEFAULT_TYPE_PATTERNS[md]=$'*.md'
-
+        DEFAULT_TYPE_PATTERNS[jsonnet]=$'*.jsonnet\n*.libsonnet'
+        # Types that do not support .in variants for relevance detection
+        declare -A NO_IN_VARIANT_TYPES
+        NO_IN_VARIANT_TYPES[jsonnet]="1"
+        
         parse_list() {
           local input="$1"
           printf '%s' "$input" | tr ',' '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'
@@ -134,7 +138,11 @@ runs:
             while IFS= read -r pattern; do
               pattern=${pattern#./}
               [ -z "$pattern" ] && continue
-              add_pattern_variant "$pattern"
+              if [ -n "${NO_IN_VARIANT_TYPES[$type]:-}" ]; then
+                PATTERN_SET["$pattern"]=1
+              else
+                add_pattern_variant "$pattern"
+              fi
             done <<< "$patterns"
           done
         fi

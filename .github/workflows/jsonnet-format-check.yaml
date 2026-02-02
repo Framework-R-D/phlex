@@ -1,0 +1,166 @@
+name: Jsonnet Format Check
+run-name: "${{ github.actor }} checking jsonnet format"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      skip-relevance-check:
+        description: "Bypass relevance check"
+        required: false
+        type: boolean
+        default: false
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: false
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: false
+        type: string
+      pr-base-sha:
+        description: "Base SHA of the PR for relevance check"
+        required: false
+        type: string
+      pr-head-sha:
+        description: "Head SHA of the PR for relevance check"
+        required: false
+        type: string
+
+env:
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: >
+      needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          github.event.inputs == null &&
+          github.event.comment == null
+        )
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+        path: ${{ env.local_checkout_path }}
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
+
+    - name: Detect Jsonnet formatting changes
+      id: filter
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      with:
+        repo-path: ${{ env.local_checkout_path }}
+        base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+        head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || github.event.pull_request.head.sha || github.sha }}
+        file-type: jsonnet
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No Jsonnet-related changes detected; formatting check will be skipped."
+        else
+          echo "::group::Jsonnet-related files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  jsonnet-format-check:
+    needs: [pre-check, detect-changes]
+    if: >
+      needs.detect-changes.result == 'skipped' ||
+      (
+        needs.detect-changes.result == 'success' &&
+        needs.detect-changes.outputs.has_changes == 'true'
+      )
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/bitnami/jsonnet:latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
+        path: ${{ env.local_checkout_path }}
+
+    - name: Check Jsonnet formatting
+      id: lint
+      working-directory: ${{ env.local_checkout_path }}
+      run: |
+        find . \( -name "*.jsonnet" -o -name "*.libsonnet" \) -print0 | xargs -0 -r -I {} \
+             bash -c 'jsonnetfmt --test "{}" || (echo "FAILED: {}" && diff -u <(jsonnetfmt "{}") "{}" && exit 1)'
+      continue-on-error: true
+
+    - name: Evaluate Jsonnet formatting result
+      if: always()
+      run: |
+        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
+          echo "✅ Jsonnet formatting check passed."
+        else
+          echo "::error::Jsonnet formatting issues found. Please review the output above for details."
+          echo "::error::Run 'jsonnetfmt -i <file>' locally or comment '@${{ github.event.repository.name }}bot format' on the PR to auto-fix."
+          exit 1
+        fi
+
+  jsonnet-format-check-skipped:
+    needs: [pre-check, detect-changes]
+    if: >
+      needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          github.event.inputs == null &&
+          github.event.comment == null
+        )
+      ) &&
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: No relevant Jsonnet changes detected
+      run: echo "::notice::No Jsonnet-related changes detected; jsonnet-format check skipped."
