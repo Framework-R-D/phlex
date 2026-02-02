@@ -344,12 +344,12 @@ jobs:
 
 #### All Inputs
 
--  `checkout-path` (string, optional): Path to check out code to.
--  `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Jsonnet files have changed.
--  `ref` (string, optional): The branch or ref to check out.
--  `repo` (string, optional): The repository to check out from.
--  `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
--  `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+- `checkout-path` (string, optional): Path to check out code to.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Jsonnet files have changed.
+- `ref` (string, optional): The branch or ref to check out.
+- `repo` (string, optional): The repository to check out from.
+- `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+- `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
 
 ### 6. `jsonnet-format-fix.yaml`
 
@@ -361,9 +361,9 @@ Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes. 
 
 #### All Inputs
 
--  `checkout-path` (string, optional): Path to check out code to.
--  `ref` (string, **required**): The branch or ref to check out.
--  `repo` (string, **required**): The repository to check out from.
+- `checkout-path` (string, optional): Path to check out code to.
+- `ref` (string, **required**): The branch or ref to check out.
+- `repo` (string, **required**): The repository to check out from.
 
 ### Other Workflows
 
