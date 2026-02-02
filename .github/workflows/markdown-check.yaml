@@ -33,6 +33,10 @@ on:
         description: "Head SHA of the PR for relevance check"
         required: false
         type: string
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: false
+        type: string
       repo:
         description: "The repository to checkout from"
         required: false
@@ -54,9 +58,16 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      github.event_name != 'workflow_dispatch' &&
-      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
-      needs.pre-check.outputs.is_act != 'true'
+      needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          (github.event.pull_request || github.event.before)
+        )
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -106,7 +117,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || (github.event_name == 'workflow_dispatch' && github.event.inputs.ref) || github.ref }}
+        ref: ${{ (github.event_name == 'workflow_call' && (inputs.ref || inputs.pr-head-sha)) || (github.event_name == 'workflow_dispatch' && github.event.inputs.ref) || github.ref }}
         path: ${{ env.local_checkout_path }}
         repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
 
@@ -136,9 +147,16 @@ jobs:
   markdown-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      github.event_name != 'workflow_dispatch' &&
-      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
       needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          (github.event.pull_request || github.event.before)
+        )
+      ) &&
       (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.matched != 'true')
     runs-on: ubuntu-latest
     permissions:

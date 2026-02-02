@@ -12,18 +12,18 @@ Additionally, you can configure your own fork of Phlex to run CI checks on local
 
 If you are a Phlex-affiliated developer working on a dependent package of Phlex, or on a different Cetmodules-using package, or on Cetmodules itself, you may be able to invoke these workflows on your own project following the information in this guide. However, this is only supported for Phlex-affiliated developers, and even then on a best effort basis. We do **not** support or encourage others to utilize these workflows at this time.
 
-#### Running Workflows Manually (`workflow_dispatch`)
+### Running Workflows Manually (`workflow_dispatch`)
 
 Most workflows in this repository can be run manually on any branch, tag, or commit. This is useful for testing changes without creating a pull request or for applying fixes to a specific branch.
 
 To run a workflow manually:
 
-1.  Navigate to the **Actions** tab of the Phlex repository (or your fork).
-1.  In the left sidebar, click the workflow you want to run (e.g., **Clang-Format Check**).
-1.  Above the list of workflow runs, you will see a banner that says "This workflow has a `workflow_dispatch` event trigger." Click the **Run workflow** dropdown on the right.
-1.  Use the **Branch/tag** dropdown to select the branch you want to run the workflow on.
-1.  Some workflows have additional inputs (e.g., the `cmake-build` workflow allows you to specify build combinations). Fill these out as needed.
-1.  Click the **Run workflow** button.
+1. Navigate to the **Actions** tab of the Phlex repository (or your fork).
+1. In the left sidebar, click the workflow you want to run (e.g., **Clang-Format Check**).
+1. Above the list of workflow runs, you will see a banner that says "This workflow has a `workflow_dispatch` event trigger." Click the **Run workflow** dropdown on the right.
+1. Use the **Branch/tag** dropdown to select the branch you want to run the workflow on.
+1. Some workflows have additional inputs (e.g., the `cmake-build` workflow allows you to specify build combinations). Fill these out as needed.
+1. Click the **Run workflow** button.
 
 ### For Contributors Working on a Fork of Phlex
 
@@ -185,6 +185,27 @@ Automatically formats Markdown files using `markdownlint` and commits the change
 - `ref` (string, **required**): The branch or ref to check out.
 - `repo` (string, **required**): The repository to check out from.
 
+### 6. `markdown-check.yaml`
+
+Checks Markdown files for formatting issues using `markdownlint`.
+
+#### Usage Example
+
+```yaml
+jobs:
+  check_markdown:
+    uses: Framework-R-D/phlex/.github/workflows/markdown-check.yaml@cef968c52aab432b836bb28119a9661c82c8b0d1
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Markdown files have changed. Note that this workflow automatically emulates the trigger type of the caller; it will run relevance checks if called from a `pull_request` or `push` event, and skip them (running on all files) otherwise.
+- `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+- `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+- `ref` (string, optional): The branch, ref, or SHA to checkout.
+- `repo` (string, optional): The repository to checkout from.
+
 ### Other Workflows
 
-The repository also provides `actionlint-check.yaml`, `cmake-format-check.yaml`, `markdown-check.yaml`, and `codeql-analysis.yaml`, which can be used in a similar manner.
+The repository also provides `actionlint-check.yaml`, `cmake-format-check.yaml`, and `codeql-analysis.yaml`, which can be used in a similar manner.
