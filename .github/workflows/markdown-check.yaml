@@ -73,7 +73,7 @@ jobs:
       contents: read
       packages: read
     outputs:
-      matched: ${{ steps.filter.outputs.matched }}
+      has_changes: ${{ steps.filter.outputs.matched }}
     steps:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -107,7 +107,7 @@ jobs:
       needs.detect-changes.result == 'skipped' ||
       (
         needs.detect-changes.result == 'success' &&
-        needs.detect-changes.outputs.matched == 'true'
+        needs.detect-changes.outputs.has_changes == 'true'
       )
     runs-on: ubuntu-latest
     permissions:
@@ -157,7 +157,7 @@ jobs:
           (github.event.pull_request || github.event.before)
         )
       ) &&
-      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.matched != 'true')
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
