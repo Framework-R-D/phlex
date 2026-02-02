@@ -67,7 +67,7 @@ namespace phlex {
            (identifier(layer) == identifier(rhs.layer)) && (suffix == rhs.suffix) &&
            (stage == rhs.stage);
   }
-  auto product_query::operator<=>(product_query const& rhs) const
+  std::strong_ordering product_query::operator<=>(product_query const& rhs) const
   {
     using experimental::identifier;
     return std::tie(type,

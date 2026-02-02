@@ -76,7 +76,7 @@ namespace phlex {
     std::string to_string() const;
 
     bool operator==(product_query const& rhs) const;
-    auto operator<=>(product_query const& rhs) const;
+    std::strong_ordering operator<=>(product_query const& rhs) const;
 
     // temporary additional members for transition
     experimental::product_specification spec() const;
