@@ -39,18 +39,19 @@ jobs:
     name: Parse command
     if: >
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
-        (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER') &&
+        contains(fromJSON('["OWNER", "COLLABORATOR"]'), github.event.comment.author_association) &&
         (
           startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
           startsWith(github.event.comment.body, format('@{0}bot jsonnet-format-fix', github.event.repository.name))
         )
       )
     outputs:
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
-      repo: ${{ steps.get_pr.outputs.repo || github.repository }}
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo }}
 
     steps:
       - name: Get PR Info
@@ -58,11 +59,11 @@ jobs:
         id: get_pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
-  apply_formatting:
+  apply_jsonnet_formatting:
     runs-on: ubuntu-latest
-    name: Apply formatting
+    name: Apply Jsonnet formatting
     needs: pre-check
-    if: github.event_name == 'workflow_call' || needs.pre-check.result == 'success'
+    if: needs.pre-check.result == 'success'
     container:
       image: public.ecr.aws/bitnami/jsonnet:latest
       options: --user root
@@ -72,11 +73,11 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: ${{ env.local_checkout_path }}
-          ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.pre-check.outputs.ref }}
-          repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.pre-check.outputs.repo }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
-      - name: Run jsonnetfmt
+      - name: Apply Jsonnet formatting
         id: lint
         working-directory: ${{ env.local_checkout_path }}
         run: |
@@ -89,5 +90,5 @@ jobs:
           tool: jsonnet-format
           working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || needs.pre-check.outputs.ref }}
-          pr-info-repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || needs.pre-check.outputs.repo }}
+          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
+          pr-info-repo: ${{ needs.pre-check.outputs.repo }}

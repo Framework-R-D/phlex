@@ -54,8 +54,9 @@ runs:
         DEFAULT_TYPE_PATTERNS[cmake]=$'CMakeLists.txt\n*.cmake'
         DEFAULT_TYPE_PATTERNS[python]=$'*.py'
         DEFAULT_TYPE_PATTERNS[jsonnet]=$'*.jsonnet\n*.libsonnet'
-        declare -A NON_GENERATED_TYPES
-        NON_GENERATED_TYPES[jsonnet]="1"
+        # Types that do not support .in variants for relevance detection
+        declare -A NO_IN_VARIANT_TYPES
+        NO_IN_VARIANT_TYPES[jsonnet]="1"
         
         parse_list() {
           local input="$1"
@@ -128,9 +129,6 @@ runs:
           }
 
           for type in "${REQUESTED_TYPES[@]}"; do
-            if [ -n "${NON_GENERATED_TYPES[$type]}" ]; then
-              continue
-            fi
             patterns=${TYPE_PATTERNS[$type]:-}
             if [ -z "$patterns" ]; then
               echo "::warning::No patterns defined for type '$type'"
@@ -139,7 +137,11 @@ runs:
             while IFS= read -r pattern; do
               pattern=${pattern#./}
               [ -z "$pattern" ] && continue
-              add_pattern_variant "$pattern"
+              if [ -n "${NO_IN_VARIANT_TYPES[$type]:-}" ]; then
+                PATTERN_SET["$pattern"]=1
+              else
+                add_pattern_variant "$pattern"
+              fi
             done <<< "$patterns"
           done
         fi

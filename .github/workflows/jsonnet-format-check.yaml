@@ -9,6 +9,11 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
   workflow_call:
     inputs:
       checkout-path:
@@ -83,10 +88,11 @@ jobs:
   jsonnet-format-check:
     needs: [pre-check, detect-changes]
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_call' && inputs.skip-relevance-check == 'true') ||
-      needs.pre-check.outputs.is_act == 'true' ||
-      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
+      needs.detect-changes.result == 'skipped' ||
+      (
+        needs.detect-changes.result == 'success' &&
+        needs.detect-changes.outputs.has_changes == 'true'
+      )
     runs-on: ubuntu-latest
     container:
       image: public.ecr.aws/bitnami/jsonnet:latest
@@ -95,9 +101,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
         path: ${{ env.local_checkout_path }}
 
-    - name: Run jsonnetfmt check
+    - name: Check Jsonnet formatting
       id: lint
       working-directory: ${{ env.local_checkout_path }}
       run: |
@@ -105,14 +112,14 @@ jobs:
              bash -c 'jsonnetfmt --test "{}" || (echo "FAILED: {}" && diff -u <(jsonnetfmt "{}") "{}" && exit 1)'
       continue-on-error: true
 
-    - name: Evaluate jsonnetfmt result
+    - name: Evaluate Jsonnet formatting result
       if: always()
       run: |
         if [ "${{ steps.lint.outcome }}" = 'success' ]; then
-          echo "✅ jsonnetfmt check passed."
+          echo "✅ Jsonnet formatting check passed."
         else
-          echo "::error::jsonnetfmt check failed. Please review the output above for details."
-          echo "::error::Comment '@${{ github.event.repository.name }}bot format' or '@${{ github.event.repository.name }}bot jsonnet-format-fix' on the PR to auto-fix."
+          echo "::error::Jsonnet formatting issues found. Please review the output above for details."
+          echo "::error::Run 'jsonnetfmt -i <file>' locally or comment '@${{ github.event.repository.name }}bot format' on the PR to auto-fix."
           exit 1
         fi
 
@@ -127,4 +134,4 @@ jobs:
 
     steps:
     - name: No relevant Jsonnet changes detected
-      run: echo "::notice::No jsonnet-format relevant changes detected; check skipped."
+      run: echo "::notice::No Jsonnet-related changes detected; jsonnet-format check skipped."
