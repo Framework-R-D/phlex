@@ -9,6 +9,10 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
     inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
       phlex-coverage-compiler:
         description: 'Compiler to use for coverage build (gcc or clang)'
         required: false
@@ -107,6 +111,7 @@ jobs:
     - name: Check out source code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
         path: phlex-src
 
     - name: Setup build environment
