@@ -1,11 +1,17 @@
 #include "phlex/utilities/hashing.hpp"
 
-#include "boost/functional/hash.hpp"
+#include <boost/container_hash/hash.hpp>
+#include <boost/hash2/hash_append.hpp>
+#include <boost/hash2/xxhash.hpp>
 
 namespace phlex::experimental {
-  std::hash<std::string> const string_hasher{};
-
-  std::size_t hash(std::string const& str) { return string_hasher(str); }
+  std::size_t hash(std::string const& str)
+  {
+    using namespace boost::hash2;
+    xxhash_64 h;
+    hash_append(h, {}, str);
+    return h.result();
+  }
 
   std::size_t hash(std::size_t i) noexcept { return i; }
 
@@ -15,5 +21,11 @@ namespace phlex::experimental {
     return i;
   }
 
-  std::size_t hash(std::size_t i, std::string const& str) { return hash(i, hash(str)); }
+  std::size_t hash(std::size_t i, std::string const& str)
+  {
+    using namespace boost::hash2;
+    xxhash_64 h{i};
+    hash_append(h, {}, str);
+    return h.result();
+  }
 }
