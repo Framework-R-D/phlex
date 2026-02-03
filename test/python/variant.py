@@ -7,14 +7,19 @@ functions for registration with the proper C++ types.
 
 import collections
 import copy
+import inspect
 from typing import Any, Callable
 
 
 class MissingAnnotation(Exception):
-    def __init__(self, arg):
+    """Exception noting the missing of an argument in the provied annotations."""
+
+    def __init__(self, arg: str):
+        """Construct exception from the name of the argument without annotation."""
         self.arg = arg
 
     def __str__(self):
+        """Report the argument that is missing an annotation."""
         return "argument '%s' is not annotated" % self.arg
 
 
@@ -71,17 +76,14 @@ class Variant:
         # annotions are expected as an ordinary dict and should be ordered, but
         # we do not require it, so re-order based on the function's co_varnames
         self.__annotations__ = collections.OrderedDict()
-        try:
-            args = self.phlex_callable.__code__.co_varnames
-        except AttributeError:
-            # callable instance; get the dispatcher method and offset `self`
-            args = self.phlex_callable.__call__.__code__.co_varnames[1:]
 
-        try:
-            for v in args:
-                self.__annotations__[v] = annotations[v]
-        except KeyError as e:
-            raise MissingAnnotation(v)
+        sig = inspect.signature(self.phlex_callable)
+        for k, v in sig.parameters.items():
+            try:
+                self.__annotations__[k] = annotations[k]
+            except KeyError as e:
+                if v.default is inspect.Parameter.empty:
+                    raise MissingAnnotation(k) from e
 
         self.__annotations__['return'] = annotations.get('return', None)
 
