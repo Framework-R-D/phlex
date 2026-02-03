@@ -73,6 +73,10 @@ namespace phlex::experimental {
           continue;
         }
 
+        if (producer->port == nullptr or receiver_port == nullptr) {
+          throw std::runtime_error("Unexpected null port while connecting " +
+                                   producer->node.full() + " to " + node_name);
+        }
         make_edge(*producer->port, *receiver_port);
       }
     }
@@ -93,6 +97,9 @@ namespace phlex::experimental {
     for (auto const& [output_name, output_node] : outputs) {
       make_edge(source, output_node->port());
       for (auto const& named_port : producers_.values()) {
+        if (named_port.to_output == nullptr) {
+          throw std::runtime_error("Unexpected null output port for " + named_port.node.full());
+        }
         make_edge(*named_port.to_output, output_node->port());
       }
     }
