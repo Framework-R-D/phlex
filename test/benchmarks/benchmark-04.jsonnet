@@ -16,11 +16,15 @@
     },
     read_index: {
       cpp: 'read_index',
+<<<<<<< new-product-query-api
       consumes: {
         creator: 'a_creator',
         suffix: 'a',
         layer: 'event',
       },
+=======
+      consumes: { product: 'a', layer: 'event' },
+>>>>>>> main
     },
   },
 }

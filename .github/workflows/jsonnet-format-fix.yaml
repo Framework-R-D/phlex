@@ -1,5 +1,5 @@
-name: CMake Format Fix
-run-name: '${{ github.actor }} fixing CMake format'
+name: Jsonnet Format Fix
+run-name: "${{ github.actor }} fixing jsonnet format"
 
 on:
   issue_comment:
@@ -43,10 +43,10 @@ jobs:
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "COLLABORATOR"]'), github.event.comment.author_association) &&
         (
-          startsWith(github.event.comment.body, '@phlexbot format') ||
-          startsWith(github.event.comment.body, '@phlexbot cmake-format-fix') ||
-          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
+          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
+          startsWith(github.event.comment.body, format('@{0}bot jsonnet-format-fix', github.event.repository.name))
         )
       )
     outputs:
@@ -59,11 +59,15 @@ jobs:
         id: get_pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
-  apply_cmake_formatting:
+  apply_jsonnet_formatting:
     runs-on: ubuntu-latest
-    name: Apply CMake formatting
+    name: Apply Jsonnet formatting
     needs: pre-check
     if: needs.pre-check.result == 'success'
+    container:
+      image: public.ecr.aws/bitnami/jsonnet:latest
+      options: --user root
+
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -73,23 +77,17 @@ jobs:
           repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: '3.x'
-
-      - name: Install gersemi
-        run: pip install gersemi
-
-      - name: Apply CMake formatting
+      - name: Apply Jsonnet formatting
+        id: lint
+        working-directory: ${{ env.local_checkout_path }}
         run: |
-          echo "Applying CMake formatting..."
-          gersemi -i ${{ env.local_checkout_path }}
+          find . \( -name "*.jsonnet" -o -name "*.libsonnet" \) -print0 | xargs -0 -r jsonnetfmt -i
+        continue-on-error: true
 
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
-          tool: cmake-format
+          tool: jsonnet-format
           working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}

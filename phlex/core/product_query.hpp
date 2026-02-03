@@ -14,6 +14,7 @@
 using namespace phlex::experimental::literals;
 
 namespace phlex {
+<<<<<<< new-product-query-api
   namespace detail {
     template <typename T>
       requires std::is_same_v<experimental::identifier,
@@ -30,6 +31,11 @@ namespace phlex {
           throw std::runtime_error("Cannot specify product with empty creator name.");
         }
       }
+=======
+  class product_query {
+  public:
+    product_query(experimental::product_specification spec, std::string layer);
+>>>>>>> main
 
       operator T const&() const noexcept { return content_; }
 

@@ -1,5 +1,5 @@
-name: CMake Format Check
-run-name: "${{ github.actor }} running CMake format check"
+name: Markdown Check
+run-name: "${{ github.actor }} checking markdown format"
 
 permissions:
   contents: read
@@ -33,6 +33,14 @@ on:
         description: "Head SHA of the PR for relevance check"
         required: false
         type: string
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: false
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: false
+        type: string
 
 env:
   local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
@@ -50,9 +58,16 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      github.event_name != 'workflow_dispatch' &&
-      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
-      needs.pre-check.outputs.is_act != 'true'
+      needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          (github.event.pull_request || github.event.before)
+        )
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -65,27 +80,28 @@ jobs:
       with:
         fetch-depth: 0
         path: ${{ env.local_checkout_path }}
+        repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
 
-    - name: Detect CMake formatting changes
+    - name: Detect Markdown changes
       id: filter
       uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: ${{ env.local_checkout_path }}
         base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
         head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || github.event.pull_request.head.sha || github.sha }}
-        file-type: cmake
+        file-type: md
 
     - name: Report detection outcome
       run: |
         if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No CMake-related changes detected; formatting check will be skipped."
+          echo "::notice::No Markdown-related changes detected; formatting check will be skipped."
         else
-          echo "::group::CMake-related files"
+          echo "::group::Markdown-related files"
           printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
           echo "::endgroup::"
         fi
 
-  cmake-format-check:
+  markdown-check:
     needs: [pre-check, detect-changes]
     if: >
       needs.detect-changes.result == 'skipped' ||
@@ -94,42 +110,58 @@ jobs:
         needs.detect-changes.outputs.has_changes == 'true'
       )
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+        ref: ${{ (github.event_name == 'workflow_call' && (inputs.ref || inputs.pr-head-sha)) || (github.event_name == 'workflow_dispatch' && github.event.inputs.ref) || github.ref }}
         path: ${{ env.local_checkout_path }}
+        repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
 
-    - name: Set up Python
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+    - name: Add problem matcher
+      uses: xt0rted/markdownlint-problem-matcher@1a5fabfb577370cfdf5af944d418e4be3ea06f27 # v3.0.0
+
+    - name: Run markdownlint
+      id: lint
+      uses: DavidAnson/markdownlint-cli2-action@07035fd053f7be764496c0f8d8f9f41f98305101 # v22.0.0
       with:
-        python-version: '3.x'
+        globs: |
+          ${{ env.local_checkout_path }}/**/*.md
+          !${{ env.local_checkout_path }}/**/CHANGELOG.md
+      continue-on-error: true
 
-    - name: Install gersemi
-      run: pip install gersemi
-
-    - name: Check CMake formatting
+    - name: Evaluate markdownlint result
+      if: always() && steps.lint.outcome != 'skipped'
       run: |
-        echo "➡️ Checking CMake file formatting..."
-        if ! gersemi --check ${{ env.local_checkout_path }}; then
-          echo "::error::Found files with formatting issues."
-          echo "::error::Run 'gersemi -i <file>' locally or comment '@${{ github.event.repository.name }}bot format' on the PR to auto-fix."
-          exit 1
+        if [ "${{ steps.lint.outcome }}" = "success" ]; then
+          echo "✅ Markdown formatting check passed."
         else
-          echo "✅ All CMake files are properly formatted."
+          echo "::error::Markdown formatting check failed."
+          echo "::error::Comment '@${{ github.event.repository.name }}bot format' or '@${{ github.event.repository.name }}bot markdown-fix' on the PR to auto-fix."
+          exit 1
         fi
 
-  cmake-format-check-skipped:
+  markdown-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      github.event_name != 'workflow_dispatch' &&
-      (github.event_name != 'workflow_call' || inputs.skip-relevance-check != 'true') &&
       needs.pre-check.outputs.is_act != 'true' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_call' &&
+          inputs.skip-relevance-check != 'true' &&
+          (github.event.pull_request || github.event.before)
+        )
+      ) &&
       (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
-    - name: No relevant CMake changes detected
-      run: echo "::notice::No CMake-related changes detected; cmake-format check skipped."
+    - name: No relevant Markdown changes detected
+      run: echo "::notice::No Markdown-related changes detected; markdown-check skipped."

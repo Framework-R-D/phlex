@@ -5,42 +5,73 @@ on:
   issue_comment:
     types:
       - created
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      ref:
+        description: "The branch or ref to checkout"
+        required: true
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: true
+        type: string
 
 permissions:
   pull-requests: write
   contents: write
 
+env:
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+
 jobs:
-  parse-command:
+  pre-check:
     runs-on: ubuntu-latest
-    name: Parse bot command
-    if: |
-      github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '@phlexbot python-fix')
+    name: Parse command
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        (
+          startsWith(github.event.comment.body, '@phlexbot python-fix') ||
+          startsWith(github.event.comment.body, format('@{0}bot python-fix', github.event.repository.name))
+        )
+      )
     outputs:
-      ref: ${{ steps.get_pr.outputs.ref }}
-      sha: ${{ steps.get_pr.outputs.sha }}
-      repo: ${{ steps.get_pr.outputs.repo }}
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo }}
     steps:
       - name: Get PR Info
+        if: github.event_name == 'issue_comment'
         id: get_pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
   apply_fixes:
     runs-on: ubuntu-latest
     name: Apply fixes
-    needs: parse-command
-    if: ${{ needs.parse-command.result == 'success' }}
+    needs: pre-check
+    if: needs.pre-check.result == 'success'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: phlex-src
-          ref: ${{ needs.parse-command.outputs.ref }}
-          repository: ${{ needs.parse-command.outputs.repo }}
+          path: ${{ env.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
-        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.x'
 
@@ -49,7 +80,7 @@ jobs:
           pip install ruff
 
       - name: Run ruff format and fix
-        working-directory: phlex-src
+        working-directory: ${{ env.local_checkout_path }}
         env:
           FORCE_COLOR: 1
         run: |
@@ -59,10 +90,10 @@ jobs:
           ruff check --fix . || true
 
       - name: Handle fix commit
-        uses: ./phlex-src/.github/actions/handle-fix-commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: 'Python linting'
-          working-directory: phlex-src
+          working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.parse-command.outputs.ref }}
-          pr-info-repo: ${{ needs.parse-command.outputs.repo }}
+          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
+          pr-info-repo: ${{ needs.pre-check.outputs.repo }}

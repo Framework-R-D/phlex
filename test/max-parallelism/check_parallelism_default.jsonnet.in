@@ -5,7 +5,7 @@
   sources: {
     parallelism_provider: {
       cpp: 'provide_parallelism',
-    }
+    },
   },
   modules: {
     verify: {

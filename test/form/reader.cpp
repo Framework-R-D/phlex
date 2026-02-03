@@ -20,9 +20,6 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
 
-  std::shared_ptr<form::experimental::product_type_names> type_map =
-    form::experimental::createTypeMap();
-
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::output_item_config output_config;
   output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
@@ -32,7 +29,7 @@ int main(int argc, char** argv)
 
   form::experimental::config::tech_setting_config tech_config;
 
-  form::experimental::form_interface form(type_map, output_config, tech_config);
+  form::experimental::form_interface form(output_config, tech_config);
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Read Event No. " << nevent << std::endl;
@@ -50,8 +47,7 @@ int main(int argc, char** argv)
       std::string const creator = "Toy_Tracker";
 
       form::experimental::product_with_name pb = {
-        "trackStart", track_start_x, std::type_index{typeid(std::vector<float>)}};
-      type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+        "trackStart", track_start_x, &typeid(std::vector<float>)};
 
       form.read(creator, segment_id, pb);
       track_start_x =
@@ -60,8 +56,7 @@ int main(int argc, char** argv)
       std::vector<int> const* track_n_hits = nullptr;
 
       form::experimental::product_with_name pb_int = {
-        "trackNumberHits", track_n_hits, std::type_index{typeid(std::vector<int>)}};
-      type_map->names[std::type_index(typeid(std::vector<int>))] = "std::vector<int>";
+        "trackNumberHits", track_n_hits, &typeid(std::vector<int>)};
 
       form.read(creator, segment_id, pb_int);
       track_n_hits = static_cast<std::vector<int> const*>(pb_int.data);
@@ -69,8 +64,7 @@ int main(int argc, char** argv)
       std::vector<TrackStart> const* start_points = nullptr;
 
       form::experimental::product_with_name pb_points = {
-        "trackStartPoints", start_points, std::type_index{typeid(std::vector<TrackStart>)}};
-      type_map->names[std::type_index(typeid(std::vector<TrackStart>))] = "std::vector<TrackStart>";
+        "trackStartPoints", start_points, &typeid(std::vector<TrackStart>)};
 
       form.read(creator, segment_id, pb_points);
       start_points = static_cast<std::vector<TrackStart> const*>(pb_points.data);
@@ -102,8 +96,7 @@ int main(int argc, char** argv)
     std::string const creator = "Toy_Tracker_Event";
 
     form::experimental::product_with_name pb = {
-      "trackStartX", track_x, std::type_index{typeid(std::vector<float>)}};
-    type_map->names[std::type_index(typeid(std::vector<float>))] = "std::vector<float>";
+      "trackStartX", track_x, &typeid(std::vector<float>)};
 
     form.read(creator, event_id, pb);
     track_x = static_cast<std::vector<float> const*>(pb.data); //FIXME: Can this be done by FORM?

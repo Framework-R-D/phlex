@@ -6,9 +6,14 @@
 #include "phlex/configuration.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/utilities/async_driver.hpp"
 
 #include <concepts>
 #include <memory>
+
+namespace phlex {
+  using framework_driver = experimental::async_driver<data_cell_index_ptr>;
+}
 
 namespace phlex::experimental::detail {
 
