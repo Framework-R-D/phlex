@@ -8,8 +8,9 @@
 #include <string_view>
 
 namespace {
-  [[maybe_unused]] std::optional<std::string> value_if_exists(boost::json::object const& obj, // will be used later for new product_query
-                                                              std::string_view parameter)
+  [[maybe_unused]] std::optional<std::string> value_if_exists(
+    boost::json::object const& obj, // will be used later for new product_query
+    std::string_view parameter)
   {
     if (!obj.contains(parameter)) {
       return std::nullopt;
