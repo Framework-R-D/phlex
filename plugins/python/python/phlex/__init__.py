@@ -1,10 +1,26 @@
-"""Phlex Python Utilities.
+"""Annotation helper for C++ typing variants.
 
-Call helpers and type annotation tools for the Phlex framework.
+Python algorithms are generic, like C++ templates, but the Phlex registration
+process requires a single unique signature. These helpers generate annotated
+functions for registration with the proper C++ types.
 """
 
+import collections
 import copy
+import inspect
 from typing import Any, Callable
+
+
+class MissingAnnotation(Exception):
+    """Exception noting the missing of an argument in the provied annotations."""
+
+    def __init__(self, arg: str):
+        """Construct exception from the name of the argument without annotation."""
+        self.arg = arg
+
+    def __str__(self):
+        """Report the argument that is missing an annotation."""
+        return "argument '%s' is not annotated" % self.arg
 
 
 class Variant:
@@ -57,15 +73,23 @@ class Variant:
             self.phlex_callable = copy.copy(f)
         else:
             self.phlex_callable = f
-        self.__annotations__ = annotations
+
+        # annotions are expected as an ordinary dict and should be ordered, but
+        # we do not require it, so re-order based on the function's co_varnames
+        self.__annotations__ = collections.OrderedDict()
+
+        sig = inspect.signature(self.phlex_callable)
+        for k, v in sig.parameters.items():
+            try:
+                self.__annotations__[k] = annotations[k]
+            except KeyError as e:
+                if v.default is inspect.Parameter.empty:
+                    raise MissingAnnotation(k) from e
+
+        self.__annotations__['return'] = annotations.get('return', None)
+
         self.__name__ = name
         self._allow_call = allow_call
-
-        # Expose __code__ from the underlying callable if available, to aid
-        # introspection (e.g. by C++ modulewrap).
-        self.__code__ = getattr(self.phlex_callable, "__code__", None)
-        self.__defaults__ = getattr(self.phlex_callable, "__defaults__", None)
-        self.__kwdefaults__ = getattr(self.phlex_callable, "__kwdefaults__", None)
 
     def __call__(self, *args, **kwargs):
         """Raises an error if called directly.
