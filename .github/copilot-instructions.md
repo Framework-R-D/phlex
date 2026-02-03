@@ -183,7 +183,7 @@ All Markdown files must strictly follow these markdownlint rules:
   - **Parallelism**: Run tests in parallel using `ctest -j $(nproc)` or `ctest --parallel <N>`.
   - **Selection**: Run specific tests with `ctest -R "regex"` (e.g., `ctest -R "py:*"`).
   - **Debugging**: Use `ctest --output-on-failure` to see logs for failed tests.
-  - **Guard against known or suspected stalling tests**: Use `ctest --test-timeout` to set the per-test time limit (e.g. `90`) for 90s, _vs_ the default of 1500s.
+  - **Guard against known or suspected stalling tests**: Use `ctest --test-timeout` to set the per-test time limit (e.g. `90`) for 90s, *vs* the default of 1500s.
 
 ### Python Integration
 
@@ -205,17 +205,19 @@ All Markdown files must strictly follow these markdownlint rules:
 - **Generation**:
   - **CMake Targets**: `coverage-xml`, `coverage-html` (if configured).
   - **Manual**:
-    1.  Run tests with `LLVM_PROFILE_FILE` set (e.g., `export LLVM_PROFILE_FILE="profraw/%m-%p.profraw"`).
-    2.  Merge profiles: `llvm-profdata merge -sparse profraw/*.profraw -o coverage.profdata`.
-    3.  Generate report: `llvm-cov show -instr-profile=coverage.profdata -format=html ...`
+    1. Run tests with `LLVM_PROFILE_FILE` set (e.g., `export LLVM_PROFILE_FILE="profraw/%m-%p.profraw"`).
+    2. Merge profiles: `llvm-profdata merge -sparse profraw/*.profraw -o coverage.profdata`.
+    3. Generate report: `llvm-cov show -instr-profile=coverage.profdata -format=html ...`
 
 ### Local GitHub Actions Testing (`act`)
 
 - **Tool**: Use `act` to run GitHub Actions workflows locally.
 - **Configuration**: Ensure `.actrc` exists in the workspace root with the following content to use a compatible runner image:
+
   ```text
   -P ubuntu-latest=catthehacker/ubuntu:act-latest
   ```
+
 - **Usage**:
   - List jobs: `act -l`
   - Run specific job: `act -j <job_name>` (e.g., `act -j python-check`)
@@ -223,4 +225,3 @@ All Markdown files must strictly follow these markdownlint rules:
 - **Troubleshooting**:
   - **Docker Socket**: `act` requires access to the Docker socket. In dev containers, this may require specific mount configurations or permissions.
   - **Artifacts**: `act` creates a `phlex-src` directory (or similar) for checkout. Ensure this is cleaned up or ignored by tools like `mypy`.
-
