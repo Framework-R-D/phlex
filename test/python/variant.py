@@ -5,8 +5,17 @@ process requires a single unique signature. These helpers generate annotated
 functions for registration with the proper C++ types.
 """
 
+import collections
 import copy
 from typing import Any, Callable
+
+
+class MissingAnnotation(Exception):
+    def __init__(self, arg):
+        self.arg = arg
+
+    def __str__(self):
+        return "argument '%s' is not annotated" % self.arg
 
 
 class Variant:
@@ -58,7 +67,24 @@ class Variant:
             self.phlex_callable = copy.copy(f)
         else:
             self.phlex_callable = f
-        self.__annotations__ = annotations
+
+        # annotions are expected as an ordinary dict and should be ordered, but
+        # we do not require it, so re-order based on the function's co_varnames
+        self.__annotations__ = collections.OrderedDict()
+        try:
+            args = self.phlex_callable.__code__.co_varnames
+        except AttributeError:
+            # callable instance; get the dispatcher method and offset `self`
+            args = self.phlex_callable.__call__.__code__.co_varnames[1:]
+
+        try:
+            for v in args:
+                self.__annotations__[v] = annotations[v]
+        except KeyError as e:
+            raise MissingAnnotation(v)
+
+        self.__annotations__['return'] = annotations.get('return', None)
+
         self.__name__ = name
         self._allow_call = allow_call
 
