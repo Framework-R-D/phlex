@@ -35,7 +35,6 @@ namespace phlex::test {
 
     using cache_t = tbb::concurrent_hash_map<std::size_t, cached_product>;
     using accessor = cache_t::accessor;
-    using const_accessor = cache_t::const_accessor;
 
   public:
     repeater_node(tbb::flow::graph& g) :

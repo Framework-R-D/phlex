@@ -5,8 +5,6 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "repeater_node.hpp"
 
-#include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/concurrent_queue.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 
@@ -76,17 +74,12 @@ namespace phlex::test {
   using my_composite_node = tbb::flow::composite_node<indexed_message_tuple<sizeof...(Ts)>,
                                                       std::tuple<tbb::flow::continue_msg>>;
 
-  template <typename>
-  auto& passthrough(auto& g)
-  {
-    return g;
-  }
-
   template <typename T, typename U, typename... Ts>
   class multiarg_consumer_node : public my_composite_node<T, U, Ts...> {
     using base = my_composite_node<T, U, Ts...>;
     using input_t = typename base::input_ports_type;
     using output_t = typename base::output_ports_type;
+
     static constexpr auto n_inputs = 2 + sizeof...(Ts);
     using args_t = indexed_message_tuple<n_inputs>;
 
@@ -95,7 +88,6 @@ namespace phlex::test {
                            std::string node_name,
                            std::vector<std::string> layer_names) :
       my_composite_node<T, U, Ts...>{g},
-      repeaters_{passthrough<T>(g), passthrough<U>(g), passthrough<Ts>(g)...},
       join_{g,
             indexed_message_matcher<T>{},
             indexed_message_matcher<U>{},
@@ -104,17 +96,22 @@ namespace phlex::test {
          tbb::flow::unlimited,
          [this](args_t const&) -> tbb::flow::continue_msg {
            ++calls_;
-           // spdlog::trace("Consumer '{}' received", name_);
            return {};
          }},
       name_{std::move(node_name)},
       layers_{std::move(layer_names)}
     {
+      // Add repeaters only if layer names are different
+      repeaters_.reserve(n_inputs);
+      for (std::size_t i = 0; i != n_inputs; ++i) {
+        repeaters_.push_back(std::make_unique<repeater_node>(g));
+      }
+
       auto set_ports = [this]<std::size_t... Is>(std::index_sequence<Is...>) {
-        this->set_external_ports(input_t{std::get<Is>(repeaters_).data_port()...}, output_t{f_});
+        this->set_external_ports(input_t{repeaters_[Is]->data_port()...}, output_t{f_});
         // Connect repeaters to join
-        (make_edge(std::get<Is>(repeaters_), input_port<Is>(join_)), ...);
-        (std::get<Is>(repeaters_).set_metadata(name_, layers_[Is]), ...);
+        (make_edge(*repeaters_[Is], input_port<Is>(join_)), ...);
+        (repeaters_[Is]->set_metadata(name_, layers_[Is]), ...);
       };
 
       set_ports(std::make_index_sequence<2 + sizeof...(Ts)>{});
@@ -125,9 +122,8 @@ namespace phlex::test {
     {
       std::vector<named_index_port> result;
       [this]<std::size_t... Is>(auto& result, std::index_sequence<Is...>) {
-        (result.emplace_back(layers_[Is],
-                             &std::get<Is>(repeaters_).flush_port(),
-                             &std::get<Is>(repeaters_).index_port()),
+        (result.emplace_back(
+           layers_[Is], &repeaters_[Is]->flush_port(), &repeaters_[Is]->index_port()),
          ...);
       }(result, std::make_index_sequence<n_inputs>{});
       return result;
@@ -139,8 +135,7 @@ namespace phlex::test {
     std::vector<std::string> const& layers() const noexcept { return layers_; }
 
   private:
-    // This will be replaced by an std::vector
-    experimental::sized_tuple<repeater_node, n_inputs> repeaters_;
+    std::vector<std::unique_ptr<repeater_node>> repeaters_;
     tbb::flow::join_node<args_t, tbb::flow::tag_matching> join_;
     tbb::flow::function_node<args_t> f_;
     std::string const name_;
