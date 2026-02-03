@@ -9,6 +9,7 @@ The integration is built on the **Python C API** (not `pybind11`) to maintain st
 ### 1. The "Type Bridge" (`modulewrap.cpp`)
 
 The core of the integration is the type conversion layer in `src/modulewrap.cpp`. This layer is responsible for:
+
 - Converting Phlex `Product` objects (C++) into Python objects (e.g., `PyObject*`, `numpy.ndarray`).
 - Converting Python return values back into Phlex `Product` objects.
 
@@ -42,15 +43,15 @@ Because the Python interpreter is embedded within the C++ application, the runti
   - The source directory (for user scripts).
   - Do not append system/Spack `site-packages`; `pymodule.cpp` adjusts `sys.path` based on `CMAKE_PREFIX_PATH` and active virtual environments.
 - **Naming Collisions**:
-    - **Warning**: Do not name test files `types.py`, `test.py`, `code.py`, or other names that shadow standard library modules.
-    - **Consequence**: Shadowing can cause obscure failures in internal libraries (e.g., `numpy` failing to import because it tries to import `types` from the standard library but gets your local file instead).
+  - **Warning**: Do not name test files `types.py`, `test.py`, `code.py`, or other names that shadow standard library modules.
+  - **Consequence**: Shadowing can cause obscure failures in internal libraries (e.g., `numpy` failing to import because it tries to import `types` from the standard library but gets your local file instead).
 
 ## Development Guidelines
 
-1.  **Adding New Types**:
+1. **Adding New Types**:
     - Update `src/modulewrap.cpp` to handle the new C++ type.
     - Add a corresponding test case in `test/python/` to verify the round-trip conversion.
-2.  **Testing**:
+2. **Testing**:
     - Use `ctest` to run tests.
     - Tests are integration tests: they run the full C++ application which loads the Python script.
     - Debugging: Use `ctest --output-on-failure` to see Python exceptions.
