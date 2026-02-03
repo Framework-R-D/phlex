@@ -184,6 +184,7 @@ namespace phlex::test {
       auto* entry = &a->second;
       if (!cache_enabled_) {
         if (entry->counter == 0) {
+          assert(entry->msg);
           output.try_put(*entry->msg);
           ++entry->counter;
         }
