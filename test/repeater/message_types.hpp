@@ -3,6 +3,8 @@
 
 #include "oneapi/tbb/flow_graph.h"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/products.hpp"
+#include "phlex/utilities/sized_tuple.hpp"
 #include "spdlog/spdlog.h"
 
 #include <cstddef>
@@ -18,11 +20,10 @@ namespace phlex::test {
     bool cache{true};
   };
 
-  template <typename T>
   struct indexed_message {
     std::size_t msg_id;
     data_cell_index_ptr index;
-    T data;
+    std::shared_ptr<experimental::product_base> data;
   };
 
   struct indexed_end_token {
@@ -37,8 +38,8 @@ namespace phlex::test {
   };
   using named_index_ports = std::vector<named_index_port>;
 
-  template <typename... Ts>
-  using indexed_message_tuple = std::tuple<indexed_message<Ts>...>;
+  template <std::size_t N>
+  using indexed_message_tuple = experimental::sized_tuple<indexed_message, N>;
 
   struct no_more_indices {};
 
@@ -48,9 +49,9 @@ namespace phlex::test {
     std::size_t operator()(index_message const& msg) const noexcept { return msg.msg_id; }
   };
 
-  template <typename T>
+  template <typename>
   struct indexed_message_matcher {
-    std::size_t operator()(indexed_message<T> const& msg) const noexcept { return msg.msg_id; }
+    std::size_t operator()(indexed_message const& msg) const noexcept { return msg.msg_id; }
   };
 }
 

@@ -16,20 +16,18 @@
 
 namespace phlex::test {
 
-  template <typename T>
-  using repeater_node_input = std::tuple<indexed_message<T>, indexed_end_token, index_message>;
+  using repeater_node_input = std::tuple<indexed_message, indexed_end_token, index_message>;
 
-  template <typename T>
   class repeater_node :
-    public tbb::flow::composite_node<repeater_node_input<T>, indexed_message_tuple<T>> {
-    using base_t = tbb::flow::composite_node<repeater_node_input<T>, indexed_message_tuple<T>>;
+    public tbb::flow::composite_node<repeater_node_input, indexed_message_tuple<1>> {
+    using base_t = tbb::flow::composite_node<repeater_node_input, indexed_message_tuple<1>>;
     using tagged_msg_t =
-      tbb::flow::tagged_msg<std::size_t, indexed_message<T>, indexed_end_token, index_message>;
+      tbb::flow::tagged_msg<std::size_t, indexed_message, indexed_end_token, index_message>;
     using multifunction_node_t =
-      tbb::flow::multifunction_node<tagged_msg_t, indexed_message_tuple<T>>;
+      tbb::flow::multifunction_node<tagged_msg_t, indexed_message_tuple<1>>;
 
     struct cached_product {
-      std::shared_ptr<indexed_message<T>> msg;
+      std::shared_ptr<indexed_message> msg;
       tbb::concurrent_queue<std::size_t> msg_ids{};
       std::atomic<int> counter;
       std::atomic_flag flush_received{};
@@ -47,26 +45,25 @@ namespace phlex::test {
                   auto& output = std::get<0>(outputs);
 
                   std::size_t key = -1ull;
-                  if (tagged.template is_a<indexed_message<T>>()) {
-                    key =
-                      handle_data_message(tagged.template cast_to<indexed_message<T>>(), output);
-                  } else if (tagged.template is_a<indexed_end_token>()) {
-                    key = handle_flush_token(tagged.template cast_to<indexed_end_token>());
+                  if (tagged.is_a<indexed_message>()) {
+                    key = handle_data_message(tagged.cast_to<indexed_message>(), output);
+                  } else if (tagged.is_a<indexed_end_token>()) {
+                    key = handle_flush_token(tagged.cast_to<indexed_end_token>());
                   } else {
-                    key = handle_index_message(tagged.template cast_to<index_message>(), output);
+                    key = handle_index_message(tagged.cast_to<index_message>(), output);
                   }
 
                   cleanup_cache_entry(key, output);
                 }}
     {
-      base_t::set_external_ports(typename base_t::input_ports_type{input_port<0>(indexer_),
-                                                                   input_port<1>(indexer_),
-                                                                   input_port<2>(indexer_)},
-                                 typename base_t::output_ports_type{output_port<0>(repeater_)});
+      base_t::set_external_ports(base_t::input_ports_type{input_port<0>(indexer_),
+                                                          input_port<1>(indexer_),
+                                                          input_port<2>(indexer_)},
+                                 base_t::output_ports_type{output_port<0>(repeater_)});
       make_edge(indexer_, repeater_);
     }
 
-    tbb::flow::receiver<indexed_message<T>>& data_port() { return input_port<0>(indexer_); }
+    tbb::flow::receiver<indexed_message>& data_port() { return input_port<0>(indexer_); }
     tbb::flow::receiver<indexed_end_token>& flush_port() { return input_port<1>(indexer_); }
     tbb::flow::receiver<index_message>& index_port() { return input_port<2>(indexer_); }
 
@@ -110,7 +107,7 @@ namespace phlex::test {
       return num_emitted;
     }
 
-    std::size_t handle_data_message(indexed_message<T> const& msg, output_port_t& output)
+    std::size_t handle_data_message(indexed_message const& msg, output_port_t& output)
     {
       auto const key = msg.index->hash();
 
@@ -125,7 +122,7 @@ namespace phlex::test {
       accessor a;
       cached_products_.insert(a, key);
       auto* entry = &a->second;
-      entry->msg = std::make_shared<indexed_message<T>>(msg);
+      entry->msg = std::make_shared<indexed_message>(msg);
       entry->counter += emit_pending_ids(msg.index, entry, output);
       return key;
     }
@@ -198,7 +195,7 @@ namespace phlex::test {
       }
     }
 
-    tbb::flow::indexer_node<indexed_message<T>, indexed_end_token, index_message> indexer_;
+    tbb::flow::indexer_node<indexed_message, indexed_end_token, index_message> indexer_;
     multifunction_node_t repeater_;
     tbb::concurrent_hash_map<std::size_t, cached_product> cached_products_; // Key is the index hash
     std::atomic<bool> cache_enabled_{true};

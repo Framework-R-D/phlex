@@ -16,17 +16,19 @@
 namespace phlex::test {
 
   template <typename T>
-  class provider_node : public tbb::flow::function_node<index_message, indexed_message<T>> {
+  class provider_node : public tbb::flow::function_node<index_message, indexed_message> {
   public:
     provider_node(tbb::flow::graph& g, std::string data_layer, std::string product_name, T value) :
-      tbb::flow::function_node<index_message, indexed_message<T>>{
+      tbb::flow::function_node<index_message, indexed_message>{
         g,
         tbb::flow::unlimited,
-        [this, name = std::move(product_name)](index_message const& msg) -> indexed_message<T> {
+        [this, name = std::move(product_name)](index_message const& msg) -> indexed_message {
           ++calls_;
           spdlog::trace(
             "Provider for '{}' (\"{}\") received {}", name, layer_, msg.index->to_string());
-          return {.msg_id = msg.msg_id, .index = msg.index, .data = value_};
+          return {.msg_id = msg.msg_id,
+                  .index = msg.index,
+                  .data = std::make_shared<experimental::product<T>>(value_)};
         }},
       layer_{std::move(data_layer)},
       value_{value}
@@ -44,16 +46,17 @@ namespace phlex::test {
   };
 
   template <typename T>
-  class consumer_node : public tbb::flow::function_node<indexed_message<T>, indexed_message<T>> {
+  class consumer_node : public tbb::flow::function_node<indexed_message, indexed_message> {
   public:
     consumer_node(tbb::flow::graph& g, std::string consumer_name, std::string data_layer) :
-      tbb::flow::function_node<indexed_message<T>, indexed_message<T>>{
+      tbb::flow::function_node<indexed_message, indexed_message>{
         g,
         tbb::flow::unlimited,
-        [this,
-         consumer = std::move(consumer_name)](indexed_message<T> const& msg) -> indexed_message<T> {
+        [this, consumer = std::move(consumer_name)](indexed_message const& msg) -> indexed_message {
           ++calls_;
-          spdlog::trace("Consumer '{}' received '{}' (\"{}\")", consumer, msg.data, layer_);
+          if (auto data = std::dynamic_pointer_cast<experimental::product<T> const>(msg.data)) {
+            spdlog::trace("Consumer '{}' received '{}' (\"{}\")", consumer, data->obj, layer_);
+          }
           return msg;
         }},
       layer_{std::move(data_layer)}
@@ -70,8 +73,8 @@ namespace phlex::test {
   };
 
   template <typename... Ts>
-  using my_composite_node =
-    tbb::flow::composite_node<indexed_message_tuple<Ts...>, std::tuple<tbb::flow::continue_msg>>;
+  using my_composite_node = tbb::flow::composite_node<indexed_message_tuple<sizeof...(Ts)>,
+                                                      std::tuple<tbb::flow::continue_msg>>;
 
   template <typename>
   auto& passthrough(auto& g)
@@ -84,7 +87,8 @@ namespace phlex::test {
     using base = my_composite_node<T, U, Ts...>;
     using input_t = typename base::input_ports_type;
     using output_t = typename base::output_ports_type;
-    using args_t = indexed_message_tuple<T, U, Ts...>;
+    static constexpr auto n_inputs = 2 + sizeof...(Ts);
+    using args_t = indexed_message_tuple<n_inputs>;
 
   public:
     multiarg_consumer_node(tbb::flow::graph& g,
@@ -125,7 +129,7 @@ namespace phlex::test {
                              &std::get<Is>(repeaters_).flush_port(),
                              &std::get<Is>(repeaters_).index_port()),
          ...);
-      }(result, std::make_index_sequence<2 + sizeof...(Ts)>{});
+      }(result, std::make_index_sequence<n_inputs>{});
       return result;
     }
 
@@ -136,7 +140,7 @@ namespace phlex::test {
 
   private:
     // This will be replaced by an std::vector
-    std::tuple<repeater_node<T>, repeater_node<U>, repeater_node<Ts>...> repeaters_;
+    experimental::sized_tuple<repeater_node, n_inputs> repeaters_;
     tbb::flow::join_node<args_t, tbb::flow::tag_matching> join_;
     tbb::flow::function_node<args_t> f_;
     std::string const name_;
