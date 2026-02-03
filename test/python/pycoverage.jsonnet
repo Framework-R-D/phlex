@@ -2,8 +2,8 @@
   driver: {
     cpp: 'generate_layers',
     layers: {
-      event: { parent: 'job', total: 1, starting_number: 1 }
-    }
+      event: { parent: 'job', total: 1, starting_number: 1 },
+    },
   },
   sources: {
     cppdriver: {
@@ -13,6 +13,6 @@
   modules: {
     coverage: {
       py: 'test_coverage',
-    }
-  }
+    },
+  },
 }
