@@ -5,8 +5,6 @@
 #include <stdexcept>
 
 namespace phlex {
-  product_query::product_query() = default;
-
   product_query::product_query(experimental::product_specification spec, std::string layer) :
     spec_{std::move(spec)}, layer_{std::move(layer)}
   {
