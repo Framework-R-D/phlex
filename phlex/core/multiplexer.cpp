@@ -56,12 +56,7 @@ namespace phlex::experimental {
                     store->is_flush());
     }
 
-    if (store->is_flush()) {
-      for (auto const& [_, port] : provider_input_ports_ | std::views::values) {
-        port->try_put(msg);
-      }
-      return {};
-    }
+    assert(not store->is_flush());
 
     auto start_time = steady_clock::now();
 

@@ -166,6 +166,41 @@ namespace phlex::experimental {
                nodes_.folds,
                nodes_.unfolds,
                nodes_.transforms);
+
+    std::map<std::string, flusher_t*> flushers_from_unfolds;
+    for (auto const& n : nodes_.unfolds | std::views::values) {
+      flushers_from_unfolds.try_emplace(n->child_layer(), &n->flusher());
+    }
+
+    // Connect edges between all nodes, the graph-wide flusher, and the unfolds' flushers
+    auto connect_with_flusher =
+      [this, unfold_flushers = std::move(flushers_from_unfolds)](auto& consumers) {
+        for (auto& n : consumers | std::views::values) {
+          std::set<flusher_t*> flushers;
+          // For providers
+          if constexpr (requires { n->output_product(); }) {
+            make_edge(flusher_, n->flush_port());
+          } else {
+            for (product_query const& pq : n->input()) {
+              if (auto it = unfold_flushers.find(pq.layer()); it != unfold_flushers.end()) {
+                flushers.insert(it->second);
+              } else {
+                flushers.insert(&flusher_);
+              }
+            }
+            for (flusher_t* flusher : flushers) {
+              make_edge(*flusher, n->flush_port());
+            }
+          }
+        }
+      };
+
+    connect_with_flusher(nodes_.folds);
+    connect_with_flusher(nodes_.observers);
+    connect_with_flusher(nodes_.predicates);
+    connect_with_flusher(nodes_.providers);
+    connect_with_flusher(nodes_.transforms);
+    connect_with_flusher(nodes_.unfolds);
   }
 
   product_store_ptr framework_graph::accept(product_store_ptr store)

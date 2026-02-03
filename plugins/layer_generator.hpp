@@ -54,6 +54,7 @@ namespace phlex::experimental {
     void operator()(framework_driver& driver) { execute(driver, data_cell_index::base_ptr()); }
 
     std::size_t emitted_cells(std::string layer_path = {}) const;
+    std::vector<std::string> const& layer_paths() const noexcept { return layer_paths_; }
 
   private:
     void execute(framework_driver& driver, data_cell_index_ptr index, bool recurse = true);

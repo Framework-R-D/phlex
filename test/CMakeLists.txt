@@ -237,6 +237,7 @@ add_subdirectory(utilities)
 add_subdirectory(mock-workflow)
 add_subdirectory(demo-giantdata)
 add_subdirectory(python)
+add_subdirectory(repeater)
 
 if(PHLEX_USE_FORM)
   add_subdirectory(form)
