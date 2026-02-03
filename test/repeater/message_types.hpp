@@ -3,7 +3,7 @@
 
 #include "oneapi/tbb/flow_graph.h"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/products.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 #include "spdlog/spdlog.h"
 
@@ -23,7 +23,7 @@ namespace phlex::test {
   struct indexed_message {
     std::size_t msg_id;
     data_cell_index_ptr index;
-    std::shared_ptr<experimental::product_base> data;
+    experimental::product_store_const_ptr store;
   };
 
   struct indexed_end_token {

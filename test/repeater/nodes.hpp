@@ -24,9 +24,9 @@ namespace phlex::test {
           ++calls_;
           spdlog::trace(
             "Provider for '{}' (\"{}\") received {}", name, layer_, msg.index->to_string());
-          return {.msg_id = msg.msg_id,
-                  .index = msg.index,
-                  .data = std::make_shared<experimental::product<T>>(value_)};
+          auto new_store = std::make_shared<experimental::product_store>(msg.index);
+          new_store->add_product("a", value_);
+          return {.msg_id = msg.msg_id, .index = msg.index, .store = std::move(new_store)};
         }},
       layer_{std::move(data_layer)},
       value_{value}
@@ -52,9 +52,10 @@ namespace phlex::test {
         tbb::flow::unlimited,
         [this, consumer = std::move(consumer_name)](indexed_message const& msg) -> indexed_message {
           ++calls_;
-          if (auto data = std::dynamic_pointer_cast<experimental::product<T> const>(msg.data)) {
-            spdlog::trace("Consumer '{}' received '{}' (\"{}\")", consumer, data->obj, layer_);
-          }
+          spdlog::trace("Consumer '{}' received '{}' (\"{}\")",
+                        consumer,
+                        msg.store->get_product<T>("a"),
+                        layer_);
           return msg;
         }},
       layer_{std::move(data_layer)}

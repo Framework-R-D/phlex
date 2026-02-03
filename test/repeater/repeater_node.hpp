@@ -100,7 +100,7 @@ namespace phlex::test {
       int num_emitted{};
       std::size_t msg_id{};
       while (entry->msg_ids.try_pop(msg_id)) {
-        output.try_put({.msg_id = msg_id, .index = index, .data = entry->msg->data});
+        output.try_put({.msg_id = msg_id, .index = index, .store = entry->msg->store});
         ++num_emitted;
       }
       return num_emitted;
@@ -117,7 +117,7 @@ namespace phlex::test {
       }
 
       // Caching mode; store product and drain any pending message IDs
-      assert(msg.data);
+      assert(msg.store);
       accessor a;
       cached_products_.insert(a, key);
       auto* entry = &a->second;
@@ -166,7 +166,7 @@ namespace phlex::test {
       cached_products_.insert(a, key);
       auto* entry = &a->second;
       if (entry->msg) {
-        output.try_put({.msg_id = msg_id, .index = index, .data = entry->msg->data});
+        output.try_put({.msg_id = msg_id, .index = index, .store = entry->msg->store});
         entry->counter += 1 + emit_pending_ids(index, entry, output);
       } else {
         entry->msg_ids.push(msg_id);
