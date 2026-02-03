@@ -76,9 +76,11 @@ jobs:
 
       - name: Apply Jsonnet formatting
         id: lint
+        env:
+          CHECKOUT_PATH: ${{ env.local_checkout_path }}
         run: |
-          docker run --rm -v $(pwd):/work -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
-            sh -c "find ${{ env.local_checkout_path }} \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i"
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
+            sh -c "find \"$CHECKOUT_PATH\" \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i"
         continue-on-error: true
 
       - name: Handle fix commit
