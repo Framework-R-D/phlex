@@ -30,7 +30,7 @@ namespace phlex::test {
       std::shared_ptr<indexed_message<T>> msg_with_product;
       tbb::concurrent_queue<std::size_t> msg_ids{};
       std::atomic<int> counter;
-      std::atomic_flag flush_received{false};
+      std::atomic_flag flush_received{};
     };
 
     using cached_products_t = tbb::concurrent_hash_map<std::size_t, cached_product>;
