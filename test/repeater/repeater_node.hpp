@@ -10,6 +10,8 @@
 #include "spdlog/spdlog.h"
 
 #include <atomic>
+#include <cassert>
+#include <memory>
 #include <string>
 
 namespace phlex::test {

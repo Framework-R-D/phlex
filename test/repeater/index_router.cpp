@@ -101,7 +101,7 @@ auto test::index_router::index_node_for(std::string const& layer) -> index_set_n
   }
 
   if (candidates.empty()) {
-    throw std::runtime_error("No broadcaster found for layer specification" + layer);
+    throw std::runtime_error("No broadcaster found for layer specification \"" + layer + "\"");
   }
 
   std::string msg{"Multiple layers match specification " + layer + ":\n"};
