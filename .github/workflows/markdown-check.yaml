@@ -122,7 +122,7 @@ jobs:
         repository: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
 
     - name: Add problem matcher
-      uses: xt0rted/markdownlint-problem-matcher@b643b0751c371f357690337d4549221347c0e1bc # v1.1.0
+      uses: xt0rted/markdownlint-problem-matcher@1a5fabfb577370cfdf5af944d418e4be3ea06f27 # v3.0.0
 
     - name: Run markdownlint
       id: lint
