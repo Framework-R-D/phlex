@@ -126,7 +126,7 @@ jobs:
 
     - name: Run markdownlint
       id: lint
-      uses: DavidAnson/markdownlint-cli2-action@8f3516061301755c97ff833a8e933f09282cc5b5 # v11.0.0
+      uses: DavidAnson/markdownlint-cli2-action@07035fd053f7be764496c0f8d8f9f41f98305101 # v22.0.0
       with:
         globs: |
           ${{ env.local_checkout_path }}/**/*.md
