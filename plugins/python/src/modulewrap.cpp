@@ -166,7 +166,10 @@ namespace {
   };
 
   struct py_callback_3 : public py_callback<3> {
-    intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { return call(arg0, arg1, arg2); }
+    intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2)
+    {
+      return call(arg0, arg1, arg2);
+    }
   };
 
   struct py_callback_1v : public py_callback<1> {
@@ -368,7 +371,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
-      return (intptr_t) nullptr;                                                                   \
+      return (intptr_t)nullptr;                                                                    \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
