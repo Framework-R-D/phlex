@@ -10,7 +10,7 @@
   modules: {
     verify: {
       cpp: 'check_parallelism',
-      expected_parallelism: '@NPROC@',
+      expected_parallelism: @NPROC@,
     },
   },
 }
