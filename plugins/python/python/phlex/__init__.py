@@ -89,6 +89,8 @@ class Variant:
         self.__annotations__['return'] = annotations.get('return', None)
 
         self.__name__ = name
+        self.__code__ = getattr(self.phlex_callable, "__code__", None)
+        self.__defaults__ = getattr(self.phlex_callable, "__defaults__", None)
         self._allow_call = allow_call
 
     def __call__(self, *args, **kwargs):
