@@ -3,13 +3,8 @@
 #include "fmt/format.h"
 
 namespace phlex {
-<<<<<<< new-product-query-api
   // Check that all products selected by /other/ would satisfy this query
   bool product_query::match(product_query const& other) const
-=======
-  product_query::product_query(experimental::product_specification spec, std::string layer) :
-    spec_{std::move(spec)}, layer_{std::move(layer)}
->>>>>>> main
   {
     using experimental::identifier;
     if (identifier(creator) != identifier(other.creator)) {

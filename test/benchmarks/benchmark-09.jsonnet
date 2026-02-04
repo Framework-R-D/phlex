@@ -21,20 +21,12 @@
     },
     even_filter: {
       cpp: 'accept_even_numbers',
-<<<<<<< new-product-query-api
       consumes: { creator: 'a_creator', suffix: 'a', layer: 'event' },
-=======
-      consumes: { product: 'a', layer: 'event' },
->>>>>>> main
     },
     d: {
       cpp: 'read_index',
       experimental_when: ['even_filter:accept_even_numbers'],
-<<<<<<< new-product-query-api
       consumes: { creator: 'b_creator', suffix: 'b', layer: 'event' },
-=======
-      consumes: { product: 'b', layer: 'event' },
->>>>>>> main
     },
   },
 }
