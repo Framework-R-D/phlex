@@ -87,7 +87,9 @@ RUN <<'CLONE_SPACK'
 set -euo pipefail
 
 # Clone Spack checkout used by both CI and dev images
-git clone --depth=2 https://github.com/spack/spack.git /spack
+git clone https://github.com/spack/spack.git /spack
+cd /spack
+git checkout 0d99be382e592d6f4f2f5e314610585cbf0a716a
 CLONE_SPACK
 
 ########################################################################
@@ -170,10 +172,16 @@ set -euo pipefail
 # Install GCC outside the Phlex development environment.
 . /spack/share/spack/setup-env.sh
 
+# We must use the system compiler to build GCC 15, and we want to
+# ensure that GCC 15's dependencies are also built with the system
+# compiler to avoid a concretization loop where GCC 15 would be
+# required to build itself or its dependencies.
+system_compiler=$( { spack config get compilers | grep -oEe 'gcc@[0-9.]+' | head -n1; } || true)
 spack install --fail-fast -j "$(nproc)" \
       gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
       build_type=Release \
-      languages=c,c++,fortran,lto
+      languages=c,c++,fortran,lto \
+      %"${system_compiler:-gcc}"
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
