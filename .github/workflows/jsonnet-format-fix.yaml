@@ -43,7 +43,7 @@ jobs:
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
-        contains(fromJSON('["OWNER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         (
           startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
           startsWith(github.event.comment.body, format('@{0}bot jsonnet-format-fix', github.event.repository.name))
@@ -64,9 +64,6 @@ jobs:
     name: Apply Jsonnet formatting
     needs: pre-check
     if: needs.pre-check.result == 'success'
-    container:
-      image: public.ecr.aws/bitnami/jsonnet:latest
-      options: --user root
 
     steps:
       - name: Checkout code
@@ -79,9 +76,11 @@ jobs:
 
       - name: Apply Jsonnet formatting
         id: lint
-        working-directory: ${{ env.local_checkout_path }}
+        env:
+          CHECKOUT_PATH: ${{ env.local_checkout_path }}
         run: |
-          find . \( -name "*.jsonnet" -o -name "*.libsonnet" \) -print0 | xargs -0 -r jsonnetfmt -i
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
+            sh -c "find \"$CHECKOUT_PATH\" \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i"
         continue-on-error: true
 
       - name: Handle fix commit
