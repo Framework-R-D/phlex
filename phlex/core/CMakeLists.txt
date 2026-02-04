@@ -17,7 +17,6 @@ cet_make_library(
   detail/filter_impl.cpp
   edge_creation_policy.cpp
   edge_maker.cpp
-  end_of_message.cpp
   filter.cpp
   framework_graph.cpp
   glue.cpp
@@ -55,7 +54,6 @@ install(
     declared_unfold.hpp
     edge_creation_policy.hpp
     edge_maker.hpp
-    end_of_message.hpp
     filter.hpp
     framework_graph.hpp
     fwd.hpp
