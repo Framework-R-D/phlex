@@ -10,13 +10,13 @@ def example_func(a, b=1):
     """Example function for testing."""
     return a + b
 
+ann = {"a": int, "b": int, "return": int}
 
 class TestVariant(unittest.TestCase):
     """Tests for Variant wrapper."""
 
     def test_initialization(self):
         """Test proper initialization and attribute exposure."""
-        ann = {"a": int, "b": int, "return": int}
         wrapper = Variant(example_func, ann, "example_wrapper")
 
         self.assertEqual(wrapper.__name__, "example_wrapper")
@@ -28,21 +28,21 @@ class TestVariant(unittest.TestCase):
 
     def test_call_by_default_raises(self):
         """Test that calling the wrapper raises AssertionError by default."""
-        wrapper = Variant(example_func, {}, "no_call")
+        wrapper = Variant(example_func, ann, "no_call")
         with self.assertRaises(AssertionError) as cm:
             wrapper(1)
         self.assertIn("was called directly", str(cm.exception))
 
     def test_allow_call(self):
         """Test that calling is allowed when configured."""
-        wrapper = Variant(example_func, {}, "yes_call", allow_call=True)
+        wrapper = Variant(example_func, ann, "yes_call", allow_call=True)
         self.assertEqual(wrapper(10, 20), 30)
 
     def test_clone_shallow(self):
         """Test shallow cloning behavior."""
         # For a function, copy.copy just returns the function itself usually,
         # but let's test the flag logic in Variant
-        wrapper = Variant(example_func, {}, "clone_shallow", clone=True)
+        wrapper = Variant(example_func, ann, "clone_shallow", clone=True)
         # function copy is same object
         self.assertEqual(wrapper.phlex_callable, example_func)
 
