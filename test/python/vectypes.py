@@ -140,22 +140,22 @@ def collectify_int32_list(i: int, j: int) -> list[int]:
 def collectify_uint32_list(
     i: unsigned_int,
     j: unsigned_int,
-) -> "list[unsigned int]":
+) -> "list[unsigned int]":  # type: ignore # noqa: F722
     """Create a uint32 list from two integers."""
-    return [int(i), int(j)]
+    return [unsigned_int(i), unsigned_int(j)]
 
 
-def collectify_int64_list(i: long, j: long) -> "list[long]":
+def collectify_int64_list(i: long, j: long) -> "list[long]":  # type: ignore # noqa: F722
     """Create an int64 list from two integers."""
-    return [int(i), int(j)]
+    return [long(i), long(j)]
 
 
 def collectify_uint64_list(
     i: unsigned_long,
     j: unsigned_long,
-) -> "list[unsigned long]":
+) -> "list[unsigned long]":  # type: ignore # noqa: F722
     """Create a uint64 list from two integers."""
-    return [int(i), int(j)]
+    return [unsigned_long(i), unsigned_long(j)]
 
 
 def sum_list_int32(coll: list[int]) -> int:
@@ -163,17 +163,17 @@ def sum_list_int32(coll: list[int]) -> int:
     return sum(coll)
 
 
-def sum_list_uint32(coll: "list[unsigned int]") -> unsigned_int:
+def sum_list_uint32(coll: "list[unsigned int]") -> unsigned_int:  # type: ignore # noqa: F722
     """Sum a list of uints."""
     return unsigned_int(sum(coll))
 
 
-def sum_list_int64(coll: "list[long]") -> long:
+def sum_list_int64(coll: "list[long]") -> long:  # type: ignore # noqa: F722
     """Sum a list of longs."""
     return long(sum(coll))
 
 
-def sum_list_uint64(coll: "list[unsigned long]") -> unsigned_long:
+def sum_list_uint64(coll: "list[unsigned long]") -> unsigned_long:  # type: ignore # noqa: F722
     """Sum a list of ulongs."""
     return unsigned_long(sum(coll))
 
