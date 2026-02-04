@@ -65,7 +65,12 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
 
   // The framework will see one fewer data cells than were emitted by the generator (for
   // the data layer in which the exception was thrown).
-  CHECK(gen.emitted_cell_count("/job/spill") == g.seen_cell_count("spill") + 1u);
+  //
+  // With the current implementation, it is possible that framework graph will not see the
+  // "/job/spill" data layer before the job ends.  In that case, the "/job/spill" layer
+  // will not have been recorded, and we therefore allow it to be "missing", which is what
+  // the 'true' argument allows for.
+  CHECK(gen.emitted_cell_count("/job/spill") == g.seen_cell_count("/job/spill", true) + 1u);
 
   // A node has not "executed" until it has returned successfully.  For that reason,
   // neither the "throw_exception" provider nor the "downstream_of_exception" observer

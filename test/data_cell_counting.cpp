@@ -6,6 +6,7 @@
 #include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
+using phlex::data_cell_index;
 
 namespace {
   auto const job_hash_value = hash("job");
@@ -27,6 +28,33 @@ TEST_CASE("Counter one layer deep", "[data model]")
   CHECK(job_counter.result().count_for(event_hash_value) == 10);
 }
 
+TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
+{
+  data_layer_hierarchy h;
+  CHECK_THROWS(h.count_for("/job"));
+  CHECK(h.count_for("/job", true) == 0);
+
+  auto job_index = data_cell_index::base_ptr();
+  h.increment_count(job_index);
+  CHECK(h.count_for("/job") == 1);
+
+  auto spill_index = job_index->make_child(0, "spill");
+  h.increment_count(spill_index);
+
+  auto run_index = job_index->make_child(0, "run");
+  h.increment_count(run_index);
+  CHECK(h.count_for("/job/run") == 1);
+  CHECK(h.count_for("run") == 1);
+
+  // Nested spill indices
+  h.increment_count(run_index->make_child(0, "spill"));
+  h.increment_count(run_index->make_child(1, "spill"));
+
+  CHECK_THROWS(h.count_for("spill"));
+  CHECK(h.count_for("/job/spill") == 1);
+  CHECK(h.count_for("/job/run/spill") == 2);
+}
+
 TEST_CASE("Counter multiple layers deep", "[data model]")
 {
   constexpr std::size_t nruns{2ull};
@@ -43,17 +71,16 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
 
   // Notice the wholesale capture by reference--generally a lazy way of doing things.
   auto check_all_processed = [&] {
-    CHECK(h.count_for("job") == processed_jobs);
-    CHECK(h.count_for("run") == processed_runs);
-    CHECK(h.count_for("subrun") == processed_subruns);
-    CHECK(h.count_for("event") == processed_events);
+    CHECK(h.count_for("job", true) == processed_jobs);
+    CHECK(h.count_for("run", true) == processed_runs);
+    CHECK(h.count_for("subrun", true) == processed_subruns);
+    CHECK(h.count_for("event", true) == processed_events);
   };
 
   auto const run_hash_value = hash(job_hash_value, "run");
   auto const subrun_hash_value = hash(run_hash_value, "subrun");
   auto const event_hash_value = hash(subrun_hash_value, "event");
 
-  using phlex::data_cell_index;
   auto job_index = data_cell_index::base_ptr();
   counters.update(job_index);
   for (std::size_t i = 0; i != nruns; ++i) {

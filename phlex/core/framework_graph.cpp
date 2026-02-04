@@ -79,9 +79,10 @@ namespace phlex::experimental {
     }
   }
 
-  std::size_t framework_graph::seen_cell_count(std::string const& layer_name) const
+  std::size_t framework_graph::seen_cell_count(std::string const& layer_name,
+                                               bool const missing_ok) const
   {
-    return hierarchy_.count_for(layer_name);
+    return hierarchy_.count_for(layer_name, missing_ok);
   }
 
   std::size_t framework_graph::execution_count(std::string const& node_name) const

@@ -26,17 +26,42 @@ namespace phlex::experimental {
     // guard against overwriting the value of "count", we use the returned iterator "it",
     // which will either refer to the new node in the map, or to the already-emplaced
     // node.  We then increment the count.
-    auto [it, _] = layers_.emplace(id->layer_hash(),
-                                   std::make_shared<layer_entry>(id->layer_name(), parent_hash));
+    auto [it, _] = layers_.emplace(
+      id->layer_hash(),
+      std::make_shared<layer_entry>(id->layer_name(), id->layer_path(), parent_hash));
     ++it->second->count;
   }
 
-  std::size_t data_layer_hierarchy::count_for(std::string const& layer_name) const
+  std::size_t data_layer_hierarchy::count_for(std::string const& layer, bool const missing_ok) const
   {
-    auto it = find_if(begin(layers_), end(layers_), [&layer_name](auto const& layer) {
-      return layer.second->name == layer_name;
-    });
-    return it != cend(layers_) ? it->second->count.load() : 0;
+    // The assumption is that specified layer is the component of a layer path
+    std::string search_token = layer;
+    if (not layer.starts_with("/")) {
+      search_token = '/' + layer;
+    }
+
+    std::vector<layer_entry const*> candidates;
+    for (auto const& [_, entry] : layers_) {
+      if (entry->layer_path.ends_with(search_token)) {
+        candidates.push_back(entry.get());
+      }
+    }
+
+    if (candidates.empty()) {
+      return missing_ok ? 0ull
+                        : throw std::runtime_error("No layers match the specification " + layer);
+    }
+
+    if (candidates.size() > 1ull) {
+      std::string msg{"The following data layers match the specification " + layer + ":\n"};
+      for (auto const* entry : candidates) {
+        msg += "\n- " + entry->layer_path;
+      }
+      msg += "\n\nPlease specify the full layer path to disambiguate between them.";
+      throw std::runtime_error(msg);
+    }
+
+    return candidates[0]->count.load();
   }
 
   void data_layer_hierarchy::print() const { spdlog::info("{}", graph_layout()); }
@@ -85,6 +110,6 @@ namespace phlex::experimental {
 
     auto const initial_indent = "  ";
     return fmt::format(
-      "\nSeen layers:\n\n{}job{}\n", initial_indent, pretty_recurse(tree, "job", initial_indent));
+      "\n\nSeen layers:\n\n{}job{}\n", initial_indent, pretty_recurse(tree, "job", initial_indent));
   }
 }
