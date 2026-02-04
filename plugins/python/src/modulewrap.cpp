@@ -58,7 +58,7 @@ namespace {
   static inline PyObject* lifeline_transform(intptr_t arg)
   {
     PyObject* pyobj = (PyObject*)arg;
-    if (pyobj && Py_TYPE(pyobj) == &PhlexLifeline_Type) {
+    if (pyobj && PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
       return ((py_lifeline_t*)pyobj)->m_view;
     }
     return pyobj;
@@ -797,16 +797,12 @@ static PyObject* parse_args(PyObject* args,
     if (ret)
       output_types.push_back(annotation_as_text(ret));
 
-    // Iterate over labels to ensure type order matches label order
-    for (auto const& label : input_labels) {
-      PyObject* key = PyUnicode_FromString(label.c_str());
-      PyObject* value = PyDict_GetItemWithError(annot, key);
-      if (value) {
-        input_types.push_back(annotation_as_text(value));
-      } else {
-        input_types.push_back("unknown");
-      }
-      Py_DECREF(key);
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
+    while (PyDict_Next(annot, &pos, &key, &value)) {
+      if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0)
+        continue;
+      input_types.push_back(annotation_as_text(value));
     }
   }
   Py_XDECREF(annot);
@@ -967,6 +963,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   if (output_types.empty()) {
     PyErr_Format(PyExc_TypeError, "a transform should have an output type");
+    Py_DECREF(callable);
     return nullptr;
   }
 
@@ -976,8 +973,10 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string output = output_labels[0];
   std::string output_type = output_types[0];
 
-  if (!insert_input_converters(mod, cname, input_labels, input_types))
+  if (!insert_input_converters(mod, cname, input_labels, input_types)) {
+    Py_DECREF(callable);
     return nullptr; // error already set
+  }
 
   // register Python transform
   std::string py_out = "py" + output + "_" + cname;
@@ -987,6 +986,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
       .input_family(
         product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER})
       .output_products(py_out);
+    Py_DECREF(callable);
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
@@ -994,6 +994,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
         product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
         product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER})
       .output_products(py_out);
+    Py_DECREF(callable);
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3{callable};
     mod->ph_module->transform(cname, *pyc, concurrency::serial)
@@ -1002,8 +1003,10 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
         product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER},
         product_query{product_specification::create(cname + "_" + input_labels[2] + "py"), LAYER})
       .output_products(py_out);
+    Py_DECREF(callable);
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
+    Py_DECREF(callable);
     return nullptr;
   }
 
@@ -1123,8 +1126,10 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  if (!insert_input_converters(mod, cname, input_labels, input_types))
+  if (!insert_input_converters(mod, cname, input_labels, input_types)) {
+    Py_DECREF(callable);
     return nullptr; // error already set
+  }
 
   // register Python observer
   if (input_labels.size() == 1) {
@@ -1132,12 +1137,14 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
         product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER});
+    Py_DECREF(callable);
   } else if (input_labels.size() == 2) {
     auto* pyc = new py_callback_2v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
         product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
         product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER});
+    Py_DECREF(callable);
   } else if (input_labels.size() == 3) {
     auto* pyc = new py_callback_3v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
@@ -1145,8 +1152,10 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
         product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
         product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER},
         product_query{product_specification::create(cname + "_" + input_labels[2] + "py"), LAYER});
+    Py_DECREF(callable);
   } else {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
+    Py_DECREF(callable);
     return nullptr;
   }
 
