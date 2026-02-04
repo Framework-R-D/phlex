@@ -67,17 +67,17 @@ namespace {
   // callable object managing the callback
   template <size_t N>
   struct py_callback {
-    PyObject const* m_callable; // owned
+    PyObject* m_callable; // owned
 
-    py_callback(PyObject const* callable)
+    py_callback(PyObject* callable)
     {
-      Py_INCREF(callable);
+      Py_XINCREF(callable);
       m_callable = callable;
     }
     py_callback(py_callback const& pc)
     {
       PyGILRAII gil;
-      Py_INCREF(pc.m_callable);
+      Py_XINCREF(pc.m_callable);
       m_callable = pc.m_callable;
     }
     py_callback& operator=(py_callback const& pc)
@@ -94,7 +94,7 @@ namespace {
     {
       if (Py_IsInitialized()) {
         PyGILRAII gil;
-        Py_DECREF(m_callable);
+        Py_XDECREF(m_callable);
       }
     }
 
@@ -105,8 +105,21 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args)..., nullptr);
+      PyObject* arg_tuple = PyTuple_New(N);
+      if (!arg_tuple)
+        return (intptr_t)nullptr;
+
+      size_t i = 0;
+      ([&](intptr_t arg) {
+        PyObject* pyarg = lifeline_transform(arg);
+        if (!pyarg)
+          pyarg = Py_None;
+        Py_INCREF(pyarg);
+        PyTuple_SET_ITEM(arg_tuple, i++, pyarg);
+      }(args), ...);
+
+      PyObject* result = PyObject_Call(m_callable, arg_tuple, nullptr);
+      Py_DECREF(arg_tuple);
 
       std::string error_msg;
       if (!result) {
@@ -130,8 +143,21 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args)..., nullptr);
+      PyObject* arg_tuple = PyTuple_New(N);
+      if (!arg_tuple)
+        return;
+
+      size_t i = 0;
+      ([&](intptr_t arg) {
+        PyObject* pyarg = lifeline_transform(arg);
+        if (!pyarg)
+          pyarg = Py_None;
+        Py_INCREF(pyarg);
+        PyTuple_SET_ITEM(arg_tuple, i++, pyarg);
+      }(args), ...);
+
+      PyObject* result = PyObject_Call(m_callable, arg_tuple, nullptr);
+      Py_DECREF(arg_tuple);
 
       std::string error_msg;
       if (!result) {
@@ -365,14 +391,17 @@ namespace {
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
+    if (!v)                                                                                        \
+      return (intptr_t)nullptr;                                                                    \
+                                                                                                   \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
     npy_intp dims[] = {static_cast<npy_intp>(v->size())};                                          \
                                                                                                    \
-    PyObject* np_view = PyArray_SimpleNewFromData(1,        /* 1-D array */                        \
-                                                  dims,     /* dimension sizes */                  \
-                                                  nptype,   /* numpy C type */                     \
-                                                  v->data() /* raw buffer */                       \
+    PyObject* np_view = PyArray_SimpleNewFromData(1,                 /* 1-D array */               \
+                                                  dims,              /* dimension sizes */         \
+                                                  nptype,            /* numpy C type */            \
+                                                  (void*)(v->data()) /* raw buffer */              \
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
@@ -386,6 +415,10 @@ namespace {
     /* when passing it to the registered Python function */                                        \
     py_lifeline_t* pyll =                                                                          \
       (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
+    if (!pyll) {                                                                                   \
+      Py_DECREF(np_view);                                                                          \
+      return (intptr_t)nullptr;                                                                    \
+    }                                                                                              \
     new (&pyll->m_source) std::shared_ptr<void>(v);                                                \
     pyll->m_view = np_view; /* steals reference */                                                 \
                                                                                                    \
@@ -760,12 +793,16 @@ static PyObject* parse_args(PyObject* args,
     if (ret)
       output_types.push_back(annotation_as_text(ret));
 
-    Py_ssize_t pos = 0;
-    PyObject *key, *value;
-    while (PyDict_Next(annot, &pos, &key, &value)) {
-      if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0)
-        continue;
-      input_types.push_back(annotation_as_text(value));
+    // Iterate over labels to ensure type order matches label order
+    for (auto const& label : input_labels) {
+      PyObject* key = PyUnicode_FromString(label.c_str());
+      PyObject* value = PyDict_GetItemWithError(annot, key);
+      if (value) {
+        input_types.push_back(annotation_as_text(value));
+      } else {
+        input_types.push_back("unknown");
+      }
+      Py_DECREF(key);
     }
   }
   Py_XDECREF(annot);
