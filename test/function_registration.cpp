@@ -54,7 +54,10 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{"number"_in("job"), "temperature"_in("job"), "name"_in("job")};
+  std::array const product_names{
+    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "number"_id},
+    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "temperature"_id},
+    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "name"_id}};
   std::array const oproduct_names = {"onumber"s, "otemperature"s, "oname"s};
   std::array const result{"result"s};
 
@@ -62,10 +65,12 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product("number"_in("job"));
+    .output_product(product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "number"_id});
   g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
-    .output_product("temperature"_in("job"));
-  g.provide("provide_name", provide_name, concurrency::unlimited).output_product("name"_in("job"));
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "temperature"_id});
+  g.provide("provide_name", provide_name, concurrency::unlimited)
+    .output_product(product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "name"_id});
 
   SECTION("No framework")
   {

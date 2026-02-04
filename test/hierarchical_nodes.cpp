@@ -93,7 +93,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               spdlog::info("Providing time for {}", index.to_string());
               return std::time(nullptr);
             })
-    .output_product("time"_in("run"));
+    .output_product(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "time"_id});
 
   g.provide("provide_number",
             [](data_cell_index const& index) -> unsigned int {
@@ -101,26 +101,30 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               auto const run_number = index.parent()->number();
               return event_number + run_number;
             })
-    .output_product("number"_in("event"));
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id});
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
-    .input_family("time"_in("run"))
+    .input_family(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "time"_id})
     .experimental_when()
     .output_products("strtime");
   g.transform("square", square, concurrency::unlimited)
-    .input_family("number"_in("event"))
+    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id})
     .output_products("squared_number");
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
-    .input_family("squared_number"_in("event"))
+    .input_family(
+      product_query{.creator = "square"_id, .layer = "event"_id, .suffix = "squared_number"_id})
     .experimental_when()
     .output_products("added_data");
 
   g.transform("scale", scale, concurrency::unlimited)
-    .input_family("added_data"_in("run"))
+    .input_family(product_query{.creator = "add"_id, .layer = "run"_id, .suffix = "added_data"_id})
     .output_products("result");
   g.observe("print_result", print_result, concurrency::unlimited)
-    .input_family("result"_in("run"), "strtime"_in("run"));
+    .input_family(
+      product_query{.creator = "scale"_id, .layer = "run"_id, .suffix = "result"_id},
+      product_query{.creator = "get_the_time"_id, .layer = "run"_id, .suffix = "strtime"_id});
 
   g.make<experimental::test::products_for_output>()
     .output("save", &experimental::test::products_for_output::save)

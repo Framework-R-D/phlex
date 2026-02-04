@@ -45,8 +45,10 @@ TEST_CASE("Filter decision", "[filtering]")
 
 TEST_CASE("Filter data map", "[filtering]")
 {
-  using phlex::operator""_in;
-  std::vector const data_products_to_cache{"a"_in("spill"), "b"_in("spill")};
+  using phlex::product_query;
+  std::vector const data_products_to_cache{
+    product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "a"_id},
+    product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "b"_id}};
   data_map data{data_products_to_cache};
 
   // Stores with the data products "a" and "b"

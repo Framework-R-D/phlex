@@ -8,9 +8,8 @@
 #include <string_view>
 
 namespace {
-  [[maybe_unused]] std::optional<std::string> value_if_exists(
-    boost::json::object const& obj, // will be used later for new product_query
-    std::string_view parameter)
+  std::optional<phlex::experimental::identifier> value_if_exists(boost::json::object const& obj,
+                                                                 std::string_view parameter)
   {
     if (!obj.contains(parameter)) {
       return std::nullopt;
@@ -42,15 +41,14 @@ namespace {
         kind = "object";
         break;
       default:
-        // std::unreachable();
-        break;
+        std::unreachable();
       }
-      throw std::runtime_error(
-        fmt::format("Error retrieving parameter '{}'. Should be a string but is instead a {}",
-                    parameter,
-                    kind));
+      throw std::runtime_error(fmt::format(
+        "Error retrieving parameter '{}'. Should be an identifier string but is instead a {}",
+        parameter,
+        kind));
     }
-    return boost::json::value_to<std::string>(val);
+    return boost::json::value_to<phlex::experimental::identifier>(val);
   }
 }
 
@@ -75,8 +73,11 @@ namespace phlex {
   {
     using detail::value_decorate_exception;
     auto query_object = jv.as_object();
-    auto product = value_decorate_exception<std::string>(query_object, "product");
-    auto layer = value_decorate_exception<std::string>(query_object, "layer");
-    return product_query{experimental::product_specification::create(product), layer};
+    auto creator = value_decorate_exception<experimental::identifier>(query_object, "creator");
+    auto layer = value_decorate_exception<experimental::identifier>(query_object, "layer");
+    auto suffix = value_if_exists(query_object, "suffix");
+    auto stage = value_if_exists(query_object, "stage");
+    return product_query{
+      .creator = std::move(creator), .layer = std::move(layer), .suffix = suffix, .stage = stage};
   }
 }

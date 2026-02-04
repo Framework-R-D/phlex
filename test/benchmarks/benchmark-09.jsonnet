@@ -13,18 +13,20 @@
   modules: {
     a_creator: {
       cpp: 'last_index',
+      input: { creator: 'a_creator', layer: 'event', suffix: 'a' },
     },
     b_creator: {
       cpp: 'plus_one',
+      input: { creator: 'a_creator', layer: 'event', suffix: 'a' },
     },
     even_filter: {
       cpp: 'accept_even_numbers',
-      consumes: { product: 'a', layer: 'event' },
+      consumes: { creator: 'a_creator', suffix: 'a', layer: 'event' },
     },
     d: {
       cpp: 'read_index',
       experimental_when: ['even_filter:accept_even_numbers'],
-      consumes: { product: 'b', layer: 'event' },
+      consumes: { creator: 'b_creator', suffix: 'b', layer: 'event' },
     },
   },
 }
