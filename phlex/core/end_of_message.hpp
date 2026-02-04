@@ -12,7 +12,6 @@ namespace phlex::experimental {
   public:
     static end_of_message_ptr make_base(data_layer_hierarchy* hierarchy, data_cell_index_ptr id);
     end_of_message_ptr make_child(data_cell_index_ptr id);
-    ~end_of_message();
 
   private:
     end_of_message(end_of_message_ptr parent,
