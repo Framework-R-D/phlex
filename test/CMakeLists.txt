@@ -23,6 +23,7 @@ cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
 )
 cet_test(type_id SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
+cet_test(identifier SOURCE identifier.cpp LIBRARIES phlex::model fmt::fmt)
 cet_test(
   yielding_driver
   SOURCE
