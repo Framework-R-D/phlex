@@ -16,7 +16,7 @@ namespace phlex::experimental {
     emitted_cells_["/job"] = 0ull;
   }
 
-  std::size_t layer_generator::emitted_cells(std::string layer_path) const
+  std::size_t layer_generator::emitted_cell_count(std::string layer_path) const
   {
     // Check if the count of all emitted cells is requested
     if (layer_path.empty()) {

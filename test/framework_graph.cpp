@@ -36,9 +36,9 @@ TEST_CASE("Make progress with one thread", "[graph]")
     .input_family("number"_in("spill"));
   g.execute();
 
-  CHECK(gen.emitted_cells("/job/spill") == 1000);
-  CHECK(g.execution_counts("provide_number") == 1000);
-  CHECK(g.execution_counts("observe_number") == 1000);
+  CHECK(gen.emitted_cell_count("/job/spill") == 1000);
+  CHECK(g.execution_count("provide_number") == 1000);
+  CHECK(g.execution_count("observe_number") == 1000);
 }
 
 TEST_CASE("Stop driver when workflow throws exception", "[graph]")
@@ -63,24 +63,13 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
 
   CHECK_THROWS(g.execute());
 
-  // There are N + 1 potential existing threads for a framework job, where N corresponds
-  // to the number configured by the user, and 1 corresponds to the separate std::jthread
-  // created by the async_driver.  Each "pull" from the async_driver happens in a
-  // serialized way.  However, once an index has been pulled from the async_driver by the
-  // flow graph, that index is sent to downstream nodes for further processing.
-  //
-  // The first node that processes that index is a provider that immediately throws an
-  // exception.  This places the framework graph in an error state, where the async_driver
-  // is short-circuited from doing further processing.
-  //
-  // We make the assumption that one of those threads will trigger the exception and the
-  // remaining threads must be permitted to complete.
-  CHECK(gen.emitted_cells("/job/spill") <=
-        static_cast<std::size_t>(experimental::max_allowed_parallelism::active_value() + 1));
+  // The framework will see one fewer data cells than were emitted by the generator (for
+  // the data layer in which the exception was thrown).
+  CHECK(gen.emitted_cell_count("/job/spill") == g.seen_cell_count("spill") + 1u);
 
   // A node has not "executed" until it has returned successfully.  For that reason,
   // neither the "throw_exception" provider nor the "downstream_of_exception" observer
   // will have executed.
-  CHECK(g.execution_counts("throw_exception") == 0ull);
-  CHECK(g.execution_counts("downstream_of_exception") == 0ull);
+  CHECK(g.execution_count("throw_exception") == 0ull);
+  CHECK(g.execution_count("downstream_of_exception") == 0ull);
 }

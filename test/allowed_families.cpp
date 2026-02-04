@@ -55,12 +55,12 @@ TEST_CASE("Testing families", "[data model]")
     .input_family("id"_in("run"), "id"_in("subrun"), "id"_in("event"));
   g.execute();
 
-  CHECK(g.execution_counts("se") == 1ull);
-  CHECK(g.execution_counts("rs") == 1ull);
-  CHECK(g.execution_counts("rse") == 1ull);
+  CHECK(g.execution_count("se") == 1ull);
+  CHECK(g.execution_count("rs") == 1ull);
+  CHECK(g.execution_count("rse") == 1ull);
 
   // FIXME: Need to improve the synchronization to supply strict equality
-  CHECK(g.execution_counts("run_id_provider") >= 1ull);
-  CHECK(g.execution_counts("subrun_id_provider") >= 1ull);
-  CHECK(g.execution_counts("event_id_provider") == 1ull);
+  CHECK(g.execution_count("run_id_provider") >= 1ull);
+  CHECK(g.execution_count("subrun_id_provider") >= 1ull);
+  CHECK(g.execution_count("event_id_provider") == 1ull);
 }

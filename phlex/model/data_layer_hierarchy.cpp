@@ -84,8 +84,7 @@ namespace phlex::experimental {
     }
 
     auto const initial_indent = "  ";
-    return fmt::format("\nProcessed layers:\n\n{}job{}\n",
-                       initial_indent,
-                       pretty_recurse(tree, "job", initial_indent));
+    return fmt::format(
+      "\nSeen layers:\n\n{}job{}\n", initial_indent, pretty_recurse(tree, "job", initial_indent));
   }
 }

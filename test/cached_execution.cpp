@@ -91,12 +91,12 @@ TEST_CASE("Cached function calls", "[data model]")
   g.execute();
 
   // FIXME: Need to improve the synchronization to supply strict equality
-  CHECK(g.execution_counts("A1") >= n_runs);
-  CHECK(g.execution_counts("A2") >= n_runs);
-  CHECK(g.execution_counts("A3") >= n_runs);
+  CHECK(g.execution_count("A1") >= n_runs);
+  CHECK(g.execution_count("A2") >= n_runs);
+  CHECK(g.execution_count("A3") >= n_runs);
 
-  CHECK(g.execution_counts("B1") >= n_runs * n_subruns);
-  CHECK(g.execution_counts("B2") >= n_runs * n_subruns);
+  CHECK(g.execution_count("B1") >= n_runs * n_subruns);
+  CHECK(g.execution_count("B2") >= n_runs * n_subruns);
 
-  CHECK(g.execution_counts("C") == n_runs * n_subruns * n_events);
+  CHECK(g.execution_count("C") == n_runs * n_subruns * n_events);
 }

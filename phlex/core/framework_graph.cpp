@@ -79,14 +79,19 @@ namespace phlex::experimental {
     }
   }
 
-  std::size_t framework_graph::execution_counts(std::string const& node_name) const
+  std::size_t framework_graph::seen_cell_count(std::string const& layer_name) const
   {
-    return nodes_.execution_counts(node_name);
+    return hierarchy_.count_for(layer_name);
   }
 
-  std::size_t framework_graph::product_counts(std::string const& node_name) const
+  std::size_t framework_graph::execution_count(std::string const& node_name) const
   {
-    return nodes_.product_counts(node_name);
+    return nodes_.execution_count(node_name);
+  }
+
+  std::size_t framework_graph::product_count(std::string const& node_name) const
+  {
+    return nodes_.product_count(node_name);
   }
 
   void framework_graph::execute()
