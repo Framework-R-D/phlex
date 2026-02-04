@@ -172,9 +172,9 @@ namespace phlex::experimental {
                nodes_.unfolds,
                nodes_.transforms);
 
-    // The hierarchy node is used to report which data layers have been processed.  To
-    // assemble the report, data-cell indices from the input node/driver are recorded as
-    // well as any data-cell indices created via an unfold.
+    // The hierarchy node is used to report which data layers have been seen by the
+    // framework.  To assemble the report, data-cell indices emitted by the input node are
+    // recorded as well as any data-cell indices emitted by an unfold.
     make_edge(src_, hierarchy_node_);
     for (auto& [_, node] : nodes_.unfolds) {
       make_edge(node->sender(), hierarchy_node_);
