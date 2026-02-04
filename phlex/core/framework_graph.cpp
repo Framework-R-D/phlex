@@ -58,7 +58,14 @@ namespace phlex::experimental {
            auto store = std::make_shared<product_store>(index, "Source");
            return sender_.make_message(accept(std::move(store)));
          }},
-    multiplexer_{graph_}
+    multiplexer_{graph_},
+    hierarchy_node_{
+      graph_, tbb::flow::unlimited, [this](message const& msg) -> tbb::flow::continue_msg {
+        if (not msg.store->is_flush()) {
+          hierarchy_.increment_count(msg.store->index());
+        }
+        return {};
+      }}
   {
     // FIXME: Should the loading of env levels happen in the phlex app only?
     spdlog::cfg::load_env_levels();
@@ -167,6 +174,14 @@ namespace phlex::experimental {
                nodes_.folds,
                nodes_.unfolds,
                nodes_.transforms);
+
+    // The hierarchy node is used to report which data layers have been seen by the
+    // framework.  To assemble the report, data-cell indices emitted by the input node are
+    // recorded as well as any data-cell indices emitted by an unfold.
+    make_edge(src_, hierarchy_node_);
+    for (auto& [_, node] : nodes_.unfolds) {
+      make_edge(node->sender(), hierarchy_node_);
+    }
   }
 
   product_store_ptr framework_graph::accept(product_store_ptr store)

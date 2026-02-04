@@ -181,6 +181,7 @@ namespace phlex::experimental {
     std::vector<std::string> registration_errors_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
+    tbb::flow::function_node<message> hierarchy_node_;
     std::stack<end_of_message_ptr> eoms_;
     message_sender sender_{hierarchy_, multiplexer_, eoms_};
     std::queue<product_store_ptr> pending_stores_;

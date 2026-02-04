@@ -21,11 +21,4 @@ namespace phlex::experimental {
     return end_of_message_ptr{new end_of_message{shared_from_this(), hierarchy_, id}};
   }
 
-  end_of_message::~end_of_message()
-  {
-    if (hierarchy_) {
-      hierarchy_->increment_count(id_);
-    }
-  }
-
 }
