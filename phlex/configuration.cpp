@@ -80,4 +80,10 @@ namespace phlex {
     auto layer = value_decorate_exception<std::string>(query_object, "layer");
     return product_query{experimental::product_specification::create(product), layer};
   }
+
+  experimental::identifier experimental::tag_invoke(boost::json::value_to_tag<identifier> const&,
+                                                    boost::json::value const& jv)
+  {
+    return identifier{std::string_view(jv.as_string())};
+  }
 }
