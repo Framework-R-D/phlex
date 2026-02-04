@@ -1,6 +1,23 @@
 name: 'Handle Fix Commit'
 description: 'Commits changes if possible, otherwise creates a patch and comments on the PR.'
 
+outputs:
+  changes:
+    description: 'Whether changes were detected'
+    value: ${{ steps.check_changes.outputs.changes }}
+  pushed:
+    description: 'Whether changes were pushed'
+    value: ${{ steps.commit_and_push.outputs.pushed }}
+  commit_sha:
+    description: 'The full SHA of the pushed commit'
+    value: ${{ steps.commit_and_push.outputs.commit_sha }}
+  commit_sha_short:
+    description: 'The short SHA of the pushed commit'
+    value: ${{ steps.commit_and_push.outputs.commit_sha_short }}
+  patch_name:
+    description: 'The name of the patch file if created'
+    value: ${{ steps.create_patch.outputs.patch_name }}
+
 inputs:
   tool:
     description: 'The tool name reported in commit messages and PR comments.'
