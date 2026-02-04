@@ -58,7 +58,7 @@ namespace {
   static inline PyObject* lifeline_transform(intptr_t arg)
   {
     PyObject* pyobj = (PyObject*)arg;
-    if (Py_TYPE(pyobj) == &PhlexLifeline_Type) {
+    if (pyobj && Py_TYPE(pyobj) == &PhlexLifeline_Type) {
       return ((py_lifeline_t*)pyobj)->m_view;
     }
     return pyobj;
@@ -84,7 +84,8 @@ namespace {
     {
       if (this != &pc) {
         PyGILRAII gil;
-        Py_INCREF(pc.m_callable);
+        Py_XINCREF(pc.m_callable);
+        Py_XDECREF(m_callable);
         m_callable = pc.m_callable;
       }
       return *this;
@@ -130,7 +131,7 @@ namespace {
       PyGILRAII gil;
 
       PyObject* result =
-        PyObject_CallFunctionObjArgs((PyObject*)m_callable, (PyObject*)args..., nullptr);
+        PyObject_CallFunctionObjArgs((PyObject*)m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -234,10 +235,12 @@ namespace {
         pystr = PyObject_Str(pyobj);
       }
 
-      char const* cstr = PyUnicode_AsUTF8(pystr);
-      if (cstr)
-        ann = cstr;
-      Py_DECREF(pystr);
+      if (pystr) {
+        char const* cstr = PyUnicode_AsUTF8(pystr);
+        if (cstr)
+          ann = cstr;
+        Py_DECREF(pystr);
+      }
 
       // for numpy typing, there's no useful way of figuring out the type from the
       // name of the type, only from its string representation, so fall through and
@@ -247,10 +250,12 @@ namespace {
 
       // start over for numpy type using result from str()
       pystr = PyObject_Str(pyobj);
-      cstr = PyUnicode_AsUTF8(pystr);
-      if (cstr) // if failed, ann will remain "ndarray"
-        ann = cstr;
-      Py_DECREF(pystr);
+      if (pystr) {
+        char const* cstr = PyUnicode_AsUTF8(pystr);
+        if (cstr) // if failed, ann will remain "ndarray"
+          ann = cstr;
+        Py_DECREF(pystr);
+      }
       return ann;
     }
 
