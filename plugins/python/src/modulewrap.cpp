@@ -71,6 +71,7 @@ namespace {
 
     py_callback(PyObject* callable)
     {
+      PyGILRAII gil;
       Py_XINCREF(callable);
       m_callable = callable;
     }
@@ -105,9 +106,16 @@ namespace {
 
       PyGILRAII gil;
 
+      if (!m_callable) {
+        decref_all(args...);
+        throw std::runtime_error("Python callback attempted on NULL callable");
+      }
+
       PyObject* arg_tuple = PyTuple_New(N);
-      if (!arg_tuple)
+      if (!arg_tuple) {
+        decref_all(args...);
         return (intptr_t)nullptr;
+      }
 
       size_t i = 0;
       (
@@ -145,9 +153,16 @@ namespace {
 
       PyGILRAII gil;
 
+      if (!m_callable) {
+        decref_all(args...);
+        throw std::runtime_error("Python callback attempted on NULL callable");
+      }
+
       PyObject* arg_tuple = PyTuple_New(N);
-      if (!arg_tuple)
+      if (!arg_tuple) {
+        decref_all(args...);
         return;
+      }
 
       size_t i = 0;
       (
@@ -423,7 +438,7 @@ namespace {
       Py_DECREF(np_view);                                                                          \
       return (intptr_t)nullptr;                                                                    \
     }                                                                                              \
-    new (&pyll->m_source) std::shared_ptr<void>(v);                                                \
+    pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \
                                                                                                    \
     return (intptr_t)pyll;                                                                         \
