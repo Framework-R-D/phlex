@@ -755,15 +755,13 @@ static PyObject* parse_args(PyObject* args,
     if (ret)
       output_types.push_back(annotation_as_text(ret));
 
-    // dictionary is ordered with return last if provide (note: the keys here
-    // could be used as input labels, instead of the ones from the configuration,
-    // but that is probably not practical in actual use, so they are ignored)
-    PyObject* values = PyDict_Values(annot);
-    for (Py_ssize_t i = 0; i < (PyList_GET_SIZE(values) - (ret ? 1 : 0)); ++i) {
-      PyObject* item = PyList_GET_ITEM(values, i);
-      input_types.push_back(annotation_as_text(item));
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
+    while (PyDict_Next(annot, &pos, &key, &value)) {
+      if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0)
+        continue;
+      input_types.push_back(annotation_as_text(value));
     }
-    Py_DECREF(values);
   }
   Py_XDECREF(annot);
 
@@ -872,6 +870,21 @@ static bool insert_input_converters(py_phlex_module* mod,
     } else if (inp_type == "list[int]") {
       std::string py_out = cname + "_" + inp + "py";
       mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[unsigned int]" || inp_type == "list['unsigned int']") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[long]" || inp_type == "list['long']") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
+        .input_family(product_query{product_specification::create(inp), LAYER})
+        .output_products(py_out);
+    } else if (inp_type == "list[unsigned long]" || inp_type == "list['unsigned long']") {
+      std::string py_out = cname + "_" + inp + "py";
+      mod->ph_module->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
         .input_family(product_query{product_specification::create(inp), LAYER})
         .output_products(py_out);
     } else if (inp_type == "list[float]") {
@@ -1011,6 +1024,21 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   } else if (output_type == "list[int]") {
     auto py_in = "py" + output + "_" + cname;
     mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[unsigned int]" || output_type == "list['unsigned int']") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvuint_" + output + "_" + cname, py_to_vuint, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[long]" || output_type == "list['long']") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvlong_" + output + "_" + cname, py_to_vlong, concurrency::serial)
+      .input_family(product_query{product_specification::create(py_in), LAYER})
+      .output_products(output);
+  } else if (output_type == "list[unsigned long]" || output_type == "list['unsigned long']") {
+    auto py_in = "py" + output + "_" + cname;
+    mod->ph_module->transform("pyvulong_" + output + "_" + cname, py_to_vulong, concurrency::serial)
       .input_family(product_query{product_specification::create(py_in), LAYER})
       .output_products(output);
   } else if (output_type == "list[float]") {

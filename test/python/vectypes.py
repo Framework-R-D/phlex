@@ -140,12 +140,12 @@ def collectify_int32_list(i: int, j: int) -> list[int]:
 def collectify_uint32_list(
     i: unsigned_int,
     j: unsigned_int,
-) -> list[int]:
+) -> "list[unsigned int]":
     """Create a uint32 list from two integers."""
     return [int(i), int(j)]
 
 
-def collectify_int64_list(i: long, j: long) -> list[int]:
+def collectify_int64_list(i: long, j: long) -> "list[long]":
     """Create an int64 list from two integers."""
     return [int(i), int(j)]
 
@@ -153,7 +153,7 @@ def collectify_int64_list(i: long, j: long) -> list[int]:
 def collectify_uint64_list(
     i: unsigned_long,
     j: unsigned_long,
-) -> list[int]:
+) -> "list[unsigned long]":
     """Create a uint64 list from two integers."""
     return [int(i), int(j)]
 
@@ -163,17 +163,17 @@ def sum_list_int32(coll: list[int]) -> int:
     return sum(coll)
 
 
-def sum_list_uint32(coll: list[int]) -> unsigned_int:
+def sum_list_uint32(coll: "list[unsigned int]") -> unsigned_int:
     """Sum a list of uints."""
     return unsigned_int(sum(coll))
 
 
-def sum_list_int64(coll: list[int]) -> long:
+def sum_list_int64(coll: "list[long]") -> long:
     """Sum a list of longs."""
     return long(sum(coll))
 
 
-def sum_list_uint64(coll: list[int]) -> unsigned_long:
+def sum_list_uint64(coll: "list[unsigned long]") -> unsigned_long:
     """Sum a list of ulongs."""
     return unsigned_long(sum(coll))
 
