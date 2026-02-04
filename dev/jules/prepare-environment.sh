@@ -55,12 +55,14 @@ echo "--> Installing and configuring Spack..."
 set -x
 
 # Create a user-owned directory for Spack to be installed into
-export SPACK_DEV_ROOT="/opt/spack-dev"
-sudo mkdir -p "$SPACK_DEV_ROOT"
-sudo chown -R "$(id -u):$(id -g)" "$SPACK_DEV_ROOT"
+# We use /spack to match the CI image's location
+export SPACK_ROOT="/spack"
+sudo mkdir -p "$SPACK_ROOT"
+sudo chown -R "$(id -u):$(id -g)" "$SPACK_ROOT"
 
-# Clone Spack
-git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
+# Clone Spack and pin to a specific commit
+git clone https://github.com/spack/spack.git "$SPACK_ROOT"
+(cd "$SPACK_ROOT" && git checkout 0d99be382e592d6f4f2f5e314610585cbf0a716a)
 
 # All Spack operations can now be run as the regular user
 
@@ -77,12 +79,13 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
 
   { set +x; } >/dev/null 2>&1
   # shellcheck source=/dev/null
-  . "${SPACK_DEV_ROOT}/spack/share/spack/setup-env.sh"
+  . "${SPACK_ROOT}/share/spack/setup-env.sh"
   set -x
 
   # Configure Spack repos
-  SPACK_REPO_ROOT="${SPACK_DEV_ROOT}/spack-repos"
-  mkdir -p "$SPACK_REPO_ROOT"
+  SPACK_REPO_ROOT="/opt/spack-repos"
+  sudo mkdir -p "$SPACK_REPO_ROOT"
+  sudo chown -R "$(id -u):$(id -g)" "$SPACK_REPO_ROOT"
   git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
   git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
 
@@ -97,9 +100,13 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
         --exclude ccache --exclude gawk --exclude go --exclude libtool --exclude m4 --exclude npm \
         --exclude pkgconf --exclude openssh --exclude rust
 
-  spack config --scope defaults add "config:build_stage:${SPACK_DEV_ROOT}/spack-stage"
-  spack config --scope defaults add "config:source_cache:${SPACK_DEV_ROOT}/spack-cache/downloads"
-  spack config --scope defaults add "config:misc_cache:${SPACK_DEV_ROOT}/spack-cache/misc"
+  # Configure Spack directories to match CI locations
+  sudo mkdir -p /opt/spack-stage /opt/spack-cache/downloads /opt/spack-cache/misc
+  sudo chown -R "$(id -u):$(id -g)" /opt/spack-stage /opt/spack-cache
+
+  spack config --scope defaults add "config:build_stage:/opt/spack-stage"
+  spack config --scope defaults add "config:source_cache:/opt/spack-cache/downloads"
+  spack config --scope defaults add "config:misc_cache:/opt/spack-cache/misc"
   spack config --scope defaults add "config:install_tree:padded_length:255"
   spack config --scope defaults add "config:url_fetch_method:curl"
 
@@ -116,17 +123,33 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
   echo "--> Installing GCC 15.x ..."
   set -x
 
+  # We must use the system compiler to build GCC 15, and we want to
+  # ensure that GCC 15's dependencies are also built with the system
+  # compiler to avoid a concretization loop where GCC 15 would be
+  # required to build itself or its dependencies.
+  system_compiler=$( { spack config get compilers | grep -oEe 'gcc@[0-9.]+' | head -n1; } || true)
   spack --timestamp install --cache-only --fail-fast -j "$(nproc)" \
         gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
         build_type=Release \
-        languages=c,c++,fortran,lto
+        languages=c,c++,fortran,lto \
+        %"${system_compiler:-gcc}"
+
+  # Register the newly installed GCC 15 as a compiler
+  spack load gcc@15
+  spack compiler find --scope site
+  spack unload gcc@15
 
   { set +x; } >/dev/null 2>&1
   echo "--> Concretizing Phlex Spack environment ..."
   set -x
 
   # Create, activate, and concretize the Spack environment
-  PHLEX_SPACK_ENV="${SPACK_DEV_ROOT}/spack-environments/phlex-ci"
+  # We use /opt/spack-environments/phlex-ci to match the CI image
+  PHLEX_SPACK_ENV="/opt/spack-environments/phlex-ci"
+  sudo mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
+  sudo chown -R "$(id -u):$(id -g)" "$(dirname "$PHLEX_SPACK_ENV")"
+  rm -rf "$PHLEX_SPACK_ENV"
+
   spack env create -d "$PHLEX_SPACK_ENV" "$SNAPSHOT_SPACK_YAML"
   spack env activate -d "$PHLEX_SPACK_ENV"
   spack concretize
@@ -151,14 +174,14 @@ git clone --depth=2 https://github.com/spack/spack.git "${SPACK_DEV_ROOT}/spack"
   echo "--> Spack packages installed."
   set -x
 
-  # Install ruff and gersemi via pip
+  # Install ruff, gersemi, and jsonnet via pip
   { set +x; } >/dev/null 2>&1
-  echo "--> Installing developer tools (ruff, gersemi)..."
+  echo "--> Installing developer tools (ruff, gersemi, jsonnet)..."
   set -x
 
   PYTHONDONTWRITEBYTECODE=1 \
     pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
-    ruff gersemi
+    ruff gersemi jsonnet
 
   # Clean all Spack caches
   { set +x; } >/dev/null 2>&1

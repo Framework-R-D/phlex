@@ -35,10 +35,10 @@ To test or modify the environment preparation script, you should use the provide
     Start an interactive session inside the container, mounting your local Phlex repository into the container's workspace:
 
     ```bash
-    docker run -it --rm --volume "$(pwd):/workspaces/phlex" phlex-jules-dev /bin/bash
+    docker run -it --rm --volume "$(pwd):/app" phlex-jules-dev /bin/bash
     ```
 
-    You are now inside a shell in the container at the `/workspaces/phlex` directory. Any changes you make to the repository files on your host machine will be immediately reflected inside the container.
+    You are now inside a shell in the container at the `/app` directory. Any changes you make to the repository files on your host machine will be immediately reflected inside the container.
 
 3.  **Run the Environment Preparation Script**
 
