@@ -48,7 +48,7 @@ namespace phlex::experimental {
   tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
   {
     ++received_messages_;
-    auto const& [store, eom, message_id, _] = msg;
+    auto const& [store, message_id, _] = msg;
     if (debug_) {
       spdlog::debug("Multiplexing {} with ID {} (is flush: {})",
                     store->index()->to_string(),
@@ -67,7 +67,7 @@ namespace phlex::experimental {
 
     for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
       if (auto store_to_send = store_for(store, product_label.layer())) {
-        port->try_put({std::move(store_to_send), eom, message_id});
+        port->try_put({std::move(store_to_send), message_id});
       }
     }
 

@@ -80,7 +80,7 @@ namespace phlex::experimental {
             auto index_hash = msg.store->index()->hash();
             if (const_accessor ca; cache_.find(ca, index_hash)) {
               // Cache hit - reuse the cached store
-              message const new_msg{ca->second, msg.eom, msg.id};
+              message const new_msg{ca->second, msg.id};
               stay_in_graph.try_put(new_msg);
               to_output.try_put(new_msg);
               return;
@@ -98,7 +98,7 @@ namespace phlex::experimental {
             // Store in cache
             cache_.emplace(index_hash, store);
 
-            message const new_msg{store, msg.eom, msg.id};
+            message const new_msg{store, msg.id};
             stay_in_graph.try_put(new_msg);
             to_output.try_put(new_msg);
             flag_for(msg.store->index()->hash()).mark_as_processed();

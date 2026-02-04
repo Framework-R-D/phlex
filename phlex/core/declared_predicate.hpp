@@ -83,10 +83,10 @@ namespace phlex::experimental {
           if (store->is_flush()) {
             flag_for(store->index()->hash()).flush_received(message_id);
           } else if (const_accessor a; results_.find(a, store->index()->hash())) {
-            result = {msg.eom, message_id, a->second.result};
+            result = {message_id, a->second.result};
           } else if (accessor a; results_.insert(a, store->index()->hash())) {
             bool const rc = call(ft, messages, std::make_index_sequence<N>{});
-            result = a->second = {msg.eom, message_id, rc};
+            result = a->second = {message_id, rc};
             flag_for(store->index()->hash()).mark_as_processed();
           }
 

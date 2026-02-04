@@ -70,9 +70,6 @@ namespace phlex::experimental {
     // FIXME: Should the loading of env levels happen in the phlex app only?
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
-
-    // The parent of the job message is null
-    eoms_.push(nullptr);
   }
 
   framework_graph::~framework_graph()
@@ -190,7 +187,6 @@ namespace phlex::experimental {
     auto const new_depth = store->index()->depth();
     while (not empty(layers_) and new_depth <= layers_.top().depth()) {
       layers_.pop();
-      eoms_.pop();
     }
     layers_.emplace(counters_, sender_, store);
     return store;
@@ -200,7 +196,6 @@ namespace phlex::experimental {
   {
     while (not empty(layers_)) {
       layers_.pop();
-      eoms_.pop();
     }
   }
 }
