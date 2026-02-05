@@ -90,11 +90,6 @@ namespace phlex::experimental {
     return nodes_.execution_count(node_name);
   }
 
-  std::size_t framework_graph::product_count(std::string const& node_name) const
-  {
-    return nodes_.product_count(node_name);
-  }
-
   void framework_graph::execute()
   try {
     finalize();

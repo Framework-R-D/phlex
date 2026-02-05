@@ -25,7 +25,6 @@ namespace phlex::experimental {
     }
 
     std::size_t execution_count(std::string const& node_name) const;
-    std::size_t product_count(std::string const& node_name) const;
 
     simple_ptr_map<declared_predicate_ptr> predicates{};
     simple_ptr_map<declared_observer_ptr> observers{};
