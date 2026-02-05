@@ -98,7 +98,6 @@ jobs:
       - name: Verify compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
         run: |
-          set -euo pipefail
           if [ ! -f "$CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE" ]; then
             echo "Expected compile_commands.json at $CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE" >&2
             exit 1
@@ -159,7 +158,6 @@ jobs:
       - name: Check CodeQL SARIF for new or resolved alerts
         id: check_codeql
         run: |
-          set -euo pipefail
           ARGS=(
             --sarif "$GITHUB_WORKSPACE/sarif"
             --min-level "${CODEQL_MIN_LEVEL}"
