@@ -101,7 +101,7 @@ jobs:
     - name: Evaluate clang-format result
       if: always() && steps.lint.outcome != 'skipped'
       run: |
-        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
           echo "✅ clang-format check passed."
         else
           echo "::error::clang-format check failed. Please review the output above for details."

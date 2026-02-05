@@ -141,7 +141,7 @@ jobs:
     - name: Evaluate actionlint result
       if: always() && steps.lint.outcome != 'skipped'
       run: |
-        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
           echo "✅ actionlint check passed."
         else
           echo "::error::actionlint check failed. Please review the output above for details."
