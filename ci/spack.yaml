@@ -5,14 +5,13 @@ spack:
   - cmake
   - lcov
   - ninja
-  - python
   - py-gcovr
-  - py-numpy
   - py-pip # Needed temporarily for ruff installation
   - |
-      llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib targets=x86
+      llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
   view: true
+
   concretizer:
     unify: true
 
@@ -29,7 +28,7 @@ spack:
     phlex:
       require:
       - "+form"
-      - "cxxstd=20"
+      - "cxxstd=23"
       - "%gcc@15"
 
 
@@ -49,4 +48,8 @@ spack:
     root:
       require:
       - "~x"  # No graphics libraries required
-      - "cxxstd=20"
+      # FIXME: davix requires openssl headers which are not currently
+      #        available in the container.  They are also not needed
+      #        for Phlex development.  This should be rectified.
+      - "~davix"
+      - "cxxstd=23"

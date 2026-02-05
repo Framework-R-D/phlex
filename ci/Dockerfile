@@ -15,7 +15,7 @@
 
 ARG parallelism=18
 
-FROM gcc:15.2.0 AS base
+FROM ubuntu:24.04 AS base
 ARG parallelism
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,6 +26,33 @@ ENV SPACK_DISABLE_LOCAL_CONFIG=true
 ENV PHLEX_SPACK_ENV=/opt/spack-environments/phlex-ci
 
 SHELL ["/bin/bash", "-c"]
+
+########################################################################
+# Install essential build tools, git, and Python
+
+RUN <<'INSTALL_ESSENTIALS'
+set -euo pipefail
+
+apt-get update
+apt-get install -y --no-install-recommends \
+  build-essential \
+  ca-certificates \
+  curl \
+  file \
+  git \
+  gnupg2 \
+  libcurl4-openssl-dev \
+  locales-all \
+  python3 \
+  python3-dev \
+  python3-pip \
+  unzip
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+
+# Make python3 available as 'python'
+update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+INSTALL_ESSENTIALS
 
 ########################################################################
 # Install locale support required by tooling and Spack
@@ -117,12 +144,30 @@ set -euo pipefail
 # Register binary caches for Spack installs and optional local cache volume
 . /spack/share/spack/setup-env.sh
 
-spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/phlex-dev-build-cache
+spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
   spack --timestamp mirror add --type binary phlex-ci-local /build-cache
 fi
 CONFIGURE_SPACK_MIRRORS
+
+########################################################################
+# Install GCC 15.2
+
+RUN <<'INSTALL_GCC'
+set -euo pipefail
+
+# Install GCC in its own layer to improve cache reuse
+. /spack/share/spack/setup-env.sh
+
+spack --timestamp install --fail-fast -j $parallelism -p 1 \
+  --no-check-signature gcc@15.2 target=x86_64_v3
+
+# Make GCC external to simplify concretization
+spack compiler find $(spack location -i gcc@15.2)
+
+spack clean -dfs
+INSTALL_GCC
 
 ########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
