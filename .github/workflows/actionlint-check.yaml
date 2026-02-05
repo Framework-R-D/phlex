@@ -139,7 +139,7 @@ jobs:
       continue-on-error: true
 
     - name: Evaluate actionlint result
-      if: always()
+      if: always() && steps.lint.outcome != 'skipped'
       run: |
         if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
           echo "✅ actionlint check passed."
