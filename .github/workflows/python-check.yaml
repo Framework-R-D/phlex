@@ -131,36 +131,33 @@ jobs:
       run: |
         pip install ruff mypy
 
-    - name: Run ruff and mypy checks
+    - name: Run ruff check
+      id: ruff
       working-directory: ${{ env.local_checkout_path }}
       env:
-        FORCE_COLOR: 1  # `ruff`/`colored` crate
+        FORCE_COLOR: 1
       run: |
-        failed=0
-
         echo "➡️ Checking Python code with ruff..."
-        echo "::group::Running ruff check"
-        if ! ruff check; then
-          failed=1
-          echo "::endgroup::"
-          echo "::error:: Ruff check failed."
-        else
-          echo "::endgroup::"
-          echo "✅ Ruff check passed."
-        fi
+        ruff check
+      continue-on-error: true
 
-        echo "➡️ Checking Python code with mypy..."
-        echo "::group::Running mypy"
-        if ! mypy --color-output .; then
-          failed=1
-          echo "::endgroup::"
-          echo "::error:: MyPy check failed."
-        else
-          echo "::endgroup::"
-          echo "✅ MyPy check passed."
-        fi
+    - name: Run MyPy check
+      id: mypy
+      working-directory: ${{ env.local_checkout_path }}
+      run: |
+        echo "➡️ Checking Python code with MyPy..."
+        mypy --color-output .
+      continue-on-error: true
 
-        exit $failed
+    - name: Evaluate Python checks result
+      if: always() && (steps.ruff.outcome != 'skipped' || steps.mypy.outcome != 'skipped')
+      run: |
+        if [ "${{ steps.ruff.outcome }}" = 'success' ] && [ "${{ steps.mypy.outcome }}" = 'success' ]; then
+          echo "✅ Python checks passed."
+        else
+          echo "::error::Python checks failed. Comment '@${{ github.event.repository.name }}bot python-fix' on the PR to attempt auto-fix."
+          exit 1
+        fi
 
   python-check-skipped:
     needs: [pre-check, detect-changes]
