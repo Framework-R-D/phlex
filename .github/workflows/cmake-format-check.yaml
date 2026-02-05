@@ -128,14 +128,21 @@ jobs:
       run: pip install gersemi
 
     - name: Check CMake formatting
+      id: lint
       run: |
         echo "➡️ Checking CMake file formatting..."
-        if ! gersemi --check ${{ env.local_checkout_path }}; then
+        gersemi --check ${{ env.local_checkout_path }}
+      continue-on-error: true
+
+    - name: Evaluate CMake formatting result
+      if: always() && steps.lint.outcome != 'skipped'
+      run: |
+        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
+          echo "✅ All CMake files are properly formatted."
+        else
           echo "::error::Found files with formatting issues."
           echo "::error::Run 'gersemi -i <file>' locally or comment '@${{ github.event.repository.name }}bot format' on the PR to auto-fix."
           exit 1
-        else
-          echo "✅ All CMake files are properly formatted."
         fi
 
   cmake-format-check-skipped:
