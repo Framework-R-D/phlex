@@ -48,5 +48,8 @@ spack:
     root:
       require:
       - "~x"  # No graphics libraries required
+      # FIXME: davix requires openssl headers which are not currently
+      #        available in the container.  They are also not needed
+      #        for Phlex development.  This should be rectified.
       - "~davix"
       - "cxxstd=23"

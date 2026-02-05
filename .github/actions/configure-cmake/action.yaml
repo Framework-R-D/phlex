@@ -48,6 +48,8 @@ runs:
         . /entrypoint.sh
 
         # Load Spack-installed GCC if necessary
+        # FIXME: The entrypoint.sh script should include the adjustment of PATH
+        #        such that $(which g++) refers to the Spack-installed GCC.
         if [ "$CPP_COMPILER" == "g++" ]; then
           spack load gcc@15.2
           CPP_COMPILER=$(which g++)
