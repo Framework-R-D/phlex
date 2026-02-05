@@ -46,6 +46,13 @@ runs:
       run: |
         # Source the container entrypoint script
         . /entrypoint.sh
+
+        # Load Spack-installed GCC if necessary
+        if [ "$CPP_COMPILER" == "g++" ]; then
+          spack load gcc@15.2
+          CPP_COMPILER=$(which g++)
+        fi
+
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
         echo "Configuring with CMake preset: $PRESET"
