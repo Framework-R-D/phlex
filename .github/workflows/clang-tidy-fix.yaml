@@ -101,7 +101,7 @@ jobs:
           retention-days: 7
 
       - name: Handle fix commit
-        uses: ./phlex-src/.github/actions/handle-fix-commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: clang-tidy
           working-directory: phlex-src

@@ -62,7 +62,7 @@ jobs:
           extensions: cpp,hpp,cpp.in,hpp.in
 
       - name: Handle fix commit
-        uses: ./phlex-src/.github/actions/handle-fix-commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: clang-format
           working-directory: phlex-src
