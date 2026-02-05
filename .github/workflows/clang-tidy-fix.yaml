@@ -44,7 +44,8 @@ jobs:
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          checks_line=$(echo "$COMMENT_BODY" | sed -nE 's/^@phlexbot[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p' | tr -d '\r')
+          bot_name="${{ github.event.repository.name }}bot"
+          checks_line=$(echo "$COMMENT_BODY" | sed -nE "s/^@$bot_name[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p" | tr -d '\r')
           if [ -n "$checks_line" ]; then
             tidy_checks="$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)"
             echo "tidy_checks=$tidy_checks" >> "$GITHUB_OUTPUT"

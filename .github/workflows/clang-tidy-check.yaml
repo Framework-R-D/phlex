@@ -114,7 +114,7 @@ jobs:
           echo "::error::Clang-tidy found issues in the code"
           echo "Error count by check (full details in clang-tidy-log artifact):"
           sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
-          echo "Comment '@phlexbot tidy-fix [<check>...]' on the PR to attempt auto-fix"
+          echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
           exit 1
         else
           echo "✅ clang-tidy check passed"

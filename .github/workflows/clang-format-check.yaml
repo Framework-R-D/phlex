@@ -105,6 +105,7 @@ jobs:
           echo "✅ clang-format check passed."
         else
           echo "::error::clang-format check failed. Please review the output above for details."
+          echo "::error::Comment '@${{ github.event.repository.name }}bot format' on the PR to attempt auto-fix."
           exit 1
         fi
 
