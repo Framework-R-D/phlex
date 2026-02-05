@@ -1,5 +1,5 @@
 name: Jsonnet Format Fix
-run-name: "${{ github.actor }} fixing jsonnet format"
+run-name: "${{ github.actor }} fixing Jsonnet format"
 
 on:
   issue_comment:
@@ -18,7 +18,7 @@ on:
         required: false
         type: string
       ref:
-        description: "The branch or ref to checkout"
+        description: "The branch, ref, or SHA to checkout"
         required: true
         type: string
       repo:
@@ -46,7 +46,7 @@ jobs:
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         (
           startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
-          startsWith(github.event.comment.body, format('@{0}bot jsonnet-format-fix', github.event.repository.name))
+          startsWith(github.event.comment.body, format('@{0}bot jsonnet-fix', github.event.repository.name))
         )
       )
     outputs:
@@ -86,7 +86,7 @@ jobs:
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
-          tool: jsonnet-format
+          tool: jsonnetfmt
           working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}

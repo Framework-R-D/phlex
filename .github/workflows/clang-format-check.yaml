@@ -1,5 +1,5 @@
 name: Clang-Format Check
-run-name: "${{ github.actor }} checking code format"
+run-name: "${{ github.actor }} checking C++ code format"
 
 permissions:
   contents: read
@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ github.repository }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -42,8 +44,10 @@ jobs:
       with:
         fetch-depth: 0
         path: phlex-src
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect C++ formatting changes
+    - name: Detect relevant changes
       id: filter
       uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
@@ -78,8 +82,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+        ref: ${{ needs.pre-check.outputs.ref }}
         path: phlex-src
+        repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Announce clang-format check
       run: echo "➡️ Running clang-format check..."

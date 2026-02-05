@@ -1,5 +1,5 @@
 name: Markdown Fix
-run-name: "${{ github.actor }} fixing markdown format"
+run-name: "${{ github.actor }} fixing Markdown format"
 
 on:
   issue_comment:
@@ -12,7 +12,7 @@ on:
         required: false
         type: string
       ref:
-        description: "The branch or ref to checkout"
+        description: "The branch, ref, or SHA to checkout"
         required: true
         type: string
       repo:
@@ -45,8 +45,6 @@ jobs:
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         (
-          startsWith(github.event.comment.body, '@phlexbot format') ||
-          startsWith(github.event.comment.body, '@phlexbot markdown-fix') ||
           startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
           startsWith(github.event.comment.body, format('@{0}bot markdown-fix', github.event.repository.name))
         )
