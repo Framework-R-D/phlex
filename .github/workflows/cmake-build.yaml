@@ -217,7 +217,7 @@ jobs:
 
     - name: Configure CMake
       id: configure
-      uses: knoepfel/phlex/.github/actions/configure-cmake@cpp23-for-containers
+      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         source-path: ${{ env.local_checkout_path }}
         build-path: ${{ env.local_build_path }}
