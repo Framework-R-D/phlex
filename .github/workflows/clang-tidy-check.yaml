@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
-      repo: ${{ github.repository }}
-      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
+      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
     steps:
       - name: Detect act environment
         id: detect_act
