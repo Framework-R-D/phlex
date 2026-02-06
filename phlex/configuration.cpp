@@ -8,8 +8,8 @@
 #include <string>
 #include <string_view>
 
-namespace {
-  [[maybe_unused]] std::optional<phlex::experimental::identifier> value_if_exists(
+namespace detail {
+  std::optional<phlex::experimental::identifier> value_if_exists(
     boost::json::object const& obj, // will be used later for new product_query
     std::string_view parameter)
   {

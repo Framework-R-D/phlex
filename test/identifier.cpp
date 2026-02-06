@@ -1,10 +1,12 @@
 #include "phlex/model/identifier.hpp"
+#include <phlex/configuration.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <string_view>
 
+#include <boost/json.hpp>
 #include <fmt/format.h>
 
 int main()
@@ -17,15 +19,21 @@ int main()
   identifier a2 = "a"_id;
   identifier b = "b"_id;
 
+  boost::json::object parsed_json = boost::json::parse(R"( {"identifier": "b" } )").as_object();
+  auto b_from_json = phlex::detail::value_if_exists(parsed_json, "identifier");
+  assert(b_from_json);
+
   fmt::print("a ({}) == \"a\"_idq: {}\n", a, a == "a"_idq);
   fmt::print("a == a_copy ({}): {}\n", a_copy, a == a_copy);
   fmt::print("a == a2 ({}): {}\n", a2, a == a2);
   fmt::print("a != b ({}): {}\n", b, a != b);
+  fmt::print("b == *b_from_json ({}): {}\n", *b_from_json, b == *b_from_json);
 
   assert(a == "a"_idq);
   assert(a == a_copy);
   assert(a == a2);
   assert(a != b);
+  assert(b == *b_from_json);
 
   // reassigning
   a = "new a"_id;

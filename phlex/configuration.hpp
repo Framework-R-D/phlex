@@ -21,6 +21,11 @@ namespace phlex {
       throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
     }
 
+    // Used later for product_query
+    std::optional<phlex::experimental::identifier> value_if_exists(
+      boost::json::object const& obj,
+      std::string_view parameter);
+
     // helper for unpacking json array
     template <typename T, std::size_t... I>
     std::array<T, sizeof...(I)> unpack_json_array(boost::json::array const& array,
