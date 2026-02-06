@@ -19,7 +19,7 @@ namespace phlex::experimental {
   }
 
   identifier::identifier(std::string_view str) : content_(str), hash_(hash_string(content_)) {}
-  identifier& identifier::operator=(std::string_view const& str)
+  identifier& identifier::operator=(std::string_view str)
   {
     content_ = str;
     hash_ = hash_string(content_);

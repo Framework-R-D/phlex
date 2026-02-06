@@ -30,7 +30,8 @@ namespace phlex::experimental {
     identifier& operator=(identifier&& rhs) noexcept = default;
 
     // Assignment for identifiers read from a file
-    identifier& operator=(std::string_view const& str);
+    // Not sure we really need this
+    identifier& operator=(std::string_view str);
 
     ~identifier() = default;
 
