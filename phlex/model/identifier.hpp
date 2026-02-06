@@ -6,7 +6,6 @@
 #include <fmt/format.h>
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <string_view>
 
@@ -21,19 +20,19 @@ namespace phlex::experimental {
   /// along with a precomputed hash used for all comparisons
   class identifier {
   public:
-    static std::uint64_t hash_string(std::string_view const& str);
-    identifier(identifier const& other);
-    identifier(identifier&& other) noexcept;
+    static std::uint64_t hash_string(std::string_view str);
+    identifier(identifier const& other) = default;
+    identifier(identifier&& other) noexcept = default;
 
-    explicit identifier(std::string_view const& str);
+    explicit identifier(std::string_view str);
 
-    identifier& operator=(identifier const& rhs);
-    identifier& operator=(identifier&& rhs) noexcept;
+    identifier& operator=(identifier const& rhs) = default;
+    identifier& operator=(identifier&& rhs) noexcept = default;
 
     // Assignment for identifiers read from a file
     identifier& operator=(std::string_view const& str);
 
-    ~identifier();
+    ~identifier() = default;
 
     // Conversion to std::string_view
     explicit operator std::string_view() const noexcept;
@@ -47,7 +46,7 @@ namespace phlex::experimental {
     friend std::hash<identifier>;
 
   private:
-    std::shared_ptr<std::string const> content_;
+    std::string content_;
     std::uint64_t hash_;
   };
 
