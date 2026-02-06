@@ -83,6 +83,7 @@ jobs:
             ${{ env.local_checkout_path }}/**/*.md
             !${{ env.local_checkout_path }}/**/CHANGELOG.md
           fix: true
+        continue-on-error: true
 
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
