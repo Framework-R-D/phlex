@@ -31,33 +31,6 @@ SHELL ["/bin/bash", "-c"]
 RUN <<'INSTALL_ESSENTIALS'
 set -euo pipefail
 
-apt-get update
-apt-get install -y --no-install-recommends \
-  build-essential \
-  ca-certificates \
-  curl \
-  file \
-  git \
-  gnupg2 \
-  libcurl4-openssl-dev \
-  locales-all \
-  python3 \
-  python3-dev \
-  python3-pip \
-  unzip
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-
-# Make python3 available as 'python'
-update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-INSTALL_ESSENTIALS
-
-########################################################################
-# Install locale support required by tooling and Spack
-
-RUN <<'INSTALL_ESSENTIAL'
-set -euo pipefail
-
 # Install locale support required by tooling and Spack
 apt-get update
 apt-get upgrade -y --no-install-recommends
@@ -66,6 +39,7 @@ apt-get install -y --no-install-recommends \
     ca-certificates \
     cmake \
     curl \
+    file \
     git \
     gnupg \
     locales-all \
@@ -78,7 +52,7 @@ apt-get install -y --no-install-recommends \
 apt autoremove -y
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-INSTALL_ESSENTIAL
+INSTALL_ESSENTIALS
 
 ########################################################################
 # Clone Spack checkout used by both CI and dev images
@@ -149,7 +123,7 @@ ENV SPACK_GNUPGHOME=/run/gpg
 # Configure binary mirrors used during installs
 
 RUN <<'SPACK_CONFIGURE_MIRRORS'
-set -euxo pipefail
+set -euo pipefail
 
 # Register binary caches for Spack installs and optional local cache volume
 . /spack/share/spack/setup-env.sh
@@ -181,7 +155,7 @@ spack install --fail-fast -j "$(nproc)" \
       gcc @15 +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
       build_type=Release \
       languages=c,c++,fortran,lto \
-      %"${system_compiler:-gcc}"
+      %"${system_compiler:-gcc}" target=x86_64_v3
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -195,30 +169,11 @@ if [ -d "/build-cache" ]; then
         sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
 
-spack load gcc@15
-spack --timestamp compiler find
-spack unload gcc@15
-
-spack clean -dfs
-SPACK_INSTALL_GCC
-
-########################################################################
-# Install GCC 15.2
-
-RUN <<'INSTALL_GCC'
-set -euo pipefail
-
-# Install GCC in its own layer to improve cache reuse
-. /spack/share/spack/setup-env.sh
-
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
-  --no-check-signature gcc@15.2 target=x86_64_v3
-
 # Make GCC external to simplify concretization
 spack compiler find $(spack location -i gcc@15.2)
 
 spack clean -dfs
-INSTALL_GCC
+SPACK_INSTALL_GCC
 
 ########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
