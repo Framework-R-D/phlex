@@ -108,7 +108,7 @@ runs:
           fi
         done
 
-        git diff --name-only "$BASE_REF" "$HEAD_REF" > "$RUNNER_TEMP/changed-files.txt"
+        git diff --name-only "$BASE_REF...$HEAD_REF" > "$RUNNER_TEMP/changed-files.txt"
 
         if [ ! -s "$RUNNER_TEMP/changed-files.txt" ]; then
           : > "$RUNNER_TEMP/matched-files.txt"

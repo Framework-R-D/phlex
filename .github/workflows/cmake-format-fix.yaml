@@ -1,5 +1,5 @@
 name: CMake Format Fix
-run-name: '${{ github.actor }} fixing CMake format'
+run-name: "${{ github.actor }} fixing CMake format"
 
 on:
   issue_comment:
@@ -18,7 +18,7 @@ on:
         required: false
         type: string
       ref:
-        description: "The branch or ref to checkout"
+        description: "The branch, ref, or SHA to checkout"
         required: true
         type: string
       repo:
@@ -43,12 +43,15 @@ jobs:
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         (
-          startsWith(github.event.comment.body, '@phlexbot format') ||
-          startsWith(github.event.comment.body, '@phlexbot cmake-format-fix') ||
-          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
+          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
+          startsWith(github.event.comment.body, format('@{0}bot cmake-fix', github.event.repository.name))
         )
       )
+    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
+    # This covers repo owners, invited collaborators, and all org members.
+    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     outputs:
       ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo }}

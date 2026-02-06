@@ -1,6 +1,23 @@
 name: 'Handle Fix Commit'
 description: 'Commits changes if possible, otherwise creates a patch and comments on the PR.'
 
+outputs:
+  changes:
+    description: 'Whether changes were detected'
+    value: ${{ steps.check_changes.outputs.changes }}
+  pushed:
+    description: 'Whether changes were pushed'
+    value: ${{ steps.commit_and_push.outputs.pushed }}
+  commit_sha:
+    description: 'The full SHA of the pushed commit'
+    value: ${{ steps.commit_and_push.outputs.commit_sha }}
+  commit_sha_short:
+    description: 'The short SHA of the pushed commit'
+    value: ${{ steps.commit_and_push.outputs.commit_sha_short }}
+  patch_name:
+    description: 'The name of the patch file if created'
+    value: ${{ steps.create_patch.outputs.patch_name }}
+
 inputs:
   tool:
     description: 'The tool name reported in commit messages and PR comments.'
@@ -65,8 +82,8 @@ runs:
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
         export GITHUB_TOKEN=${{ inputs.token }}
-        echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
         trap 'rm -f ~/.git-credentials' EXIT
+        echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
         git config --local credential.helper 'store --file ~/.git-credentials'
 
         git add -u
@@ -76,7 +93,9 @@ runs:
           if git push origin HEAD:${{ inputs.pr-info-ref }}; then
             echo "Push successful on attempt $i."
             COMMIT_SHA=$(git rev-parse HEAD)
+            COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
             echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+            echo "commit_sha_short=$COMMIT_SHA_SHORT" >> "$GITHUB_OUTPUT"
             echo "pushed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -100,7 +119,7 @@ runs:
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: |
-          Automatic ${{ inputs.tool }} fixes pushed (commit ${{ steps.commit_and_push.outputs.commit_sha }}).
+          Automatic ${{ inputs.tool }} fixes pushed (commit ${{ steps.commit_and_push.outputs.commit_sha_short || steps.commit_and_push.outputs.commit_sha }}).
           ⚠️ **Note:** Some issues may require manual review and fixing.
 
     - name: Create patch

@@ -1,5 +1,5 @@
 name: Jsonnet Format Check
-run-name: "${{ github.actor }} checking jsonnet format"
+run-name: "${{ github.actor }} checking Jsonnet format"
 
 permissions:
   contents: read
@@ -52,6 +52,7 @@ jobs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
       ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
+      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -60,17 +61,13 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      needs.pre-check.outputs.is_act != 'true' &&
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
       (
-        github.event_name == 'pull_request' ||
-        github.event_name == 'push' ||
-        (
-          github.event_name == 'workflow_call' &&
-          inputs.skip-relevance-check != 'true' &&
-          github.event.inputs == null &&
-          github.event.comment == null
-        )
-      )
+        github.event_name != 'workflow_call' ||
+        (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
+      ) &&
+      needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -86,13 +83,13 @@ jobs:
         ref: ${{ needs.pre-check.outputs.ref }}
         repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect Jsonnet formatting changes
+    - name: Detect relevant changes
       id: filter
       uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: ${{ env.local_checkout_path }}
-        base-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
-        head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || github.event.pull_request.head.sha || github.sha }}
+        base-ref: ${{ needs.pre-check.outputs.base_sha }}
+        head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
         file-type: jsonnet
 
     - name: Report detection outcome
@@ -134,7 +131,7 @@ jobs:
       continue-on-error: true
 
     - name: Evaluate Jsonnet formatting result
-      if: always()
+      if: always() && steps.lint.outcome != 'skipped'
       run: |
         if [ "${{ steps.lint.outcome }}" = 'success' ]; then
           echo "✅ Jsonnet formatting check passed."
@@ -147,17 +144,13 @@ jobs:
   jsonnet-format-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      needs.pre-check.outputs.is_act != 'true' &&
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
       (
-        github.event_name == 'pull_request' ||
-        github.event_name == 'push' ||
-        (
-          github.event_name == 'workflow_call' &&
-          inputs.skip-relevance-check != 'true' &&
-          github.event.inputs == null &&
-          github.event.comment == null
-        )
+        github.event_name != 'workflow_call' ||
+        (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
       ) &&
+      needs.pre-check.outputs.is_act != 'true' &&
       (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
 

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Code Coverage
-run-name: "${{ github.actor }} running code coverage for Phlex"
+run-name: "${{ github.actor }} running code coverage"
 
 on:
   push:
@@ -31,6 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ github.repository }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -51,17 +54,20 @@ jobs:
       with:
         fetch-depth: 0
         path: phlex-src
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect coverage relevant changes
+    - name: Detect relevant changes
       id: filter
       uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
-        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        base-ref: ${{ needs.pre-check.outputs.base_sha }}
+        head-ref: ${{ needs.pre-check.outputs.ref }}
         file-type: |
           cpp
           cmake
+          python
 
     - name: Report detection outcome
       run: |
@@ -111,8 +117,9 @@ jobs:
     - name: Check out source code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+        ref: ${{ needs.pre-check.outputs.ref }}
         path: phlex-src
+        repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
