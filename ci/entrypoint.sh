@@ -8,3 +8,4 @@ export SPACK_DISABLE_LOCAL_CONFIG=true
 
 . /spack/share/spack/setup-env.sh
 spack env activate -d "$PHLEX_SPACK_ENV"
+PATH=$(spack -E location -i gcc@15 %c,cxx=gcc@13)/bin:$PATH
