@@ -58,8 +58,8 @@ namespace phlex::experimental {
 
     void execute();
 
-    std::size_t execution_counts(std::string const& node_name) const;
-    std::size_t product_counts(std::string const& node_name) const;
+    std::size_t seen_cell_count(std::string const& layer_name, bool missing_ok = false) const;
+    std::size_t execution_count(std::string const& node_name) const;
 
     module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {

@@ -127,11 +127,11 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   g.execute();
 
-  CHECK(g.execution_counts("iota") == index_limit);
-  CHECK(g.execution_counts("add") == 30);
-  CHECK(g.execution_counts("check_sum") == index_limit);
+  CHECK(g.execution_count("iota") == index_limit);
+  CHECK(g.execution_count("add") == 30);
+  CHECK(g.execution_count("check_sum") == index_limit);
 
-  CHECK(g.execution_counts("iterate_through") == index_limit);
-  CHECK(g.execution_counts("add_numbers") == 20);
-  CHECK(g.execution_counts("check_sum_same") == index_limit);
+  CHECK(g.execution_count("iterate_through") == index_limit);
+  CHECK(g.execution_count("add_numbers") == 20);
+  CHECK(g.execution_count("check_sum_same") == index_limit);
 }
