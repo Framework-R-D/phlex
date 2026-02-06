@@ -15,6 +15,7 @@ Three workflows were referencing `inputs.repo` and `inputs.pr-base-sha` in condi
 - `.github/workflows/coverage.yaml`
 
 **Error Messages:**
+
 ```
 property "repo" is not defined in object type {ref: string}
 property "pr-base-sha" is not defined in object type {ref: string}
@@ -45,6 +46,7 @@ Removed the `workflow_call` trigger and simplified the output expressions in thr
 Removed the entire `workflow_call:` section with all its inputs, and simplified the pre-check job outputs:
 
 **Before:**
+
 ```yaml
 outputs:
   ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
@@ -53,6 +55,7 @@ outputs:
 ```
 
 **After:**
+
 ```yaml
 outputs:
   ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
@@ -67,6 +70,7 @@ The workflows now only support `pull_request` and `workflow_dispatch` triggers, 
 Changed the shell command in `cmake-build.yaml` to use an environment variable:
 
 **Before:**
+
 ```yaml
 - name: Extract repository name
   id: repo_name
@@ -74,6 +78,7 @@ Changed the shell command in `cmake-build.yaml` to use an environment variable:
 ```
 
 **After:**
+
 ```yaml
 - name: Extract repository name
   id: repo_name
@@ -83,6 +88,7 @@ Changed the shell command in `cmake-build.yaml` to use an environment variable:
 ```
 
 **Security Improvement:**
+
 1. The GitHub expression `${{ needs.pre-check.outputs.repo }}` is now assigned to an environment variable `REPO_FULL_NAME`
 2. Environment variables are not subject to shell injection - they are passed as values, not code
 3. Bonus: Replaced `sed` with bash parameter expansion (`${REPO_FULL_NAME##*/}`) which is more efficient and addresses a shellcheck style warning
@@ -92,6 +98,7 @@ Changed the shell command in `cmake-build.yaml` to use an environment variable:
 When using GitHub Actions expressions in shell commands:
 
 1. **Use environment variables:** Always pass untrusted data through environment variables
+
    ```yaml
    env:
      MY_VAR: ${{ github.event.issue.title }}
@@ -99,6 +106,7 @@ When using GitHub Actions expressions in shell commands:
    ```
 
 2. **Never interpolate directly:** Avoid this pattern:
+
    ```yaml
    run: echo "${{ github.event.issue.title }}"  # DANGEROUS
    ```

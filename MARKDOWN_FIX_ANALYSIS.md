@@ -36,15 +36,19 @@ The following markdown errors need to be fixed in PR 290's branch (`maintenance/
 **Error:** MD040 - Fenced code block missing language specification
 
 **Fix:** Change from:
+
 ```
 **Error Messages:**
 ```
+
 property "repo" is not defined in object type {ref: string}
 property "pr-base-sha" is not defined in object type {ref: string}
+
 ```
 ```
 
 To:
+
 ```
 **Error Messages:**
 
@@ -52,6 +56,7 @@ To:
 property "repo" is not defined in object type {ref: string}
 property "pr-base-sha" is not defined in object type {ref: string}
 ```
+
 ```
 
 Note: Also adds a blank line before the code block per MD031.
@@ -62,26 +67,34 @@ Note: Also adds a blank line before the code block per MD031.
 
 **Fix 1 (line 34):** Change from:
 ```
+
 | Value | Description |
 |-------|-------------|
+
 ```
 
 To:
 ```
+
 | Value | Description |
 | ----- | ----------- |
+
 ```
 
 **Fix 2 (line 127):** Change from:
 ```
+
 | Scenario | Author Association | Covered? |
 |----------|-------------------|----------|
+
 ```
 
 To:
 ```
+
 | Scenario | Author Association | Covered? |
 | -------- | ----------------- | -------- |
+
 ```
 
 ## Testing
