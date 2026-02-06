@@ -31,6 +31,9 @@ int main()
   a = "new a"_id;
   a_copy = a;
 
+  // reassigning with a string_view
+  b = "new b"sv;
+
   std::array<std::string_view, 9> strings{
     "a"sv, "b"sv, "c"sv, "d"sv, "e"sv, "long-id-1"sv, "long-id-2"sv, "test"sv, "other_test"sv};
   std::array<identifier, 9> identifiers{"a"_id,
