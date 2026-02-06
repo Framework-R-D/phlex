@@ -83,6 +83,9 @@ jobs:
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         startsWith(github.event.comment.body, format('@{0}bot build', github.event.repository.name))
       )
+    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
+    # This covers repo owners, invited collaborators, and all org members.
+    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -205,7 +208,9 @@ jobs:
 
     - name: Extract repository name
       id: repo_name
-      run: echo "name=$(echo '${{ needs.pre-check.outputs.repo }}' | sed 's:.*/::')" >> "$GITHUB_OUTPUT"
+      env:
+        REPO_FULL_NAME: ${{ needs.pre-check.outputs.repo }}
+      run: echo "name=${REPO_FULL_NAME##*/}" >> "$GITHUB_OUTPUT"
 
     - name: Configure CMake
       id: configure

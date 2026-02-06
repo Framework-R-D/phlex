@@ -49,6 +49,9 @@ jobs:
           startsWith(github.event.comment.body, format('@{0}bot markdown-fix', github.event.repository.name))
         )
       )
+    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
+    # This covers repo owners, invited collaborators, and all org members.
+    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     outputs:
       ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo }}

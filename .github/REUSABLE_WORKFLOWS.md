@@ -36,6 +36,8 @@ However, to enable the automatic fixing features (e.g., for `cmake-fix` or `pyth
 
 Once you have done this, you can trigger the auto-fix workflows by commenting on a pull request in your fork (e.g., `@${{ github.event.repository.name }}bot format`).
 
+**Note on Authorization:** Comment-triggered workflows use authorization checks to ensure only trusted users can trigger potentially code-modifying operations. The workflows check that the comment author has one of the following associations: `OWNER`, `COLLABORATOR`, or `MEMBER`. This covers repository owners, explicitly invited collaborators, and organization members with any level of repository access. For a detailed analysis of the authorization model and security considerations, see [AUTHORIZATION_ANALYSIS.md](AUTHORIZATION_ANALYSIS.md).
+
 ### Creating a Personal Access Token (PAT)
 
 For workflows that automatically commit fixes to pull requests (e.g., formatters), you must create a Personal Access Token (PAT) and add it as a secret to your repository.
