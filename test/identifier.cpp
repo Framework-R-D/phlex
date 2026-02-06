@@ -32,14 +32,14 @@ int main()
   a_copy = a;
 
   std::array<std::string_view, 9> strings{
-    "a"sv, "b"sv, "c"sv, "d"sv, "e"sv, "long-id-1"sv, "long-id-3"sv, "test"sv, "other_test"sv};
+    "a"sv, "b"sv, "c"sv, "d"sv, "e"sv, "long-id-1"sv, "long-id-2"sv, "test"sv, "other_test"sv};
   std::array<identifier, 9> identifiers{"a"_id,
                                         "b"_id,
                                         "c"_id,
                                         "d"_id,
                                         "e"_id,
                                         "long-id-1"_id,
-                                        "long-id-3"_id,
+                                        "long-id-2"_id,
                                         "test"_id,
                                         "other_test"_id};
   std::ranges::sort(identifiers);
