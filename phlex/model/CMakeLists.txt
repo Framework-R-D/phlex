@@ -7,6 +7,7 @@ cet_make_library(
   data_cell_counter.cpp
   data_layer_hierarchy.cpp
   data_cell_index.cpp
+  identifier.cpp
   product_matcher.cpp
   product_store.cpp
   products.cpp
@@ -30,6 +31,7 @@ install(
     data_cell_counter.hpp
     data_layer_hierarchy.hpp
     data_cell_index.hpp
+    identifier.hpp
     product_matcher.hpp
     product_specification.hpp
     product_store.hpp

@@ -1,5 +1,6 @@
 #include "phlex/configuration.hpp"
 #include "phlex/core/product_query.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 
 #include <algorithm>
@@ -7,8 +8,8 @@
 #include <string>
 #include <string_view>
 
-namespace {
-  [[maybe_unused]] std::optional<std::string> value_if_exists(
+namespace phlex::detail {
+  std::optional<phlex::experimental::identifier> value_if_exists(
     boost::json::object const& obj, // will be used later for new product_query
     std::string_view parameter)
   {
@@ -45,12 +46,12 @@ namespace {
         // std::unreachable();
         break;
       }
-      throw std::runtime_error(
-        fmt::format("Error retrieving parameter '{}'. Should be a string but is instead a {}",
-                    parameter,
-                    kind));
+      throw std::runtime_error(fmt::format(
+        "Error retrieving parameter '{}'. Should be an identifier string but is instead a {}",
+        parameter,
+        kind));
     }
-    return boost::json::value_to<std::string>(val);
+    return boost::json::value_to<phlex::experimental::identifier>(val);
   }
 }
 
@@ -78,5 +79,11 @@ namespace phlex {
     auto product = value_decorate_exception<std::string>(query_object, "product");
     auto layer = value_decorate_exception<std::string>(query_object, "layer");
     return product_query{experimental::product_specification::create(product), layer};
+  }
+
+  experimental::identifier experimental::tag_invoke(boost::json::value_to_tag<identifier> const&,
+                                                    boost::json::value const& jv)
+  {
+    return identifier{std::string_view(jv.as_string())};
   }
 }
