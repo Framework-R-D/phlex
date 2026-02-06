@@ -11,7 +11,6 @@
 
 namespace phlex::experimental {
   struct predicate_result {
-    end_of_message_ptr eom;
     std::size_t msg_id;
     bool result;
   };

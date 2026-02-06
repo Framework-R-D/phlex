@@ -19,7 +19,6 @@ namespace phlex::experimental {
 
   struct message {
     product_store_const_ptr store;
-    end_of_message_ptr eom;
     std::size_t id;
     std::size_t original_id{-1ull}; // Used during flush
   };
