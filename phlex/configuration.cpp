@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace detail {
+namespace phlex::detail {
   std::optional<phlex::experimental::identifier> value_if_exists(
     boost::json::object const& obj, // will be used later for new product_query
     std::string_view parameter)
