@@ -41,7 +41,10 @@ jobs:
 
   detect-changes:
     needs: pre-check
-    if: github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
+    if: >
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -82,9 +85,11 @@ jobs:
   coverage:
     needs: [pre-check, detect-changes]
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      needs.pre-check.outputs.is_act == 'true' ||
-      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
+      needs.detect-changes.result == 'skipped' ||
+      (
+        needs.detect-changes.result == 'success' &&
+        needs.detect-changes.outputs.has_changes == 'true'
+      )
     runs-on: ubuntu-24.04
 
     container:
@@ -403,10 +408,10 @@ jobs:
   coverage-skipped:
     needs: [pre-check, detect-changes]
     if: >
+      needs.pre-check.result == 'success' &&
       github.event_name != 'workflow_dispatch' &&
       needs.pre-check.outputs.is_act != 'true' &&
-      needs.detect-changes.result == 'success' &&
-      needs.detect-changes.outputs.has_changes != 'true'
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
