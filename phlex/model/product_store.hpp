@@ -14,7 +14,7 @@
 
 namespace phlex::experimental {
 
-  class product_store : public std::enable_shared_from_this<product_store> {
+  class product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
                            std::string source = "Source",
