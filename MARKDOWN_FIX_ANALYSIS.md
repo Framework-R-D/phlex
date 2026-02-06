@@ -37,26 +37,24 @@ The following markdown errors need to be fixed in PR 290's branch (`maintenance/
 
 **Fix:** Change from:
 
-```
+```text
 **Error Messages:**
-```
 
+\```
 property "repo" is not defined in object type {ref: string}
 property "pr-base-sha" is not defined in object type {ref: string}
-
-```
+\```
 ```
 
 To:
 
-```
+```text
 **Error Messages:**
 
-```text
+\```text
 property "repo" is not defined in object type {ref: string}
 property "pr-base-sha" is not defined in object type {ref: string}
-```
-
+\```
 ```
 
 Note: Also adds a blank line before the code block per MD031.
@@ -66,35 +64,31 @@ Note: Also adds a blank line before the code block per MD031.
 **Error:** MD060 - Table column style (missing spaces around pipes)
 
 **Fix 1 (line 34):** Change from:
-```
 
+```markdown
 | Value | Description |
 |-------|-------------|
-
 ```
 
 To:
-```
 
+```markdown
 | Value | Description |
 | ----- | ----------- |
-
 ```
 
 **Fix 2 (line 127):** Change from:
-```
 
+```markdown
 | Scenario | Author Association | Covered? |
 |----------|-------------------|----------|
-
 ```
 
 To:
-```
 
+```markdown
 | Scenario | Author Association | Covered? |
 | -------- | ----------------- | -------- |
-
 ```
 
 ## Testing

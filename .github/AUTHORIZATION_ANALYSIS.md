@@ -31,7 +31,7 @@ contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.a
 GitHub provides the following `author_association` values via its GraphQL API:
 
 | Value | Description |
-|-------|-------------|
+| ----- | ----------- |
 | `OWNER` | Author is the owner of the repository |
 | `MEMBER` | Author is a member of the organization that owns the repository |
 | `COLLABORATOR` | Author has been invited to collaborate on the repository |
@@ -124,7 +124,7 @@ Allowing unauthorized users to trigger these workflows could lead to:
 ## Edge Cases Considered
 
 | Scenario | Author Association | Covered? |
-|----------|-------------------|----------|
+| -------- | ------------------ | -------- |
 | Organization member without repository access | `MEMBER` | ✅ Yes |
 | Organization member with Read access | `MEMBER` | ✅ Yes |
 | Organization member with Admin access | `MEMBER` | ✅ Yes |

@@ -16,7 +16,7 @@ Three workflows were referencing `inputs.repo` and `inputs.pr-base-sha` in condi
 
 **Error Messages:**
 
-```
+```text
 property "repo" is not defined in object type {ref: string}
 property "pr-base-sha" is not defined in object type {ref: string}
 ```
