@@ -42,6 +42,7 @@ apt-get install -y --no-install-recommends \
   git \
   gnupg2 \
   libcurl4-openssl-dev \
+  libssl-dev \
   locales-all \
   python3 \
   python3-dev \
@@ -161,7 +162,7 @@ set -euo pipefail
 . /spack/share/spack/setup-env.sh
 
 spack --timestamp install --fail-fast -j $parallelism -p 1 \
-  --no-check-signature gcc@15.2 target=x86_64_v3
+  --no-check-signature gcc@15.2 target=x86_64_v3 %c,cxx=gcc@13
 
 # Make GCC external to simplify concretization
 spack compiler find $(spack location -i gcc@15.2)

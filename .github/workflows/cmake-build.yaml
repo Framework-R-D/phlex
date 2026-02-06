@@ -217,7 +217,7 @@ jobs:
 
     - name: Configure CMake
       id: configure
-      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+      uses: knoepfel/phlex/.github/actions/configure-cmake@update-container
       with:
         source-path: ${{ env.local_checkout_path }}
         build-path: ${{ env.local_build_path }}
