@@ -32,6 +32,21 @@ def add(i: int, j: int) -> int:
     return i + j
 
 
+def add_sum01(sum0: int, sum1: int) -> int:
+    """Add sum0 and sum1."""
+    return sum0 + sum1
+
+
+def add_sum23(sum2: int, sum3: int) -> int:
+    """Add sum2 and sum3."""
+    return sum2 + sum3
+
+
+def add_final(sum01: int, sum23: int) -> int:
+    """Add sum01 and sum23."""
+    return sum01 + sum23
+
+
 def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register a series of `add` algorithm as transformations.
 
@@ -55,8 +70,12 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         )
 
     # now reduce them pair-wise
-    m.transform(add, name="reduce01", input_family=["sum0", "sum1"], output_products=["sum01"])
-    m.transform(add, name="reduce23", input_family=["sum2", "sum3"], output_products=["sum23"])
+    m.transform(
+        add_sum01, name="reduce01", input_family=["sum0", "sum1"], output_products=["sum01"]
+    )
+    m.transform(
+        add_sum23, name="reduce23", input_family=["sum2", "sum3"], output_products=["sum23"]
+    )
 
     # once more (and the configuration will add a verifier)
-    m.transform(add, name="reduce", input_family=["sum01", "sum23"], output_products=["sum"])
+    m.transform(add_final, name="reduce", input_family=["sum01", "sum23"], output_products=["sum"])

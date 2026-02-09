@@ -86,7 +86,7 @@ class Variant:
                 if v.default is inspect.Parameter.empty:
                     raise MissingAnnotation(k) from e
 
-        self.__annotations__['return'] = annotations.get('return', None)
+        self.__annotations__["return"] = annotations.get("return", None)
 
         self.__name__ = name
         self.__code__ = getattr(self.phlex_callable, "__code__", None)

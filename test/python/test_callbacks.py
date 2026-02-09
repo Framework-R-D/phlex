@@ -2,39 +2,39 @@
 
 
 # 3-argument function to trigger py_callback<3>
-def sum_three(a: int, b: int, c: int) -> int:
+def sum_three(i: int, j: int, k: int) -> int:
     """Sum three integers."""
-    return a + b + c
+    return i + j + k
 
 
 # Function that raises exception to test error handling
-def raise_error(a: int) -> int:
+def raise_error(i: int) -> int:
     """Raise a RuntimeError."""
     raise RuntimeError("Intentional failure")
 
 
 # Invalid bool return (2)
-def bad_bool(a: int) -> bool:
+def bad_bool(i: int) -> bool:
     """Return an invalid boolean value."""
     return 2  # type: ignore
 
 
 # Invalid long return (float)
-def bad_long(a: int) -> "long":  # type: ignore # noqa: F821
+def bad_long(i: int) -> "long":  # type: ignore # noqa: F821
     """Return a float instead of an int."""
     return 1.5  # type: ignore
 
 
 # Invalid uint return (negative)
-def bad_uint(a: int) -> "unsigned int":  # type: ignore # noqa: F722
+def bad_uint(i: int) -> "unsigned int":  # type: ignore # noqa: F722
     """Return a negative value for unsigned int."""
     return -5  # type: ignore
 
 
 # Function with mismatching annotation count vs config inputs
-def two_args(a: int, b: int) -> int:
-    """Sum two integers."""
-    return a + b
+def two_args(i: int, j: int) -> int:
+    """Sum two integers while config provides three inputs (tests parameter count mismatch)."""
+    return i + j
 
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):

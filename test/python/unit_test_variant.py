@@ -10,7 +10,9 @@ def example_func(a, b=1):
     """Example function for testing."""
     return a + b
 
+
 ann = {"a": int, "b": int, "return": int}
+
 
 class TestVariant(unittest.TestCase):
     """Tests for Variant wrapper."""
@@ -48,7 +50,8 @@ class TestVariant(unittest.TestCase):
 
         # Test valid copy logic with a mutable callable
         class CallableObj:
-            def __call__(self): pass
+            def __call__(self):
+                pass
 
         obj = CallableObj()
         wrapper_obj = Variant(obj, {}, "obj_clone", clone=True)
@@ -57,9 +60,13 @@ class TestVariant(unittest.TestCase):
 
     def test_clone_deep(self):
         """Test deep cloning behavior."""
+
         class Container:
-            def __init__(self): self.data = [1]
-            def __call__(self): return self.data[0]
+            def __init__(self):
+                self.data = [1]
+
+            def __call__(self):
+                return self.data[0]
 
         c = Container()
         wrapper = Variant(c, {}, "deep_clone", clone="deep")

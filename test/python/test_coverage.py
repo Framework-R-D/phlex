@@ -28,14 +28,14 @@ def collect_int(i: int) -> list[int]:
     return [i]
 
 
-def collect_float(f: float) -> list[float]:
+def collect_float(f1: float) -> list[float]:
     """Collect a float into a list."""
-    return [f]
+    return [f1]
 
 
-def collect_double(d: "double") -> "list[double]":  # type: ignore
+def collect_double(d1: "double") -> "list[double]":  # type: ignore
     """Collect a double into a list."""
-    return [d]
+    return [d1]
 
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):

@@ -1,7 +1,7 @@
 """Test mismatch between input labels and types."""
 
 
-def mismatch_func(a: int, b: int):
+def mismatch_func(a: int, b: int) -> int:
     """Add two integers."""
     return a + b
 

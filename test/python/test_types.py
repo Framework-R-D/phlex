@@ -14,82 +14,82 @@ class double(float):  # noqa: N801
     pass
 
 
-def add_float(i: float, j: float) -> float:
+def add_float(f1: float, f2: float) -> float:
     """Add two floats.
 
     Args:
-        i (float): First input.
-        j (float): Second input.
+        f1 (float): First input.
+        f2 (float): Second input.
 
     Returns:
         float: Sum of the two inputs.
     """
-    return i + j
+    return f1 + f2
 
 
-def add_double(i: double, j: double) -> double:
+def add_double(d1: double, d2: double) -> double:
     """Add two doubles.
 
     Args:
-        i (float): First input.
-        j (float): Second input.
+        d1 (double): First input.
+        d2 (double): Second input.
 
     Returns:
-        float: Sum of the two inputs.
+        double: Sum of the two inputs.
     """
-    return double(i + j)
+    return double(d1 + d2)
 
 
-def add_unsigned(i: "unsigned int", j: "unsigned int") -> "unsigned int":  # type: ignore  # noqa: F722
+def add_unsigned(u1: "unsigned int", u2: "unsigned int") -> "unsigned int":  # type: ignore  # noqa: F722
     """Add two unsigned integers.
 
     Args:
-        i (int): First input.
-        j (int): Second input.
+        u1 (unsigned int): First input.
+        u2 (unsigned int): Second input.
 
     Returns:
-        int: Sum of the two inputs.
+        unsigned int: Sum of the two inputs.
     """
-    return i + j
+    return u1 + u2
 
 
-def collect_float(i: float, j: float) -> npt.NDArray[np.float32]:
+def collect_float(f1: float, f2: float) -> npt.NDArray[np.float32]:
     """Combine floats into a numpy array.
 
     Args:
-        i (float): First input.
-        j (float): Second input.
+        f1 (float): First input.
+        f2 (float): Second input.
 
     Returns:
         ndarray: Array of floats.
     """
-    return np.array([i, j], dtype=np.float32)
+    return np.array([f1, f2], dtype=np.float32)
 
 
-def collect_double(i: double, j: double) -> npt.NDArray[np.float64]:
+def collect_double(d1: double, d2: double) -> npt.NDArray[np.float64]:
     """Combine doubles into a numpy array.
 
     Args:
-        i (float): First input.
-        j (float): Second input.
+        d1 (double): First input.
+        d2 (double): Second input.
 
     Returns:
         ndarray: Array of doubles.
     """
-    return np.array([i, j], dtype=np.float64)
+    return np.array([d1, d2], dtype=np.float64)
 
 
-def and_bool(i: bool, j: bool) -> bool:
+def and_bool(b1: bool, b2: bool) -> bool:
     """And two booleans.
 
     Args:
-        i (bool): First input.
-        j (bool): Second input.
+        b1 (bool): First input.
+        b2 (bool): Second input.
 
     Returns:
         bool: Logical AND of the two inputs.
     """
-    return i and j
+    return b1 and b2
 
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
