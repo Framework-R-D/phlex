@@ -69,33 +69,37 @@ namespace {
   struct py_callback {
     PyObject* m_callable; // owned
 
-    py_callback(PyObject* callable)
+    py_callback(PyObject* callable) : m_callable(callable)
     {
+      // callable is always non-null here (validated before py_callback construction)
       PyGILRAII gil;
-      Py_XINCREF(callable);
-      m_callable = callable;
+      Py_INCREF(m_callable);
     }
-    py_callback(py_callback const& pc)
+    py_callback(py_callback const& pc) : m_callable(pc.m_callable)
     {
+      // Must hold GIL when manipulating reference counts
       PyGILRAII gil;
-      Py_XINCREF(pc.m_callable);
-      m_callable = pc.m_callable;
+      Py_INCREF(m_callable);
     }
     py_callback& operator=(py_callback const& pc)
     {
       if (this != &pc) {
+        // Must hold GIL when manipulating reference counts
         PyGILRAII gil;
-        Py_XINCREF(pc.m_callable);
-        Py_XDECREF(m_callable);
+        Py_INCREF(pc.m_callable);
+        Py_DECREF(m_callable);
         m_callable = pc.m_callable;
       }
       return *this;
     }
     ~py_callback()
     {
+      // Check if Python is still initialized before attempting cleanup
+      // While this check may not be reliable in all threading scenarios (e.g., offloaded threads),
+      // it prevents crashes during normal interpreter shutdown
       if (Py_IsInitialized()) {
         PyGILRAII gil;
-        Py_XDECREF(m_callable);
+        Py_DECREF(m_callable);
       }
     }
 
@@ -105,11 +109,6 @@ namespace {
       static_assert(sizeof...(Args) == N, "Argument count mismatch");
 
       PyGILRAII gil;
-
-      if (!m_callable) {
-        decref_all(args...);
-        throw std::runtime_error("Python callback attempted on NULL callable");
-      }
 
       PyObject* arg_tuple = PyTuple_New(N);
       if (!arg_tuple) {
@@ -153,11 +152,6 @@ namespace {
 
       PyGILRAII gil;
 
-      if (!m_callable) {
-        decref_all(args...);
-        throw std::runtime_error("Python callback attempted on NULL callable");
-      }
-
       PyObject* arg_tuple = PyTuple_New(N);
       if (!arg_tuple) {
         decref_all(args...);
@@ -197,7 +191,8 @@ namespace {
     void decref_all(Args... args)
     {
       // helper to decrement reference counts of N arguments
-      (Py_XDECREF((PyObject*)args), ...);
+      // args are already validated as non-zero in the calling code
+      (Py_DECREF((PyObject*)args), ...);
     }
   };
 
@@ -374,26 +369,12 @@ namespace {
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
-    if (PyErr_Occurred()) {                                                                        \
-      PyObject *ptype, *pvalue, *ptraceback;                                                       \
-      PyErr_Fetch(&ptype, &pvalue, &ptraceback);                                                   \
-      PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);                                      \
-      std::string msg = "Python conversion error for type " #name;                                 \
-      if (pvalue) {                                                                                \
-        PyObject* pstr = PyObject_Str(pvalue);                                                     \
-        if (pstr) {                                                                                \
-          msg += ": ";                                                                             \
-          msg += PyUnicode_AsUTF8(pstr);                                                           \
-          Py_DECREF(pstr);                                                                         \
-        }                                                                                          \
-      }                                                                                            \
-      Py_XDECREF(ptype);                                                                           \
-      Py_XDECREF(pvalue);                                                                          \
-      Py_XDECREF(ptraceback);                                                                      \
-      Py_XDECREF((PyObject*)pyobj);                                                                \
+    std::string msg;                                                                               \
+    if (msg_from_py_error(msg, true)) {                                                            \
+      Py_DECREF((PyObject*)pyobj);                                                                 \
       throw std::runtime_error(msg);                                                               \
     }                                                                                              \
-    Py_XDECREF((PyObject*)pyobj);                                                                  \
+    Py_DECREF((PyObject*)pyobj);                                                                   \
     return i;                                                                                      \
   }
 
@@ -483,240 +464,12 @@ namespace {
     return vec;                                                                                    \
   }
 
-  static std::shared_ptr<std::vector<int>> py_to_vint(intptr_t pyobj)
-  {
-    PyGILRAII gil;
-    auto vec = std::make_shared<std::vector<int>>();
-    PyObject* obj = (PyObject*)pyobj;
-
-    if (obj) {
-      if (PyList_Check(obj)) {
-        size_t size = PyList_Size(obj);
-        vec->reserve(size);
-        for (size_t i = 0; i < size; ++i) {
-          PyObject* item = PyList_GetItem(obj, i);
-          if (!item) {
-            PyErr_Print();
-            break;
-          }
-          long val = PyLong_AsLong(item);
-          if (PyErr_Occurred()) {
-            PyErr_Print();
-            break;
-          }
-          vec->push_back((int)val);
-        }
-      } else if (PyArray_Check(obj)) {
-        PyArrayObject* arr = (PyArrayObject*)obj;
-        npy_intp* dims = PyArray_DIMS(arr);
-        int nd = PyArray_NDIM(arr);
-        size_t total = 1;
-        for (int i = 0; i < nd; ++i)
-          total *= static_cast<size_t>(dims[i]);
-
-        int* raw = static_cast<int*>(PyArray_DATA(arr));
-        vec->reserve(total);
-        vec->insert(vec->end(), raw, raw + total);
-      }
-      Py_DECREF(obj);
-    }
-    return vec;
-  }
-  static std::shared_ptr<std::vector<unsigned int>> py_to_vuint(intptr_t pyobj)
-  {
-    PyGILRAII gil;
-    auto vec = std::make_shared<std::vector<unsigned int>>();
-    PyObject* obj = (PyObject*)pyobj;
-
-    if (obj) {
-      if (PyList_Check(obj)) {
-        size_t size = PyList_Size(obj);
-        vec->reserve(size);
-        for (size_t i = 0; i < size; ++i) {
-          PyObject* item = PyList_GetItem(obj, i);
-          if (!item) {
-            PyErr_Print();
-            break;
-          }
-          unsigned long val = PyLong_AsUnsignedLong(item);
-          if (PyErr_Occurred()) {
-            PyErr_Print();
-            break;
-          }
-          vec->push_back((unsigned int)val);
-        }
-      } else if (PyArray_Check(obj)) {
-        PyArrayObject* arr = (PyArrayObject*)obj;
-        npy_intp* dims = PyArray_DIMS(arr);
-        int nd = PyArray_NDIM(arr);
-        size_t total = 1;
-        for (int i = 0; i < nd; ++i)
-          total *= static_cast<size_t>(dims[i]);
-
-        unsigned int* raw = static_cast<unsigned int*>(PyArray_DATA(arr));
-        vec->reserve(total);
-        vec->insert(vec->end(), raw, raw + total);
-      }
-      Py_DECREF(obj);
-    }
-    return vec;
-  }
-  static std::shared_ptr<std::vector<long>> py_to_vlong(intptr_t pyobj)
-  {
-    PyGILRAII gil;
-    auto vec = std::make_shared<std::vector<long>>();
-    PyObject* obj = (PyObject*)pyobj;
-
-    if (obj) {
-      if (PyList_Check(obj)) {
-        size_t size = PyList_Size(obj);
-        vec->reserve(size);
-        for (size_t i = 0; i < size; ++i) {
-          PyObject* item = PyList_GetItem(obj, i);
-          if (!item) {
-            PyErr_Print();
-            break;
-          }
-          long val = PyLong_AsLong(item);
-          if (PyErr_Occurred()) {
-            PyErr_Print();
-            break;
-          }
-          vec->push_back(val);
-        }
-      } else if (PyArray_Check(obj)) {
-        PyArrayObject* arr = (PyArrayObject*)obj;
-        npy_intp* dims = PyArray_DIMS(arr);
-        int nd = PyArray_NDIM(arr);
-        size_t total = 1;
-        for (int i = 0; i < nd; ++i)
-          total *= static_cast<size_t>(dims[i]);
-
-        long* raw = static_cast<long*>(PyArray_DATA(arr));
-        vec->reserve(total);
-        vec->insert(vec->end(), raw, raw + total);
-      }
-      Py_DECREF(obj);
-    }
-    return vec;
-  }
-  static std::shared_ptr<std::vector<unsigned long>> py_to_vulong(intptr_t pyobj)
-  {
-    PyGILRAII gil;
-    auto vec = std::make_shared<std::vector<unsigned long>>();
-    PyObject* obj = (PyObject*)pyobj;
-
-    if (obj) {
-      if (PyList_Check(obj)) {
-        size_t size = PyList_Size(obj);
-        vec->reserve(size);
-        for (size_t i = 0; i < size; ++i) {
-          PyObject* item = PyList_GetItem(obj, i);
-          if (!item) {
-            PyErr_Print();
-            break;
-          }
-          unsigned long val = PyLong_AsUnsignedLong(item);
-          if (PyErr_Occurred()) {
-            PyErr_Print();
-            break;
-          }
-          vec->push_back(val);
-        }
-      } else if (PyArray_Check(obj)) {
-        PyArrayObject* arr = (PyArrayObject*)obj;
-        npy_intp* dims = PyArray_DIMS(arr);
-        int nd = PyArray_NDIM(arr);
-        size_t total = 1;
-        for (int i = 0; i < nd; ++i)
-          total *= static_cast<size_t>(dims[i]);
-
-        unsigned long* raw = static_cast<unsigned long*>(PyArray_DATA(arr));
-        vec->reserve(total);
-        vec->insert(vec->end(), raw, raw + total);
-      }
-      Py_DECREF(obj);
-    }
-    return vec;
-  }
-  static std::shared_ptr<std::vector<float>> py_to_vfloat(intptr_t pyobj)
-  {
-    PyGILRAII gil;
-    auto vec = std::make_shared<std::vector<float>>();
-    PyObject* obj = (PyObject*)pyobj;
-
-    if (obj) {
-      if (PyList_Check(obj)) {
-        size_t size = PyList_Size(obj);
-        vec->reserve(size);
-        for (size_t i = 0; i < size; ++i) {
-          PyObject* item = PyList_GetItem(obj, i);
-          if (!item) {
-            PyErr_Print();
-            break;
-          }
-          double val = PyFloat_AsDouble(item);
-          if (PyErr_Occurred()) {
-            PyErr_Print();
-            break;
-          }
-          vec->push_back((float)val);
-        }
-      } else if (PyArray_Check(obj)) {
-        PyArrayObject* arr = (PyArrayObject*)obj;
-        npy_intp* dims = PyArray_DIMS(arr);
-        int nd = PyArray_NDIM(arr);
-        size_t total = 1;
-        for (int i = 0; i < nd; ++i)
-          total *= static_cast<size_t>(dims[i]);
-
-        float* raw = static_cast<float*>(PyArray_DATA(arr));
-        vec->reserve(total);
-        vec->insert(vec->end(), raw, raw + total);
-      }
-      Py_DECREF(obj);
-    }
-    return vec;
-  }
-  static std::shared_ptr<std::vector<double>> py_to_vdouble(intptr_t pyobj)
-  {
-    PyGILRAII gil;
-    auto vec = std::make_shared<std::vector<double>>();
-    PyObject* obj = (PyObject*)pyobj;
-
-    if (obj) {
-      if (PyList_Check(obj)) {
-        size_t size = PyList_Size(obj);
-        vec->reserve(size);
-        for (size_t i = 0; i < size; ++i) {
-          PyObject* item = PyList_GetItem(obj, i);
-          if (!item) {
-            PyErr_Print();
-            break;
-          }
-          double val = PyFloat_AsDouble(item);
-          if (PyErr_Occurred()) {
-            PyErr_Print();
-            break;
-          }
-          vec->push_back(val);
-        }
-      } else if (PyArray_Check(obj)) {
-        PyArrayObject* arr = (PyArrayObject*)obj;
-        npy_intp* dims = PyArray_DIMS(arr);
-        int nd = PyArray_NDIM(arr);
-        size_t total = 1;
-        for (int i = 0; i < nd; ++i)
-          total *= static_cast<size_t>(dims[i]);
-
-        double* raw = static_cast<double*>(PyArray_DATA(arr));
-        vec->reserve(total);
-        vec->insert(vec->end(), raw, raw + total);
-      }
-      Py_DECREF(obj);
-    }
-    return vec;
-  }
+  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
+  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
+  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
+  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
+  NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
 
 } // unnamed namespace
 
@@ -778,8 +531,13 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
-  if (!PySequence_Check(input) || (output && !PySequence_Check(output))) {
-    PyErr_SetString(PyExc_TypeError, "input and output need to be sequences");
+  if (!PyList_Check(input) && !PyTuple_Check(input)) {
+    PyErr_SetString(PyExc_TypeError, "input parameter must be a list or tuple");
+    return nullptr;
+  }
+
+  if (output && !PyList_Check(output) && !PyTuple_Check(output)) {
+    PyErr_SetString(PyExc_TypeError, "output parameter must be a list or tuple");
     return nullptr;
   }
 
@@ -812,11 +570,23 @@ static PyObject* parse_args(PyObject* args,
     if (ret)
       output_types.push_back(annotation_as_text(ret));
 
-    Py_ssize_t pos = 0;
-    PyObject *key, *value;
-    while (PyDict_Next(annot, &pos, &key, &value)) {
-      if (PyUnicode_Check(key) && PyUnicode_CompareWithASCIIString(key, "return") == 0)
-        continue;
+    // Match annotation types to input labels by name lookup rather than assuming order
+    for (auto const& label : input_labels) {
+      PyObject* value = PyDict_GetItemString(annot, label.c_str());
+      if (!value) {
+        // Check if there was an actual error vs just a missing key
+        if (PyErr_Occurred()) {
+          Py_DECREF(annot);
+          return nullptr;
+        }
+        // Missing annotation for this input label
+        PyErr_Format(
+          PyExc_TypeError,
+          "Missing type annotation for parameter '%s' - all parameters must be annotated",
+          label.c_str());
+        Py_DECREF(annot);
+        return nullptr;
+      }
       input_types.push_back(annotation_as_text(value));
     }
   }

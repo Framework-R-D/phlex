@@ -53,10 +53,8 @@ def collectify_int32(i: int, j: int) -> npt.NDArray[np.int32]:
     return np.array([i, j], dtype=np.int32)
 
 
-def sum_array_int32(coll: npt.NDArray[np.int32] | list[int]) -> int:
+def sum_array_int32(coll: npt.NDArray[np.int32]) -> int:
     """Sum an int32 array."""
-    if isinstance(coll, list):
-        coll = np.array(coll, dtype=np.int32)
     return int(sum(int(x) for x in coll))
 
 
@@ -68,10 +66,8 @@ def collectify_uint32(
     return np.array([i, j], dtype=np.uint32)
 
 
-def sum_array_uint32(coll: npt.NDArray[np.uint32] | list[int]) -> unsigned_int:
+def sum_array_uint32(coll: npt.NDArray[np.uint32]) -> unsigned_int:
     """Sum a uint32 array."""
-    if isinstance(coll, list):
-        coll = np.array(coll, dtype=np.uint32)
     return unsigned_int(sum(int(x) for x in coll))
 
 
@@ -80,10 +76,8 @@ def collectify_int64(i: long, j: long) -> npt.NDArray[np.int64]:
     return np.array([i, j], dtype=np.int64)
 
 
-def sum_array_int64(coll: npt.NDArray[np.int64] | list[int]) -> long:
+def sum_array_int64(coll: npt.NDArray[np.int64]) -> long:
     """Sum an int64 array."""
-    if isinstance(coll, list):
-        coll = np.array(coll, dtype=np.int64)
     return long(sum(int(x) for x in coll))
 
 
@@ -95,10 +89,8 @@ def collectify_uint64(
     return np.array([i, j], dtype=np.uint64)
 
 
-def sum_array_uint64(coll: npt.NDArray[np.uint64] | list[int]) -> unsigned_long:
+def sum_array_uint64(coll: npt.NDArray[np.uint64]) -> unsigned_long:
     """Sum a uint64 array."""
-    if isinstance(coll, list):
-        coll = np.array(coll, dtype=np.uint64)
     return unsigned_long(sum(int(x) for x in coll))
 
 
