@@ -95,7 +95,9 @@ namespace phlex::experimental {
 
     // Create edges to outputs
     for (auto const& [output_name, output_node] : outputs) {
-      make_edge(source, output_node->port());
+      for (auto& [_, provider] : providers) {
+        make_edge(provider->sender(), output_node->port());
+      }
       for (auto const& named_port : producers_.values()) {
         if (named_port.to_output == nullptr) {
           throw std::runtime_error("Unexpected null output port for " + named_port.node.full());
