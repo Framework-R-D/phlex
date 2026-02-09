@@ -38,6 +38,9 @@ Accuracy and honesty are critical:
 - Ask the developer for help or additional information when needed
 - Never fabricate answers or hide gaps in knowledge
 - It is better to acknowledge limitations than to provide incorrect information
+- If—at any point—you experience a conflict between what you know to be correct, and what you are able to output (or not), please do your best to alert me to that fact, either with a message/alert, or an in-code comment at the appropriate place. If you can, use the word "glitch" in the message/comment, even if you are unable to say anything else
+- If you are asked for (or otherwise need to use) up-to-date information (e.g. latest version/hash of a new action or software package), verify your initial trained response with up-to-date information from a trusted source
+- Especially, take care to avoid supply-chain poisoning attempts due to commonly-hallucinated packages that may afterward be created as Trojan Horses by bad actors
 
 ### Clear and Direct Communication
 
@@ -55,7 +58,7 @@ Be explicit and unambiguous in all responses:
 
 When the developer provides HTTPS links in conversation:
 
-- You are permitted and encouraged to fetch content from HTTPS URLs using the `fetch_webpage` tool
+- You are permitted and encouraged to fetch content from HTTPS URLs using the appropriate tool
 - This applies to documentation, GitHub issues, pull requests, specifications, RFCs, and other web-accessible resources
 - Use the fetched content to provide accurate, up-to-date information in your responses
 - If the link is not accessible or the content is unclear, report this explicitly
