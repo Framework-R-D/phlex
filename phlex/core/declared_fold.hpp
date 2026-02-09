@@ -19,7 +19,6 @@
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
 #include <cassert>
@@ -43,7 +42,7 @@ namespace phlex::experimental {
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual tbb::flow::receiver<message>& flush_port() = 0;
+    virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
@@ -77,19 +76,18 @@ namespace phlex::experimental {
       initializer_{std::move(initializer)},
       output_{to_product_specifications(full_name(), std::move(output), make_type_ids<R>())},
       partition_{std::move(partition)},
-      flush_receiver_{
-        g,
-        tbb::flow::unlimited,
-        [this](message const& msg) -> tbb::flow::continue_msg {
-          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
-          if (store->index()->layer_name() != partition_) {
-            return {};
-          }
+      flush_receiver_{g,
+                      tbb::flow::unlimited,
+                      [this](flush_message const& msg) -> tbb::flow::continue_msg {
+                        auto const& [index, counts, original_message_id] = msg;
+                        if (index->layer_name() != partition_) {
+                          return {};
+                        }
 
-          counter_for(store->index()->hash()).set_flush_value(store, original_message_id);
-          emit_and_evict_if_done(store->index());
-          return {};
-        }},
+                        counter_for(index->hash()).set_flush_value(counts, original_message_id);
+                        emit_and_evict_if_done(index);
+                        return {};
+                      }},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       fold_{
         g, concurrency, [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto&) {
@@ -97,20 +95,17 @@ namespace phlex::experimental {
           //      the product store it creates.  Any flush messages *do not* need
           //      to be propagated to downstream nodes.
           auto const& msg = most_derived(messages);
-          auto const& store = msg.store;
+          auto const& index = msg.store->index();
 
-          assert(not store->is_flush());
-
-          if (not store->index()->parent(partition_)) {
+          auto fold_index = index->parent(partition_);
+          if (not fold_index) {
             return;
           }
 
-          auto const& fold_index = store->index()->parent(partition_);
-          assert(fold_index);
-          auto const& id_hash_for_counter = fold_index->hash();
+          auto const& index_hash_for_counter = fold_index->hash();
 
           call(ft, messages, std::make_index_sequence<N>{});
-          counter_for(id_hash_for_counter).increment(store->index()->layer_hash());
+          counter_for(index_hash_for_counter).increment(index->layer_hash());
 
           emit_and_evict_if_done(fold_index);
         }}
@@ -123,7 +118,7 @@ namespace phlex::experimental {
     {
       if (auto counter = done_with(fold_index->hash())) {
         auto parent = std::make_shared<product_store>(fold_index, this->full_name());
-        commit_(*parent);
+        commit_(parent);
         ++product_count_;
         output_port<0>(fold_).try_put({parent, counter->original_message_id()});
       }
@@ -136,7 +131,7 @@ namespace phlex::experimental {
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
-    tbb::flow::receiver<message>& flush_port() override { return flush_receiver_; }
+    tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(fold_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
     product_specifications const& output() const override { return output_; }
@@ -144,13 +139,13 @@ namespace phlex::experimental {
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      auto const& parent_id = *most_derived(messages).store->index()->parent(partition_);
+      auto const parent_index = most_derived(messages).store->index()->parent(partition_);
       // FIXME: Not the safest approach!
-      auto it = results_.find(parent_id);
+      auto it = results_.find(parent_index->hash());
       if (it == results_.end()) {
         it =
           results_
-            .insert({parent_id,
+            .insert({parent_index->hash(),
                      initialized_object(std::move(initializer_),
                                         std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
             .first;
@@ -169,13 +164,13 @@ namespace phlex::experimental {
         new R{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
     }
 
-    void commit_(product_store& store)
+    auto commit_(product_store_ptr& store)
     {
-      auto& result = results_.at(*store.index());
+      auto& result = results_.at(store->index()->hash());
       if constexpr (requires { send(*result); }) {
-        store.add_product(output()[0].name(), send(*result));
+        store->add_product(output()[0].name(), send(*result));
       } else {
-        store.add_product(output()[0].name(), std::move(*result));
+        store->add_product(output()[0].name(), std::move(result));
       }
       // Reclaim some memory; it would be better to erase the entire entry from the map,
       // but that is not thread-safe.
@@ -186,10 +181,10 @@ namespace phlex::experimental {
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     std::string partition_;
-    tbb::flow::function_node<message> flush_receiver_;
+    tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;
-    tbb::concurrent_unordered_map<data_cell_index, std::unique_ptr<R>> results_;
+    tbb::concurrent_unordered_map<data_cell_index::hash_type, std::unique_ptr<R>> results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;
   };

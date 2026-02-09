@@ -34,8 +34,8 @@ namespace phlex::experimental {
     std::string full_name() const;
     product_query const& output_product() const noexcept;
 
-    virtual tbb::flow::receiver<message>* input_port() = 0;
-    virtual tbb::flow::receiver<message>& flush_port() = 0;
+    virtual tbb::flow::receiver<index_message>* input_port() = 0;
+    virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual std::size_t num_calls() const = 0;
 
@@ -71,50 +71,51 @@ namespace phlex::experimental {
       output_{output.spec()},
       flush_receiver_{g,
                       tbb::flow::unlimited,
-                      [this](message const& msg) -> tbb::flow::continue_msg {
-                        receive_flush(msg);
-                        if (done_with(msg.store)) {
-                          cache_.erase(msg.store->index()->hash());
+                      [this](flush_message const& msg) -> tbb::flow::continue_msg {
+                        auto const hash = msg.index->hash();
+                        receive_flush(hash);
+                        if (done_with(hash)) {
+                          cache_.erase(hash);
                         }
                         return {};
                       }},
-      provider_{
-        g, concurrency, [this, ft = alg.release_algorithm()](message const& msg, auto& output) {
-          auto& [stay_in_graph, to_output] = output;
+      provider_{g,
+                concurrency,
+                [this, ft = alg.release_algorithm()](index_message const& index_msg, auto& output) {
+                  auto& [stay_in_graph, to_output] = output;
+                  auto const [index, msg_id] = index_msg;
 
-          assert(not msg.store->is_flush());
+                  // Check cache first
+                  auto index_hash = index->hash();
+                  if (const_accessor ca; cache_.find(ca, index_hash)) {
+                    // Cache hit - reuse the cached store
+                    message const new_msg{ca->second, msg_id};
+                    stay_in_graph.try_put(new_msg);
+                    to_output.try_put(new_msg);
+                    return;
+                  }
 
-          // Check cache first
-          auto index_hash = msg.store->index()->hash();
-          if (const_accessor ca; cache_.find(ca, index_hash)) {
-            // Cache hit - reuse the cached store
-            message const new_msg{ca->second, msg.id};
-            stay_in_graph.try_put(new_msg);
-            to_output.try_put(new_msg);
-            return;
-          }
+                  // Cache miss - compute the result
+                  auto result = std::invoke(ft, *index);
+                  ++calls_;
 
-          // Cache miss - compute the result
-          auto result = std::invoke(ft, *msg.store->index());
-          ++calls_;
+                  products new_products;
+                  new_products.add(output_.name(), std::move(result));
+                  auto store = std::make_shared<product_store>(
+                    index, this->full_name(), std::move(new_products));
 
-          products new_products;
-          new_products.add(output_.name(), std::move(result));
-          auto store = std::make_shared<product_store>(
-            msg.store->index(), this->full_name(), std::move(new_products));
+                  // Store in cache
+                  cache_.emplace(index_hash, store);
 
-          // Store in cache
-          cache_.emplace(index_hash, store);
+                  message const new_msg{store, msg_id};
+                  stay_in_graph.try_put(new_msg);
+                  to_output.try_put(new_msg);
+                  flag_for(index->hash()).mark_as_processed();
 
-          message const new_msg{store, msg.id};
-          stay_in_graph.try_put(new_msg);
-          to_output.try_put(new_msg);
-          flag_for(msg.store->index()->hash()).mark_as_processed();
-
-          if (done_with(msg.store)) {
-            cache_.erase(msg.store->index()->hash());
-          }
-        }}
+                  if (done_with(index->hash())) {
+                    cache_.erase(index->hash());
+                  }
+                }}
     {
       spdlog::debug(
         "Created provider node {} making output {}", this->full_name(), output.to_string());
@@ -123,15 +124,15 @@ namespace phlex::experimental {
     ~provider_node() { report_cached_stores(cache_); }
 
   private:
-    tbb::flow::receiver<message>* input_port() override { return &provider_; }
-    tbb::flow::receiver<message>& flush_port() override { return flush_receiver_; }
+    tbb::flow::receiver<index_message>* input_port() override { return &provider_; }
+    tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& sender() override { return output_port<0>(provider_); }
 
     std::size_t num_calls() const final { return calls_.load(); }
 
     product_specification output_;
-    tbb::flow::function_node<message> flush_receiver_;
-    tbb::flow::multifunction_node<message, messages_t<2u>> provider_;
+    tbb::flow::function_node<flush_message> flush_receiver_;
+    tbb::flow::multifunction_node<index_message, messages_t<2u>> provider_;
     std::atomic<std::size_t> calls_;
     stores_t cache_;
   };

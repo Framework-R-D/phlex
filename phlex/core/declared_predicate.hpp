@@ -40,7 +40,7 @@ namespace phlex::experimental {
                        product_queries input_products);
     virtual ~declared_predicate();
 
-    virtual tbb::flow::receiver<message>& flush_port() = 0;
+    virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
 
   protected:
@@ -75,10 +75,11 @@ namespace phlex::experimental {
       declared_predicate{std::move(name), std::move(predicates), std::move(input_products)},
       flush_receiver_{g,
                       tbb::flow::unlimited,
-                      [this](message const& msg) -> tbb::flow::continue_msg {
-                        receive_flush(msg);
-                        if (done_with(msg.store)) {
-                          results_.erase(msg.store->index()->hash());
+                      [this](flush_message const& msg) -> tbb::flow::continue_msg {
+                        auto const hash = msg.index->hash();
+                        receive_flush(hash);
+                        if (done_with(hash)) {
+                          results_.erase(hash);
                         }
                         return {};
                       }},
@@ -90,19 +91,18 @@ namespace phlex::experimental {
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
-          assert(not store->is_flush());
-
           predicate_result result{};
-          if (const_accessor a; results_.find(a, store->index()->hash())) {
+          auto const hash = store->index()->hash();
+          if (const_accessor a; results_.find(a, hash)) {
             result = {message_id, a->second.result};
-          } else if (accessor a; results_.insert(a, store->index()->hash())) {
+          } else if (accessor a; results_.insert(a, hash)) {
             bool const rc = call(ft, messages, std::make_index_sequence<N>{});
             result = a->second = {message_id, rc};
-            flag_for(store->index()->hash()).mark_as_processed();
+            flag_for(hash).mark_as_processed();
           }
 
-          if (done_with(store)) {
-            results_.erase(store->index()->hash());
+          if (done_with(hash)) {
+            results_.erase(hash);
           }
           return result;
         }}
@@ -120,7 +120,7 @@ namespace phlex::experimental {
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
-    tbb::flow::receiver<message>& flush_port() override { return flush_receiver_; }
+    tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
 
     template <std::size_t... Is>
@@ -133,7 +133,7 @@ namespace phlex::experimental {
     std::size_t num_calls() const final { return calls_.load(); }
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    tbb::flow::function_node<message> flush_receiver_;
+    tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>, predicate_result> predicate_;
     results_t results_;

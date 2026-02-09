@@ -33,8 +33,6 @@ namespace phlex::experimental {
     std::map<data_cell_index::hash_type, std::size_t> child_counts_{};
   };
 
-  using flush_counts_ptr = std::shared_ptr<flush_counts const>;
-
   class data_cell_counter {
   public:
     data_cell_counter();

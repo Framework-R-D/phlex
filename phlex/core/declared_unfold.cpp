@@ -23,14 +23,12 @@ namespace phlex::experimental {
     return std::make_shared<product_store>(child_index, node_name_, std::move(new_products));
   }
 
-  product_store_const_ptr generator::flush_store() const
+  flush_counts_ptr generator::flush_result() const
   {
-    auto result = parent_->make_flush();
     if (not child_counts_.empty()) {
-      result->add_product("[flush]",
-                          std::make_shared<flush_counts const>(std::move(child_counts_)));
+      return std::make_shared<flush_counts const>(std::move(child_counts_));
     }
-    return result;
+    return nullptr;
   }
 
   declared_unfold::declared_unfold(algorithm_name name,

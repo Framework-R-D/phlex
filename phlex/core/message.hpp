@@ -3,6 +3,7 @@
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_query.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
@@ -17,10 +18,20 @@
 
 namespace phlex::experimental {
 
+  struct index_message {
+    data_cell_index_ptr index;
+    std::size_t id;
+  };
+
+  struct flush_message {
+    data_cell_index_ptr index;
+    flush_counts_ptr counts;
+    std::size_t original_id; // FIXME: Used only by folds
+  };
+
   struct message {
     product_store_const_ptr store;
     std::size_t id;
-    std::size_t original_id{-1ull}; // Used during flush
   };
 
   template <std::size_t N>

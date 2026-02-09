@@ -10,13 +10,13 @@ namespace phlex::experimental {
   class consumer;
   class declared_output;
   class generator;
+  struct flush_message;
   class framework_graph;
   struct message;
-  class message_sender;
   class multiplexer;
   class products_consumer;
 
-  using flusher_t = tbb::flow::broadcast_node<message>;
+  using flusher_t = tbb::flow::broadcast_node<flush_message>;
 }
 
 #endif // PHLEX_CORE_FWD_HPP
