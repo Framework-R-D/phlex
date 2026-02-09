@@ -82,7 +82,7 @@ runs:
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
         trap 'rm -f ~/.git-credentials' EXIT
-        (umask 077 && echo "https://x-access-token:${{ inputs.token }}@github.com" > ~/.git-credentials)
+        (rm -f ~/.git-credentials && umask 077 && echo "https://x-access-token:${{ inputs.token }}@github.com" > ~/.git-credentials)
         git config --local credential.helper 'store --file ~/.git-credentials'
 
         git add -u
