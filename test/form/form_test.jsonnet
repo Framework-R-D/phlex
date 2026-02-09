@@ -16,7 +16,10 @@
     },
     form_output: {
       cpp: 'form_module',
-      products: ['sum'],
+      // FIXME: Should make it possible to *not* write products created by nodes.
+      //        If 'i' and 'j' are omitted from the products sequence below, an error
+      //        is encountered with the message: 'No configuration found for product: j'.
+      products: ['sum', 'i', 'j'],
     },
   },
 }
