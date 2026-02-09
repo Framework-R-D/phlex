@@ -85,20 +85,20 @@ namespace phlex::experimental {
               auto const& msg = most_derived(messages);
               auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
 
-              if (not store->is_flush() and not store->id()->parent(partition_)) {
+              if (not store->is_flush() and not store->index()->parent(partition_)) {
                 return;
               }
 
               if (store->is_flush()) {
                 // Downstream nodes always get the flush.
                 get<0>(outputs).try_put(msg);
-                if (store->id()->layer_name() != partition_) {
+                if (store->index()->layer_name() != partition_) {
                   return;
                 }
               }
 
               auto const& fold_index =
-                store->is_flush() ? store->id() : store->id()->parent(partition_);
+                store->is_flush() ? store->index() : store->index()->parent(partition_);
               assert(fold_index);
               auto const& id_hash_for_counter = fold_index->hash();
 
@@ -106,7 +106,7 @@ namespace phlex::experimental {
                 counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
               } else {
                 call(ft, messages, std::make_index_sequence<N>{});
-                counter_for(id_hash_for_counter).increment(store->id()->layer_hash());
+                counter_for(id_hash_for_counter).increment(store->index()->layer_hash());
               }
 
               if (auto counter = done_with(id_hash_for_counter)) {
@@ -136,7 +136,7 @@ namespace phlex::experimental {
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      auto const& parent_id = *most_derived(messages).store->id()->parent(partition_);
+      auto const& parent_id = *most_derived(messages).store->index()->parent(partition_);
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_id);
       if (it == results_.end()) {
@@ -163,7 +163,7 @@ namespace phlex::experimental {
 
     void commit_(product_store& store)
     {
-      auto& result = results_.at(*store.id());
+      auto& result = results_.at(*store.index());
       if constexpr (requires { send(*result); }) {
         store.add_product(output()[0].name(), send(*result));
       } else {

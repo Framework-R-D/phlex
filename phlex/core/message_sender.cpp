@@ -18,13 +18,13 @@ namespace phlex::experimental {
     assert(store);
     assert(not store->is_flush());
     auto const message_id = ++calls_;
-    original_message_ids_.try_emplace(store->id(), message_id);
+    original_message_ids_.try_emplace(store->index(), message_id);
     auto parent_eom = eoms_.top();
     end_of_message_ptr current_eom{};
     if (parent_eom == nullptr) {
-      current_eom = eoms_.emplace(end_of_message::make_base(&hierarchy_, store->id()));
+      current_eom = eoms_.emplace(end_of_message::make_base(&hierarchy_, store->index()));
     } else {
-      current_eom = eoms_.emplace(parent_eom->make_child(store->id()));
+      current_eom = eoms_.emplace(parent_eom->make_child(store->index()));
     }
     return {store, current_eom, message_id, -1ull};
   }
@@ -43,7 +43,7 @@ namespace phlex::experimental {
     assert(store);
     assert(store->is_flush());
 
-    auto h = original_message_ids_.extract(store->id());
+    auto h = original_message_ids_.extract(store->index());
     assert(h);
     return h.mapped();
   }

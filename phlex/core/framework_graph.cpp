@@ -16,9 +16,9 @@ namespace phlex::experimental {
   layer_sentry::layer_sentry(flush_counters& counters,
                              message_sender& sender,
                              product_store_ptr store) :
-    counters_{counters}, sender_{sender}, store_{store}, depth_{store_->id()->depth()}
+    counters_{counters}, sender_{sender}, store_{store}, depth_{store_->index()->depth()}
   {
-    counters_.update(store_->id());
+    counters_.update(store_->index());
   }
 
   layer_sentry::~layer_sentry()
@@ -26,7 +26,7 @@ namespace phlex::experimental {
     // To consider: We may want to skip the following logic if the framework prematurely
     //              needs to shut down.  Keeping it enabled allows in-flight folds to
     //              complete.  However, in some cases it may not be desirable to do this.
-    auto flush_result = counters_.extract(store_->id());
+    auto flush_result = counters_.extract(store_->index());
     auto flush_store = store_->make_flush();
     if (not flush_result.empty()) {
       flush_store->add_product("[flush]",
@@ -172,7 +172,7 @@ namespace phlex::experimental {
   product_store_ptr framework_graph::accept(product_store_ptr store)
   {
     assert(store);
-    auto const new_depth = store->id()->depth();
+    auto const new_depth = store->index()->depth();
     while (not empty(layers_) and new_depth <= layers_.top().depth()) {
       layers_.pop();
       eoms_.pop();

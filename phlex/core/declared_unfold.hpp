@@ -109,20 +109,20 @@ namespace phlex::experimental {
           auto const& msg = most_derived(messages);
           auto const& store = msg.store;
           if (store->is_flush()) {
-            flag_for(store->id()->hash()).flush_received(msg.id);
+            flag_for(store->index()->hash()).flush_received(msg.id);
             std::get<0>(output).try_put(msg);
-          } else if (accessor a; stores_.insert(a, store->id()->hash())) {
+          } else if (accessor a; stores_.insert(a, store->index()->hash())) {
             std::size_t const original_message_id{msg_counter_};
             generator g{msg.store, this->full_name(), child_layer_name_};
-            call(p, ufold, msg.store->id(), g, msg.eom, messages, std::make_index_sequence<N>{});
+            call(p, ufold, msg.store->index(), g, msg.eom, messages, std::make_index_sequence<N>{});
 
             message const flush_msg{g.flush_store(), msg.eom, ++msg_counter_, original_message_id};
             std::get<0>(output).try_put(flush_msg);
-            flag_for(store->id()->hash()).mark_as_processed();
+            flag_for(store->index()->hash()).mark_as_processed();
           }
 
           if (done_with(store)) {
-            stores_.erase(store->id()->hash());
+            stores_.erase(store->index()->hash());
           }
         }}
     {
@@ -169,7 +169,7 @@ namespace phlex::experimental {
         }
         ++product_count_;
         auto child = g.make_child_for(counter++, std::move(new_products));
-        message const child_msg{child, eom->make_child(child->id()), ++msg_counter_};
+        message const child_msg{child, eom->make_child(child->index()), ++msg_counter_};
         output_port<0>(unfold_).try_put(child_msg);
 
         // Every data cell needs a flush (for now)

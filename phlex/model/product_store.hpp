@@ -31,7 +31,7 @@ namespace phlex::experimental {
     std::string const& layer_name() const noexcept;
     std::string const& source() const noexcept;
     product_store_ptr make_flush() const;
-    data_cell_index_ptr const& id() const noexcept;
+    data_cell_index_ptr const& index() const noexcept;
     bool is_flush() const noexcept;
 
     // Product interface

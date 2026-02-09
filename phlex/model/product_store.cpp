@@ -31,7 +31,7 @@ namespace phlex::experimental {
 
   std::string const& product_store::layer_name() const noexcept { return id_->layer_name(); }
   std::string const& product_store::source() const noexcept { return source_; }
-  data_cell_index_ptr const& product_store::id() const noexcept { return id_; }
+  data_cell_index_ptr const& product_store::index() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
   bool product_store::contains_product(std::string const& product_name) const
@@ -41,7 +41,7 @@ namespace phlex::experimental {
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
   {
-    if (a->id()->depth() > b->id()->depth()) {
+    if (a->index()->depth() > b->index()->depth()) {
       return a;
     }
     return b;
