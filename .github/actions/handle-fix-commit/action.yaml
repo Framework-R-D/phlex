@@ -81,9 +81,12 @@ runs:
         git config --local user.name "github-actions[bot]"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-        export GITHUB_TOKEN=${{ inputs.token }}
         trap 'rm -f ~/.git-credentials' EXIT
-        echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+        rm -f ~/.git-credentials
+        umask 077
+        cat <<EOF > ~/.git-credentials
+https://x-access-token:${{ inputs.token }}@github.com
+EOF
         git config --local credential.helper 'store --file ~/.git-credentials'
 
         git add -u
