@@ -370,10 +370,10 @@ namespace {
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
-      Py_XDECREF((PyObject*)pyobj);                                                                 \
+      Py_XDECREF((PyObject*)pyobj);                                                                \
       throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
     }                                                                                              \
-    Py_XDECREF((PyObject*)pyobj);                                                                   \
+    Py_XDECREF((PyObject*)pyobj);                                                                  \
     return i;                                                                                      \
   }
 
