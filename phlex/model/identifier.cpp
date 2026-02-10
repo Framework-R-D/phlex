@@ -19,12 +19,6 @@ namespace phlex::experimental {
   }
 
   identifier::identifier(std::string_view str) : content_(str), hash_(hash_string(content_)) {}
-  identifier& identifier::operator=(std::string_view str)
-  {
-    content_ = str;
-    hash_ = hash_string(content_);
-    return *this;
-  }
 
   identifier::operator std::string_view() const noexcept { return std::string_view(content_); }
   bool identifier::operator==(identifier const& rhs) const noexcept { return hash_ == rhs.hash_; }
