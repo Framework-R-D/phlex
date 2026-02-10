@@ -107,25 +107,8 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* arg_tuple = PyTuple_New(N);
-      if (!arg_tuple) {
-        decref_all(args...);
-        return (intptr_t)nullptr;
-      }
-
-      size_t i = 0;
-      (
-        [&](intptr_t arg) {
-          PyObject* pyarg = lifeline_transform(arg);
-          if (!pyarg)
-            pyarg = Py_None;
-          Py_INCREF(pyarg);
-          PyTuple_SET_ITEM(arg_tuple, i++, pyarg);
-        }(args),
-        ...);
-
-      PyObject* result = PyObject_Call(m_callable, arg_tuple, nullptr);
-      Py_DECREF(arg_tuple);
+      PyObject* result =
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -149,25 +132,8 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* arg_tuple = PyTuple_New(N);
-      if (!arg_tuple) {
-        decref_all(args...);
-        return;
-      }
-
-      size_t i = 0;
-      (
-        [&](intptr_t arg) {
-          PyObject* pyarg = lifeline_transform(arg);
-          if (!pyarg)
-            pyarg = Py_None;
-          Py_INCREF(pyarg);
-          PyTuple_SET_ITEM(arg_tuple, i++, pyarg);
-        }(args),
-        ...);
-
-      PyObject* result = PyObject_Call(m_callable, arg_tuple, nullptr);
-      Py_DECREF(arg_tuple);
+      PyObject* result =
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
