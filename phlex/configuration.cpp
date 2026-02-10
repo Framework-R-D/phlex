@@ -17,40 +17,6 @@ namespace phlex::detail {
       return std::nullopt;
     }
     auto const& val = obj.at(parameter);
-    if (!val.is_string()) {
-      std::string_view kind;
-      switch (val.kind()) {
-      case boost::json::kind::null:
-        // seems reasonable to interpret this as if the value were not provided
-        return std::nullopt;
-        break;
-      case boost::json::kind::bool_:
-        kind = "bool";
-        break;
-      case boost::json::kind::int64:
-        kind = "std::int64_t";
-        break;
-      case boost::json::kind::uint64:
-        kind = "std::uint64_t";
-        break;
-      case boost::json::kind::double_:
-        kind = "double";
-        break;
-      case boost::json::kind::array:
-        kind = "array";
-        break;
-      case boost::json::kind::object:
-        kind = "object";
-        break;
-      default:
-        // std::unreachable();
-        break;
-      }
-      throw std::runtime_error(fmt::format(
-        "Error retrieving parameter '{}'. Should be an identifier string but is instead a {}",
-        parameter,
-        kind));
-    }
     return boost::json::value_to<phlex::experimental::identifier>(val);
   }
 }
