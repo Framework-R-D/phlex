@@ -563,34 +563,24 @@ static PyObject* parse_args(PyObject* args,
       Py_DECREF(callm);
     }
   }
-  Py_DECREF(sann);
 
-  if (annot && PyDict_Check(annot) && PyDict_Size(annot)) {
+  if (annot && PyDict_Check(annot)) {
     PyObject* ret = PyDict_GetItemString(annot, "return");
     if (ret)
       output_types.push_back(annotation_as_text(ret));
 
-    // Match annotation types to input labels by name lookup rather than assuming order
-    for (auto const& label : input_labels) {
-      PyObject* value = PyDict_GetItemString(annot, label.c_str());
-      if (!value) {
-        // Check if there was an actual error vs just a missing key
-        if (PyErr_Occurred()) {
-          Py_DECREF(annot);
-          return nullptr;
-        }
-        // Missing annotation for this input label
-        PyErr_Format(
-          PyExc_TypeError,
-          "Missing type annotation for parameter '%s' - all parameters must be annotated",
-          label.c_str());
-        Py_DECREF(annot);
-        return nullptr;
-      }
+    // Match annotation types to input labels positionally (skipping "return")
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
+    while (PyDict_Next(annot, &pos, &key, &value)) {
+      const char* ks = PyUnicode_AsUTF8(key);
+      if (ks && strcmp(ks, "return") == 0)
+        continue;
       input_types.push_back(annotation_as_text(value));
     }
   }
   Py_XDECREF(annot);
+  Py_XDECREF(sann);
 
   // ignore None as Python's conventional "void" return, which is meaningless in C++
   if (output_types.size() == 1 && output_types[0] == "None")
