@@ -14,6 +14,7 @@
     "mounts": [
         "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
     ],
+    "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
     "customizations": {
         "vscode": {
             "settings": {

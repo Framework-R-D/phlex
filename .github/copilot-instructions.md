@@ -6,10 +6,27 @@
 
 - **Primary Repository**: `Framework-R-D/phlex`
 - **Design & Documentation**: `Framework-R-D/phlex-design` (contains design docs, coding guidelines, etc.)
+- **Coding Guidelines**: `Framework-R-D/phlex-coding-guidelines` (coding guidelines for framework contributors)
+- **Examples**: `Framework-R-D/phlex-examples` (example user code demonstrating Phlex usage)
+- **Spack Recipes**: `Framework-R-D/phlex-spack-recipes` (Spack recipes for Phlex and dependencies)
 - **Dependencies**: Critical dependency on `FNALssi/cetmodules` for the build system.
 - **Container Images**:
   - `phlex-ci`: Used by automated CI checks.
   - `phlex-dev`: Used for VSCode devcontainers and local development.
+
+### Codespace Layout
+
+In a GitHub Codespace (or devcontainer), companion repositories are cloned
+automatically alongside the primary repository:
+
+- `/workspaces/phlex` — primary repository (workspace root)
+- `/workspaces/phlex-design` — design documentation
+- `/workspaces/phlex-examples` — example programs using Phlex
+- `/workspaces/phlex-coding-guidelines` — coding guidelines for contributors
+- `/workspaces/phlex-spack-recipes` — Spack recipes for Phlex and dependencies
+
+Use the multi-root workspace file `.devcontainer/codespace.code-workspace` to
+open all repositories in a single VS Code window.
 
 ### Development Workflow
 
