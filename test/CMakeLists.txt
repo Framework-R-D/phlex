@@ -144,6 +144,12 @@ cet_test(
   phlex::core
 )
 cet_test(
+  output_products
+  USE_CATCH2_MAIN
+  SOURCE output_products.cpp
+  LIBRARIES layer_generator phlex::core spdlog::spdlog
+)
+cet_test(
   data_cell_counting
   USE_CATCH2_MAIN
   SOURCE

@@ -29,9 +29,11 @@ namespace phlex::experimental {
                     detail::output_function_t&& ft);
 
     tbb::flow::receiver<message>& port() noexcept;
+    std::size_t num_calls() const { return calls_; }
 
   private:
     tbb::flow::function_node<message> node_;
+    std::atomic<std::size_t> calls_;
   };
 
   using declared_output_ptr = std::unique_ptr<declared_output>;

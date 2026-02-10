@@ -26,6 +26,9 @@ namespace phlex::experimental {
     if (auto node = providers.get(node_name)) {
       return node->num_calls();
     }
+    if (auto node = outputs.get(node_name)) {
+      return node->num_calls();
+    }
     throw std::runtime_error("Unknown node type with name: "s + node_name);
   }
 }

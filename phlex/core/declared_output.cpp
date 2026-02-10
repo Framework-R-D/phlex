@@ -9,9 +9,10 @@ namespace phlex::experimental {
                                    tbb::flow::graph& g,
                                    detail::output_function_t&& ft) :
     consumer{std::move(name), std::move(predicates)},
-    node_{g, concurrency, [f = std::move(ft)](message const& msg) -> tbb::flow::continue_msg {
+    node_{g, concurrency, [this, f = std::move(ft)](message const& msg) -> tbb::flow::continue_msg {
             if (not msg.store->is_flush()) {
               f(*msg.store);
+              ++calls_;
             }
             return {};
           }}
