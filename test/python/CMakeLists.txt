@@ -64,6 +64,7 @@ if(HAS_CPPYY)
       --cov-report=term-missing
       --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
       --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
+      --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc
       test_phlex.py
     )
     message(STATUS "Python tests will run with coverage reporting (pytest-cov)")

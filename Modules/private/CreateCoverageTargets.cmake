@@ -572,6 +572,7 @@ function(_create_coverage_targets_impl)
           ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py --cov=${PROJECT_SOURCE_DIR}/test/python
           --cov-report=term-missing --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
           --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
+          --cov-config=${PROJECT_SOURCE_DIR}/test/python/.coveragerc
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Generating Python coverage report"
         VERBATIM
