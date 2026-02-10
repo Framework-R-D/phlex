@@ -94,13 +94,10 @@ namespace {
     }
     ~py_callback()
     {
-      // Check if Python is still initialized before attempting cleanup
-      // While this check may not be reliable in all threading scenarios (e.g., offloaded threads),
-      // it prevents crashes during normal interpreter shutdown
-      if (Py_IsInitialized()) {
-        PyGILRAII gil;
-        Py_DECREF(m_callable);
-      }
+      // TODO: cleanup deferred to Phlex shutdown hook
+      // Cannot safely Py_DECREF during arbitrary destruction due to:
+      // - TOCTOU race on Py_IsInitialized() without GIL
+      // - Module offloading in interpreter cleanup phase 2
     }
 
     template <typename... Args>
@@ -191,7 +188,7 @@ namespace {
     void decref_all(Args... args)
     {
       // helper to decrement reference counts of N arguments
-      (Py_XDECREF((PyObject*)args), ...);
+      (Py_DECREF((PyObject*)args), ...);
     }
   };
 
@@ -345,7 +342,7 @@ namespace {
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
     if (ul == (unsigned long)-1 && PyErr_Occurred() && PyLong_Check(pyobject)) {
       PyErr_Clear();
-      long i = PyLong_AsLong(pyobject);
+      long i = PyLong_AS_LONG(pyobject);
       if (0 <= i) {
         ul = (unsigned long)i;
       } else {
@@ -370,10 +367,10 @@ namespace {
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
-      Py_XDECREF((PyObject*)pyobj);                                                                \
+      Py_DECREF((PyObject*)pyobj);                                                                \
       throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
     }                                                                                              \
-    Py_XDECREF((PyObject*)pyobj);                                                                  \
+    Py_DECREF((PyObject*)pyobj);                                                                  \
     return i;                                                                                      \
   }
 
@@ -439,7 +436,7 @@ namespace {
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
-    if (pyobj && PyArray_Check((PyObject*)pyobj)) {                                                \
+    if (PyArray_Check((PyObject*)pyobj)) {                                                \
       PyArrayObject* arr = (PyArrayObject*)pyobj;                                                  \
                                                                                                    \
       /* TODO: flattening the array here seems to be the only workable solution */                 \
@@ -453,7 +450,7 @@ namespace {
       cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                     \
       vec->reserve(total);                                                                         \
       vec->insert(vec->end(), raw, raw + total);                                                   \
-    } else if (pyobj && PyList_Check((PyObject*)pyobj)) {                                          \
+    } else if (PyList_Check((PyObject*)pyobj)) {                                          \
       Py_ssize_t total = PyList_Size((PyObject*)pyobj);                                            \
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
@@ -465,10 +462,13 @@ namespace {
         }                                                                                          \
       }                                                                                            \
     } else {                                                                                       \
-      PyErr_Clear(); /* how to report an error? */                                                 \
+std::string msg; \
+if (msg_from_py_error(msg, true)) { \
+  throw std::runtime_error("List conversion error: " + msg); \
+} \
     }                                                                                              \
                                                                                                    \
-    Py_XDECREF((PyObject*)pyobj);                                                                  \
+    Py_DECREF((PyObject*)pyobj);                                                                  \
     return vec;                                                                                    \
   }
 
@@ -529,8 +529,10 @@ static PyObject* parse_args(PyObject* args,
       // AttributeError already set
       return nullptr;
     }
-  } else
+  } else {
     Py_INCREF(pyname);
+  }
+
   functor_name = PyUnicode_AsUTF8(pyname);
   Py_DECREF(pyname);
 
@@ -571,46 +573,24 @@ static PyObject* parse_args(PyObject* args,
       Py_DECREF(callm);
     }
   }
+  Py_DECREF(sann);
 
   if (annot && PyDict_Check(annot)) {
-    PyObject* ret = PyDict_GetItemString(annot, "return");
-    if (ret)
-      output_types.push_back(annotation_as_text(ret));
+    // Variant guarantees OrderedDict with "return" last
+    PyObject *key, *value;
+    Py_ssize_t pos = 0;
 
-    // Match annotation types to input labels positionally by looking up parameter names.
-    PyObject* code = PyObject_GetAttrString(callable, "__code__");
-    if (!code) {
-      PyErr_Clear();
-      PyObject* callm = PyObject_GetAttrString(callable, "__call__");
-      if (callm) {
-        code = PyObject_GetAttrString(callm, "__code__");
-        Py_DECREF(callm);
+    while (PyDict_Next(annot, &pos, &key, &value)) {
+      const char* key_str = PyUnicode_AsUTF8(key);
+      if (strcmp(key_str, "return") == 0) {
+        output_types.push_back(annotation_as_text(value));
+      } else {
+        input_types.push_back(annotation_as_text(value));
       }
-    }
-
-    if (code) {
-      PyObject* argcount_obj = PyObject_GetAttrString(code, "co_argcount");
-      long argcount = PyLong_AsLong(argcount_obj);
-      Py_DECREF(argcount_obj);
-      PyObject* varnames = PyObject_GetAttrString(code, "co_varnames");
-      if (varnames) {
-        for (long i = 0; i < argcount; ++i) {
-          PyObject* name = PyTuple_GetItem(varnames, i);
-          PyObject* val = PyDict_GetItem(annot, name);
-          if (val) {
-            input_types.push_back(annotation_as_text(val));
-          }
-        }
-        Py_DECREF(varnames);
-      }
-      Py_DECREF(code);
-    } else {
-      PyErr_Clear();
     }
   }
   Py_XDECREF(annot);
-  Py_XDECREF(sann);
-
+ 
   // ignore None as Python's conventional "void" return, which is meaningless in C++
   if (output_types.size() == 1 && output_types[0] == "None")
     output_types.clear();
