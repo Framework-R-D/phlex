@@ -102,8 +102,8 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 
 ### CRITICAL: Apply to ALL files you create or edit (bash scripts, Python, C++, YAML, Markdown, etc.)
 
-- All text files must have their final line be non-empty and terminated with a single newline character, leaving no trailing blank lines
-- **Never add trailing whitespace on any line** (spaces or tabs at end of lines)
+- For all text files, the final character in the file **must** be a newline character, and the immediately-preceding character **must not** be either a newline character or other whitespace (space, tab, etc.)
+- **Never add trailing whitespace on any line** (spaces or tabs at end of lines) unless it is part of a multi-line string
 - This includes blank lines - they should contain only the newline character, no spaces or tabs
 - Exception: Markdown two-space line breaks (avoid; use proper paragraph breaks instead)
 
