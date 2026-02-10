@@ -58,14 +58,18 @@ namespace phlex::experimental {
            auto store = std::make_shared<product_store>(index, "Source");
            return sender_.make_message(accept(std::move(store)));
          }},
-    multiplexer_{graph_}
+    multiplexer_{graph_},
+    hierarchy_node_{
+      graph_, tbb::flow::unlimited, [this](message const& msg) -> tbb::flow::continue_msg {
+        if (not msg.store->is_flush()) {
+          hierarchy_.increment_count(msg.store->index());
+        }
+        return {};
+      }}
   {
     // FIXME: Should the loading of env levels happen in the phlex app only?
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
-
-    // The parent of the job message is null
-    eoms_.push(nullptr);
   }
 
   framework_graph::~framework_graph()
@@ -167,6 +171,14 @@ namespace phlex::experimental {
                nodes_.folds,
                nodes_.unfolds,
                nodes_.transforms);
+
+    // The hierarchy node is used to report which data layers have been seen by the
+    // framework.  To assemble the report, data-cell indices emitted by the input node are
+    // recorded as well as any data-cell indices emitted by an unfold.
+    make_edge(src_, hierarchy_node_);
+    for (auto& [_, node] : nodes_.unfolds) {
+      make_edge(node->sender(), hierarchy_node_);
+    }
   }
 
   product_store_ptr framework_graph::accept(product_store_ptr store)
@@ -175,7 +187,6 @@ namespace phlex::experimental {
     auto const new_depth = store->index()->depth();
     while (not empty(layers_) and new_depth <= layers_.top().depth()) {
       layers_.pop();
-      eoms_.pop();
     }
     layers_.emplace(counters_, sender_, store);
     return store;
@@ -185,7 +196,6 @@ namespace phlex::experimental {
   {
     while (not empty(layers_)) {
       layers_.pop();
-      eoms_.pop();
     }
   }
 }

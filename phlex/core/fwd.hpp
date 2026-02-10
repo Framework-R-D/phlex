@@ -3,20 +3,15 @@
 
 #include "phlex/model/fwd.hpp"
 
-#include <memory>
-
 namespace phlex::experimental {
   class component;
   class consumer;
   class declared_output;
-  class end_of_message;
   class generator;
   class framework_graph;
   class message_sender;
   class multiplexer;
   class products_consumer;
-
-  using end_of_message_ptr = std::shared_ptr<end_of_message>;
 }
 
 #endif // PHLEX_CORE_FWD_HPP

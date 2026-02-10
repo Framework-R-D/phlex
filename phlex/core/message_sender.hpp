@@ -7,15 +7,12 @@
 #include "phlex/model/fwd.hpp"
 
 #include <map>
-#include <stack>
 
 namespace phlex::experimental {
 
   class message_sender {
   public:
-    explicit message_sender(data_layer_hierarchy& hierarchy,
-                            multiplexer& mplexer,
-                            std::stack<end_of_message_ptr>& eoms);
+    explicit message_sender(multiplexer& mplexer);
 
     void send_flush(product_store_ptr store);
     message make_message(product_store_ptr store);
@@ -23,9 +20,7 @@ namespace phlex::experimental {
   private:
     std::size_t original_message_id(product_store_ptr const& store);
 
-    data_layer_hierarchy& hierarchy_;
     multiplexer& multiplexer_;
-    std::stack<end_of_message_ptr>& eoms_;
     std::map<data_cell_index_ptr, std::size_t> original_message_ids_;
     std::size_t calls_{};
   };

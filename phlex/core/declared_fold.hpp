@@ -113,8 +113,7 @@ namespace phlex::experimental {
                 auto parent = std::make_shared<product_store>(fold_index, this->full_name());
                 commit_(*parent);
                 ++product_count_;
-                // FIXME: This msg.eom value may be wrong!
-                get<0>(outputs).try_put({parent, msg.eom, counter->original_message_id()});
+                get<0>(outputs).try_put({parent, counter->original_message_id()});
               }
             }}
     {
