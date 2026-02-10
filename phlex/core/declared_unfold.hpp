@@ -114,7 +114,8 @@ namespace phlex::experimental {
                   generator g{msg.store, this->full_name(), child_layer_name_};
                   call(p, ufold, msg.store->index(), g, messages, std::make_index_sequence<N>{});
 
-                  message const flush_msg{g.flush_store(), ++msg_counter_, original_message_id};
+                  message const flush_msg{
+                    g.flush_store(), msg_counter_.fetch_add(1), original_message_id};
                   std::get<0>(output).try_put(flush_msg);
                   flag_for(store->index()->hash()).mark_as_processed();
                 }
@@ -166,11 +167,11 @@ namespace phlex::experimental {
         }
         ++product_count_;
         auto child = g.make_child_for(counter++, std::move(new_products));
-        message const child_msg{child, ++msg_counter_};
+        message const child_msg{child, msg_counter_.fetch_add(1)};
         output_port<0>(unfold_).try_put(child_msg);
 
         // Every data cell needs a flush (for now)
-        message const child_flush_msg{child->make_flush(), ++msg_counter_};
+        message const child_flush_msg{child->make_flush(), msg_counter_.fetch_add(1)};
         output_port<0>(unfold_).try_put(child_flush_msg);
       }
     }
