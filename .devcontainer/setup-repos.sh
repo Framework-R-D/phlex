@@ -9,6 +9,11 @@ set -euo pipefail
 
 WORKSPACE_ROOT="${1:-/workspaces}"
 
+if [ ! -d "$WORKSPACE_ROOT" ]; then
+  echo "Error: workspace root does not exist: $WORKSPACE_ROOT" >&2
+  exit 1
+fi
+
 clone_if_absent() {
   local repo=$1
   local dest="${WORKSPACE_ROOT}/${repo}"
