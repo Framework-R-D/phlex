@@ -55,7 +55,7 @@ namespace {
       std::string creator = store.source();
 
       // Extract segment ID (partition) - extract once for entire store
-      std::string segment_id = store.id()->to_string();
+      std::string segment_id = store.index()->to_string();
 
       std::cout << "\n=== FormOutputModule::save_data_products ===\n";
       std::cout << "Creator: " << creator << "\n";

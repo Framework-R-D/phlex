@@ -74,15 +74,15 @@ namespace phlex::experimental {
                   auto const& msg = most_derived(messages);
                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
                   if (store->is_flush()) {
-                    flag_for(store->id()->hash()).flush_received(message_id);
+                    flag_for(store->index()->hash()).flush_received(message_id);
                   } else if (accessor a; needs_new(store, a)) {
                     call(ft, messages, std::make_index_sequence<N>{});
                     a->second = true;
-                    flag_for(store->id()->hash()).mark_as_processed();
+                    flag_for(store->index()->hash()).mark_as_processed();
                   }
 
                   if (done_with(store)) {
-                    cached_hashes_.erase(store->id()->hash());
+                    cached_hashes_.erase(store->index()->hash());
                   }
                   return {};
                 }}
@@ -102,10 +102,10 @@ namespace phlex::experimental {
 
     bool needs_new(product_store_const_ptr const& store, accessor& a)
     {
-      if (cached_hashes_.count(store->id()->hash()) > 0ull) {
+      if (cached_hashes_.count(store->index()->hash()) > 0ull) {
         return false;
       }
-      return cached_hashes_.insert(a, store->id()->hash());
+      return cached_hashes_.insert(a, store->index()->hash());
     }
 
     template <std::size_t... Is>

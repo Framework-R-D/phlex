@@ -17,12 +17,12 @@ namespace {
   product_store_const_ptr store_for(product_store_const_ptr store,
                                     std::string const& port_product_layer)
   {
-    if (store->id()->layer_name() == port_product_layer) {
+    if (store->index()->layer_name() == port_product_layer) {
       // This store's layer matches what is expected by the port
       return store;
     }
 
-    if (auto index = store->id()->parent(port_product_layer)) {
+    if (auto index = store->index()->parent(port_product_layer)) {
       // This store has a parent layer that matches what is expected by the port
       return std::make_shared<product_store>(index, store->source());
     }
@@ -51,7 +51,7 @@ namespace phlex::experimental {
     auto const& [store, eom, message_id, _] = msg;
     if (debug_) {
       spdlog::debug("Multiplexing {} with ID {} (is flush: {})",
-                    store->id()->to_string(),
+                    store->index()->to_string(),
                     message_id,
                     store->is_flush());
     }

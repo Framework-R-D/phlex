@@ -27,7 +27,7 @@ namespace phlex::experimental {
 
   bool detect_flush_flag::done_with(product_store_const_ptr const& store)
   {
-    auto const h = store->id()->hash();
+    auto const h = store->index()->hash();
     if (const_flag_accessor fa; flags_.find(fa, h) && fa->second->is_complete()) {
       flags_.erase(fa);
       return true;
