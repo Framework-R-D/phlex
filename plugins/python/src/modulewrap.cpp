@@ -221,36 +221,36 @@ namespace {
     void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
   };
 
-static std::vector<std::string> cseq(PyObject* coll)
-{
-  if (!coll) {
-    return std::vector<std::string>{};
-  }
-
-  // coll is guaranteed to be a list or tuple (from PySequence_Fast)
-  Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
-  std::vector<std::string> cargs;
-  cargs.reserve(static_cast<size_t>(len));
-
-  PyObject** items = PySequence_Fast_ITEMS(coll);
-  for (Py_ssize_t i = 0; i < len; ++i) {
-    PyObject* item = items[i];  // borrowed reference
-    if (!PyUnicode_Check(item)) {
-      PyErr_Format(PyExc_TypeError, "item %d must be a string", (int)i);
-      return std::vector<std::string>{};  // Error set
+  static std::vector<std::string> cseq(PyObject* coll)
+  {
+    if (!coll) {
+      return std::vector<std::string>{};
     }
 
-    char const* p = PyUnicode_AsUTF8(item);
-    if (!p) {
-      return std::vector<std::string>{};  // Error already set
+    // coll is guaranteed to be a list or tuple (from PySequence_Fast)
+    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
+    std::vector<std::string> cargs;
+    cargs.reserve(static_cast<size_t>(len));
+
+    PyObject** items = PySequence_Fast_ITEMS(coll);
+    for (Py_ssize_t i = 0; i < len; ++i) {
+      PyObject* item = items[i]; // borrowed reference
+      if (!PyUnicode_Check(item)) {
+        PyErr_Format(PyExc_TypeError, "item %d must be a string", (int)i);
+        return std::vector<std::string>{}; // Error set
+      }
+
+      char const* p = PyUnicode_AsUTF8(item);
+      if (!p) {
+        return std::vector<std::string>{}; // Error already set
+      }
+
+      Py_ssize_t sz = PyUnicode_GetLength(item);
+      cargs.emplace_back(p, static_cast<std::string::size_type>(sz));
     }
 
-    Py_ssize_t sz = PyUnicode_GetLength(item);
-    cargs.emplace_back(p, static_cast<std::string::size_type>(sz));
+    return cargs;
   }
-
-  return cargs;
-}
 
 } // unnamed namespace
 
@@ -546,35 +546,35 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
-// Accept any sequence type (list, tuple, custom sequences)
-PyObject* input_fast = PySequence_Fast(input, "input_family must be a sequence");
-if (!input_fast) {
-  return nullptr;  // TypeError already set by PySequence_Fast
-}
+  // Accept any sequence type (list, tuple, custom sequences)
+  PyObject* input_fast = PySequence_Fast(input, "input_family must be a sequence");
+  if (!input_fast) {
+    return nullptr; // TypeError already set by PySequence_Fast
+  }
 
-PyObject* output_fast = nullptr;
-if (output) {
-  output_fast = PySequence_Fast(output, "output_products must be a sequence");
-  if (!output_fast) {
-    Py_DECREF(input_fast);
+  PyObject* output_fast = nullptr;
+  if (output) {
+    output_fast = PySequence_Fast(output, "output_products must be a sequence");
+    if (!output_fast) {
+      Py_DECREF(input_fast);
+      return nullptr;
+    }
+  }
+
+  // convert input and output declarations, to be able to pass them to Phlex
+  input_labels = cseq(input_fast);
+  output_labels = cseq(output_fast);
+
+  // Clean up fast sequences
+  Py_DECREF(input_fast);
+  Py_XDECREF(output_fast);
+
+  if (output_labels.size() > 1) {
+    PyErr_SetString(PyExc_TypeError, "only a single output supported");
     return nullptr;
   }
-}
 
-// convert input and output declarations, to be able to pass them to Phlex
-input_labels = cseq(input_fast);
-output_labels = cseq(output_fast);
-
-// Clean up fast sequences
-Py_DECREF(input_fast);
-Py_XDECREF(output_fast);
-
-if (output_labels.size() > 1) {
-  PyErr_SetString(PyExc_TypeError, "only a single output supported");
-  return nullptr;
-}
-
-// retrieve C++ (matching) types from annotations
+  // retrieve C++ (matching) types from annotations
   input_types.reserve(input_labels.size());
 
   PyObject* sann = PyUnicode_FromString("__annotations__");
