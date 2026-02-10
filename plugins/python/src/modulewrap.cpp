@@ -191,8 +191,7 @@ namespace {
     void decref_all(Args... args)
     {
       // helper to decrement reference counts of N arguments
-      // args are already validated as non-zero in the calling code
-      (Py_DECREF((PyObject*)args), ...);
+      (Py_XDECREF((PyObject*)args), ...);
     }
   };
 
@@ -371,10 +370,10 @@ namespace {
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
-      Py_DECREF((PyObject*)pyobj);                                                                 \
-      throw std::runtime_error(msg);                                                               \
+      Py_XDECREF((PyObject*)pyobj);                                                                 \
+      throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
     }                                                                                              \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
+    Py_XDECREF((PyObject*)pyobj);                                                                   \
     return i;                                                                                      \
   }
 
@@ -432,7 +431,7 @@ namespace {
   VECTOR_CONVERTER(vfloat, float, NPY_FLOAT)
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
-#define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype)                                               \
+#define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype, frompy)                                       \
   static std::shared_ptr<std::vector<cpptype>> py_to_##name(intptr_t pyobj)                        \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
@@ -440,36 +439,45 @@ namespace {
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
-    if (!pyobj || !PyArray_Check((PyObject*)pyobj)) {                                              \
+    if (pyobj && PyArray_Check((PyObject*)pyobj)) {                                                \
+      PyArrayObject* arr = (PyArrayObject*)pyobj;                                                  \
+                                                                                                   \
+      /* TODO: flattening the array here seems to be the only workable solution */                 \
+      npy_intp* dims = PyArray_DIMS(arr);                                                          \
+      int nd = PyArray_NDIM(arr);                                                                  \
+      size_t total = 1;                                                                            \
+      for (int i = 0; i < nd; ++i)                                                                 \
+        total *= static_cast<size_t>(dims[i]);                                                     \
+                                                                                                   \
+      /* copy the array info; note that this assumes C continuity */                               \
+      cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                     \
+      vec->reserve(total);                                                                         \
+      vec->insert(vec->end(), raw, raw + total);                                                   \
+    } else if (pyobj && PyList_Check((PyObject*)pyobj)) {                                          \
+      Py_ssize_t total = PyList_Size((PyObject*)pyobj);                                            \
+      vec->reserve(total);                                                                         \
+      for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
+        PyObject* item = PyList_GetItem((PyObject*)pyobj, i);                                      \
+        vec->push_back((cpptype)frompy(item));                                                     \
+        if (PyErr_Occurred()) {                                                                    \
+          PyErr_Clear();                                                                           \
+          break;                                                                                   \
+        }                                                                                          \
+      }                                                                                            \
+    } else {                                                                                       \
       PyErr_Clear(); /* how to report an error? */                                                 \
-      Py_XDECREF((PyObject*)pyobj);                                                                \
-      return vec;                                                                                  \
     }                                                                                              \
                                                                                                    \
-    PyArrayObject* arr = (PyArrayObject*)pyobj;                                                    \
-                                                                                                   \
-    /* TODO: flattening the array here seems to be the only workable solution */                   \
-    npy_intp* dims = PyArray_DIMS(arr);                                                            \
-    int nd = PyArray_NDIM(arr);                                                                    \
-    size_t total = 1;                                                                              \
-    for (int i = 0; i < nd; ++i)                                                                   \
-      total *= static_cast<size_t>(dims[i]);                                                       \
-                                                                                                   \
-    /* copy the array info; note that this assumes C continuity */                                 \
-    cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                       \
-    vec->reserve(total);                                                                           \
-    vec->insert(vec->end(), raw, raw + total);                                                     \
-                                                                                                   \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
+    Py_XDECREF((PyObject*)pyobj);                                                                  \
     return vec;                                                                                    \
   }
 
-  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT)
-  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT)
-  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG)
-  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG)
-  NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT)
-  NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE)
+  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT, PyLong_AsLong)
+  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT, pylong_or_int_as_ulong)
+  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG, pylong_as_strictlong)
+  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG, pylong_or_int_as_ulong)
+  NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT, PyFloat_AsDouble)
+  NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE, PyFloat_AsDouble)
 
 } // unnamed namespace
 
@@ -569,14 +577,35 @@ static PyObject* parse_args(PyObject* args,
     if (ret)
       output_types.push_back(annotation_as_text(ret));
 
-    // Match annotation types to input labels positionally (skipping "return")
-    Py_ssize_t pos = 0;
-    PyObject *key, *value;
-    while (PyDict_Next(annot, &pos, &key, &value)) {
-      const char* ks = PyUnicode_AsUTF8(key);
-      if (ks && strcmp(ks, "return") == 0)
-        continue;
-      input_types.push_back(annotation_as_text(value));
+    // Match annotation types to input labels positionally by looking up parameter names.
+    PyObject* code = PyObject_GetAttrString(callable, "__code__");
+    if (!code) {
+      PyErr_Clear();
+      PyObject* callm = PyObject_GetAttrString(callable, "__call__");
+      if (callm) {
+        code = PyObject_GetAttrString(callm, "__code__");
+        Py_DECREF(callm);
+      }
+    }
+
+    if (code) {
+      PyObject* argcount_obj = PyObject_GetAttrString(code, "co_argcount");
+      long argcount = PyLong_AsLong(argcount_obj);
+      Py_DECREF(argcount_obj);
+      PyObject* varnames = PyObject_GetAttrString(code, "co_varnames");
+      if (varnames) {
+        for (long i = 0; i < argcount; ++i) {
+          PyObject* name = PyTuple_GetItem(varnames, i);
+          PyObject* val = PyDict_GetItem(annot, name);
+          if (val) {
+            input_types.push_back(annotation_as_text(val));
+          }
+        }
+        Py_DECREF(varnames);
+      }
+      Py_DECREF(code);
+    } else {
+      PyErr_Clear();
     }
   }
   Py_XDECREF(annot);

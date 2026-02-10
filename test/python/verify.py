@@ -80,7 +80,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         v = BoolVerifier(expected)
         m.observe(v, input_family=config["input"])
         return
-    except KeyError:
+    except (KeyError, TypeError):
         pass
 
     assert_sum = Verifier(config["sum_total"])
