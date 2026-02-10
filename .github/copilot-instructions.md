@@ -104,20 +104,33 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 
 #### File Ending Requirements
 
-All text files must end with exactly one newline character and no blank lines:
+All text files must end with exactly one newline character, with no trailing blank lines or trailing whitespace:
 
 - The final character in every file **must** be a single newline character (`\n`)
-- There must be **no blank lines at the end of the file** (i.e., no consecutive newline characters at EOF)
-- Example of **correct** file ending: `content\n` where the last visible line is followed by exactly one newline
-- Example of **incorrect** file ending: `content\n\n` where there is a blank line before EOF
+- The character immediately before the final newline **must not** be another newline (no trailing blank lines at EOF)
+- The character immediately before the final newline **must not** be a space or tab (no trailing whitespace on the last line)
 
-#### Line Trailing Whitespace
+**Correct example** (ends with `t\n`):
 
-No line in any file should have trailing whitespace:
+```text
+line 1
+last line content
+```
 
-- **Never add trailing whitespace** (spaces or tabs at the end of lines) unless it is part of a multi-line string literal
-- This includes blank lines within the file - they should contain only the newline character, no spaces or tabs
-- Exception: Markdown two-space line breaks (avoid; use proper paragraph breaks instead)
+**Incorrect examples**:
+
+- File ending with `t\n\n` (blank line at EOF - two consecutive newlines)
+- File ending with `t \n` (trailing space before final newline)
+- File ending with no newline (file must end with exactly one `\n`)
+
+#### No Trailing Whitespace on Any Line
+
+No line in the file should have trailing spaces or tabs:
+
+- **Never add trailing whitespace** (spaces or tabs) at the end of any line in the file
+- This applies to all lines including blank lines within the file
+- Blank lines within the file content should contain only a newline character, with no spaces or tabs
+- Note: Language string literals that require specific whitespace will preserve it through language semantics, not through the source file format
 
 ## Comments and Documentation
 
