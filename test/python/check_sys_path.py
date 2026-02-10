@@ -14,7 +14,7 @@ class Checker:
     site-packages directory appears in Python's sys.path.
     """
 
-    __name__ = 'checker'
+    __name__ = "checker"
 
     def __init__(self, venv_path: str):
         """Initialize the checker with the expected virtual environment path.
@@ -35,9 +35,7 @@ class Checker:
                 site-packages is not found in sys.path.
         """
         assert len(sys.path) > 0
-        venv_site_packages = (
-            f"{sys.prefix}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
-        )
+        venv_site_packages = f"{sys.prefix}/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
         assert any(p == venv_site_packages for p in sys.path)
 
 
@@ -51,4 +49,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    m.observe(Checker(config["venv"]), input_family = config["input"])
+    m.observe(Checker(config["venv"]), input_family=config["input"])
