@@ -367,10 +367,10 @@ namespace {
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
-      Py_DECREF((PyObject*)pyobj);                                                                \
+      Py_DECREF((PyObject*)pyobj);                                                                 \
       throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
     }                                                                                              \
-    Py_DECREF((PyObject*)pyobj);                                                                  \
+    Py_DECREF((PyObject*)pyobj);                                                                   \
     return i;                                                                                      \
   }
 
@@ -436,7 +436,7 @@ namespace {
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
-    if (PyArray_Check((PyObject*)pyobj)) {                                                \
+    if (PyArray_Check((PyObject*)pyobj)) {                                                         \
       PyArrayObject* arr = (PyArrayObject*)pyobj;                                                  \
                                                                                                    \
       /* TODO: flattening the array here seems to be the only workable solution */                 \
@@ -450,7 +450,7 @@ namespace {
       cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                     \
       vec->reserve(total);                                                                         \
       vec->insert(vec->end(), raw, raw + total);                                                   \
-    } else if (PyList_Check((PyObject*)pyobj)) {                                          \
+    } else if (PyList_Check((PyObject*)pyobj)) {                                                   \
       Py_ssize_t total = PyList_Size((PyObject*)pyobj);                                            \
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
@@ -462,13 +462,13 @@ namespace {
         }                                                                                          \
       }                                                                                            \
     } else {                                                                                       \
-std::string msg; \
-if (msg_from_py_error(msg, true)) { \
-  throw std::runtime_error("List conversion error: " + msg); \
-} \
+      std::string msg;                                                                             \
+      if (msg_from_py_error(msg, true)) {                                                          \
+        throw std::runtime_error("List conversion error: " + msg);                                 \
+      }                                                                                            \
     }                                                                                              \
                                                                                                    \
-    Py_DECREF((PyObject*)pyobj);                                                                  \
+    Py_DECREF((PyObject*)pyobj);                                                                   \
     return vec;                                                                                    \
   }
 
@@ -581,7 +581,7 @@ static PyObject* parse_args(PyObject* args,
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(annot, &pos, &key, &value)) {
-      const char* key_str = PyUnicode_AsUTF8(key);
+      char const* key_str = PyUnicode_AsUTF8(key);
       if (strcmp(key_str, "return") == 0) {
         output_types.push_back(annotation_as_text(value));
       } else {
@@ -590,7 +590,7 @@ static PyObject* parse_args(PyObject* args,
     }
   }
   Py_XDECREF(annot);
- 
+
   // ignore None as Python's conventional "void" return, which is meaningless in C++
   if (output_types.size() == 1 && output_types[0] == "None")
     output_types.clear();
