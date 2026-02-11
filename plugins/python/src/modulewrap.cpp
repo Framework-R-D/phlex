@@ -423,7 +423,8 @@ namespace {
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     if (!pyobj) {                                                                                  \
-      throw std::runtime_error("null Python object passed to py_to_" #name);                       \
+      throw std::runtime_error(                                                                    \
+        "null Python object passed to py_to_" #name " (vector<" #cpptype ">)");                    \
     }                                                                                              \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
