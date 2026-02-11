@@ -139,7 +139,7 @@ namespace {
       (Py_XINCREF((PyObject*)args), ...);
 
       PyObject* result =
-        PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
