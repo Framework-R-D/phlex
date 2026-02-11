@@ -50,9 +50,6 @@ namespace phlex::experimental {
     bool is_complete();
     unsigned int original_message_id() const noexcept;
 
-    void mark_pending() noexcept { ++pending_; }
-    void unmark_pending() noexcept { --pending_; }
-
   private:
     using counts_t2 =
       tbb::concurrent_unordered_map<data_cell_index::hash_type, std::atomic<std::size_t>>;
@@ -64,21 +61,13 @@ namespace phlex::experimental {
     flush_counts_ptr flush_counts_{nullptr};
 #endif
     unsigned int original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
-    std::atomic<bool> ready_to_flush_{false};
-    std::atomic<std::size_t> pending_{0};
+    std::atomic<bool> ready_to_flush_{true};
   };
 
   class count_stores {
   protected:
     store_counter& counter_for(data_cell_index::hash_type hash);
     std::unique_ptr<store_counter> done_with(data_cell_index::hash_type hash);
-
-    void mark_pending(data_cell_index::hash_type hash);
-    std::unique_ptr<store_counter> increment_and_check(data_cell_index::hash_type hash,
-                                                       data_cell_index::hash_type layer_hash);
-    std::unique_ptr<store_counter> flush_and_check(data_cell_index::hash_type hash,
-                                                   product_store_const_ptr const& store,
-                                                   std::size_t original_message_id);
 
   private:
     using counters_t =
