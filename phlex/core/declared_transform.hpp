@@ -92,7 +92,7 @@ namespace phlex::experimental {
                    auto const& [store, message_id] = std::tie(msg.store, msg.id);
                    auto& [stay_in_graph, to_output] = output;
                    if (store->is_flush()) {
-                     mark_flush_received(store->index()->hash(), msg.original_id);
+                     flag_for(store->index()->hash()).flush_received(msg.original_id);
                      stay_in_graph.try_put(msg);
                      to_output.try_put(msg);
                    } else {
@@ -110,7 +110,7 @@ namespace phlex::experimental {
                          message const new_msg{a->second, message_id};
                          stay_in_graph.try_put(new_msg);
                          to_output.try_put(new_msg);
-                         mark_processed(store->index()->hash());
+                         flag_for(store->index()->hash()).mark_as_processed();
                        } catch (...) {
                          stores_.erase(a);
                          throw;

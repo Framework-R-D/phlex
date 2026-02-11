@@ -67,7 +67,7 @@ namespace phlex::experimental {
   {
     decltype(stores_)::accessor a;
     if (stores_.insert(a, msg_id)) {
-      a->second.resize(nargs_);
+      a->second = std::vector<product_store_const_ptr>(nargs_);
     }
     auto& elem = a->second;
     if (nargs_ == 1ull) {

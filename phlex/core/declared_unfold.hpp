@@ -107,7 +107,7 @@ namespace phlex::experimental {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
                 if (store->is_flush()) {
-                  mark_flush_received(store->index()->hash(), msg.id);
+                  flag_for(store->index()->hash()).flush_received(msg.id);
                   std::get<0>(output).try_put(msg);
                 } else if (accessor a; stores_.insert(a, store->index()->hash())) {
                   std::size_t const original_message_id{msg_counter_};
@@ -117,7 +117,7 @@ namespace phlex::experimental {
                   message const flush_msg{
                     g.flush_store(), msg_counter_.fetch_add(1), original_message_id};
                   std::get<0>(output).try_put(flush_msg);
-                  mark_processed(store->index()->hash());
+                  flag_for(store->index()->hash()).mark_as_processed();
                 }
 
                 if (done_with(store)) {

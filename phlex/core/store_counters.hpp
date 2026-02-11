@@ -24,14 +24,12 @@ namespace phlex::experimental {
   private:
     std::atomic<bool> flush_received_{false};
     std::atomic<bool> processed_{false};
-    std::atomic<std::size_t>
-      original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
+    std::size_t original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
   };
 
   class detect_flush_flag {
   protected:
-    void mark_flush_received(data_cell_index::hash_type hash, std::size_t original_message_id);
-    void mark_processed(data_cell_index::hash_type hash);
+    store_flag& flag_for(data_cell_index::hash_type hash);
     bool done_with(product_store_const_ptr const& store);
 
   private:

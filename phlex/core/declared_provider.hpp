@@ -73,7 +73,7 @@ namespace phlex::experimental {
           auto& [stay_in_graph, to_output] = output;
 
           if (msg.store->is_flush()) {
-            mark_flush_received(msg.store->index()->hash(), msg.original_id);
+            flag_for(msg.store->index()->hash()).flush_received(msg.original_id);
             stay_in_graph.try_put(msg);
           } else {
             // Check cache first
@@ -101,7 +101,7 @@ namespace phlex::experimental {
             message const new_msg{store, msg.id};
             stay_in_graph.try_put(new_msg);
             to_output.try_put(new_msg);
-            mark_processed(msg.store->index()->hash());
+            flag_for(msg.store->index()->hash()).mark_as_processed();
           }
 
           if (done_with(msg.store)) {

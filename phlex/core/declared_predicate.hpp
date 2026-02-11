@@ -81,13 +81,13 @@ namespace phlex::experimental {
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
           predicate_result result{};
           if (store->is_flush()) {
-            mark_flush_received(store->index()->hash(), message_id);
+            flag_for(store->index()->hash()).flush_received(message_id);
           } else if (const_accessor a; results_.find(a, store->index()->hash())) {
             result = {message_id, a->second.result};
           } else if (accessor a; results_.insert(a, store->index()->hash())) {
             bool const rc = call(ft, messages, std::make_index_sequence<N>{});
             result = a->second = {message_id, rc};
-            mark_processed(store->index()->hash());
+            flag_for(store->index()->hash()).mark_as_processed();
           }
 
           if (done_with(store)) {
