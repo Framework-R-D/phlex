@@ -107,6 +107,10 @@ namespace {
 
       PyGILRAII gil;
 
+      // Args are borrowed references from the product store cache.
+      // XINCREF to create temporary owned references for the duration of the call.
+      (Py_XINCREF((PyObject*)args), ...);
+
       PyObject* result =
         PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
@@ -116,7 +120,8 @@ namespace {
           error_msg = "Unknown python error";
       }
 
-      decref_all(args...);
+      // Release our temporary references; the cache's references remain intact.
+      (Py_XDECREF((PyObject*)args), ...);
 
       if (!error_msg.empty()) {
         throw std::runtime_error(error_msg.c_str());
@@ -132,7 +137,12 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result = PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
+      // Args are borrowed references from the product store cache.
+      // XINCREF to create temporary owned references for the duration of the call.
+      (Py_XINCREF((PyObject*)args), ...);
+
+      PyObject* result =
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -141,19 +151,12 @@ namespace {
       } else
         Py_DECREF(result);
 
-      decref_all(args...);
+      // Release our temporary references; the cache's references remain intact.
+      (Py_XDECREF((PyObject*)args), ...);
 
       if (!error_msg.empty()) {
         throw std::runtime_error(error_msg.c_str());
       }
-    }
-
-  private:
-    template <typename... Args>
-    void decref_all(Args... args)
-    {
-      // helper to decrement reference counts of N arguments
-      (Py_DECREF((PyObject*)args), ...);
     }
   };
 
@@ -333,14 +336,13 @@ namespace {
                                                                                                    \
   static cpptype py_to_##name(intptr_t pyobj)                                                      \
   {                                                                                                \
+    /* Input is a borrowed reference from the product store cache — do not DECREF. */              \
     PyGILRAII gil;                                                                                 \
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
-      Py_DECREF((PyObject*)pyobj);                                                                 \
       throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
     }                                                                                              \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
     return i;                                                                                      \
   }
 
@@ -358,7 +360,7 @@ namespace {
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     if (!v)                                                                                        \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("null vector<" #cpptype "> passed to " #name "_to_py");             \
                                                                                                    \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
@@ -371,7 +373,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("failed to create numpy array in " #name "_to_py");                 \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
@@ -383,7 +385,7 @@ namespace {
       (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("failed to create lifeline in " #name "_to_py");                    \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \
@@ -401,6 +403,7 @@ namespace {
 #define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype, frompy)                                       \
   static std::shared_ptr<std::vector<cpptype>> py_to_##name(intptr_t pyobj)                        \
   {                                                                                                \
+    /* Input is a borrowed reference from the product store cache — do not DECREF. */              \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
@@ -438,7 +441,6 @@ namespace {
       }                                                                                            \
     }                                                                                              \
                                                                                                    \
-    Py_DECREF((PyObject*)pyobj);                                                                   \
     return vec;                                                                                    \
   }
 
