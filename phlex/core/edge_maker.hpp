@@ -91,7 +91,9 @@ namespace phlex::experimental {
 
     // Create edges to outputs
     for (auto const& [output_name, output_node] : outputs) {
-      make_edge(source, output_node->port());
+      for (auto& [_, provider] : providers) {
+        make_edge(provider->sender(), output_node->port());
+      }
       for (auto const& named_port : producers_.values()) {
         make_edge(*named_port.to_output, output_node->port());
       }
