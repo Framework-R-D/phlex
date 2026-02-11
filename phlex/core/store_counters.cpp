@@ -114,12 +114,12 @@ namespace phlex::experimental {
   }
 
   std::unique_ptr<store_counter>
-  count_stores::increment_and_check(data_cell_index::hash_type const counter_hash,
+  count_stores::increment_and_check(data_cell_index::hash_type const hash,
                                     data_cell_index::hash_type const layer_hash)
   {
     counter_accessor ca;
-    if (!counters_.find(ca, counter_hash)) {
-      counters_.emplace(ca, counter_hash, std::make_unique<store_counter>());
+    if (!counters_.find(ca, hash)) {
+      counters_.emplace(ca, hash, std::make_unique<store_counter>());
     }
     ca->second->increment(layer_hash);
     if (ca->second->is_complete()) {
@@ -131,13 +131,13 @@ namespace phlex::experimental {
   }
 
   std::unique_ptr<store_counter>
-  count_stores::flush_and_check(data_cell_index::hash_type const counter_hash,
+  count_stores::flush_and_check(data_cell_index::hash_type const hash,
                                 product_store_const_ptr const& store,
                                 std::size_t const original_message_id)
   {
     counter_accessor ca;
-    if (!counters_.find(ca, counter_hash)) {
-      counters_.emplace(ca, counter_hash, std::make_unique<store_counter>());
+    if (!counters_.find(ca, hash)) {
+      counters_.emplace(ca, hash, std::make_unique<store_counter>());
     }
     ca->second->set_flush_value(store, original_message_id);
     if (ca->second->is_complete()) {
