@@ -342,7 +342,7 @@ namespace {
         msg = "unknown error";                                                                     \
       throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
     }                                                                                              \
-    return (intptr_t)result;                                                                        \
+    return (intptr_t)result;                                                                       \
   }                                                                                                \
                                                                                                    \
   static cpptype py_to_##name(intptr_t pyobj)                                                      \
@@ -423,8 +423,8 @@ namespace {
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     if (!pyobj) {                                                                                  \
-      throw std::runtime_error(                                                                    \
-        "null Python object passed to py_to_" #name " (vector<" #cpptype ">)");                    \
+      throw std::runtime_error("null Python object passed to py_to_" #name " (vector<" #cpptype    \
+                               ">)");                                                              \
     }                                                                                              \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
