@@ -50,6 +50,7 @@ namespace phlex::experimental {
     atomic_store(&flush_counts_, store->get_product<flush_counts_ptr>("[flush]"));
 #endif
     original_message_id_ = original_message_id;
+    ready_to_flush_ = true;
   }
 
   void store_counter::increment(data_cell_index::hash_type const layer_hash)
@@ -60,6 +61,10 @@ namespace phlex::experimental {
   bool store_counter::is_complete()
   {
     if (!ready_to_flush_) {
+      return false;
+    }
+
+    if (pending_ > 0) {
       return false;
     }
 
@@ -106,6 +111,50 @@ namespace phlex::experimental {
     counter_accessor ca;
     bool const found = counters_.find(ca, hash);
     if (found and ca->second->is_complete()) {
+      std::unique_ptr<store_counter> result{std::move(ca->second)};
+      counters_.erase(ca);
+      return result;
+    }
+    return nullptr;
+  }
+
+  void count_stores::mark_pending(data_cell_index::hash_type const hash)
+  {
+    counter_accessor ca;
+    if (!counters_.find(ca, hash)) {
+      counters_.emplace(ca, hash, std::make_unique<store_counter>());
+    }
+    ca->second->mark_pending();
+  }
+
+  std::unique_ptr<store_counter> count_stores::increment_and_check(
+    data_cell_index::hash_type const hash, data_cell_index::hash_type const layer_hash)
+  {
+    counter_accessor ca;
+    if (!counters_.find(ca, hash)) {
+      counters_.emplace(ca, hash, std::make_unique<store_counter>());
+    }
+    ca->second->increment(layer_hash);
+    ca->second->unmark_pending();
+    if (ca->second->is_complete()) {
+      std::unique_ptr<store_counter> result{std::move(ca->second)};
+      counters_.erase(ca);
+      return result;
+    }
+    return nullptr;
+  }
+
+  std::unique_ptr<store_counter> count_stores::flush_and_check(
+    data_cell_index::hash_type const hash,
+    product_store_const_ptr const& store,
+    std::size_t const original_message_id)
+  {
+    counter_accessor ca;
+    if (!counters_.find(ca, hash)) {
+      counters_.emplace(ca, hash, std::make_unique<store_counter>());
+    }
+    ca->second->set_flush_value(store, original_message_id);
+    if (ca->second->is_complete()) {
       std::unique_ptr<store_counter> result{std::move(ca->second)};
       counters_.erase(ca);
       return result;

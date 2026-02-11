@@ -102,14 +102,16 @@ namespace phlex::experimental {
               assert(fold_index);
               auto const& id_hash_for_counter = fold_index->hash();
 
+              std::unique_ptr<store_counter> counter;
               if (store->is_flush()) {
-                counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
+                counter = flush_and_check(id_hash_for_counter, store, original_message_id);
               } else {
+                mark_pending(id_hash_for_counter);
                 call(ft, messages, std::make_index_sequence<N>{});
-                counter_for(id_hash_for_counter).increment(store->index()->layer_hash());
+                counter = increment_and_check(id_hash_for_counter, store->index()->layer_hash());
               }
 
-              if (auto counter = done_with(id_hash_for_counter)) {
+              if (counter) {
                 auto parent = std::make_shared<product_store>(fold_index, this->full_name());
                 commit_(*parent);
                 ++product_count_;

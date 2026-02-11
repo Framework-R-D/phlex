@@ -107,6 +107,9 @@ namespace {
 
       PyGILRAII gil;
 
+      // INCREF so the product store's cached reference survives this call
+      (Py_XINCREF((PyObject*)args), ...);
+
       PyObject* result =
         PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
@@ -132,8 +135,11 @@ namespace {
 
       PyGILRAII gil;
 
+      // INCREF so the product store's cached reference survives this call
+      (Py_XINCREF((PyObject*)args), ...);
+
       PyObject* result =
-        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
+        PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -335,12 +341,22 @@ namespace {
   static intptr_t name##_to_py(cpptype a)                                                          \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    return (intptr_t)topy(a);                                                                      \
+    PyObject* result = topy(a);                                                                    \
+    if (!result) {                                                                                 \
+      std::string msg;                                                                             \
+      if (!msg_from_py_error(msg))                                                                 \
+        msg = "unknown error";                                                                     \
+      throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
+    }                                                                                              \
+    return (intptr_t)result;                                                                       \
   }                                                                                                \
                                                                                                    \
   static cpptype py_to_##name(intptr_t pyobj)                                                      \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
+    if (!pyobj) {                                                                                  \
+      throw std::runtime_error("Python conversion error for type " #name ": null object");         \
+    }                                                                                              \
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
@@ -411,6 +427,11 @@ namespace {
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
+                                                                                                   \
+    if (!pyobj) {                                                                                  \
+      throw std::runtime_error("null Python object passed to py_to_" #name " (vector<" #cpptype    \
+                               ">)");                                                              \
+    }                                                                                              \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
     if (PyArray_Check((PyObject*)pyobj)) {                                                         \
