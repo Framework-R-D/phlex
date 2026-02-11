@@ -10,7 +10,6 @@
 #include <ranges>
 #include <stdexcept>
 
-using namespace std::chrono;
 using namespace phlex::experimental;
 
 namespace {
@@ -63,23 +62,12 @@ namespace phlex::experimental {
       return {};
     }
 
-    auto start_time = steady_clock::now();
-
     for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
       if (auto store_to_send = store_for(store, product_label.layer())) {
         port->try_put({std::move(store_to_send), message_id});
       }
     }
 
-    execution_time_ += duration_cast<microseconds>(steady_clock::now() - start_time);
     return {};
-  }
-
-  multiplexer::~multiplexer()
-  {
-    spdlog::debug("Routed {} messages in {} microseconds ({:.3f} microseconds per message)",
-                  received_messages_,
-                  execution_time_.count(),
-                  execution_time_.count() / received_messages_);
   }
 }

@@ -18,19 +18,30 @@ namespace phlex::experimental {
 
   unsigned int store_flag::original_message_id() const noexcept { return original_message_id_; }
 
-  store_flag& detect_flush_flag::flag_for(data_cell_index::hash_type const hash)
+  void detect_flush_flag::mark_flush_received(data_cell_index::hash_type const hash,
+                                              std::size_t const original_message_id)
   {
     flag_accessor fa;
-    flags_.emplace(fa, hash, std::make_unique<store_flag>());
-    return *fa->second;
+    if (flags_.insert(fa, hash)) {
+      fa->second = std::make_unique<store_flag>();
+    }
+    fa->second->flush_received(original_message_id);
+  }
+
+  void detect_flush_flag::mark_processed(data_cell_index::hash_type const hash)
+  {
+    flag_accessor fa;
+    if (flags_.insert(fa, hash)) {
+      fa->second = std::make_unique<store_flag>();
+    }
+    fa->second->mark_as_processed();
   }
 
   bool detect_flush_flag::done_with(product_store_const_ptr const& store)
   {
     auto const h = store->index()->hash();
-    if (const_flag_accessor fa; flags_.find(fa, h) && fa->second->is_complete()) {
-      flags_.erase(fa);
-      return true;
+    if (flag_accessor fa; flags_.find(fa, h) && fa->second->is_complete()) {
+      return flags_.erase(fa);
     }
     return false;
   }
