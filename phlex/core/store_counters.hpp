@@ -69,6 +69,12 @@ namespace phlex::experimental {
     store_counter& counter_for(data_cell_index::hash_type hash);
     std::unique_ptr<store_counter> done_with(data_cell_index::hash_type hash);
 
+    std::unique_ptr<store_counter> increment_and_check(data_cell_index::hash_type counter_hash,
+                                                       data_cell_index::hash_type layer_hash);
+    std::unique_ptr<store_counter> flush_and_check(data_cell_index::hash_type counter_hash,
+                                                   product_store_const_ptr const& store,
+                                                   std::size_t original_message_id);
+
   private:
     using counters_t =
       tbb::concurrent_hash_map<data_cell_index::hash_type, std::unique_ptr<store_counter>>;

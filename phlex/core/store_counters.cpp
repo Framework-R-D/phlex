@@ -112,4 +112,39 @@ namespace phlex::experimental {
     }
     return nullptr;
   }
+
+  std::unique_ptr<store_counter>
+  count_stores::increment_and_check(data_cell_index::hash_type const counter_hash,
+                                    data_cell_index::hash_type const layer_hash)
+  {
+    counter_accessor ca;
+    if (!counters_.find(ca, counter_hash)) {
+      counters_.emplace(ca, counter_hash, std::make_unique<store_counter>());
+    }
+    ca->second->increment(layer_hash);
+    if (ca->second->is_complete()) {
+      std::unique_ptr<store_counter> result{std::move(ca->second)};
+      counters_.erase(ca);
+      return result;
+    }
+    return nullptr;
+  }
+
+  std::unique_ptr<store_counter>
+  count_stores::flush_and_check(data_cell_index::hash_type const counter_hash,
+                                product_store_const_ptr const& store,
+                                std::size_t const original_message_id)
+  {
+    counter_accessor ca;
+    if (!counters_.find(ca, counter_hash)) {
+      counters_.emplace(ca, counter_hash, std::make_unique<store_counter>());
+    }
+    ca->second->set_flush_value(store, original_message_id);
+    if (ca->second->is_complete()) {
+      std::unique_ptr<store_counter> result{std::move(ca->second)};
+      counters_.erase(ca);
+      return result;
+    }
+    return nullptr;
+  }
 }
