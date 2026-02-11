@@ -335,22 +335,12 @@ namespace {
   static intptr_t name##_to_py(cpptype a)                                                          \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    PyObject* result = topy(a);                                                                    \
-    if (!result) {                                                                                 \
-      std::string msg;                                                                             \
-      if (!msg_from_py_error(msg))                                                                 \
-        msg = "unknown error";                                                                     \
-      throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
-    }                                                                                              \
-    return (intptr_t)result;                                                                       \
+    return (intptr_t)topy(a);                                                                      \
   }                                                                                                \
                                                                                                    \
   static cpptype py_to_##name(intptr_t pyobj)                                                      \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    if (!pyobj) {                                                                                  \
-      throw std::runtime_error("Python conversion error for type " #name ": null object");         \
-    }                                                                                              \
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
@@ -421,11 +411,6 @@ namespace {
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
-                                                                                                   \
-    if (!pyobj) {                                                                                  \
-      throw std::runtime_error("null Python object passed to py_to_" #name " (vector<" #cpptype    \
-                               ">)");                                                              \
-    }                                                                                              \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
     if (PyArray_Check((PyObject*)pyobj)) {                                                         \
