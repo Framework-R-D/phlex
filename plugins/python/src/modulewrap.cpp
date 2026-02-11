@@ -405,6 +405,10 @@ namespace {
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
+    if (!pyobj) {                                                                                  \
+      return vec;                                                                                  \
+    }                                                                                              \
+                                                                                                   \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
     if (PyArray_Check((PyObject*)pyobj)) {                                                         \
       PyArrayObject* arr = (PyArrayObject*)pyobj;                                                  \
