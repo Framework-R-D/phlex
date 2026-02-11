@@ -28,10 +28,6 @@ namespace phlex::experimental {
                           provider.full_name(),
                           node_name,
                           port.product_label.to_string());
-            if (port.port == nullptr) {
-              throw std::runtime_error("Unexpected null port while connecting provider " +
-                                       provider.full_name() + " to node " + node_name);
-            }
             make_edge(provider.sender(), *(port.port));
             found_match = true;
             break;
