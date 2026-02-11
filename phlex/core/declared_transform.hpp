@@ -98,18 +98,23 @@ namespace phlex::experimental {
                    } else {
                      accessor a;
                      if (stores_.insert(a, store->index()->hash())) {
-                       auto result = call(ft, messages, std::make_index_sequence<N>{});
-                       ++calls_;
-                       ++product_count_[store->index()->layer_hash()];
-                       products new_products;
-                       new_products.add_all(output_, std::move(result));
-                       a->second = std::make_shared<product_store>(
-                         store->index(), this->full_name(), std::move(new_products));
+                       try {
+                         auto result = call(ft, messages, std::make_index_sequence<N>{});
+                         ++calls_;
+                         ++product_count_[store->index()->layer_hash()];
+                         products new_products;
+                         new_products.add_all(output_, std::move(result));
+                         a->second = std::make_shared<product_store>(
+                           store->index(), this->full_name(), std::move(new_products));
 
-                       message const new_msg{a->second, message_id};
-                       stay_in_graph.try_put(new_msg);
-                       to_output.try_put(new_msg);
-                       flag_for(store->index()->hash()).mark_as_processed();
+                         message const new_msg{a->second, message_id};
+                         stay_in_graph.try_put(new_msg);
+                         to_output.try_put(new_msg);
+                         flag_for(store->index()->hash()).mark_as_processed();
+                       } catch (...) {
+                         stores_.erase(a);
+                         throw;
+                       }
                      } else {
                        stay_in_graph.try_put({a->second, message_id});
                      }
