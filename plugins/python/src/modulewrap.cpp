@@ -132,7 +132,8 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result = PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
+      PyObject* result =
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -358,7 +359,7 @@ namespace {
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     if (!v)                                                                                        \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("null vector<" #cpptype "> passed to " #name "_to_py");             \
                                                                                                    \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
@@ -371,7 +372,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("failed to create numpy array in " #name "_to_py");                 \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
@@ -383,7 +384,7 @@ namespace {
       (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("failed to create lifeline in " #name "_to_py");                    \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \

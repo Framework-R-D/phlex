@@ -9,7 +9,7 @@ static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 {
   py_lifeline_t* pyobj = (py_lifeline_t*)pytype->tp_alloc(pytype, 0);
   if (!pyobj)
-    PyErr_Print();
+    return nullptr;
   pyobj->m_view = nullptr;
   new (&pyobj->m_source) std::shared_ptr<void>{};
 
