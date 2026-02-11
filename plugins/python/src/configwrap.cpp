@@ -131,7 +131,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
       }
     }
   } catch (std::runtime_error const&) {
-    PyErr_Format(PyExc_TypeError, "property \"%s\" does not exist", ckey.c_str());
+    PyErr_Format(PyExc_KeyError, "property \"%s\" does not exist", ckey.c_str());
   }
 
   // cache if found
