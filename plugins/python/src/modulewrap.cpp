@@ -132,7 +132,8 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result = PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
+      PyObject* result =
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -334,7 +335,14 @@ namespace {
   static intptr_t name##_to_py(cpptype a)                                                          \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    return (intptr_t)topy(a);                                                                      \
+    PyObject* result = topy(a);                                                                    \
+    if (!result) {                                                                                 \
+      std::string msg;                                                                             \
+      if (!msg_from_py_error(msg))                                                                 \
+        msg = "unknown error";                                                                     \
+      throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
+    }                                                                                              \
+    return (intptr_t)result;                                                                        \
   }                                                                                                \
                                                                                                    \
   static cpptype py_to_##name(intptr_t pyobj)                                                      \
@@ -367,7 +375,7 @@ namespace {
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     if (!v)                                                                                        \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("null vector<" #cpptype "> passed to " #name "_to_py");             \
                                                                                                    \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
@@ -380,7 +388,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("failed to create numpy array in " #name "_to_py");                 \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
@@ -392,7 +400,7 @@ namespace {
       (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
-      return (intptr_t)nullptr;                                                                    \
+      throw std::runtime_error("failed to create lifeline in " #name "_to_py");                    \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \
@@ -415,7 +423,7 @@ namespace {
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
                                                                                                    \
     if (!pyobj) {                                                                                  \
-      return vec;                                                                                  \
+      throw std::runtime_error("null Python object passed to py_to_" #name);                       \
     }                                                                                              \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
