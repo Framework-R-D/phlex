@@ -7,7 +7,6 @@
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
 
-#include <chrono>
 #include <functional>
 #include <map>
 #include <set>
@@ -20,8 +19,6 @@ namespace phlex::experimental {
     using base = tbb::flow::function_node<message>;
 
   public:
-    ~multiplexer();
-
     struct named_input_port {
       product_query product_label;
       tbb::flow::receiver<message>* port;
@@ -40,7 +37,6 @@ namespace phlex::experimental {
     input_ports_t provider_input_ports_;
     bool debug_;
     std::atomic<std::size_t> received_messages_{};
-    std::chrono::duration<float, std::chrono::microseconds::period> execution_time_{};
   };
 
 }
