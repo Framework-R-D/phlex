@@ -153,7 +153,13 @@ namespace {
     void decref_all(Args... args)
     {
       // helper to decrement reference counts of N arguments
-      (Py_DECREF((PyObject*)args), ...);
+      (safe_decref((PyObject*)args), ...);
+    }
+
+    static void safe_decref(PyObject* obj)
+    {
+      if (obj)
+        Py_DECREF(obj);
     }
   };
 
@@ -334,6 +340,9 @@ namespace {
   static cpptype py_to_##name(intptr_t pyobj)                                                      \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
+    if (!pyobj) {                                                                                  \
+      throw std::runtime_error("Python conversion error for type " #name ": null object");         \
+    }                                                                                              \
     cpptype i = (cpptype)frompy((PyObject*)pyobj);                                                 \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \

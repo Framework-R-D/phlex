@@ -50,6 +50,7 @@ namespace phlex::experimental {
     atomic_store(&flush_counts_, store->get_product<flush_counts_ptr>("[flush]"));
 #endif
     original_message_id_ = original_message_id;
+    ready_to_flush_ = true;
   }
 
   void store_counter::increment(data_cell_index::hash_type const layer_hash)
@@ -60,6 +61,10 @@ namespace phlex::experimental {
   bool store_counter::is_complete()
   {
     if (!ready_to_flush_) {
+      return false;
+    }
+
+    if (pending_ > 0) {
       return false;
     }
 
@@ -113,6 +118,15 @@ namespace phlex::experimental {
     return nullptr;
   }
 
+  void count_stores::mark_pending(data_cell_index::hash_type const hash)
+  {
+    counter_accessor ca;
+    if (!counters_.find(ca, hash)) {
+      counters_.emplace(ca, hash, std::make_unique<store_counter>());
+    }
+    ca->second->mark_pending();
+  }
+
   std::unique_ptr<store_counter> count_stores::increment_and_check(
     data_cell_index::hash_type const hash, data_cell_index::hash_type const layer_hash)
   {
@@ -121,6 +135,7 @@ namespace phlex::experimental {
       counters_.emplace(ca, hash, std::make_unique<store_counter>());
     }
     ca->second->increment(layer_hash);
+    ca->second->unmark_pending();
     if (ca->second->is_complete()) {
       std::unique_ptr<store_counter> result{std::move(ca->second)};
       counters_.erase(ca);
