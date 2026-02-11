@@ -132,8 +132,7 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
+      PyObject* result = PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
 
       std::string error_msg;
       if (!result) {
