@@ -113,9 +113,8 @@ namespace phlex::experimental {
     return nullptr;
   }
 
-  std::unique_ptr<store_counter>
-  count_stores::increment_and_check(data_cell_index::hash_type const hash,
-                                    data_cell_index::hash_type const layer_hash)
+  std::unique_ptr<store_counter> count_stores::increment_and_check(
+    data_cell_index::hash_type const hash, data_cell_index::hash_type const layer_hash)
   {
     counter_accessor ca;
     if (!counters_.find(ca, hash)) {
@@ -130,10 +129,10 @@ namespace phlex::experimental {
     return nullptr;
   }
 
-  std::unique_ptr<store_counter>
-  count_stores::flush_and_check(data_cell_index::hash_type const hash,
-                                product_store_const_ptr const& store,
-                                std::size_t const original_message_id)
+  std::unique_ptr<store_counter> count_stores::flush_and_check(
+    data_cell_index::hash_type const hash,
+    product_store_const_ptr const& store,
+    std::size_t const original_message_id)
   {
     counter_accessor ca;
     if (!counters_.find(ca, hash)) {

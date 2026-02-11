@@ -107,8 +107,7 @@ namespace phlex::experimental {
                 counter = flush_and_check(id_hash_for_counter, store, original_message_id);
               } else {
                 call(ft, messages, std::make_index_sequence<N>{});
-                counter =
-                  increment_and_check(id_hash_for_counter, store->index()->layer_hash());
+                counter = increment_and_check(id_hash_for_counter, store->index()->layer_hash());
               }
 
               if (counter) {
