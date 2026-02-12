@@ -159,6 +159,15 @@ static shared_ptr<vector<int>> py_to_vint(intptr_t pyobj) {
 
 ## Error Handling
 
+### declared_transform Exception Safety
+
+`declared_transform::stores_.insert()` creates an entry with a null
+`product_store_ptr` before calling the transform function. If the
+transform throws (e.g., because a converter encounters an error), the
+null entry must be erased to prevent SEGFAULT on cache reuse. This is
+handled by a `try/catch` block that erases the stale entry and
+re-throws.
+
 ### VECTOR_CONVERTER Must Throw on Error
 
 `VECTOR_CONVERTER` error paths throw `std::runtime_error` instead of
