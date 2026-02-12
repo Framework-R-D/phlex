@@ -16,28 +16,11 @@ static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
   return pyobj;
 }
 
-static int ll_traverse(py_lifeline_t* pyobj, visitproc visit, void* args)
-{
-  if (pyobj->m_view)
-    visit(pyobj->m_view, args);
-  return 0;
-}
-
-static int ll_clear(py_lifeline_t* pyobj)
-{
-  Py_CLEAR(pyobj->m_view);
-  return 0;
-}
-
 static void ll_dealloc(py_lifeline_t* pyobj)
 {
-  // This type participates in GC; untrack before clearing references so the
-  // collector does not traverse a partially torn-down object during dealloc.
-  PyObject_GC_UnTrack(pyobj);
   Py_CLEAR(pyobj->m_view);
   typedef std::shared_ptr<void> generic_shared_t;
   pyobj->m_source.~generic_shared_t();
-  // Use tp_free to pair with tp_alloc for GC-tracked Python objects.
   Py_TYPE(pyobj)->tp_free((PyObject*)pyobj);
 }
 
@@ -62,10 +45,10 @@ PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   0,                                                 // tp_getattro
   0,                                                 // tp_setattro
   0,                                                 // tp_as_buffer
-  Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,           // tp_flags
+  Py_TPFLAGS_DEFAULT,                                 // tp_flags
   (char*)"internal",                                 // tp_doc
-  (traverseproc)ll_traverse,                         // tp_traverse
-  (inquiry)ll_clear,                                 // tp_clear
+  0,                                                 // tp_traverse
+  0,                                                 // tp_clear
   0,                                                 // tp_richcompare
   0,                                                 // tp_weaklistoffset
   0,                                                 // tp_iter

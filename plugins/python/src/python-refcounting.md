@@ -199,6 +199,21 @@ after, creating temporary owned references that protect the views.
 `ll_new` (in `lifelinewrap.cpp`) returns `nullptr` when `tp_alloc`
 fails, rather than falling through to dereference the null pointer.
 
+### PhlexLifeline Must Not Use Py_TPFLAGS_HAVE_GC
+
+`PhlexLifeline` does not participate in reference cycles — its
+`m_view` points to a numpy array (which is not GC-tracked) and nothing
+references the `PhlexLifeline` from tracked Python objects.
+
+With `Py_TPFLAGS_HAVE_GC`, `PyType_GenericAlloc` would track every
+freshly allocated `PhlexLifeline` in the garbage collector, making it
+eligible for GC cycle detection.  During cycle detection the collector
+visits every tracked object — potentially while the object is still
+being initialized in `ll_new` or while a TBB worker thread is
+concurrently dereferencing `m_view`.  Removing the flag avoids this
+class of race entirely and eliminates a spurious `PyObject_GC_UnTrack`
+call on destruction.
+
 ## Common Pitfalls
 
 1. **Do not remove `decref_all` from `py_callback` or `Py_DECREF` from
