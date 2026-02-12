@@ -2,6 +2,7 @@
 #define PHLEX_CORE_MULTILAYER_JOIN_NODE_HPP
 
 #include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/message.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -12,13 +13,6 @@
 #include <vector>
 
 namespace phlex::experimental {
-  struct named_index_port {
-    std::string layer;
-    tbb::flow::receiver<indexed_end_token>* token_port;
-    tbb::flow::receiver<index_message>* index_port;
-  };
-  using named_index_ports = std::vector<named_index_port>;
-
   template <typename Input>
   using multilayer_join_node_base_t = tbb::flow::composite_node<Input, std::tuple<Input>>;
 
@@ -77,6 +71,7 @@ namespace phlex::experimental {
 
     std::vector<named_index_port> index_ports()
     {
+      // Returns an empty list if no repeaters are required
       std::vector<named_index_port> result;
       result.reserve(repeaters_.size());
       for (std::size_t i = 0; i != n_inputs; ++i) {
@@ -94,7 +89,9 @@ namespace phlex::experimental {
 
   namespace detail {
     // Stateless placeholder for cases where no join is needed
-    struct no_join {};
+    struct no_join {
+      named_index_ports index_ports() const { return {}; }
+    };
 
     template <std::size_t N>
     struct pre_node {

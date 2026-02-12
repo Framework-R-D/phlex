@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -51,6 +52,13 @@ namespace phlex::experimental {
 
   template <std::size_t N>
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
+
+  struct named_index_port {
+    std::string layer;
+    tbb::flow::receiver<indexed_end_token>* token_port;
+    tbb::flow::receiver<index_message>* index_port;
+  };
+  using named_index_ports = std::vector<named_index_port>;
 
   // Overload for use with most_derived
   message const& more_derived(message const& a, message const& b);

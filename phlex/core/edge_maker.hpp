@@ -1,6 +1,7 @@
 #ifndef PHLEX_CORE_EDGE_MAKER_HPP
 #define PHLEX_CORE_EDGE_MAKER_HPP
 
+#include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/declared_provider.hpp"
 #include "phlex/core/edge_creation_policy.hpp"
@@ -44,6 +45,9 @@ namespace phlex::experimental {
     template <typename T>
     multiplexer::head_ports_t edges(std::map<std::string, filter>& filters, T& consumers);
 
+    template <typename T>
+    std::map<std::string, named_index_ports> multilayer_ports(T& consumers);
+
     edge_creation_policy producers_;
   };
 
@@ -79,6 +83,23 @@ namespace phlex::experimental {
     return result;
   }
 
+  template <typename T>
+  std::map<std::string, named_index_ports> edge_maker::multilayer_ports(T& consumers)
+  {
+    // Folds are not yet supported with the new caching system
+    if constexpr (std::same_as<T, declared_folds>) {
+      return {};
+    } else {
+      std::map<std::string, named_index_ports> result;
+      for (auto& [node_name, node] : consumers) {
+        if (auto const& ports = node->index_ports(); not ports.empty()) {
+          result.try_emplace(node_name, ports);
+        }
+      }
+      return result;
+    }
+  }
+
   template <typename... Args>
   void edge_maker::operator()(tbb::flow::graph& g,
                               multiplexer& multi,
@@ -110,7 +131,11 @@ namespace phlex::experimental {
     }
 
     auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
-    multi.finalize(g, std::move(provider_input_ports));
+
+    std::map<std::string, named_index_ports> multilayer_join_index_ports;
+    (multilayer_join_index_ports.merge(multilayer_ports(consumers)), ...);
+
+    multi.finalize(g, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
   }
 }
 

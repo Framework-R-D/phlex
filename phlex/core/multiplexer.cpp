@@ -13,21 +13,13 @@
 using namespace phlex::experimental;
 
 namespace {
-  // phlex::data_cell_index_ptr index_for(phlex::data_cell_index_ptr const index,
-  //                                      std::string const& port_product_layer)
-  // {
-  //   if (index->layer_name() == port_product_layer) {
-  //     // This index's layer matches what is expected by the port
-  //     return index;
-  //   }
-
-  //   if (auto parent_index = index->parent(port_product_layer)) {
-  //     // This index has a parent layer that matches what is expected by the port
-  //     return parent_index;
-  //   }
-
-  //   return nullptr;
-  // }
+  auto delimited_layer_path(std::string layer_path)
+  {
+    if (not layer_path.starts_with("/")) {
+      return "/" + layer_path;
+    }
+    return layer_path;
+  }
 }
 
 namespace phlex::experimental {
@@ -37,10 +29,16 @@ namespace phlex::experimental {
 
   layer_sentry::layer_sentry(flush_counters& counters,
                              flusher_t& flusher,
+                             detail::multilayer_sender_ptrs_t const& senders_for_layer,
                              data_cell_index_ptr index,
                              std::size_t const message_id) :
-    counters_{counters}, flusher_{flusher}, index_{index}, message_id_{message_id}
+    counters_{counters},
+    flusher_{flusher},
+    senders_{senders_for_layer},
+    index_{index},
+    message_id_{message_id}
   {
+    // FIXME: Only for folds right now
     counters_.update(index_);
   }
 
@@ -49,6 +47,14 @@ namespace phlex::experimental {
     // To consider: We may want to skip the following logic if the framework prematurely
     //              needs to shut down.  Keeping it enabled allows in-flight folds to
     //              complete.  However, in some cases it may not be desirable to do this.
+
+    for (auto& sender : senders_) {
+      sender->put_end_token(index_);
+    }
+
+    // =====================================================================================
+    // For fold nodes only (temporary until the release of fold results are incorporated
+    // into the above paradigm).
     auto flush_result = counters_.extract(index_);
     flush_counts_ptr result;
     if (not flush_result.empty()) {
@@ -64,7 +70,9 @@ namespace phlex::experimental {
 
   multiplexer::multiplexer(tbb::flow::graph& g) : flusher_{g} {}
 
-  void multiplexer::finalize(tbb::flow::graph& g, provider_input_ports_t provider_input_ports)
+  void multiplexer::finalize(tbb::flow::graph& g,
+                             provider_input_ports_t provider_input_ports,
+                             std::map<std::string, named_index_ports> multilayers)
   {
     // We must have at least one provider port, or there can be no data to process.
     assert(!provider_input_ports.empty());
@@ -75,6 +83,18 @@ namespace phlex::experimental {
       auto [it, _] = broadcasters_.try_emplace(pq.layer(), g);
       make_edge(it->second, *provider_port);
     }
+
+    for (auto const& [node_name, multilayer] : multilayers) {
+      spdlog::trace("Making multilayer caster for {}", node_name);
+      multibroadcaster_entries casters;
+      casters.reserve(multilayer.size());
+      for (auto const& [layer, flush_port, input_port] : multilayer) {
+        auto& entry = casters.emplace_back(layer, detail::index_set_node{g}, detail::flush_node{g});
+        make_edge(entry.broadcaster, *input_port); // Connect with index ports of multi-algorithms
+        make_edge(entry.flusher, *flush_port);     // Connect with flush ports of multi-algorithms
+      }
+      multibroadcasters_.try_emplace(node_name, std::move(casters));
+    }
   }
 
   data_cell_index_ptr multiplexer::route(data_cell_index_ptr const index)
@@ -82,16 +102,11 @@ namespace phlex::experimental {
     backout_to(index);
 
     auto message_id = received_indices_.fetch_add(1);
-    layers_.emplace(counters_, flusher_, index, message_id);
 
-    // Send to provider index-set nodes
-    if (auto it = broadcasters_.find(index->layer_name()); it != broadcasters_.end()) {
-      it->second.try_put({.index = index, .msg_id = message_id});
-    } else {
-      // FIXME: THIS WOULD BE A PROBLEM
-    }
+    send_to_provider_index_nodes(index, message_id);
+    auto const& senders_for_layer = send_to_multilayer_join_nodes(index, message_id);
 
-    // Send to multi-layer joins
+    layers_.emplace(counters_, flusher_, senders_for_layer, index, message_id);
 
     return index;
   }

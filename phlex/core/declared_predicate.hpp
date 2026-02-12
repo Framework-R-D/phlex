@@ -104,6 +104,7 @@ namespace phlex::experimental {
       }
     }
 
+    named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
