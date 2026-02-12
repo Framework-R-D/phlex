@@ -17,15 +17,29 @@ fi
 clone_if_absent() {
   local repo=$1
   local dest="${WORKSPACE_ROOT}/${repo}"
-  if [ -d "$dest" ]; then
+  if [ -e "$dest/.git" ]; then
     echo "Repository already present: $dest"
     return
   fi
+  echo "Existing directory at $dest is not a git repository; replacing it."
+  rm -rf "$dest"
   echo "Cloning Framework-R-D/${repo} into ${dest} ..."
-  git clone --depth 1 "https://github.com/Framework-R-D/${repo}.git" "$dest"
+  local max_tries=5 current_try=0
+  while ! git clone --depth 1 "https://github.com/Framework-R-D/${repo}.git" "$dest"; do
+    (( ++current_try ))
+    echo "Attempt $current_try/$max_tries to clone $repo from GitHub FAILED"
+    (( current_try < max_tries )) || break
+    sleep 5
+  done
+  if (( current_try == max_tries )); then
+    echo "WARNING: unable to check out $repo to $dest from GitHub" 1>&2
+  fi
 }
 
 clone_if_absent phlex-design
 clone_if_absent phlex-examples
 clone_if_absent phlex-coding-guidelines
 clone_if_absent phlex-spack-recipes
+
+    echo "Repository already present: $dest"
+    return
