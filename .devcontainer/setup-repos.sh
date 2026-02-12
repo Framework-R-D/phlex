@@ -40,6 +40,3 @@ clone_if_absent phlex-design
 clone_if_absent phlex-examples
 clone_if_absent phlex-coding-guidelines
 clone_if_absent phlex-spack-recipes
-
-    echo "Repository already present: $dest"
-    return
