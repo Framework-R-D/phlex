@@ -58,8 +58,15 @@ namespace {
   static inline PyObject* lifeline_transform(intptr_t arg)
   {
     PyObject* pyobj = (PyObject*)arg;
-    if (pyobj && PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
-      return ((py_lifeline_t*)pyobj)->m_view;
+    if (!pyobj) {
+      throw std::runtime_error("null PyObject* argument in lifeline_transform");
+    }
+    if (PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
+      PyObject* view = ((py_lifeline_t*)pyobj)->m_view;
+      if (!view) {
+        throw std::runtime_error("PhlexLifeline m_view is null in lifeline_transform");
+      }
+      return view;
     }
     return pyobj;
   }
