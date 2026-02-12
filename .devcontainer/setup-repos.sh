@@ -21,8 +21,10 @@ clone_if_absent() {
     echo "Repository already present: $dest"
     return
   fi
-  echo "Existing directory at $dest is not a git repository; replacing it."
-  rm -rf "$dest"
+  if [ -e "$dest" ]; then
+    echo "Existing directory at $dest is not a git repository; replacing it."
+    rm -rf "$dest"
+  fi
   echo "Cloning Framework-R-D/${repo} into ${dest} ..."
   local max_tries=5 current_try=0
   while ! git clone --depth 1 "https://github.com/Framework-R-D/${repo}.git" "$dest"; do

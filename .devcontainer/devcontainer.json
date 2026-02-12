@@ -39,7 +39,7 @@
                 "cmake.ctestPath": "${workspaceFolder}/.devcontainer/ctest_wrapper.sh",
                 "cmake.generator": "Ninja",
                 "C_Cpp.default.cStandard": "c17",
-                "C_Cpp.default.cppStandard": "c++20",
+                "C_Cpp.default.cppStandard": "c++23",
                 "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
                 "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
                 "python.languageServer": "Pylance",
