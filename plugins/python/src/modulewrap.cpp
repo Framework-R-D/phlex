@@ -59,12 +59,13 @@ namespace {
   {
     PyObject* pyobj = (PyObject*)arg;
     if (!pyobj) {
-      throw std::runtime_error("null PyObject* argument in lifeline_transform");
+      throw std::runtime_error("lifeline_transform received null PyObject* argument");
     }
     if (PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
       PyObject* view = ((py_lifeline_t*)pyobj)->m_view;
       if (!view) {
-        throw std::runtime_error("PhlexLifeline m_view is null in lifeline_transform");
+        throw std::runtime_error(
+          "PhlexLifeline has null m_view pointer - object may be uninitialized or corrupted");
       }
       return view;
     }
