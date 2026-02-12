@@ -55,7 +55,7 @@ open all repositories in a single VS Code window.
     version requirements or new/removed dependencies), create an issue
     there if possible, in `Framework-R-D/phlex` if not, or notify the
     user of details in the last resort.
-- Minimize changes required for upstreaming.
+  - Minimize changes required for upstreaming.
 
 ## Communication Guidelines
 
