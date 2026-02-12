@@ -1,0 +1,16 @@
+{
+  driver: {
+    cpp: 'generate_layers',
+  },
+  sources: {
+    parallelism_provider: {
+      cpp: 'provide_parallelism',
+    },
+  },
+  modules: {
+    verify: {
+      cpp: 'check_parallelism',
+      expected_parallelism: 4,
+    },
+  },
+}

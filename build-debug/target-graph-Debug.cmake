@@ -1,0 +1,3 @@
+set_property(TARGET "phlex::graph"
+  PROPERTY IMPORTED_CXX_MODULES_DEBUG
+)

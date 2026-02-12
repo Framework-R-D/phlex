@@ -1,0 +1,11 @@
+####################################
+# Exported targets, and package components.
+####################################
+
+##################
+# Automatically-generated runtime targets: phlex
+##################
+include("${CMAKE_CURRENT_LIST_DIR}/phlexTargets.cmake")
+foreach (component IN LISTS phlex_FIND_COMPONENTS)
+  include("${CMAKE_CURRENT_LIST_DIR}/phlexTargets_${component}.cmake")
+endforeach()

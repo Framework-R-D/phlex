@@ -1,0 +1,710 @@
+[
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_configuration_internal_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/CMakeFiles/phlex_configuration_internal.dir/configuration.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/CMakeFiles/phlex_configuration_internal.dir/configuration.cpp.o -c /workspace/phlex/configuration.cpp",
+  "file": "/workspace/phlex/configuration.cpp",
+  "output": "/workspace/build-tsan/phlex/CMakeFiles/phlex_configuration_internal.dir/configuration.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_utilities_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/utilities/CMakeFiles/phlex_utilities.dir/hashing.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/utilities/CMakeFiles/phlex_utilities.dir/hashing.cpp.o -c /workspace/phlex/utilities/hashing.cpp",
+  "file": "/workspace/phlex/utilities/hashing.cpp",
+  "output": "/workspace/build-tsan/phlex/utilities/CMakeFiles/phlex_utilities.dir/hashing.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_utilities_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/utilities/CMakeFiles/phlex_utilities.dir/resource_usage.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/utilities/CMakeFiles/phlex_utilities.dir/resource_usage.cpp.o -c /workspace/phlex/utilities/resource_usage.cpp",
+  "file": "/workspace/phlex/utilities/resource_usage.cpp",
+  "output": "/workspace/build-tsan/phlex/utilities/CMakeFiles/phlex_utilities.dir/resource_usage.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_graph_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/graph/CMakeFiles/phlex_graph.dir/serializer_node.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/graph/CMakeFiles/phlex_graph.dir/serializer_node.cpp.o -c /workspace/phlex/graph/serializer_node.cpp",
+  "file": "/workspace/phlex/graph/serializer_node.cpp",
+  "output": "/workspace/build-tsan/phlex/graph/CMakeFiles/phlex_graph.dir/serializer_node.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/algorithm_name.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/algorithm_name.cpp.o -c /workspace/phlex/model/algorithm_name.cpp",
+  "file": "/workspace/phlex/model/algorithm_name.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/algorithm_name.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/data_cell_counter.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/data_cell_counter.cpp.o -c /workspace/phlex/model/data_cell_counter.cpp",
+  "file": "/workspace/phlex/model/data_cell_counter.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/data_cell_counter.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/data_layer_hierarchy.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/data_layer_hierarchy.cpp.o -c /workspace/phlex/model/data_layer_hierarchy.cpp",
+  "file": "/workspace/phlex/model/data_layer_hierarchy.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/data_layer_hierarchy.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/data_cell_index.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/data_cell_index.cpp.o -c /workspace/phlex/model/data_cell_index.cpp",
+  "file": "/workspace/phlex/model/data_cell_index.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/data_cell_index.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/identifier.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/identifier.cpp.o -c /workspace/phlex/model/identifier.cpp",
+  "file": "/workspace/phlex/model/identifier.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/identifier.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/product_matcher.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/product_matcher.cpp.o -c /workspace/phlex/model/product_matcher.cpp",
+  "file": "/workspace/phlex/model/product_matcher.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/product_matcher.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/product_store.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/product_store.cpp.o -c /workspace/phlex/model/product_store.cpp",
+  "file": "/workspace/phlex/model/product_store.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/product_store.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/products.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/products.cpp.o -c /workspace/phlex/model/products.cpp",
+  "file": "/workspace/phlex/model/products.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/products.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_model_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/model/CMakeFiles/phlex_model.dir/product_specification.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/model/CMakeFiles/phlex_model.dir/product_specification.cpp.o -c /workspace/phlex/model/product_specification.cpp",
+  "file": "/workspace/phlex/model/product_specification.cpp",
+  "output": "/workspace/build-tsan/phlex/model/CMakeFiles/phlex_model.dir/product_specification.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/concurrency.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/concurrency.cpp.o -c /workspace/phlex/core/concurrency.cpp",
+  "file": "/workspace/phlex/core/concurrency.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/concurrency.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/consumer.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/consumer.cpp.o -c /workspace/phlex/core/consumer.cpp",
+  "file": "/workspace/phlex/core/consumer.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/consumer.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/declared_fold.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/declared_fold.cpp.o -c /workspace/phlex/core/declared_fold.cpp",
+  "file": "/workspace/phlex/core/declared_fold.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/declared_fold.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/declared_observer.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/declared_observer.cpp.o -c /workspace/phlex/core/declared_observer.cpp",
+  "file": "/workspace/phlex/core/declared_observer.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/declared_observer.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/declared_output.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/declared_output.cpp.o -c /workspace/phlex/core/declared_output.cpp",
+  "file": "/workspace/phlex/core/declared_output.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/declared_output.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/declared_predicate.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/declared_predicate.cpp.o -c /workspace/phlex/core/declared_predicate.cpp",
+  "file": "/workspace/phlex/core/declared_predicate.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/declared_predicate.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/declared_provider.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/declared_provider.cpp.o -c /workspace/phlex/core/declared_provider.cpp",
+  "file": "/workspace/phlex/core/declared_provider.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/declared_provider.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/declared_transform.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/declared_transform.cpp.o -c /workspace/phlex/core/declared_transform.cpp",
+  "file": "/workspace/phlex/core/declared_transform.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/declared_transform.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/declared_unfold.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/declared_unfold.cpp.o -c /workspace/phlex/core/declared_unfold.cpp",
+  "file": "/workspace/phlex/core/declared_unfold.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/declared_unfold.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/detail/make_algorithm_name.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/detail/make_algorithm_name.cpp.o -c /workspace/phlex/core/detail/make_algorithm_name.cpp",
+  "file": "/workspace/phlex/core/detail/make_algorithm_name.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/detail/make_algorithm_name.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/detail/maybe_predicates.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/detail/maybe_predicates.cpp.o -c /workspace/phlex/core/detail/maybe_predicates.cpp",
+  "file": "/workspace/phlex/core/detail/maybe_predicates.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/detail/maybe_predicates.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/detail/filter_impl.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/detail/filter_impl.cpp.o -c /workspace/phlex/core/detail/filter_impl.cpp",
+  "file": "/workspace/phlex/core/detail/filter_impl.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/detail/filter_impl.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/edge_creation_policy.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/edge_creation_policy.cpp.o -c /workspace/phlex/core/edge_creation_policy.cpp",
+  "file": "/workspace/phlex/core/edge_creation_policy.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/edge_creation_policy.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/edge_maker.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/edge_maker.cpp.o -c /workspace/phlex/core/edge_maker.cpp",
+  "file": "/workspace/phlex/core/edge_maker.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/edge_maker.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/filter.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/filter.cpp.o -c /workspace/phlex/core/filter.cpp",
+  "file": "/workspace/phlex/core/filter.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/filter.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/framework_graph.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/framework_graph.cpp.o -c /workspace/phlex/core/framework_graph.cpp",
+  "file": "/workspace/phlex/core/framework_graph.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/framework_graph.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/glue.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/glue.cpp.o -c /workspace/phlex/core/glue.cpp",
+  "file": "/workspace/phlex/core/glue.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/glue.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/input_arguments.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/input_arguments.cpp.o -c /workspace/phlex/core/input_arguments.cpp",
+  "file": "/workspace/phlex/core/input_arguments.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/input_arguments.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/message.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/message.cpp.o -c /workspace/phlex/core/message.cpp",
+  "file": "/workspace/phlex/core/message.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/message.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/message_sender.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/message_sender.cpp.o -c /workspace/phlex/core/message_sender.cpp",
+  "file": "/workspace/phlex/core/message_sender.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/message_sender.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/node_catalog.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/node_catalog.cpp.o -c /workspace/phlex/core/node_catalog.cpp",
+  "file": "/workspace/phlex/core/node_catalog.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/node_catalog.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/multiplexer.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/multiplexer.cpp.o -c /workspace/phlex/core/multiplexer.cpp",
+  "file": "/workspace/phlex/core/multiplexer.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/multiplexer.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/products_consumer.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/products_consumer.cpp.o -c /workspace/phlex/core/products_consumer.cpp",
+  "file": "/workspace/phlex/core/products_consumer.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/products_consumer.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/registrar.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/registrar.cpp.o -c /workspace/phlex/core/registrar.cpp",
+  "file": "/workspace/phlex/core/registrar.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/registrar.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/registration_api.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/registration_api.cpp.o -c /workspace/phlex/core/registration_api.cpp",
+  "file": "/workspace/phlex/core/registration_api.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/registration_api.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/product_query.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/product_query.cpp.o -c /workspace/phlex/core/product_query.cpp",
+  "file": "/workspace/phlex/core/product_query.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/product_query.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dphlex_core_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/core/CMakeFiles/phlex_core.dir/store_counters.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/core/CMakeFiles/phlex_core.dir/store_counters.cpp.o -c /workspace/phlex/core/store_counters.cpp",
+  "file": "/workspace/phlex/core/store_counters.cpp",
+  "output": "/workspace/build-tsan/phlex/core/CMakeFiles/phlex_core.dir/store_counters.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_DLL_USE_STD_FS -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Drun_phlex_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/app/CMakeFiles/run_phlex.dir/load_module.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/app/CMakeFiles/run_phlex.dir/load_module.cpp.o -c /workspace/phlex/app/load_module.cpp",
+  "file": "/workspace/phlex/app/load_module.cpp",
+  "output": "/workspace/build-tsan/phlex/app/CMakeFiles/run_phlex.dir/load_module.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_DLL_USE_STD_FS -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Drun_phlex_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/app/CMakeFiles/run_phlex.dir/run.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/app/CMakeFiles/run_phlex.dir/run.cpp.o -c /workspace/phlex/app/run.cpp",
+  "file": "/workspace/phlex/app/run.cpp",
+  "output": "/workspace/build-tsan/phlex/app/CMakeFiles/run_phlex.dir/run.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_DLL_USE_STD_FS -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Drun_phlex_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/app/CMakeFiles/run_phlex.dir/version.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/app/CMakeFiles/run_phlex.dir/version.cpp.o -c /workspace/build-tsan/phlex/app/version.cpp",
+  "file": "/workspace/build-tsan/phlex/app/version.cpp",
+  "output": "/workspace/build-tsan/phlex/app/CMakeFiles/run_phlex.dir/version.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=phlex/app/CMakeFiles/phlex.dir/phlex.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o phlex/app/CMakeFiles/phlex.dir/phlex.cpp.o -c /workspace/phlex/app/phlex.cpp",
+  "file": "/workspace/phlex/app/phlex.cpp",
+  "output": "/workspace/build-tsan/phlex/app/CMakeFiles/phlex.dir/phlex.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dlayer_generator_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=plugins/CMakeFiles/layer_generator.dir/layer_generator.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o plugins/CMakeFiles/layer_generator.dir/layer_generator.cpp.o -c /workspace/plugins/layer_generator.cpp",
+  "file": "/workspace/plugins/layer_generator.cpp",
+  "output": "/workspace/build-tsan/plugins/CMakeFiles/layer_generator.dir/layer_generator.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dgenerate_layers_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=plugins/CMakeFiles/generate_layers.dir/generate_layers.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o plugins/CMakeFiles/generate_layers.dir/generate_layers.cpp.o -c /workspace/plugins/generate_layers.cpp",
+  "file": "/workspace/plugins/generate_layers.cpp",
+  "output": "/workspace/build-tsan/plugins/CMakeFiles/generate_layers.dir/generate_layers.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dpymodule_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /spack/opt/spack/linux-x86_64_v3/python-3.14.2-xvmtxcfdqayiapyyg35s26nrzqr7qqbd/include/python3.14 -isystem /opt/spack-environments/phlex-ci/.spack-env/view/lib/python3.14/site-packages/numpy/_core/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=plugins/python/CMakeFiles/pymodule.dir/src/pymodule.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o plugins/python/CMakeFiles/pymodule.dir/src/pymodule.cpp.o -c /workspace/plugins/python/src/pymodule.cpp",
+  "file": "/workspace/plugins/python/src/pymodule.cpp",
+  "output": "/workspace/build-tsan/plugins/python/CMakeFiles/pymodule.dir/src/pymodule.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dpymodule_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /spack/opt/spack/linux-x86_64_v3/python-3.14.2-xvmtxcfdqayiapyyg35s26nrzqr7qqbd/include/python3.14 -isystem /opt/spack-environments/phlex-ci/.spack-env/view/lib/python3.14/site-packages/numpy/_core/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=plugins/python/CMakeFiles/pymodule.dir/src/modulewrap.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o plugins/python/CMakeFiles/pymodule.dir/src/modulewrap.cpp.o -c /workspace/plugins/python/src/modulewrap.cpp",
+  "file": "/workspace/plugins/python/src/modulewrap.cpp",
+  "output": "/workspace/build-tsan/plugins/python/CMakeFiles/pymodule.dir/src/modulewrap.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dpymodule_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /spack/opt/spack/linux-x86_64_v3/python-3.14.2-xvmtxcfdqayiapyyg35s26nrzqr7qqbd/include/python3.14 -isystem /opt/spack-environments/phlex-ci/.spack-env/view/lib/python3.14/site-packages/numpy/_core/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=plugins/python/CMakeFiles/pymodule.dir/src/configwrap.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o plugins/python/CMakeFiles/pymodule.dir/src/configwrap.cpp.o -c /workspace/plugins/python/src/configwrap.cpp",
+  "file": "/workspace/plugins/python/src/configwrap.cpp",
+  "output": "/workspace/build-tsan/plugins/python/CMakeFiles/pymodule.dir/src/configwrap.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dpymodule_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /spack/opt/spack/linux-x86_64_v3/python-3.14.2-xvmtxcfdqayiapyyg35s26nrzqr7qqbd/include/python3.14 -isystem /opt/spack-environments/phlex-ci/.spack-env/view/lib/python3.14/site-packages/numpy/_core/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=plugins/python/CMakeFiles/pymodule.dir/src/lifelinewrap.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o plugins/python/CMakeFiles/pymodule.dir/src/lifelinewrap.cpp.o -c /workspace/plugins/python/src/lifelinewrap.cpp",
+  "file": "/workspace/plugins/python/src/lifelinewrap.cpp",
+  "output": "/workspace/build-tsan/plugins/python/CMakeFiles/pymodule.dir/src/lifelinewrap.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dpymodule_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /spack/opt/spack/linux-x86_64_v3/python-3.14.2-xvmtxcfdqayiapyyg35s26nrzqr7qqbd/include/python3.14 -isystem /opt/spack-environments/phlex-ci/.spack-env/view/lib/python3.14/site-packages/numpy/_core/include -O2 -g -DNDEBUG -std=c++23 -fPIC -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=plugins/python/CMakeFiles/pymodule.dir/src/errorwrap.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o plugins/python/CMakeFiles/pymodule.dir/src/errorwrap.cpp.o -c /workspace/plugins/python/src/errorwrap.cpp",
+  "file": "/workspace/plugins/python/src/errorwrap.cpp",
+  "output": "/workspace/build-tsan/plugins/python/CMakeFiles/pymodule.dir/src/errorwrap.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/concepts.dir/concepts.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/concepts.dir/concepts.cpp.o -c /workspace/test/concepts.cpp",
+  "file": "/workspace/test/concepts.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/concepts.dir/concepts.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/adjust_config.dir/adjust_config.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/adjust_config.dir/adjust_config.cpp.o -c /workspace/test/adjust_config.cpp",
+  "file": "/workspace/test/adjust_config.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/adjust_config.dir/adjust_config.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/config_test.dir/configuration.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/config_test.dir/configuration.cpp.o -c /workspace/test/configuration.cpp",
+  "file": "/workspace/test/configuration.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/config_test.dir/configuration.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/string_literal.dir/string_literal.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/string_literal.dir/string_literal.cpp.o -c /workspace/test/string_literal.cpp",
+  "file": "/workspace/test/string_literal.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/string_literal.dir/string_literal.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/type_deduction.dir/type_deduction.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/type_deduction.dir/type_deduction.cpp.o -c /workspace/test/type_deduction.cpp",
+  "file": "/workspace/test/type_deduction.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/type_deduction.dir/type_deduction.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/type_id.dir/type_id.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/type_id.dir/type_id.cpp.o -c /workspace/test/type_id.cpp",
+  "file": "/workspace/test/type_id.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/type_id.dir/type_id.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/identifier.dir/identifier.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/identifier.dir/identifier.cpp.o -c /workspace/test/identifier.cpp",
+  "file": "/workspace/test/identifier.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/identifier.dir/identifier.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/yielding_driver.dir/yielding_driver.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/yielding_driver.dir/yielding_driver.cpp.o -c /workspace/test/yielding_driver.cpp",
+  "file": "/workspace/test/yielding_driver.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/yielding_driver.dir/yielding_driver.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/allowed_families.dir/allowed_families.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/allowed_families.dir/allowed_families.cpp.o -c /workspace/test/allowed_families.cpp",
+  "file": "/workspace/test/allowed_families.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/allowed_families.dir/allowed_families.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/vector_of_abstract_types.dir/vector_of_abstract_types.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/vector_of_abstract_types.dir/vector_of_abstract_types.cpp.o -c /workspace/test/vector_of_abstract_types.cpp",
+  "file": "/workspace/test/vector_of_abstract_types.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/vector_of_abstract_types.dir/vector_of_abstract_types.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/cached_execution.dir/cached_execution.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/cached_execution.dir/cached_execution.cpp.o -c /workspace/test/cached_execution.cpp",
+  "file": "/workspace/test/cached_execution.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/cached_execution.dir/cached_execution.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/class_registration.dir/class_registration.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/class_registration.dir/class_registration.cpp.o -c /workspace/test/class_registration.cpp",
+  "file": "/workspace/test/class_registration.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/class_registration.dir/class_registration.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/different_hierarchies.dir/different_hierarchies.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/different_hierarchies.dir/different_hierarchies.cpp.o -c /workspace/test/different_hierarchies.cpp",
+  "file": "/workspace/test/different_hierarchies.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/different_hierarchies.dir/different_hierarchies.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/filter_impl.dir/filter_impl.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/filter_impl.dir/filter_impl.cpp.o -c /workspace/test/filter_impl.cpp",
+  "file": "/workspace/test/filter_impl.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/filter_impl.dir/filter_impl.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/filter.dir/filter.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/filter.dir/filter.cpp.o -c /workspace/test/filter.cpp",
+  "file": "/workspace/test/filter.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/filter.dir/filter.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/framework_graph.dir/framework_graph.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/framework_graph.dir/framework_graph.cpp.o -c /workspace/test/framework_graph.cpp",
+  "file": "/workspace/test/framework_graph.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/framework_graph.dir/framework_graph.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/function_registration.dir/function_registration.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/function_registration.dir/function_registration.cpp.o -c /workspace/test/function_registration.cpp",
+  "file": "/workspace/test/function_registration.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/function_registration.dir/function_registration.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/hierarchical_nodes.dir/hierarchical_nodes.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/hierarchical_nodes.dir/hierarchical_nodes.cpp.o -c /workspace/test/hierarchical_nodes.cpp",
+  "file": "/workspace/test/hierarchical_nodes.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/hierarchical_nodes.dir/hierarchical_nodes.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/layer_generator_test.dir/layer_generator.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/layer_generator_test.dir/layer_generator.cpp.o -c /workspace/test/layer_generator.cpp",
+  "file": "/workspace/test/layer_generator.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/layer_generator_test.dir/layer_generator.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/multiple_function_registration.dir/multiple_function_registration.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/multiple_function_registration.dir/multiple_function_registration.cpp.o -c /workspace/test/multiple_function_registration.cpp",
+  "file": "/workspace/test/multiple_function_registration.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/multiple_function_registration.dir/multiple_function_registration.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/output_products.dir/output_products.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/output_products.dir/output_products.cpp.o -c /workspace/test/output_products.cpp",
+  "file": "/workspace/test/output_products.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/output_products.dir/output_products.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/data_cell_counting.dir/data_cell_counting.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/data_cell_counting.dir/data_cell_counting.cpp.o -c /workspace/test/data_cell_counting.cpp",
+  "file": "/workspace/test/data_cell_counting.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/data_cell_counting.dir/data_cell_counting.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/data_cell_index.dir/data_cell_index.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/data_cell_index.dir/data_cell_index.cpp.o -c /workspace/test/data_cell_index.cpp",
+  "file": "/workspace/test/data_cell_index.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/data_cell_index.dir/data_cell_index.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/product_handle.dir/product_handle.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/product_handle.dir/product_handle.cpp.o -c /workspace/test/product_handle.cpp",
+  "file": "/workspace/test/product_handle.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/product_handle.dir/product_handle.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/product_matcher.dir/product_matcher.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/product_matcher.dir/product_matcher.cpp.o -c /workspace/test/product_matcher.cpp",
+  "file": "/workspace/test/product_matcher.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/product_matcher.dir/product_matcher.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/product_store.dir/product_store.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/product_store.dir/product_store.cpp.o -c /workspace/test/product_store.cpp",
+  "file": "/workspace/test/product_store.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/product_store.dir/product_store.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/fold.dir/fold.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/fold.dir/fold.cpp.o -c /workspace/test/fold.cpp",
+  "file": "/workspace/test/fold.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/fold.dir/fold.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/replicated.dir/replicated.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/replicated.dir/replicated.cpp.o -c /workspace/test/replicated.cpp",
+  "file": "/workspace/test/replicated.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/replicated.dir/replicated.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/serializer.dir/serializer.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/serializer.dir/serializer.cpp.o -c /workspace/test/serializer.cpp",
+  "file": "/workspace/test/serializer.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/serializer.dir/serializer.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/product_query.dir/product_query.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/product_query.dir/product_query.cpp.o -c /workspace/test/product_query.cpp",
+  "file": "/workspace/test/product_query.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/product_query.dir/product_query.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/provider_test.dir/provider_test.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/provider_test.dir/provider_test.cpp.o -c /workspace/test/provider_test.cpp",
+  "file": "/workspace/test/provider_test.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/provider_test.dir/provider_test.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/type_distinction.dir/type_distinction.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/type_distinction.dir/type_distinction.cpp.o -c /workspace/test/type_distinction.cpp",
+  "file": "/workspace/test/type_distinction.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/type_distinction.dir/type_distinction.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/CMakeFiles/unfold.dir/unfold.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/CMakeFiles/unfold.dir/unfold.cpp.o -c /workspace/test/unfold.cpp",
+  "file": "/workspace/test/unfold.cpp",
+  "output": "/workspace/build-tsan/test/CMakeFiles/unfold.dir/unfold.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -Dfibonacci_numbers_EXPORTS -I/workspace -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/fibonacci_numbers.dir/fibonacci_numbers.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/fibonacci_numbers.dir/fibonacci_numbers.cpp.o -c /workspace/test/benchmarks/fibonacci_numbers.cpp",
+  "file": "/workspace/test/benchmarks/fibonacci_numbers.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/fibonacci_numbers.dir/fibonacci_numbers.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dbenchmarks_provider_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/benchmarks_provider.dir/benchmarks_provider.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/benchmarks_provider.dir/benchmarks_provider.cpp.o -c /workspace/test/benchmarks/benchmarks_provider.cpp",
+  "file": "/workspace/test/benchmarks/benchmarks_provider.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/benchmarks_provider.dir/benchmarks_provider.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dlast_index_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/last_index.dir/last_index.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/last_index.dir/last_index.cpp.o -c /workspace/test/benchmarks/last_index.cpp",
+  "file": "/workspace/test/benchmarks/last_index.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/last_index.dir/last_index.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dread_id_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/read_id.dir/read_id.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/read_id.dir/read_id.cpp.o -c /workspace/test/benchmarks/read_id.cpp",
+  "file": "/workspace/test/benchmarks/read_id.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/read_id.dir/read_id.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dread_index_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/read_index.dir/read_index.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/read_index.dir/read_index.cpp.o -c /workspace/test/benchmarks/read_index.cpp",
+  "file": "/workspace/test/benchmarks/read_index.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/read_index.dir/read_index.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dplus_one_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/plus_one.dir/plus_one.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/plus_one.dir/plus_one.cpp.o -c /workspace/test/benchmarks/plus_one.cpp",
+  "file": "/workspace/test/benchmarks/plus_one.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/plus_one.dir/plus_one.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dplus_101_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/plus_101.dir/plus_101.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/plus_101.dir/plus_101.cpp.o -c /workspace/test/benchmarks/plus_101.cpp",
+  "file": "/workspace/test/benchmarks/plus_101.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/plus_101.dir/plus_101.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Daccept_even_ids_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/accept_even_ids.dir/accept_even_ids.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/accept_even_ids.dir/accept_even_ids.cpp.o -c /workspace/test/benchmarks/accept_even_ids.cpp",
+  "file": "/workspace/test/benchmarks/accept_even_ids.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/accept_even_ids.dir/accept_even_ids.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Daccept_even_numbers_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/accept_even_numbers.dir/accept_even_numbers.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/accept_even_numbers.dir/accept_even_numbers.cpp.o -c /workspace/test/benchmarks/accept_even_numbers.cpp",
+  "file": "/workspace/test/benchmarks/accept_even_numbers.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/accept_even_numbers.dir/accept_even_numbers.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Daccept_fibonacci_numbers_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/accept_fibonacci_numbers.dir/accept_fibonacci_numbers.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/accept_fibonacci_numbers.dir/accept_fibonacci_numbers.cpp.o -c /workspace/test/benchmarks/accept_fibonacci_numbers.cpp",
+  "file": "/workspace/test/benchmarks/accept_fibonacci_numbers.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/accept_fibonacci_numbers.dir/accept_fibonacci_numbers.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dverify_even_fibonacci_numbers_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/verify_even_fibonacci_numbers.dir/verify_even_fibonacci_numbers.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/verify_even_fibonacci_numbers.dir/verify_even_fibonacci_numbers.cpp.o -c /workspace/test/benchmarks/verify_even_fibonacci_numbers.cpp",
+  "file": "/workspace/test/benchmarks/verify_even_fibonacci_numbers.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/verify_even_fibonacci_numbers.dir/verify_even_fibonacci_numbers.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dverify_difference_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/benchmarks/CMakeFiles/verify_difference.dir/verify_difference.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/benchmarks/CMakeFiles/verify_difference.dir/verify_difference.cpp.o -c /workspace/test/benchmarks/verify_difference.cpp",
+  "file": "/workspace/test/benchmarks/verify_difference.cpp",
+  "output": "/workspace/build-tsan/test/benchmarks/CMakeFiles/verify_difference.dir/verify_difference.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dcheck_parallelism_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/max-parallelism/CMakeFiles/check_parallelism.dir/check_parallelism.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/max-parallelism/CMakeFiles/check_parallelism.dir/check_parallelism.cpp.o -c /workspace/test/max-parallelism/check_parallelism.cpp",
+  "file": "/workspace/test/max-parallelism/check_parallelism.cpp",
+  "output": "/workspace/build-tsan/test/max-parallelism/CMakeFiles/check_parallelism.dir/check_parallelism.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dprovide_parallelism_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/max-parallelism/CMakeFiles/provide_parallelism.dir/provide_parallelism.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/max-parallelism/CMakeFiles/provide_parallelism.dir/provide_parallelism.cpp.o -c /workspace/test/max-parallelism/provide_parallelism.cpp",
+  "file": "/workspace/test/max-parallelism/provide_parallelism.cpp",
+  "output": "/workspace/build-tsan/test/max-parallelism/CMakeFiles/provide_parallelism.dir/provide_parallelism.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/memory-checks/CMakeFiles/many_events.dir/many_events.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/memory-checks/CMakeFiles/many_events.dir/many_events.cpp.o -c /workspace/test/memory-checks/many_events.cpp",
+  "file": "/workspace/test/memory-checks/many_events.cpp",
+  "output": "/workspace/build-tsan/test/memory-checks/CMakeFiles/many_events.dir/many_events.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dmodule_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/plugins/CMakeFiles/module.dir/module.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/plugins/CMakeFiles/module.dir/module.cpp.o -c /workspace/test/plugins/module.cpp",
+  "file": "/workspace/test/plugins/module.cpp",
+  "output": "/workspace/build-tsan/test/plugins/CMakeFiles/module.dir/module.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dij_source_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/plugins/CMakeFiles/ij_source.dir/ij_source.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/plugins/CMakeFiles/ij_source.dir/ij_source.cpp.o -c /workspace/test/plugins/ij_source.cpp",
+  "file": "/workspace/test/plugins/ij_source.cpp",
+  "output": "/workspace/build-tsan/test/plugins/CMakeFiles/ij_source.dir/ij_source.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Doutput_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/plugins/CMakeFiles/output.dir/output.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/plugins/CMakeFiles/output.dir/output.cpp.o -c /workspace/test/plugins/output.cpp",
+  "file": "/workspace/test/plugins/output.cpp",
+  "output": "/workspace/build-tsan/test/plugins/CMakeFiles/output.dir/output.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/utilities/CMakeFiles/sized_tuple.dir/sized_tuple.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/utilities/CMakeFiles/sized_tuple.dir/sized_tuple.cpp.o -c /workspace/test/utilities/sized_tuple.cpp",
+  "file": "/workspace/test/utilities/sized_tuple.cpp",
+  "output": "/workspace/build-tsan/test/utilities/CMakeFiles/sized_tuple.dir/sized_tuple.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/utilities/CMakeFiles/sleep_for.dir/sleep_for.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/utilities/CMakeFiles/sleep_for.dir/sleep_for.cpp.o -c /workspace/test/utilities/sleep_for.cpp",
+  "file": "/workspace/test/utilities/sleep_for.cpp",
+  "output": "/workspace/build-tsan/test/utilities/CMakeFiles/sleep_for.dir/sleep_for.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/utilities/CMakeFiles/thread_counter.dir/thread_counter.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/utilities/CMakeFiles/thread_counter.dir/thread_counter.cpp.o -c /workspace/test/utilities/thread_counter.cpp",
+  "file": "/workspace/test/utilities/thread_counter.cpp",
+  "output": "/workspace/build-tsan/test/utilities/CMakeFiles/thread_counter.dir/thread_counter.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -Dtimed_busy_EXPORTS -I/workspace -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/mock-workflow/CMakeFiles/timed_busy.dir/timed_busy.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/mock-workflow/CMakeFiles/timed_busy.dir/timed_busy.cpp.o -c /workspace/test/mock-workflow/timed_busy.cpp",
+  "file": "/workspace/test/mock-workflow/timed_busy.cpp",
+  "output": "/workspace/build-tsan/test/mock-workflow/CMakeFiles/timed_busy.dir/timed_busy.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Did_provider_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/mock-workflow/CMakeFiles/id_provider.dir/id_provider.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/mock-workflow/CMakeFiles/id_provider.dir/id_provider.cpp.o -c /workspace/test/mock-workflow/id_provider.cpp",
+  "file": "/workspace/test/mock-workflow/id_provider.cpp",
+  "output": "/workspace/build-tsan/test/mock-workflow/CMakeFiles/id_provider.dir/id_provider.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dion_and_scint_EXPORTS -I/workspace -I/workspace/build-tsan -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/mock-workflow/CMakeFiles/ion_and_scint.dir/ion_and_scint.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/mock-workflow/CMakeFiles/ion_and_scint.dir/ion_and_scint.cpp.o -c /workspace/test/mock-workflow/ion_and_scint.cpp",
+  "file": "/workspace/test/mock-workflow/ion_and_scint.cpp",
+  "output": "/workspace/build-tsan/test/mock-workflow/CMakeFiles/ion_and_scint.dir/ion_and_scint.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dpd_fast_sim_EXPORTS -I/workspace -I/workspace/build-tsan -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/mock-workflow/CMakeFiles/pd_fast_sim.dir/pd_fast_sim.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/mock-workflow/CMakeFiles/pd_fast_sim.dir/pd_fast_sim.cpp.o -c /workspace/test/mock-workflow/pd_fast_sim.cpp",
+  "file": "/workspace/test/mock-workflow/pd_fast_sim.cpp",
+  "output": "/workspace/build-tsan/test/mock-workflow/CMakeFiles/pd_fast_sim.dir/pd_fast_sim.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DMC_truth_algorithm_EXPORTS -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace -I/workspace/build-tsan -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/mock-workflow/CMakeFiles/MC_truth_algorithm.dir/MC_truth_algorithm.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/mock-workflow/CMakeFiles/MC_truth_algorithm.dir/MC_truth_algorithm.cpp.o -c /workspace/test/mock-workflow/MC_truth_algorithm.cpp",
+  "file": "/workspace/test/mock-workflow/MC_truth_algorithm.cpp",
+  "output": "/workspace/build-tsan/test/mock-workflow/CMakeFiles/MC_truth_algorithm.dir/MC_truth_algorithm.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dlargeant_EXPORTS -I/workspace -I/workspace/build-tsan -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/mock-workflow/CMakeFiles/largeant.dir/largeant.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/mock-workflow/CMakeFiles/largeant.dir/largeant.cpp.o -c /workspace/test/mock-workflow/largeant.cpp",
+  "file": "/workspace/test/mock-workflow/largeant.cpp",
+  "output": "/workspace/build-tsan/test/mock-workflow/CMakeFiles/largeant.dir/largeant.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dthree_tuple_algorithm_EXPORTS -I/workspace -I/workspace/build-tsan -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/mock-workflow/CMakeFiles/three_tuple_algorithm.dir/three_tuple_algorithm.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/mock-workflow/CMakeFiles/three_tuple_algorithm.dir/three_tuple_algorithm.cpp.o -c /workspace/test/mock-workflow/three_tuple_algorithm.cpp",
+  "file": "/workspace/test/mock-workflow/three_tuple_algorithm.cpp",
+  "output": "/workspace/build-tsan/test/mock-workflow/CMakeFiles/three_tuple_algorithm.dir/three_tuple_algorithm.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -Dgiantdata_EXPORTS -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/demo-giantdata/CMakeFiles/giantdata.dir/waveforms.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/demo-giantdata/CMakeFiles/giantdata.dir/waveforms.cpp.o -c /workspace/test/demo-giantdata/waveforms.cpp",
+  "file": "/workspace/test/demo-giantdata/waveforms.cpp",
+  "output": "/workspace/build-tsan/test/demo-giantdata/CMakeFiles/giantdata.dir/waveforms.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -Dgiantdata_EXPORTS -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/demo-giantdata/CMakeFiles/giantdata.dir/waveform_generator_input.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/demo-giantdata/CMakeFiles/giantdata.dir/waveform_generator_input.cpp.o -c /workspace/test/demo-giantdata/waveform_generator_input.cpp",
+  "file": "/workspace/test/demo-giantdata/waveform_generator_input.cpp",
+  "output": "/workspace/build-tsan/test/demo-giantdata/CMakeFiles/giantdata.dir/waveform_generator_input.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -Dgiantdata_EXPORTS -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/demo-giantdata/CMakeFiles/giantdata.dir/waveform_generator.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/demo-giantdata/CMakeFiles/giantdata.dir/waveform_generator.cpp.o -c /workspace/test/demo-giantdata/waveform_generator.cpp",
+  "file": "/workspace/test/demo-giantdata/waveform_generator.cpp",
+  "output": "/workspace/build-tsan/test/demo-giantdata/CMakeFiles/giantdata.dir/waveform_generator.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -Dgiantdata_EXPORTS -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/demo-giantdata/CMakeFiles/giantdata.dir/user_algorithms.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/demo-giantdata/CMakeFiles/giantdata.dir/user_algorithms.cpp.o -c /workspace/test/demo-giantdata/user_algorithms.cpp",
+  "file": "/workspace/test/demo-giantdata/user_algorithms.cpp",
+  "output": "/workspace/build-tsan/test/demo-giantdata/CMakeFiles/giantdata.dir/user_algorithms.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -O2 -g -DNDEBUG -std=c++23   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/demo-giantdata/CMakeFiles/unfold_transform_fold.dir/unfold_transform_fold.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/demo-giantdata/CMakeFiles/unfold_transform_fold.dir/unfold_transform_fold.cpp.o -c /workspace/test/demo-giantdata/unfold_transform_fold.cpp",
+  "file": "/workspace/test/demo-giantdata/unfold_transform_fold.cpp",
+  "output": "/workspace/build-tsan/test/demo-giantdata/CMakeFiles/unfold_transform_fold.dir/unfold_transform_fold.cpp.o"
+},
+{
+  "directory": "/workspace/build-tsan",
+  "command": "/usr/local/bin/g++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_JSON_DYN_LINK -DBOOST_JSON_NO_LIB -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -DSPDLOG_SHARED_LIB -Dcppsource4py_EXPORTS -I/workspace/build-tsan -I/workspace -isystem /opt/spack-environments/phlex-ci/.spack-env/._view/dxv4eajuc2qloelbiagnao3afumqpdp5/include -isystem /opt/spack-environments/phlex-ci/.spack-env/view/include -O2 -g -DNDEBUG -std=c++23 -fPIC   -UNDEBUG -Wall -Werror -Wunused -Wunused-parameter -pedantic -Wno-array-bounds -fsanitize=thread -g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls -fmodules-ts -fmodule-mapper=test/python/CMakeFiles/cppsource4py.dir/source.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o test/python/CMakeFiles/cppsource4py.dir/source.cpp.o -c /workspace/test/python/source.cpp",
+  "file": "/workspace/test/python/source.cpp",
+  "output": "/workspace/build-tsan/test/python/CMakeFiles/cppsource4py.dir/source.cpp.o"
+}
+]

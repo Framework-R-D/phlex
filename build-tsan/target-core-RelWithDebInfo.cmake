@@ -1,0 +1,3 @@
+set_property(TARGET "phlex::core"
+  PROPERTY IMPORTED_CXX_MODULES_RELWITHDEBINFO
+)

@@ -1,0 +1,61 @@
+####################################
+# Package variable definitions.
+####################################
+# cetmodules_NAMESPACE
+set(cetmodules_NAMESPACE "cetmodules")
+# cetmodules_INCLUDE_DIR
+if (EXISTS "@PACKAGE_INCLUDE_DIR@")
+  file(GLOB _cetmodules_TMP_DIR_ENTRIES "@PACKAGE_INCLUDE_DIR@/*")
+  if (_cetmodules_TMP_DIR_ENTRIES)
+    set_and_check(cetmodules_INCLUDE_DIR "@PACKAGE_INCLUDE_DIR@")
+  endif()
+  unset(_cetmodules_TMP_DIR_ENTRIES)
+endif()
+# cetmodules_LIBRARY_DIR
+if (EXISTS "@PACKAGE_LIBRARY_DIR@")
+  file(GLOB _cetmodules_TMP_DIR_ENTRIES "@PACKAGE_LIBRARY_DIR@/*")
+  if (_cetmodules_TMP_DIR_ENTRIES)
+    set_and_check(cetmodules_LIBRARY_DIR "@PACKAGE_LIBRARY_DIR@")
+  endif()
+  unset(_cetmodules_TMP_DIR_ENTRIES)
+endif()
+# cetmodules_BIN_DIR
+if (EXISTS "@PACKAGE_BIN_DIR@")
+  file(GLOB _cetmodules_TMP_DIR_ENTRIES "@PACKAGE_BIN_DIR@/*")
+  if (_cetmodules_TMP_DIR_ENTRIES)
+    set_and_check(cetmodules_BIN_DIR "@PACKAGE_BIN_DIR@")
+  endif()
+  unset(_cetmodules_TMP_DIR_ENTRIES)
+endif()
+# cetmodules_MIN_CMAKE_VERSION
+set(cetmodules_MIN_CMAKE_VERSION "3.24")
+# cetmodules_CONFIG_DIR
+set_and_check(cetmodules_CONFIG_DIR "@PACKAGE_CONFIG_DIR@")
+# cetmodules_ETC_DIR
+set_and_check(cetmodules_ETC_DIR "@PACKAGE_ETC_DIR@")
+# cetmodules_LIBEXEC_DIR
+set_and_check(cetmodules_LIBEXEC_DIR "@PACKAGE_LIBEXEC_DIR@")
+# cetmodules_CATCH2_MAIN
+set_and_check(cetmodules_CATCH2_MAIN "@PACKAGE_CATCH2_MAIN@")
+
+####################################
+# Package include directories.
+####################################
+if (IS_DIRECTORY "@PACKAGE_INCLUDE_DIR@")
+  # CMake convention:
+  set(cetmodules_INCLUDE_DIRS "@PACKAGE_INCLUDE_DIR@")
+endif()
+
+####################################
+# Package library directories.
+####################################
+if (IS_DIRECTORY "@PACKAGE_LIBRARY_DIR@")
+  # CMake convention:
+  set(cetmodules_LIBRARY_DIRS "@PACKAGE_LIBRARY_DIR@")
+endif()
+
+
+####################################
+# Add to CMAKE_MODULE_PATH.
+####################################
+list(PREPEND CMAKE_MODULE_PATH "@PACKAGE_PCMP_PACKAGE_VAR_0@" "@PACKAGE_PCMP_PACKAGE_VAR_1@")

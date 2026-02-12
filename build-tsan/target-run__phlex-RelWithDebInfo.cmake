@@ -1,0 +1,3 @@
+set_property(TARGET "phlex::run_phlex"
+  PROPERTY IMPORTED_CXX_MODULES_RELWITHDEBINFO
+)

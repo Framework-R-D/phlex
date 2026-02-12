@@ -1,0 +1,50 @@
+####################################
+# Exported targets, and package components.
+####################################
+
+##################
+# Manually-generated non-runtime targets.
+##################
+set(_targetsDefined)
+set(_targetsNotDefined)
+set(_expectedTargets)
+foreach (_expectedTarget IN ITEMS
+    cetmodules::make_bash_completions
+    cetmodules::cet_exec_test
+    cetmodules::checkClassVersion
+    cetmodules::filter-program-options
+    cetmodules::fix-man-dirs)
+  list(APPEND _expectedTargets ${_expectedTarget})
+  if (NOT TARGET ${_expectedTarget})
+    list(APPEND _targetsNotDefined ${_expectedTarget})
+  endif()
+  if (TARGET ${_expectedTarget})
+    list(APPEND _targetsDefined ${_expectedTarget})
+  endif()
+endforeach()
+if ("${_targetsDefined}" STREQUAL "${_expectedTargets}")  # Nothing to do.
+elseif ("${_targetsDefined}" STREQUAL "") # Need to define targets.
+  add_executable(cetmodules::make_bash_completions IMPORTED)
+  set_target_properties(cetmodules::make_bash_completions
+    PROPERTIES IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/bin/make_bash_completions")
+  add_executable(cetmodules::cet_exec_test IMPORTED)
+  set_target_properties(cetmodules::cet_exec_test
+    PROPERTIES IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/libexec/cet_exec_test")
+  add_executable(cetmodules::checkClassVersion IMPORTED)
+  set_target_properties(cetmodules::checkClassVersion
+    PROPERTIES IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/libexec/checkClassVersion")
+  add_executable(cetmodules::filter-program-options IMPORTED)
+  set_target_properties(cetmodules::filter-program-options
+    PROPERTIES IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/libexec/filter-program-options")
+  add_executable(cetmodules::fix-man-dirs IMPORTED)
+  set_target_properties(cetmodules::fix-man-dirs
+    PROPERTIES IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/libexec/fix-man-dirs")
+else()
+  message(FATAL_ERROR "Some (but not all) targets in this export set were already defined.
+Targets Defined: ${_targetsDefined}
+Targets not yet defined: ${_targetsNotDefined}
+")
+endif()
+unset(_targetsDefined)
+unset(_targetsNotDefined)
+unset(_expectedTargets)
