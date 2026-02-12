@@ -5,7 +5,7 @@
 ### Repository Ecosystem
 
 - **Primary Repository**: `Framework-R-D/phlex`
-- **Design & Documentation**: `Framework-R-D/phlex-design` (contains design docs, etc.)
+- **Design & Documentation**: `Framework-R-D/phlex-design` (contains design and other documentation)
 - **Coding Guidelines**: `Framework-R-D/phlex-coding-guidelines` (coding guidelines for framework contributors)
 - **Examples**: `Framework-R-D/phlex-examples` (example user code demonstrating Phlex usage)
 - **Spack Recipes**: `Framework-R-D/phlex-spack-recipes` (Spack recipes for Phlex and dependencies)

@@ -20,10 +20,10 @@ clone_if_absent() {
   if [ -e "$dest/.git" ]; then
     echo "Repository already present: $dest"
     return
-  fi
-  if [ -e "$dest" ]; then
-    echo "Existing directory at $dest is not a git repository; replacing it."
-    rm -rf "$dest"
+  elif [ -e "$dest" ]; then
+    echo "WARNING: refusing to overwrite non-repository $dest:"
+    ls -ld "$dest"
+    return
   fi
   echo "Cloning Framework-R-D/${repo} into ${dest} ..."
   local max_tries=5 current_try=0
