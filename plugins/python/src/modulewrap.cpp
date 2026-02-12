@@ -17,7 +17,7 @@ using phlex::product_query;
 
 // TODO: the layer is currently hard-wired and should come from the product
 // specification instead, but that doesn't exist in Python yet.
-static std::string const LAYER = "job";
+static std::string const LAYER = "event";
 
 // Simple phlex module wrapper
 // clang-format off
