@@ -51,3 +51,5 @@ __pycache__/
 .act-artifacts/
 .secrets
 actionlint
+build-debug/
+build-tsan/
