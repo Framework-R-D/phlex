@@ -5,19 +5,56 @@
 ### Repository Ecosystem
 
 - **Primary Repository**: `Framework-R-D/phlex`
-- **Design & Documentation**: `Framework-R-D/phlex-design` (contains design docs, coding guidelines, etc.)
+- **Design & Documentation**: `Framework-R-D/phlex-design` (contains design and other documentation)
+- **Coding Guidelines**: `Framework-R-D/phlex-coding-guidelines` (coding guidelines for framework contributors)
+- **Examples**: `Framework-R-D/phlex-examples` (example user code demonstrating Phlex usage)
+- **Spack Recipes**: `Framework-R-D/phlex-spack-recipes` (Spack recipes for Phlex and dependencies)
 - **Dependencies**: Critical dependency on `FNALssi/cetmodules` for the build system.
 - **Container Images**:
   - `phlex-ci`: Used by automated CI checks.
   - `phlex-dev`: Used for VSCode devcontainers and local development.
+
+### Codespace Layout
+
+In a GitHub Codespace (or devcontainer), companion repositories are cloned
+automatically alongside the primary repository:
+
+- `/workspaces/phlex` — primary repository (workspace root)
+- `/workspaces/phlex-design` — design documentation
+- `/workspaces/phlex-examples` — example programs using Phlex
+- `/workspaces/phlex-coding-guidelines` — coding guidelines for contributors
+- `/workspaces/phlex-spack-recipes` — Spack recipes for Phlex and dependencies
+
+Use the multi-root workspace file `.devcontainer/codespace.code-workspace` to
+open all repositories in a single VS Code window.
 
 ### Development Workflow
 
 - **Model**: Fork-based development. Developers should work on branches within their own forks.
 - **Upstreaming**: Changes are upstreamed via Pull Requests (PRs) to the primary repository `Framework-R-D/phlex`.
 - **Quality Standards**:
-  - Adhere to design and coding guidelines in `Framework-R-D/phlex-design`.
+  - Adhere to design and coding guidelines in
+    `Framework-R-D/phlex-design` and
+    `Framework-R-D/phlex-coding-guidelines`, respectively.
   - Ensure code passes CI checks using the `phlex-ci` environment.
+  - If you require changes to the `phlex-ci` or `phlex-dev` containers
+    (or the Spack environments or auxiliary files they use), include
+    those changes in the PR.
+  - If an example in `phlex-examples` is rendered obsolete or invalid in
+    some way, create an issue in the `Framework-R-D/phlex-examples`
+    project if possible, explaining the conflict and likely changes
+    required, and notify the user. If it is not possible to create an
+    issue there, create one in the `phlex` repository if possible.
+    Failing that, notify the user of the full details of the conflict.
+  - If your changes require amendment/augmentation of documentation in
+    `Framework-R-D/phlex-design`, create an issue there if possible, in
+    `Framework-R-D/phlex` if not, or notify the user of details in the
+    last resort.
+  - If your changes require changes or additions to
+    `Framework-R-D/phlex-spack-recipes`, (e.g. changes to dependency
+    version requirements or new/removed dependencies), create an issue
+    there if possible, in `Framework-R-D/phlex` if not, or notify the
+    user of details in the last resort.
   - Minimize changes required for upstreaming.
 
 ## Communication Guidelines

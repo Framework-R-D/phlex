@@ -2,7 +2,23 @@
     "folders": [
         {
             "name": "Phlex",
-            "path": "."
+            "path": "/workspaces/phlex"
+        },
+        {
+            "name": "Phlex Design",
+            "path": "/workspaces/phlex-design"
+        },
+        {
+            "name": "Phlex Examples",
+            "path": "/workspaces/phlex-examples"
+        },
+        {
+            "name": "Phlex Coding Guidelines",
+            "path": "/workspaces/phlex-coding-guidelines"
+        },
+        {
+            "name": "Phlex Spack Recipes",
+            "path": "/workspaces/phlex-spack-recipes"
         }
     ],
     "settings": {
@@ -26,14 +42,14 @@
             "**/build/_deps/**": true,
             "**/build/CMakeFiles/**": true
         },
-        "cmake.sourceDirectory": "${workspaceFolder}",
-        "cmake.buildDirectory": "${workspaceFolder}/build",
+        "cmake.sourceDirectory": "${workspaceFolder:Phlex}",
+        "cmake.buildDirectory": "${workspaceFolder:Phlex}/build",
         "cmake.useCMakePresets": "always",
         "cmake.generator": "Ninja",
         "C_Cpp.default.cStandard": "c17",
         "C_Cpp.default.cppStandard": "c++23",
         "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
-        "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+        "C_Cpp.default.compileCommands": "${workspaceFolder:Phlex}/build/compile_commands.json",
         "C_Cpp.exclusionPolicy": "checkFolders",
         "C_Cpp.files.exclude": {
             "**/local/.*/**": true,
@@ -78,7 +94,7 @@
             "ms-vscode.vscode-json",
             "redhat.vscode-yaml",
             "charliermarsh.ruff",
-            "github.vscode-actions",
+            "github.vscode-github-actions",
             "github.copilot",
             "github.copilot-chat",
             "github.vscode-pull-request-github",
