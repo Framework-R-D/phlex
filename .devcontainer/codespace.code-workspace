@@ -94,7 +94,7 @@
             "ms-vscode.vscode-json",
             "redhat.vscode-yaml",
             "charliermarsh.ruff",
-            "github.vscode-actions",
+            "github.vscode-github-actions",
             "github.copilot",
             "github.copilot-chat",
             "github.vscode-pull-request-github",
