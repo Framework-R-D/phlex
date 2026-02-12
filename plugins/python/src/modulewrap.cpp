@@ -372,11 +372,11 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view) {                                                                                \
-      std::string py_msg;                                                                           \
-      msg_from_py_error(py_msg, true);                                                              \
-      throw std::runtime_error("failed to create numpy array in " #name "_to_py"                    \
-                               + (py_msg.empty() ? std::string{} : ": " + py_msg));                 \
-    }                                                                                               \
+      std::string py_msg;                                                                          \
+      msg_from_py_error(py_msg, true);                                                             \
+      throw std::runtime_error("failed to create numpy array in " #name "_to_py" +                 \
+                               (py_msg.empty() ? std::string{} : ": " + py_msg));                  \
+    }                                                                                              \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS((PyArrayObject*)np_view, NPY_ARRAY_WRITEABLE);                              \
@@ -388,10 +388,10 @@ namespace {
       (py_lifeline_t*)PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr);            \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
-      std::string py_msg;                                                                           \
-      msg_from_py_error(py_msg, true);                                                              \
-      throw std::runtime_error("failed to create lifeline in " #name "_to_py"                       \
-                               + (py_msg.empty() ? std::string{} : ": " + py_msg));                 \
+      std::string py_msg;                                                                          \
+      msg_from_py_error(py_msg, true);                                                             \
+      throw std::runtime_error("failed to create lifeline in " #name "_to_py" +                    \
+                               (py_msg.empty() ? std::string{} : ": " + py_msg));                  \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \
