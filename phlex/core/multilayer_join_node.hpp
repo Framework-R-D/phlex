@@ -24,12 +24,12 @@ namespace phlex::experimental {
 
   template <std::size_t n_inputs>
     requires(n_inputs > 1)
-  class multilayer_join_node : public multilayer_join_node_base_t<messages_t<n_inputs>> {
-    using base_t = multilayer_join_node_base_t<messages_t<n_inputs>>;
+  class multilayer_join_node : public multilayer_join_node_base_t<message_tuple<n_inputs>> {
+    using base_t = multilayer_join_node_base_t<message_tuple<n_inputs>>;
     using input_t = typename base_t::input_ports_type;
     using output_t = typename base_t::output_ports_type;
 
-    using args_t = messages_t<n_inputs>;
+    using args_t = message_tuple<n_inputs>;
 
     template <std::size_t... Is>
     static auto make_join(tbb::flow::graph& g, std::index_sequence<Is...>)
@@ -93,17 +93,8 @@ namespace phlex::experimental {
   };
 
   namespace detail {
-    using no_join_base_t =
-      tbb::flow::function_node<message, messages_t<1ull>, tbb::flow::lightweight>;
-
-    struct no_join : no_join_base_t {
-      no_join(tbb::flow::graph& g,
-              std::string const& /* node_name */,
-              std::vector<std::string> /* layers */) :
-        no_join_base_t{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
-      {
-      }
-    };
+    // Stateless placeholder for cases where no join is needed
+    struct no_join {};
 
     template <std::size_t N>
     struct pre_node {
@@ -120,11 +111,15 @@ namespace phlex::experimental {
   using join_or_none_t = typename detail::pre_node<N>::type;
 
   template <std::size_t N>
-  auto make_join_or_none(tbb::flow::graph& g,
-                         std::string const& node_name,
-                         std::vector<std::string> const& layers)
+  join_or_none_t<N> make_join_or_none(tbb::flow::graph& g,
+                                      std::string const& node_name,
+                                      std::vector<std::string> const& layers)
   {
-    return join_or_none_t<N>{g, node_name, layers};
+    if constexpr (N > 1ull) {
+      return multilayer_join_node<N>{g, node_name, layers};
+    } else {
+      return detail::no_join{};
+    }
   }
 
   template <std::size_t I, std::size_t N>
@@ -139,29 +134,48 @@ namespace phlex::experimental {
     throw std::runtime_error("Should never get here");
   }
 
-  template <std::size_t N>
-  std::vector<tbb::flow::receiver<message>*> input_ports(join_or_none_t<N>& join)
-  {
-    if constexpr (N == 1ull) {
-      return {&join};
-    } else {
+  namespace detail {
+    template <std::size_t N>
+    std::vector<tbb::flow::receiver<message>*> input_ports(join_or_none_t<N>& join)
+    {
+      static_assert(N > 1ull, "input_ports should not be called for N=1");
       return [&join]<std::size_t... Is>(
                std::index_sequence<Is...>) -> std::vector<tbb::flow::receiver<message>*> {
         return {&input_port<Is>(join)...};
       }(std::make_index_sequence<N>{});
     }
-  }
 
-  template <std::size_t N>
-  tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             product_queries const& product_labels,
-                                             product_query const& product_label)
-  {
-    if constexpr (N > 1ull) {
+    template <std::size_t N>
+    tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
+                                               product_queries const& product_labels,
+                                               product_query const& product_label)
+    {
+      static_assert(N > 1ull, "receiver_for should not be called for N=1");
       auto const index = port_index_for(product_labels, product_label);
       return receiver_for<0ull, N>(join, index);
+    }
+  }
+
+  template <std::size_t N, typename Node>
+  std::vector<tbb::flow::receiver<message>*> input_ports(join_or_none_t<N>& join, Node& node)
+  {
+    if constexpr (N == 1ull) {
+      return {&node};
     } else {
-      return join;
+      return detail::input_ports<N>(join);
+    }
+  }
+
+  template <std::size_t N, typename Node>
+  tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
+                                             product_queries const& product_labels,
+                                             product_query const& product_label,
+                                             Node& node)
+  {
+    if constexpr (N == 1ull) {
+      return node;
+    } else {
+      return detail::receiver_for<N>(join, product_labels, product_label);
     }
   }
 }

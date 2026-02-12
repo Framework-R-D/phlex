@@ -107,12 +107,16 @@ namespace phlex::experimental {
           auto const& index_hash_for_counter = fold_index->hash();
 
           call(ft, messages, std::make_index_sequence<N>{});
+          ++calls_;
+
           counter_for(index_hash_for_counter).increment(index->layer_hash());
 
           emit_and_evict_if_done(fold_index);
         }}
     {
-      make_edge(join_, fold_);
+      if constexpr (N > 1ull) {
+        make_edge(join_, fold_);
+      }
     }
 
   private:
@@ -128,10 +132,13 @@ namespace phlex::experimental {
 
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label);
+      return receiver_for<N>(join_, input(), product_label, fold_);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<N>(join_, fold_);
+    }
 
     tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(fold_); }
@@ -142,6 +149,7 @@ namespace phlex::experimental {
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
       auto const parent_index = most_derived(messages).store->index()->parent(partition_);
+
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_index->hash());
       if (it == results_.end()) {
@@ -152,8 +160,12 @@ namespace phlex::experimental {
                                         std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
             .first;
       }
-      ++calls_;
-      return std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+
+      if constexpr (N == 1ull) {
+        std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(messages)...);
+      } else {
+        std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+      }
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
@@ -185,7 +197,7 @@ namespace phlex::experimental {
     std::string partition_;
     tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> fold_;
+    tbb::flow::multifunction_node<messages_t<N>, message_tuple<1>> fold_;
     tbb::concurrent_unordered_map<data_cell_index::hash_type, std::unique_ptr<R>> results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;

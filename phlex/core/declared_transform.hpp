@@ -97,16 +97,21 @@ namespace phlex::experimental {
                    to_output.try_put(new_msg);
                  }}
     {
-      make_edge(join_, transform_);
+      if constexpr (N > 1ull) {
+        make_edge(join_, transform_);
+      }
     }
 
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label);
+      return receiver_for<N>(join_, input(), product_label, transform_);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<N>(join_, transform_);
+    }
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
     tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
@@ -115,7 +120,11 @@ namespace phlex::experimental {
     template <std::size_t... Is>
     auto call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+      if constexpr (N == 1ull) {
+        return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
+      } else {
+        return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+      }
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
@@ -131,7 +140,7 @@ namespace phlex::experimental {
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;
+    tbb::flow::multifunction_node<messages_t<N>, message_tuple<2u>> transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };

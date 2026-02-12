@@ -13,7 +13,6 @@
 #include <type_traits>
 
 namespace phlex::experimental {
-
   class product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
@@ -56,8 +55,12 @@ namespace phlex::experimental {
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
 
-  template <std::size_t I, typename Tuple, typename Element>
-  Element const& get_most_derived(Tuple const& tup, Element const& element)
+  // Non-template overload for single product_store_ptr case
+  inline product_store_ptr const& most_derived(product_store_ptr const& store) { return store; }
+
+  // Generic most_derived for tuples
+  template <std::size_t I, typename Tuple>
+  auto const& get_most_derived(Tuple const& tup, std::tuple_element_t<I - 1, Tuple> const& element)
   {
     constexpr auto N = std::tuple_size_v<Tuple>;
     if constexpr (I == N - 1) {
@@ -67,16 +70,10 @@ namespace phlex::experimental {
     }
   }
 
-  template <typename Tuple>
-  auto const& most_derived(Tuple const& tup)
+  template <typename T, typename U, typename... Ts>
+  auto const& most_derived(std::tuple<T, U, Ts...> const& elements)
   {
-    constexpr auto N = std::tuple_size_v<Tuple>;
-    static_assert(N > 0ull);
-    if constexpr (N == 1ull) {
-      return std::get<0>(tup);
-    } else {
-      return get_most_derived<1ull>(tup, std::get<0>(tup));
-    }
+    return get_most_derived<1ull>(elements, std::get<0>(elements));
   }
 
   // Implementation details

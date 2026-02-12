@@ -70,21 +70,30 @@ namespace phlex::experimental {
                   return {};
                 }}
     {
-      make_edge(join_, observer_);
+      if constexpr (N > 1ull) {
+        make_edge(join_, observer_);
+      }
     }
 
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label);
+      return receiver_for<N>(join_, input(), product_label, observer_);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<N>(join_, observer_);
+    }
 
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+      if constexpr (N == 1ull) {
+        std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
+      } else {
+        std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+      }
     }
 
     std::size_t num_calls() const final { return calls_.load(); }

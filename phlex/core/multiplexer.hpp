@@ -13,6 +13,7 @@
 #include <set>
 #include <stack>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 namespace phlex::experimental {
@@ -54,7 +55,7 @@ namespace phlex::experimental {
     explicit multiplexer(tbb::flow::graph& g);
     data_cell_index_ptr route(data_cell_index_ptr index);
 
-    void finalize(provider_input_ports_t provider_input_ports);
+    void finalize(tbb::flow::graph& g, provider_input_ports_t provider_input_ports);
     void drain();
     flusher_t& flusher() { return flusher_; }
 
@@ -67,7 +68,7 @@ namespace phlex::experimental {
     flush_counters counters_;
     std::stack<layer_sentry> layers_;
 
-    using broadcasters_t = std::map<std::string, index_set_node>;
+    using broadcasters_t = std::unordered_map<std::string, index_set_node>;
     broadcasters_t broadcasters_;
   };
 

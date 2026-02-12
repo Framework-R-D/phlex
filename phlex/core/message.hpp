@@ -47,10 +47,16 @@ namespace phlex::experimental {
   };
 
   template <std::size_t N>
-  using messages_t = sized_tuple<message, N>;
+  using message_tuple = sized_tuple<message, N>;
+
+  template <std::size_t N>
+  using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
 
   // Overload for use with most_derived
   message const& more_derived(message const& a, message const& b);
+
+  // Non-template overload for single message case
+  inline message const& most_derived(message const& msg) { return msg; }
 
   std::size_t port_index_for(product_queries const& product_labels,
                              product_query const& product_label);

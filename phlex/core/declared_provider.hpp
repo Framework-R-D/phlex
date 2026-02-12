@@ -87,7 +87,7 @@ namespace phlex::experimental {
     std::size_t num_calls() const final { return calls_.load(); }
 
     product_specification output_;
-    tbb::flow::multifunction_node<index_message, messages_t<2u>> provider_;
+    tbb::flow::multifunction_node<index_message, message_tuple<2u>> provider_;
     std::atomic<std::size_t> calls_;
   };
 

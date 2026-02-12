@@ -131,7 +131,8 @@ namespace phlex::experimental {
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.transforms));
 
     edge_maker make_edges{nodes_.transforms, nodes_.folds, nodes_.unfolds};
-    make_edges(multiplexer_,
+    make_edges(graph_,
+               multiplexer_,
                filters_,
                nodes_.outputs,
                nodes_.providers,

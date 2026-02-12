@@ -33,7 +33,8 @@ namespace phlex::experimental {
     edge_maker(Args&... args);
 
     template <typename... Args>
-    void operator()(multiplexer& multi,
+    void operator()(tbb::flow::graph& g,
+                    multiplexer& multi,
                     std::map<std::string, filter>& filters,
                     declared_outputs& outputs,
                     declared_providers& providers,
@@ -79,7 +80,8 @@ namespace phlex::experimental {
   }
 
   template <typename... Args>
-  void edge_maker::operator()(multiplexer& multi,
+  void edge_maker::operator()(tbb::flow::graph& g,
+                              multiplexer& multi,
                               std::map<std::string, filter>& filters,
                               declared_outputs& outputs,
                               declared_providers& providers,
@@ -108,7 +110,7 @@ namespace phlex::experimental {
     }
 
     auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
-    multi.finalize(std::move(provider_input_ports));
+    multi.finalize(g, std::move(provider_input_ports));
   }
 }
 

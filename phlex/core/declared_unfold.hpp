@@ -117,15 +117,20 @@ namespace phlex::experimental {
               }},
       flusher_{g}
     {
-      make_edge(join_, unfold_);
+      if constexpr (N > 1ull) {
+        make_edge(join_, unfold_);
+      }
     }
 
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label);
+      return receiver_for<N>(join_, input(), product_label, unfold_);
     }
-    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<N>(join_, unfold_);
+    }
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
     tbb::flow::sender<data_cell_index_ptr>& output_index_port() override
@@ -145,7 +150,13 @@ namespace phlex::experimental {
               std::index_sequence<Is...>)
     {
       ++calls_;
-      Object obj(std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+      Object obj = [this, &messages]() {
+        if constexpr (N == 1ull) {
+          return Object(std::get<Is>(input_).retrieve(messages)...);
+        } else {
+          return Object(std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+        }
+      }();
       std::size_t counter = 0;
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {

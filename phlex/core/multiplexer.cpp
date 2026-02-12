@@ -13,21 +13,21 @@
 using namespace phlex::experimental;
 
 namespace {
-  phlex::data_cell_index_ptr index_for(phlex::data_cell_index_ptr const index,
-                                       std::string const& port_product_layer)
-  {
-    if (index->layer_name() == port_product_layer) {
-      // This index's layer matches what is expected by the port
-      return index;
-    }
+  // phlex::data_cell_index_ptr index_for(phlex::data_cell_index_ptr const index,
+  //                                      std::string const& port_product_layer)
+  // {
+  //   if (index->layer_name() == port_product_layer) {
+  //     // This index's layer matches what is expected by the port
+  //     return index;
+  //   }
 
-    if (auto parent_index = index->parent(port_product_layer)) {
-      // This index has a parent layer that matches what is expected by the port
-      return parent_index;
-    }
+  //   if (auto parent_index = index->parent(port_product_layer)) {
+  //     // This index has a parent layer that matches what is expected by the port
+  //     return parent_index;
+  //   }
 
-    return nullptr;
-  }
+  //   return nullptr;
+  // }
 }
 
 namespace phlex::experimental {
@@ -64,13 +64,17 @@ namespace phlex::experimental {
 
   multiplexer::multiplexer(tbb::flow::graph& g) : flusher_{g} {}
 
-  void multiplexer::finalize(provider_input_ports_t provider_input_ports)
+  void multiplexer::finalize(tbb::flow::graph& g, provider_input_ports_t provider_input_ports)
   {
     // We must have at least one provider port, or there can be no data to process.
     assert(!provider_input_ports.empty());
     provider_input_ports_ = std::move(provider_input_ports);
 
     // Create the index-set broadcast nodes for providers
+    for (auto& [pq, provider_port] : provider_input_ports_ | std::views::values) {
+      auto [it, _] = broadcasters_.try_emplace(pq.layer(), g);
+      make_edge(it->second, *provider_port);
+    }
   }
 
   data_cell_index_ptr multiplexer::route(data_cell_index_ptr const index)
@@ -80,11 +84,14 @@ namespace phlex::experimental {
     auto message_id = received_indices_.fetch_add(1);
     layers_.emplace(counters_, flusher_, index, message_id);
 
-    for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
-      if (auto index_to_send = index_for(index, product_label.layer())) {
-        port->try_put({std::move(index_to_send), message_id});
-      }
+    // Send to provider index-set nodes
+    if (auto it = broadcasters_.find(index->layer_name()); it != broadcasters_.end()) {
+      it->second.try_put({.index = index, .msg_id = message_id});
+    } else {
+      // FIXME: THIS WOULD BE A PROBLEM
     }
+
+    // Send to multi-layer joins
 
     return index;
   }
