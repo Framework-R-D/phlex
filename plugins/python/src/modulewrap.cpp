@@ -115,8 +115,14 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
+      // Extract views from PhlexLifeline objects. The returned pointers are
+      // borrowed references; INCREF them to create temporary owned references
+      // that survive for the duration of the Python call.
+      PyObject* py_args[N] = {lifeline_transform(args)...};
+      for (auto* p : py_args)
+        Py_INCREF(p);
+
+      PyObject* result = call_with_array(py_args, std::make_index_sequence<N>{});
 
       std::string error_msg;
       if (!result) {
@@ -124,6 +130,8 @@ namespace {
           error_msg = "Unknown python error";
       }
 
+      for (auto* p : py_args)
+        Py_DECREF(p);
       decref_all(args...);
 
       if (!error_msg.empty()) {
@@ -140,8 +148,14 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
+      // Extract views from PhlexLifeline objects. The returned pointers are
+      // borrowed references; INCREF them to create temporary owned references
+      // that survive for the duration of the Python call.
+      PyObject* py_args[N] = {lifeline_transform(args)...};
+      for (auto* p : py_args)
+        Py_INCREF(p);
+
+      PyObject* result = call_with_array(py_args, std::make_index_sequence<N>{});
 
       std::string error_msg;
       if (!result) {
@@ -150,6 +164,8 @@ namespace {
       } else
         Py_DECREF(result);
 
+      for (auto* p : py_args)
+        Py_DECREF(p);
       decref_all(args...);
 
       if (!error_msg.empty()) {
@@ -158,6 +174,12 @@ namespace {
     }
 
   private:
+    template <std::size_t... Is>
+    PyObject* call_with_array(PyObject* (&py_args)[N], std::index_sequence<Is...>)
+    {
+      return PyObject_CallFunctionObjArgs(m_callable, py_args[Is]..., nullptr);
+    }
+
     template <typename... Args>
     void decref_all(Args... args)
     {

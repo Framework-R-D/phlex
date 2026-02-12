@@ -81,17 +81,27 @@ args that are **owned references** created by the upstream input
 converter, dedicated to this specific consumer. They:
 
 1. Call `lifeline_transform()` to unwrap any `PhlexLifeline` objects
-   (extracting the numpy view for the Python function).
-2. Pass the args to `PyObject_CallFunctionObjArgs()`.
-3. Call `decref_all(args...)` to release the input references.
+   (extracting the numpy view for the Python function) and store the
+   results in a local array.
+2. `Py_INCREF` each transformed arg to create a temporary owned
+   reference — this protects borrowed `m_view` pointers from being
+   invalidated during the Python call.
+3. Pass the transformed args to `PyObject_CallFunctionObjArgs()`.
+4. `Py_DECREF` each transformed arg (releasing the temporary refs).
+5. Call `decref_all(args...)` to release the original input references
+   (PhlexLifeline objects and basic PyObjects).
 
 ```cpp
 template <typename... Args>
 intptr_t call(Args... args) {
     PyGILRAII gil;
-    PyObject* result = PyObject_CallFunctionObjArgs(
-        m_callable, lifeline_transform(args)..., nullptr);
+    PyObject* py_args[N] = {lifeline_transform(args)...};
+    for (auto* p : py_args)
+        Py_INCREF(p);
+    PyObject* result = call_with_array(py_args, ...);
     // ... error handling ...
+    for (auto* p : py_args)
+        Py_DECREF(p);
     decref_all(args...);  // release input references
     return (intptr_t)result;  // new reference from Python call
 }
@@ -140,9 +150,9 @@ static shared_ptr<vector<int>> py_to_vint(intptr_t pyobj) {
                     └──────┬───────┘
                            │  intptr_t (owned reference, refcnt=1)
                     ┌──────▼───────┐
-                    │ py_callback  │  lifeline_transform() to unwrap
+                    │ py_callback  │  lifeline_transform() + INCREF to protect
                     │  ::call()    │  PyObject_CallFunctionObjArgs()
-                    │              │  decref_all(args...) → refcnt=0, freed
+                    │              │  DECREF views, decref_all(args...) → freed
                     │              │  Returns result (NEW reference, refcnt=1)
                     └──────┬───────┘
                            │  intptr_t (owned reference, refcnt=1)
@@ -179,9 +189,10 @@ silently truncating the argument list.
 
 `lifeline_transform()` unwraps `PhlexLifeline` objects to extract the
 numpy array view (`m_view`). The returned pointer is a borrowed
-reference from the lifeline object, which remains alive because the
-caller still holds the owned reference to the lifeline (the DECREF
-happens after the call returns).
+reference from the lifeline object. Because this borrowed reference
+could be invalidated by concurrent operations, `call()` and `callv()`
+INCREF the transformed args before the Python call and DECREF them
+after, creating temporary owned references that protect the views.
 
 ### ll_new Must Return nullptr on Allocation Failure
 
@@ -190,14 +201,14 @@ fails, rather than falling through to dereference the null pointer.
 
 ## Common Pitfalls
 
-1. **Do not add `Py_XINCREF`/`Py_XDECREF` around `py_callback` calls.**
-   The one-to-one model means each reference is created once and
-   consumed once. Adding INCREF/DECREF introduces a net +1 leak per
-   product — potentially millions of leaked objects.
+1. **Do not remove `decref_all` from `py_callback` or `Py_DECREF` from
+   output converters.** These are the "consume" side of the one-to-one
+   contract. Removing them leaks every converted object.
 
-2. **Do not remove `Py_DECREF` from output converters or `decref_all`
-   from `py_callback`.** These are the "consume" side of the
-   one-to-one contract. Removing them leaks every converted object.
+2. **Do not add bare `Py_XINCREF`/`Py_XDECREF` that change the net
+   refcount.** The INCREF/DECREF in `call()`/`callv()` is balanced
+   (net +0) and only protects borrowed views during the Python call.
+   Adding unbalanced INCREF/DECREF introduces leaks.
 
 3. **Do not return `(intptr_t)nullptr` from converters.** It acts as
    the `PyObject_CallFunctionObjArgs` sentinel. Throw an exception
