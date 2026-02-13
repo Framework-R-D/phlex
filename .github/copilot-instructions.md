@@ -57,6 +57,29 @@ open all repositories in a single VS Code window.
     user of details in the last resort.
   - Minimize changes required for upstreaming.
 
+### Git Branch Management
+
+When creating branches for PRs:
+
+- **Never set upstream tracking**: When creating a new branch for eventual pushing as a new upstream branch (e.g., for a PR), it should never have an upstream tracking branch, even if created based on another branch
+- **Rationale**: This eliminates the possibility of accidentally pushing commits to the base branch when pushing the new branch upstream
+- **Best practice**: Create branches with `git checkout -b new-branch-name` or `git switch -c new-branch-name` without using `--track` or setting upstream
+- **Push new branches**: Use `git push -u origin new-branch-name` only when ready to push the new branch to your fork for the first time
+
+Example workflow:
+
+```bash
+# Create a new feature branch (no tracking)
+git checkout -b feature/my-new-feature
+
+# Make changes and commit
+git add .
+git commit -m "Add new feature"
+
+# Push to your fork (sets tracking only now)
+git push -u origin feature/my-new-feature
+```
+
 ## Communication Guidelines
 
 ### Professional Colleague Interaction
