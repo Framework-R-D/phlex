@@ -414,6 +414,12 @@ jobs:
 
 Performs static analysis on the codebase using GitHub CodeQL to identify potential security vulnerabilities and coding errors.
 
+**Key Features:**
+
+- **Automatic Relevance Detection**: On pull requests, the workflow automatically detects which languages have relevant file changes and only runs CodeQL analysis for those languages. This significantly reduces CI time when changes affect only a subset of languages.
+- **Language-Specific Scanning**: Supports separate analysis for C++, Python, and GitHub Actions workflows.
+- **Fallback to Full Scan**: Scheduled runs, manual triggers (`workflow_dispatch`), and pushes to main branches always run all language scans regardless of changes.
+
 #### Usage Example
 
 ```yaml
@@ -426,10 +432,22 @@ jobs:
 
 - `checkout-path` (string, optional): Path to check out code to.
 - `build-path` (string, optional): Path for build artifacts.
-- `language-matrix` (string, optional, default: `'["cpp", "python", "actions"]'`): JSON array of languages to analyze.
+- `language-matrix` (string, optional, default: `'["cpp", "python", "actions"]'`): JSON array of languages to analyze. When provided in `workflow_call`, bypasses automatic detection and forces analysis of specified languages.
 - `pr-number` (string, optional): PR number if run in PR context.
 - `pr-head-repo` (string, optional): The full name of the PR head repository.
 - `pr-base-repo` (string, optional): The full name of the PR base repository.
+- `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+- `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+- `ref` (string, optional): The branch, ref, or SHA to checkout.
+- `repo` (string, optional): The repository to checkout from.
+
+#### Behavior Notes
+
+- **Pull Requests**: Only languages with relevant file changes are analyzed. For example, a PR that only modifies Python files will skip C++ and Actions analysis, saving 35-70 minutes of CI time.
+- **Manual Runs** (`workflow_dispatch`): All languages are analyzed regardless of changes.
+- **Scheduled Runs**: All languages are analyzed regardless of changes.
+- **Pushes to main/develop**: All languages are analyzed regardless of changes.
+- **Language Override**: Providing the `language-matrix` input in `workflow_call` bypasses automatic detection.
 
 ### Other Workflows
 
