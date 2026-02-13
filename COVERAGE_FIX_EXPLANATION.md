@@ -80,7 +80,7 @@ To verify this fix works:
    ```bash
    # View the XML report
    grep "plugins/python/python/phlex/__init__.py" coverage-python.xml
-   
+
    # Or view the HTML report
    xdg-open coverage-python-html/index.html
    ```
