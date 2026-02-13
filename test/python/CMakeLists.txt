@@ -274,15 +274,11 @@ if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
       coverage-python
       COMMAND
         ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
-        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL_FALLBACK} ${Python_EXECUTABLE}
-        -m pytest
-        --cov=${CMAKE_CURRENT_SOURCE_DIR}
-        --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
-        --cov-report=term-missing
-        --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
+        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL_FALLBACK} ${Python_EXECUTABLE} -m pytest
+        --cov=${CMAKE_CURRENT_SOURCE_DIR} --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
+        --cov-report=term-missing --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
         --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
-        --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc
-        unit_test_variant.py
+        --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc unit_test_variant.py
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Running Python coverage report (standalone tests only)"
     )
