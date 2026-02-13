@@ -1,4 +1,4 @@
-# conf.py
+"""Sphinx configuration for Phlex documentation."""
 
 # -- Project information -----------------------------------------------------
 
