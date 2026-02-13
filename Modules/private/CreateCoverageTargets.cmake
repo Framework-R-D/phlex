@@ -567,9 +567,10 @@ function(_create_coverage_targets_impl)
           ${CMAKE_COMMAND} -E echo
           "[Coverage] Generating Python coverage report using pytest-cov..."
         COMMAND
-          ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}/test/python
+          ${CMAKE_COMMAND} -E env
+          PYTHONPATH=${PROJECT_SOURCE_DIR}/test/python:${PROJECT_SOURCE_DIR}/plugins/python/python
           PHLEX_INSTALL=${PROJECT_SOURCE_DIR} ${Python_EXECUTABLE} -m pytest
-          ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py --cov=${PROJECT_SOURCE_DIR}/test/python
+          ${PROJECT_SOURCE_DIR}/test/python --cov=${PROJECT_SOURCE_DIR}/test/python
           --cov=${PROJECT_SOURCE_DIR}/plugins/python/python --cov-report=term-missing
           --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
           --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html

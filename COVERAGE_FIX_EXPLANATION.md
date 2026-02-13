@@ -8,11 +8,11 @@ The file `plugins/python/python/phlex/__init__.py` was not appearing in Python t
 
 The Python coverage configuration was only monitoring the test directory itself, not the actual source code being tested:
 
-1. __In `test/python/CMakeLists.txt`__ (lines 74-87):
+1. __In `test/python/CMakeLists.txt`__:
    - The pytest command used `--cov=${CMAKE_CURRENT_SOURCE_DIR}` which only covers the `test/python` directory within the project source tree (for example, `${PROJECT_SOURCE_DIR}/test/python`)
    - Missing: Coverage for the `phlex` module located in `plugins/python/python/phlex/`
 
-2. __In `Modules/private/CreateCoverageTargets.cmake`__ (lines 564-579):
+2. __In `Modules/private/CreateCoverageTargets.cmake`__:
    - The `coverage-python` target had the same limitation
    - Only monitored `${PROJECT_SOURCE_DIR}/test/python`
 
@@ -24,25 +24,27 @@ The Python coverage configuration was only monitoring the test directory itself,
 
 ### Changes Made
 
-1. __test/python/CMakeLists.txt__ (line 81):
+1. __test/python/CMakeLists.txt__:
 
    ```cmake
    --cov=${CMAKE_CURRENT_SOURCE_DIR}
    --cov=${PROJECT_SOURCE_DIR}/plugins/python/python  # Added this line
    ```
 
-2. __Modules/private/CreateCoverageTargets.cmake__ (line 573):
+2. __Modules/private/CreateCoverageTargets.cmake__:
 
    ```cmake
-   ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py --cov=${PROJECT_SOURCE_DIR}/test/python
+   ${PROJECT_SOURCE_DIR}/test/python --cov=${PROJECT_SOURCE_DIR}/test/python
    --cov=${PROJECT_SOURCE_DIR}/plugins/python/python  # Added this line
    ```
 
-3. __test/python/.coveragerc__ (lines 3-5):
+   Also updated to run the full test directory and include plugins/python/python in PYTHONPATH.
+
+3. __test/python/.coveragerc__:
 
    ```ini
    [run]
-   source = 
+   source =
        .
        ../../plugins/python/python  # Added this line
    ```
@@ -107,9 +109,9 @@ Without proper coverage tracking, we couldn't verify that:
 
 The GitHub Actions workflow (`.github/workflows/coverage.yaml`) will now:
 
-1. Run tests with coverage collection including the plugins directory (line 227-250)
+1. Run tests with coverage collection including the plugins directory
 2. Generate `coverage-python.xml` with the plugins included
-3. Upload to Codecov with both C++ and Python coverage data (line 386-396)
+3. Upload to Codecov with both C++ and Python coverage data
 
 The `codecov.yml` configuration doesn't explicitly ignore the `plugins` directory, so the data will be properly processed and displayed in coverage reports.
 
