@@ -15,6 +15,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -33,7 +34,7 @@
 
 namespace phlex::experimental {
 
-  class declared_predicate : public products_consumer {
+  class phlex_core_EXPORT declared_predicate : public products_consumer {
   public:
     declared_predicate(algorithm_name name,
                        std::vector<std::string> predicates,

@@ -6,6 +6,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
@@ -26,12 +27,12 @@ namespace phlex::experimental {
   template <std::size_t N>
   using messages_t = sized_tuple<message, N>;
 
-  struct MessageHasher {
+  struct phlex_core_EXPORT MessageHasher {
     std::size_t operator()(message const& msg) const noexcept;
   };
 
   // Overload for use with most_derived
-  message const& more_derived(message const& a, message const& b);
+  phlex_core_EXPORT message const& more_derived(message const& a, message const& b);
 
   namespace detail {
     template <std::size_t N>
@@ -39,7 +40,7 @@ namespace phlex::experimental {
     using no_join_base_t =
       tbb::flow::function_node<message, messages_t<1ull>, tbb::flow::lightweight>;
 
-    struct no_join : no_join_base_t {
+    struct phlex_core_EXPORT no_join : no_join_base_t {
       no_join(tbb::flow::graph& g, MessageHasher);
     };
   }
@@ -66,7 +67,7 @@ namespace phlex::experimental {
     }
   }
 
-  std::size_t port_index_for(product_queries const& product_labels,
+  phlex_core_EXPORT std::size_t port_index_for(product_queries const& product_labels,
                              product_query const& product_label);
 
   template <std::size_t I, std::size_t N>

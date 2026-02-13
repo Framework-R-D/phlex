@@ -34,6 +34,7 @@ cet_make_library(
   Boost::json
   phlex::core
 )
+phlex_apply_symbol_visibility(phlex_configuration_internal)
 
 cet_make_library(
   LIBRARY_NAME

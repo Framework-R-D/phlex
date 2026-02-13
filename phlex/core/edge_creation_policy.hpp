@@ -4,6 +4,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -14,7 +15,7 @@
 namespace phlex::experimental {
   using product_name_t = std::string;
 
-  class edge_creation_policy {
+  class phlex_core_EXPORT edge_creation_policy {
   public:
     template <typename... Args>
     edge_creation_policy(Args&... producers);

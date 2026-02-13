@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_DATA_CELL_COUNTER_HPP
 #define PHLEX_MODEL_DATA_CELL_COUNTER_HPP
 
+#include "phlex_model_export.hpp"
+
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 
@@ -11,7 +13,7 @@
 #include <optional>
 
 namespace phlex::experimental {
-  class flush_counts {
+  class phlex_model_EXPORT flush_counts {
   public:
     flush_counts();
     explicit flush_counts(std::map<data_cell_index::hash_type, std::size_t> child_counts);
@@ -35,7 +37,7 @@ namespace phlex::experimental {
 
   using flush_counts_ptr = std::shared_ptr<flush_counts const>;
 
-  class data_cell_counter {
+  class phlex_model_EXPORT data_cell_counter {
   public:
     data_cell_counter();
     data_cell_counter(data_cell_counter* parent, std::string const& layer_name);
@@ -58,7 +60,7 @@ namespace phlex::experimental {
     std::map<data_cell_index::hash_type, std::size_t> child_counts_{};
   };
 
-  class flush_counters {
+  class phlex_model_EXPORT flush_counters {
   public:
     void update(data_cell_index_ptr const id);
     flush_counts extract(data_cell_index_ptr const id);

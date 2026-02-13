@@ -41,6 +41,7 @@ cet_make_library(
   Boost::json
   spdlog::spdlog
 )
+phlex_apply_symbol_visibility(phlex_core)
 install(
   FILES
     concepts.hpp

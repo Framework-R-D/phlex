@@ -6,6 +6,7 @@
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/registration_api.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -23,7 +24,7 @@ namespace phlex::experimental {
   struct node_catalog;
 
   namespace detail {
-    void verify_name(std::string const& name, configuration const* config);
+    phlex_core_EXPORT void verify_name(std::string const& name, configuration const* config);
   }
 
   // ==============================================================================

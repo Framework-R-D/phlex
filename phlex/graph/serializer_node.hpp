@@ -1,6 +1,8 @@
 #ifndef PHLEX_GRAPH_SERIALIZER_NODE_HPP
 #define PHLEX_GRAPH_SERIALIZER_NODE_HPP
 
+#include "phlex_graph_export.hpp"
+
 #include "phlex/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -13,7 +15,7 @@ namespace phlex::experimental {
 
   using token_t = int;
   using base_impl = tbb::flow::buffer_node<token_t>;
-  class serializer_node : public base_impl {
+  class phlex_graph_EXPORT serializer_node : public base_impl {
   public:
     explicit serializer_node(tbb::flow::graph& g, std::string const& name) :
       base_impl{g}, name_{name}
@@ -35,7 +37,7 @@ namespace phlex::experimental {
     std::string name_;
   };
 
-  class serializers {
+  class phlex_graph_EXPORT serializers {
   public:
     explicit serializers(tbb::flow::graph& g);
     void activate();

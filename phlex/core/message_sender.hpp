@@ -5,12 +5,13 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/multiplexer.hpp"
 #include "phlex/model/fwd.hpp"
+#include "phlex_core_export.hpp"
 
 #include <map>
 
 namespace phlex::experimental {
 
-  class message_sender {
+  class phlex_core_EXPORT message_sender {
   public:
     explicit message_sender(multiplexer& mplexer);
 

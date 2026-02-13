@@ -11,6 +11,7 @@ cet_make_library(
   PUBLIC
   spdlog::spdlog
 )
+phlex_apply_symbol_visibility(phlex_utilities)
 
 install(
   FILES

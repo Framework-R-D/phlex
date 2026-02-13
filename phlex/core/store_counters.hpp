@@ -5,6 +5,7 @@
 #include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -14,7 +15,7 @@
 #include <version>
 
 namespace phlex::experimental {
-  class store_flag {
+  class phlex_core_EXPORT store_flag {
   public:
     void flush_received(std::size_t original_message_id);
     bool is_complete() const noexcept;
@@ -28,7 +29,7 @@ namespace phlex::experimental {
       original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
   };
 
-  class detect_flush_flag {
+  class phlex_core_EXPORT detect_flush_flag {
   protected:
     void mark_flush_received(data_cell_index::hash_type hash, std::size_t original_message_id);
     void mark_processed(data_cell_index::hash_type hash);
@@ -45,7 +46,7 @@ namespace phlex::experimental {
 
   // =========================================================================
 
-  class store_counter {
+  class phlex_core_EXPORT store_counter {
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
     void increment(data_cell_index::hash_type layer_hash);
@@ -66,7 +67,7 @@ namespace phlex::experimental {
     std::atomic<bool> ready_to_flush_{true};
   };
 
-  class count_stores {
+  class phlex_core_EXPORT count_stores {
   protected:
     store_counter& counter_for(data_cell_index::hash_type hash);
     std::unique_ptr<store_counter> done_with(data_cell_index::hash_type hash);

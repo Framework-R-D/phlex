@@ -48,6 +48,7 @@
 // =======================================================================================
 
 #include "phlex/utilities/simple_ptr_map.hpp"
+#include "phlex_core_export.hpp"
 
 #include <cassert>
 #include <functional>
@@ -58,7 +59,7 @@
 namespace phlex::experimental {
 
   namespace detail {
-    void add_to_error_messages(std::vector<std::string>& errors, std::string const& name);
+    phlex_core_EXPORT void add_to_error_messages(std::vector<std::string>& errors, std::string const& name);
   }
 
   template <typename Ptr>
