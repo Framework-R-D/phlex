@@ -101,7 +101,9 @@ if(HAS_CPPYY)
   if(HAS_PYTEST_COV)
     add_custom_target(
       coverage-python
-      COMMAND ${PYTEST_COMMAND}
+      COMMAND
+        ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
+        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL} ${PYTEST_COMMAND}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Running Python coverage report"
     )
