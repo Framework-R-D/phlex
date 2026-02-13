@@ -1,7 +1,7 @@
 include(GenerateExportHeader)
 
 function(phlex_apply_symbol_visibility target)
-  set(EXPORT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/include/${target}_export.hpp")
+  set(EXPORT_HEADER "${PROJECT_BINARY_DIR}/include/${target}_export.hpp")
   set(EXPORT_MACRO_NAME "${target}_EXPORT")
 
   generate_export_header(
@@ -19,6 +19,8 @@ function(phlex_apply_symbol_visibility target)
 
   target_include_directories(
     ${target}
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>
+    PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>
   )
+
+  install(FILES "${EXPORT_HEADER}" DESTINATION include)
 endfunction()

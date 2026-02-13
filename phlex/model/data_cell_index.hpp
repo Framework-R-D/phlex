@@ -36,7 +36,8 @@ namespace phlex {
     std::string to_string() const;
     std::string to_string_this_layer() const;
 
-    friend std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
+    friend phlex_model_EXPORT std::ostream& operator<<(std::ostream& os,
+                                                       data_cell_index const& id);
 
   private:
     data_cell_index();
@@ -48,8 +49,6 @@ namespace phlex {
     std::size_t depth_{};
     hash_type hash_{0};
   };
-
-  phlex_model_EXPORT std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
 }
 
 namespace std {
