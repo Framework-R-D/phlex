@@ -33,12 +33,14 @@ The Python coverage configuration had multiple issues:
 1. __test/python/CMakeLists.txt__:
 
    Added `--cov` flag for the plugins directory:
+
    ```cmake
    --cov=${CMAKE_CURRENT_SOURCE_DIR}
    --cov=${PROJECT_SOURCE_DIR}/plugins/python/python  # Added this line
    ```
 
    Updated `coverage-python` target to use proper test environment:
+
    ```cmake
    add_custom_target(
      coverage-python
@@ -81,6 +83,7 @@ The `TEST_PYTHONPATH` variable in `test/python/CMakeLists.txt` includes:
 - `$ENV{PYTHONPATH}` - any existing PYTHONPATH from the environment
 
 This comprehensive PYTHONPATH is required for tests to:
+
 1. Import the `phlex` module from `plugins/python/python/phlex/__init__.py`
 2. Import test dependencies like `cppyy`, `numpy`, `pytest`
 3. Find any user-installed packages
