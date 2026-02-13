@@ -61,10 +61,10 @@ open all repositories in a single VS Code window.
 
 When creating branches for PRs:
 
-- **Never set upstream tracking**: When creating a new branch for eventual pushing as a new upstream branch (e.g., for a PR), it should never have an upstream tracking branch, even if created based on another branch
+- **Do not set upstream tracking at branch creation time**: When creating a new branch for eventual pushing as a new upstream branch (e.g., for a PR), it should not have an upstream tracking branch, even if created based on another branch
 - **Rationale**: This eliminates the possibility of accidentally pushing commits to the base branch when pushing the new branch upstream
-- **Best practice**: Create branches with `git checkout -b new-branch-name` or `git switch -c new-branch-name` without using `--track` or setting upstream
-- **Push new branches**: Use `git push -u origin new-branch-name` only when ready to push the new branch to your fork for the first time
+- **Best practice**: Create branches with `git checkout -b new-branch-name [<base-branch>]` or `git switch --no-track -c new-branch-name [<base-branch>]` without using `--track`, `-t`, or otherwise setting upstream
+- **Push new branches**: Use `git push -u origin new-branch-name` only when ready to push the new branch to your fork for the first time; this is when you should set the upstream tracking branch
 
 Example workflow:
 
