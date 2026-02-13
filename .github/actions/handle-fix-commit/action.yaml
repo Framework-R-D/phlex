@@ -77,6 +77,11 @@ runs:
       id: commit_and_push
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+      env:
+        TOOL: ${{ inputs.tool }}
+        TOKEN: ${{ inputs.token }}
+        PR_REF: ${{ inputs.pr-info-ref }}
+        RETRY_ATTEMPTS: ${{ inputs.retry-attempts }}
       run: |
         git config --local user.name "github-actions[bot]"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -85,15 +90,15 @@ runs:
         rm -f ~/.git-credentials
         umask 077
         cat <<EOF > ~/.git-credentials
-        https://x-access-token:${{ inputs.token }}@github.com
+        https://x-access-token:$TOKEN@github.com
         EOF
         git config --local credential.helper 'store --file ~/.git-credentials'
 
         git add -u
-        git commit -m "Apply ${{ inputs.tool }} fixes"
+        git commit -m "Apply $TOOL fixes"
 
-        for i in $(seq 1 ${{ inputs.retry-attempts }}); do
-          if git push origin HEAD:${{ inputs.pr-info-ref }}; then
+        for i in $(seq 1 "$RETRY_ATTEMPTS"); do
+          if git push origin HEAD:"$PR_REF"; then
             echo "Push successful on attempt $i."
             COMMIT_SHA=$(git rev-parse HEAD)
             COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
@@ -102,12 +107,12 @@ runs:
             echo "pushed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ $i -eq ${{ inputs.retry-attempts }} ]; then
+          if [ "$i" -eq "$RETRY_ATTEMPTS" ]; then
             break
           fi
           echo "Push failed on attempt $i. Fetching and rebasing before retry..."
           git fetch origin
-          if ! git rebase origin/${{ inputs.pr-info-ref }}; then
+          if ! git rebase origin/"$PR_REF"; then
             echo "::error::Automatic rebase failed. Please resolve conflicts manually."
             exit 1
           fi
