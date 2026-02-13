@@ -9,7 +9,7 @@ The file `plugins/python/python/phlex/__init__.py` was not appearing in Python t
 The Python coverage configuration was only monitoring the test directory itself, not the actual source code being tested:
 
 1. __In `test/python/CMakeLists.txt`__ (lines 74-87):
-   - The pytest command used `--cov=${CMAKE_CURRENT_SOURCE_DIR}` which only covers `/home/runner/work/phlex/phlex/test/python`
+   - The pytest command used `--cov=${CMAKE_CURRENT_SOURCE_DIR}` which only covers the `test/python` directory within the project source tree (for example, `${PROJECT_SOURCE_DIR}/test/python`)
    - Missing: Coverage for the `phlex` module located in `plugins/python/python/phlex/`
 
 2. __In `Modules/private/CreateCoverageTargets.cmake`__ (lines 564-579):
