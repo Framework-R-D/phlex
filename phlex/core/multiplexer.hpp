@@ -20,32 +20,38 @@
 namespace phlex::experimental {
   namespace detail {
     using index_set_node = tbb::flow::broadcast_node<index_message>;
+    using index_set_node_ptr = std::shared_ptr<index_set_node>;
     using flush_node = tbb::flow::broadcast_node<indexed_end_token>;
 
-    class multilayer_sender {
+    class multilayer_slot {
     public:
-      multilayer_sender(std::string const& layer, index_set_node* broadcaster, flush_node* flusher);
+      multilayer_slot(tbb::flow::graph& g,
+                      std::string layer,
+                      tbb::flow::receiver<indexed_end_token>* flush_port,
+                      tbb::flow::receiver<index_message>* input_port);
 
       auto const& layer() const noexcept { return layer_; }
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
       void put_end_token(data_cell_index_ptr const& index);
 
+      bool matches_exactly(std::string const& layer_path) const;
+      bool is_parent_of(data_cell_index_ptr const& index) const;
+
     private:
       std::string layer_;
-      index_set_node* broadcaster_;
-      flush_node* flusher_;
+      detail::index_set_node broadcaster_;
+      detail::flush_node flusher_;
       int counter_ = 0;
     };
 
-    using multilayer_sender_ptrs_t = std::vector<std::shared_ptr<multilayer_sender>>;
-    using cached_casters_t = std::unordered_map<std::size_t, multilayer_sender_ptrs_t>;
+    using multilayer_slots = std::vector<std::shared_ptr<multilayer_slot>>;
   }
 
   class layer_sentry {
   public:
     layer_sentry(flush_counters& counters,
                  flusher_t& flusher,
-                 detail::multilayer_sender_ptrs_t const& senders_for_layer,
+                 detail::multilayer_slots const& slots_for_layer,
                  data_cell_index_ptr index,
                  std::size_t message_id);
     ~layer_sentry();
@@ -54,7 +60,7 @@ namespace phlex::experimental {
   private:
     flush_counters& counters_;
     flusher_t& flusher_;
-    detail::multilayer_sender_ptrs_t const& senders_;
+    detail::multilayer_slots const& slots_;
     data_cell_index_ptr index_;
     std::size_t message_id_;
   };
@@ -88,16 +94,9 @@ namespace phlex::experimental {
   private:
     void backout_to(data_cell_index_ptr store);
     void send_to_provider_index_nodes(data_cell_index_ptr const& index, std::size_t message_id);
-    detail::multilayer_sender_ptrs_t const& send_to_multilayer_join_nodes(
-      data_cell_index_ptr const& index, std::size_t message_id);
-    detail::index_set_node* index_node_for(std::string const& layer);
-
-    struct multibroadcaster_entry {
-      std::string layer;
-      detail::index_set_node broadcaster;
-      detail::flush_node flusher;
-    };
-    using multibroadcaster_entries = std::vector<multibroadcaster_entry>;
+    detail::multilayer_slots const& send_to_multilayer_join_nodes(data_cell_index_ptr const& index,
+                                                                  std::size_t message_id);
+    detail::index_set_node_ptr index_node_for(std::string const& layer);
 
     provider_input_ports_t provider_input_ports_;
     std::atomic<std::size_t> received_indices_{};
@@ -105,16 +104,25 @@ namespace phlex::experimental {
     flush_counters counters_;
     std::stack<layer_sentry> layers_;
 
-    using broadcasters_t = std::unordered_map<std::string, detail::index_set_node>;
-    broadcasters_t broadcasters_;
+    // ==========================================================================================
+    // Routing to provider nodes
+    // The following maps are used to route data-cell indices to provider nodes.
+    // The first map is from layer name to the corresponding broadcaster node.
+    std::unordered_map<std::string, detail::index_set_node_ptr> broadcasters_;
+    // The second map is a cache from a layer hash matched to a broadcaster node, to avoid repeated
+    // lookups for the same layer.
+    std::unordered_map<std::size_t, detail::index_set_node_ptr> matched_broadcasters_;
 
-    using multibroadcasters_t = std::unordered_map<std::string, multibroadcaster_entries>;
-    multibroadcasters_t multibroadcasters_;
-
-    std::unordered_map<std::size_t, detail::index_set_node*> cached_broadcasters_;
-    detail::cached_casters_t cached_multicasters_;
-
-    std::unordered_map<std::size_t, detail::multilayer_sender_ptrs_t> cached_casters_for_flushing_;
+    // ==========================================================================================
+    // Routing to multi-layer join nodes
+    // The first map is from the node name to the corresponding broadcaster nodes and flush nodes.
+    std::unordered_map<std::string, detail::multilayer_slots> multibroadcasters_;
+    // The second map is a cache from a layer hash matched to a set of multilayer slots, to avoid repeated lookups
+    // for the same layer.
+    std::unordered_map<std::size_t, detail::multilayer_slots> matched_routing_entries_;
+    // The third map is a cache from a layer hash matched to a set of multilayer slots for the purposes of flushing,
+    // to avoid repeated lookups for the same layer during flushing.
+    std::unordered_map<std::size_t, detail::multilayer_slots> matched_flushing_entries_;
   };
 
 }

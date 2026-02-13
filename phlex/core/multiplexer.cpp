@@ -20,6 +20,15 @@ namespace {
     }
     return layer_path;
   }
+
+  void send_messages(phlex::data_cell_index_ptr const& index,
+                     std::size_t message_id,
+                     phlex::experimental::detail::multilayer_slots const& slots)
+  {
+    for (auto& slot : slots) {
+      slot->put_message(index, message_id);
+    }
+  }
 }
 
 namespace phlex::experimental {
@@ -29,12 +38,12 @@ namespace phlex::experimental {
 
   layer_sentry::layer_sentry(flush_counters& counters,
                              flusher_t& flusher,
-                             detail::multilayer_sender_ptrs_t const& senders_for_layer,
+                             detail::multilayer_slots const& slots_for_layer,
                              data_cell_index_ptr index,
                              std::size_t const message_id) :
     counters_{counters},
     flusher_{flusher},
-    senders_{senders_for_layer},
+    slots_{slots_for_layer},
     index_{index},
     message_id_{message_id}
   {
@@ -48,8 +57,8 @@ namespace phlex::experimental {
     //              needs to shut down.  Keeping it enabled allows in-flight folds to
     //              complete.  However, in some cases it may not be desirable to do this.
 
-    for (auto& sender : senders_) {
-      sender->put_end_token(index_);
+    for (auto& slot : slots_) {
+      slot->put_end_token(index_);
     }
 
     // =====================================================================================
@@ -80,18 +89,19 @@ namespace phlex::experimental {
 
     // Create the index-set broadcast nodes for providers
     for (auto& [pq, provider_port] : provider_input_ports_ | std::views::values) {
-      auto [it, _] = broadcasters_.try_emplace(pq.layer(), g);
-      make_edge(it->second, *provider_port);
+      auto [it, _] =
+        broadcasters_.try_emplace(pq.layer(), std::make_shared<detail::index_set_node>(g));
+      make_edge(*it->second, *provider_port);
     }
 
     for (auto const& [node_name, multilayer] : multilayers) {
       spdlog::trace("Making multilayer caster for {}", node_name);
-      multibroadcaster_entries casters;
+      detail::multilayer_slots casters;
       casters.reserve(multilayer.size());
+      // FIXME: Consider whether the construction of casters can be simplied
       for (auto const& [layer, flush_port, input_port] : multilayer) {
-        auto& entry = casters.emplace_back(layer, detail::index_set_node{g}, detail::flush_node{g});
-        make_edge(entry.broadcaster, *input_port); // Connect with index ports of multi-algorithms
-        make_edge(entry.flusher, *flush_port);     // Connect with flush ports of multi-algorithms
+        auto entry = std::make_shared<detail::multilayer_slot>(g, layer, flush_port, input_port);
+        casters.push_back(entry);
       }
       multibroadcasters_.try_emplace(node_name, std::move(casters));
     }
@@ -104,9 +114,9 @@ namespace phlex::experimental {
     auto message_id = received_indices_.fetch_add(1);
 
     send_to_provider_index_nodes(index, message_id);
-    auto const& senders_for_layer = send_to_multilayer_join_nodes(index, message_id);
+    auto const& slots_for_layer = send_to_multilayer_join_nodes(index, message_id);
 
-    layers_.emplace(counters_, flusher_, senders_for_layer, index, message_id);
+    layers_.emplace(counters_, flusher_, slots_for_layer, index, message_id);
 
     return index;
   }
@@ -130,8 +140,8 @@ namespace phlex::experimental {
   void multiplexer::send_to_provider_index_nodes(data_cell_index_ptr const& index,
                                                  std::size_t const message_id)
   {
-    if (auto it = cached_broadcasters_.find(index->layer_hash());
-        it != cached_broadcasters_.end()) {
+    if (auto it = matched_broadcasters_.find(index->layer_hash());
+        it != matched_broadcasters_.end()) {
       // Not all layers will have a corresponding broadcaster
       if (it->second) {
         it->second->try_put({.index = index, .msg_id = message_id});
@@ -139,73 +149,71 @@ namespace phlex::experimental {
       return;
     }
 
-    auto* broadcaster = index_node_for(index->layer_name());
+    auto broadcaster = index_node_for(index->layer_name());
     if (broadcaster) {
       broadcaster->try_put({.index = index, .msg_id = message_id});
     }
     // We cache the result of the lookup even if there is no broadcaster for this layer,
     // to avoid repeated lookups for layers that don't have broadcasters.
-    cached_broadcasters_.try_emplace(index->layer_hash(), broadcaster);
+    matched_broadcasters_.try_emplace(index->layer_hash(), broadcaster);
   }
 
-  detail::multilayer_sender_ptrs_t const& multiplexer::send_to_multilayer_join_nodes(
+  detail::multilayer_slots const& multiplexer::send_to_multilayer_join_nodes(
     data_cell_index_ptr const& index, std::size_t const message_id)
   {
     auto const layer_hash = index->layer_hash();
 
-    auto do_the_put = [](data_cell_index_ptr const& index,
-                         std::size_t message_id,
-                         detail::multilayer_sender_ptrs_t& nodes) {
-      for (auto& sender : nodes) {
-        sender->put_message(index, message_id);
-      }
-    };
-
-    if (auto it = cached_multicasters_.find(layer_hash); it != cached_multicasters_.end()) {
-      do_the_put(index, message_id, it->second);
-      return cached_casters_for_flushing_.find(layer_hash)->second;
+    if (auto it = matched_routing_entries_.find(layer_hash); it != matched_routing_entries_.end()) {
+      send_messages(index, message_id, it->second);
+      return matched_flushing_entries_.find(layer_hash)->second;
     }
 
-    auto it = cached_multicasters_.try_emplace(layer_hash).first;
-    auto it2 = cached_casters_for_flushing_.try_emplace(layer_hash).first;
+    auto [routing_it, _] = matched_routing_entries_.try_emplace(layer_hash);
+    auto [flushing_it, __] = matched_flushing_entries_.try_emplace(layer_hash);
 
     auto const layer_path = index->layer_path();
 
-    // spdlog::info("Making multibroadcaster for {}", index->layer_path());
+    // For each multi-layer join node, determine which slots are relevant to this index.
+    // Routing entries: All slots from a node are added if (1) at least one slot exactly
+    //                  matches the current layer, and (2) all slots either exactly match
+    //                  or are parent layers of the current index.
+    // Flushing entries: Only slots that exactly match the current layer are added.
+    for (auto& [node_name, slots] : multibroadcasters_) {
+      detail::multilayer_slots matching_slots;
+      matching_slots.reserve(slots.size());
 
-    detail::multilayer_sender_ptrs_t senders_for_flushing;
-    for (auto& [multilayer_str, entries] : multibroadcasters_) {
-      detail::multilayer_sender_ptrs_t senders;
-      senders.reserve(entries.size());
-      bool name_in_multilayer = false;
-      for (auto& [layer, caster, flusher] : entries) {
-        std::string const search_token = delimited_layer_path(layer);
-        auto sender = std::make_shared<detail::multilayer_sender>(layer, &caster, &flusher);
-        if (layer_path.ends_with(search_token)) {
-          senders.push_back(sender);
-          senders_for_flushing.push_back(sender);
-          name_in_multilayer = true;
-        } else if (index->parent(layer)) {
-          senders.push_back(sender);
+      bool has_exact_match = false;
+      std::size_t matched_count = 0;
+
+      for (auto& slot : slots) {
+        if (slot->matches_exactly(layer_path)) {
+          has_exact_match = true;
+          flushing_it->second.push_back(slot);
+          matching_slots.push_back(slot);
+          ++matched_count;
+        } else if (slot->is_parent_of(index)) {
+          matching_slots.push_back(slot);
+          ++matched_count;
         }
-        // FIXME: Can this support a product_query's layer specification like "/job/run"?
       }
 
-      if (name_in_multilayer and senders.size() == entries.size()) {
-        it->second.insert(it->second.end(),
-                          std::make_move_iterator(senders.begin()),
-                          std::make_move_iterator(senders.end()));
+      // Add all matching slots to routing entries only if we have an exact match and
+      // all slots from this node matched something (either exactly or as a parent).
+      if (has_exact_match and matched_count == slots.size()) {
+        routing_it->second.insert(routing_it->second.end(),
+                                  std::make_move_iterator(matching_slots.begin()),
+                                  std::make_move_iterator(matching_slots.end()));
       }
     }
-    do_the_put(index, message_id, it->second);
-    return it2->second;
+    send_messages(index, message_id, routing_it->second);
+    return flushing_it->second;
   }
 
-  auto multiplexer::index_node_for(std::string const& layer_path) -> detail::index_set_node*
+  auto multiplexer::index_node_for(std::string const& layer_path) -> detail::index_set_node_ptr
   {
     std::string const search_token = delimited_layer_path(layer_path);
 
-    std::vector<broadcasters_t::iterator> candidates;
+    std::vector<decltype(broadcasters_.begin())> candidates;
     for (auto it = broadcasters_.begin(), e = broadcasters_.end(); it != e; ++it) {
       if (search_token.ends_with(delimited_layer_path(it->first))) {
         candidates.push_back(it);
@@ -213,7 +221,7 @@ namespace phlex::experimental {
     }
 
     if (candidates.size() == 1ull) {
-      return &candidates[0]->second;
+      return candidates[0]->second;
     }
 
     if (candidates.empty()) {
@@ -227,28 +235,31 @@ namespace phlex::experimental {
     throw std::runtime_error(msg);
   }
 
-  detail::multilayer_sender::multilayer_sender(std::string const& layer,
-                                               index_set_node* broadcaster,
-                                               flush_node* flusher) :
-    layer_{layer}, broadcaster_{broadcaster}, flusher_{flusher}
+  detail::multilayer_slot::multilayer_slot(tbb::flow::graph& g,
+                                           std::string layer,
+                                           tbb::flow::receiver<indexed_end_token>* flush_port,
+                                           tbb::flow::receiver<index_message>* input_port) :
+    layer_{std::move(layer)}, broadcaster_{g}, flusher_{g}
   {
+    make_edge(broadcaster_, *input_port);
+    make_edge(flusher_, *flush_port);
   }
 
-  void detail::multilayer_sender::put_message(data_cell_index_ptr const& index,
-                                              std::size_t message_id)
+  void detail::multilayer_slot::put_message(data_cell_index_ptr const& index,
+                                            std::size_t message_id)
   {
     if (layer_ == index->layer_name()) {
-      broadcaster_->try_put({.msg_id = message_id, .index = index, .cache = false});
+      broadcaster_.try_put({.index = index, .msg_id = message_id, .cache = false});
       return;
     }
 
     // Flush values are only used for indices that are *not* the "lowest" in the branch
     // of the hierarchy.
     ++counter_;
-    broadcaster_->try_put({.msg_id = message_id, .index = index->parent(layer_)});
+    broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
   }
 
-  void detail::multilayer_sender::put_end_token(data_cell_index_ptr const& index)
+  void detail::multilayer_slot::put_end_token(data_cell_index_ptr const& index)
   {
     auto count = std::exchange(counter_, 0);
     if (count == 0) {
@@ -256,6 +267,16 @@ namespace phlex::experimental {
       return;
     }
 
-    flusher_->try_put({.index = index, .count = count});
+    flusher_.try_put({.index = index, .count = count});
+  }
+
+  bool detail::multilayer_slot::matches_exactly(std::string const& layer_path) const
+  {
+    return layer_path.ends_with(delimited_layer_path(layer_));
+  }
+
+  bool detail::multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
+  {
+    return index->parent(layer_) != nullptr;
   }
 }
