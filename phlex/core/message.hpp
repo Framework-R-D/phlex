@@ -68,7 +68,7 @@ namespace phlex::experimental {
   }
 
   phlex_core_EXPORT std::size_t port_index_for(product_queries const& product_labels,
-                             product_query const& product_label);
+                                               product_query const& product_label);
 
   template <std::size_t I, std::size_t N>
   tbb::flow::receiver<message>& receiver_for(detail::join_messages_t<N>& join,

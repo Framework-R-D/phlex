@@ -31,7 +31,7 @@ namespace phlex::experimental {
 
   namespace detail {
     phlex_core_EXPORT void verify_no_duplicate_input_products(std::string const& algorithm_name,
-                                            product_queries to_sort);
+                                                              product_queries to_sort);
   }
 
   template <typename InputTypes>

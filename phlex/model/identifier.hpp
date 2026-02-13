@@ -41,7 +41,8 @@ namespace phlex::experimental {
 
     // Comparison operators with _id queries
     phlex_model_EXPORT friend bool operator==(identifier const& lhs, identifier_query rhs);
-    phlex_model_EXPORT friend std::strong_ordering operator<=>(identifier const& lhs, identifier_query rhs);
+    phlex_model_EXPORT friend std::strong_ordering operator<=>(identifier const& lhs,
+                                                               identifier_query rhs);
     friend std::hash<identifier>;
 
   private:

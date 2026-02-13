@@ -15,7 +15,8 @@ namespace phlex {
 }
 
 namespace phlex::experimental::detail {
-  phlex_core_EXPORT std::optional<std::vector<std::string>> maybe_predicates(configuration const* config);
+  phlex_core_EXPORT std::optional<std::vector<std::string>> maybe_predicates(
+    configuration const* config);
 }
 
 #endif // PHLEX_CORE_DETAIL_MAYBE_PREDICATES_HPP

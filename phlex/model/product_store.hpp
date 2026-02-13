@@ -60,7 +60,8 @@ namespace phlex::experimental {
     stage stage_;
   };
 
-  phlex_model_EXPORT product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
+  phlex_model_EXPORT product_store_ptr const& more_derived(product_store_ptr const& a,
+                                                           product_store_ptr const& b);
 
   template <std::size_t I, typename Tuple, typename Element>
   Element const& get_most_derived(Tuple const& tup, Element const& element)
