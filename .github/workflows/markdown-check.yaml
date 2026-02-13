@@ -104,10 +104,13 @@ jobs:
   markdown-check:
     needs: [pre-check, detect-changes]
     if: >
-      needs.detect-changes.result == 'skipped' ||
+      always() &&
       (
-        needs.detect-changes.result == 'success' &&
-        needs.detect-changes.outputs.has_changes == 'true'
+        needs.detect-changes.result == 'skipped' ||
+        (
+          needs.detect-changes.result == 'success' &&
+          needs.detect-changes.outputs.has_changes == 'true'
+        )
       )
     runs-on: ubuntu-latest
     permissions:
