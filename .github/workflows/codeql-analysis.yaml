@@ -228,6 +228,11 @@ jobs:
           # If detection was skipped, use all languages or the provided language-matrix
           if [ "${{ needs.pre-check.outputs.skip_detection }}" = "true" ]; then
             if [ "${{ github.event_name }}" = "workflow_call" ] && [ -n "${{ inputs.language-matrix }}" ]; then
+              # Validate that language-matrix is valid JSON
+              if ! echo '${{ inputs.language-matrix }}' | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
+                echo "::error::Invalid language-matrix input: must be valid JSON array"
+                exit 1
+              fi
               echo "languages=${{ inputs.language-matrix }}" >> "$GITHUB_OUTPUT"
             else
               echo 'languages=["cpp", "python", "actions"]' >> "$GITHUB_OUTPUT"
