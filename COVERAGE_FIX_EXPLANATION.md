@@ -8,15 +8,15 @@ The file `plugins/python/python/phlex/__init__.py` was not appearing in Python t
 
 The Python coverage configuration was only monitoring the test directory itself, not the actual source code being tested:
 
-1. **In `test/python/CMakeLists.txt`** (lines 74-87):
+1. __In `test/python/CMakeLists.txt`__ (lines 74-87):
    - The pytest command used `--cov=${CMAKE_CURRENT_SOURCE_DIR}` which only covers `/home/runner/work/phlex/phlex/test/python`
    - Missing: Coverage for the `phlex` module located in `plugins/python/python/phlex/`
 
-2. **In `Modules/private/CreateCoverageTargets.cmake`** (lines 564-579):
+2. __In `Modules/private/CreateCoverageTargets.cmake`__ (lines 564-579):
    - The `coverage-python` target had the same limitation
    - Only monitored `${PROJECT_SOURCE_DIR}/test/python`
 
-3. **In `test/python/.coveragerc`**:
+3. __In `test/python/.coveragerc`__:
    - The `source` setting only included `.` (the current test directory)
    - Did not include the path to the plugins directory
 
@@ -24,19 +24,22 @@ The Python coverage configuration was only monitoring the test directory itself,
 
 ### Changes Made
 
-1. **test/python/CMakeLists.txt** (line 81):
+1. __test/python/CMakeLists.txt__ (line 81):
+
    ```cmake
    --cov=${CMAKE_CURRENT_SOURCE_DIR}
    --cov=${PROJECT_SOURCE_DIR}/plugins/python/python  # Added this line
    ```
 
-2. **Modules/private/CreateCoverageTargets.cmake** (line 573):
+2. __Modules/private/CreateCoverageTargets.cmake__ (line 573):
+
    ```cmake
    ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py --cov=${PROJECT_SOURCE_DIR}/test/python
    --cov=${PROJECT_SOURCE_DIR}/plugins/python/python  # Added this line
    ```
 
-3. **test/python/.coveragerc** (lines 3-5):
+3. __test/python/.coveragerc__ (lines 3-5):
+
    ```ini
    [run]
    source = 
@@ -56,7 +59,8 @@ pytest-cov uses the `--cov` flag to specify which directories/packages to monito
 
 To verify this fix works:
 
-1. **Build with coverage enabled**:
+1. __Build with coverage enabled__:
+
    ```bash
    cd /home/runner/work/phlex/phlex
    . scripts/setup-env.sh
@@ -64,13 +68,15 @@ To verify this fix works:
    ninja -C build
    ```
 
-2. **Run Python tests with coverage**:
+2. __Run Python tests with coverage__:
+
    ```bash
    cd build
    cmake --build . --target coverage-python
    ```
 
-3. **Check the coverage report**:
+3. __Check the coverage report__:
+
    ```bash
    # View the XML report
    grep "plugins/python/python/phlex/__init__.py" coverage-python.xml
@@ -79,7 +85,7 @@ To verify this fix works:
    xdg-open coverage-python-html/index.html
    ```
 
-4. **Expected Result**:
+4. __Expected Result__:
    - The file `plugins/python/python/phlex/__init__.py` should now appear in coverage reports
    - Coverage metrics should show which lines of the `Variant` class are executed during tests
 
@@ -109,7 +115,7 @@ The `codecov.yml` configuration doesn't explicitly ignore the `plugins` director
 
 ## Related Files
 
-- **Test file using the module**: `test/python/unit_test_variant.py` (imports `from phlex import Variant`)
-- **Source module**: `plugins/python/python/phlex/__init__.py` (contains the `Variant` class)
-- **Coverage workflow**: `.github/workflows/coverage.yaml` (CI coverage execution)
-- **Codecov config**: `codecov.yml` (coverage reporting configuration)
+- __Test file using the module__: `test/python/unit_test_variant.py` (imports `from phlex import Variant`)
+- __Source module__: `plugins/python/python/phlex/__init__.py` (contains the `Variant` class)
+- __Coverage workflow__: `.github/workflows/coverage.yaml` (CI coverage execution)
+- __Codecov config__: `codecov.yml` (coverage reporting configuration)
