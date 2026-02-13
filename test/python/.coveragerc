@@ -1,6 +1,8 @@
 [run]
 # Include non-test Python modules for coverage measurement
-source = .
+source = 
+    .
+    ../../plugins/python/python
 omit =
     test_*.py
     **/test_*.py

@@ -78,6 +78,7 @@ if(HAS_CPPYY)
       -m
       pytest
       --cov=${CMAKE_CURRENT_SOURCE_DIR}
+      --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
       --cov-report=term-missing
       --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
       --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
