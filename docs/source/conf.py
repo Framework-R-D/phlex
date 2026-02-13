@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Sphinx configuration for Phlex documentation."""
 
 # -- Project information -----------------------------------------------------
