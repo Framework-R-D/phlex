@@ -162,7 +162,7 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 
 The project uses Spack for dependency management in development and CI environments:
 
-- **Spack Environments**: The `setup-env.sh` script automatically activates Spack environments when available
+- **Spack Environments**: The `scripts/setup-env.sh` script automatically activates Spack environments when available
 - **Loading Additional Packages**: If you need tools or libraries not loaded by default, use `spack load <package>` to bring them into the environment
 - **Common Use Cases**:
   - `spack load cmake` - Load CMake if not in current environment
@@ -174,7 +174,7 @@ The project uses Spack for dependency management in development and CI environme
 
 When suggesting installation of dependencies:
 
-- Prefer `setup-env.sh` sourcing as it handles both Spack and system packages
+- Prefer sourcing the environment setup script (`scripts/setup-env.sh` or workspace-level `setup-env.sh`) as it handles both Spack and system packages
 - For manual installations, provide both Spack (`spack install/load`) and system package manager options
 - Consult `scripts/README.md` and `scripts/QUICK_REFERENCE.md` for common patterns
 
