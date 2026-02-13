@@ -27,7 +27,6 @@ on:
         description: "JSON array of languages to analyze"
         required: false
         type: string
-        default: '["cpp", "python", "actions"]'
       pr-number:
         description: "PR number if run in PR context"
         required: false
@@ -120,7 +119,7 @@ jobs:
         with:
           repo-path: ${{ needs.pre-check.outputs.local_checkout_path }}
           base-ref: ${{ needs.pre-check.outputs.base_sha }}
-          head-ref: ${{ needs.pre-check.outputs.ref }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
           file-type: |
             cpp
             cmake
@@ -160,7 +159,7 @@ jobs:
         with:
           repo-path: ${{ needs.pre-check.outputs.local_checkout_path }}
           base-ref: ${{ needs.pre-check.outputs.base_sha }}
-          head-ref: ${{ needs.pre-check.outputs.ref }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
           file-type: python
 
       - name: Report detection outcome
@@ -198,7 +197,7 @@ jobs:
         with:
           repo-path: ${{ needs.pre-check.outputs.local_checkout_path }}
           base-ref: ${{ needs.pre-check.outputs.base_sha }}
-          head-ref: ${{ needs.pre-check.outputs.ref }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
           include-globs: |
             .github/workflows/*.yaml
             .github/workflows/*.yml
