@@ -74,11 +74,11 @@ namespace phlex::experimental {
                   auto const& msg = most_derived(messages);
                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
                   if (store->is_flush()) {
-                    flag_for(store->index()->hash()).flush_received(message_id);
+                    mark_flush_received(store->index()->hash(), message_id);
                   } else if (accessor a; needs_new(store, a)) {
                     call(ft, messages, std::make_index_sequence<N>{});
                     a->second = true;
-                    flag_for(store->index()->hash()).mark_as_processed();
+                    mark_processed(store->index()->hash());
                   }
 
                   if (done_with(store)) {
