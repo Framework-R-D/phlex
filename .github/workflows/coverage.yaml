@@ -49,15 +49,14 @@ jobs:
       repo: ${{ steps.pr.outputs.repo || github.repository }}
       base_sha: ${{ steps.pr.outputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
     steps:
-      - name: Detect act environment
-        id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
-
       - name: Get PR Info
         if: github.event_name == 'issue_comment'
         id: pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
   detect-changes:
     needs: pre-check
     if: >
