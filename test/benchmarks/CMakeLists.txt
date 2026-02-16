@@ -43,7 +43,7 @@ foreach(
       benchmark:${I}
       HANDBUILT
       TEST_EXEC
-      phlex
+      $<TARGET_FILE:phlex>
       TEST_ARGS
       -c
       ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet

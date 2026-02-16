@@ -24,7 +24,7 @@ cet_test(
   ${TEST_NAME}
   HANDBUILT
   TEST_EXEC
-  phlex
+  $<TARGET_FILE:phlex>
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.jsonnet

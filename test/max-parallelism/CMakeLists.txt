@@ -11,7 +11,7 @@ cet_test(
   job:check_parallelism_default
   HANDBUILT
   TEST_EXEC
-  phlex
+  $<TARGET_FILE:phlex>
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_default.jsonnet
@@ -25,7 +25,7 @@ cet_test(
   job:check_parallelism_cli
   HANDBUILT
   TEST_EXEC
-  phlex
+  $<TARGET_FILE:phlex>
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_cli.jsonnet
@@ -41,7 +41,7 @@ cet_test(
   job:check_parallelism_config
   HANDBUILT
   TEST_EXEC
-  phlex
+  $<TARGET_FILE:phlex>
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_config.jsonnet
@@ -59,7 +59,7 @@ cet_test(
   job:check_parallelism_cli_over_config
   HANDBUILT
   TEST_EXEC
-  phlex
+  $<TARGET_FILE:phlex>
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_cli_over_config.jsonnet
