@@ -1,5 +1,5 @@
-#ifndef PHLEX_CORE_MULTIPLEXER_HPP
-#define PHLEX_CORE_MULTIPLEXER_HPP
+#ifndef PHLEX_CORE_INDEX_ROUTER_HPP
+#define PHLEX_CORE_INDEX_ROUTER_HPP
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
@@ -65,7 +65,7 @@ namespace phlex::experimental {
     std::size_t message_id_;
   };
 
-  class multiplexer {
+  class index_router {
   public:
     struct named_input_port {
       product_query product_label;
@@ -82,7 +82,7 @@ namespace phlex::experimental {
     };
     using provider_input_ports_t = std::map<std::string, provider_input_port_t>;
 
-    explicit multiplexer(tbb::flow::graph& g);
+    explicit index_router(tbb::flow::graph& g);
     data_cell_index_ptr route(data_cell_index_ptr index);
 
     void finalize(tbb::flow::graph& g,
@@ -127,4 +127,4 @@ namespace phlex::experimental {
 
 }
 
-#endif // PHLEX_CORE_MULTIPLEXER_HPP
+#endif // PHLEX_CORE_INDEX_ROUTER_HPP

@@ -1,4 +1,4 @@
-#include "phlex/core/multiplexer.hpp"
+#include "phlex/core/index_router.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "fmt/std.h"
@@ -75,13 +75,13 @@ namespace phlex::experimental {
   std::size_t layer_sentry::depth() const { return index_->depth(); }
 
   //========================================================================================
-  // multiplexer implementation
+  // index_router implementation
 
-  multiplexer::multiplexer(tbb::flow::graph& g) : flusher_{g} {}
+  index_router::index_router(tbb::flow::graph& g) : flusher_{g} {}
 
-  void multiplexer::finalize(tbb::flow::graph& g,
-                             provider_input_ports_t provider_input_ports,
-                             std::map<std::string, named_index_ports> multilayers)
+  void index_router::finalize(tbb::flow::graph& g,
+                              provider_input_ports_t provider_input_ports,
+                              std::map<std::string, named_index_ports> multilayers)
   {
     // We must have at least one provider port, or there can be no data to process.
     assert(!provider_input_ports.empty());
@@ -107,7 +107,7 @@ namespace phlex::experimental {
     }
   }
 
-  data_cell_index_ptr multiplexer::route(data_cell_index_ptr const index)
+  data_cell_index_ptr index_router::route(data_cell_index_ptr const index)
   {
     backout_to(index);
 
@@ -121,7 +121,7 @@ namespace phlex::experimental {
     return index;
   }
 
-  void multiplexer::backout_to(data_cell_index_ptr const index)
+  void index_router::backout_to(data_cell_index_ptr const index)
   {
     assert(index);
     auto const new_depth = index->depth();
@@ -130,15 +130,15 @@ namespace phlex::experimental {
     }
   }
 
-  void multiplexer::drain()
+  void index_router::drain()
   {
     while (not empty(layers_)) {
       layers_.pop();
     }
   }
 
-  void multiplexer::send_to_provider_index_nodes(data_cell_index_ptr const& index,
-                                                 std::size_t const message_id)
+  void index_router::send_to_provider_index_nodes(data_cell_index_ptr const& index,
+                                                  std::size_t const message_id)
   {
     if (auto it = matched_broadcasters_.find(index->layer_hash());
         it != matched_broadcasters_.end()) {
@@ -158,7 +158,7 @@ namespace phlex::experimental {
     matched_broadcasters_.try_emplace(index->layer_hash(), broadcaster);
   }
 
-  detail::multilayer_slots const& multiplexer::send_to_multilayer_join_nodes(
+  detail::multilayer_slots const& index_router::send_to_multilayer_join_nodes(
     data_cell_index_ptr const& index, std::size_t const message_id)
   {
     auto const layer_hash = index->layer_hash();
@@ -209,7 +209,7 @@ namespace phlex::experimental {
     return flushing_it->second;
   }
 
-  auto multiplexer::index_node_for(std::string const& layer_path) -> detail::index_set_node_ptr
+  auto index_router::index_node_for(std::string const& layer_path) -> detail::index_set_node_ptr
   {
     std::string const search_token = delimited_layer_path(layer_path);
 

@@ -12,7 +12,7 @@ namespace phlex::experimental {
   struct flush_message;
   class framework_graph;
   struct message;
-  class multiplexer;
+  class index_router;
   class products_consumer;
 
   using flusher_t = tbb::flow::broadcast_node<flush_message>;

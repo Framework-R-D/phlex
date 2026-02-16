@@ -25,14 +25,14 @@ namespace phlex::experimental {
          [this](tbb::flow_control& fc) mutable -> data_cell_index_ptr {
            auto item = driver_();
            if (not item) {
-             multiplexer_.drain();
+             index_router_.drain();
              fc.stop();
              return {};
            }
 
-           return multiplexer_.route(*item);
+           return index_router_.route(*item);
          }},
-    multiplexer_{graph_},
+    index_router_{graph_},
     hierarchy_node_{graph_,
                     tbb::flow::unlimited,
                     [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
@@ -48,7 +48,7 @@ namespace phlex::experimental {
   {
     if (shutdown_on_error_) {
       // When in an error state, we need to sanely pop the layer stack and wait for any tasks to finish.
-      multiplexer_.drain();
+      index_router_.drain();
       graph_.wait_for_all();
     }
   }
@@ -132,7 +132,7 @@ namespace phlex::experimental {
 
     edge_maker make_edges{nodes_.transforms, nodes_.folds, nodes_.unfolds};
     make_edges(graph_,
-               multiplexer_,
+               index_router_,
                filters_,
                nodes_.outputs,
                nodes_.providers,
@@ -157,7 +157,7 @@ namespace phlex::experimental {
             if (auto it = unfold_flushers.find(pq.layer()); it != unfold_flushers.end()) {
               flushers.insert(it->second);
             } else {
-              flushers.insert(&multiplexer_.flusher());
+              flushers.insert(&index_router_.flusher());
             }
           }
           for (flusher_t* flusher : flushers) {

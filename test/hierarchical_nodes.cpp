@@ -1,7 +1,7 @@
 // =======================================================================================
 // This test executes the following graph
 //
-//     Multiplexer
+//     Index Router
 //      |       |
 //   get_time square
 //      |       |

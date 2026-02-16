@@ -5,8 +5,8 @@
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/glue.hpp"
+#include "phlex/core/index_router.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/multiplexer.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
@@ -159,7 +159,7 @@ namespace phlex::experimental {
     framework_driver driver_;
     std::vector<std::string> registration_errors_{};
     tbb::flow::input_node<data_cell_index_ptr> src_;
-    multiplexer multiplexer_;
+    index_router index_router_;
     tbb::flow::function_node<data_cell_index_ptr> hierarchy_node_;
     bool shutdown_on_error_{false};
   };

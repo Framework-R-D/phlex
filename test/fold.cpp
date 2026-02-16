@@ -2,7 +2,7 @@
 /*
    This test executes the following graph
 
-              Multiplexer
+              Index Router
               /        \
              /          \
         job_add(*)     run_add(^)

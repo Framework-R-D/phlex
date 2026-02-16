@@ -24,7 +24,7 @@ cet_make_library(
   input_arguments.cpp
   message.cpp
   node_catalog.cpp
-  multiplexer.cpp
+  index_router.cpp
   products_consumer.cpp
   registrar.cpp
   registration_api.cpp
@@ -61,7 +61,7 @@ install(
     graph_proxy.hpp
     input_arguments.hpp
     message.hpp
-    multiplexer.hpp
+    index_router.hpp
     node_catalog.hpp
     product_query.hpp
     products_consumer.hpp

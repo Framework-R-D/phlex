@@ -1,7 +1,7 @@
 // =======================================================================================
 // This test executes the following graph
 //
-//        Multiplexer
+//        Index Router
 //        |         |
 //    job_add(*) run_add(^)
 //        |         |
@@ -25,7 +25,7 @@
 // As the run_add node performs folds only over "runs", any top-level "events"
 // stores are excluded from the fold result.
 //
-// N.B. The multiplexer sends data products to nodes based on the name of the lowest
+// N.B. The index_router sends data products to nodes based on the name of the lowest
 //      layer.  For example, the top-level "event" and the nested "run/event" are both
 //      candidates for the "job" fold.
 // =======================================================================================
