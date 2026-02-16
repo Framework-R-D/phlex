@@ -1,6 +1,6 @@
 # CodeQL scanning for this repository
 
-This repository uses C++ (C++20 / moving to C++23) built with CMake under the phlex-src directory, plus some Python and CI bits (Bash). The repository includes a CodeQL GitHub Actions workflow that:
+This repository uses C++23 built with CMake under the phlex-src directory, plus some Python and CI bits (Bash). The repository includes a CodeQL GitHub Actions workflow that:
 
 - Runs on pushes to `main`, PRs targeting `main`, a weekly schedule, and can be run manually.
 - Uses the repository's existing Phlex CMake build actions (not CodeQL autobuild) so the same build configuration is used for tests and release builds.
@@ -19,8 +19,8 @@ The CodeQL workflow analyzes three language categories:
 ### Detection Behavior by Event Type
 
 - **Pull Requests**: Only languages with relevant file changes are analyzed
-  - Example: A PR changing only Python files will skip C++ and Actions analysis (saves 35-70 minutes)
-  - Example: A PR changing only C++ files will skip Python and Actions analysis (saves 10-20 minutes)
+  - Example: A PR changing only Python files will skip C++ and Actions analysis
+  - Example: A PR changing only C++ files will skip Python and Actions analysis
   - Example: A PR changing only workflow files will skip C++ and Python analysis
 - **Pushes to main/develop**: All languages are analyzed (no detection)
 - **Scheduled runs**: All languages are analyzed (no detection)

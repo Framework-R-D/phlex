@@ -443,7 +443,7 @@ jobs:
 
 #### Behavior Notes
 
-- **Pull Requests**: Only languages with relevant file changes are analyzed. For example, a PR that only modifies Python files will skip C++ and Actions analysis, saving 35-70 minutes of CI time.
+- **Pull Requests**: Only languages with relevant file changes are analyzed. For example, a PR that only modifies Python files will skip C++ and Actions analysis.
 - **Manual Runs** (`workflow_dispatch`): All languages are analyzed regardless of changes.
 - **Scheduled Runs**: All languages are analyzed regardless of changes.
 - **Pushes to main/develop**: All languages are analyzed regardless of changes.
