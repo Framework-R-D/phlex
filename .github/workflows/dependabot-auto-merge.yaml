@@ -22,8 +22,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "check_suite" ]; then
             PR_NUMBER="${{ github.event.check_suite.pull_requests[0].number }}"
-            if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
-              echo "No valid PR number found in check_suite event"
+            if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ] || ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+              echo "No valid PR number found in check_suite event (got: $PR_NUMBER)"
               exit 1
             fi
             PR_JSON=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json author,baseRefName)
