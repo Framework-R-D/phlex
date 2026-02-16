@@ -32,7 +32,7 @@ namespace phlex::experimental::detail {
     using multifunction_node_t = tbb::flow::multifunction_node<tagged_msg_t, message_tuple<1>>;
 
     struct cached_product {
-      std::shared_ptr<message> msg;
+      std::shared_ptr<message> data_msg;
       tbb::concurrent_queue<std::size_t> msg_ids{};
       std::atomic<int> counter;
       std::atomic_flag flush_received{};
@@ -46,7 +46,6 @@ namespace phlex::experimental::detail {
     std::size_t handle_flush_token(indexed_end_token const& token);
     std::size_t handle_index_message(index_message const& msg);
     void cleanup_cache_entry(std::size_t key);
-
 
     tbb::flow::indexer_node<message, indexed_end_token, index_message> indexer_;
     multifunction_node_t repeater_;

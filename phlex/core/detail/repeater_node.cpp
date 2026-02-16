@@ -51,24 +51,26 @@ namespace phlex::experimental::detail {
       return;
     }
 
-    spdlog::warn("[{}/{}] Cached products {}", node_name_, layer_, cached_products_.size());
+    spdlog::warn("[{}/{}] Cached messages: {}", node_name_, layer_, cached_products_.size());
     for (auto const& [_, cache] : cached_products_) {
-      if (cache.msg) {
-        spdlog::warn(
-          "[{}/{}]   Product for {}", node_name_, layer_, cache.msg->store->index()->to_string());
+      if (cache.data_msg) {
+        spdlog::warn("[{}/{}]   Product for {}",
+                     node_name_,
+                     layer_,
+                     cache.data_msg->store->index()->to_string());
       } else {
-        spdlog::warn("[{}/{}]   Product for {}", node_name_, layer_, _);
+        spdlog::warn("[{}/{}]   Product not yet received", node_name_, layer_);
       }
     }
   }
 
   int repeater_node::emit_pending_ids(cached_product* entry)
   {
-    assert(entry->msg);
+    assert(entry->data_msg);
     int num_emitted{};
     std::size_t msg_id{};
     while (entry->msg_ids.try_pop(msg_id)) {
-      output_port<0>(repeater_).try_put({.store = entry->msg->store, .id = msg_id});
+      output_port<0>(repeater_).try_put({.store = entry->data_msg->store, .id = msg_id});
       ++num_emitted;
     }
     return num_emitted;
@@ -89,7 +91,7 @@ namespace phlex::experimental::detail {
     accessor a;
     cached_products_.insert(a, key);
     auto* entry = &a->second;
-    entry->msg = std::make_shared<message>(msg);
+    entry->data_msg = std::make_shared<message>(msg);
     entry->counter += emit_pending_ids(entry);
     return key;
   }
@@ -121,8 +123,8 @@ namespace phlex::experimental::detail {
       cache_enabled_ = false;
       if (accessor a; cached_products_.find(a, key)) {
         auto* entry = &a->second;
-        if (entry->msg) {
-          output_port<0>(repeater_).try_put(*entry->msg);
+        if (entry->data_msg) {
+          output_port<0>(repeater_).try_put(*entry->data_msg);
           ++entry->counter;
         }
       }
@@ -133,8 +135,8 @@ namespace phlex::experimental::detail {
     accessor a;
     cached_products_.insert(a, key);
     auto* entry = &a->second;
-    if (entry->msg) {
-      output_port<0>(repeater_).try_put({.store = entry->msg->store, .id = msg_id});
+    if (entry->data_msg) {
+      output_port<0>(repeater_).try_put({.store = entry->data_msg->store, .id = msg_id});
       entry->counter += 1 + emit_pending_ids(entry);
     } else {
       entry->msg_ids.push(msg_id);
@@ -152,8 +154,8 @@ namespace phlex::experimental::detail {
     auto* entry = &a->second;
     if (!cache_enabled_) {
       if (entry->counter == 0) {
-        assert(entry->msg);
-        output_port<0>(repeater_).try_put(*entry->msg);
+        assert(entry->data_msg);
+        output_port<0>(repeater_).try_put(*entry->data_msg);
       }
       cached_products_.erase(a);
     } else if (entry->flush_received.test() and entry->counter == 0) {

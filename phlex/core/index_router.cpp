@@ -34,13 +34,13 @@ namespace {
 namespace phlex::experimental {
 
   //========================================================================================
-  // layer_sentry implementation
+  // layer_scope implementation
 
-  layer_sentry::layer_sentry(flush_counters& counters,
-                             flusher_t& flusher,
-                             detail::multilayer_slots const& slots_for_layer,
-                             data_cell_index_ptr index,
-                             std::size_t const message_id) :
+  detail::layer_scope::layer_scope(flush_counters& counters,
+                                   flusher_t& flusher,
+                                   detail::multilayer_slots const& slots_for_layer,
+                                   data_cell_index_ptr index,
+                                   std::size_t const message_id) :
     counters_{counters},
     flusher_{flusher},
     slots_{slots_for_layer},
@@ -51,7 +51,7 @@ namespace phlex::experimental {
     counters_.update(index_);
   }
 
-  layer_sentry::~layer_sentry()
+  detail::layer_scope::~layer_scope()
   {
     // To consider: We may want to skip the following logic if the framework prematurely
     //              needs to shut down.  Keeping it enabled allows in-flight folds to
@@ -61,8 +61,7 @@ namespace phlex::experimental {
       slot->put_end_token(index_);
     }
 
-    // =====================================================================================
-    // For fold nodes only (temporary until the release of fold results are incorporated
+    // The following is for fold nodes only (temporary until the release of fold results are incorporated
     // into the above paradigm).
     auto flush_result = counters_.extract(index_);
     flush_counts_ptr result;
@@ -72,7 +71,55 @@ namespace phlex::experimental {
     flusher_.try_put({index_, std::move(result), message_id_});
   }
 
-  std::size_t layer_sentry::depth() const { return index_->depth(); }
+  std::size_t detail::layer_scope::depth() const { return index_->depth(); }
+
+  //========================================================================================
+  // multilayer_slot implementation
+
+  detail::multilayer_slot::multilayer_slot(tbb::flow::graph& g,
+                                           std::string layer,
+                                           tbb::flow::receiver<indexed_end_token>* flush_port,
+                                           tbb::flow::receiver<index_message>* input_port) :
+    layer_{std::move(layer)}, broadcaster_{g}, flusher_{g}
+  {
+    make_edge(broadcaster_, *input_port);
+    make_edge(flusher_, *flush_port);
+  }
+
+  void detail::multilayer_slot::put_message(data_cell_index_ptr const& index,
+                                            std::size_t message_id)
+  {
+    if (layer_ == index->layer_name()) {
+      broadcaster_.try_put({.index = index, .msg_id = message_id, .cache = false});
+      return;
+    }
+
+    // Flush values are only used for indices that are *not* the "lowest" in the branch
+    // of the hierarchy.
+    ++counter_;
+    broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
+  }
+
+  void detail::multilayer_slot::put_end_token(data_cell_index_ptr const& index)
+  {
+    auto count = std::exchange(counter_, 0);
+    if (count == 0) {
+      // See comment above about flush values
+      return;
+    }
+
+    flusher_.try_put({.index = index, .count = count});
+  }
+
+  bool detail::multilayer_slot::matches_exactly(std::string const& layer_path) const
+  {
+    return layer_path.ends_with(delimited_layer_path(layer_));
+  }
+
+  bool detail::multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
+  {
+    return index->parent(layer_) != nullptr;
+  }
 
   //========================================================================================
   // index_router implementation
@@ -233,50 +280,5 @@ namespace phlex::experimental {
       msg += "\n- " + it->first;
     }
     throw std::runtime_error(msg);
-  }
-
-  detail::multilayer_slot::multilayer_slot(tbb::flow::graph& g,
-                                           std::string layer,
-                                           tbb::flow::receiver<indexed_end_token>* flush_port,
-                                           tbb::flow::receiver<index_message>* input_port) :
-    layer_{std::move(layer)}, broadcaster_{g}, flusher_{g}
-  {
-    make_edge(broadcaster_, *input_port);
-    make_edge(flusher_, *flush_port);
-  }
-
-  void detail::multilayer_slot::put_message(data_cell_index_ptr const& index,
-                                            std::size_t message_id)
-  {
-    if (layer_ == index->layer_name()) {
-      broadcaster_.try_put({.index = index, .msg_id = message_id, .cache = false});
-      return;
-    }
-
-    // Flush values are only used for indices that are *not* the "lowest" in the branch
-    // of the hierarchy.
-    ++counter_;
-    broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
-  }
-
-  void detail::multilayer_slot::put_end_token(data_cell_index_ptr const& index)
-  {
-    auto count = std::exchange(counter_, 0);
-    if (count == 0) {
-      // See comment above about flush values
-      return;
-    }
-
-    flusher_.try_put({.index = index, .count = count});
-  }
-
-  bool detail::multilayer_slot::matches_exactly(std::string const& layer_path) const
-  {
-    return layer_path.ends_with(delimited_layer_path(layer_));
-  }
-
-  bool detail::multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
-  {
-    return index->parent(layer_) != nullptr;
   }
 }

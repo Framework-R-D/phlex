@@ -23,6 +23,12 @@ namespace phlex::experimental {
     using index_set_node_ptr = std::shared_ptr<index_set_node>;
     using flush_node = tbb::flow::broadcast_node<indexed_end_token>;
 
+    // ==========================================================================================
+    // A multilayer_slot manages routing and flushing for a single layer slot (a repeater) in
+    // multi-layer join nodes. Each slot corresponds to one input data layer of a multi-layer
+    // join operation.  It:
+    //   (a) routes index messages to either the matching layer or its data-layer parent, and
+    //   (b) emits flush tokens to the repeater to evict a cached data product from memory.
     class multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
@@ -30,7 +36,6 @@ namespace phlex::experimental {
                       tbb::flow::receiver<indexed_end_token>* flush_port,
                       tbb::flow::receiver<index_message>* input_port);
 
-      auto const& layer() const noexcept { return layer_; }
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
       void put_end_token(data_cell_index_ptr const& index);
 
@@ -45,25 +50,28 @@ namespace phlex::experimental {
     };
 
     using multilayer_slots = std::vector<std::shared_ptr<multilayer_slot>>;
+
+    // A layer_scope object is an RAII object that manages layer-scoped operations during
+    // data-cell-index routing. It updates flush counters on construction and ensures cleanup
+    // (flushing end tokens and releasing fold results) on destruction.
+    class layer_scope {
+    public:
+      layer_scope(flush_counters& counters,
+                  flusher_t& flusher,
+                  multilayer_slots const& slots_for_layer,
+                  data_cell_index_ptr index,
+                  std::size_t message_id);
+      ~layer_scope();
+      std::size_t depth() const;
+
+    private:
+      flush_counters& counters_;
+      flusher_t& flusher_;
+      multilayer_slots const& slots_;
+      data_cell_index_ptr index_;
+      std::size_t message_id_;
+    };
   }
-
-  class layer_sentry {
-  public:
-    layer_sentry(flush_counters& counters,
-                 flusher_t& flusher,
-                 detail::multilayer_slots const& slots_for_layer,
-                 data_cell_index_ptr index,
-                 std::size_t message_id);
-    ~layer_sentry();
-    std::size_t depth() const;
-
-  private:
-    flush_counters& counters_;
-    flusher_t& flusher_;
-    detail::multilayer_slots const& slots_;
-    data_cell_index_ptr index_;
-    std::size_t message_id_;
-  };
 
   class index_router {
   public:
@@ -102,26 +110,27 @@ namespace phlex::experimental {
     std::atomic<std::size_t> received_indices_{};
     flusher_t flusher_;
     flush_counters counters_;
-    std::stack<layer_sentry> layers_;
+    std::stack<detail::layer_scope> layers_;
 
     // ==========================================================================================
     // Routing to provider nodes
     // The following maps are used to route data-cell indices to provider nodes.
     // The first map is from layer name to the corresponding broadcaster node.
     std::unordered_map<std::string, detail::index_set_node_ptr> broadcasters_;
-    // The second map is a cache from a layer hash matched to a broadcaster node, to avoid repeated
-    // lookups for the same layer.
+    // The second map is a cache from a layer hash matched to a broadcaster node, to avoid
+    // repeated lookups for the same layer.
     std::unordered_map<std::size_t, detail::index_set_node_ptr> matched_broadcasters_;
 
     // ==========================================================================================
     // Routing to multi-layer join nodes
-    // The first map is from the node name to the corresponding broadcaster nodes and flush nodes.
+    // The first map is from the node name to the corresponding broadcaster nodes and flush
+    // nodes.
     std::unordered_map<std::string, detail::multilayer_slots> multibroadcasters_;
-    // The second map is a cache from a layer hash matched to a set of multilayer slots, to avoid repeated lookups
-    // for the same layer.
+    // The second map is a cache from a layer hash matched to a set of multilayer slots, to
+    // avoid repeated lookups for the same layer.
     std::unordered_map<std::size_t, detail::multilayer_slots> matched_routing_entries_;
-    // The third map is a cache from a layer hash matched to a set of multilayer slots for the purposes of flushing,
-    // to avoid repeated lookups for the same layer during flushing.
+    // The third map is a cache from a layer hash matched to a set of multilayer slots for the
+    // purposes of flushing, to avoid repeated lookups for the same layer during flushing.
     std::unordered_map<std::size_t, detail::multilayer_slots> matched_flushing_entries_;
   };
 
