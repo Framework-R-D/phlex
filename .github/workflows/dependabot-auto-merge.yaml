@@ -1,5 +1,9 @@
 name: Dependabot auto-merge
-on: pull_request
+on:
+  pull_request:
+  pull_request_review:
+  check_suite:
+    types: [completed]
 
 permissions:
   contents: write
@@ -9,17 +13,45 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
     if: |
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.base.ref == 'main'
+      (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
+      (github.event_name == 'pull_request_review' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
+      (github.event_name == 'check_suite' && github.event.check_suite.pull_requests[0] != null)
     steps:
-#      - name: Dependabot metadata
-#        id: metadata
-#        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
-#        with:
-#          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Get PR details
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "check_suite" ]; then
+            PR_NUMBER="${{ github.event.check_suite.pull_requests[0].number }}"
+            PR_JSON=$(gh pr view "$PR_NUMBER" --json author,baseRefName)
+            AUTHOR=$(echo "$PR_JSON" | jq -r '.author.login')
+            BASE_REF=$(echo "$PR_JSON" | jq -r '.baseRefName')
+            
+            {
+              echo "author=$AUTHOR"
+              echo "base_ref=$BASE_REF"
+              echo "number=$PR_NUMBER"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "author=${{ github.event.pull_request.user.login }}"
+              echo "base_ref=${{ github.event.pull_request.base.ref }}"
+              echo "number=${{ github.event.pull_request.number }}"
+            } >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto --merge "$PR_URL"
+        if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
+        run: |
+          if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" 2>&1 | tee /tmp/gh-output.txt; then
+            if grep -q "auto-merge is already enabled\|User is not authorized" /tmp/gh-output.txt; then
+              echo "Auto-merge already enabled or awaiting required checks - this is expected"
+              exit 0
+            else
+              cat /tmp/gh-output.txt
+              exit 1
+            fi
+          fi
         env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
