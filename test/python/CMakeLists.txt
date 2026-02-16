@@ -110,7 +110,10 @@ if(HAS_NUMPY)
   add_test(NAME py:vectypes COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
-  add_test(NAME py:callback3 COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet)
+  add_test(
+    NAME py:callback3
+    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
 
   # Expect failure for these tests (check for error propagation and type checking)
