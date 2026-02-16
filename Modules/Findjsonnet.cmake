@@ -8,8 +8,7 @@ if(JSONNET_EXE)
     ERROR_QUIET
   )
   string(
-    REGEX REPLACE
-    "^.*v([0-9.]+)$"
+    REGEX REPLACE "^.*v([0-9.]+)$"
     "\\1"
     ${CMAKE_FIND_PACKAGE_NAME}_VERSION
     "${${CMAKE_FIND_PACKAGE_NAME}_VERSION}"
@@ -52,8 +51,7 @@ if(${CMAKE_FIND_PACKAGE_NAME}_FOUND)
         )
         # Extract just the install_name (second line of output)
         string(
-          REGEX REPLACE
-          "^[^\n]+\n(.+)$"
+          REGEX REPLACE "^[^\n]+\n(.+)$"
           "\\1"
           _current_install_name
           "${_install_name_output}"
