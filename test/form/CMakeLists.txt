@@ -43,3 +43,8 @@ cet_test(
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
 )
+
+cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
+         form
+)
+target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)

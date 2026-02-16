@@ -204,10 +204,6 @@ cet_test(
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
          phlex::core
 )
-cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
-         form
-)
-target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
 cet_test(core_misc_test USE_CATCH2_MAIN SOURCE core_misc_test.cpp LIBRARIES
          phlex::core
          Boost::json
