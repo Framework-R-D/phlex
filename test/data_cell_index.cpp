@@ -30,8 +30,7 @@ TEST_CASE("data_cell_index methods", "[data model]")
   auto run0 = base->make_child(0, "run");
   auto run1 = base->make_child(1, "run");
 
-  SECTION("Comparisons")
-  {
+  SECTION("Comparisons") {
     CHECK(*run0 < *run1);
     CHECK_FALSE(*run1 < *run0);
     CHECK_FALSE(*run0 < *run0);
@@ -42,8 +41,7 @@ TEST_CASE("data_cell_index methods", "[data model]")
     CHECK(*run0 < *subrun0);
   }
 
-  SECTION("to_string")
-  {
+  SECTION("to_string") {
     auto subrun = run0->make_child(5, "subrun");
     CHECK(subrun->to_string() == "[run:0, subrun:5]");
     CHECK(base->to_string() == "[]");
@@ -52,8 +50,7 @@ TEST_CASE("data_cell_index methods", "[data model]")
     CHECK(nameless->to_string() == "[10]");
   }
 
-  SECTION("Parent lookup")
-  {
+  SECTION("Parent lookup") {
     auto subrun = run0->make_child(5, "subrun");
     auto event = subrun->make_child(100, "event");
 
@@ -62,11 +59,12 @@ TEST_CASE("data_cell_index methods", "[data model]")
     CHECK(event->parent("nonexistent") == nullptr);
   }
 
-  SECTION("Layer path")
-  {
+  SECTION("Layer path") {
     auto subrun = run0->make_child(5, "subrun");
     CHECK(subrun->layer_path() == "/job/run/subrun");
   }
 
-  SECTION("Base access") { CHECK(&data_cell_index::base() == data_cell_index::base_ptr().get()); }
+  SECTION("Base access") {
+    CHECK(&data_cell_index::base() == data_cell_index::base_ptr().get());
+  }
 }

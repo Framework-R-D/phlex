@@ -11,7 +11,7 @@ cet_test(
   job:add
   HANDBUILT
   TEST_EXEC
-  $<TARGET_FILE:phlex>
+  phlex::phlex
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/add.jsonnet

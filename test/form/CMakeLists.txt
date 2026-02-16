@@ -35,7 +35,7 @@ cet_test(
   job:form_module
   HANDBUILT
   TEST_EXEC
-  $<TARGET_FILE:phlex>
+  phlex::phlex
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/form_test.jsonnet

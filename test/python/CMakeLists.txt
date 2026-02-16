@@ -104,36 +104,24 @@ set(ACTIVE_PY_CPHLEX_TESTS "")
 # numpy support if installed
 if(HAS_NUMPY)
   # phlex-based tests that require numpy support
-  add_test(NAME py:vec COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet)
+  add_test(NAME py:vec COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
 
-  add_test(
-    NAME py:vectypes
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet
-  )
+  add_test(NAME py:vectypes COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
-  add_test(
-    NAME py:callback3
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet
-  )
+  add_test(NAME py:callback3 COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
 
   # Expect failure for these tests (check for error propagation and type checking)
-  add_test(
-    NAME py:raise
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet
-  )
+  add_test(NAME py:raise COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet)
   set_tests_properties(
     py:raise
     PROPERTIES PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
 
-  add_test(
-    NAME py:badbool
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet
-  )
+  add_test(NAME py:badbool COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet)
   set_tests_properties(
     py:badbool
     PROPERTIES
@@ -142,10 +130,7 @@ if(HAS_NUMPY)
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
 
-  add_test(
-    NAME py:badint
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet
-  )
+  add_test(NAME py:badint COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet)
   set_tests_properties(
     py:badint
     PROPERTIES
@@ -154,10 +139,7 @@ if(HAS_NUMPY)
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
 
-  add_test(
-    NAME py:baduint
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet
-  )
+  add_test(NAME py:baduint COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet)
   set_tests_properties(
     py:baduint
     PROPERTIES
@@ -168,7 +150,7 @@ if(HAS_NUMPY)
 
   add_test(
     NAME py:mismatch_variant
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet
+    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet
   )
   set_tests_properties(
     py:mismatch_variant
@@ -177,16 +159,10 @@ if(HAS_NUMPY)
   )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_variant)
 
-  add_test(
-    NAME py:veclists
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet
-  )
+  add_test(NAME py:veclists COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
 
-  add_test(
-    NAME py:types
-    COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet
-  )
+  add_test(NAME py:types COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:types)
 endif()
 
@@ -195,25 +171,16 @@ add_library(cppsource4py MODULE source.cpp)
 target_link_libraries(cppsource4py PRIVATE phlex::module)
 
 # phlex-based tests (no cppyy dependency)
-add_test(NAME py:add COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet)
+add_test(NAME py:add COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
 
-add_test(
-  NAME py:config
-  COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet
-)
+add_test(NAME py:config COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 
-add_test(
-  NAME py:reduce
-  COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet
-)
+add_test(NAME py:reduce COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
-add_test(
-  NAME py:coverage
-  COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet
-)
+add_test(NAME py:coverage COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
 
 add_test(
@@ -269,10 +236,7 @@ set_tests_properties(${ACTIVE_PY_CPHLEX_TESTS} PROPERTIES ENVIRONMENT "${PYTHON_
 set(PY_VIRTUAL_ENV_DIR ${CMAKE_CURRENT_BINARY_DIR}/py_virtual_env)
 execute_process(COMMAND python -m venv ${PY_VIRTUAL_ENV_DIR})
 configure_file(pysyspath.jsonnet.in pysyspath.jsonnet @ONLY)
-add_test(
-  NAME py:syspath
-  COMMAND $<TARGET_FILE:phlex> -c ${CMAKE_CURRENT_BINARY_DIR}/pysyspath.jsonnet
-)
+add_test(NAME py:syspath COMMAND phlex::phlex -c ${CMAKE_CURRENT_BINARY_DIR}/pysyspath.jsonnet)
 
 # Activate the Python virtual environment "by hand".  Requires setting the VIRTUAL_ENV
 # environment variable and prepending to the PATH environment variable.
