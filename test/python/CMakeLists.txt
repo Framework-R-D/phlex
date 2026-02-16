@@ -78,6 +78,7 @@ if(HAS_CPPYY)
       -m
       pytest
       --cov=${CMAKE_CURRENT_SOURCE_DIR}
+      --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
       --cov-report=term-missing
       --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
       --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
@@ -96,15 +97,6 @@ if(HAS_CPPYY)
   add_test(NAME py:phlex COMMAND ${PYTEST_COMMAND} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
   set_property(TEST py:phlex PROPERTY ENVIRONMENT "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}")
-
-  if(HAS_PYTEST_COV)
-    add_custom_target(
-      coverage-python
-      COMMAND ${PYTEST_COMMAND}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      COMMENT "Running Python coverage report"
-    )
-  endif()
 endif()
 
 set(ACTIVE_PY_CPHLEX_TESTS "")
@@ -261,3 +253,34 @@ add_test(
   COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit_test_variant.py
 )
 set_tests_properties(py:unit_variant PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
+
+# Python coverage target
+if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
+  if(HAS_CPPYY)
+    # When cppyy is available, use the full pytest command
+    add_custom_target(
+      coverage-python
+      COMMAND
+        ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
+        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL} ${PYTEST_COMMAND}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMENT "Running Python coverage report"
+    )
+  else()
+    # When cppyy is not available, run a simpler pytest command
+    # for standalone Python tests (like unit_test_variant.py)
+    set(PYTHON_TEST_PHLEX_INSTALL_FALLBACK ${CMAKE_SOURCE_DIR})
+    add_custom_target(
+      coverage-python
+      COMMAND
+        ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
+        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL_FALLBACK} ${Python_EXECUTABLE} -m pytest
+        --cov=${CMAKE_CURRENT_SOURCE_DIR} --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
+        --cov-report=term-missing --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
+        --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
+        --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc unit_test_variant.py
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMENT "Running Python coverage report (standalone tests only)"
+    )
+  endif()
+endif()
