@@ -3,7 +3,7 @@
 
 import unittest
 
-from phlex import Variant
+from phlex import MissingAnnotation, Variant
 
 
 def example_func(a, b=1):
@@ -72,6 +72,32 @@ class TestVariant(unittest.TestCase):
         wrapper = Variant(c, {}, "deep_clone", clone="deep")
         self.assertNotEqual(id(wrapper.phlex_callable), id(c))
         self.assertNotEqual(id(wrapper.phlex_callable.data), id(c.data))
+
+    def test_missing_annotation_raises(self):
+        """Test that MissingAnnotation is raised when a required argument is missing."""
+
+        def func(x, y):
+            return x + y
+
+        # Missing 'y'
+        incomplete_ann = {"x": int, "return": int}
+        with self.assertRaises(MissingAnnotation) as cm:
+            Variant(func, incomplete_ann, "missing_y")
+
+        self.assertEqual(str(cm.exception), "argument 'y' is not annotated")
+        self.assertEqual(cm.exception.arg, "y")
+
+    def test_missing_optional_annotation_does_not_raise(self):
+        """Test that MissingAnnotation is not raised for arguments with default values."""
+
+        def func(x, y=1):
+            return x + y
+
+        # Missing 'y', but it has a default value
+        incomplete_ann = {"x": int, "return": int}
+        wrapper = Variant(func, incomplete_ann, "missing_optional_y")
+        self.assertIn("x", wrapper.__annotations__)
+        self.assertNotIn("y", wrapper.__annotations__)
 
 
 if __name__ == "__main__":
