@@ -265,8 +265,7 @@ function(_create_coverage_targets_impl)
     foreach(_gcovr_summary_filter_path IN LISTS _gcovr_summary_filter_paths)
       string(REGEX REPLACE "/$" "" _gcovr_summary_filter_trimmed "${_gcovr_summary_filter_path}")
       string(
-        REGEX REPLACE
-        [=[([][.^$+*?()|\])]=]
+        REGEX REPLACE [=[([][.^$+*?()|\])]=]
         [=[\\\1]=]
         _gcovr_summary_filter_escaped
         "${_gcovr_summary_filter_trimmed}"
@@ -444,8 +443,7 @@ function(_create_coverage_targets_impl)
     foreach(_gcovr_filter_path IN LISTS _gcovr_filter_paths)
       string(REGEX REPLACE "/$" "" _gcovr_filter_trimmed "${_gcovr_filter_path}")
       string(
-        REGEX REPLACE
-        [=[([][.^$+*?()|\])]=]
+        REGEX REPLACE [=[([][.^$+*?()|\])]=]
         [=[\\\1]=]
         _gcovr_filter_escaped
         "${_gcovr_filter_trimmed}"
