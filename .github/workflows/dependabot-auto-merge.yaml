@@ -51,29 +51,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Approve Dependabot PR
-        if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
-        run: |
-          # Check if PR is already approved to avoid duplicate approvals
-          PR_NUMBER="${{ steps.pr.outputs.number }}"
-          REVIEW_DECISION=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json reviewDecision --jq '.reviewDecision')
-          
-          if [ "$REVIEW_DECISION" != "APPROVED" ]; then
-            echo "Approving PR #$PR_NUMBER..."
-            gh pr review "$PR_NUMBER" --approve --repo "${{ github.repository }}" 2>&1 | tee /tmp/approve-output.txt
-            APPROVE_STATUS="${PIPESTATUS[0]}"
-            if [ "$APPROVE_STATUS" -eq 0 ]; then
-              echo "PR approved successfully"
-            else
-              echo "Warning: Failed to approve PR (this may be expected if already approved or if permissions are insufficient)"
-              cat /tmp/approve-output.txt
-            fi
-          else
-            echo "PR #$PR_NUMBER is already approved"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Enable auto-merge for Dependabot PRs
         if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
         run: |

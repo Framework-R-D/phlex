@@ -16,10 +16,9 @@ The `dependabot-auto-merge.yaml` workflow automatically enables auto-merge for D
    - The base branch is `main`
 
 3. **Actions:**
-   - Approves the PR (if not already approved)
-   - Enables auto-merge
+   - Enables auto-merge on the PR
 
-4. **Merge:** Once all branch protection requirements are satisfied, GitHub automatically merges the PR.
+4. **Merge:** Once all branch protection requirements are satisfied (including **manual approval** and passing CI checks), GitHub automatically merges the PR.
 
 ## Important: Use of `pull_request_target`
 
