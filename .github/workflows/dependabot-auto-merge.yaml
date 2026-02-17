@@ -6,7 +6,9 @@ on:
   # 2. We don't check out or run code from the PR
   # 3. We only enable auto-merge, which requires branch protection to pass
   pull_request_target:
+    types: [opened, reopened, synchronize]
   pull_request_review:
+    types: [submitted]
   check_suite:
     types: [completed]
 
@@ -66,6 +68,7 @@ jobs:
           #   3. Use pull_request_target trigger (has security implications)
           # - "Required status checks" - waiting for CI checks to pass
           # - "Required approving review" - waiting for approval
+          set -o pipefail
           if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
             if grep -qE "auto-merge is already enabled|not authorized for this protected branch|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
               echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
