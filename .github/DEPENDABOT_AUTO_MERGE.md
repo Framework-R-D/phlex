@@ -96,7 +96,10 @@ Configure the repository to allow Dependabot to bypass branch protection:
 If the workflow runs but auto-merge is not enabled, check the workflow logs for error messages:
 
 - **"auto-merge is already enabled"** - Auto-merge was already set on a previous run
-- **"not authorized for this protected branch"** - The token doesn't have sufficient permissions (should not occur with `pull_request_target`)
+- **"not authorized for this protected branch"** - The token doesn't have sufficient permissions. This can occur if:
+  - Branch protection rules require additional permissions beyond what `pull_request_target` provides
+  - The repository has custom protection rules that prevent even elevated tokens from enabling auto-merge
+  - Consider using a GitHub App or PAT with appropriate permissions (see Alternative Solutions above)
 - **"Required status checks"** - Waiting for CI checks to pass
 - **"Required approving review"** - Waiting for approval (the workflow attempts to approve automatically)
 

@@ -90,7 +90,7 @@ jobs:
           # - "Required status checks" - waiting for CI checks to pass
           # - "Required approving review" - waiting for approval
           if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
-            if grep -qE "auto-merge is already enabled|not authorized for this protected branch|[Rr]equired.*status.*check|[Rr]equired.*(approving|approval).*review" /tmp/gh-output.txt; then
+            if grep -qE "auto-merge is already enabled|not authorized for this protected branch|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
               echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
               if grep -q "not authorized for this protected branch" /tmp/gh-output.txt; then
                 echo ""
