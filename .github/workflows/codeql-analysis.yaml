@@ -27,7 +27,6 @@ on:
         description: "JSON array of languages to analyze"
         required: false
         type: string
-        default: '["cpp", "python", "actions"]'
       pr-number:
         description: "PR number if run in PR context"
         required: false
@@ -38,6 +37,22 @@ on:
         type: string
       pr-base-repo:
         description: "The full name of the PR base repository"
+        required: false
+        type: string
+      pr-base-sha:
+        description: "Base SHA of the PR for relevance check"
+        required: false
+        type: string
+      pr-head-sha:
+        description: "Head SHA of the PR for relevance check"
+        required: false
+        type: string
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: false
+        type: string
+      repo:
+        description: "The repository to checkout from"
         required: false
         type: string
 
@@ -51,25 +66,231 @@ env:
   CPP_COMPILER: g++
 
 jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
+      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+      skip_detection: ${{ steps.should_skip.outputs.skip }}
+      local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+      - name: Determine if detection should be skipped
+        id: should_skip
+        run: |
+          # Skip detection for scheduled runs, workflow_dispatch, or workflow_call with language-matrix override
+          if [ "${{ github.event_name }}" = "schedule" ] || \
+             [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
+             [ "${{ github.event_name }}" = "push" ] || \
+             { [ "${{ github.event_name }}" = "workflow_call" ] && [ -n "${{ inputs.language-matrix }}" ]; } || \
+             [ "${{ steps.detect_act.outputs.is_act }}" = "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  detect-changes-cpp:
+    needs: pre-check
+    if: >
+      needs.pre-check.result == 'success' &&
+      needs.pre-check.outputs.skip_detection != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: ${{ needs.pre-check.outputs.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
+
+      - name: Detect C++ relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: ${{ needs.pre-check.outputs.local_checkout_path }}
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
+          file-type: |
+            cpp
+            cmake
+
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No C++ relevant changes detected; C++ CodeQL scan will be skipped."
+          else
+            echo "::group::C++ CodeQL relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
+
+  detect-changes-python:
+    needs: pre-check
+    if: >
+      needs.pre-check.result == 'success' &&
+      needs.pre-check.outputs.skip_detection != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: ${{ needs.pre-check.outputs.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
+
+      - name: Detect Python relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: ${{ needs.pre-check.outputs.local_checkout_path }}
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
+          file-type: python
+
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No Python relevant changes detected; Python CodeQL scan will be skipped."
+          else
+            echo "::group::Python CodeQL relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
+
+  detect-changes-actions:
+    needs: pre-check
+    if: >
+      needs.pre-check.result == 'success' &&
+      needs.pre-check.outputs.skip_detection != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: ${{ needs.pre-check.outputs.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
+
+      - name: Detect Actions/workflow relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: ${{ needs.pre-check.outputs.local_checkout_path }}
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
+          include-globs: |
+            .github/workflows/*.yaml
+            .github/workflows/*.yml
+            .github/actions/**/action.yaml
+            .github/actions/**/action.yml
+
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No Actions/workflow relevant changes detected; Actions CodeQL scan will be skipped."
+          else
+            echo "::group::Actions CodeQL relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
+
+  determine-languages:
+    needs: [pre-check, detect-changes-cpp, detect-changes-python, detect-changes-actions]
+    if: always() && needs.pre-check.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      languages: ${{ steps.build_matrix.outputs.languages }}
+    steps:
+      - name: Build language matrix
+        id: build_matrix
+        env:
+          LANGUAGE_MATRIX: ${{ inputs.language-matrix }}
+        run: |
+          # If detection was skipped, use all languages or the provided language-matrix
+          if [ "${{ needs.pre-check.outputs.skip_detection }}" = "true" ]; then
+            if [ "${{ github.event_name }}" = "workflow_call" ] && [ -n "$LANGUAGE_MATRIX" ]; then
+              # Validate that language-matrix is valid JSON
+              if ! echo "$LANGUAGE_MATRIX" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
+                echo "::error::Invalid language-matrix input: must be valid JSON array"
+                exit 1
+              fi
+              echo "languages=$LANGUAGE_MATRIX" >> "$GITHUB_OUTPUT"
+            else
+              echo 'languages=["cpp", "python", "actions"]' >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
+          fi
+
+          # Build array based on detection results
+          langs=()
+          if [ "${{ needs.detect-changes-cpp.result }}" = "success" ] && [ "${{ needs.detect-changes-cpp.outputs.has_changes }}" = "true" ]; then
+            langs+=("cpp")
+          fi
+          if [ "${{ needs.detect-changes-python.result }}" = "success" ] && [ "${{ needs.detect-changes-python.outputs.has_changes }}" = "true" ]; then
+            langs+=("python")
+          fi
+          if [ "${{ needs.detect-changes-actions.result }}" = "success" ] && [ "${{ needs.detect-changes-actions.outputs.has_changes }}" = "true" ]; then
+            langs+=("actions")
+          fi
+
+          # Convert bash array to JSON array
+          if [ "${#langs[@]}" -eq 0 ]; then
+            echo 'languages=[]' >> "$GITHUB_OUTPUT"
+          else
+            json_array="["
+            for i in "${!langs[@]}"; do
+              if [ "$i" -gt 0 ]; then
+                json_array+=","
+              fi
+              json_array+="\"${langs[$i]}\""
+            done
+            json_array+="]"
+            echo "languages=$json_array" >> "$GITHUB_OUTPUT"
+          fi
+
   codeql:
+    needs: [pre-check, determine-languages]
+    if: >
+      needs.determine-languages.result == 'success' &&
+      needs.determine-languages.outputs.languages != '[]'
     name: Analyze ${{ matrix.language }} with CodeQL
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
     env:
-      local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+      local_checkout_path: ${{ needs.pre-check.outputs.local_checkout_path }}
       local_build_path: ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}
       CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}/compile_commands.json
     strategy:
       fail-fast: false
       matrix:
-        language: ${{ fromJson((github.event_name == 'workflow_call' && inputs.language-matrix) || '["cpp", "python", "actions"]') }}
+        language: ${{ fromJson(needs.determine-languages.outputs.languages) }}
     timeout-minutes: 120
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+          ref: ${{ needs.pre-check.outputs.ref }}
           path: ${{ env.local_checkout_path }}
           fetch-depth: 0
 
