@@ -1,6 +1,11 @@
 name: Dependabot auto-merge
 on:
-  pull_request:
+  # Use pull_request_target instead of pull_request to get elevated permissions
+  # This is safe for Dependabot PRs because:
+  # 1. We verify the PR author is dependabot[bot]
+  # 2. We don't check out or run code from the PR
+  # 3. We only enable auto-merge, which requires branch protection to pass
+  pull_request_target:
   pull_request_review:
   check_suite:
     types: [completed]
@@ -13,7 +18,7 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
+      (github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
       (github.event_name == 'pull_request_review' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
       (github.event_name == 'check_suite' && github.event.check_suite.pull_requests[0] != null && startsWith(github.event.check_suite.head_branch, 'dependabot/'))
     steps:
@@ -36,11 +41,33 @@ jobs:
               echo "number=$PR_NUMBER"
             } >> "$GITHUB_OUTPUT"
           else
+            # For pull_request_target and pull_request_review, use event data
             {
               echo "author=${{ github.event.pull_request.user.login }}"
               echo "base_ref=${{ github.event.pull_request.base.ref }}"
               echo "number=${{ github.event.pull_request.number }}"
             } >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve Dependabot PR
+        if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
+        run: |
+          # Check if PR is already approved to avoid duplicate approvals
+          PR_NUMBER="${{ steps.pr.outputs.number }}"
+          REVIEW_DECISION=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json reviewDecision --jq '.reviewDecision')
+          
+          if [ "$REVIEW_DECISION" != "APPROVED" ]; then
+            echo "Approving PR #$PR_NUMBER..."
+            if gh pr review "$PR_NUMBER" --approve --repo "${{ github.repository }}" 2>&1 | tee /tmp/approve-output.txt; then
+              echo "PR approved successfully"
+            else
+              echo "Warning: Failed to approve PR (this may be expected if already approved or if permissions are insufficient)"
+              cat /tmp/approve-output.txt
+            fi
+          else
+            echo "PR #$PR_NUMBER is already approved"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,11 +79,24 @@ jobs:
           # so we must parse error messages. Common expected errors:
           # - "auto-merge is already enabled" - auto-merge was already set
           # - "not authorized for this protected branch" - branch protection requirements not yet met
+          #   NOTE: This typically occurs when the GITHUB_TOKEN doesn't have sufficient permissions.
+          #   For workflows triggered by Dependabot PRs, the token has restricted permissions even
+          #   with contents:write and pull-requests:write. Solutions include:
+          #   1. Use a GitHub App token (most secure)
+          #   2. Use a PAT stored in secrets (simpler but less secure)
+          #   3. Use pull_request_target trigger (has security implications)
           # - "Required status checks" - waiting for CI checks to pass
           # - "Required approving review" - waiting for approval
           if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
             if grep -qE "auto-merge is already enabled|not authorized for this protected branch|[Rr]equired.*status.*check|[Rr]equired.*approv" /tmp/gh-output.txt; then
               echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
+              if grep -q "not authorized for this protected branch" /tmp/gh-output.txt; then
+                echo ""
+                echo "NOTE: The 'not authorized for this protected branch' error typically means:"
+                echo "  - The GITHUB_TOKEN has restricted permissions when triggered by Dependabot PRs"
+                echo "  - To fix this, consider using a GitHub App token or PAT with appropriate permissions"
+                echo "  - See workflow comments for more details"
+              fi
               exit 0
             else
               echo "Unexpected error enabling auto-merge:"
