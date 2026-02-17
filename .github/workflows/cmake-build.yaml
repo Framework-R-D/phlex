@@ -300,6 +300,10 @@ jobs:
           message: |
             Build and test workflow completed.
             
-            **Result:** ${{ needs.build.result == 'success' && '✅ All builds and tests passed.' || '❌ Some builds or tests failed.' }}
+            **Result:** ${{ needs.build.result == 'success' && '✅ All builds and tests passed.' 
+              || needs.build.result == 'failure' && '❌ Some builds or tests failed.' 
+              || needs.build.result == 'cancelled' && '⚠️ Build was cancelled before completion.' 
+              || needs.build.result == 'skipped' && 'ℹ️ Build job was skipped.' 
+              || format('ℹ️ Build job completed with status: {0}.', needs.build.result) }}
             
             See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.
