@@ -55,6 +55,7 @@ jobs:
 
       - name: Enable auto-merge for Dependabot PRs
         if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
+        shell: bash
         run: |
           # Attempt to enable auto-merge. The gh CLI doesn't provide structured error codes,
           # so we must parse error messages. Common expected errors:
