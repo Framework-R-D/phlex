@@ -30,6 +30,7 @@ When workflows are triggered by Dependabot PRs using the `pull_request` event, t
 
 **Why this is safe:**
 Using `pull_request_target` for Dependabot auto-merge is safe because:
+
 1. We verify the PR author is `dependabot[bot]` before taking any action
 2. We don't check out or execute code from the PR
 3. We only enable auto-merge, which still requires all branch protection rules to pass
@@ -49,6 +50,7 @@ Create a GitHub App with appropriate permissions and use it to generate tokens:
 4. Use the token instead of `secrets.GITHUB_TOKEN`
 
 Example:
+
 ```yaml
 - uses: actions/create-github-app-token@v1
   id: app-token
@@ -70,6 +72,7 @@ Create a PAT with appropriate permissions and store it as a repository secret:
 3. Use it in the workflow
 
 Example:
+
 ```yaml
 - name: Enable auto-merge
   env:
@@ -106,6 +109,7 @@ If the workflow runs but auto-merge is not enabled, check the workflow logs for 
 ### The PR is not merging automatically
 
 Even after auto-merge is enabled, the PR won't merge until:
+
 1. All required reviews are approved
 2. All required status checks pass
 3. No blocking conversations exist (if required)
