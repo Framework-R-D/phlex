@@ -60,7 +60,9 @@ jobs:
           
           if [ "$REVIEW_DECISION" != "APPROVED" ]; then
             echo "Approving PR #$PR_NUMBER..."
-            if gh pr review "$PR_NUMBER" --approve --repo "${{ github.repository }}" 2>&1 | tee /tmp/approve-output.txt; then
+            gh pr review "$PR_NUMBER" --approve --repo "${{ github.repository }}" 2>&1 | tee /tmp/approve-output.txt
+            APPROVE_STATUS="${PIPESTATUS[0]}"
+            if [ "$APPROVE_STATUS" -eq 0 ]; then
               echo "PR approved successfully"
             else
               echo "Warning: Failed to approve PR (this may be expected if already approved or if permissions are insufficient)"
@@ -88,7 +90,7 @@ jobs:
           # - "Required status checks" - waiting for CI checks to pass
           # - "Required approving review" - waiting for approval
           if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
-            if grep -qE "auto-merge is already enabled|not authorized for this protected branch|[Rr]equired.*status.*check|[Rr]equired.*approv" /tmp/gh-output.txt; then
+            if grep -qE "auto-merge is already enabled|not authorized for this protected branch|[Rr]equired.*status.*check|[Rr]equired.*(approving|approval).*review" /tmp/gh-output.txt; then
               echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
               if grep -q "not authorized for this protected branch" /tmp/gh-output.txt; then
                 echo ""
