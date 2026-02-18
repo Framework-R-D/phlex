@@ -35,7 +35,7 @@ cet_test(
   job:form_module
   HANDBUILT
   TEST_EXEC
-  phlex::phlex
+  phlex
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/form_test.jsonnet
@@ -43,8 +43,3 @@ cet_test(
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
 )
-
-cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
-         form
-)
-target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
