@@ -16,10 +16,10 @@ using namespace form::detail::experimental;
 
 TEST_CASE("Token basics", "[form]")
 {
-  Token t("file.root", "container", 1, 42);
+  Token t("file.root", "container", form::technology::ROOT_TTREE, 42);
   CHECK(t.fileName() == "file.root");
   CHECK(t.containerName() == "container");
-  CHECK(t.technology() == 1);
+  CHECK(t.technology() == form::technology::ROOT_TTREE);
   CHECK(t.id() == 42);
 }
 
@@ -40,7 +40,8 @@ TEST_CASE("Storage_Container basics", "[form]")
   c.setFile(f);
 
   c.setupWrite(typeid(int));
-  c.fill(nullptr);
+  int value = 0;
+  c.fill(&value);
   c.commit();
 
   void const* data = nullptr;
