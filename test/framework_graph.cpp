@@ -54,13 +54,14 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
        throw std::runtime_error("Error to stop driver");
      },
      concurrency::unlimited)
-    .output_product(product_query{.creator = "input"_id, .layer="spill"_id, .suffix="number"_id});
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "number"_id});
 
   // Must have at least one downstream node that requires something of the
   // provider...otherwise provider will not be executed.
   g.observe(
      "downstream_of_exception", [](unsigned int) {}, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer="spill"_id, .suffix="number"_id});
+    .input_family(product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "number"_id});
 
   CHECK_THROWS(g.execute());
 
