@@ -204,6 +204,10 @@ cet_test(
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
          phlex::core
 )
+cet_test(core_misc_test USE_CATCH2_MAIN SOURCE core_misc_test.cpp LIBRARIES
+         phlex::core
+         Boost::json
+)
 cet_test(
   provider_test
   USE_CATCH2_MAIN
