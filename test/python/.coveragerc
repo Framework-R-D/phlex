@@ -1,0 +1,23 @@
+[run]
+# Include non-test Python modules for coverage measurement
+source =
+    ../../plugins/python/python
+omit =
+    test_*.py
+    **/test_*.py
+    unit_test_*.py
+    **/unit_test_*.py
+    # Omit all files in test directories
+    */test/*
+    */tests/*
+
+[report]
+# Exclude test files from coverage reports
+omit =
+    test_*.py
+    **/test_*.py
+    unit_test_*.py
+    **/unit_test_*.py
+    # Omit all files in test directories
+    */test/*
+    */tests/*

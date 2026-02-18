@@ -46,6 +46,7 @@ runs:
       run: |
         # Source the container entrypoint script
         . /entrypoint.sh
+
         cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
         echo "Configuring with CMake preset: $PRESET"

@@ -16,9 +16,9 @@ namespace phlex::experimental {
   layer_sentry::layer_sentry(flush_counters& counters,
                              message_sender& sender,
                              product_store_ptr store) :
-    counters_{counters}, sender_{sender}, store_{store}, depth_{store_->id()->depth()}
+    counters_{counters}, sender_{sender}, store_{store}, depth_{store_->index()->depth()}
   {
-    counters_.update(store_->id());
+    counters_.update(store_->index());
   }
 
   layer_sentry::~layer_sentry()
@@ -26,7 +26,7 @@ namespace phlex::experimental {
     // To consider: We may want to skip the following logic if the framework prematurely
     //              needs to shut down.  Keeping it enabled allows in-flight folds to
     //              complete.  However, in some cases it may not be desirable to do this.
-    auto flush_result = counters_.extract(store_->id());
+    auto flush_result = counters_.extract(store_->index());
     auto flush_store = store_->make_flush();
     if (not flush_result.empty()) {
       flush_store->add_product("[flush]",
@@ -58,14 +58,18 @@ namespace phlex::experimental {
            auto store = std::make_shared<product_store>(index, "Source");
            return sender_.make_message(accept(std::move(store)));
          }},
-    multiplexer_{graph_}
+    multiplexer_{graph_},
+    hierarchy_node_{
+      graph_, tbb::flow::unlimited, [this](message const& msg) -> tbb::flow::continue_msg {
+        if (not msg.store->is_flush()) {
+          hierarchy_.increment_count(msg.store->index());
+        }
+        return {};
+      }}
   {
     // FIXME: Should the loading of env levels happen in the phlex app only?
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
-
-    // The parent of the job message is null
-    eoms_.push(nullptr);
   }
 
   framework_graph::~framework_graph()
@@ -79,14 +83,15 @@ namespace phlex::experimental {
     }
   }
 
-  std::size_t framework_graph::execution_counts(std::string const& node_name) const
+  std::size_t framework_graph::seen_cell_count(std::string const& layer_name,
+                                               bool const missing_ok) const
   {
-    return nodes_.execution_counts(node_name);
+    return hierarchy_.count_for(layer_name, missing_ok);
   }
 
-  std::size_t framework_graph::product_counts(std::string const& node_name) const
+  std::size_t framework_graph::execution_count(std::string const& node_name) const
   {
-    return nodes_.product_counts(node_name);
+    return nodes_.execution_count(node_name);
   }
 
   void framework_graph::execute()
@@ -166,15 +171,22 @@ namespace phlex::experimental {
                nodes_.folds,
                nodes_.unfolds,
                nodes_.transforms);
+
+    // The hierarchy node is used to report which data layers have been seen by the
+    // framework.  To assemble the report, data-cell indices emitted by the input node are
+    // recorded as well as any data-cell indices emitted by an unfold.
+    make_edge(src_, hierarchy_node_);
+    for (auto& [_, node] : nodes_.unfolds) {
+      make_edge(node->sender(), hierarchy_node_);
+    }
   }
 
   product_store_ptr framework_graph::accept(product_store_ptr store)
   {
     assert(store);
-    auto const new_depth = store->id()->depth();
+    auto const new_depth = store->index()->depth();
     while (not empty(layers_) and new_depth <= layers_.top().depth()) {
       layers_.pop();
-      eoms_.pop();
     }
     layers_.emplace(counters_, sender_, store);
     return store;
@@ -184,7 +196,6 @@ namespace phlex::experimental {
   {
     while (not empty(layers_)) {
       layers_.pop();
-      eoms_.pop();
     }
   }
 }

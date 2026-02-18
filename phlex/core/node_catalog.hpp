@@ -24,8 +24,7 @@ namespace phlex::experimental {
       return registrar{boost::pfr::get<simple_ptr_map<Ptr>>(*this), errors};
     }
 
-    std::size_t execution_counts(std::string const& node_name) const;
-    std::size_t product_counts(std::string const& node_name) const;
+    std::size_t execution_count(std::string const& node_name) const;
 
     simple_ptr_map<declared_predicate_ptr> predicates{};
     simple_ptr_map<declared_observer_ptr> observers{};

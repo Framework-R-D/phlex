@@ -3,7 +3,6 @@
 
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_unfold.hpp"
-#include "phlex/core/end_of_message.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/message.hpp"
@@ -58,8 +57,8 @@ namespace phlex::experimental {
 
     void execute();
 
-    std::size_t execution_counts(std::string const& node_name) const;
-    std::size_t product_counts(std::string const& node_name) const;
+    std::size_t seen_cell_count(std::string const& layer_name, bool missing_ok = false) const;
+    std::size_t execution_count(std::string const& node_name) const;
 
     module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {
@@ -181,8 +180,8 @@ namespace phlex::experimental {
     std::vector<std::string> registration_errors_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
-    std::stack<end_of_message_ptr> eoms_;
-    message_sender sender_{hierarchy_, multiplexer_, eoms_};
+    tbb::flow::function_node<message> hierarchy_node_;
+    message_sender sender_{multiplexer_};
     std::queue<product_store_ptr> pending_stores_;
     flush_counters counters_;
     std::stack<layer_sentry> layers_;

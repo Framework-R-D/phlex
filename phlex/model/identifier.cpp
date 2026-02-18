@@ -9,7 +9,7 @@ namespace phlex::experimental {
     return {identifier::hash_string(std::string_view(lit, len))};
   }
 
-  std::uint64_t identifier::hash_string(std::string_view const& str)
+  std::uint64_t identifier::hash_string(std::string_view str)
   {
     // Hash quality is very important here, since comparisons are done using only the hash
     using namespace boost::hash2;
@@ -18,66 +18,23 @@ namespace phlex::experimental {
     return h.result();
   }
 
-  identifier::identifier(std::string_view const& str) :
-    content_(std::make_shared<std::string>(str)), hash_(hash_string(*content_))
+  identifier::identifier(std::string_view str) : content_(str), hash_(hash_string(content_)) {}
+
+  identifier::operator std::string_view() const noexcept { return std::string_view(content_); }
+  bool identifier::operator==(identifier const& rhs) const noexcept
   {
-    // Can't put this in the initializer list because the base is initialized before content_
-    *static_cast<std::string_view*>(this) = *content_;
-  }
-  identifier::identifier(identifier const& other) :
-    std::string_view(other), content_(other.content_), hash_(other.hash_)
-  {
-  }
-  identifier::identifier(identifier&& other) noexcept :
-    content_(std::move(other.content_)), hash_(other.hash_)
-  {
-    // Can't put this in the initializer list because the base is initialized before content_
-    *static_cast<std::string_view*>(this) = *content_;
-    static_cast<std::string_view&>(other) = std::string_view{};
-    other.hash_ = 0;
-  }
-  identifier::identifier(char const* lit) : identifier(std::string_view(lit)) {}
-  identifier& identifier::operator=(std::string_view const& str)
-  {
-    content_ = std::make_shared<std::string>(str);
-    hash_ = hash_string(*content_);
-    *static_cast<std::string_view*>(this) = *content_;
-    return *this;
-  }
-  identifier& identifier::operator=(char const* lit)
-  {
-    this->operator=(std::string_view{lit});
-    return *this;
-  }
-  identifier& identifier::operator=(identifier const& rhs)
-  {
-    if (&rhs == this) {
-      return *this;
+    if (hash_ == rhs.hash_) {
+      return content_ == rhs.content_;
     }
-    content_ = rhs.content_;
-    hash_ = rhs.hash_;
-    *static_cast<std::string_view*>(this) = *content_;
-    return *this;
+    return false;
   }
-  identifier& identifier::operator=(identifier&& rhs) noexcept
-  {
-    content_ = std::move(rhs.content_);
-    hash_ = rhs.hash_;
-    rhs.hash_ = 0;
-    *static_cast<std::string_view*>(this) = *content_;
-    static_cast<std::string_view&>(rhs) = std::string_view{};
-    return *this;
-  }
-  identifier::~identifier()
-  {
-    // clear the string_view before content_ is deleted
-    *static_cast<std::string_view*>(this) = std::string_view{};
-    hash_ = 0;
-  }
-  bool identifier::operator==(identifier const& rhs) const noexcept { return hash_ == rhs.hash_; }
   std::strong_ordering identifier::operator<=>(identifier const& rhs) const noexcept
   {
-    return hash_ <=> rhs.hash_;
+    std::strong_ordering hash_cmp = hash_ <=> rhs.hash_;
+    if (hash_cmp == 0) {
+      return content_ <=> rhs.content_;
+    }
+    return hash_cmp;
   }
 
   bool operator==(identifier const& lhs, identifier_query rhs) { return lhs.hash_ == rhs.hash; }

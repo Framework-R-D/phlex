@@ -1,13 +1,34 @@
 # CodeQL scanning for this repository
 
-This repository uses C++ (C++20 / moving to C++23) built with CMake under the phlex-src directory, plus some Python and CI bits (Bash). The repository includes a CodeQL GitHub Actions workflow on branch `copilot/codeql-workflow` that:
+This repository uses C++23 built with CMake under the phlex-src directory, plus some Python and CI bits (Bash). The repository includes a CodeQL GitHub Actions workflow that:
 
 - Runs on pushes to `main`, PRs targeting `main`, a weekly schedule, and can be run manually.
 - Uses the repository's existing Phlex CMake build actions (not CodeQL autobuild) so the same build configuration is used for tests and release builds.
 - Scans C++ and Python sources and is scoped to the `phlex-src` tree (see the CodeQL config).
 - Uses RelWithDebInfo build type in CI so debug symbols are present while keeping realistic optimization.
+- **Implements intelligent language detection**: On pull requests, only languages with relevant file changes are analyzed, significantly reducing CI time.
 
-Important workflow-specific notes
+## Language-Specific Analysis and Automatic Detection
+
+The CodeQL workflow analyzes three language categories:
+
+1. **C++** (`cpp`): Analyzes C++ and header files, plus CMake files
+2. **Python** (`python`): Analyzes Python source files
+3. **GitHub Actions** (`actions`): Analyzes workflow and action YAML files
+
+### Detection Behavior by Event Type
+
+- **Pull Requests**: Only languages with relevant file changes are analyzed
+  - Example: A PR changing only Python files will skip C++ and Actions analysis
+  - Example: A PR changing only C++ files will skip Python and Actions analysis
+  - Example: A PR changing only workflow files will skip C++ and Python analysis
+- **Pushes to main/develop**: All languages are analyzed (no detection)
+- **Scheduled runs**: All languages are analyzed (no detection)
+- **Manual runs** (`workflow_dispatch`): All languages are analyzed (no detection)
+
+This detection mechanism follows the same pattern used by other workflows in this repository (python-check, clang-tidy-check, etc.) and uses the `detect-relevant-changes` action.
+
+## Important workflow-specific notes
 
 - The workflow sets `autobuild: false` during the CodeQL init so the repository's own configure / build steps run. This is intentional: the Phlex build actions are used to build exactly what you ship.
 - The workflow tries to locate and copy a compile_commands.json (from `phlex-src/build/` or `phlex-build/`) to the workspace root so diagnostic tools and manual inspection have a predictable path.

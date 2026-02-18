@@ -31,7 +31,7 @@
         "cmake.useCMakePresets": "always",
         "cmake.generator": "Ninja",
         "C_Cpp.default.cStandard": "c17",
-        "C_Cpp.default.cppStandard": "c++20",
+        "C_Cpp.default.cppStandard": "c++23",
         "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
         "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
         "C_Cpp.exclusionPolicy": "checkFolders",

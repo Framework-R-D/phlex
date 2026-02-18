@@ -5,14 +5,14 @@ spack:
   - cmake
   - lcov
   - ninja
-  - python
   - py-gcovr
-  - py-numpy
   - py-pip # Needed temporarily for ruff installation
+  - py-pytest-cov # Needed for Python coverage reports
   - |
-      llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib targets=x86
+      llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
   view: true
+
   concretizer:
     unify: true
 

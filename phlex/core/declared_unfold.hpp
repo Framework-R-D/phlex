@@ -2,7 +2,6 @@
 #define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
 #include "phlex/core/concepts.hpp"
-#include "phlex/core/end_of_message.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
@@ -101,30 +100,30 @@ namespace phlex::experimental {
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
       child_layer_name_{std::move(child_layer_name)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      unfold_{
-        g,
-        concurrency,
-        [this, p = std::move(predicate), ufold = std::move(unfold)](messages_t<N> const& messages,
-                                                                    auto& output) {
-          auto const& msg = most_derived(messages);
-          auto const& store = msg.store;
-          if (store->is_flush()) {
-            flag_for(store->id()->hash()).flush_received(msg.id);
-            std::get<0>(output).try_put(msg);
-          } else if (accessor a; stores_.insert(a, store->id()->hash())) {
-            std::size_t const original_message_id{msg_counter_};
-            generator g{msg.store, this->full_name(), child_layer_name_};
-            call(p, ufold, msg.store->id(), g, msg.eom, messages, std::make_index_sequence<N>{});
+      unfold_{g,
+              concurrency,
+              [this, p = std::move(predicate), ufold = std::move(unfold)](
+                messages_t<N> const& messages, auto& output) {
+                auto const& msg = most_derived(messages);
+                auto const& store = msg.store;
+                if (store->is_flush()) {
+                  mark_flush_received(store->index()->hash(), msg.id);
+                  std::get<0>(output).try_put(msg);
+                } else if (accessor a; stores_.insert(a, store->index()->hash())) {
+                  std::size_t const original_message_id{msg_counter_};
+                  generator g{msg.store, this->full_name(), child_layer_name_};
+                  call(p, ufold, msg.store->index(), g, messages, std::make_index_sequence<N>{});
 
-            message const flush_msg{g.flush_store(), msg.eom, ++msg_counter_, original_message_id};
-            std::get<0>(output).try_put(flush_msg);
-            flag_for(store->id()->hash()).mark_as_processed();
-          }
+                  message const flush_msg{
+                    g.flush_store(), msg_counter_.fetch_add(1), original_message_id};
+                  std::get<0>(output).try_put(flush_msg);
+                  mark_processed(store->index()->hash());
+                }
 
-          if (done_with(store)) {
-            stores_.erase(store->id()->hash());
-          }
-        }}
+                if (done_with(store)) {
+                  stores_.erase(store->index()->hash());
+                }
+              }}
     {
       make_edge(join_, unfold_);
     }
@@ -147,7 +146,6 @@ namespace phlex::experimental {
               Unfold const& unfold,
               data_cell_index_ptr const& unfolded_id,
               generator& g,
-              end_of_message_ptr const& eom,
               messages_t<N> const& messages,
               std::index_sequence<Is...>)
     {
@@ -169,11 +167,11 @@ namespace phlex::experimental {
         }
         ++product_count_;
         auto child = g.make_child_for(counter++, std::move(new_products));
-        message const child_msg{child, eom->make_child(child->id()), ++msg_counter_};
+        message const child_msg{child, msg_counter_.fetch_add(1)};
         output_port<0>(unfold_).try_put(child_msg);
 
         // Every data cell needs a flush (for now)
-        message const child_flush_msg{child->make_flush(), nullptr, ++msg_counter_};
+        message const child_flush_msg{child->make_flush(), msg_counter_.fetch_add(1)};
         output_port<0>(unfold_).try_put(child_flush_msg);
       }
     }

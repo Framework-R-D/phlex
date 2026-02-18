@@ -25,7 +25,7 @@ namespace phlex::experimental {
         spdlog::warn("Store with hash {} is null!", hash);
         continue;
       }
-      spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
+      spdlog::debug(" => ID: {} (hash: {})", store->index()->to_string(), hash);
     }
   }
 }

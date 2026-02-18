@@ -14,7 +14,7 @@ namespace phlex::experimental {
   {
     assert(a.store);
     assert(b.store);
-    if (a.store->id()->depth() > b.store->id()->depth()) {
+    if (a.store->index()->depth() > b.store->index()->depth()) {
       return a;
     }
     return b;

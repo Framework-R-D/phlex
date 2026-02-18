@@ -1,5 +1,5 @@
 name: Clang-Tidy Check
-'run-name': "${{ github.actor }} running clang-tidy check"
+'run-name': "${{ github.actor }} checking C++ code with clang-tidy"
 
 permissions:
   contents: read
@@ -7,7 +7,6 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       ref:
@@ -16,10 +15,24 @@ on:
         type: string
 
 jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ github.repository }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
 
   detect-changes:
+    needs: pre-check
     if: >
-      github.event_name == 'pull_request'
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,14 +47,16 @@ jobs:
       with:
         fetch-depth: 0
         path: phlex-src
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect clang-tidy relevant changes
+    - name: Detect relevant changes
       id: filter
       uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
-        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        base-ref: ${{ needs.pre-check.outputs.base_sha }}
+        head-ref: ${{ needs.pre-check.outputs.ref }}
         file-type: |
           cpp
           cmake
@@ -57,11 +72,16 @@ jobs:
         fi
 
   clang-tidy-check:
-    needs: [detect-changes]
+    needs: [pre-check, detect-changes]
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes == 'true')
-
+      always() &&
+      (
+        needs.detect-changes.result == 'skipped' ||
+        (
+          needs.detect-changes.result == 'success' &&
+          needs.detect-changes.outputs.has_changes == 'true'
+        )
+      )
     runs-on: ubuntu-24.04
 
     container:
@@ -71,8 +91,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+        ref: ${{ needs.pre-check.outputs.ref }}
         path: phlex-src
+        repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Setup build environment
       uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
@@ -95,7 +116,7 @@ jobs:
           echo "::error::Clang-tidy found issues in the code"
           echo "Error count by check (full details in clang-tidy-log artifact):"
           sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
-          echo "Comment '@phlexbot tidy-fix [<check>...]' on the PR to attempt auto-fix"
+          echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
           exit 1
         else
           echo "✅ clang-tidy check passed"
@@ -135,3 +156,17 @@ jobs:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+  clang-tidy-check-skipped:
+    needs: [pre-check, detect-changes]
+    if: >
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant clang-tidy changes detected
+      run: echo "::notice::No clang-tidy relevant changes detected; check skipped."

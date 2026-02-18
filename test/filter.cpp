@@ -106,8 +106,8 @@ TEST_CASE("Two predicates", "[filtering]")
 
   g.execute();
 
-  CHECK(g.execution_counts("add_evens") == 5);
-  CHECK(g.execution_counts("add_odds") == 5);
+  CHECK(g.execution_count("add_evens") == 5);
+  CHECK(g.execution_count("add_odds") == 5);
 }
 
 TEST_CASE("Two predicates in series", "[filtering]")
@@ -127,7 +127,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
 
   g.execute();
 
-  CHECK(g.execution_counts("add") == 0);
+  CHECK(g.execution_count("add") == 0);
 }
 
 TEST_CASE("Two predicates in parallel", "[filtering]")
@@ -146,7 +146,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
 
   g.execute();
 
-  CHECK(g.execution_counts("add") == 0);
+  CHECK(g.execution_count("add") == 0);
 }
 
 TEST_CASE("Three predicates in parallel", "[filtering]")
@@ -179,7 +179,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 
   g.execute();
 
-  CHECK(g.execution_counts("collect") == 3);
+  CHECK(g.execution_count("collect") == 3);
 }
 
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
@@ -212,6 +212,6 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
 
   g.execute();
 
-  CHECK(g.execution_counts("check_odds") == 5);
-  CHECK(g.execution_counts("check_evens") == 5);
+  CHECK(g.execution_count("check_odds") == 5);
+  CHECK(g.execution_count("check_evens") == 5);
 }

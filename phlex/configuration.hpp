@@ -3,6 +3,7 @@
 
 #include "boost/json.hpp"
 #include "phlex/core/product_query.hpp"
+#include "phlex/model/identifier.hpp"
 
 #include <optional>
 #include <string>
@@ -19,6 +20,10 @@ namespace phlex {
     } catch (std::exception const& e) {
       throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
     }
+
+    // Used later for product_query
+    std::optional<phlex::experimental::identifier> value_if_exists(boost::json::object const& obj,
+                                                                   std::string_view parameter);
 
     // helper for unpacking json array
     template <typename T, std::size_t... I>
@@ -89,6 +94,11 @@ namespace phlex {
 
   product_query tag_invoke(boost::json::value_to_tag<product_query> const&,
                            boost::json::value const& jv);
+
+  namespace experimental {
+    identifier tag_invoke(boost::json::value_to_tag<identifier> const&,
+                          boost::json::value const& jv);
+  }
 
   template <std::size_t N>
   std::array<product_query, N> tag_invoke(

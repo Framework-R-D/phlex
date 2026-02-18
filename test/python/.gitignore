@@ -1,4 +1,6 @@
 __pycache__
+.coverage
+.pytest_cache
 *.pyc
 *.pyd
 *.pyo

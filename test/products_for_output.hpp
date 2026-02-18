@@ -13,7 +13,7 @@ namespace phlex::experimental::test {
     void save(product_store const& store) const
     {
       std::ostringstream oss;
-      oss << "Saving data for store id: " << store.id() << " from source: " << store.source();
+      oss << "Saving data for store id: " << store.index() << " from source: " << store.source();
       for (auto const& [product_name, _] : store) {
         oss << "\n -> Product name: " << product_name;
       }

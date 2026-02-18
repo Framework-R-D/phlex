@@ -265,8 +265,7 @@ function(_create_coverage_targets_impl)
     foreach(_gcovr_summary_filter_path IN LISTS _gcovr_summary_filter_paths)
       string(REGEX REPLACE "/$" "" _gcovr_summary_filter_trimmed "${_gcovr_summary_filter_path}")
       string(
-        REGEX REPLACE
-        [=[([][.^$+*?()|\])]=]
+        REGEX REPLACE [=[([][.^$+*?()|\])]=]
         [=[\\\1]=]
         _gcovr_summary_filter_escaped
         "${_gcovr_summary_filter_trimmed}"
@@ -444,8 +443,7 @@ function(_create_coverage_targets_impl)
     foreach(_gcovr_filter_path IN LISTS _gcovr_filter_paths)
       string(REGEX REPLACE "/$" "" _gcovr_filter_trimmed "${_gcovr_filter_path}")
       string(
-        REGEX REPLACE
-        [=[([][.^$+*?()|\])]=]
+        REGEX REPLACE [=[([][.^$+*?()|\])]=]
         [=[\\\1]=]
         _gcovr_filter_escaped
         "${_gcovr_filter_trimmed}"
@@ -552,38 +550,8 @@ function(_create_coverage_targets_impl)
     COMMENT "Cleaning coverage data files (C++ and Python)"
   )
 
-  # Add Python coverage target if pytest-cov is available
-  if(Python_FOUND)
-    execute_process(
-      COMMAND ${Python_EXECUTABLE} -c "import pytest_cov"
-      RESULT_VARIABLE PYTEST_COV_CHECK
-      OUTPUT_QUIET
-      ERROR_QUIET
-    )
-    if(PYTEST_COV_CHECK EQUAL 0)
-      add_custom_target(
-        coverage-python
-        COMMAND
-          ${CMAKE_COMMAND} -E echo
-          "[Coverage] Generating Python coverage report using pytest-cov..."
-        COMMAND
-          ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}/test/python
-          PHLEX_INSTALL=${PROJECT_SOURCE_DIR} ${Python_EXECUTABLE} -m pytest
-          ${PROJECT_SOURCE_DIR}/test/python/test_phlex.py --cov=${PROJECT_SOURCE_DIR}/test/python
-          --cov-report=term-missing --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
-          --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating Python coverage report"
-        VERBATIM
-      )
-      message(STATUS "Added 'coverage-python' target for Python test coverage (pytest-cov)")
-    else()
-      message(
-        STATUS
-        "pytest-cov not found; Python coverage target not available. Install with: pip install pytest-cov"
-      )
-    endif()
-  endif()
+  # Note: The coverage-python target is defined in test/python/CMakeLists.txt
+  # where it can use the proper test environment setup (PYTHONPATH, etc.)
 
   message(
     STATUS

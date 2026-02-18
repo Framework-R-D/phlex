@@ -6,7 +6,6 @@
 #include <fmt/format.h>
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <string_view>
 
@@ -19,27 +18,21 @@ namespace phlex::experimental {
 
   /// Carries around the string itself (as a shared_ptr to string to make copies lighter)
   /// along with a precomputed hash used for all comparisons
-  class identifier : public std::string_view {
+  class identifier {
   public:
-    static std::uint64_t hash_string(std::string_view const& str);
-    identifier(identifier const& other);
-    identifier(identifier&& other) noexcept;
+    static std::uint64_t hash_string(std::string_view str);
+    identifier(identifier const& other) = default;
+    identifier(identifier&& other) noexcept = default;
 
-    // Standard constructor for identifiers read from a file
-    identifier(std::string_view const& str);
-    // Constructor for creating identifiers in code
-    // Is it confusing that the _id syntax does something different?
-    identifier(char const* lit);
+    explicit identifier(std::string_view str);
 
-    identifier& operator=(identifier const& rhs);
-    identifier& operator=(identifier&& rhs) noexcept;
+    identifier& operator=(identifier const& rhs) = default;
+    identifier& operator=(identifier&& rhs) noexcept = default;
 
-    // Assignment for identifiers read from a file
-    identifier& operator=(std::string_view const& str);
-    // Assignment for identifiers in code
-    identifier& operator=(char const* lit);
+    ~identifier() = default;
 
-    ~identifier();
+    // Conversion to std::string_view
+    explicit operator std::string_view() const noexcept;
 
     bool operator==(identifier const& rhs) const noexcept;
     std::strong_ordering operator<=>(identifier const& rhs) const noexcept;
@@ -50,7 +43,7 @@ namespace phlex::experimental {
     friend std::hash<identifier>;
 
   private:
-    std::shared_ptr<std::string const> content_;
+    std::string content_;
     std::uint64_t hash_;
   };
 
@@ -60,14 +53,8 @@ namespace phlex::experimental {
     identifier_query operator""_idq(char const* lit, std::size_t len);
   }
 
-  // Heterogeneous operators are disabled to avoid accidentally getting an incorrect result
-  bool operator==(identifier const& lhs, std::string_view const& rhs) = delete;
-  std::strong_ordering operator<=>(identifier const& lhs, std::string_view const& rhs) = delete;
   // Really trying to avoid the extra function call here
-  inline std::string_view format_as(identifier const& id)
-  {
-    return static_cast<std::string_view>(id);
-  }
+  inline std::string_view format_as(identifier const& id) { return std::string_view(id); }
 }
 
 template <>

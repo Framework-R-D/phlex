@@ -49,6 +49,11 @@ project(phlex VERSION 0.1.0 LANGUAGES CXX)
 cet_cmake_env()
 # ##############################################################################
 
+# Set CI/test timeouts to a conservative value to avoid long stalls in CI.
+# Use cache variables so generated CTest/Dart files pick this up when configured.
+set(DART_TESTING_TIMEOUT 90 CACHE STRING "Timeout (s) for Dart/CTest runs")
+set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
+
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
@@ -70,13 +75,13 @@ add_compile_options(
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(
-    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1"
-    AND CMAKE_COMPILER_VERSION VERSION_LESS "15"
-  )
-    # GCC 14.1 issues many false positives re. array-bounds and
-    # stringop-overflow
-    add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15")
+      add_compile_options(-Wno-stringop-overflow)
+    endif()
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16")
+      add_compile_options(-Wno-array-bounds)
+    endif()
   endif()
 endif()
 
@@ -108,7 +113,8 @@ if(ENABLE_TSAN)
       -g
       -O1
       # Ensure no optimizations interfere with TSan
-      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-optimize-sibling-calls>"
     )
     add_link_options(-fsanitize=thread)
   else()
@@ -130,7 +136,8 @@ if(ENABLE_ASAN)
       -g
       -O1
       # Ensure no optimizations interfere with ASan
-      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer -fno-optimize-sibling-calls>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer>"
+      "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-optimize-sibling-calls>"
     )
     add_link_options(-fsanitize=address)
   else()

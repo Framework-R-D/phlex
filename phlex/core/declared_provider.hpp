@@ -73,39 +73,39 @@ namespace phlex::experimental {
           auto& [stay_in_graph, to_output] = output;
 
           if (msg.store->is_flush()) {
-            flag_for(msg.store->id()->hash()).flush_received(msg.original_id);
+            mark_flush_received(msg.store->index()->hash(), msg.original_id);
             stay_in_graph.try_put(msg);
           } else {
             // Check cache first
-            auto index_hash = msg.store->id()->hash();
+            auto index_hash = msg.store->index()->hash();
             if (const_accessor ca; cache_.find(ca, index_hash)) {
               // Cache hit - reuse the cached store
-              message const new_msg{ca->second, msg.eom, msg.id};
+              message const new_msg{ca->second, msg.id};
               stay_in_graph.try_put(new_msg);
               to_output.try_put(new_msg);
               return;
             }
 
             // Cache miss - compute the result
-            auto result = std::invoke(ft, *msg.store->id());
+            auto result = std::invoke(ft, *msg.store->index());
             ++calls_;
 
             products new_products;
             new_products.add(output_.name(), std::move(result));
             auto store = std::make_shared<product_store>(
-              msg.store->id(), this->full_name(), std::move(new_products));
+              msg.store->index(), this->full_name(), std::move(new_products));
 
             // Store in cache
             cache_.emplace(index_hash, store);
 
-            message const new_msg{store, msg.eom, msg.id};
+            message const new_msg{store, msg.id};
             stay_in_graph.try_put(new_msg);
             to_output.try_put(new_msg);
-            flag_for(msg.store->id()->hash()).mark_as_processed();
+            mark_processed(msg.store->index()->hash());
           }
 
           if (done_with(msg.store)) {
-            cache_.erase(msg.store->id()->hash());
+            cache_.erase(msg.store->index()->hash());
           }
         }}
     {

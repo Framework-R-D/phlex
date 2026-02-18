@@ -48,6 +48,6 @@ TEST_CASE("provider_test")
     .output_products("vertex_data");
 
   g.execute();
-  CHECK(g.execution_counts("passer") == max_events);
-  CHECK(g.execution_counts("my_name_here") == max_events);
+  CHECK(g.execution_count("passer") == max_events);
+  CHECK(g.execution_count("my_name_here") == max_events);
 }

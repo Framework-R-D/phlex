@@ -1,5 +1,5 @@
 name: Clang-Format Check
-run-name: "${{ github.actor }} checking code format"
+run-name: "${{ github.actor }} checking C++ code format"
 
 permissions:
   contents: read
@@ -7,7 +7,6 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       ref:
@@ -20,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ github.repository }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -42,14 +44,16 @@ jobs:
       with:
         fetch-depth: 0
         path: phlex-src
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect C++ formatting changes
+    - name: Detect relevant changes
       id: filter
       uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
       with:
         repo-path: phlex-src
-        base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        base-ref: ${{ needs.pre-check.outputs.base_sha }}
+        head-ref: ${{ needs.pre-check.outputs.ref }}
         file-type: cpp
 
     - name: Report detection outcome
@@ -65,10 +69,13 @@ jobs:
   clang-format-check:
     needs: [pre-check, detect-changes]
     if: >
-      needs.detect-changes.result == 'skipped' ||
+      always() &&
       (
-        needs.detect-changes.result == 'success' &&
-        needs.detect-changes.outputs.has_changes == 'true'
+        needs.detect-changes.result == 'skipped' ||
+        (
+          needs.detect-changes.result == 'success' &&
+          needs.detect-changes.outputs.has_changes == 'true'
+        )
       )
     runs-on: ubuntu-latest
     permissions:
@@ -78,8 +85,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+        ref: ${{ needs.pre-check.outputs.ref }}
         path: phlex-src
+        repository: ${{ needs.pre-check.outputs.repo }}
 
     - name: Announce clang-format check
       run: echo "➡️ Running clang-format check..."
@@ -94,12 +102,13 @@ jobs:
       continue-on-error: true
 
     - name: Evaluate clang-format result
-      if: always()
+      if: always() && steps.lint.outcome != 'skipped'
       run: |
-        if [[ ${{ steps.lint.outcome }} == 'success' ]]; then
+        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
           echo "✅ clang-format check passed."
         else
           echo "::error::clang-format check failed. Please review the output above for details."
+          echo "::error::Comment '@${{ github.event.repository.name }}bot format' on the PR to attempt auto-fix."
           exit 1
         fi
 

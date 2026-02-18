@@ -1,5 +1,6 @@
 #include "phlex/configuration.hpp"
 #include "phlex/core/product_query.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 
 #include <algorithm>
@@ -7,47 +8,15 @@
 #include <string>
 #include <string_view>
 
-namespace {
-  std::optional<phlex::experimental::identifier> value_if_exists(boost::json::object const& obj,
-                                                                 std::string_view parameter)
+namespace phlex::detail {
+  std::optional<phlex::experimental::identifier> value_if_exists(
+    boost::json::object const& obj, // will be used later for new product_query
+    std::string_view parameter)
   {
     if (!obj.contains(parameter)) {
       return std::nullopt;
     }
     auto const& val = obj.at(parameter);
-    if (!val.is_string()) {
-      std::string_view kind;
-      switch (val.kind()) {
-      case boost::json::kind::null:
-        // seems reasonable to interpret this as if the value were not provided
-        return std::nullopt;
-        break;
-      case boost::json::kind::bool_:
-        kind = "bool";
-        break;
-      case boost::json::kind::int64:
-        kind = "std::int64_t";
-        break;
-      case boost::json::kind::uint64:
-        kind = "std::uint64_t";
-        break;
-      case boost::json::kind::double_:
-        kind = "double";
-        break;
-      case boost::json::kind::array:
-        kind = "array";
-        break;
-      case boost::json::kind::object:
-        kind = "object";
-        break;
-      default:
-        std::unreachable();
-      }
-      throw std::runtime_error(fmt::format(
-        "Error retrieving parameter '{}'. Should be an identifier string but is instead a {}",
-        parameter,
-        kind));
-    }
     return boost::json::value_to<phlex::experimental::identifier>(val);
   }
 }
@@ -79,5 +48,11 @@ namespace phlex {
     auto stage = value_if_exists(query_object, "stage");
     return product_query{
       .creator = std::move(creator), .layer = std::move(layer), .suffix = suffix, .stage = stage};
+  }
+
+  experimental::identifier experimental::tag_invoke(boost::json::value_to_tag<identifier> const&,
+                                                    boost::json::value const& jv)
+  {
+    return identifier{std::string_view(jv.as_string())};
   }
 }

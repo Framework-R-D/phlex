@@ -89,35 +89,34 @@ namespace phlex::experimental {
                  concurrency,
                  [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto& output) {
                    auto const& msg = most_derived(messages);
-                   auto const& [store, message_eom, message_id] =
-                     std::tie(msg.store, msg.eom, msg.id);
+                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
                    auto& [stay_in_graph, to_output] = output;
                    if (store->is_flush()) {
-                     flag_for(store->id()->hash()).flush_received(msg.original_id);
+                     mark_flush_received(store->index()->hash(), msg.original_id);
                      stay_in_graph.try_put(msg);
                      to_output.try_put(msg);
                    } else {
                      accessor a;
-                     if (stores_.insert(a, store->id()->hash())) {
+                     if (stores_.insert(a, store->index()->hash())) {
                        auto result = call(ft, messages, std::make_index_sequence<N>{});
                        ++calls_;
-                       ++product_count_[store->id()->layer_hash()];
+                       ++product_count_[store->index()->layer_hash()];
                        products new_products;
                        new_products.add_all(output_, std::move(result));
                        a->second = std::make_shared<product_store>(
-                         store->id(), this->full_name(), std::move(new_products));
+                         store->index(), this->full_name(), std::move(new_products));
 
-                       message const new_msg{a->second, msg.eom, message_id};
+                       message const new_msg{a->second, message_id};
                        stay_in_graph.try_put(new_msg);
                        to_output.try_put(new_msg);
-                       flag_for(store->id()->hash()).mark_as_processed();
+                       mark_processed(store->index()->hash());
                      } else {
-                       stay_in_graph.try_put({a->second, msg.eom, message_id});
+                       stay_in_graph.try_put({a->second, message_id});
                      }
                    }
 
                    if (done_with(store)) {
-                     stores_.erase(store->id()->hash());
+                     stores_.erase(store->index()->hash());
                    }
                  }}
     {

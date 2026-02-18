@@ -40,31 +40,32 @@ namespace phlex::experimental {
     using size_type = collection_t::size_type;
 
     template <typename T>
-    void add(std::string const& product_name, T&& t)
+    void add(std::string const& product_name, T t)
     {
-      add(product_name, std::make_unique<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
+      products_.emplace(product_name,
+                        std::make_unique<product<std::remove_cvref_t<T>>>(std::move(t)));
     }
 
     template <typename T>
-    void add(std::string const& product_name, std::unique_ptr<product<T>>&& t)
+    void add(std::string const& product_name, std::unique_ptr<product<T>> t)
     {
       products_.emplace(product_name, std::move(t));
     }
 
     template <typename Ts>
-    void add_all(product_specifications const& names, Ts&& ts)
+    void add_all(product_specifications const& names, Ts ts)
     {
       assert(names.size() == 1ull);
-      add(names[0].name(), std::forward<Ts>(ts));
+      add(names[0].name(), std::move(ts));
     }
 
     template <typename... Ts>
     void add_all(product_specifications const& names, std::tuple<Ts...> ts)
     {
       assert(names.size() == sizeof...(Ts));
-      [this, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
-        (this->add(names[Is].name(), std::get<Is>(ts)), ...);
-      }(ts, std::index_sequence_for<Ts...>{});
+      [this, &names]<std::size_t... Is>(auto tuple, std::index_sequence<Is...>) {
+        (this->add(names[Is].name(), std::move(std::get<Is>(tuple))), ...);
+      }(std::move(ts), std::index_sequence_for<Ts...>{});
     }
 
     template <typename T>

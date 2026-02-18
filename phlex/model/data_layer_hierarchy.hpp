@@ -17,7 +17,7 @@ namespace phlex::experimental {
   public:
     ~data_layer_hierarchy();
     void increment_count(data_cell_index_ptr const& id);
-    std::size_t count_for(std::string const& layer_name) const;
+    std::size_t count_for(std::string const& layer, bool missing_ok = false) const;
 
     void print() const;
 
@@ -31,11 +31,13 @@ namespace phlex::experimental {
                                std::string indent = {}) const;
 
     struct layer_entry {
-      layer_entry(std::string n, std::size_t par_hash) : name{std::move(n)}, parent_hash{par_hash}
+      layer_entry(std::string n, std::string path, std::size_t par_hash) :
+        name{std::move(n)}, layer_path{std::move(path)}, parent_hash{par_hash}
       {
       }
 
       std::string name;
+      std::string layer_path;
       std::size_t parent_hash;
       std::atomic<std::size_t> count{};
     };

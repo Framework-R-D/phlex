@@ -55,5 +55,5 @@ TEST_CASE("Test vector of abstract types")
       product_query{.creator = "read_thing"_id, .layer = "event"_id, .suffix = "sum"_id});
   g.execute();
 
-  CHECK(g.execution_counts("read_thing") == 1);
+  CHECK(g.execution_count("read_thing") == 1);
 }

@@ -23,6 +23,7 @@ cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
 )
 cet_test(type_id SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
+cet_test(identifier SOURCE identifier.cpp LIBRARIES phlex::model phlex::configuration fmt::fmt)
 cet_test(
   yielding_driver
   SOURCE
@@ -141,6 +142,12 @@ cet_test(
   LIBRARIES
   Boost::json
   phlex::core
+)
+cet_test(
+  output_products
+  USE_CATCH2_MAIN
+  SOURCE output_products.cpp
+  LIBRARIES layer_generator phlex::core spdlog::spdlog
 )
 cet_test(
   data_cell_counting
