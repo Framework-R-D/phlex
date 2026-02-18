@@ -129,9 +129,11 @@ When the developer provides HTTPS links in conversation:
 
 ## Workspace Environment Setup
 
+> **Note for AI Agents**: The following environment setup instructions apply primarily when working in CI containers (`phlex-ci`, `phlex-dev`) or devcontainers. Human developers may use different local setups (e.g., native macOS, Linux with system packages, or their own Spack configurations).
+
 ### setup-env.sh Integration
 
-When working in this workspace, always source `setup-env.sh` before executing commands that depend on the build environment:
+When working in CI/container environments, always source `setup-env.sh` before executing commands that depend on the build environment:
 
 - **Repository version**: `srcs/phlex/scripts/setup-env.sh` - Multi-mode environment setup for developers
   - Supports standalone repository, multi-project workspace, Spack, and system packages
@@ -160,7 +162,9 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 
 ### Spack Package Manager Integration
 
-The project uses Spack for dependency management in development and CI environments:
+> **Note for AI Agents**: This section describes Spack usage patterns in CI containers (`phlex-ci`, `phlex-dev`) and devcontainers. Human developers working in local environments may use different dependency management approaches.
+
+The project uses Spack for dependency management in CI and container development environments:
 
 - **Spack Environments**: The `scripts/setup-env.sh` script automatically activates Spack environments when available
 - **Loading Additional Packages**: If you need tools or libraries not loaded by default, use `spack load <package>` to bring them into the environment
@@ -255,7 +259,7 @@ If a feature (e.g., lock guards) is conspicuously missing, add a comment explain
 ### Jsonnet Files
 
 - Jsonnet configuration files (`.jsonnet`) are used for Phlex workflow configurations
-- Follow consistent formatting as enforced by CI checks
+- Use `jsonnetfmt` for consistent formatting (CI enforces this)
 - Primarily used in test configurations (e.g., `test/python/*.jsonnet`)
 
 ## Markdown Rules
