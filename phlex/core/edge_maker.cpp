@@ -20,8 +20,7 @@ namespace phlex::experimental {
         for (auto const& [_, p] : providers) {
           auto& provider = *p;
           if (port.product_label.match(provider.output_product())) {
-            auto it = result.find(provider.full_name());
-            if (it == result.cend()) {
+            if (!result.contains(provider.full_name())) {
               result.try_emplace(provider.full_name(), port.product_label, provider.input_port());
             }
             spdlog::debug("Connecting provider {} to node {} (product: {})",

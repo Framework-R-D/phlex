@@ -20,7 +20,7 @@ namespace phlex {
                               T> // has to be a template for static_assert(false)
     class required_creator_name {
     public:
-      consteval required_creator_name()
+      required_creator_name()
       {
         static_assert(false, "The creator name has not been set in this product_query.");
       }
@@ -42,7 +42,7 @@ namespace phlex {
                               T> // has to be a template for static_assert(false)
     class required_layer_name {
     public:
-      consteval required_layer_name()
+      required_layer_name()
       {
         static_assert(false, "The layer name has not been set in this product_query.");
       }
