@@ -58,6 +58,14 @@ namespace phlex::experimental {
 }
 
 template <>
+struct fmt::formatter<phlex::experimental::identifier> : formatter<std::string_view> {
+  auto format(phlex::experimental::identifier const& id, format_context& ctx) const
+  {
+    return formatter<std::string_view>::format(std::string_view(id), ctx);
+  }
+};
+
+template <>
 struct std::hash<phlex::experimental::identifier> {
   std::size_t operator()(phlex::experimental::identifier const& id) const noexcept
   {
