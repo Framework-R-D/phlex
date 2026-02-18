@@ -30,7 +30,7 @@ namespace phlex {
   bool product_query::match(experimental::product_specification const& spec) const
   {
     // string comparisons for now for a gradual transition
-    if (std::string_view(creator) != spec.algorithm()) {
+    if (std::string_view(experimental::identifier(creator)) != spec.algorithm()) {
       return false;
     }
     if (type != spec.type()) {
@@ -58,7 +58,7 @@ namespace phlex {
       throw std::logic_error("Product suffixes are (temporarily) mandatory");
     }
     // Not efficient, but this should be temporary
-    return experimental::product_specification::create(std::string(*suffix));
+    return experimental::product_specification::create(suffix->trans_get_string());
   }
   bool product_query::operator==(product_query const& rhs) const
   {

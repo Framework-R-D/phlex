@@ -44,8 +44,8 @@ namespace phlex {
     auto query_object = jv.as_object();
     auto creator = value_decorate_exception<experimental::identifier>(query_object, "creator");
     auto layer = value_decorate_exception<experimental::identifier>(query_object, "layer");
-    auto suffix = value_if_exists(query_object, "suffix");
-    auto stage = value_if_exists(query_object, "stage");
+    auto suffix = detail::value_if_exists(query_object, "suffix");
+    auto stage = detail::value_if_exists(query_object, "stage");
     return product_query{
       .creator = std::move(creator), .layer = std::move(layer), .suffix = suffix, .stage = stage};
   }

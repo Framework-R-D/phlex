@@ -56,7 +56,7 @@ TEST_CASE("Retrieve product_query", "[config]")
     product_query{.creator = "tracks_alg"_id, .layer = "job"_id, .suffix = "tracks"_id}));
   CHECK_THROWS_WITH(config.get<product_query>("malformed1"),
                     ContainsSubstring("Error retrieving parameter 'malformed1'") &&
-                      ContainsSubstring("Error retrieving parameter 'suffix'"));
+                      ContainsSubstring("not a string"));
   CHECK_THROWS_WITH(config.get<product_query>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
                       ContainsSubstring("Error retrieving parameter 'layer'"));

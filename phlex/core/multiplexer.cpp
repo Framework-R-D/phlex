@@ -63,7 +63,7 @@ namespace phlex::experimental {
     }
 
     for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
-      if (auto store_to_send = store_for(store, product_label.layer())) {
+      if (auto store_to_send = store_for(store, std::string_view(identifier(product_label.layer)))) {
         port->try_put({std::move(store_to_send), message_id});
       }
     }
