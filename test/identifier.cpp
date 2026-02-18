@@ -71,7 +71,8 @@ int main()
   identifier id2("def");
   assert(id1 == id1);
   assert(id1 != id2);
-  assert(id1 < id2 || id2 < id1);
+  assert(id1 < id2);
+  assert(id2 > id1);
   assert(id1 <= id1);
   assert(id1 >= id1);
 
