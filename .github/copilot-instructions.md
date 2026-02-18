@@ -57,6 +57,29 @@ open all repositories in a single VS Code window.
     user of details in the last resort.
   - Minimize changes required for upstreaming.
 
+### Git Branch Management
+
+When creating branches for PRs:
+
+- **Do not set upstream tracking at branch creation time**: When creating a new branch for eventual pushing as a new upstream branch (e.g., for a PR), it should not have an upstream tracking branch, even if created based on another branch
+- **Rationale**: This eliminates the possibility of accidentally pushing commits to the base branch when pushing the new branch upstream
+- **Best practice**: Create branches with `git checkout -b new-branch-name [<base-branch>]` or `git switch --no-track -c new-branch-name [<base-branch>]` without using `--track`, `-t`, or otherwise setting upstream
+- **Push new branches**: Use `git push -u origin new-branch-name` only when ready to push the new branch to your fork for the first time; this is when you should set the upstream tracking branch
+
+Example workflow:
+
+```bash
+# Create a new feature branch (no tracking)
+git checkout -b feature/my-new-feature
+
+# Make changes and commit
+git add .
+git commit -m "Add new feature"
+
+# Push to your fork (sets tracking only now)
+git push -u origin feature/my-new-feature
+```
+
 ## Communication Guidelines
 
 ### Professional Colleague Interaction
@@ -106,9 +129,11 @@ When the developer provides HTTPS links in conversation:
 
 ## Workspace Environment Setup
 
+> **Note for AI Agents**: The following environment setup instructions apply primarily when working in CI containers (`phlex-ci`, `phlex-dev`) or devcontainers. Human developers may use different local setups (e.g., native macOS, Linux with system packages, or their own Spack configurations).
+
 ### setup-env.sh Integration
 
-When working in this workspace, always source `setup-env.sh` before executing commands that depend on the build environment:
+When working in CI/container environments, always source `setup-env.sh` before executing commands that depend on the build environment:
 
 - **Repository version**: `srcs/phlex/scripts/setup-env.sh` - Multi-mode environment setup for developers
   - Supports standalone repository, multi-project workspace, Spack, and system packages
@@ -134,6 +159,28 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 - Always use `find -L` or `find -follow` when searching for files in source directories
 - This ensures `find` follows symbolic links and discovers all actual source files
 - Without this flag, `find` will skip linked directories and miss significant portions of the codebase
+
+### Spack Package Manager Integration
+
+> **Note for AI Agents**: This section describes Spack usage patterns in CI containers (`phlex-ci`, `phlex-dev`) and devcontainers. Human developers working in local environments may use different dependency management approaches.
+
+The project uses Spack for dependency management in CI and container development environments:
+
+- **Spack Environments**: The `scripts/setup-env.sh` script automatically activates Spack environments when available
+- **Loading Additional Packages**: If you need tools or libraries not loaded by default, use `spack load <package>` to bring them into the environment
+- **Common Use Cases**:
+  - `spack load cmake` - Load CMake if not in current environment
+  - `spack load gcc` - Load specific GCC compiler
+  - `spack load ninja` - Load Ninja build tool
+  - `spack load gcovr` - Load coverage reporting tools
+- **Graceful Degradation**: The build system works with system-installed packages when Spack is unavailable
+- **Recipe Repository**: Changes to Spack recipes should be proposed to `Framework-R-D/phlex-spack-recipes`
+
+When suggesting installation of dependencies:
+
+- Prefer sourcing the environment setup script (`scripts/setup-env.sh` or workspace-level `setup-env.sh`) as it handles both Spack and system packages
+- For manual installations, provide both Spack (`spack install/load`) and system package manager options
+- Consult `scripts/README.md` and `scripts/QUICK_REFERENCE.md` for common patterns
 
 ## Text Formatting Standards
 
@@ -189,10 +236,31 @@ If a feature (e.g., lock guards) is conspicuously missing, add a comment explain
 
 ## Code Formatting Standards
 
+### C++ Files
+
+- Use clang-format tool for all C++ code (VS Code auto-formats on save)
+- Configuration defined in `.clang-format` (100-character line limit, 2-space indentation)
+- Follow clang-tidy recommendations defined in `.clang-tidy`
+- CI automatically checks formatting and provides fix suggestions
+
+### Python Files
+
+- Use ruff for formatting and linting (configured in `pyproject.toml`)
+- Follow Google-style docstring conventions
+- Line length: 99 characters
+- Use double quotes for strings
+- Type hints recommended (mypy configured in `pyproject.toml`)
+
 ### CMake Files
 
 - Use cmake-format tool (VS Code auto-formats on save)
 - Configuration: `dangle_align: "child"`, `dangle_parens: true`
+
+### Jsonnet Files
+
+- Jsonnet configuration files (`.jsonnet`) are used for Phlex workflow configurations
+- Use `jsonnetfmt` for consistent formatting (CI enforces this)
+- Primarily used in test configurations (e.g., `test/python/*.jsonnet`)
 
 ## Markdown Rules
 
