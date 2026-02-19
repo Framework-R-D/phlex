@@ -285,6 +285,15 @@ jobs:
           exit 1
         fi
 
+    - name: Upload Perfetto traces
+      if: matrix.sanitizer == 'perfetto'
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: perfetto-traces-${{ matrix.compiler }}
+        path: '**/*.pftrace'
+        retention-days: 30
+        if-no-files-found: warn
+
   cmake-build-skipped:
     needs: [pre-check, detect-changes]
     if: >
