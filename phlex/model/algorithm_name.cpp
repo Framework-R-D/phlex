@@ -1,34 +1,55 @@
 #include "phlex/model/algorithm_name.hpp"
 
+#include "fmt/format.h"
+
+#include <algorithm>
 #include <cassert>
-#include <regex>
-#include <tuple>
 
 namespace {
-  std::regex const algorithm_name_re{R"((\w+)?(:)?(\w+)?)"};
+  // Check if a char is a word (\w) char
+  // Only care about C locale (ASCII) for now
+  bool is_word(char c)
+  {
+    if ('0' <= c && c <= '9') {
+      return true;
+    }
+    if ('A' <= c && c <= 'Z') {
+      return true;
+    }
+    if ('a' <= c && c <= 'z') {
+      return true;
+    }
+    if (c == '_') {
+      return true;
+    }
+    return false;
+  }
+
+  // Check that a string_view only contains word chars
+  bool words_only(std::string_view str) { return std::ranges::all_of(str, is_word); }
 }
 
 namespace phlex::experimental {
   algorithm_name::algorithm_name() = default;
 
-  algorithm_name::algorithm_name(char const* name) : algorithm_name{std::string{name}} {}
-  algorithm_name::algorithm_name(std::string name) { *this = create(name); }
+  algorithm_name::algorithm_name(char const* spec) : algorithm_name{std::string_view{spec}} {}
+  algorithm_name::algorithm_name(std::string const& spec) : algorithm_name{std::string_view{spec}}
+  {
+  }
+  algorithm_name::algorithm_name(std::string_view spec) { *this = create(spec); }
 
-  algorithm_name::algorithm_name(std::string plugin,
-                                 std::string algorithm,
-                                 specified_fields fields) :
+  algorithm_name::algorithm_name(identifier plugin, identifier algorithm, specified_fields fields) :
     plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}, fields_{fields}
   {
   }
 
   std::string algorithm_name::full() const
   {
-    std::string result{plugin_};
-    if (not plugin_.empty()) {
-      result += ":";
+    if (!plugin_.empty()) {
+      return fmt::format("{}:{}", plugin_, algorithm_);
     }
-    result += algorithm_;
-    return result;
+    // This will stay after trans_get_string is removed
+    return fmt::format("{}", algorithm_);
   }
 
   bool algorithm_name::match(algorithm_name const& other) const
@@ -55,27 +76,35 @@ namespace phlex::experimental {
     return false;
   }
 
-  algorithm_name algorithm_name::create(char const* spec) { return create(std::string{spec}); }
-  algorithm_name algorithm_name::create(std::string const& spec)
+  algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
+  algorithm_name algorithm_name::create(std::string_view spec)
   {
-    if (std::smatch matches; std::regex_match(spec, matches, algorithm_name_re)) {
-      assert(matches.size() == 4ull);
-      // If a colon ":" is specified, then both the plugin and algorithm must be specified.
-      if (matches[2] == ":") {
-        if (matches[3].str().empty()) {
-          throw std::runtime_error("Cannot create an algorithm name that ends with a colon (':')");
-        }
-        return {matches[1], matches[3], specified_fields::both};
-      }
-
-      // Nothing specified
-      if (matches[1].str().empty() and matches[3].str().empty()) {
-        return {};
-      }
-
-      // Only one word is specified--could be either the plugin or the algorithm
-      return {matches[1], matches[3], specified_fields::either};
+    // Empty spec means nothing is specified
+    if (spec.empty()) {
+      return {};
     }
-    throw std::runtime_error("The specification '" + spec + "' is not a valid algorithm name.");
+
+    // Do we have a colon? If so, have both plugin and algorithm
+    if (spec.contains(':')) {
+      if (spec.ends_with(':')) {
+        throw std::runtime_error("Cannot create an algorithm name that ends with a colon (':')");
+      }
+      auto const colon_pos = spec.find(':');
+      std::string_view const plugin = spec.substr(0, colon_pos);
+      std::string_view const algorithm = spec.substr(colon_pos + 1); // +1 OK, : not at end
+
+      if (!words_only(plugin) or !words_only(algorithm)) {
+        throw std::runtime_error(
+          fmt::format("The specification '{}' is not a valid algorithm name.", spec));
+      }
+      return {identifier(plugin), identifier(algorithm), specified_fields::both};
+    }
+
+    // No colon -- could be plugin or algorithm
+    if (!words_only(spec)) {
+      throw std::runtime_error(
+        fmt::format("The specification '{}' is not a valid algorithm name.", spec));
+    }
+    return {identifier(spec), identifier(spec), specified_fields::either};
   }
 }
