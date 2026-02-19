@@ -21,7 +21,7 @@
 
 namespace form::detail::experimental {
 
-  std::shared_ptr<IStorage_File> createFile(int tech, std::string const& name, char mode)
+  inline std::shared_ptr<IStorage_File> createFile(int tech, std::string const& name, char mode)
   {
     if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
 #ifdef USE_ROOT_STORAGE
@@ -33,7 +33,7 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_File>(name, mode);
   }
 
-  std::shared_ptr<IStorage_Container> createAssociation(int tech, std::string const& name)
+  inline std::shared_ptr<IStorage_Container> createAssociation(int tech, std::string const& name)
   {
     if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
       if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
@@ -52,7 +52,7 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_Association>(name);
   }
 
-  std::shared_ptr<IStorage_Container> createContainer(int tech, std::string const& name)
+  inline std::shared_ptr<IStorage_Container> createContainer(int tech, std::string const& name)
   {
     // Use the helper functions from Technology namespace for consistency
     if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
