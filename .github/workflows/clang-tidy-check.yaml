@@ -3,7 +3,7 @@ name: Clang-Tidy Check
 
 permissions:
   contents: read
-  pull-requests: write
+
 
 on:
   pull_request:
@@ -33,7 +33,7 @@ jobs:
       ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.pr.outputs.ref || github.sha }}
       repo: ${{ steps.pr.outputs.repo || github.repository }}
       base_sha: ${{ steps.pr.outputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
-      pr_number: ${{ steps.pr.outputs.number }}
+      pr_number: ${{ github.event.pull_request.number || github.event.issue.number }}
     steps:
       - name: Get PR Info
         if: github.event_name == 'issue_comment'
@@ -161,6 +161,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      issues: write
     steps:
       - name: Download clang-tidy report
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
