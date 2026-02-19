@@ -6,12 +6,12 @@
 #include <cassert>
 
 namespace phlex::experimental {
-  multiplexer::input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
-                                                 declared_providers& providers)
+  index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
+                                                           declared_providers& providers)
   {
     assert(!head_ports.empty());
 
-    multiplexer::input_ports_t result;
+    index_router::provider_input_ports_t result;
     for (auto const& [node_name, ports] : head_ports) {
       for (auto const& port : ports) {
         // Find the provider that has the right product name (hidden in the

@@ -43,9 +43,8 @@ TEST_CASE("Product store derivation", "[data model]")
   SECTION("Only one store")
   {
     auto store = product_store::base();
-    auto stores = std::make_tuple(store);
     CHECK(store == more_derived(store, store));
-    CHECK(store == most_derived(stores));
+    CHECK(store == most_derived(store));
   }
 
   auto root = product_store::base();

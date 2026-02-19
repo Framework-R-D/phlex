@@ -5,9 +5,8 @@
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/glue.hpp"
+#include "phlex/core/index_router.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/core/message_sender.hpp"
-#include "phlex/core/multiplexer.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
@@ -22,8 +21,6 @@
 
 #include <functional>
 #include <map>
-#include <queue>
-#include <stack>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -34,19 +31,6 @@ namespace phlex {
 }
 
 namespace phlex::experimental {
-  class layer_sentry {
-  public:
-    layer_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);
-    ~layer_sentry();
-    std::size_t depth() const noexcept;
-
-  private:
-    flush_counters& counters_;
-    message_sender& sender_;
-    product_store_ptr store_;
-    std::size_t depth_;
-  };
-
   class framework_graph {
   public:
     explicit framework_graph(data_cell_index_ptr index,
@@ -165,10 +149,6 @@ namespace phlex::experimental {
     void run();
     void finalize();
 
-    product_store_ptr accept(product_store_ptr store);
-    void drain();
-    std::size_t original_message_id(product_store_ptr const& store);
-
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;
     data_layer_hierarchy hierarchy_{};
@@ -178,13 +158,9 @@ namespace phlex::experimental {
     tbb::flow::graph graph_{};
     framework_driver driver_;
     std::vector<std::string> registration_errors_{};
-    tbb::flow::input_node<message> src_;
-    multiplexer multiplexer_;
-    tbb::flow::function_node<message> hierarchy_node_;
-    message_sender sender_{multiplexer_};
-    std::queue<product_store_ptr> pending_stores_;
-    flush_counters counters_;
-    std::stack<layer_sentry> layers_;
+    tbb::flow::input_node<data_cell_index_ptr> src_;
+    index_router index_router_;
+    tbb::flow::function_node<data_cell_index_ptr> hierarchy_node_;
     bool shutdown_on_error_{false};
   };
 }

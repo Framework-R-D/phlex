@@ -1,8 +1,5 @@
 #include "phlex/core/declared_observer.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
-
 namespace phlex::experimental {
   declared_observer::declared_observer(algorithm_name name,
                                        std::vector<std::string> predicates,
@@ -12,15 +9,4 @@ namespace phlex::experimental {
   }
 
   declared_observer::~declared_observer() = default;
-
-  void declared_observer::report_cached_hashes(
-    tbb::concurrent_hash_map<data_cell_index::hash_type, bool> const& hashes) const
-  {
-    if (hashes.size() > 0ull) {
-      spdlog::warn("Monitor {} has {} cached hashes.", full_name(), hashes.size());
-    }
-    for (auto const& [id, _] : hashes) {
-      spdlog::debug(" => ID: {}", id);
-    }
-  }
 }

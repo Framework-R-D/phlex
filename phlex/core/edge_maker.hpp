@@ -1,11 +1,12 @@
 #ifndef PHLEX_CORE_EDGE_MAKER_HPP
 #define PHLEX_CORE_EDGE_MAKER_HPP
 
+#include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/declared_provider.hpp"
 #include "phlex/core/edge_creation_policy.hpp"
 #include "phlex/core/filter.hpp"
-#include "phlex/core/multiplexer.hpp"
+#include "phlex/core/index_router.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
@@ -24,8 +25,8 @@ namespace phlex::experimental {
 
   using product_name_t = std::string;
 
-  multiplexer::input_ports_t make_provider_edges(multiplexer::head_ports_t head_ports,
-                                                 declared_providers& providers);
+  index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
+                                                           declared_providers& providers);
 
   class edge_maker {
   public:
@@ -33,8 +34,8 @@ namespace phlex::experimental {
     edge_maker(Args&... args);
 
     template <typename... Args>
-    void operator()(tbb::flow::input_node<message>& source,
-                    multiplexer& multi,
+    void operator()(tbb::flow::graph& g,
+                    index_router& multi,
                     std::map<std::string, filter>& filters,
                     declared_outputs& outputs,
                     declared_providers& providers,
@@ -42,7 +43,10 @@ namespace phlex::experimental {
 
   private:
     template <typename T>
-    multiplexer::head_ports_t edges(std::map<std::string, filter>& filters, T& consumers);
+    index_router::head_ports_t edges(std::map<std::string, filter>& filters, T& consumers);
+
+    template <typename T>
+    std::map<std::string, named_index_ports> multilayer_ports(T& consumers);
 
     edge_creation_policy producers_;
   };
@@ -55,9 +59,9 @@ namespace phlex::experimental {
   }
 
   template <typename T>
-  multiplexer::head_ports_t edge_maker::edges(std::map<std::string, filter>& filters, T& consumers)
+  index_router::head_ports_t edge_maker::edges(std::map<std::string, filter>& filters, T& consumers)
   {
-    multiplexer::head_ports_t result;
+    index_router::head_ports_t result;
     for (auto& [node_name, node] : consumers) {
       tbb::flow::receiver<message>* collector = nullptr;
       if (auto coll_it = filters.find(node_name); coll_it != cend(filters)) {
@@ -79,16 +83,31 @@ namespace phlex::experimental {
     return result;
   }
 
+  template <typename T>
+  std::map<std::string, named_index_ports> edge_maker::multilayer_ports(T& consumers)
+  {
+    // Folds are not yet supported with the new caching system
+    if constexpr (std::same_as<T, declared_folds>) {
+      return {};
+    } else {
+      std::map<std::string, named_index_ports> result;
+      for (auto& [node_name, node] : consumers) {
+        if (auto const& ports = node->index_ports(); not ports.empty()) {
+          result.try_emplace(node_name, ports);
+        }
+      }
+      return result;
+    }
+  }
+
   template <typename... Args>
-  void edge_maker::operator()(tbb::flow::input_node<message>& source,
-                              multiplexer& multi,
+  void edge_maker::operator()(tbb::flow::graph& g,
+                              index_router& multi,
                               std::map<std::string, filter>& filters,
                               declared_outputs& outputs,
                               declared_providers& providers,
                               Args&... consumers)
   {
-    make_edge(source, multi);
-
     // Create edges to outputs
     for (auto const& [output_name, output_node] : outputs) {
       for (auto& [_, provider] : providers) {
@@ -100,7 +119,7 @@ namespace phlex::experimental {
     }
 
     // Create normal edges
-    multiplexer::head_ports_t head_ports;
+    index_router::head_ports_t head_ports;
     (head_ports.merge(edges(filters, consumers)), ...);
     // Eventually, we want to look at the filled-in head_ports and
     // figure out what provider nodes are needed.
@@ -112,7 +131,11 @@ namespace phlex::experimental {
     }
 
     auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
-    multi.finalize(std::move(provider_input_ports));
+
+    std::map<std::string, named_index_ports> multilayer_join_index_ports;
+    (multilayer_join_index_ports.merge(multilayer_ports(consumers)), ...);
+
+    multi.finalize(g, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
   }
 }
 
