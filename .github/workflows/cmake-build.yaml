@@ -8,7 +8,7 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
   push:
     branches: [main, develop]
   schedule:
-    - cron: '7 18 * * 6'
+    - cron: "7 18 * * 6"
   workflow_dispatch:
     inputs:
       ref:
@@ -26,6 +26,16 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
           Default (if empty): Run `gcc/none`
         required: false
         default: ""
+      perfetto-heap-profile:
+        description: "Enable heap profiling for Perfetto runs"
+        required: false
+        type: boolean
+        default: false
+      perfetto-cpu-profile:
+        description: "Enable CPU profiling for Perfetto runs"
+        required: false
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       checkout-path:
@@ -73,12 +83,8 @@ env:
 jobs:
   setup:
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
-      github.event_name == 'push' ||
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_call' ||
-      (
+      github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push' ||
+      github.event_name == 'schedule' || github.event_name == 'workflow_call' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
@@ -146,6 +152,7 @@ jobs:
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
+      options: --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
 
     steps:
       - name: Check out code
@@ -181,7 +188,7 @@ jobs:
           extra-options: |
             ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', steps.repo_name.outputs.name) || '' }}
             ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', steps.repo_name.outputs.name) || '' }}
-          ${{ matrix.sanitizer == 'perfetto' && format('-D{0}_ENABLE_PERFETTO=ON', steps.repo_name.outputs.name) || '' }}
+            ${{ matrix.sanitizer == 'perfetto' && format('-D{0}_ENABLE_PERFETTO=ON', steps.repo_name.outputs.name) || '' }}
 
       - name: Build
         id: build
@@ -222,22 +229,60 @@ jobs:
             echo "⚠️ Valgrind tests failed, but the workflow will continue."
           fi
 
-    - name: Run Perfetto profiling
-      if: matrix.sanitizer == 'perfetto'
-      run: |
-        . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
+      - name: Run Perfetto profiling
+        if: matrix.sanitizer == 'perfetto'
+        working-directory: ${{ needs.setup.outputs.build_path }}
+        env:
+          PERFETTO_HEAP_PROFILE: ${{ github.event.inputs.perfetto-heap-profile || 'false' }}
+          PERFETTO_CPU_PROFILE: ${{ github.event.inputs.perfetto-cpu-profile || 'true' }}
+        run: |
+          . /entrypoint.sh
 
-        echo "➡️ Running tests with Perfetto profiling..."
-        echo "::group::Running ctest with Perfetto"
-        if ctest --progress --output-on-failure -j "$(nproc)"; then
+          echo "➡️ Running tests with Perfetto profiling..."
+
+          # Set perf_event_paranoid for CPU profiling
+          if [ "$PERFETTO_CPU_PROFILE" = "true" ]; then
+            echo "Configuring perf_event_paranoid for CPU profiling"
+            echo -1 | tee /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo "Warning: Could not set perf_event_paranoid"
+          fi
+
+          # Configure profiling based on environment
+          TRACEBOX_ARGS=""
+          if [ "$PERFETTO_HEAP_PROFILE" = "true" ]; then
+            echo "Enabling heap profiling"
+            TRACEBOX_ARGS="$TRACEBOX_ARGS --app '*' --heapprofd"
+          fi
+          if [ "$PERFETTO_CPU_PROFILE" = "true" ]; then
+            echo "Enabling CPU profiling"
+            TRACEBOX_ARGS="$TRACEBOX_ARGS --cpu-freq --cpu-idle --cpu-sched"
+          fi
+
+          # Run tests with or without tracebox wrapper
+          if [ -n "$TRACEBOX_ARGS" ]; then
+            echo "::group::Running ctest with tracebox"
+              tracebox $TRACEBOX_ARGS -o "perfetto-trace.pftrace" -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
+          else
+            echo "::group::Running ctest with Perfetto SDK tracing"
+            ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
+          fi
+
           echo "::endgroup::"
-          echo "✅ Perfetto profiling completed."
-        else
-          echo "::endgroup::"
-          echo "::error:: Perfetto profiling failed."
-          exit 1
-        fi
+          if [ "${TEST_RESULT:-0}" -eq 0 ]; then
+            echo "✅ Perfetto profiling completed."
+          else
+            echo "::error:: Perfetto profiling failed."
+            exit 1
+          fi
+
+      - name: Upload Perfetto traces
+        if: matrix.sanitizer == 'perfetto'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: perfetto-traces-${{ matrix.compiler }}
+          path: |
+            ${{ needs.setup.outputs.build_path }}/**/*.pftrace
+          retention-days: 30
+          if-no-files-found: warn
 
   cmake-build-skipped:
     needs: [setup]
