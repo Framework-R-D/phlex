@@ -7,12 +7,10 @@ import re
 
 def get_default_combinations(event_name, all_combinations):
     """Gets the default build combinations based on the GitHub event type."""
-    if event_name in ("push", "pull_request", "pull_request_target"):
+    if event_name in ("push", "pull_request", "pull_request_target", "issue_comment", "workflow_dispatch"):
         return ["gcc/none"]
-    elif event_name == "issue_comment":
-        return ["gcc/none", "clang/none"]
-    elif event_name == "workflow_dispatch":
-        return all_combinations
+    elif event_name == "schedule":
+        return ["gcc/perfetto"]
     else:
         # Default to a minimal safe configuration for unknown events
         return ["gcc/none"]
@@ -25,10 +23,12 @@ def main():
         "gcc/asan",
         "gcc/tsan",
         "gcc/valgrind",
+        "gcc/perfetto",
         "clang/none",
         "clang/asan",
         "clang/tsan",
         "clang/valgrind",
+        "clang/perfetto",
     ]
     user_input = os.getenv("USER_INPUT", "")
     comment_body = os.getenv("COMMENT_BODY", "")

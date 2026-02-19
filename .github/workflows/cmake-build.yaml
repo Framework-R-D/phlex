@@ -7,6 +7,8 @@ on:
     types: [created]
   push:
     branches: [ main, develop ]
+  schedule:
+    - cron: '07 18 * * 6'
   workflow_dispatch:
     inputs:
       ref:
@@ -76,6 +78,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'pull_request' ||
       github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
       github.event_name == 'workflow_call' ||
       (
         github.event_name == 'issue_comment' &&
@@ -224,6 +227,7 @@ jobs:
         extra-options: |
           ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', steps.repo_name.outputs.name) || '' }}
           ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', steps.repo_name.outputs.name) || '' }}
+          ${{ matrix.sanitizer == 'perfetto' && format('-D{0}_ENABLE_PERFETTO=ON', steps.repo_name.outputs.name) || '' }}
 
     - name: Build
       id: build
@@ -232,7 +236,7 @@ jobs:
         build-path: ${{ env.local_build_path }}
 
     - name: Run tests
-      if: matrix.sanitizer != 'valgrind'
+      if: matrix.sanitizer != 'valgrind' && matrix.sanitizer != 'perfetto'
       run: |
         . /entrypoint.sh
         cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
@@ -262,6 +266,23 @@ jobs:
         else
           echo "::endgroup::"
           echo "⚠️ Valgrind tests failed, but the workflow will continue."
+        fi
+
+    - name: Run Perfetto profiling
+      if: matrix.sanitizer == 'perfetto'
+      run: |
+        . /entrypoint.sh
+        cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
+
+        echo "➡️ Running tests with Perfetto profiling..."
+        echo "::group::Running ctest with Perfetto"
+        if ctest --progress --output-on-failure -j "$(nproc)"; then
+          echo "::endgroup::"
+          echo "✅ Perfetto profiling completed."
+        else
+          echo "::endgroup::"
+          echo "::error:: Perfetto profiling failed."
+          exit 1
         fi
 
   cmake-build-skipped:
