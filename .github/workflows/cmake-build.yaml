@@ -282,3 +282,28 @@ jobs:
     steps:
     - name: No relevant C++ or CMake changes detected
       run: echo "::notice::No relevant C++ or CMake changes detected; build skipped."
+
+  build-complete:
+    needs: [pre-check, build]
+    if: >
+      always() &&
+      github.event_name == 'issue_comment' &&
+      needs.pre-check.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Comment on build completion
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          message: |
+            Build and test workflow completed.
+            
+            **Result:** ${{ needs.build.result == 'success' && '✅ All builds and tests passed.' 
+              || needs.build.result == 'failure' && '❌ Some builds or tests failed.' 
+              || needs.build.result == 'cancelled' && '⚠️ Build was cancelled before completion.' 
+              || needs.build.result == 'skipped' && 'ℹ️ Build job was skipped.' 
+              || format('ℹ️ Build job completed with status: {0}.', needs.build.result) }}
+            
+            See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.
