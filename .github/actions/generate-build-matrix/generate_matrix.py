@@ -7,7 +7,13 @@ import re
 
 def get_default_combinations(event_name, all_combinations):
     """Gets the default build combinations based on the GitHub event type."""
-    if event_name in ("push", "pull_request", "pull_request_target", "issue_comment", "workflow_dispatch"):
+    if event_name in (
+        "push",
+        "pull_request",
+        "pull_request_target",
+        "issue_comment",
+        "workflow_dispatch",
+    ):
         return ["gcc/none"]
     elif event_name == "schedule":
         return ["gcc/perfetto"]
