@@ -27,10 +27,12 @@ def main():
         "gcc/asan",
         "gcc/tsan",
         "gcc/valgrind",
+        "gcc/perfetto",
         "clang/none",
         "clang/asan",
         "clang/tsan",
         "clang/valgrind",
+        "clang/perfetto",
     ]
     user_input = os.getenv("USER_INPUT", "")
     comment_body = os.getenv("COMMENT_BODY", "")

@@ -94,6 +94,7 @@ include(Modules/private/CreateCoverageTargets.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
+option(ENABLE_PERFETTO "Enable Perfetto profiling" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(ENABLE_BUILD_PROFILING "Enable monitoring of compile and link operations" OFF)
@@ -196,6 +197,12 @@ if(ENABLE_ASAN)
   endif()
 endif()
 
+# Configure Perfetto profiling if enabled
+if(ENABLE_PERFETTO)
+  message(STATUS "Enabling Perfetto profiling")
+  find_package(Perfetto REQUIRED)
+endif()
+
 # Configure code coverage if enabled
 if(ENABLE_COVERAGE)
   # Check if the compiler supports code coverage
@@ -221,6 +228,12 @@ endif()
 
 add_subdirectory(phlex)
 add_subdirectory(plugins)
+
+# Link Perfetto to phlex executable if enabled
+if(ENABLE_PERFETTO AND TARGET phlex)
+  target_link_libraries(phlex PRIVATE Perfetto::Perfetto)
+  target_compile_definitions(phlex PRIVATE PERFETTO_ENABLE_TRACING=1)
+endif()
 
 if(PHLEX_USE_FORM)
   set(BUILD_SHARED_LIBS OFF) # Temporary
