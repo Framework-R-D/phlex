@@ -65,5 +65,19 @@ int main()
     }
   }
   assert(ok);
+
+  // Additional coverage for identifier edge cases
+
+  // Ordering is _not_ lexical
+  identifier id1("abc");
+  identifier id2("def");
+
+  assert(id1 == id1);
+  assert(id1 != id2);
+  assert(id1 < id2);
+  assert(id2 > id1);
+  assert(id1 <= id1);
+  assert(id1 >= id1);
+
   return 0;
 }
