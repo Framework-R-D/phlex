@@ -8,7 +8,7 @@ on:
   push:
     branches: [ main, develop ]
   schedule:
-    - cron: '7 18 * * 6'
+    - cron: '0 18 * * 6'
   workflow_dispatch:
     inputs:
       ref:
@@ -310,7 +310,7 @@ jobs:
         # Run tests with or without tracebox wrapper
         if [ -n "$TRACEBOX_ARGS" ]; then
           echo "::group::Running ctest with tracebox"
-          tracebox $TRACEBOX_ARGS -o perfetto-trace.pftrace -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
+          tracebox $TRACEBOX_ARGS -o "$GITHUB_WORKSPACE/${{ env.local_build_path }}/perfetto-trace.pftrace" -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
         else
           echo "::group::Running ctest with Perfetto SDK tracing"
           ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
@@ -329,7 +329,9 @@ jobs:
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: perfetto-traces-${{ matrix.compiler }}
-        path: '**/*.pftrace'
+        path: |
+          ${{ env.local_build_path }}/**/*.pftrace
+          ${{ env.local_build_path }}/**/perfetto-trace.pftrace
         retention-days: 30
         if-no-files-found: warn
 

@@ -295,8 +295,9 @@ rm -rf /var/lib/apt/lists/*
 
 mkdir -p /opt/perfetto
 cd /opt/perfetto
-wget -O perfetto.h https://raw.githubusercontent.com/google/perfetto/main/sdk/perfetto.h
-wget -O perfetto.cc https://raw.githubusercontent.com/google/perfetto/main/sdk/perfetto.cc
+PERFETTO_VERSION=v51.0
+wget -O perfetto.h https://raw.githubusercontent.com/google/perfetto/${PERFETTO_VERSION}/sdk/perfetto.h
+wget -O perfetto.cc https://raw.githubusercontent.com/google/perfetto/${PERFETTO_VERSION}/sdk/perfetto.cc
 chmod 644 perfetto.h perfetto.cc
 
 # Install tracebox for system-wide profiling
