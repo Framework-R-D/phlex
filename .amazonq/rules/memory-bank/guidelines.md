@@ -159,7 +159,7 @@
   resource_usage::resource_usage() noexcept :
     begin_wall_{steady_clock::now()}, begin_cpu_{get_rusage().elapsed_time}
   {}
-  
+
   resource_usage::~resource_usage() {
     // Log metrics on destruction
   }

@@ -57,6 +57,6 @@ Phlex is a framework for **P**arallel, **h**ierarchical, and **l**ayered **ex**e
 
 - Version: 0.1.0 (active development)
 - License: Apache 2.0 (see LICENSE and NOTICE files)
-- Repository: https://github.com/Framework-R-D/phlex
-- Example Code: https://github.com/framework-r-d/phlex-examples
+- Repository: [https://github.com/Framework-R-D/phlex](https://github.com/Framework-R-D/phlex)
+- Example Code: [https://github.com/Framework-R-D/phlex-examples](https://github.com/Framework-R-D/phlex-examples)
 - Code Coverage: Tracked via Codecov with automated CI integration
