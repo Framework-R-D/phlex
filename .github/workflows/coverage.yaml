@@ -6,6 +6,8 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       ref:
@@ -27,22 +29,40 @@ permissions:
 
 jobs:
   pre-check:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request' ||
+      github.event_name == 'push' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
+        startsWith(github.event.comment.body, format('@{0}bot coverage', github.event.repository.name))
+      )
+    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
+    # This covers repo owners, invited collaborators, and all org members.
+    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
-      repo: ${{ github.repository }}
-      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.pr.outputs.ref || github.sha }}
+      repo: ${{ steps.pr.outputs.repo || github.repository }}
+      base_sha: ${{ steps.pr.outputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
     steps:
+      - name: Get PR Info
+        if: github.event_name == 'issue_comment'
+        id: pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
       - name: Detect act environment
         id: detect_act
         uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
-
   detect-changes:
     needs: pre-check
     if: >
       needs.pre-check.result == 'success' &&
       github.event_name != 'workflow_dispatch' &&
+      github.event_name != 'issue_comment' &&
       needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
