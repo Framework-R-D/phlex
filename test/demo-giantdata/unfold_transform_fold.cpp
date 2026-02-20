@@ -59,7 +59,7 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
                                spill_index.parent()->number(),
                                spill_index.number());
             })
-    .output_product("wgen"_in("spill"));
+    .output_product(product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "wgen"_id});
 
   g.unfold<demo::WaveformGenerator>(
      "WaveformGenerator",
@@ -71,7 +71,7 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
      },
      concurrency::unlimited,
      "APA")
-    .input_family("wgen"_in("spill"))
+    .input_family(product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "wgen"_id})
     .output_products("waves_in_apa");
 
   // Add the transform node to the graph
@@ -80,7 +80,8 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   };
 
   g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
-    .input_family("waves_in_apa"_in("APA"))
+    .input_family(product_query{
+      .creator = "WaveformGenerator"_id, .layer = "APA"_id, .suffix = "waves_in_apa"_id})
     .output_products("clamped_waves");
 
   // Add the fold node with instrumentation to detect pipelined execution
@@ -97,7 +98,8 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
      },
      concurrency::unlimited,
      "spill")
-    .input_family("clamped_waves"_in("APA"))
+    .input_family(
+      product_query{.creator = "clamp_node"_id, .layer = "APA"_id, .suffix = "clamped_waves"_id})
     .output_products("summed_waveforms");
 
   // Execute the graph

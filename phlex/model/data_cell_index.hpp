@@ -8,6 +8,7 @@
 #include <iosfwd>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -22,7 +23,7 @@ namespace phlex {
     std::string const& layer_name() const noexcept;
     std::string layer_path() const;
     std::size_t depth() const noexcept;
-    data_cell_index_ptr parent(std::string const& layer_name) const;
+    data_cell_index_ptr parent(std::string_view layer_name) const;
     data_cell_index_ptr parent() const noexcept;
     bool has_parent() const noexcept;
     std::size_t number() const;

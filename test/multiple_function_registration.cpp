@@ -45,41 +45,51 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   g.provide("provide_numbers",
             [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })
-    .output_product("numbers"_in("job"));
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "numbers"_id});
   g.provide("provide_offset", [](data_cell_index const&) -> unsigned { return 6u; })
-    .output_product("offset"_in("job"));
+    .output_product(product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "offset"_id});
 
   SECTION("All free functions")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family("numbers"_in("job"))
+      .input_family(product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "numbers"_id})
       .output_products("squared_numbers");
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
-      .input_family("squared_numbers"_in("job"))
+      .input_family(product_query{
+        .creator = "square_numbers"_id, .layer = "job"_id, .suffix = "squared_numbers"_id})
       .output_products("summed_numbers");
-    g.transform("sqrt_sum_numbers", sqrt_sum_numbers, concurrency::unlimited)
-      .input_family("summed_numbers"_in("job"), "offset"_in("job"))
+    g.transform("sqrt_sum", sqrt_sum_numbers, concurrency::unlimited)
+      .input_family(product_query{.creator = "sum_numbers"_id,
+                                  .layer = "job"_id,
+                                  .suffix = "summed_numbers"_id},
+                    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "offset"_id})
       .output_products("result");
   }
 
   SECTION("Transforms, one from a class")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family("numbers"_in("job"))
+      .input_family(product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "numbers"_id})
       .output_products("squared_numbers");
 
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
-      .input_family("squared_numbers"_in("job"))
+      .input_family(product_query{
+        .creator = "square_numbers"_id, .layer = "job"_id, .suffix = "squared_numbers"_id})
       .output_products("summed_numbers");
 
     g.make<A>()
       .transform("sqrt_sum", &A::sqrt_sum, concurrency::unlimited)
-      .input_family("summed_numbers"_in("job"), "offset"_in("job"))
+      .input_family(product_query{.creator = "sum_numbers"_id,
+                                  .layer = "job"_id,
+                                  .suffix = "summed_numbers"_id},
+                    product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "offset"_id})
       .output_products("result");
   }
 
   // The following is invoked for *each* section above
   g.observe("verify_result", [](double actual) { assert(actual == 6.); })
-    .input_family("result"_in("job"));
+    .input_family(
+      product_query{.creator = "sqrt_sum"_id, .layer = "job"_id, .suffix = "result"_id});
   g.execute();
 }

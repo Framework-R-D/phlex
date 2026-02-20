@@ -19,17 +19,17 @@ local max_number = 100000;
     },
     even_filter: {
       cpp: 'accept_even_numbers',
-      consumes: { product: 'a', layer: 'event' },
+      consumes: { creator: 'a_creator', suffix: 'a', layer: 'event' },
     },
     fibonacci_filter: {
       cpp: 'accept_fibonacci_numbers',
-      consumes: { product: 'a', layer: 'event' },
+      consumes: { creator: 'a_creator', suffix: 'a', layer: 'event' },
       max_number: max_number,
     },
     d: {
       cpp: 'verify_even_fibonacci_numbers',
       experimental_when: ['even_filter:accept_even_numbers', 'fibonacci_filter:accept'],
-      consumes: { product: 'a', layer: 'event' },
+      consumes: { creator: 'a_creator', suffix: 'a', layer: 'event' },
       max_number: max_number,
     },
   },

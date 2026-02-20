@@ -16,7 +16,11 @@
     },
     read_index: {
       cpp: 'read_index',
-      consumes: { product: 'a', layer: 'event' },
+      consumes: {
+        creator: 'a_creator',
+        suffix: 'a',
+        layer: 'event',
+      },
     },
   },
 }

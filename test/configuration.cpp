@@ -32,15 +32,17 @@ TEST_CASE("Retrieve value that is a configuration object", "[config]")
 TEST_CASE("Retrieve product_query", "[config]")
 {
   boost::json::object input;
-  input["product"] = "tracks";
+  input["creator"] = "tracks_alg";
+  input["suffix"] = "tracks";
   input["layer"] = "job";
 
   boost::json::object malformed_input1;
-  malformed_input1["product"] = 16.; // Should be string
+  malformed_input1["creator"] = "test_alg";
+  malformed_input1["suffix"] = 16.; // Should be string
   malformed_input1["layer"] = "job";
 
   boost::json::object malformed_input2;
-  malformed_input2["product"] = "hits";
+  malformed_input2["creator"] = "hits";
   malformed_input2["level"] = "should be layer, not level";
 
   boost::json::object underlying_config;
@@ -50,10 +52,11 @@ TEST_CASE("Retrieve product_query", "[config]")
   configuration config{underlying_config};
 
   auto input_query = config.get<product_query>("input");
-  CHECK(input_query == "tracks"_in("job"));
+  CHECK(input_query.match(
+    product_query{.creator = "tracks_alg"_id, .layer = "job"_id, .suffix = "tracks"_id}));
   CHECK_THROWS_WITH(config.get<product_query>("malformed1"),
                     ContainsSubstring("Error retrieving parameter 'malformed1'") &&
-                      ContainsSubstring("Error retrieving parameter 'product'"));
+                      ContainsSubstring("not a string"));
   CHECK_THROWS_WITH(config.get<product_query>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
                       ContainsSubstring("Error retrieving parameter 'layer'"));
