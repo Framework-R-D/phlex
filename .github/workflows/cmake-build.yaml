@@ -26,6 +26,16 @@ on:
           Default (if empty): Run `gcc/none`
         required: false
         default: ''
+      perfetto-heap-profile:
+        description: "Enable heap profiling for Perfetto runs"
+        required: false
+        type: boolean
+        default: false
+      perfetto-cpu-profile:
+        description: "Enable CPU profiling for Perfetto runs"
+        required: false
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       checkout-path:
@@ -193,6 +203,7 @@ jobs:
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
+      options: --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
 
     steps:
     - name: Check out code
@@ -270,17 +281,45 @@ jobs:
 
     - name: Run Perfetto profiling
       if: matrix.sanitizer == 'perfetto'
+      env:
+        PERFETTO_HEAP_PROFILE: ${{ github.event.inputs.perfetto-heap-profile || 'false' }}
+        PERFETTO_CPU_PROFILE: ${{ github.event.inputs.perfetto-cpu-profile || 'true' }}
       run: |
         . /entrypoint.sh
         cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
 
         echo "➡️ Running tests with Perfetto profiling..."
-        echo "::group::Running ctest with Perfetto"
-        if ctest --progress --output-on-failure -j "$(nproc)"; then
-          echo "::endgroup::"
+        
+        # Set perf_event_paranoid for CPU profiling
+        if [ "$PERFETTO_CPU_PROFILE" = "true" ]; then
+          echo "Configuring perf_event_paranoid for CPU profiling"
+          echo -1 | tee /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo "Warning: Could not set perf_event_paranoid"
+        fi
+        
+        # Configure profiling based on environment
+        TRACEBOX_ARGS=""
+        if [ "$PERFETTO_HEAP_PROFILE" = "true" ]; then
+          echo "Enabling heap profiling"
+          TRACEBOX_ARGS="$TRACEBOX_ARGS --app '*' --heapprofd"
+        fi
+        if [ "$PERFETTO_CPU_PROFILE" = "true" ]; then
+          echo "Enabling CPU profiling"
+          TRACEBOX_ARGS="$TRACEBOX_ARGS --cpu-freq --cpu-idle --cpu-sched"
+        fi
+        
+        # Run tests with or without tracebox wrapper
+        if [ -n "$TRACEBOX_ARGS" ]; then
+          echo "::group::Running ctest with tracebox"
+          tracebox $TRACEBOX_ARGS -o perfetto-trace.pftrace -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
+        else
+          echo "::group::Running ctest with Perfetto SDK tracing"
+          ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
+        fi
+        
+        echo "::endgroup::"
+        if [ "${TEST_RESULT:-0}" -eq 0 ]; then
           echo "✅ Perfetto profiling completed."
         else
-          echo "::endgroup::"
           echo "::error:: Perfetto profiling failed."
           exit 1
         fi
