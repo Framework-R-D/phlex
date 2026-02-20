@@ -62,6 +62,7 @@ include(Modules/private/CreateCoverageTargets.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
+option(ENABLE_PERFETTO "Enable Perfetto profiling" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
@@ -143,6 +144,12 @@ if(ENABLE_ASAN)
   else()
     message(FATAL_ERROR "AddressSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}")
   endif()
+endif()
+
+# Configure Perfetto profiling if enabled
+if(ENABLE_PERFETTO)
+  message(STATUS "Enabling Perfetto profiling")
+  find_package(Perfetto REQUIRED)
 endif()
 
 # Configure code coverage if enabled
