@@ -46,7 +46,7 @@ TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
                                }};
   tbb::flow::function_node receiver{
     g,
-    tbb::flow::unlimited,
+    tbb::flow::serial,
     [&received_ids](data_cell_index_ptr const& set_id) -> tbb::flow::continue_msg {
       received_ids.push_back(set_id->to_string());
       return {};
