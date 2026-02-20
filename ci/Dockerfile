@@ -286,7 +286,7 @@ CLEAN_TEMP_FILES
 RUN <<'INSTALL_PERFETTO'
 set -euo pipefail
 
-# Install Perfetto SDK
+# Install Perfetto SDK and tools
 apt-get update
 apt-get install -y --no-install-recommends \
   wget
@@ -298,6 +298,11 @@ cd /opt/perfetto
 wget -O perfetto.h https://raw.githubusercontent.com/google/perfetto/main/sdk/perfetto.h
 wget -O perfetto.cc https://raw.githubusercontent.com/google/perfetto/main/sdk/perfetto.cc
 chmod 644 perfetto.h perfetto.cc
+
+# Install tracebox for system-wide profiling
+wget -O tracebox https://get.perfetto.dev/tracebox
+chmod +x tracebox
+mv tracebox /usr/local/bin/
 INSTALL_PERFETTO
 
 ########################################################################
