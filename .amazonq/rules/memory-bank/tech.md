@@ -75,15 +75,15 @@ Fermilab's CMake modules for HEP software, providing:
 - Parallel execution engine
 - Task scheduling and work stealing
 
-**fmt**
+#### fmt
 
 - Modern C++ formatting library
 
-**jsonnet**
+#### jsonnet
 
 - Configuration file parsing and evaluation
 
-**spdlog**
+#### spdlog
 
 - Structured logging with multiple sinks
 
@@ -111,12 +111,12 @@ Fermilab's CMake modules for HEP software, providing:
 - C++ Core Guidelines Support Library
 - Fetched via FetchContent
 
-**clang-tidy** (20 or latest)
+#### clang-tidy (20 or latest)
 
 - Static analysis
 - Configurable via `.clang-tidy`
 
-**clang-format**
+#### clang-format
 
 - Code formatting
 - Configured via `.clang-format`
@@ -126,24 +126,24 @@ Fermilab's CMake modules for HEP software, providing:
 - CMake file formatting
 - Configured via `.cmake-format.json` and `.gersemirc`
 
-**ruff**
+#### ruff
 
 - Python linting and formatting
 - Configured via `pyproject.toml`
 
-**markdownlint**
+#### markdownlint
 
 - Markdown linting
 - Configured via `.markdownlint.jsonc`
 
-**actionlint**
+#### actionlint
 
 - GitHub Actions workflow linting
 - Configured via `.github/actionlint.yaml`
 
 ### Optional Dependencies
 
-**Perfetto**
+#### Perfetto
 
 - Performance profiling and tracing
 - Enabled with `ENABLE_PERFETTO=ON`
@@ -154,7 +154,7 @@ Fermilab's CMake modules for HEP software, providing:
 - Required for FORM integration
 - TFile, TTree, TBranch support
 
-**cppyy**
+#### cppyy
 
 - Python-C++ interoperability
 - Required for Python plugin
