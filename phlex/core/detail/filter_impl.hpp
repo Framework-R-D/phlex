@@ -4,6 +4,7 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 
@@ -29,7 +30,7 @@ namespace phlex::experimental {
     return value == true_value;
   }
 
-  class decision_map {
+  class phlex_core_EXPORT decision_map {
     using decisions_t = oneapi::tbb::concurrent_hash_map<std::size_t, unsigned int>;
 
   public:
@@ -47,7 +48,7 @@ namespace phlex::experimental {
     decisions_t results_;
   };
 
-  class data_map {
+  class phlex_core_EXPORT data_map {
     using stores_t =
       oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_const_ptr>>;
 

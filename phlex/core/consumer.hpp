@@ -2,12 +2,13 @@
 #define PHLEX_CORE_CONSUMER_HPP
 
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex_core_export.hpp"
 
 #include <string>
 #include <vector>
 
 namespace phlex::experimental {
-  class consumer {
+  class phlex_core_EXPORT consumer {
   public:
     consumer(algorithm_name name, std::vector<std::string> predicates);
 

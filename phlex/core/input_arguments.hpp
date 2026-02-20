@@ -4,6 +4,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/handle.hpp"
+#include "phlex_core_export.hpp"
 
 #include <cstddef>
 #include <string>
@@ -29,8 +30,8 @@ namespace phlex::experimental {
   }
 
   namespace detail {
-    void verify_no_duplicate_input_products(std::string const& algorithm_name,
-                                            product_queries to_sort);
+    phlex_core_EXPORT void verify_no_duplicate_input_products(std::string const& algorithm_name,
+                                                              product_queries to_sort);
   }
 
   template <typename InputTypes>

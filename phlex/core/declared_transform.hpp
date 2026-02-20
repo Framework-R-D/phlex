@@ -18,6 +18,7 @@
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -37,7 +38,7 @@
 
 namespace phlex::experimental {
 
-  class declared_transform : public products_consumer {
+  class phlex_core_EXPORT declared_transform : public products_consumer {
   public:
     declared_transform(algorithm_name name,
                        std::vector<std::string> predicates,

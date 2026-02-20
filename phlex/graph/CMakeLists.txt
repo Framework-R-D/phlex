@@ -11,6 +11,7 @@ cet_make_library(
   phlex::utilities
   fmt::fmt
 )
+phlex_apply_symbol_visibility(phlex_graph)
 
 install(FILES serial_node.hpp serializer_node.hpp DESTINATION include/phlex/graph)
 

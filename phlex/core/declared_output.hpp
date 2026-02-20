@@ -7,6 +7,7 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -20,7 +21,7 @@ namespace phlex::experimental {
   namespace detail {
     using output_function_t = std::function<void(product_store const&)>;
   }
-  class declared_output : public consumer {
+  class phlex_core_EXPORT declared_output : public consumer {
   public:
     declared_output(algorithm_name name,
                     std::size_t concurrency,

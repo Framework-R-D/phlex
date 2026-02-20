@@ -2,13 +2,14 @@
 #define PHLEX_CORE_PRODUCT_QUERY_HPP
 
 #include "phlex/model/product_specification.hpp"
+#include "phlex_core_export.hpp"
 
 // #include <algorithm>
 #include <string>
 #include <vector>
 
 namespace phlex {
-  class product_query {
+  class phlex_core_EXPORT product_query {
   public:
     product_query(experimental::product_specification spec, std::string layer);
 
@@ -29,7 +30,7 @@ namespace phlex {
 }
 
 namespace phlex::experimental {
-  struct product_tag {
+  struct phlex_core_EXPORT product_tag {
     product_specification spec;
     product_query operator()(std::string layer) &&;
   };
@@ -72,7 +73,7 @@ namespace phlex::experimental {
 }
 
 namespace phlex {
-  experimental::product_tag operator""_in(char const* str, std::size_t);
+  phlex_core_EXPORT experimental::product_tag operator""_in(char const* str, std::size_t);
 }
 
 #endif // PHLEX_CORE_PRODUCT_QUERY_HPP

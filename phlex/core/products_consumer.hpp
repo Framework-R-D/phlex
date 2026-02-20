@@ -7,6 +7,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -14,7 +15,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  class products_consumer : public consumer {
+  class phlex_core_EXPORT products_consumer : public consumer {
   public:
     products_consumer(algorithm_name name,
                       std::vector<std::string> predicates,

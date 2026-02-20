@@ -10,6 +10,7 @@
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
+#include "phlex_core_export.hpp"
 
 #include "boost/pfr.hpp"
 
@@ -17,7 +18,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  struct node_catalog {
+  struct phlex_core_EXPORT node_catalog {
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)
     {

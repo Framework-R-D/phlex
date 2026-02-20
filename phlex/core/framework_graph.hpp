@@ -16,6 +16,7 @@
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 #include "phlex/utilities/resource_usage.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 #include "oneapi/tbb/info.h"
@@ -34,7 +35,7 @@ namespace phlex {
 }
 
 namespace phlex::experimental {
-  class layer_sentry {
+  class phlex_core_EXPORT layer_sentry {
   public:
     layer_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);
     ~layer_sentry();
@@ -47,7 +48,7 @@ namespace phlex::experimental {
     std::size_t depth_;
   };
 
-  class framework_graph {
+  class phlex_core_EXPORT framework_graph {
   public:
     explicit framework_graph(data_cell_index_ptr index,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());

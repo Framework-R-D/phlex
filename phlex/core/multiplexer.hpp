@@ -3,6 +3,7 @@
 
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -15,7 +16,7 @@
 
 namespace phlex::experimental {
 
-  class multiplexer : public tbb::flow::function_node<message> {
+  class phlex_core_EXPORT multiplexer : public tbb::flow::function_node<message> {
     using base = tbb::flow::function_node<message>;
 
   public:

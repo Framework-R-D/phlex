@@ -4,6 +4,7 @@
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex_core_export.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -12,7 +13,7 @@ namespace phlex::experimental {
     oneapi::tbb::flow::composite_node<std::tuple<message, predicate_result>,
                                       std::tuple<oneapi::tbb::flow::continue_msg>>;
 
-  class filter : public filter_base {
+  class phlex_core_EXPORT filter : public filter_base {
     using indexer_t = oneapi::tbb::flow::indexer_node<message, predicate_result>;
     using tag_t = indexer_t::output_type;
 

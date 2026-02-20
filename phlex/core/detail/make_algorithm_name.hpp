@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include "phlex_core_export.hpp"
+
 namespace phlex {
   class configuration;
 }
@@ -14,7 +16,8 @@ namespace phlex::experimental {
   class algorithm_name;
 
   namespace detail {
-    algorithm_name make_algorithm_name(configuration const* config, std::string name);
+    phlex_core_EXPORT algorithm_name make_algorithm_name(configuration const* config,
+                                                         std::string name);
   }
 }
 

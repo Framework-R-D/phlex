@@ -10,6 +10,7 @@
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex_core_export.hpp"
 
 #include <concepts>
 #include <functional>
@@ -304,7 +305,7 @@ namespace phlex::experimental {
   // ====================================================================================
   // Output API
 
-  class output_api {
+  class phlex_core_EXPORT output_api {
   public:
     output_api(registrar<declared_output_ptr> reg,
                configuration const* config,
