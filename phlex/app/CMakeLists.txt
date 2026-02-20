@@ -33,4 +33,8 @@ cet_make_exec(
   jsonnet::lib
 )
 
+if(ENABLE_PERFETTO)
+  target_link_libraries(phlex PRIVATE Perfetto::Perfetto)
+endif()
+
 set_target_properties(phlex PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
