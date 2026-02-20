@@ -5,7 +5,7 @@
 
 namespace phlex::experimental {
   class algorithm_name {
-    enum specified_fields { neither, either, both };
+    enum class specified_fields { neither, either, both };
 
   public:
     algorithm_name();

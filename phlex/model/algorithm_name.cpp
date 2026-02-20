@@ -61,10 +61,6 @@ namespace phlex::experimental {
     }
     case specified_fields::either: {
       // Either the plugin or the algorithm can match
-      if (other.plugin_.empty()) {
-        return plugin_ == other.algorithm_ or algorithm_ == other.algorithm_;
-      }
-      assert(other.algorithm_.empty());
       return other.plugin_ == plugin_ or other.plugin_ == algorithm_;
     }
     case specified_fields::both: {
@@ -72,8 +68,7 @@ namespace phlex::experimental {
       return operator==(other);
     }
     }
-
-    return false;
+    return false; // other is an invalid algorithm_name
   }
 
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
