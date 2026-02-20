@@ -44,6 +44,9 @@
 - Lists surrounded by one blank line (MD032)
 - No bare URLs - use markdown links (MD034)
 - Always specify code block language (MD040)
+- Use proper headings instead of bold for section titles (MD036)
+  - WRONG: **Tool Name** followed by description
+  - RIGHT: #### Tool Name followed by description
 
 ### Naming Conventions
 
@@ -301,6 +304,17 @@
 - Environment activation via setup script
 
 ## Documentation Standards
+
+### External Software Versions and Hashes
+
+**CRITICAL: Always Verify Against Official Sources:**
+
+- When specifying external software versions or commit hashes (e.g., GitHub Actions, dependencies), ALWAYS verify against the official release source
+- First, check what the LATEST version is from the project's releases page (e.g., `https://github.com/owner/repo/releases`)
+- Then verify the hash for that latest version at the specific release tag page (e.g., `https://github.com/owner/repo/releases/tag/vX.Y.Z`)
+- The authoritative source ALWAYS takes precedence over training data
+- Training data may be outdated or incorrect - never trust it for version/hash information without verification
+- Example: For `actions/setup-node`, first check `https://github.com/actions/setup-node/releases` for latest version, then verify hash at the specific tag page
 
 ### Comment Guidelines
 
