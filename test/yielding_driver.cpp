@@ -45,7 +45,9 @@ TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
                                  return {};
                                }};
   tbb::flow::function_node receiver{
-    g, tbb::flow::unlimited, [&received_ids](data_cell_index_ptr const& set_id) -> tbb::flow::continue_msg {
+    g,
+    tbb::flow::unlimited,
+    [&received_ids](data_cell_index_ptr const& set_id) -> tbb::flow::continue_msg {
       received_ids.push_back(set_id->to_string());
       return {};
     }};
@@ -64,8 +66,10 @@ TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
   bool has_run_0 = false;
   bool has_run_1 = false;
   for (auto const& id : received_ids) {
-    if (id == "[JOB=00000000;RUN=00000000]") has_run_0 = true;
-    if (id == "[JOB=00000000;RUN=00000001]") has_run_1 = true;
+    if (id == "[JOB=00000000;RUN=00000000]")
+      has_run_0 = true;
+    if (id == "[JOB=00000000;RUN=00000001]")
+      has_run_1 = true;
   }
   CHECK(has_run_0);
   CHECK(has_run_1);
