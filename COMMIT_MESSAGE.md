@@ -60,16 +60,19 @@ A comprehensive evaluation was performed on all non-Catch2 tests in the reposito
 ### Tests NOT Converted (and why)
 
 **Compile-time only tests** (4 files):
+
 - `concepts.cpp` - Pure `static_assert`, no runtime component
 - `string_literal.cpp` - Pure `static_assert`, no runtime component
 - `type_deduction.cpp` - Pure `static_assert`, no runtime component
 - `utilities/sized_tuple.cpp` - Pure `static_assert`, no runtime component
 
 **Framework integration tests** (2 files):
+
 - `max-parallelism/check_parallelism.cpp` - Tests framework module registration
 - `max-parallelism/provide_parallelism.cpp` - Support code, not a test
 
 **Specialized tests** (4 files):
+
 - `memory-checks/many_events.cpp` - Memory stress test for external profiling
 - `form/reader.cpp` - Integration test with external file I/O
 - `form/writer.cpp` - Integration test with external file I/O

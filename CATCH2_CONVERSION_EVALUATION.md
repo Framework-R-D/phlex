@@ -40,44 +40,44 @@ This document evaluates all tests in the Phlex project that do not currently use
 
 ### C++ Tests (Subdirectories)
 
-7. **utilities/sized_tuple.cpp** - Compile-time only test
+1. **utilities/sized_tuple.cpp** - Compile-time only test
    - **Current approach**: Uses `static_assert` only
    - **Conversion value**: LOW - Pure compile-time test
    - **Recommendation**: KEEP AS-IS
 
-8. **max-parallelism/check_parallelism.cpp** - Module registration test
+2. **max-parallelism/check_parallelism.cpp** - Module registration test
    - **Current approach**: Uses `assert()` within algorithm callback
    - **Conversion value**: LOW - Tests framework integration, not a unit test
    - **Recommendation**: KEEP AS-IS - Framework integration test
 
-9. **max-parallelism/provide_parallelism.cpp** - Module registration
+3. **max-parallelism/provide_parallelism.cpp** - Module registration
    - **Current approach**: No assertions, just provides data
    - **Conversion value**: NONE - Not a test file
    - **Recommendation**: KEEP AS-IS - Support code, not a test
 
-10. **memory-checks/many_events.cpp** - Memory stress test
+4. **memory-checks/many_events.cpp** - Memory stress test
     - **Current approach**: No assertions, tests memory usage under load
     - **Conversion value**: LOW - Smoke test for memory leaks
     - **Recommendation**: KEEP AS-IS - Designed for external memory profiling
 
-11. **form/reader.cpp** - Integration test for FORM
+5. **form/reader.cpp** - Integration test for FORM
     - **Current approach**: Manual verification with cout output
     - **Conversion value**: MEDIUM - Could add assertions but is primarily an integration test
     - **Recommendation**: KEEP AS-IS - Integration test with external file I/O
 
-12. **form/writer.cpp** - Integration test for FORM
+6. **form/writer.cpp** - Integration test for FORM
     - **Current approach**: Manual verification with cout output
     - **Conversion value**: MEDIUM - Could add assertions but is primarily an integration test
     - **Recommendation**: KEEP AS-IS - Integration test with external file I/O
 
-13. **form/toy_tracker.cpp** - Support code
+7. **form/toy_tracker.cpp** - Support code
     - **Current approach**: Implementation file, not a test
     - **Conversion value**: NONE - Not a test file
     - **Recommendation**: KEEP AS-IS - Support code
 
 ### Python Tests
 
-14. **python/test_*.py files** - Python integration tests
+1. **python/test_*.py files** - Python integration tests
     - **Current approach**: Run via phlex executable, not pytest
     - **Conversion value**: N/A - Python files, not C++
     - **Recommendation**: KEEP AS-IS - Different testing paradigm
