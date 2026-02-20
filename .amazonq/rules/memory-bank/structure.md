@@ -3,6 +3,7 @@
 ## Directory Organization
 
 ### Core Framework (`phlex/`)
+
 The main framework implementation containing the execution engine and core abstractions.
 
 - **`app/`**: Main application entry point and CLI
@@ -56,6 +57,7 @@ The main framework implementation containing the execution engine and core abstr
   - `concurrency.hpp`: Concurrency primitives
 
 ### Plugins (`plugins/`)
+
 Extensibility layer for language bindings and code generation.
 
 - **`python/`**: Python integration plugin
@@ -70,6 +72,7 @@ Extensibility layer for language bindings and code generation.
   - `generate_layers.cpp`: Layer generation tool
 
 ### FORM Integration (`form/`)
+
 Optional data persistence layer (enabled with `PHLEX_USE_FORM`).
 
 - **`core/`**: Core FORM abstractions
@@ -103,6 +106,7 @@ Optional data persistence layer (enabled with `PHLEX_USE_FORM`).
   - `factories.hpp`: Factory patterns
 
 ### Tests (`test/`)
+
 Comprehensive test suite covering all framework components.
 
 - **`benchmarks/`**: Performance benchmarks
@@ -117,6 +121,7 @@ Comprehensive test suite covering all framework components.
 - **Root level**: Unit tests for core components
 
 ### Build System (`Modules/`)
+
 CMake modules for build configuration.
 
 - `Findjsonnet.cmake`, `FindPerfetto.cmake`: Find modules for dependencies
@@ -127,6 +132,7 @@ CMake modules for build configuration.
   - `PhlexTargetUtils.cmake`: Build target utilities
 
 ### Scripts (`scripts/`)
+
 Development and CI automation scripts.
 
 - `coverage.sh`: Coverage workflow automation
@@ -138,6 +144,7 @@ Development and CI automation scripts.
 - `setup-env.sh`: Environment setup
 
 ### CI/CD (`.github/`)
+
 GitHub Actions workflows and configurations.
 
 - **`workflows/`**: CI/CD pipelines for building, testing, formatting, linting, and coverage
@@ -147,24 +154,31 @@ GitHub Actions workflows and configurations.
 - `copilot-instructions.md`: GitHub Copilot guidelines
 
 ### Development Environment (`.devcontainer/`)
+
 VS Code devcontainer configuration for consistent development environments.
 
 ## Architectural Patterns
 
 ### Graph-Based Execution
+
 The framework builds a directed acyclic graph (DAG) of algorithm nodes with automatic dependency resolution and parallel execution using Intel TBB.
 
 ### Product Store Pattern
+
 Central data product storage with type-safe handles enables decoupled algorithm communication.
 
 ### Plugin Architecture
+
 Dynamic module loading allows users to extend the framework without modifying core code.
 
 ### Hierarchical Data Model
+
 Multi-level data organization (e.g., run → subrun → event) supports complex scientific workflows.
 
 ### Type Erasure
+
 Template-based type erasure enables heterogeneous algorithm collections with type safety.
 
 ### Configuration as Code
+
 Jsonnet-based configuration provides programmatic workflow definition with inheritance and composition.
