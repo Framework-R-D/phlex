@@ -197,7 +197,6 @@ add_subdirectory(plugins)
 # Link Perfetto to phlex executable if enabled
 if(ENABLE_PERFETTO AND TARGET phlex)
   target_link_libraries(phlex PRIVATE Perfetto::Perfetto)
-
 endif()
 
 if(PHLEX_USE_FORM)
