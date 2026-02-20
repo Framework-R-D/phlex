@@ -1,0 +1,30 @@
+Convert selected tests to Catch2 framework
+
+Converted 3 C++ test files from manual assertion-based testing to Catch2,
+improving test structure and consistency with the rest of the test suite.
+
+Files converted:
+- test/identifier.cpp: 5 test cases for identifier operations
+- test/type_id.cpp: 7 test cases for type ID functionality
+- test/yielding_driver.cpp: 1 test case for async driver with TBB
+
+Changes:
+- Replaced assert() with CHECK()/REQUIRE() macros
+- Organized tests into logical TEST_CASE blocks
+- Removed manual print statements in favor of Catch2 reporting
+- Updated CMakeLists.txt to use USE_CATCH2_MAIN
+- Preserved all static_assert statements for compile-time checks
+
+Evaluation:
+- Evaluated 13 non-Catch2 test files
+- Converted 3 tests that benefit from structured test cases
+- Kept 10 tests as-is (compile-time only, integration tests, etc.)
+- Added CATCH2_CONVERSION_EVALUATION.md documenting decisions
+
+Benefits:
+- Better failure reporting with detailed diagnostics
+- Clearer test organization and maintainability
+- Consistency with project testing standards
+- Easier to add new test cases
+
+All tests maintain 100% of original coverage with improved structure.
