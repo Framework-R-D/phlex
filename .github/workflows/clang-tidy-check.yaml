@@ -3,10 +3,12 @@ name: Clang-Tidy Check
 
 permissions:
   contents: read
-  pull-requests: read
+
 
 on:
   pull_request:
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       ref:
@@ -16,13 +18,28 @@ on:
 
 jobs:
   pre-check:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
+        startsWith(github.event.comment.body, '@phlexbot tidy-check')
+      )
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
-      repo: ${{ github.repository }}
-      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.pr.outputs.ref || github.sha }}
+      repo: ${{ steps.pr.outputs.repo || github.repository }}
+      base_sha: ${{ steps.pr.outputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
+      pr_number: ${{ github.event.pull_request.number || github.event.issue.number }}
     steps:
+      - name: Get PR Info
+        if: github.event_name == 'issue_comment'
+        id: pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
       - name: Detect act environment
         id: detect_act
         uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
@@ -139,22 +156,66 @@ jobs:
         retention-days: 7
 
   clang-tidy-pr-comments:
-    needs: clang-tidy-check
-    if: failure() && github.event_name == 'pull_request'
+    needs: [pre-check, clang-tidy-check]
+    if: failure() && (github.event_name == 'pull_request' || github.event_name == 'issue_comment')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      issues: write
     steps:
       - name: Download clang-tidy report
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: clang-tidy-report
           path: phlex-build
+
+      - name: Download clang-tidy log
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: clang-tidy-log
+          path: phlex-build
+
       - name: Post clang-tidy comments
         uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          pull_request_id: ${{ github.event.pull_request.number || needs.pre-check.outputs.pr_number }}
+
+      - name: Post summary comment
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('phlex-build/clang-tidy.log', 'utf8');
+            const issues = log.match(/^\/.+\[.+\]$/gm) || [];
+            const checkCounts = {};
+            issues.forEach(line => {
+              const match = line.match(/\[([^\]]+)\]$/);
+              if (match) {
+                const check = match[1];
+                checkCounts[check] = (checkCounts[check] || 0) + 1;
+              }
+            });
+            const sorted = Object.entries(checkCounts).sort((a, b) => b[1] - a[1]);
+            let body = '## Clang-Tidy Check Results\n\n';
+            body += `Found ${issues.length} issue(s) in the code.\n\n`;
+            if (sorted.length > 0) {
+              body += '### Issues by check:\n\n';
+              sorted.forEach(([check, count]) => {
+                body += `- **${check}**: ${count}\n`;
+              });
+              body += '\n';
+            }
+            body += 'See inline comments for details. ';
+            body += 'Comment `@phlexbot tidy-fix [<check>...]` to attempt auto-fix.';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.pre-check.outputs.pr_number }},
+              body: body
+            });
 
   clang-tidy-check-skipped:
     needs: [pre-check, detect-changes]
