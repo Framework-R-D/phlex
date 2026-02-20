@@ -1,13 +1,10 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/async_driver.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include "catch2/catch_test_macros.hpp"
+
 #include "tbb/flow_graph.h"
 
-#include <cmath>
-#include <functional>
-#include <iostream>
 #include <ranges>
 #include <vector>
 
@@ -34,9 +31,11 @@ void cells_to_process(experimental::async_driver<data_cell_index_ptr>& d)
   }
 }
 
-int main()
+TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
 {
   experimental::async_driver<data_cell_index_ptr> drive{cells_to_process};
+  std::vector<std::string> received_ids;
+
   tbb::flow::graph g{};
   tbb::flow::input_node source{g, [&drive](tbb::flow_control& fc) -> data_cell_index_ptr {
                                  if (auto next = drive()) {
@@ -46,13 +45,16 @@ int main()
                                  return {};
                                }};
   tbb::flow::function_node receiver{
-    g, tbb::flow::unlimited, [](data_cell_index_ptr const& set_id) -> tbb::flow::continue_msg {
-      spdlog::info("Received {}", set_id->to_string());
+    g,
+    tbb::flow::serial,
+    [&received_ids](data_cell_index_ptr const& set_id) -> tbb::flow::continue_msg {
+      received_ids.push_back(set_id->to_string());
       return {};
     }};
 
   make_edge(source, receiver);
-
   source.activate();
   g.wait_for_all();
+
+  CHECK(received_ids.size() == 19);
 }
