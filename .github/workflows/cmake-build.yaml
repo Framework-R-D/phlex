@@ -23,7 +23,7 @@ on:
           - `all` (run all combinations)
           - `all -clang/none -clang/valgrind` (run all except specified)
           - `+clang/none +clang/valgrind` (run default matrix plus specified)
-          Default (if empty): Run all except clang/none and clang/valgrind.
+          Default (if empty): Run `gcc/none`
         required: false
         default: ''
   workflow_call:
