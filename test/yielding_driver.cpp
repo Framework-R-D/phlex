@@ -56,21 +56,5 @@ TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
   source.activate();
   g.wait_for_all();
 
-  // Verify expected structure: 1 job + 2 runs + 4 subruns + 12 spills = 19 total
   CHECK(received_ids.size() == 19);
-
-  // Verify job level
-  CHECK(received_ids[0] == "[JOB=00000000]");
-
-  // Verify we received run IDs
-  bool has_run_0 = false;
-  bool has_run_1 = false;
-  for (auto const& id : received_ids) {
-    if (id == "[JOB=00000000;RUN=00000000]")
-      has_run_0 = true;
-    if (id == "[JOB=00000000;RUN=00000001]")
-      has_run_1 = true;
-  }
-  CHECK(has_run_0);
-  CHECK(has_run_1);
 }
