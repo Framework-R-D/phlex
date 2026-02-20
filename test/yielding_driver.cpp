@@ -1,13 +1,10 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/async_driver.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include "catch2/catch_test_macros.hpp"
+
 #include "tbb/flow_graph.h"
 
-#include <cmath>
-#include <functional>
-#include <iostream>
 #include <ranges>
 #include <vector>
 
@@ -34,9 +31,11 @@ void cells_to_process(experimental::async_driver<data_cell_index_ptr>& d)
   }
 }
 
-int main()
+TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
 {
   experimental::async_driver<data_cell_index_ptr> drive{cells_to_process};
+  std::vector<std::string> received_ids;
+
   tbb::flow::graph g{};
   tbb::flow::input_node source{g, [&drive](tbb::flow_control& fc) -> data_cell_index_ptr {
                                  if (auto next = drive()) {
@@ -46,13 +45,28 @@ int main()
                                  return {};
                                }};
   tbb::flow::function_node receiver{
-    g, tbb::flow::unlimited, [](data_cell_index_ptr const& set_id) -> tbb::flow::continue_msg {
-      spdlog::info("Received {}", set_id->to_string());
+    g, tbb::flow::unlimited, [&received_ids](data_cell_index_ptr const& set_id) -> tbb::flow::continue_msg {
+      received_ids.push_back(set_id->to_string());
       return {};
     }};
 
   make_edge(source, receiver);
-
   source.activate();
   g.wait_for_all();
+
+  // Verify expected structure: 1 job + 2 runs + 4 subruns + 12 spills = 19 total
+  CHECK(received_ids.size() == 19);
+
+  // Verify job level
+  CHECK(received_ids[0] == "[JOB=00000000]");
+
+  // Verify we received run IDs
+  bool has_run_0 = false;
+  bool has_run_1 = false;
+  for (auto const& id : received_ids) {
+    if (id == "[JOB=00000000;RUN=00000000]") has_run_0 = true;
+    if (id == "[JOB=00000000;RUN=00000001]") has_run_1 = true;
+  }
+  CHECK(has_run_0);
+  CHECK(has_run_1);
 }
