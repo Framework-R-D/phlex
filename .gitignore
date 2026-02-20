@@ -46,6 +46,10 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Documentation build output
+docs/doxygen/
+docs/build/
+
 # macOS
 .DS_Store
 # act (local workflow testing)
