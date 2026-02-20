@@ -14,7 +14,7 @@ using namespace phlex::experimental;
 
 namespace {
   product_store_const_ptr store_for(product_store_const_ptr store,
-                                    std::string const& port_product_layer)
+                                    std::string_view port_product_layer)
   {
     if (store->index()->layer_name() == port_product_layer) {
       // This store's layer matches what is expected by the port
@@ -63,7 +63,8 @@ namespace phlex::experimental {
     }
 
     for (auto const& [product_label, port] : provider_input_ports_ | std::views::values) {
-      if (auto store_to_send = store_for(store, product_label.layer())) {
+      if (auto store_to_send =
+            store_for(store, std::string_view(identifier(product_label.layer)))) {
         port->try_put({std::move(store_to_send), message_id});
       }
     }

@@ -39,10 +39,12 @@ TEST_CASE("provider_test")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
-    .output_product("happy_vertices"_in("spill"));
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "happy_vertices"_id});
 
   g.transform("passer", pass_on, concurrency::unlimited)
-    .input_family("happy_vertices"_in("spill"))
+    .input_family(
+      product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "happy_vertices"_id})
     .output_products("vertex_data");
 
   g.execute();

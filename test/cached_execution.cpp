@@ -61,31 +61,37 @@ TEST_CASE("Cached function calls", "[data model]")
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product("number"_in("run"));
+    .output_product(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "number"_id});
   g.provide("provide_another", provide_another, concurrency::unlimited)
-    .output_product("another"_in("subrun"));
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "subrun"_id, .suffix = "another"_id});
   g.provide("provide_still", provide_still, concurrency::unlimited)
-    .output_product("still"_in("event"));
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "still"_id});
 
   g.transform("A1", call_one, concurrency::unlimited)
-    .input_family("number"_in("run"))
+    .input_family(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "number"_id})
     .output_products("one");
   g.transform("A2", call_one, concurrency::unlimited)
-    .input_family("one"_in("run"))
+    .input_family(product_query{.creator = "A1"_id, .layer = "run"_id, .suffix = "one"_id})
     .output_products("used_one");
   g.transform("A3", call_one, concurrency::unlimited)
-    .input_family("used_one"_in("run"))
+    .input_family(product_query{.creator = "A2"_id, .layer = "run"_id, .suffix = "used_one"_id})
     .output_products("done_one");
 
   g.transform("B1", call_two, concurrency::unlimited)
-    .input_family("one"_in("run"), "another"_in("subrun"))
+    .input_family(
+      product_query{.creator = "A1"_id, .layer = "run"_id, .suffix = "one"_id},
+      product_query{.creator = "input"_id, .layer = "subrun"_id, .suffix = "another"_id})
     .output_products("two");
   g.transform("B2", call_two, concurrency::unlimited)
-    .input_family("used_one"_in("run"), "two"_in("subrun"))
+    .input_family(product_query{.creator = "A2"_id, .layer = "run"_id, .suffix = "used_one"_id},
+                  product_query{.creator = "B1"_id, .layer = "subrun"_id, .suffix = "two"_id})
     .output_products("used_two");
 
   g.transform("C", call_two, concurrency::unlimited)
-    .input_family("used_two"_in("subrun"), "still"_in("event"))
+    .input_family(product_query{.creator = "B2"_id, .layer = "subrun"_id, .suffix = "used_two"_id},
+                  product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "still"_id})
     .output_products("three");
 
   g.execute();

@@ -7,5 +7,6 @@ PHLEX_REGISTER_PROVIDERS(s)
   s.provide(
      "provide_max_parallelism",
      [](data_cell_index const&) { return experimental::max_allowed_parallelism::active_value(); })
-    .output_product("max_parallelism"_in("job"));
+    .output_product(
+      product_query{.creator = "input"_id, .layer = "job"_id, .suffix = "max_parallelism"_id});
 }

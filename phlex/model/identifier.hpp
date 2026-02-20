@@ -37,6 +37,12 @@ namespace phlex::experimental {
     bool operator==(identifier const& rhs) const noexcept;
     std::strong_ordering operator<=>(identifier const& rhs) const noexcept;
 
+    // check if empty
+    bool empty() const noexcept { return content_.empty(); }
+
+    // transitional access to contained string
+    std::string const& trans_get_string() const noexcept { return content_; }
+
     // Comparison operators with _id queries
     friend bool operator==(identifier const& lhs, identifier_query rhs);
     friend std::strong_ordering operator<=>(identifier const& lhs, identifier_query rhs);
