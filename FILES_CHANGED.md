@@ -9,14 +9,15 @@
 
 ## New Documentation Files (3)
 
-5. CATCH2_CONVERSION_EVALUATION.md
-6. COMMIT_MESSAGE.md
-7. TEST_CONVERSION_SUMMARY.md
-8. GIT_COMMIT_MESSAGE.txt
+1. CATCH2_CONVERSION_EVALUATION.md
+2. COMMIT_MESSAGE.md
+3. TEST_CONVERSION_SUMMARY.md
+4. GIT_COMMIT_MESSAGE.txt
 
 ## Git Commands
 
 To stage all changes:
+
 ```bash
 git add test/identifier.cpp
 git add test/type_id.cpp
@@ -29,6 +30,7 @@ git add GIT_COMMIT_MESSAGE.txt
 ```
 
 Or stage all at once:
+
 ```bash
 git add test/identifier.cpp test/type_id.cpp test/yielding_driver.cpp test/CMakeLists.txt \
         CATCH2_CONVERSION_EVALUATION.md COMMIT_MESSAGE.md TEST_CONVERSION_SUMMARY.md \
@@ -36,6 +38,7 @@ git add test/identifier.cpp test/type_id.cpp test/yielding_driver.cpp test/CMake
 ```
 
 To commit with the prepared message:
+
 ```bash
 git commit -F GIT_COMMIT_MESSAGE.txt
 ```

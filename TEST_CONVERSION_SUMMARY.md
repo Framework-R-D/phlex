@@ -38,18 +38,18 @@ This document summarizes the Catch2 test conversion work completed for the Phlex
 
 ### Build Configuration (1 file)
 
-4. **test/CMakeLists.txt**
+1. **test/CMakeLists.txt**
    - Updated 3 test definitions to use `USE_CATCH2_MAIN`
    - Removed unnecessary library dependencies (fmt, spdlog)
 
 ### Documentation (2 files)
 
-5. **CATCH2_CONVERSION_EVALUATION.md** (new)
+1. **CATCH2_CONVERSION_EVALUATION.md** (new)
    - Comprehensive evaluation of all non-Catch2 tests
    - Rationale for conversion decisions
    - Reference for future conversions
 
-6. **COMMIT_MESSAGE.md** (new)
+2. **COMMIT_MESSAGE.md** (new)
    - Detailed commit message and PR description
    - Benefits and motivation
    - Testing instructions
@@ -66,6 +66,7 @@ This document summarizes the Catch2 test conversion work completed for the Phlex
 ## Test Coverage
 
 All converted tests maintain 100% of their original test coverage while providing:
+
 - Better failure diagnostics
 - Clearer test organization
 - Improved maintainability
@@ -93,6 +94,7 @@ Future test conversions should reference `CATCH2_CONVERSION_EVALUATION.md` for g
 ## Code Quality
 
 All changes follow project guidelines:
+
 - Files end with exactly one newline
 - No trailing whitespace
 - Proper include ordering
