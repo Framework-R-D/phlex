@@ -11,7 +11,7 @@
   - AppleClang (macOS support)
 
 ### Python
-- **Version**: Python 3.x
+- **Version**: Python 3.12+
 - **Integration**: Via cppyy for seamless C++/Python interoperability
 - **Use Cases**: User algorithms, testing, configuration scripts
 - **Required Modules**: cppyy, numpy (2.0.0+), pytest, pytest-cov (4.0.0+)
