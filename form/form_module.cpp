@@ -8,6 +8,7 @@
 #include "form/form.hpp"
 #include "form/technology.hpp"
 
+#include <cassert>
 #include <iostream>
 #include <stdexcept>
 #include <string>
