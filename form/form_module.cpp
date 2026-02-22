@@ -78,8 +78,7 @@ namespace {
       for (auto const& [product_name, product_ptr] : store) {
         // product_name: "tracks" (from the map key)
         // product_ptr: pointer to the actual product data
-        if (!product_ptr)
-          continue;
+        assert(product_ptr && "store should not contain null product_ptr");
 
         std::cout << "  Product: " << product_name << "\n";
 
@@ -112,7 +111,7 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   std::cout << "Registering FORM output module...\n";
 
   // Extract configuration from Phlex config
-  std::string output_file = config.get<std::string>("output_file", "output.root");
+  std::string const output_file = config.get<std::string>("output_file", "output.root");
   std::string const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
 
   std::cout << "Configuration:\n";
