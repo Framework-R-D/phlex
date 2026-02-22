@@ -9,10 +9,10 @@
 #include "form/technology.hpp"
 
 #include <iostream>
-#include <unordered_map>
-#include <string_view>
-#include <string>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 namespace {
 
@@ -78,7 +78,8 @@ namespace {
       for (auto const& [product_name, product_ptr] : store) {
         // product_name: "tracks" (from the map key)
         // product_ptr: pointer to the actual product data
-        if (!product_ptr) continue;
+        if (!product_ptr)
+          continue;
 
         std::cout << "  Product: " << product_name << "\n";
 
@@ -99,8 +100,8 @@ namespace {
     }
 
   private:
-    const std::string m_output_file;
-    const int m_technology;
+    std::string const m_output_file;
+    int const m_technology;
     std::unique_ptr<form::experimental::form_interface> m_form_interface;
   };
 
@@ -112,19 +113,18 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 
   // Extract configuration from Phlex config
   std::string output_file = config.get<std::string>("output_file", "output.root");
-  const std::string tech_string = config.get<std::string>("technology", "ROOT_TTREE");
+  std::string const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
 
   std::cout << "Configuration:\n";
   std::cout << "  output_file: " << output_file << "\n";
   std::cout << "  technology: " << tech_string << "\n";
-  
+
   // Using a static map for O(1) lookup
-  static const std::unordered_map<std::string_view, int> tech_lookup = {
-    {"ROOT_TTREE",   form::technology::ROOT_TTREE},
+  static std::unordered_map<std::string_view, int> const tech_lookup = {
+    {"ROOT_TTREE", form::technology::ROOT_TTREE},
     {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
-    {"HDF5",         form::technology::HDF5}
-  };
-  
+    {"HDF5", form::technology::HDF5}};
+
   // C++20 allows finding a string_view key efficiently
   auto it = tech_lookup.find(tech_string);
 
@@ -132,7 +132,7 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
     throw std::runtime_error("Unknown technology: " + tech_string);
   }
 
-  const int technology = it->second;
+  int const technology = it->second;
 
   auto products_to_save = config.get<std::vector<std::string>>("products");
 
