@@ -9,6 +9,10 @@
 #include "form/technology.hpp"
 
 #include <iostream>
+#include <unordered_map>
+#include <string_view>
+#include <string>
+#include <stdexcept>
 
 namespace {
 
@@ -52,10 +56,10 @@ namespace {
       // STEP 1: Extract metadata from Phlex's product_store
 
       // Extract creator (algorithm name)
-      std::string creator = store.source();
+      auto creator = store.source();
 
       // Extract segment ID (partition) - extract once for entire store
-      std::string segment_id = store.index()->to_string();
+      auto segment_id = store.index()->to_string();
 
       std::cout << "\n=== FormOutputModule::save_data_products ===\n";
       std::cout << "Creator: " << creator << "\n";
@@ -74,6 +78,7 @@ namespace {
       for (auto const& [product_name, product_ptr] : store) {
         // product_name: "tracks" (from the map key)
         // product_ptr: pointer to the actual product data
+        if (!product_ptr) continue;
 
         std::cout << "  Product: " << product_name << "\n";
 
@@ -94,8 +99,8 @@ namespace {
     }
 
   private:
-    std::string m_output_file;
-    int m_technology;
+    const std::string m_output_file;
+    const int m_technology;
     std::unique_ptr<form::experimental::form_interface> m_form_interface;
   };
 
@@ -107,24 +112,27 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 
   // Extract configuration from Phlex config
   std::string output_file = config.get<std::string>("output_file", "output.root");
-  std::string tech_string = config.get<std::string>("technology", "ROOT_TTREE");
+  const std::string tech_string = config.get<std::string>("technology", "ROOT_TTREE");
 
   std::cout << "Configuration:\n";
   std::cout << "  output_file: " << output_file << "\n";
   std::cout << "  technology: " << tech_string << "\n";
+  
+  // Using a static map for O(1) lookup
+  static const std::unordered_map<std::string_view, int> tech_lookup = {
+    {"ROOT_TTREE",   form::technology::ROOT_TTREE},
+    {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
+    {"HDF5",         form::technology::HDF5}
+  };
+  
+  // C++20 allows finding a string_view key efficiently
+  auto it = tech_lookup.find(tech_string);
 
-  // Map Phlex config string to FORM technology constant
-  int technology = form::technology::ROOT_TTREE; // default
-
-  if (tech_string == "ROOT_TTREE") {
-    technology = form::technology::ROOT_TTREE;
-  } else if (tech_string == "ROOT_RNTUPLE") {
-    technology = form::technology::ROOT_RNTUPLE;
-  } else if (tech_string == "HDF5") {
-    technology = form::technology::HDF5;
-  } else {
+  if (it == tech_lookup.end()) {
     throw std::runtime_error("Unknown technology: " + tech_string);
   }
+
+  const int technology = it->second;
 
   auto products_to_save = config.get<std::vector<std::string>>("products");
 
