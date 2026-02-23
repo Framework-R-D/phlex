@@ -52,7 +52,7 @@
 
 **C++ Conventions:**
 
-- Snake_case for types and classes
+- lowercase_snake_case for types and classes
 - lowercase_snake_case for functions and variables
 - UPPER_CASE for macros and constants
 - Namespace: `phlex::` for core, `phlex::experimental::` for experimental features
