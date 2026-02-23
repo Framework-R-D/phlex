@@ -7,8 +7,8 @@
 #include "toy_tracker.hpp"
 
 #include <cstdlib>
-#include <fstream>   //ADDED
-#include <iomanip>   //ADDED
+#include <fstream> //ADDED
+#include <iomanip> //ADDED
 #include <iostream>
 #include <vector>
 
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
   srand(time(0));
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
-  std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";  //ADDED
+  std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt"; //ADDED
 
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::output_item_config output_config;
@@ -60,11 +60,11 @@ int main(int argc, char** argv)
 
   // Open checksum file for writing
   std::ofstream checksum_file(checksum_filename);
-  if (!checksum_file.is_open()) { 
+  if (!checksum_file.is_open()) {
     std::cerr << "ERROR: Could not open checksum file: " << checksum_filename << std::endl;
-    return 1; 
-  } 
-  
+    return 1;
+  }
+
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
 
@@ -116,12 +116,10 @@ int main(int argc, char** argv)
 
       form.write(creator, segment_id, products);
 
-      // Save segment checksums  
-      checksum_file << std::setprecision(10) << "SEG " << nevent << " " << nseg << " " 
-                    << check << " " 
-                    << checkPoints.getX() << " " 
-                    << checkPoints.getY() << " " 
-                    << checkPoints.getZ() << "\n"; 
+      // Save segment checksums
+      checksum_file << std::setprecision(10) << "SEG " << nevent << " " << nseg << " " << check
+                    << " " << checkPoints.getX() << " " << checkPoints.getY() << " "
+                    << checkPoints.getZ() << "\n";
       track_x.insert(track_x.end(), track_start_x.begin(), track_start_x.end());
     }
 
@@ -145,12 +143,12 @@ int main(int argc, char** argv)
 
     form.write(creator, event_id, pb);
 
-    // Save event checksum  
-    checksum_file << std::setprecision(10) << "EVT " << nevent << " " << check << "\n";  
+    // Save event checksum
+    checksum_file << std::setprecision(10) << "EVT " << nevent << " " << check << "\n";
     std::cout << "PHLEX: Write Event done " << nevent << std::endl;
   }
 
-  checksum_file.close(); 
-  std::cout << "PHLEX: Write done. Checksums saved to " << checksum_filename << std::endl; 
+  checksum_file.close();
+  std::cout << "PHLEX: Write done. Checksums saved to " << checksum_filename << std::endl;
   return 0;
 }
