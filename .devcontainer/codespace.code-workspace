@@ -88,7 +88,6 @@
     "extensions": {
         "recommendations": [
             "charliermarsh.ruff",
-            "github.copilot",
             "github.copilot-chat",
             "github.vscode-github-actions",
             "github.vscode-pull-request-github",
@@ -101,6 +100,7 @@
             "twxs.cmake"
         ],
         "unwantedRecommendations": [
+            "github.copilot",
             "ikuyadeu.r",
             "ms-python.flake8",
             "ms-python.python",
