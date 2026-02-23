@@ -4,12 +4,11 @@
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/handle.hpp"
 
+#include "boost/container_hash/hash.hpp"
+#include "boost/core/demangle.hpp"
+#include "boost/pfr/core.hpp"
 #include "fmt/format.h"
 #include "fmt/ranges.h"
-#include <boost/core/demangle.hpp>
-#include <boost/hash2/hash_append_fwd.hpp>
-#include <boost/pfr/core.hpp>
-#include <boost/pfr/traits.hpp>
 
 #include <string>
 #include <type_traits>
@@ -44,19 +43,6 @@ namespace phlex::experimental {
 
     constexpr builtin fundamental() const { return static_cast<builtin>(id_ & 0x0F); }
 
-    template <class Provider, class Hash, class Flavor>
-    friend constexpr void tag_invoke(boost::hash2::hash_append_tag const&,
-                                     Provider const&,
-                                     Hash& h,
-                                     Flavor const& f,
-                                     type_id const* v)
-    {
-      boost::hash2::hash_append(h, f, v->id_);
-      if (v->has_children()) {
-        boost::hash2::hash_append(h, f, v->children_);
-      }
-    }
-
     constexpr std::strong_ordering operator<=>(type_id const& rhs) const
     {
       // This ordering is arbitrary but defined
@@ -81,7 +67,9 @@ namespace phlex::experimental {
 
     template <typename T>
     friend constexpr type_id make_type_id();
+    friend std::size_t hash_value(type_id const& id);
     friend struct fmt::formatter<type_id>;
+    friend struct std::hash<type_id>;
 
   private:
     unsigned char id_ = 0xFF;
@@ -271,6 +259,14 @@ namespace phlex::experimental {
     return make_type_ids<return_type<F>>();
   }
 
+  inline std::size_t hash_value(type_id const& id)
+  {
+    std::size_t hash = std::hash<unsigned char>{}(id.id_);
+    if (id.has_children()) {
+      boost::hash_combine(hash, id.children_);
+    }
+    return hash;
+  }
 }
 
 template <>
@@ -333,5 +329,10 @@ struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
                                         fundamental);
     return fmt::formatter<std::string>::format(out, ctx);
   }
+};
+
+template <>
+struct std::hash<phlex::experimental::type_id> {
+  std::size_t operator()(phlex::experimental::type_id const& id) { return hash_value(id); }
 };
 #endif // PHLEX_MODE_TYPE_ID_HPP
