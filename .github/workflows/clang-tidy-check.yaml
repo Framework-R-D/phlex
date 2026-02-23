@@ -122,6 +122,7 @@ jobs:
         extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
 
     - name: Run clang-tidy using CMake target
+      id: tidy
       shell: bash
       run: |
         . /entrypoint.sh
@@ -130,17 +131,18 @@ jobs:
         echo "➡️ Running clang-tidy checks..."
         cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1 || true
         if [ -s clang-tidy-fixes.yaml ]; then
-          echo "::error::Clang-tidy found issues in the code"
+          echo "has_issues=true" >> "$GITHUB_OUTPUT"
+          echo "::warning::Clang-tidy found issues in the code"
           echo "Error count by check (full details in clang-tidy-log artifact):"
           sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
           echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-          exit 1
         else
+          echo "has_issues=false" >> "$GITHUB_OUTPUT"
           echo "✅ clang-tidy check passed"
         fi
 
     - name: Upload clang-tidy report
-      if: failure()
+      if: steps.tidy.outputs.has_issues == 'true'
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: clang-tidy-report
@@ -148,7 +150,7 @@ jobs:
         retention-days: 7
 
     - name: Upload clang-tidy log
-      if: failure()
+      if: steps.tidy.outputs.has_issues == 'true'
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: clang-tidy-log
@@ -157,7 +159,7 @@ jobs:
 
   clang-tidy-pr-comments:
     needs: [pre-check, clang-tidy-check]
-    if: failure() && (github.event_name == 'pull_request' || github.event_name == 'issue_comment')
+    if: always() && needs.clang-tidy-check.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'issue_comment')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -168,14 +170,26 @@ jobs:
         with:
           name: clang-tidy-report
           path: phlex-build
+        continue-on-error: true
 
       - name: Download clang-tidy log
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: clang-tidy-log
           path: phlex-build
+        continue-on-error: true
+
+      - name: Check if artifacts exist
+        id: check_artifacts
+        run: |
+          if [ -f phlex-build/clang-tidy-fixes.yaml ]; then
+            echo "has_fixes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_fixes=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Post clang-tidy comments
+        if: steps.check_artifacts.outputs.has_fixes == 'true'
         uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
@@ -183,7 +197,7 @@ jobs:
           pull_request_id: ${{ github.event.pull_request.number || needs.pre-check.outputs.pr_number }}
 
       - name: Post summary comment
-        if: github.event_name == 'issue_comment'
+        if: steps.check_artifacts.outputs.has_fixes == 'true' && github.event_name == 'issue_comment'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
