@@ -4,7 +4,7 @@
 
 ### C++
 
-- **Standard**: C++20 (minimum requirement)
+- **Standard**: C++23 (minimum requirement)
 - **Primary Language**: Core framework and performance-critical components
 - **Compilers Supported**:
   - GCC 14+ (primary, recommended)
@@ -281,15 +281,3 @@ ninja clang-tidy-fix
 - `PYTHONPATH`: Python module search path
 - `VIRTUAL_ENV`: Python virtual environment
 - `PATH`: Executable search path
-
-## Version Information
-
-- **Project Version**: 0.1.0
-- **CMake Minimum**: 3.31
-- **C++ Standard**: C++23
-- **GCC Minimum**: 14
-- **Python Minimum**: 3.x
-- **Cetmodules**: 4.01.01
-- **Catch2**: 3.10.0
-- **GSL**: 4.2.0
-- **mimicpp**: v8
