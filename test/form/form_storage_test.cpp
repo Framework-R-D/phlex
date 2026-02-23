@@ -90,14 +90,20 @@ TEST_CASE("FORM Container setup error handling")
     CHECK_THROWS_AS(container->fill(ptrTestData), std::runtime_error);
   }
 
-  SECTION("commit() before setParent()") { CHECK_THROWS_AS(container->commit(), std::runtime_error); }
+  SECTION("commit() before setParent()")
+  {
+    CHECK_THROWS_AS(container->commit(), std::runtime_error);
+  }
 
-  SECTION("read() before setParent()") { CHECK_THROWS_AS(container->read(0, &ptrTestData, typeInfo), std::runtime_error); }
+  SECTION("read() before setParent()")
+  {
+    CHECK_THROWS_AS(container->read(0, &ptrTestData, typeInfo), std::runtime_error);
+  }
 
   SECTION("mismatched file type")
   {
     std::shared_ptr<IStorage_File> wrongFile(
-    new Storage_File("testContainerErrorHandling.root", 'o'));
+      new Storage_File("testContainerErrorHandling.root", 'o'));
     CHECK_THROWS_AS(container->setFile(wrongFile), std::runtime_error);
   }
 }
