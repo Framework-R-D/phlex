@@ -156,8 +156,8 @@ Fermilab's CMake modules for HEP software, providing:
 
 #### cppyy
 
-- Python-C++ interoperability
-- Required for Python plugin
+- Optional technology for C++/Python interoperability
+- Python plugin support uses C API for Python and NumPy
 
 ## Code Coverage
 
@@ -171,7 +171,7 @@ Fermilab's CMake modules for HEP software, providing:
 ### Workflow
 
 ```bash
-cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_COVERAGE=ON
+cmake --preset coverage-gcc  # or coverage-clang
 cmake --build . --target coverage-xml    # XML for CI
 cmake --build . --target coverage-html   # HTML for local
 cmake --build . --target coverage-clean  # Clean data
@@ -273,11 +273,11 @@ ninja clang-tidy-fix
 ### Build-time
 
 - `PHLEX_INSTALL`: Installation directory
-- `PHLEX_PLUGIN_PATH`: Plugin search path
 - `SPDLOG_LEVEL`: Logging level (debug, info, warn, error)
 
 ### Test-time
 
+- `PHLEX_PLUGIN_PATH`: Plugin search path
 - `PYTHONPATH`: Python module search path
 - `VIRTUAL_ENV`: Python virtual environment
 - `PATH`: Executable search path
@@ -286,7 +286,7 @@ ninja clang-tidy-fix
 
 - **Project Version**: 0.1.0
 - **CMake Minimum**: 3.31
-- **C++ Standard**: C++20
+- **C++ Standard**: C++23
 - **GCC Minimum**: 14
 - **Python Minimum**: 3.x
 - **Cetmodules**: 4.01.01

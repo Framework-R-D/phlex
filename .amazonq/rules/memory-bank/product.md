@@ -25,7 +25,8 @@ Phlex is a framework for **P**arallel, **h**ierarchical, and **l**ayered **ex**e
 ### Plugin System
 
 - Dynamic module loading for user algorithms
-- Python plugin support via cppyy for seamless C++/Python interoperability
+- Python plugin support using C API for Python and NumPy for seamless C++/Python interoperability
+- Optional cppyy technology for alternative C++/Python interoperability
 - Type-safe data passing between C++ and Python algorithms
 - Support for NumPy arrays and Python data structures
 

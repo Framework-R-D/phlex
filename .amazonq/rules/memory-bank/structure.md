@@ -49,7 +49,7 @@ The main framework implementation containing the execution engine and core abstr
   - `thread_counter.hpp`: Thread tracking
   - `simple_ptr_map.hpp`, `sized_tuple.hpp`, `sleep_for.hpp`, `string_literal.hpp`: Various utilities
 
-- **Root level files**:
+- **Top-level files**:
   - `configuration.cpp/hpp`: Configuration management
   - `module.hpp`: Module interface
   - `source.hpp`: Data source interface
