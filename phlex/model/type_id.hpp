@@ -333,6 +333,9 @@ struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
 
 template <>
 struct std::hash<phlex::experimental::type_id> {
-  std::size_t operator()(phlex::experimental::type_id const& id) { return hash_value(id); }
+  std::size_t operator()(phlex::experimental::type_id const& id) const noexcept
+  {
+    return hash_value(id);
+  }
 };
 #endif // PHLEX_MODE_TYPE_ID_HPP
