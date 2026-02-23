@@ -1,6 +1,7 @@
 # Copyright (C) 2025 ...
 
 if(FORM_USE_ROOT_STORAGE)
+  add_definitions(-DUSE_ROOT_STORAGE) #TODO: This doesn't carry over from FORM for some reason.  Why?  Can tests get definitions from properties of targets they link against?
   add_subdirectory(data_products)
   cet_test(
       WriteVector
@@ -48,3 +49,9 @@ cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
          form
 )
 target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
+
+cet_test(form_storage_test USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
+         root_storage
+         storage
+)
+target_include_directories(form_storage_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
