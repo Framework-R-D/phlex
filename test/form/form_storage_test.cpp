@@ -4,9 +4,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <vector>
-#include <numeric>
 #include <cmath>
+#include <numeric>
+#include <vector>
 
 using namespace form::detail::experimental;
 
@@ -37,15 +37,9 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
   float const readSum = std::accumulate(piResult.begin(), piResult.end(), 0.f);
   float const floatDiff = readSum - originalSum;
 
-  SECTION("float container sum")
-  {
-    CHECK(fabs(floatDiff) < std::numeric_limits<float>::epsilon());
-  }
+  SECTION("float container sum") { CHECK(fabs(floatDiff) < std::numeric_limits<float>::epsilon()); }
 
-  SECTION("index")
-  {
-    CHECK(indexResult == indexData);
-  }
+  SECTION("index") { CHECK(indexResult == indexData); }
 }
 
 TEST_CASE("Storage_Container multiple containers in Association", "[form]")
@@ -77,8 +71,5 @@ TEST_CASE("Storage_Container multiple containers in Association", "[form]")
     CHECK(magicDiff == 0);
   }
 
-  SECTION("index data")
-  {
-    CHECK(indexResult == indexData);
-  }
+  SECTION("index data") { CHECK(indexResult == indexData); }
 }

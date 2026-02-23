@@ -3,9 +3,9 @@
 #ifndef __TEST_UTILS_HPP__
 #define __TEST_UTILS_HPP__
 
-#include "util/factories.hpp"
 #include "storage/istorage.hpp"
 #include "storage/storage_associative_container.hpp"
+#include "util/factories.hpp"
 
 #include "TClass.h"
 
@@ -48,9 +48,7 @@ namespace form::test {
     PRODS&... prods)
   {
     auto const branchName = makeTestBranchName<PROD>();
-    auto container = createContainer(
-      technology,
-      branchName);
+    auto container = createContainer(technology, branchName);
     auto assoc = dynamic_pointer_cast<Storage_Associative_Container>(container);
     if (assoc) {
       assoc->setParent(parent);
@@ -82,19 +80,17 @@ namespace form::test {
               int const technology,
               std::shared_ptr<IStorage_Container>& parent)
   {
-    auto container = createContainer(
-      technology,
-      makeTestBranchName<PROD>());
+    auto container = createContainer(technology, makeTestBranchName<PROD>());
     auto assoc = dynamic_pointer_cast<Storage_Associative_Container>(container);
     if (assoc) {
       assoc->setParent(parent);
     }
     container->setFile(file);
     void const* dataPtr = new PROD();
-                                                                                 
+
     if (!container->read(0, &dataPtr, typeid(PROD)))
       throw std::runtime_error("Failed to read a " + getTypeName<PROD>());
-                                                                                 
+
     return *static_cast<const PROD*>(dataPtr);
   }
 
