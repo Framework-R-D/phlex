@@ -47,3 +47,38 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
     CHECK(indexResult == indexData);
   }
 }
+
+TEST_CASE("Storage_Container multiple containers in Association", "[form]")
+{
+  int const technology = form::technology::ROOT_TTREE;
+  std::vector<float> piData(10, 3.1415927);
+  std::vector<int> magicData(17);
+  std::iota(magicData.begin(), magicData.end(), 42);
+  std::string indexData = "[EVENT=00000001;SEG=00000001]";
+
+  form::test::write(technology, piData, magicData, indexData);
+
+  auto [piResult, magicResult, indexResult] =
+    form::test::read<std::vector<float>, std::vector<int>, std::string>(technology);
+
+  SECTION("float container")
+  {
+    float const originalSum = std::accumulate(piData.begin(), piData.end(), 0.f);
+    float const readSum = std::accumulate(piResult.begin(), piResult.end(), 0.f);
+    float const floatDiff = readSum - originalSum;
+    CHECK(fabs(floatDiff) < std::numeric_limits<float>::epsilon());
+  }
+
+  SECTION("int container")
+  {
+    int const originalMagic = std::accumulate(magicData.begin(), magicData.end(), 0);
+    int const readMagic = std::accumulate(magicResult.begin(), magicResult.end(), 0);
+    int const magicDiff = readMagic - originalMagic;
+    CHECK(magicDiff == 0);
+  }
+
+  SECTION("index data")
+  {
+    CHECK(indexResult == indexData);
+  }
+}
