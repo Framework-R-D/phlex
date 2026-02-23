@@ -7,8 +7,8 @@
 #include "toy_tracker.hpp"
 
 #include <cstdlib>
-#include <fstream> //ADDED
-#include <iomanip> //ADDED
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
   srand(time(0));
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
-  std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt"; //ADDED
+  std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
 
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::output_item_config output_config;

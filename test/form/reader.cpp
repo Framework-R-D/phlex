@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 
   form::experimental::form_interface form(output_config, tech_config);
 
-  bool all_passed = true; //ADDED
+  bool all_passed = true;
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Read Event No. " << nevent << std::endl;
@@ -208,6 +208,4 @@ int main(int argc, char** argv)
   }
 }
 
-//std::cout << "PHLEX: Read done " << std::endl;
-//  return 0;
-//}
+
