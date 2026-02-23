@@ -77,16 +77,6 @@ namespace form::test {
       ->commit(); //Elements are in reverse order of container construction, so this makes sure container owner calls commit()
   }
 
-  template <class... PRODS>
-  std::tuple<PRODS...> read(int const technology)
-  {
-    auto file = createFile(technology, testFileName, 'i');
-    auto parent = createAssociation(technology, testTreeName);
-    parent->setFile(file);
-
-    return std::make_tuple(doRead<PRODS>(file, technology, parent)...);
-  }
-
   template <class PROD>
   PROD doRead(std::shared_ptr<IStorage_File>& file,
               int const technology,
@@ -101,11 +91,21 @@ namespace form::test {
     }
     container->setFile(file);
     void const* dataPtr = new PROD();
-
+                                                                                 
     if (!container->read(0, &dataPtr, typeid(PROD)))
       throw std::runtime_error("Failed to read a " + getTypeName<PROD>());
-
+                                                                                 
     return *static_cast<const PROD*>(dataPtr);
+  }
+
+  template <class... PRODS>
+  std::tuple<PRODS...> read(int const technology)
+  {
+    auto file = createFile(technology, testFileName, 'i');
+    auto parent = createAssociation(technology, testTreeName);
+    parent->setFile(file);
+
+    return std::make_tuple(doRead<PRODS>(file, technology, parent)...);
   }
 
   int getTechnology(int const argc, char const** argv)
