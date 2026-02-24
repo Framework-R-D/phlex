@@ -45,6 +45,10 @@ namespace phlex::experimental::detail {
     return input_port<2>(indexer_);
   }
 
+  bool repeater_node::cache_is_empty() const { return cached_products_.empty(); }
+
+  std::size_t repeater_node::cache_size() const { return cached_products_.size(); }
+
   repeater_node::~repeater_node()
   {
     if (cached_products_.empty()) {

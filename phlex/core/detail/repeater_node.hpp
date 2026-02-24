@@ -23,6 +23,9 @@ namespace phlex::experimental::detail {
     tbb::flow::receiver<indexed_end_token>& flush_port();
     tbb::flow::receiver<index_message>& index_port();
 
+    bool cache_is_empty() const;
+    std::size_t cache_size() const;
+
     ~repeater_node();
 
   private:
