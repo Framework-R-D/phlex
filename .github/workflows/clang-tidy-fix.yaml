@@ -105,7 +105,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/phlex-build"
 
           echo "Applying clang-tidy fixes..."
-          cmake --build . || true
+          cmake --build . -j $(nproc) || true
           echo "Clang-tidy fixes applied"
 
       - name: Upload clang-tidy report
