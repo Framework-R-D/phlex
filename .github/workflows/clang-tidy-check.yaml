@@ -130,7 +130,7 @@ jobs:
 
         echo "➡️ Running clang-tidy checks..."
         cmake_status=0
-        cmake --build . > clang-tidy.log 2>&1 || cmake_status=$?
+        cmake --build . 2>&1 | tee clang-tidy.log || cmake_status=$?
 
         # Distinguish tooling failures from issue detection by checking log content
         if [ "$cmake_status" -ne 0 ]; then
