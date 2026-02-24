@@ -114,7 +114,7 @@ namespace form::test {
     }
 
     //Default to TTree with TFile
-    int technology = 256 * 1 + 1;
+    int technology = form::technology::ROOT_TTREE;
 
     if (argc == 2)
       technology = std::stoi(argv[1]);
