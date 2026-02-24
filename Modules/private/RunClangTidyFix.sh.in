@@ -55,10 +55,10 @@ if [ -n "${PHLEX_TIDY_FILES:-}" ]; then
   done
 fi
 
-CMD=("$RUN_CLANG_TIDY" -p "$COMPILE_DB" -clang-tidy-binary "$CLANG_TIDY_BIN" -config-file "$CLANG_TIDY_CONFIG")
+CMD=("$RUN_CLANG_TIDY" -p "$COMPILE_DB" -clang-tidy-binary "$CLANG_TIDY_BIN")
 [ -n "$CHECKS_ARG" ] && CMD+=("$CHECKS_ARG")
-[ -n "$EXPORT_FIXES_FILE" ] && CMD+=("-export-fixes=$EXPORT_FIXES_FILE")
-CMD+=("-source-filter" "$FILES_REGEX")
+[ -n "$EXPORT_FIXES_FILE" ] && CMD+=("-export-fixes" "$EXPORT_FIXES_FILE")
+CMD+=("$FILES_REGEX")
 [ "$DO_FIX" -eq 1 ] && CMD+=("-fix")
 
 if [ ${#FILES_ARG_LIST[@]} -gt 0 ]; then
