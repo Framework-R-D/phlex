@@ -130,7 +130,7 @@ jobs:
 
         echo "➡️ Running clang-tidy checks..."
         cmake_status=0
-        cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1 || cmake_status=$?
+        PHLEX_TIDY_EXPORT_FIXES=clang-tidy-fixes.yaml cmake --build . --target clang-tidy-check > clang-tidy.log 2>&1 || cmake_status=$?
 
         # Distinguish tooling failures from issue detection by checking log content
         if [ "$cmake_status" -ne 0 ]; then
