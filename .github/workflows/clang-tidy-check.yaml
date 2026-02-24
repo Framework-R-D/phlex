@@ -194,6 +194,16 @@ jobs:
           path: phlex-build
         continue-on-error: true
 
+      - name: Setup Node.js
+        if: github.event_name == 'issue_comment'
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '20.x'
+
+      - name: Install js-yaml
+        if: github.event_name == 'issue_comment'
+        run: npm install js-yaml
+
       - name: Check if artifacts exist
         id: check_artifacts
         run: |
@@ -217,19 +227,42 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const log = fs.readFileSync('phlex-build/clang-tidy.log', 'utf8');
-            const issues = log.match(/^\/.+\[.+\]$/gm) || [];
+            const path = require('path');
+            const yaml = require('js-yaml');
+
+            const fixesDir = 'phlex-build';
             const checkCounts = {};
-            issues.forEach(line => {
-              const match = line.match(/\[([^\]]+)\]$/);
-              if (match) {
-                const check = match[1];
-                checkCounts[check] = (checkCounts[check] || 0) + 1;
+            let totalIssues = 0;
+
+            function processYamlFiles(dir) {
+              const entries = fs.readdirSync(dir, { withFileTypes: true });
+              for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                  processYamlFiles(fullPath);
+                } else if (entry.name.endsWith('.yaml')) {
+                  try {
+                    const content = yaml.load(fs.readFileSync(fullPath, 'utf8'));
+                    if (content?.Diagnostics) {
+                      content.Diagnostics.forEach(diag => {
+                        if (diag.DiagnosticName) {
+                          checkCounts[diag.DiagnosticName] = (checkCounts[diag.DiagnosticName] || 0) + 1;
+                          totalIssues++;
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    console.log(`Skipping ${fullPath}: ${e.message}`);
+                  }
+                }
               }
-            });
+            }
+
+            processYamlFiles(fixesDir);
+
             const sorted = Object.entries(checkCounts).sort((a, b) => b[1] - a[1]);
             let body = '## Clang-Tidy Check Results\n\n';
-            body += `Found ${issues.length} issue(s) in the code.\n\n`;
+            body += `Found ${totalIssues} issue(s) in the code.\n\n`;
             if (sorted.length > 0) {
               body += '### Issues by check:\n\n';
               sorted.forEach(([check, count]) => {
