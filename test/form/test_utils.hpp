@@ -76,9 +76,9 @@ namespace form::test {
   }
 
   template <class PROD>
-  PROD doRead(std::shared_ptr<IStorage_File>& file,
-              int const technology,
-              std::shared_ptr<IStorage_Container>& parent)
+  std::unique_ptr<PROD const> doRead(std::shared_ptr<IStorage_File>& file,
+                               int const technology,
+                               std::shared_ptr<IStorage_Container>& parent)
   {
     auto container = createContainer(technology, makeTestBranchName<PROD>());
     auto assoc = dynamic_pointer_cast<Storage_Associative_Container>(container);
@@ -87,15 +87,16 @@ namespace form::test {
     }
     container->setFile(file);
     void const* dataPtr = new PROD();
+    void const** dataPtrPtr = &dataPtr;
 
-    if (!container->read(0, &dataPtr, typeid(PROD)))
+    if (!container->read(0, dataPtrPtr, typeid(PROD)))
       throw std::runtime_error("Failed to read a " + getTypeName<PROD>());
 
-    return *static_cast<const PROD*>(dataPtr);
+    return std::unique_ptr<PROD const>(static_cast<PROD const*>(dataPtr));
   }
 
   template <class... PRODS>
-  std::tuple<PRODS...> read(int const technology)
+  std::tuple<std::unique_ptr<PRODS const>...> read(int const technology)
   {
     auto file = createFile(technology, testFileName, 'i');
     auto parent = createAssociation(technology, testTreeName);
