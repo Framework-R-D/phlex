@@ -16,22 +16,22 @@ using namespace form::detail::experimental;
 
 namespace form::test {
 
-  std::string const testTreeName = "FORMTestTree";
-  std::string const testFileName = "FORMTestFile.root";
+  inline std::string const testTreeName = "FORMTestTree";
+  inline std::string const testFileName = "FORMTestFile.root";
 
   template <class PROD>
-  std::string getTypeName()
+  inline std::string getTypeName()
   {
     return TClass::GetClass<PROD>()->GetName();
   }
 
   template <class PROD>
-  std::string makeTestBranchName()
+  inline std::string makeTestBranchName()
   {
     return testTreeName + "/" + getTypeName<PROD>();
   }
 
-  std::vector<std::shared_ptr<IStorage_Container>> doWrite(
+  inline std::vector<std::shared_ptr<IStorage_Container>> doWrite(
     std::shared_ptr<IStorage_File>& /*file*/,
     int const /*technology*/,
     std::shared_ptr<IStorage_Container>& /*parent*/)
@@ -40,7 +40,7 @@ namespace form::test {
   }
 
   template <class PROD, class... PRODS>
-  std::vector<std::shared_ptr<IStorage_Container>> doWrite(
+  inline std::vector<std::shared_ptr<IStorage_Container>> doWrite(
     std::shared_ptr<IStorage_File>& file,
     int const technology,
     std::shared_ptr<IStorage_Container>& parent,
@@ -63,7 +63,7 @@ namespace form::test {
   }
 
   template <class... PRODS>
-  void write(int const technology, PRODS&... prods)
+  inline void write(int const technology, PRODS&... prods)
   {
     auto file = createFile(technology, testFileName.c_str(), 'o');
     auto parent = createAssociation(technology, testTreeName);
@@ -76,9 +76,9 @@ namespace form::test {
   }
 
   template <class PROD>
-  std::unique_ptr<PROD const> doRead(std::shared_ptr<IStorage_File>& file,
-                                     int const technology,
-                                     std::shared_ptr<IStorage_Container>& parent)
+  inline std::unique_ptr<PROD const> doRead(std::shared_ptr<IStorage_File>& file,
+                                            int const technology,
+                                            std::shared_ptr<IStorage_Container>& parent)
   {
     auto container = createContainer(technology, makeTestBranchName<PROD>());
     auto assoc = dynamic_pointer_cast<Storage_Associative_Container>(container);
@@ -96,7 +96,7 @@ namespace form::test {
   }
 
   template <class... PRODS>
-  std::tuple<std::unique_ptr<PRODS const>...> read(int const technology)
+  inline std::tuple<std::unique_ptr<PRODS const>...> read(int const technology)
   {
     auto file = createFile(technology, testFileName, 'i');
     auto parent = createAssociation(technology, testTreeName);
@@ -105,7 +105,7 @@ namespace form::test {
     return std::make_tuple(doRead<PRODS>(file, technology, parent)...);
   }
 
-  int getTechnology(int const argc, char const** argv)
+  inline int getTechnology(int const argc, char const** argv)
   {
     if (argc > 2 || (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")))) {
       std::cerr << "Expected exactly one argument, but got " << argc - 1 << "\n"
