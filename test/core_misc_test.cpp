@@ -62,12 +62,13 @@ TEST_CASE("algorithm_name tests", "[model]")
 TEST_CASE("consumer tests", "[core]")
 {
   using namespace phlex::experimental;
+  using namespace phlex::experimental::literals;
   algorithm_name an = algorithm_name::create("p:a");
   consumer c(an, {"pred1"});
 
   CHECK(c.full_name() == "p:a");
-  CHECK(c.plugin() == "p");
-  CHECK(c.algorithm() == "a");
+  CHECK(c.plugin() == "p"_idq);
+  CHECK(c.algorithm() == "a"_idq);
   CHECK(c.when().size() == 1);
 }
 

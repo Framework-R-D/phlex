@@ -5,6 +5,8 @@
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_vector.h"
 
+#include "spdlog/spdlog.h"
+
 using namespace phlex;
 using namespace oneapi::tbb;
 
@@ -19,7 +21,7 @@ namespace {
       driver.yield(job_index);
 
       for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        auto index = job_index->make_child(i, "event");
+        auto index = job_index->make_child(i, "event"_id);
         driver.yield(index);
       }
     }
@@ -33,8 +35,12 @@ namespace {
 
   unsigned int give_me_other_nums(data_cell_index const& id) { return 100 + id.number() - 1; }
 
-  constexpr bool evens_only(unsigned int const value) { return value % 2u == 0u; }
-  constexpr bool odds_only(unsigned int const value) { return not evens_only(value); }
+  constexpr bool evens_only(unsigned int const value) {
+    spdlog::debug("evens_only: {} is {}", value, value % 2 == 0 ? "even" : "odd");
+    return value % 2u == 0u; }
+  constexpr bool odds_only(unsigned int const value) {
+    spdlog::debug("odds_only: {} is {}", value, value % 2 == 0 ? "even" : "odd");
+    return not evens_only(value); }
 
   // Hacky!
   struct sum_numbers {
@@ -61,12 +67,15 @@ namespace {
 
   // Hacky!
   struct check_multiple_numbers {
-    check_multiple_numbers(int const n) : total{n} {}
+    check_multiple_numbers(int const n) : total{n} {
+      spdlog::debug("construct check_multiple_numbers with n = {}", n);
+    }
     ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total)); }
     void add_difference(unsigned int const a, unsigned int const b)
     {
       // The difference is calculated to test that add(a, b) yields a different result
       // than add(b, a).
+      spdlog::debug("check_multiple_numbers(n = {}): run add_difference. a = {}, b = {}", total, a, b);
       sum += static_cast<int>(b) - static_cast<int>(a);
     }
     std::atomic<int> sum;
@@ -209,7 +218,14 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
       product_query{
         .creator = "input"_id, .layer = "event"_id, .suffix = "num"_id}) // <= Note input order
     .experimental_when("odds_only");
-
+  g.observe("print_evens", [](unsigned int i, unsigned int j){spdlog::debug("{} is EVEN, j is {}", i, j);}, concurrency::unlimited)
+   .input_family(product_query{.creator = "input"_id, .layer="event"_id, .suffix="num"_id},
+                 product_query{.creator = "input"_id, .layer="event"_id, .suffix="other_num"_id})
+   .experimental_when("evens_only");
+  g.observe("print_odds", [](unsigned int i, unsigned int j){spdlog::debug("{} is ODD. j is {}", i, j);}, concurrency::unlimited)
+   .input_family(product_query{.creator = "input"_id, .layer="event"_id, .suffix="num"_id},
+                 product_query{.creator = "input"_id, .layer="event"_id, .suffix="other_num"_id})
+   .experimental_when("odds_only");
   g.execute();
 
   CHECK(g.execution_count("check_odds") == 5);

@@ -48,7 +48,7 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
     auto job_index = data_cell_index::base_ptr();
     driver.yield(job_index);
     for (int i : numbers) {
-      auto event_index = job_index->make_child(unsigned(i), "event");
+      auto event_index = job_index->make_child(unsigned(i), "event"_id);
       driver.yield(event_index);
     }
   };

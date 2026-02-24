@@ -6,10 +6,11 @@
 #include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
+using namespace phlex::experimental::literals;
 using phlex::data_cell_index;
 
 namespace {
-  auto const job_hash_value = hash("job");
+  auto const job_hash_value = "job"_idq.hash;
 }
 
 TEST_CASE("Counter with nothing processed", "[data model]")
@@ -22,9 +23,9 @@ TEST_CASE("Counter one layer deep", "[data model]")
 {
   data_cell_counter job_counter{};
   for (std::size_t i = 0; i != 10; ++i) {
-    job_counter.make_child("event");
+    job_counter.make_child("event"_id);
   }
-  auto const event_hash_value = hash(job_hash_value, "event");
+  auto const event_hash_value = hash(job_hash_value, "event"_idq.hash);
   CHECK(job_counter.result().count_for(event_hash_value) == 10);
 }
 
@@ -38,17 +39,17 @@ TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
   h.increment_count(job_index);
   CHECK(h.count_for("/job") == 1);
 
-  auto spill_index = job_index->make_child(0, "spill");
+  auto spill_index = job_index->make_child(0, "spill"_id);
   h.increment_count(spill_index);
 
-  auto run_index = job_index->make_child(0, "run");
+  auto run_index = job_index->make_child(0, "run"_id);
   h.increment_count(run_index);
   CHECK(h.count_for("/job/run") == 1);
   CHECK(h.count_for("run") == 1);
 
   // Nested spill indices
-  h.increment_count(run_index->make_child(0, "spill"));
-  h.increment_count(run_index->make_child(1, "spill"));
+  h.increment_count(run_index->make_child(0, "spill"_id));
+  h.increment_count(run_index->make_child(1, "spill"_id));
 
   CHECK_THROWS(h.count_for("spill"));
   CHECK(h.count_for("/job/spill") == 1);
@@ -77,20 +78,20 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
     CHECK(h.count_for("event", true) == processed_events);
   };
 
-  auto const run_hash_value = hash(job_hash_value, "run");
-  auto const subrun_hash_value = hash(run_hash_value, "subrun");
-  auto const event_hash_value = hash(subrun_hash_value, "event");
+  auto const run_hash_value = hash(job_hash_value, "run"_idq.hash);
+  auto const subrun_hash_value = hash(run_hash_value, "subrun"_idq.hash);
+  auto const event_hash_value = hash(subrun_hash_value, "event"_idq.hash);
 
   auto job_index = data_cell_index::base_ptr();
   counters.update(job_index);
   for (std::size_t i = 0; i != nruns; ++i) {
-    auto run_index = job_index->make_child(i, "run");
+    auto run_index = job_index->make_child(i, "run"_id);
     counters.update(run_index);
     for (std::size_t j = 0; j != nsubruns_per_run; ++j) {
-      auto subrun_index = run_index->make_child(j, "subrun");
+      auto subrun_index = run_index->make_child(j, "subrun"_id);
       counters.update(subrun_index);
       for (std::size_t k = 0; k != nevents_per_subrun; ++k) {
-        auto event_index = subrun_index->make_child(k, "event");
+        auto event_index = subrun_index->make_child(k, "event"_id);
         counters.update(event_index);
         ++processed_events;
 

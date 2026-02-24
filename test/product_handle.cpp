@@ -8,6 +8,7 @@
 #include <vector>
 
 using namespace phlex;
+using namespace phlex::experimental::literals;
 
 namespace {
   struct Composer {
@@ -50,7 +51,7 @@ TEST_CASE("Handle copies and moves", "[data model]")
   int const four{4};
 
   auto job_data_cell = data_cell_index::base_ptr();
-  auto subrun_6_data_cell = job_data_cell->make_child(6, "subrun");
+  auto subrun_6_data_cell = job_data_cell->make_child(6, "subrun"_id);
 
   handle h2{two, *job_data_cell};
   handle h4{four, *subrun_6_data_cell};
@@ -81,7 +82,7 @@ TEST_CASE("Handle comparisons", "[data model]")
   CHECK(h17 == h17);
   CHECK(h17 != h18);
 
-  auto subrun_6_data_cell = data_cell_index::base_ptr()->make_child(6, "subrun");
+  auto subrun_6_data_cell = data_cell_index::base_ptr()->make_child(6, "subrun"_id);
   handle const h17sr{seventeen, *subrun_6_data_cell};
   CHECK(*h17 == *h17sr);                                   // Products are the same
   CHECK(h17.data_cell_index() != h17sr.data_cell_index()); // Data cells are not the same
