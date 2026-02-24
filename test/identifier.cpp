@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include <boost/json.hpp>
+#include <fmt/format.h>
 
 using namespace phlex::experimental;
 using namespace phlex::experimental::literals;
@@ -81,4 +82,10 @@ TEST_CASE("Identifier comparison operators", "[identifier]")
   CHECK(id2 > id1);
   CHECK(id1 <= id1);
   CHECK(id1 >= id1);
+}
+
+TEST_CASE("Identifier formatting", "[identifier]")
+{
+  identifier id = "test_id"_id;
+  CHECK(fmt::format("{}", id) == "test_id");
 }
