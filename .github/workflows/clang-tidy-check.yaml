@@ -130,7 +130,7 @@ jobs:
 
         echo "➡️ Running clang-tidy checks..."
         cmake_status=0
-        PHLEX_TIDY_EXPORT_FIXES=clang-tidy-fixes.yaml cmake --build . --target clang-tidy-check > clang-tidy.log 2>&1 || cmake_status=$?
+        PHLEX_TIDY_EXPORT_FIXES=clang-tidy-fixes cmake --build . --target clang-tidy-check > clang-tidy.log 2>&1 || cmake_status=$?
 
         # Distinguish tooling failures from issue detection by checking log content
         if [ "$cmake_status" -ne 0 ]; then
@@ -159,7 +159,7 @@ jobs:
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: clang-tidy-report
-        path: phlex-build/clang-tidy-fixes.yaml
+        path: phlex-build/clang-tidy-fixes/
         retention-days: 7
 
     - name: Upload clang-tidy log
@@ -195,7 +195,7 @@ jobs:
       - name: Check if artifacts exist
         id: check_artifacts
         run: |
-          if [ -f phlex-build/clang-tidy-fixes.yaml ]; then
+          if [ -d phlex-build/clang-tidy-fixes ] && [ -n "$(ls -A phlex-build/clang-tidy-fixes 2>/dev/null)" ]; then
             echo "has_fixes=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_fixes=false" >> "$GITHUB_OUTPUT"
@@ -205,7 +205,7 @@ jobs:
         if: steps.check_artifacts.outputs.has_fixes == 'true'
         uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
-          clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
+          clang_tidy_fixes: phlex-build/clang-tidy-fixes
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pull_request_id: ${{ github.event.pull_request.number || needs.pre-check.outputs.pr_number }}
 
