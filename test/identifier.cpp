@@ -87,5 +87,7 @@ TEST_CASE("Identifier comparison operators", "[identifier]")
 TEST_CASE("Identifier formatting", "[identifier]")
 {
   identifier id = "test_id"_id;
-  CHECK(fmt::format("{}", id) == "test_id");
+  auto formatted = fmt::format("{}", format_as(id));
+  CHECK(formatted == "test_id");
+  CHECK(fmt::format("prefix_{}_suffix", id) == "prefix_test_id_suffix");
 }
