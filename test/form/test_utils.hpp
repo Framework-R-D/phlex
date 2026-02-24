@@ -77,8 +77,8 @@ namespace form::test {
 
   template <class PROD>
   std::unique_ptr<PROD const> doRead(std::shared_ptr<IStorage_File>& file,
-                               int const technology,
-                               std::shared_ptr<IStorage_Container>& parent)
+                                     int const technology,
+                                     std::shared_ptr<IStorage_Container>& parent)
   {
     auto container = createContainer(technology, makeTestBranchName<PROD>());
     auto assoc = dynamic_pointer_cast<Storage_Associative_Container>(container);
