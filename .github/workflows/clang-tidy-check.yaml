@@ -155,20 +155,22 @@ jobs:
         fi
 
     - name: Upload clang-tidy report
-      if: steps.tidy.outputs.has_issues == 'true'
+      if: always()
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: clang-tidy-report
-        path: phlex-build/clang-tidy-fixes/
+        path: phlex-build/clang-tidy-fixes/**/*.yaml
         retention-days: 7
+        if-no-files-found: ignore
 
     - name: Upload clang-tidy log
-      if: steps.tidy.outputs.has_issues == 'true'
+      if: always()
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: clang-tidy-log
         path: phlex-build/clang-tidy.log
         retention-days: 7
+        if-no-files-found: ignore
 
   clang-tidy-pr-comments:
     needs: [pre-check, clang-tidy-check]
