@@ -136,6 +136,9 @@ jobs:
         if [ "$cmake_status" -ne 0 ]; then
           if ! grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
             echo "::error::clang-tidy failed without producing diagnostic output (exit code $cmake_status)"
+            echo "::group::clang-tidy log output"
+            cat clang-tidy.log
+            echo "::endgroup::"
             exit "$cmake_status"
           fi
         fi
