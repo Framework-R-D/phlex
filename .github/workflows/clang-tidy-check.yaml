@@ -131,7 +131,7 @@ jobs:
         echo "➡️ Running clang-tidy checks..."
         cmake_status=0
         cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1 || cmake_status=$?
-        
+
         # Distinguish tooling failures from issue detection by checking log content
         if [ "$cmake_status" -ne 0 ]; then
           if ! grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
@@ -139,7 +139,7 @@ jobs:
             exit "$cmake_status"
           fi
         fi
-        
+
         if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
           echo "has_issues=true" >> "$GITHUB_OUTPUT"
           echo "::warning::Clang-tidy found issues in the code"
