@@ -131,14 +131,16 @@ jobs:
         echo "➡️ Running clang-tidy checks..."
         cmake --build . --target clang-tidy-check -- --export-fixes clang-tidy-fixes.yaml > clang-tidy.log 2>&1
         cmake_status=$?
-        # cmake returns non-zero both when clang-tidy finds issues AND when a tooling
-        # failure occurs. Distinguish by checking whether the fixes file was populated:
-        # a non-empty fixes file indicates clang-tidy ran successfully and found issues.
-        if [ "$cmake_status" -ne 0 ] && [ ! -s clang-tidy-fixes.yaml ]; then
-          echo "::error::clang-tidy CMake target failed with exit code $cmake_status"
-          exit "$cmake_status"
+        
+        # Distinguish tooling failures from issue detection by checking log content
+        if [ "$cmake_status" -ne 0 ]; then
+          if ! grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
+            echo "::error::clang-tidy failed without producing diagnostic output (exit code $cmake_status)"
+            exit "$cmake_status"
+          fi
         fi
-        if [ -s clang-tidy-fixes.yaml ]; then
+        
+        if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
           echo "has_issues=true" >> "$GITHUB_OUTPUT"
           echo "::warning::Clang-tidy found issues in the code"
           echo "Error count by check (full details in clang-tidy-log artifact):"
