@@ -119,13 +119,11 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   std::cout << "  output_file: " << output_file << "\n";
   std::cout << "  technology: " << tech_string << "\n";
 
-  // Using a static map for O(1) lookup
-  static std::unordered_map<std::string_view, int> const tech_lookup = {
+  std::unordered_map<std::string_view, int> const tech_lookup = {
     {"ROOT_TTREE", form::technology::ROOT_TTREE},
     {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
     {"HDF5", form::technology::HDF5}};
 
-  // C++20 allows finding a string_view key efficiently
   auto it = tech_lookup.find(tech_string);
 
   if (it == tech_lookup.end()) {
