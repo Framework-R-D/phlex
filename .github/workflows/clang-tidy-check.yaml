@@ -119,7 +119,7 @@ jobs:
       uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         build-type: Debug
-        extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
+        extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--config-file=.clang-tidy' -DCMAKE_CXX_CLANG_TIDY_EXPORT_FIXES_DIR=clang-tidy-fixes"
 
     - name: Run clang-tidy using CMake target
       id: tidy
@@ -130,7 +130,7 @@ jobs:
 
         echo "➡️ Running clang-tidy checks..."
         cmake_status=0
-        PHLEX_TIDY_EXPORT_FIXES=clang-tidy-fixes cmake --build . --target clang-tidy-check > clang-tidy.log 2>&1 || cmake_status=$?
+        cmake --build . > clang-tidy.log 2>&1 || cmake_status=$?
 
         # Distinguish tooling failures from issue detection by checking log content
         if [ "$cmake_status" -ne 0 ]; then
