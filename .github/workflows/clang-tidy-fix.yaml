@@ -86,7 +86,7 @@ jobs:
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE"
 
-          CLANG_TIDY_OPTS="clang-tidy;--config-file=.clang-tidy;--fix"
+          CLANG_TIDY_OPTS="clang-tidy;--fix"
           if [ -n "$TIDY_CHECKS" ]; then
             CHECKS_NORMALIZED=$(echo "$TIDY_CHECKS" | tr ' ' ',')
             CLANG_TIDY_OPTS="${CLANG_TIDY_OPTS};--checks=-*,${CHECKS_NORMALIZED}"
