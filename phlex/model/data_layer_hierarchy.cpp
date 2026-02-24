@@ -104,8 +104,8 @@ namespace phlex::experimental {
       if (parent_hash == -1ull) {
         continue;
       }
-      auto const& parent_name = layers_.at(parent_hash)->name;
-      tree[parent_name].emplace_back(layer_entry->name, layer_hash);
+      auto const& parent_name = fmt::to_string(layers_.at(parent_hash)->name);
+      tree[parent_name].emplace_back(fmt::to_string(layer_entry->name), layer_hash);
     }
 
     auto const initial_indent = "  ";

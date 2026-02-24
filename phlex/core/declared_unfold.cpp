@@ -8,8 +8,8 @@
 namespace phlex::experimental {
 
   generator::generator(product_store_const_ptr const& parent,
-                       std::string node_name,
-                       std::string const& child_layer_name) :
+                       algorithm_name node_name,
+                       identifier const& child_layer_name) :
     parent_{std::const_pointer_cast<product_store>(parent)},
     node_name_{std::move(node_name)},
     child_layer_name_{child_layer_name}
@@ -25,9 +25,10 @@ namespace phlex::experimental {
 
   product_store_const_ptr generator::flush_store() const
   {
+    static product_specification const flush = product_specification::create("[flush]");
     auto result = parent_->make_flush();
     if (not child_counts_.empty()) {
-      result->add_product("[flush]",
+      result->add_product(flush,
                           std::make_shared<flush_counts const>(std::move(child_counts_)));
     }
     return result;

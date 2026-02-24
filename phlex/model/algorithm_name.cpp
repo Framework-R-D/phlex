@@ -19,7 +19,7 @@ namespace {
     if ('a' <= c && c <= 'z') {
       return true;
     }
-    if (c == '_') {
+    if (c == '_' || c == '[' || c == ']') {
       return true;
     }
     return false;

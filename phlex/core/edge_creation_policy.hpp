@@ -2,6 +2,7 @@
 #define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 
 #include "phlex/core/message.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 
@@ -12,7 +13,7 @@
 #include <string>
 
 namespace phlex::experimental {
-  using product_name_t = std::string;
+  using product_name_t = identifier;
 
   class edge_creation_policy {
   public:
@@ -45,7 +46,7 @@ namespace phlex::experimental {
     std::multimap<product_name_t, named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
       for (auto const& product_name : node->output()) {
-        if (empty(product_name.name()))
+        if (product_name.name().empty())
           continue;
         result.emplace(
           product_name.name(),

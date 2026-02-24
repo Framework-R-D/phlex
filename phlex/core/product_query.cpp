@@ -29,15 +29,15 @@ namespace phlex {
   // Check if a product_specification satisfies this query
   bool product_query::match(experimental::product_specification const& spec) const
   {
-    // string comparisons for now for a gradual transition
-    if (std::string_view(experimental::identifier(creator)) != spec.algorithm()) {
+    experimental::identifier creator{this->creator};
+    if (creator != spec.algorithm() && creator != spec.plugin()) {
       return false;
     }
     if (type != spec.type()) {
       return false;
     }
     if (suffix) {
-      if (std::string_view(*suffix) != spec.name()) {
+      if (*suffix != spec.name()) {
         return false;
       }
     }

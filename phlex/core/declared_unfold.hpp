@@ -10,6 +10,7 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -35,8 +36,8 @@ namespace phlex::experimental {
   class generator {
   public:
     explicit generator(product_store_const_ptr const& parent,
-                       std::string node_name,
-                       std::string const& child_layer_name);
+                       algorithm_name node_name,
+                       identifier const& child_layer_name);
     product_store_const_ptr flush_store() const;
 
     product_store_const_ptr make_child_for(std::size_t const data_cell_number,
@@ -48,8 +49,8 @@ namespace phlex::experimental {
   private:
     product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
-    std::string node_name_;
-    std::string const& child_layer_name_;
+    algorithm_name node_name_;
+    identifier const& child_layer_name_;
     std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };
 
@@ -181,7 +182,7 @@ namespace phlex::experimental {
 
     input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
     product_specifications output_;
-    std::string child_layer_name_;
+    identifier child_layer_name_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1u>> unfold_;
     tbb::concurrent_hash_map<data_cell_index::hash_type, product_store_ptr> stores_;
