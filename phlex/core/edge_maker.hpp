@@ -77,7 +77,7 @@ namespace phlex::experimental {
           continue;
         }
 
-        make_edge(*producer->port, *receiver_port);
+        make_edge(*producer->output_port, *receiver_port);
       }
     }
     return result;
@@ -111,10 +111,10 @@ namespace phlex::experimental {
     // Create edges to outputs
     for (auto const& [output_name, output_node] : outputs) {
       for (auto& [_, provider] : providers) {
-        make_edge(provider->sender(), output_node->port());
+        make_edge(provider->output_port(), output_node->port());
       }
       for (auto const& named_port : producers_.values()) {
-        make_edge(*named_port.to_output, output_node->port());
+        make_edge(*named_port.output_port, output_node->port());
       }
     }
 
