@@ -1,0 +1,128 @@
+name: YAML Check
+'run-name': "${{ github.actor }} checking YAML files"
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ github.repository }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: >
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+        path: phlex-src
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
+
+    - name: Detect relevant changes
+      id: filter
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      with:
+        repo-path: phlex-src
+        base-ref: ${{ needs.pre-check.outputs.base_sha }}
+        head-ref: ${{ needs.pre-check.outputs.ref }}
+        file-type: yaml
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No YAML-related changes detected; check will be skipped."
+        else
+          echo "::group::YAML-related files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  yaml-check:
+    needs: [pre-check, detect-changes]
+    if: >
+      always() &&
+      (
+        needs.detect-changes.result == 'skipped' ||
+        (
+          needs.detect-changes.result == 'success' &&
+          needs.detect-changes.outputs.has_changes == 'true'
+        )
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.pre-check.outputs.ref }}
+          path: phlex-src
+          repository: ${{ needs.pre-check.outputs.repo }}
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a20 # v5.3.0
+        with:
+          python-version: '3.x'
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        id: lint
+        working-directory: phlex-src
+        run: yamllint .
+        continue-on-error: true
+
+      - name: Evaluate yamllint result
+        if: always() && steps.lint.outcome != 'skipped'
+        run: |
+          if [ "${{ steps.lint.outcome }}" = "success" ]; then
+            echo "✅ YAML check passed."
+          else
+            echo "::error::YAML check failed."
+            echo "::error::Comment '@${{ github.event.repository.name }}bot yaml-fix' on the PR to auto-fix."
+            exit 1
+          fi
+
+  yaml-check-skipped:
+    needs: [pre-check, detect-changes]
+    if: >
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant YAML changes detected
+      run: echo "::notice::No YAML-related changes detected; yaml-check skipped."

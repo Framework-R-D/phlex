@@ -1,0 +1,79 @@
+name: YAML Fix
+'run-name': "${{ github.actor }} fixing YAML files"
+
+on:
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    name: Parse command
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
+        (
+          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
+          startsWith(github.event.comment.body, format('@{0}bot yaml-fix', github.event.repository.name))
+        )
+      )
+    outputs:
+      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo: ${{ steps.get_pr.outputs.repo || github.repository }}
+
+    steps:
+      - name: Get PR Info
+        if: github.event_name == 'issue_comment'
+        id: get_pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+  apply_yaml_fixes:
+    runs-on: ubuntu-latest
+    name: Apply YAML fixes
+    needs: pre-check
+    if: ${{ needs.pre-check.result == 'success' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: phlex-src
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
+          token: ${{ secrets.WORKFLOW_PAT }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '20.x'
+
+      - name: Install prettier
+        run: npm install -g prettier
+
+      - name: Apply YAML formatting
+        run: |
+          cd phlex-src
+          prettier --write '**/*.{yaml,yml}'
+
+      - name: Handle fix commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
+        with:
+          tool: YAML formatter
+          working-directory: phlex-src
+          token: ${{ secrets.WORKFLOW_PAT }}
+          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
+          pr-info-repo: ${{ needs.pre-check.outputs.repo }}

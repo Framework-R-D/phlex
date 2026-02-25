@@ -55,9 +55,11 @@ runs:
         DEFAULT_TYPE_PATTERNS[python]=$'*.py'
         DEFAULT_TYPE_PATTERNS[md]=$'*.md'
         DEFAULT_TYPE_PATTERNS[jsonnet]=$'*.jsonnet\n*.libsonnet'
+        DEFAULT_TYPE_PATTERNS[yaml]=$'*.yaml\n*.yml'
         # Types that do not support .in variants for relevance detection
         declare -A NO_IN_VARIANT_TYPES
         NO_IN_VARIANT_TYPES[jsonnet]="1"
+        NO_IN_VARIANT_TYPES[yaml]="1"
         
         parse_list() {
           local input="$1"
