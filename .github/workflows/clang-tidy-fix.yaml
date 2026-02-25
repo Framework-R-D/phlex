@@ -109,9 +109,11 @@ jobs:
           echo "Clang-tidy fixes applied"
 
           # Merge all YAML fix files into one
-          if [ -d clang-tidy-fixes ]; then
-            find clang-tidy-fixes -name '*.yaml' -exec cat {} \; > clang-tidy-fixes.yaml 2>/dev/null || true
-          fi
+          echo "---" > clang-tidy-fixes.yaml
+          find . -path '*/clang-tidy-fixes/*/*.yaml' -type f 2>/dev/null | while read f; do
+            cat "$f" >> clang-tidy-fixes.yaml
+            echo "---" >> clang-tidy-fixes.yaml
+          done
 
       - name: Upload clang-tidy report
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

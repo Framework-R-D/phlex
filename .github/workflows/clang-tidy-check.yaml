@@ -151,9 +151,11 @@ jobs:
           echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
 
           # Merge all YAML fix files into one
-          if [ -d clang-tidy-fixes ]; then
-            find clang-tidy-fixes -name '*.yaml' -exec cat {} \; > clang-tidy-fixes.yaml 2>/dev/null || true
-          fi
+          echo "---" > clang-tidy-fixes.yaml
+          find . -path '*/clang-tidy-fixes/*/*.yaml' -type f 2>/dev/null | while read f; do
+            cat "$f" >> clang-tidy-fixes.yaml
+            echo "---" >> clang-tidy-fixes.yaml
+          done
         else
           echo "has_issues=false" >> "$GITHUB_OUTPUT"
           echo "✅ clang-tidy check passed"
