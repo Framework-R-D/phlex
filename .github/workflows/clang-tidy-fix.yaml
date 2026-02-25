@@ -108,12 +108,12 @@ jobs:
           echo "Clang-tidy fixes applied"
 
       - name: Upload clang-tidy report
+        if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: clang-tidy-report
           path: phlex-build/clang-tidy-fixes.yaml
           retention-days: 7
-        if: always()
 
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
