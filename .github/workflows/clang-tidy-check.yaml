@@ -119,7 +119,7 @@ jobs:
       uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
       with:
         build-type: Debug
-        extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY=clang-tidy -DCMAKE_CXX_CLANG_TIDY_EXPORT_FIXES_DIR=clang-tidy-fixes"
+        extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml'"
 
     - name: Run clang-tidy using CMake target
       id: tidy
@@ -149,13 +149,6 @@ jobs:
           echo "Error count by check (full details in clang-tidy-log artifact):"
           sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
           echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-
-          # Merge all YAML fix files into one
-          echo "---" > clang-tidy-fixes.yaml
-          find . -path '*/clang-tidy-fixes/*/*.yaml' -type f 2>/dev/null | while read f; do
-            cat "$f" >> clang-tidy-fixes.yaml
-            echo "---" >> clang-tidy-fixes.yaml
-          done
         else
           echo "has_issues=false" >> "$GITHUB_OUTPUT"
           echo "✅ clang-tidy check passed"

@@ -86,7 +86,7 @@ jobs:
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE"
 
-          CLANG_TIDY_OPTS="clang-tidy;--fix"
+          CLANG_TIDY_OPTS="clang-tidy;--fix;--export-fixes=clang-tidy-fixes.yaml"
           if [ -n "$TIDY_CHECKS" ]; then
             CHECKS_NORMALIZED=$(echo "$TIDY_CHECKS" | tr ' ' ',')
             CLANG_TIDY_OPTS="${CLANG_TIDY_OPTS};--checks=-*,${CHECKS_NORMALIZED}"
@@ -96,8 +96,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
-            -DCMAKE_CXX_CLANG_TIDY="${CLANG_TIDY_OPTS}" \
-            -DCMAKE_CXX_CLANG_TIDY_EXPORT_FIXES_DIR=clang-tidy-fixes
+            -DCMAKE_CXX_CLANG_TIDY="${CLANG_TIDY_OPTS}"
 
       - name: Apply clang-tidy fixes using CMake build
         run: |
@@ -107,13 +106,6 @@ jobs:
           echo "Applying clang-tidy fixes..."
           cmake --build . -j $(nproc) || true
           echo "Clang-tidy fixes applied"
-
-          # Merge all YAML fix files into one
-          echo "---" > clang-tidy-fixes.yaml
-          find . -path '*/clang-tidy-fixes/*/*.yaml' -type f 2>/dev/null | while read f; do
-            cat "$f" >> clang-tidy-fixes.yaml
-            echo "---" >> clang-tidy-fixes.yaml
-          done
 
       - name: Upload clang-tidy report
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
