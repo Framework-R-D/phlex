@@ -125,7 +125,8 @@ namespace phlex::experimental {
         auto parent = std::make_shared<product_store>(fold_index, this->full_name());
         commit_(parent);
         ++product_count_;
-        output_port<0>(fold_).try_put({.store = parent, .id = counter->original_message_id()});
+        tbb::flow::output_port<0>(fold_).try_put(
+          {.store = parent, .id = counter->original_message_id()});
       }
     }
 
@@ -140,7 +141,7 @@ namespace phlex::experimental {
     }
 
     tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
-    tbb::flow::sender<message>& output_port() override { return output_port<0ull>(fold_); }
+    tbb::flow::sender<message>& output_port() override { return tbb::flow::output_port<0>(fold_); }
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>

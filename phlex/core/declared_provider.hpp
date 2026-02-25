@@ -79,7 +79,10 @@ namespace phlex::experimental {
 
   private:
     tbb::flow::receiver<index_message>* input_port() override { return &provider_; }
-    tbb::flow::sender<message>& output_port() override { return output_port<0>(provider_); }
+    tbb::flow::sender<message>& output_port() override
+    {
+      return tbb::flow::output_port<0>(provider_);
+    }
 
     std::size_t num_calls() const final { return calls_.load(); }
 

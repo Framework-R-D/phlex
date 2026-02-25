@@ -110,7 +110,10 @@ namespace phlex::experimental {
       return input_ports<N>(join_, transform_);
     }
 
-    tbb::flow::sender<message>& output_port() override { return output_port<0>(transform_); }
+    tbb::flow::sender<message>& output_port() override
+    {
+      return tbb::flow::output_port<0>(transform_);
+    }
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>

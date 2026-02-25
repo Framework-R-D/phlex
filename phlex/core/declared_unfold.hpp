@@ -133,10 +133,13 @@ namespace phlex::experimental {
       return input_ports<N>(join_, unfold_);
     }
 
-    tbb::flow::sender<message>& output_port() override { return output_port<0>(unfold_); }
+    tbb::flow::sender<message>& output_port() override
+    {
+      return tbb::flow::output_port<0>(unfold_);
+    }
     tbb::flow::sender<data_cell_index_ptr>& output_index_port() override
     {
-      return output_port<1>(unfold_);
+      return tbb::flow::output_port<1>(unfold_);
     }
     product_specifications const& output() const override { return output_; }
     flusher_t& flusher() override { return flusher_; }
@@ -174,8 +177,9 @@ namespace phlex::experimental {
         ++product_count_;
 
         auto child = g.make_child_for(counter++, std::move(new_products));
-        output_port<0>(unfold_).try_put({.store = child, .id = msg_counter_.fetch_add(1)});
-        output_port<1>(unfold_).try_put(child->index());
+        tbb::flow::output_port<0>(unfold_).try_put(
+          {.store = child, .id = msg_counter_.fetch_add(1)});
+        tbb::flow::output_port<1>(unfold_).try_put(child->index());
       }
     }
 
