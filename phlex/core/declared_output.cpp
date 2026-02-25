@@ -10,10 +10,8 @@ namespace phlex::experimental {
                                    detail::output_function_t&& ft) :
     consumer{std::move(name), std::move(predicates)},
     node_{g, concurrency, [this, f = std::move(ft)](message const& msg) -> tbb::flow::continue_msg {
-            if (not msg.store->is_flush()) {
-              f(*msg.store);
-              ++calls_;
-            }
+            f(*msg.store);
+            ++calls_;
             return {};
           }}
   {

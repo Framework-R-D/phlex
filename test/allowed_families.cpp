@@ -61,12 +61,11 @@ TEST_CASE("Testing families", "[data model]")
                   product_query{.creator = "dummy"_id, .layer = "event"_id, .suffix = "id"_id});
   g.execute();
 
-  // FIXME: Need to improve the synchronization to supply strict equality
   CHECK(g.execution_count("se") == 1ull);
-  CHECK(g.execution_count("rs") >= 1ull);
+  CHECK(g.execution_count("rs") == 1ull);
   CHECK(g.execution_count("rse") == 1ull);
 
-  CHECK(g.execution_count("run_id_provider") >= 1ull);
-  CHECK(g.execution_count("subrun_id_provider") >= 1ull);
+  CHECK(g.execution_count("run_id_provider") == 1ull);
+  CHECK(g.execution_count("subrun_id_provider") == 1ull);
   CHECK(g.execution_count("event_id_provider") == 1ull);
 }

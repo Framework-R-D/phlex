@@ -7,6 +7,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -25,8 +26,10 @@ namespace phlex::experimental {
     std::size_t num_inputs() const;
 
     product_queries const& input() const noexcept;
+    std::vector<identifier> const& layers() const noexcept;
     tbb::flow::receiver<message>& port(product_query const& product_label);
 
+    virtual named_index_ports index_ports() = 0;
     virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
     virtual std::size_t num_calls() const = 0;
 
@@ -41,6 +44,7 @@ namespace phlex::experimental {
     virtual tbb::flow::receiver<message>& port_for(product_query const& product_label) = 0;
 
     product_queries input_products_;
+    std::vector<identifier> layers_;
   };
 }
 

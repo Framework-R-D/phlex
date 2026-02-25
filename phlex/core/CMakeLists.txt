@@ -15,6 +15,7 @@ cet_make_library(
   detail/make_algorithm_name.cpp
   detail/maybe_predicates.cpp
   detail/filter_impl.cpp
+  detail/repeater_node.cpp
   edge_creation_policy.cpp
   edge_maker.cpp
   filter.cpp
@@ -22,9 +23,8 @@ cet_make_library(
   glue.cpp
   input_arguments.cpp
   message.cpp
-  message_sender.cpp
   node_catalog.cpp
-  multiplexer.cpp
+  index_router.cpp
   products_consumer.cpp
   registrar.cpp
   registration_api.cpp
@@ -61,8 +61,7 @@ install(
     graph_proxy.hpp
     input_arguments.hpp
     message.hpp
-    message_sender.hpp
-    multiplexer.hpp
+    index_router.hpp
     node_catalog.hpp
     product_query.hpp
     products_consumer.hpp
@@ -74,7 +73,11 @@ install(
 )
 install(FILES fold/send.hpp DESTINATION include/phlex/core/fold)
 install(
-  FILES detail/make_algorithm_name.hpp detail/maybe_predicates.hpp detail/filter_impl.hpp
+  FILES
+    detail/filter_impl.hpp
+    detail/make_algorithm_name.hpp
+    detail/maybe_predicates.hpp
+    detail/repeater_node.hpp
   DESTINATION include/phlex/core/detail
 )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})

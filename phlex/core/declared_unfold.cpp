@@ -23,36 +23,22 @@ namespace phlex::experimental {
     return std::make_shared<product_store>(child_index, node_name_, std::move(new_products));
   }
 
-  product_store_const_ptr generator::flush_store() const
+  flush_counts_ptr generator::flush_result() const
   {
-    auto result = parent_->make_flush();
     if (not child_counts_.empty()) {
-      result->add_product("[flush]",
-                          std::make_shared<flush_counts const>(std::move(child_counts_)));
+      return std::make_shared<flush_counts const>(std::move(child_counts_));
     }
-    return result;
+    return nullptr;
   }
 
   declared_unfold::declared_unfold(algorithm_name name,
                                    std::vector<std::string> predicates,
-                                   product_queries input_products) :
-    products_consumer{std::move(name), std::move(predicates), std::move(input_products)}
+                                   product_queries input_products,
+                                   std::string child_layer) :
+    products_consumer{std::move(name), std::move(predicates), std::move(input_products)},
+    child_layer_{std::move(child_layer)}
   {
   }
 
   declared_unfold::~declared_unfold() = default;
-
-  void declared_unfold::report_cached_stores(stores_t const& stores) const
-  {
-    if (stores.size() > 0ull) {
-      spdlog::warn("Unfold {} has {} cached stores.", full_name(), stores.size());
-    }
-    for (auto const& [hash, store] : stores) {
-      if (not store) {
-        spdlog::warn("Store with hash {} is null!", hash);
-        continue;
-      }
-      spdlog::debug(" => ID: {} (hash: {})", store->index()->to_string(), hash);
-    }
-  }
 }
