@@ -108,11 +108,16 @@ jobs:
           cmake --build . -j $(nproc) || true
           echo "Clang-tidy fixes applied"
 
+          # Merge all YAML fix files into one
+          if [ -d clang-tidy-fixes ]; then
+            find clang-tidy-fixes -name '*.yaml' -exec cat {} \; > clang-tidy-fixes.yaml 2>/dev/null || true
+          fi
+
       - name: Upload clang-tidy report
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: clang-tidy-report
-          path: phlex-build/clang-tidy-fixes/
+          path: phlex-build/clang-tidy-fixes.yaml
           retention-days: 7
         if: always()
 
@@ -141,7 +146,7 @@ jobs:
       - name: Check if artifacts exist
         id: check_artifacts
         run: |
-          if [ -d phlex-build/clang-tidy-fixes ] && [ -n "$(ls -A phlex-build/clang-tidy-fixes 2>/dev/null)" ]; then
+          if [ -f phlex-build/clang-tidy-fixes.yaml ]; then
             echo "has_fixes=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_fixes=false" >> "$GITHUB_OUTPUT"
@@ -151,5 +156,5 @@ jobs:
         if: steps.check_artifacts.outputs.has_fixes == 'true'
         uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
-          clang_tidy_fixes: phlex-build/clang-tidy-fixes
+          clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}
