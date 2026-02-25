@@ -310,11 +310,13 @@
 **CRITICAL: Always Verify Against Official Sources:**
 
 - When specifying external software versions or commit hashes (e.g., GitHub Actions, dependencies), ALWAYS verify against the official release source
-- First, check what the LATEST version is from the project's releases page (e.g., `https://github.com/owner/repo/releases`)
-- Then verify the hash for that latest version at the specific release tag page (e.g., `https://github.com/owner/repo/releases/tag/vX.Y.Z`)
+- **FIRST: Check existing workflows in `.github/workflows/` for the current version used in the repository**
+- **SECOND: Verify if a newer version exists at the official releases page** (e.g., `https://github.com/owner/repo/releases`)
+- Then verify the hash for that version at the specific release tag page (e.g., `https://github.com/owner/repo/releases/tag/vX.Y.Z`)
 - The authoritative source ALWAYS takes precedence over training data
 - Training data may be outdated or incorrect - never trust it for version/hash information without verification
-- Example: For `actions/setup-node`, first check `https://github.com/actions/setup-node/releases` for latest version, then verify hash at the specific tag page
+- **When creating new workflows, use the LATEST version from existing workflows unless there's a specific reason to upgrade**
+- Example: For `actions/setup-node`, check existing workflows first, then verify at `https://github.com/actions/setup-node/releases` if considering an upgrade
 
 ### Comment Guidelines
 
