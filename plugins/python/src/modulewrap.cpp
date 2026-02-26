@@ -62,8 +62,7 @@ namespace {
 
   static inline std::string stringify(std::vector<product_query>& v)
   {
-    return fmt::format("{:n}",
-      std::ranges::views::transform(v, &product_query::to_string));
+    return fmt::format("{:n:}", std::ranges::views::transform(v, &product_query::to_string));
   }
 
   static inline std::string input_converter_name(std::string const& algname, size_t arg)
