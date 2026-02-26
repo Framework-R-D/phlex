@@ -13,61 +13,33 @@
 #include <iostream>
 
 namespace phlex::experimental {
-  layer_sentry::layer_sentry(flush_counters& counters,
-                             message_sender& sender,
-                             product_store_ptr store) :
-    counters_{counters}, sender_{sender}, store_{store}, depth_{store_->index()->depth()}
-  {
-    counters_.update(store_->index());
-  }
-
-  layer_sentry::~layer_sentry()
-  {
-    // To consider: We may want to skip the following logic if the framework prematurely
-    //              needs to shut down.  Keeping it enabled allows in-flight folds to
-    //              complete.  However, in some cases it may not be desirable to do this.
-    auto flush_result = counters_.extract(store_->index());
-    auto flush_store = store_->make_flush();
-    if (not flush_result.empty()) {
-      flush_store->add_product("[flush]",
-                               std::make_shared<flush_counts const>(std::move(flush_result)));
-    }
-    sender_.send_flush(std::move(flush_store));
-  }
-
-  std::size_t layer_sentry::depth() const noexcept { return depth_; }
-
   framework_graph::framework_graph(data_cell_index_ptr index, int const max_parallelism) :
     framework_graph{[index](framework_driver& driver) { driver.yield(index); }, max_parallelism}
   {
   }
 
-  // FIXME: The algorithm below should support user-specified flush stores.
   framework_graph::framework_graph(detail::next_index_t next_index, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     driver_{std::move(next_index)},
     src_{graph_,
-         [this](tbb::flow_control& fc) mutable -> message {
+         [this](tbb::flow_control& fc) mutable -> data_cell_index_ptr {
            auto item = driver_();
            if (not item) {
-             drain();
+             index_router_.drain();
              fc.stop();
              return {};
            }
-           auto index = *item;
-           auto store = std::make_shared<product_store>(index, "Source");
-           return sender_.make_message(accept(std::move(store)));
+
+           return index_router_.route(*item);
          }},
-    multiplexer_{graph_},
-    hierarchy_node_{
-      graph_, tbb::flow::unlimited, [this](message const& msg) -> tbb::flow::continue_msg {
-        if (not msg.store->is_flush()) {
-          hierarchy_.increment_count(msg.store->index());
-        }
-        return {};
-      }}
+    index_router_{graph_},
+    hierarchy_node_{graph_,
+                    tbb::flow::unlimited,
+                    [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
+                      hierarchy_.increment_count(index);
+                      return {};
+                    }}
   {
-    // FIXME: Should the loading of env levels happen in the phlex app only?
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
   }
@@ -76,9 +48,7 @@ namespace phlex::experimental {
   {
     if (shutdown_on_error_) {
       // When in an error state, we need to sanely pop the layer stack and wait for any tasks to finish.
-      while (!layers_.empty()) {
-        layers_.pop();
-      }
+      index_router_.drain();
       graph_.wait_for_all();
     }
   }
@@ -161,8 +131,8 @@ namespace phlex::experimental {
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.transforms));
 
     edge_maker make_edges{nodes_.transforms, nodes_.folds, nodes_.unfolds};
-    make_edges(src_,
-               multiplexer_,
+    make_edges(graph_,
+               index_router_,
                filters_,
                nodes_.outputs,
                nodes_.providers,
@@ -172,30 +142,38 @@ namespace phlex::experimental {
                nodes_.unfolds,
                nodes_.transforms);
 
+    std::map<std::string, flusher_t*> flushers_from_unfolds;
+    for (auto const& n : nodes_.unfolds | std::views::values) {
+      flushers_from_unfolds.try_emplace(n->child_layer(), &n->flusher());
+    }
+
+    // Connect edges between all nodes, the graph-wide flusher, and the unfolds' flushers
+    auto connect_with_flusher =
+      [this, unfold_flushers = std::move(flushers_from_unfolds)](auto& consumers) {
+        for (auto& n : consumers | std::views::values) {
+          std::set<flusher_t*> flushers;
+          // For providers
+          for (product_query const& pq : n->input()) {
+            if (auto it = unfold_flushers.find(pq.layer()); it != unfold_flushers.end()) {
+              flushers.insert(it->second);
+            } else {
+              flushers.insert(&index_router_.flusher());
+            }
+          }
+          for (flusher_t* flusher : flushers) {
+            make_edge(*flusher, n->flush_port());
+          }
+        }
+      };
+    connect_with_flusher(nodes_.folds);
+
     // The hierarchy node is used to report which data layers have been seen by the
     // framework.  To assemble the report, data-cell indices emitted by the input node are
     // recorded as well as any data-cell indices emitted by an unfold.
     make_edge(src_, hierarchy_node_);
     for (auto& [_, node] : nodes_.unfolds) {
-      make_edge(node->sender(), hierarchy_node_);
+      make_edge(node->output_index_port(), hierarchy_node_);
     }
   }
 
-  product_store_ptr framework_graph::accept(product_store_ptr store)
-  {
-    assert(store);
-    auto const new_depth = store->index()->depth();
-    while (not empty(layers_) and new_depth <= layers_.top().depth()) {
-      layers_.pop();
-    }
-    layers_.emplace(counters_, sender_, store);
-    return store;
-  }
-
-  void framework_graph::drain()
-  {
-    while (not empty(layers_)) {
-      layers_.pop();
-    }
-  }
 }

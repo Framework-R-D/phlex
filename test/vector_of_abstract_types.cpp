@@ -51,5 +51,6 @@ TEST_CASE("Test vector of abstract types")
     .input_family("sum"_in("event"));
   g.execute();
 
+  CHECK(g.execution_count("provide_thing") == 1);
   CHECK(g.execution_count("read_thing") == 1);
 }

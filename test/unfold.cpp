@@ -1,7 +1,7 @@
 // =======================================================================================
 // This test executes unfolding functionality using the following graph
 //
-//     Multiplexer
+//     Index Router
 //          |
 //      unfold (creates children)
 //          |
@@ -11,7 +11,7 @@
 //
 // where the asterisk (*) indicates a fold step.  The difference here is that the
 // *unfold* is responsible for sending the flush token instead of the
-// source/multiplexer.
+// source/index_router.
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"

@@ -80,23 +80,35 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
       - name: Configure CMake for clang-tidy
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
-        with:
-          build-type: Debug
-          extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
-
-      - name: Apply clang-tidy fixes using CMake target
         env:
-          PHLEX_TIDY_CHECKS: ${{ needs.pre-check.outputs.tidy_checks }}
+          TIDY_CHECKS: ${{ needs.pre-check.outputs.tidy_checks }}
+        run: |
+          . /entrypoint.sh
+          cd "$GITHUB_WORKSPACE"
+
+          CLANG_TIDY_OPTS="clang-tidy;--fix;--export-fixes=clang-tidy-fixes.yaml"
+          if [ -n "$TIDY_CHECKS" ]; then
+            CHECKS_NORMALIZED=$(echo "$TIDY_CHECKS" | tr ' ' ',')
+            CLANG_TIDY_OPTS="${CLANG_TIDY_OPTS};--checks=-*,${CHECKS_NORMALIZED}"
+          fi
+
+          cmake -B phlex-build -S phlex-src \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
+            -DCMAKE_CXX_CLANG_TIDY="${CLANG_TIDY_OPTS}"
+
+      - name: Apply clang-tidy fixes using CMake build
         run: |
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE/phlex-build"
 
-          echo "Applying clang-tidy fixes using CMake target..."
-          cmake --build . --target clang-tidy-fix -- --export-fixes clang-tidy-fixes.yaml || true
+          echo "Applying clang-tidy fixes..."
+          cmake --build . -j $(nproc) || true
           echo "Clang-tidy fixes applied"
 
       - name: Upload clang-tidy report
+        if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: clang-tidy-report
@@ -123,7 +135,19 @@ jobs:
         with:
           name: clang-tidy-report
           path: phlex-build
+        continue-on-error: true
+
+      - name: Check if artifacts exist
+        id: check_artifacts
+        run: |
+          if [ -f phlex-build/clang-tidy-fixes.yaml ]; then
+            echo "has_fixes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_fixes=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Post clang-tidy comments
+        if: steps.check_artifacts.outputs.has_fixes == 'true'
         uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml

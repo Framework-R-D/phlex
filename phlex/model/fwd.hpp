@@ -6,12 +6,12 @@
 namespace phlex::experimental {
   class data_cell_counter;
   class data_layer_hierarchy;
+  class flush_counts;
   class product_store;
 
+  using flush_counts_ptr = std::shared_ptr<flush_counts const>;
   using product_store_const_ptr = std::shared_ptr<product_store const>;
   using product_store_ptr = std::shared_ptr<product_store>;
-
-  enum class stage { process, flush };
 }
 
 namespace phlex {

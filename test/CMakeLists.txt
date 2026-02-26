@@ -22,16 +22,16 @@ cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities)
 cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
 )
-cet_test(type_id SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
-cet_test(identifier SOURCE identifier.cpp LIBRARIES phlex::model phlex::configuration fmt::fmt)
+cet_test(type_id USE_CATCH2_MAIN SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
+cet_test(identifier USE_CATCH2_MAIN SOURCE identifier.cpp LIBRARIES phlex::model phlex::configuration Boost::json)
 cet_test(
   yielding_driver
+  USE_CATCH2_MAIN
   SOURCE
   yielding_driver.cpp
   LIBRARIES
   phlex::core
   TBB::tbb
-  spdlog::spdlog
 )
 
 cet_test(
@@ -179,6 +179,14 @@ cet_test(
   phlex::core
   spdlog::spdlog
   layer_generator
+)
+cet_test(
+  repeater_node
+  USE_CATCH2_MAIN
+  SOURCE
+  repeater_node_test.cpp
+  LIBRARIES
+  phlex::core
 )
 cet_test(
   replicated

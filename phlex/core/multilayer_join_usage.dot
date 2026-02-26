@@ -1,0 +1,86 @@
+digraph framework_graph_after {
+    rankdir=TB;
+    label="Multi-layer join caching\n";
+    labelloc=t;
+    fontsize=14;
+    fontname="Arial Bold";
+
+    node [shape=box, style="rounded,filled", fillcolor=lightblue];
+
+    // Framework-defined nodes
+    a_router [label="Index Router", fillcolor="#E8D5F5", color=purple, fontcolor=purple];
+    a_index_run [label="Index set\n(run)", fillcolor="#E8D5F5", color=purple, fontcolor=purple];
+    a_index_spill [label="Index set\n(spill)", fillcolor="#E8D5F5", color=purple, fontcolor=purple];
+
+    a_multiindex [shape=record, label="{Multi-layer ID emitter |{<Irun> ID(C)| <Erun> flush(C) | <Ispill> ID(D) | <Espill>flush(D) } }}", fillcolor=aliceblue, color=blue, fontcolor=blue, style=filled];
+
+    // User-defined nodes
+    a_driver [label="Driver", fillcolor=lightgreen];
+    a_provider1 [label="provide(A)", fillcolor=lightgreen];
+    a_provider2 [label="provide(B)", fillcolor=lightgreen];
+    a_transform1 [label="transform(A)", fillcolor=lightgreen];
+    a_transform2 [label="transform(B)", fillcolor=lightgreen];
+    a_transform3 [label="transform(C, D)", fillcolor=lightgreen];
+    a_observer [label="observe(C)", fillcolor=lightgreen];
+
+    {rank=same; a_provider1; a_multiindex; a_provider2;}
+
+    // Multilayer join-node components
+    a_repeater1 [shape=none, margin=0, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+            <TR>
+                <TD PORT="data" ROWSPAN="2" BGCOLOR="lightyellow">repeat(C)</TD>
+                <TD PORT="ID" BGCOLOR="aliceblue"><FONT COLOR="blue">ID</FONT></TD>
+            </TR>
+            <TR><TD PORT="Flush" BGCOLOR="aliceblue"><FONT COLOR="blue">Flush</FONT></TD></TR>
+        </TABLE>>];
+    a_repeater2 [shape=none, margin=0, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+            <TR>
+                <TD PORT="ID" BGCOLOR="aliceblue"><FONT COLOR="blue">ID</FONT></TD>
+                <TD PORT="data" ROWSPAN="2" BGCOLOR="lightyellow">repeat(D)</TD>
+            </TR>
+            <TR><TD PORT="Flush" BGCOLOR="aliceblue"><FONT COLOR="blue">Flush</FONT></TD></TR>
+        </TABLE>>];
+    a_join [label=<join(C, D)<br/>id(c<sub>r</sub>) = id(d<sub>rs</sub>)>, fillcolor=lightyellow];
+
+    // Wrap the multi-layer join components in a cluster to visually group them as requiring caching
+    subgraph cluster_multilayer_join {
+        label="Caching in multi-layer join node";
+        labelloc=b;
+        labeljust=c;
+        fontcolor=red;
+        style="dashed,filled";
+        color=red;
+        fillcolor=mistyrose;
+        peripheries=1;
+
+        a_repeater1;
+        a_repeater2;
+        a_join;
+    }
+
+    // Edges
+    a_driver -> a_router [label=< [r] + [(r, s)]>];
+    a_router -> a_index_run [style=dotted, label=" [r]"];
+    a_router -> a_index_spill [style=dotted, label=" [(r, s)]"];
+    a_router -> a_multiindex [style=dotted, label=" [r] + [(r, s)]", color=blue, fontcolor=blue];
+    a_index_run -> a_provider1 [label=" [r]"];
+    a_index_spill -> a_provider2 [label=" [(r, s)]"];
+    a_provider1 -> a_transform1 [label=< [a<sub>r</sub>]>];
+    a_provider2 -> a_transform2 [label=< [b<sub>rs</sub>]>];
+
+    a_multiindex:Irun -> a_repeater1:ID [style=dotted, label=< [id(c)] >, color=blue, fontcolor=blue];
+    a_multiindex:Ispill -> a_repeater2:ID [style=dotted, label=< [id(d)] >, color=blue, fontcolor=blue];
+    a_multiindex:Erun -> a_repeater1:Flush [style=dotted, label=< [n<sub>rs</sub>] >, color=blue, fontcolor=blue];
+
+    a_transform1:s -> a_repeater1:data:n;
+    a_transform2 -> a_repeater2:data:n [label=< [d<sub>rs</sub>]>];
+
+    a_repeater1:data -> a_join [label=< [c<sub>r</sub>] &times; [n<sub>rs</sub>] >];
+    a_repeater2:data -> a_join [label=< [d<sub>rs</sub>]>];
+
+    a_join -> a_transform3 [label=< [(c<sub>r</sub>, d<sub>rs</sub>)]>];
+
+    a_transform1:s -> a_observer [label=< [c<sub>r</sub>]>];
+}
