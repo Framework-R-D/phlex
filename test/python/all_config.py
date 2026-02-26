@@ -63,7 +63,7 @@ class ConfigConsumer:
             config[42]   # should raise
             assert not "did not raise TypeError"
         except TypeError:
-            pass
+            pass         # all good as exception was raised
 
     def __call__(self, i: int, j: int) -> None:
         """Dummy routine to do something.
