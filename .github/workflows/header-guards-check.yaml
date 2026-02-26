@@ -1,0 +1,163 @@
+name: Header Guards Check
+run-name: "${{ github.actor }} checking header guards"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      skip-relevance-check:
+        description: "Bypass relevance check"
+        required: false
+        type: boolean
+        default: false
+      pr-base-sha:
+        description: "Base SHA of the PR for relevance check"
+        required: false
+        type: string
+      pr-head-sha:
+        description: "Head SHA of the PR for relevance check"
+        required: false
+        type: string
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: false
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: false
+        type: string
+
+env:
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_act: ${{ steps.detect_act.outputs.is_act }}
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
+      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - name: Detect act environment
+        id: detect_act
+        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+  detect-changes:
+    needs: pre-check
+    if: >
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
+      (
+        github.event_name != 'workflow_call' ||
+        (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
+      ) &&
+      needs.pre-check.outputs.is_act != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      has_changes: ${{ steps.filter.outputs.matched }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+        path: ${{ env.local_checkout_path }}
+        ref: ${{ needs.pre-check.outputs.ref }}
+        repository: ${{ needs.pre-check.outputs.repo }}
+
+    - name: Detect relevant changes
+      id: filter
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      with:
+        repo-path: ${{ env.local_checkout_path }}
+        base-ref: ${{ needs.pre-check.outputs.base_sha }}
+        head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
+        file-type: cpp
+
+    - name: Report detection outcome
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No header file changes detected; check will be skipped."
+        else
+          echo "::group::Header files"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
+
+  header-guards-check:
+    needs: [pre-check, detect-changes]
+    if: >
+      always() &&
+      (
+        needs.detect-changes.result == 'skipped' ||
+        (
+          needs.detect-changes.result == 'success' &&
+          needs.detect-changes.outputs.has_changes == 'true'
+        )
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: ${{ needs.pre-check.outputs.ref }}
+        path: ${{ env.local_checkout_path }}
+        repository: ${{ needs.pre-check.outputs.repo }}
+
+    - name: Set up Python
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      with:
+        python-version: '3.12'
+
+    - name: Check header guards
+      id: check
+      working-directory: ${{ env.local_checkout_path }}
+      run: |
+        python3 scripts/fix_header_guards.py --check --root . phlex plugins form > check_output.txt 2>&1 || echo "has_issues=true" >> "$GITHUB_OUTPUT"
+        cat check_output.txt
+
+    - name: Report results
+      if: always() && steps.check.outputs.has_issues == 'true'
+      run: |
+        echo "::error::Header guard check failed."
+        echo "::error::Comment '@${{ github.event.repository.name }}bot header-guards-fix' on the PR to auto-fix."
+        exit 1
+
+  header-guards-check-skipped:
+    needs: [pre-check, detect-changes]
+    if: >
+      needs.pre-check.result == 'success' &&
+      github.event_name != 'workflow_dispatch' &&
+      (
+        github.event_name != 'workflow_call' ||
+        (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
+      ) &&
+      needs.pre-check.outputs.is_act != 'true' &&
+      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: No relevant header changes detected
+      run: echo "::notice::No header file changes detected; header-guards-check skipped."

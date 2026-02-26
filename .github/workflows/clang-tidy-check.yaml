@@ -3,6 +3,7 @@ name: Clang-Tidy Check
 
 permissions:
   contents: read
+  pull-requests: read
 
 
 on:
@@ -121,7 +122,7 @@ jobs:
         build-type: Debug
         extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml'"
 
-    - name: Run clang-tidy using CMake target
+    - name: Run clang-tidy using CMake
       id: tidy
       shell: bash
       run: |
@@ -130,7 +131,7 @@ jobs:
 
         echo "➡️ Running clang-tidy checks..."
         cmake_status=0
-        cmake --build . -j $(nproc) > clang-tidy.log 2>&1 || cmake_status=$?
+        cmake --build . -j "$(nproc)" > clang-tidy.log 2>&1 || cmake_status=$?
 
         # Distinguish tooling failures from issue detection by checking log content
         if [ "$cmake_status" -ne 0 ]; then

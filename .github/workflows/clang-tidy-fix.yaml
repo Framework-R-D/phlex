@@ -76,36 +76,82 @@ jobs:
           repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
+      - name: Try to download existing fixes from check workflow
+        id: download_fixes_check
+        if: needs.pre-check.outputs.tidy_checks == ''
+        uses: dawidd6/action-download-artifact@fe9d59ce33ce92db8a6ac90b2c8be6b6d90417c8 # v15
+        with:
+          workflow: clang-tidy-check.yaml
+          name: clang-tidy-report
+          path: fixes
+          branch: ${{ needs.pre-check.outputs.ref }}
+        continue-on-error: true
+
+      - name: Try to download existing fixes from previous fix workflow
+        id: download_fixes_fix
+        if: steps.download_fixes_check.outcome != 'success' && needs.pre-check.outputs.tidy_checks == ''
+        uses: dawidd6/action-download-artifact@fe9d59ce33ce92db8a6ac90b2c8be6b6d90417c8 # v15
+        with:
+          workflow: clang-tidy-fix.yaml
+          name: clang-tidy-report
+          path: fixes
+          branch: ${{ needs.pre-check.outputs.ref }}
+        continue-on-error: true
+
+      - name: Apply fixes from artifact if available
+        id: apply_from_artifact
+        if: needs.pre-check.outputs.tidy_checks == '' && (steps.download_fixes_check.outcome == 'success' || steps.download_fixes_fix.outcome == 'success')
+        run: |
+          if [ -f fixes/clang-tidy-fixes.yaml ]; then
+            echo "Applying fixes from existing artifact..."
+            cd phlex-src
+            clang-apply-replacements ../fixes || true
+            echo "applied=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "applied=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup build environment
+        if: steps.apply_from_artifact.outputs.applied != 'true'
         uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
-      - name: Configure CMake for clang-tidy
+      - name: Prepare CMake configuration options
+        if: steps.apply_from_artifact.outputs.applied != 'true'
+        id: prep_tidy_opts
         env:
           TIDY_CHECKS: ${{ needs.pre-check.outputs.tidy_checks }}
         run: |
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE"
 
-          CLANG_TIDY_OPTS="clang-tidy;--fix;--export-fixes=clang-tidy-fixes.yaml"
+          CLANG_TIDY_OPTS="clang-tidy;--export-fixes=clang-tidy-fixes.yaml"
           if [ -n "$TIDY_CHECKS" ]; then
             CHECKS_NORMALIZED=$(echo "$TIDY_CHECKS" | tr ' ' ',')
             CLANG_TIDY_OPTS="${CLANG_TIDY_OPTS};--checks=-*,${CHECKS_NORMALIZED}"
           fi
+          echo "clang_tidy_opts=${CLANG_TIDY_OPTS}" >> "$GITHUB_OUTPUT"
 
-          cmake -B phlex-build -S phlex-src \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
-            -DCMAKE_CXX_CLANG_TIDY="${CLANG_TIDY_OPTS}"
+      - name: Configure CMake (Debug)
+        if: steps.apply_from_artifact.outputs.applied != 'true'
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        with:
+          build-type: Debug
+          extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='${{ steps.prep_tidy_opts.outputs.clang_tidy_opts }}'"
 
-      - name: Apply clang-tidy fixes using CMake build
+      - name: Generate clang-tidy fixes using CMake build
+        if: steps.apply_from_artifact.outputs.applied != 'true'
         run: |
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE/phlex-build"
+          cmake --build . -j "$(nproc)" || true
 
-          echo "Applying clang-tidy fixes..."
-          cmake --build . -j $(nproc) || true
-          echo "Clang-tidy fixes applied"
+      - name: Apply clang-tidy fixes
+        if: steps.apply_from_artifact.outputs.applied != 'true'
+        run: |
+          cd "$GITHUB_WORKSPACE/phlex-build"
+          if [ -f clang-tidy-fixes.yaml ]; then
+            clang-apply-replacements . || true
+          fi
 
       - name: Upload clang-tidy report
         if: always()
@@ -114,6 +160,7 @@ jobs:
           name: clang-tidy-report
           path: phlex-build/clang-tidy-fixes.yaml
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
