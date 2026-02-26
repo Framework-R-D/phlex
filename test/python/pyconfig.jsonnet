@@ -29,9 +29,9 @@
       some_strings: ['aap', 'noot', 'mies'],
       some_object: { here: 'here', there: 'there' },
       some_objects: [
-       { a: 'b', c: 'd', e: 'f' },
-       { g: 'h', i: 'j', k: 'l' },
-       { m: 'n', o: 'p', q: 'r' },
+        { a: 'b', c: 'd', e: 'f' },
+        { g: 'h', i: 'j', k: 'l' },
+        { m: 'n', o: 'p', q: 'r' },
       ],
       empty: [],
     },
