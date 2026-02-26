@@ -107,7 +107,7 @@ def main() -> None:
     bad_files = []
 
     for arg in args.paths:
-        path = Path(arg)
+        path = Path(arg).resolve()
         files = [path] if path.is_file() else [*path.rglob("*.hpp"), *path.rglob("*.h")]
         for f in files:
             if f.suffix not in {".hpp", ".h"}:
