@@ -1,14 +1,15 @@
 #include "phlex/module.hpp"
 #include "wrap.hpp"
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>
-#include <sstream>
+#include <ranges>
 #include <stdexcept>
 #include <vector>
-
-#include <iostream>
 
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
@@ -54,36 +55,20 @@ PyObject* phlex::experimental::wrap_module(phlex_module_t& module_)
 
 namespace {
 
-  // TODO: wishing for std::views::join_with() in C++23, but until then:
-  static std::string stringify(std::vector<std::string>& v)
+  static inline std::string stringify(std::vector<std::string>& v)
   {
-    std::ostringstream oss;
-    if (!v.empty()) {
-      oss << v.front();
-      for (std::size_t i = 1; i < v.size(); ++i) {
-        oss << ", " << v[i];
-      }
-    }
-    return oss.str();
+    return fmt::format("{:n}", v);
   }
 
-  static std::string stringify(std::vector<product_query>& v)
+  static inline std::string stringify(std::vector<product_query>& v)
   {
-    std::ostringstream oss;
-    if (!v.empty()) {
-      oss << v.front().to_string();
-      for (std::size_t i = 1; i < v.size(); ++i) {
-        oss << ", " << v[i].to_string();
-      }
-    }
-    return oss.str();
+    return fmt::format("{:n}",
+      std::ranges::views::transform(v, &product_query::to_string));
   }
 
-  static std::string input_converter_name(std::string const& algname, size_t arg)
+  static inline std::string input_converter_name(std::string const& algname, size_t arg)
   {
-    std::ostringstream oss;
-    oss << algname << "_arg" << arg << "_py";
-    return oss.str();
+    return fmt::format("{}_arg{}_py", algname, arg);
   }
 
   static inline PyObject* lifeline_transform(intptr_t arg)
