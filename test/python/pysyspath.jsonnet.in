@@ -13,7 +13,7 @@
   modules: {
     pysyspath: {
       py: 'check_sys_path',
-      input: ['i'],
+      input: [{creator: 'input', layer: 'event', suffix: 'i'}],
       venv: '@PY_VIRTUAL_ENV_DIR@',
     },
   },

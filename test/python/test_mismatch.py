@@ -10,4 +10,6 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms."""
     # input_family has 1 element, but function takes 2 arguments
     # This should trigger the error in modulewrap.cpp
-    m.transform(mismatch_func, input_family=["a"], output_products=["sum"])
+    m.transform(mismatch_func,
+                input_family=[{"creator": "input", "layer": "event", "suffix": "a"}],
+                output_products=["sum"])

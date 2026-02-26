@@ -204,7 +204,7 @@ add_test(
 )
 set_tests_properties(
   py:failure
-  PROPERTIES PASS_REGULAR_EXPRESSION "property \"input\" does not exist"
+  PROPERTIES PASS_REGULAR_EXPRESSION "failed to retrieve property \"input\""
 )
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 

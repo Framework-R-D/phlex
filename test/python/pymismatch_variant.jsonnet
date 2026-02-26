@@ -15,7 +15,11 @@
       py: 'test_callbacks',
       mode: 'mismatch',
       // Providing 3 inputs for a 2-arg function
-      input: ['i', 'j', 'k'],
+      input: [
+        {creator: 'input', layer: 'event', suffix: 'i'},
+        {creator: 'input', layer: 'event', suffix: 'j'},
+        {creator: 'input', layer: 'event', suffix: 'k'},
+      ],
       output: ['sum_out'],
     },
   },

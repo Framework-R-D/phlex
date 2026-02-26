@@ -14,7 +14,7 @@
     test_bad_long: {
       py: 'test_callbacks',
       mode: 'bad_long',
-      input: ['i'],
+      input: [{creator: 'input', layer: 'event', suffix: 'i'}],
       output: ['out_long'],
     },
   },

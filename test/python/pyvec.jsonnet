@@ -13,12 +13,29 @@
   modules: {
     pysum: {
       py: 'sumit',
-      input: ['i', 'j'],
+      input: [
+        {
+          creator: 'input',
+          layer: 'event',
+          suffix: 'i',
+        },
+        {
+          creator: 'input',
+          layer: 'event',
+          suffix: 'j',
+        },
+      ],
       output: ['sum'],
     },
     pyverify: {
       py: 'verify',
-      input: ['sum'],
+      input: [
+        {
+          creator: 'sum_array',
+          layer: 'event',
+          suffix: 'sum',
+        },
+      ],
       sum_total: 1,
     },
   },

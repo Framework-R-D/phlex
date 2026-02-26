@@ -13,7 +13,10 @@
   modules: {
     pyconfig: {
       py: 'all_config',
-      input: ['i', 'j'],
+      input: [
+        {creator: 'input', layer: 'event', suffix: 'i'},
+        {creator: 'input', layer: 'event', suffix: 'j'},
+      ],
       a_bool: false,
       an_int: -37,
       a_uint: 18446744073709551616,

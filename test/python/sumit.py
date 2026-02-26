@@ -63,4 +63,8 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         None
     """
     m.transform(collectify, input_family=config["input"], output_products=["my_pyarray"])
-    m.transform(sum_array, input_family=["my_pyarray"], output_products=config["output"])
+    m.transform(sum_array,
+                input_family=[
+                    {"creator" : "collectify", "layer" : "event", "suffix" : "my_pyarray"}
+                ],
+                output_products=config["output"])

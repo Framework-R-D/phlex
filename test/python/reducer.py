@@ -63,19 +63,32 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    # first recieve the same input x4 but return "different" output
+    # first receive the same input x4 but return "different" output
     for i in range(4):
         m.transform(
             add, name="reduce%d" % i, input_family=config["input"], output_products=["sum%d" % i]
         )
 
     # now reduce them pair-wise
+    input_family01 = [
+        {"creator": "reduce0", "layer": "event", "suffix": "sum0"},
+        {"creator": "reduce1", "layer": "event", "suffix": "sum1"},
+    ]
     m.transform(
-        add_sum01, name="reduce01", input_family=["sum0", "sum1"], output_products=["sum01"]
+        add_sum01, name="reduce01", input_family=input_family01, output_products=["sum01"]
     )
+
+    input_family01 = [
+        {"creator": "reduce2", "layer": "event", "suffix": "sum2"},
+        {"creator": "reduce3", "layer": "event", "suffix": "sum3"},
+    ]
     m.transform(
-        add_sum23, name="reduce23", input_family=["sum2", "sum3"], output_products=["sum23"]
+        add_sum23, name="reduce23", input_family=input_family01, output_products=["sum23"]
     )
 
     # once more (and the configuration will add a verifier)
-    m.transform(add_final, name="reduce", input_family=["sum01", "sum23"], output_products=["sum"])
+    input_family_final = [
+        {"creator": "reduce01", "layer": "event", "suffix": "sum01"},
+        {"creator": "reduce23", "layer": "event", "suffix": "sum23"},
+    ]
+    m.transform(add_final, name="reduce", input_family=input_family_final, output_products=["sum"])

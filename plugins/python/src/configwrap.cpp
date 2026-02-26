@@ -111,6 +111,18 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
           PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(), cvalue[i].size());
           PyTuple_SetItem(pyvalue, i, item);
         }
+      } else if (k.first == boost::json::kind::object) {
+        auto cvalue = pycmap->ph_config->get<std::vector<std::map<std::string, std::string>>>(ckey);
+        pyvalue = PyTuple_New(cvalue.size());
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+          PyObject* item = PyDict_New();
+          for (auto const& kv : cvalue[i]) {
+            PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(), kv.second.size());
+            PyDict_SetItemString(item, kv.first.c_str(), val);
+            Py_DECREF(val);
+          }
+          PyTuple_SetItem(pyvalue, i, item);
+        }
       }
     } else {
       if (k.first == boost::json::kind::bool_) {
@@ -130,13 +142,15 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), cvalue.size());
       }
     }
-  } catch (std::runtime_error const&) {
-    PyErr_Format(PyExc_KeyError, "property \"%s\" does not exist", ckey.c_str());
+  } catch (std::runtime_error const& e) {
+    PyErr_Format(PyExc_KeyError, "failed to retrieve property \"%s\" (%s)", ckey.c_str(), e.what());
   }
 
   // cache if found
   if (pyvalue) {
     PyDict_SetItem(pycmap->ph_config_cache, pykey, pyvalue);
+  } else if (!PyErr_Occurred()) {
+    PyErr_Format(PyExc_KeyError, "property \"%s\" is of unknown type", ckey.c_str());
   }
 
   return pyvalue;

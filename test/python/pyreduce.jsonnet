@@ -13,11 +13,14 @@
   modules: {
     pyreduce: {
       py: 'reducer',
-      input: ['i', 'j'],
+      input: [
+        {creator: 'input', layer: 'event', suffix: 'i'},
+        {creator: 'input', layer: 'event', suffix: 'j'}
+      ],
     },
     pyverify: {
       py: 'verify',
-      input: ['sum'],
+      input: [{creator: 'reduce', layer: 'event', suffix: 'sum'}],
       sum_total: 4,
     },
   },
