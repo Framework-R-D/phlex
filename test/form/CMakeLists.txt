@@ -1,7 +1,6 @@
 # Copyright (C) 2025 ...
 
 if(FORM_USE_ROOT_STORAGE)
-  add_definitions(-DUSE_ROOT_STORAGE) #TODO: This doesn't carry over from FORM for some reason.  Why?  Can tests get definitions from properties of targets they link against?
   add_subdirectory(data_products)
   cet_test(
       WriteVector

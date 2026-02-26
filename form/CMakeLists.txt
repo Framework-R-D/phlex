@@ -14,9 +14,6 @@ include_directories(${PROJECT_SOURCE_DIR}/form)
 
 # ROOT Storage toggle
 option(FORM_USE_ROOT_STORAGE "Enable ROOT Storage" ON)
-if(FORM_USE_ROOT_STORAGE)
-  add_definitions(-DUSE_ROOT_STORAGE)
-endif()
 
 # Add sub directories
 add_subdirectory(form)
