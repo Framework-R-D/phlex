@@ -27,6 +27,13 @@
       some_uints: [18446744073709551616, 29, 137],
       some_floats: [3.1415, 2.71828],
       some_strings: ['aap', 'noot', 'mies'],
+      some_object: { here: 'here', there: 'there' },
+      some_objects: [
+       { a: 'b', c: 'd', e: 'f' },
+       { g: 'h', i: 'j', k: 'l' },
+       { m: 'n', o: 'p', q: 'r' },
+      ],
+      empty: [],
     },
   },
 }
