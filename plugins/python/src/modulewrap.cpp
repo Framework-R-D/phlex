@@ -614,8 +614,9 @@ static PyObject* parse_args(PyObject* args,
   input_queries = validate_input(input);
   if (input_queries.empty()) {
     if (!PyErr_Occurred()) {
-      PyErr_Format(
-        PyExc_ValueError, "no input provided for %s; node can not be scheduled", functor_name);
+      PyErr_Format(PyExc_ValueError,
+                   "no input provided for %s; node can not be scheduled",
+                   functor_name.c_str());
     }
     return nullptr;
   }
