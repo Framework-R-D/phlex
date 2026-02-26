@@ -16,9 +16,9 @@
       mode: 'mismatch',
       // Providing 3 inputs for a 2-arg function
       input: [
-        {creator: 'input', layer: 'event', suffix: 'i'},
-        {creator: 'input', layer: 'event', suffix: 'j'},
-        {creator: 'input', layer: 'event', suffix: 'k'},
+        { creator: 'input', layer: 'event', suffix: 'i' },
+        { creator: 'input', layer: 'event', suffix: 'j' },
+        { creator: 'input', layer: 'event', suffix: 'k' },
       ],
       output: ['sum_out'],
     },

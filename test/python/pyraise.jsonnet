@@ -14,7 +14,7 @@
     test_exception: {
       py: 'test_callbacks',
       mode: 'exception',
-      input: [{creator: 'input', layer: 'event', suffix: 'i'}],
+      input: [{ creator: 'input', layer: 'event', suffix: 'i' }],
       output: ['out'],
     },
   },

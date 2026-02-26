@@ -14,8 +14,8 @@
     pyconfig: {
       py: 'all_config',
       input: [
-        {creator: 'input', layer: 'event', suffix: 'i'},
-        {creator: 'input', layer: 'event', suffix: 'j'},
+        { creator: 'input', layer: 'event', suffix: 'i' },
+        { creator: 'input', layer: 'event', suffix: 'j' },
       ],
       a_bool: false,
       an_int: -37,

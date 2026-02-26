@@ -14,7 +14,7 @@
     test_bad_uint: {
       py: 'test_callbacks',
       mode: 'bad_uint',
-      input: [{creator: 'input', layer: 'event', suffix: 'i'}],
+      input: [{ creator: 'input', layer: 'event', suffix: 'i' }],
       output: ['out_uint'],
     },
   },
