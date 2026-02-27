@@ -28,8 +28,8 @@ namespace phlex::experimental {
   // Support std::unique_ptr<T> only for now
   template <typename T>
   class simple_ptr_map<std::unique_ptr<T>> {
-    using Ptr = std::unique_ptr<T>;
-    std::map<std::string, Ptr> data_;
+    using ptr = std::unique_ptr<T>;
+    std::map<std::string, ptr> data_;
 
   public:
     // std::map<std::string, Ptr> has a default constructor that does
@@ -43,7 +43,7 @@ namespace phlex::experimental {
     simple_ptr_map(simple_ptr_map const&) = delete;
     simple_ptr_map& operator=(simple_ptr_map const&) = delete;
 
-    auto try_emplace(std::string node_name, Ptr ptr)
+    auto try_emplace(std::string node_name, ptr ptr)
     {
       return data_.try_emplace(std::move(node_name), std::move(ptr));
     }
@@ -51,7 +51,7 @@ namespace phlex::experimental {
     auto begin() const { return data_.begin(); }
     auto end() const { return data_.end(); }
 
-    typename Ptr::element_type* get(std::string const& node_name) const
+    typename ptr::element_type* get(std::string const& node_name) const
     {
       if (auto it = data_.find(node_name); it != data_.end()) {
         return it->second.get();

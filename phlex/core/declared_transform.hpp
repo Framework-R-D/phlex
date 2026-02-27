@@ -58,12 +58,12 @@ namespace phlex::experimental {
     using function_t = typename AlgorithmBits::bound_type;
     using input_parameter_types = typename AlgorithmBits::input_parameter_types;
 
-    static constexpr auto N = AlgorithmBits::number_inputs;
-    static constexpr auto M = number_output_objects<function_t>;
+    static constexpr auto n = AlgorithmBits::number_inputs;
+    static constexpr auto m = number_output_objects<function_t>;
 
   public:
     using node_ptr_type = declared_transform_ptr;
-    static constexpr auto number_output_products = M;
+    static constexpr auto number_output_products = m;
 
     transform_node(algorithm_name name,
                    std::size_t concurrency,
@@ -75,14 +75,14 @@ namespace phlex::experimental {
       declared_transform{std::move(name), std::move(predicates), std::move(input_products)},
       output_{to_product_specifications(
         full_name(), std::move(output), make_output_type_ids<function_t>())},
-      join_{make_join_or_none<N>(g, full_name(), layers())},
+      join_{make_join_or_none<n>(g, full_name(), layers())},
       transform_{g,
                  concurrency,
-                 [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto& output) {
+                 [this, ft = alg.release_algorithm()](messages_t<n> const& messages, auto& output) {
                    auto const& msg = most_derived(messages);
                    auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
-                   auto result = call(ft, messages, std::make_index_sequence<N>{});
+                   auto result = call(ft, messages, std::make_index_sequence<n>{});
                    ++calls_;
                    ++product_count_[store->index()->layer_hash()];
 
@@ -94,7 +94,7 @@ namespace phlex::experimental {
                    std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
                  }}
     {
-      if constexpr (N > 1ull) {
+      if constexpr (n > 1ull) {
         make_edge(join_, transform_);
       }
     }
@@ -102,12 +102,12 @@ namespace phlex::experimental {
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label, transform_);
+      return receiver_for<n>(join_, input(), product_label, transform_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
-      return input_ports<N>(join_, transform_);
+      return input_ports<n>(join_, transform_);
     }
 
     tbb::flow::sender<message>& output_port() override
@@ -117,9 +117,9 @@ namespace phlex::experimental {
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
-    auto call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    auto call(function_t const& ft, messages_t<n> const& messages, std::index_sequence<Is...>)
     {
-      if constexpr (N == 1ull) {
+      if constexpr (n == 1ull) {
         return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
       } else {
         return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
@@ -139,8 +139,8 @@ namespace phlex::experimental {
 
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
-    join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, message_tuple<1u>> transform_;
+    join_or_none_t<n> join_;
+    tbb::flow::multifunction_node<messages_t<n>, message_tuple<1u>> transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };
