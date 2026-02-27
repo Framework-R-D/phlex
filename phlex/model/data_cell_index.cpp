@@ -36,10 +36,7 @@ namespace {
 
 namespace phlex {
 
-  data_cell_index::data_cell_index() :
-    layer_name_{"job"}, layer_hash_{layer_name_.hash()}
-  {
-  }
+  data_cell_index::data_cell_index() : layer_name_{"job"}, layer_hash_{layer_name_.hash()} {}
 
   data_cell_index::data_cell_index(data_cell_index_ptr parent,
                                    std::size_t i,
@@ -61,7 +58,10 @@ namespace phlex {
     return base_id;
   }
 
-  experimental::identifier const& data_cell_index::layer_name() const noexcept { return layer_name_; }
+  experimental::identifier const& data_cell_index::layer_name() const noexcept
+  {
+    return layer_name_;
+  }
 
   std::string data_cell_index::layer_path() const
   {
@@ -77,10 +77,10 @@ namespace phlex {
   std::size_t data_cell_index::depth() const noexcept { return depth_; }
 
   data_cell_index_ptr data_cell_index::make_child(std::size_t const data_cell_number,
-                                                  experimental::identifier child_layer_name) const
+                                                  std::string child_layer_name) const
   {
-    return data_cell_index_ptr{
-      new data_cell_index{shared_from_this(), data_cell_number, std::move(child_layer_name)}};
+    return data_cell_index_ptr{new data_cell_index{
+      shared_from_this(), data_cell_number, experimental::identifier{std::move(child_layer_name)}}};
   }
 
   bool data_cell_index::has_parent() const noexcept { return static_cast<bool>(parent_); }

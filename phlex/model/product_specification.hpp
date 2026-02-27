@@ -35,6 +35,7 @@ namespace phlex::experimental {
     static product_specification create(std::string_view s);
 
     friend struct std::hash<product_specification>;
+
   private:
     algorithm_name qualifier_;
     identifier name_;
@@ -50,12 +51,13 @@ namespace phlex::experimental {
 
 template <>
 struct std::hash<phlex::experimental::product_specification> {
-  std::size_t operator()(phlex::experimental::product_specification const& spec) const noexcept {
+  std::size_t operator()(phlex::experimental::product_specification const& spec) const noexcept
+  {
     std::size_t hash = spec.qualifier_.plugin().hash();
     boost::hash_combine(hash, spec.qualifier_.algorithm().hash());
     boost::hash_combine(hash, spec.name_.hash());
     boost::hash_combine(hash, spec.type_id_);
-    return hash;    
+    return hash;
   }
 };
 #endif // PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP

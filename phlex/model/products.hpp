@@ -42,8 +42,7 @@ namespace phlex::experimental {
     template <typename T>
     void add(product_specification const& spec, T t)
     {
-      products_.emplace(spec,
-                        std::make_unique<product<std::remove_cvref_t<T>>>(std::move(t)));
+      products_.emplace(spec, std::make_unique<product<std::remove_cvref_t<T>>>(std::move(t)));
     }
 
     template <typename T>

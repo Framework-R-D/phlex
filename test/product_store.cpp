@@ -49,7 +49,7 @@ TEST_CASE("Product store derivation", "[data model]")
   }
 
   auto root = product_store::base();
-  auto trunk = std::make_shared<product_store>(root->index()->make_child(1, "trunk"_id));
+  auto trunk = std::make_shared<product_store>(root->index()->make_child(1, "trunk"));
   SECTION("Compare different generations")
   {
     CHECK(trunk == more_derived(root, trunk));
@@ -57,15 +57,15 @@ TEST_CASE("Product store derivation", "[data model]")
   }
   SECTION("Compare siblings (right is always favored)")
   {
-    auto bole = std::make_shared<product_store>(root->index()->make_child(2, "bole"_id));
+    auto bole = std::make_shared<product_store>(root->index()->make_child(2, "bole"));
     CHECK(bole == more_derived(trunk, bole));
     CHECK(trunk == more_derived(bole, trunk));
   }
 
-  auto limb = std::make_shared<product_store>(trunk->index()->make_child(2, "limb"_id));
-  auto branch = std::make_shared<product_store>(limb->index()->make_child(3, "branch"_id));
-  auto twig = std::make_shared<product_store>(branch->index()->make_child(4, "twig"_id));
-  auto leaf = std::make_shared<product_store>(twig->index()->make_child(5, "leaf"_id));
+  auto limb = std::make_shared<product_store>(trunk->index()->make_child(2, "limb"));
+  auto branch = std::make_shared<product_store>(limb->index()->make_child(3, "branch"));
+  auto twig = std::make_shared<product_store>(branch->index()->make_child(4, "twig"));
+  auto leaf = std::make_shared<product_store>(twig->index()->make_child(5, "leaf"));
 
   auto order_a = std::make_tuple(root, trunk, limb, branch, twig, leaf);
   auto order_b = std::make_tuple(leaf, twig, branch, limb, trunk, root);

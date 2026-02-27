@@ -17,7 +17,8 @@ namespace phlex::experimental {
   data_cell_counter::data_cell_counter() : data_cell_counter{nullptr, "job"_id} {}
 
   data_cell_counter::data_cell_counter(data_cell_counter* parent, identifier const& layer_name) :
-    parent_{parent}, layer_hash_{parent_ ? hash(parent->layer_hash_, layer_name.hash()) : layer_name.hash()}
+    parent_{parent},
+    layer_hash_{parent_ ? hash(parent->layer_hash_, layer_name.hash()) : layer_name.hash()}
   {
   }
 

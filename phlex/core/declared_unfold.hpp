@@ -36,7 +36,7 @@ namespace phlex::experimental {
   public:
     explicit generator(product_store_const_ptr const& parent,
                        algorithm_name node_name,
-                       identifier const& child_layer_name);
+                       std::string const& child_layer_name);
     flush_counts_ptr flush_result() const;
 
     product_store_const_ptr make_child_for(std::size_t const data_cell_number,
@@ -49,7 +49,7 @@ namespace phlex::experimental {
     product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
     algorithm_name node_name_;
-    identifier const& child_layer_name_;
+    std::string const& child_layer_name_;
     std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };
 

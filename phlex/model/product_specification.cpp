@@ -41,8 +41,9 @@ namespace phlex::experimental {
   {
     auto forward_slash = s.find('/');
     if (forward_slash != std::string_view::npos) {
-      return {
-        algorithm_name::create(s.substr(0, forward_slash)), identifier(s.substr(forward_slash + 1)), type_id{}};
+      return {algorithm_name::create(s.substr(0, forward_slash)),
+              identifier(s.substr(forward_slash + 1)),
+              type_id{}};
     }
     return {algorithm_name::create(""), identifier(s), type_id{}};
   }
@@ -57,7 +58,8 @@ namespace phlex::experimental {
 
     // zip view isn't available until C++23 so we have to use a loop over the index
     for (std::size_t i = 0; i < output_labels.size(); ++i) {
-      outputs.emplace_back(algorithm_name::create(name), identifier(output_labels[i]), output_types[i]);
+      outputs.emplace_back(
+        algorithm_name::create(name), identifier(output_labels[i]), output_types[i]);
     }
     return outputs;
   }

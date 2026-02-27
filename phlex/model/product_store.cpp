@@ -9,9 +9,7 @@ namespace phlex::experimental {
   product_store::product_store(data_cell_index_ptr id,
                                algorithm_name source,
                                products new_products) :
-    products_{std::move(new_products)},
-    id_{std::move(id)},
-    source_{std::move(source)}
+    products_{std::move(new_products)}, id_{std::move(id)}, source_{std::move(source)}
   {
   }
 
@@ -39,7 +37,8 @@ namespace phlex::experimental {
     return b;
   }
 
-  algorithm_name product_store::default_source() {
+  algorithm_name product_store::default_source()
+  {
     using namespace literals;
     static algorithm_name const def = algorithm_name::create("[Source]");
     return def;

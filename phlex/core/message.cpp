@@ -28,7 +28,8 @@ namespace phlex::experimental {
     auto const [b, e] = std::tuple{cbegin(product_labels), cend(product_labels)};
     auto it = std::find(b, e, product_label);
     if (it == e) {
-      throw std::runtime_error(fmt::format("Algorithm does not accept product '{}'.", product_label));
+      throw std::runtime_error(
+        fmt::format("Algorithm does not accept product '{}'.", product_label));
     }
     return std::distance(b, it);
   }

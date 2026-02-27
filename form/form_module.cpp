@@ -63,7 +63,7 @@ namespace {
       auto segment_id = store.index()->to_string();
 
       std::cout << "\n=== FormOutputModule::save_data_products ===\n";
-      std::cout << "Creator: " << creator << "\n";
+      std::cout << "Creator: " << creator.full() << "\n";
       std::cout << "Segment ID: " << segment_id << "\n";
       std::cout << "Number of products: " << store.size() << "\n";
 
@@ -95,7 +95,7 @@ namespace {
       // Write all products to FORM
       // Pass segment_id once for entire collection (not duplicated in each product)
       // No need to check if products is empty - already checked store.empty() above
-      m_form_interface->write(creator, segment_id, products);
+      m_form_interface->write(creator.full(), segment_id, products);
       std::cout << "Wrote " << products.size() << " products to FORM\n";
     }
 

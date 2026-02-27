@@ -6,7 +6,9 @@
 
 #include "boost/container_hash/hash.hpp"
 #include "boost/core/demangle.hpp"
+#include "boost/hash2/hash_append.hpp"
 #include "boost/pfr/core.hpp"
+
 #include "fmt/format.h"
 #include "fmt/ranges.h"
 

@@ -6,6 +6,7 @@
 namespace phlex::experimental::detail {
   algorithm_name make_algorithm_name(configuration const* config, std::string_view name)
   {
-    return {config ? identifier(config->get<std::string_view>("module_label")) : ""_id, identifier(name)};
+    return {config ? identifier(config->get<std::string_view>("module_label")) : ""_id,
+            identifier(name)};
   }
 }
