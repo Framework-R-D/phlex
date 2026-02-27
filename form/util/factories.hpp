@@ -1,7 +1,7 @@
 // Copyright (C) 2025 .....
 
-#ifndef __FACTORIES_HPP__
-#define __FACTORIES_HPP__
+#ifndef FORM_UTIL_FACTORIES_HPP
+#define FORM_UTIL_FACTORIES_HPP
 
 #include "form/technology.hpp"
 
@@ -73,4 +73,4 @@ namespace form::detail::experimental {
   }
 
 } // namespace form::detail::experimental
-#endif
+#endif // FORM_UTIL_FACTORIES_HPP

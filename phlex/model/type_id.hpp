@@ -1,5 +1,5 @@
-#ifndef PHLEX_MODE_TYPE_ID_HPP
-#define PHLEX_MODE_TYPE_ID_HPP
+#ifndef PHLEX_MODEL_TYPE_ID_HPP
+#define PHLEX_MODEL_TYPE_ID_HPP
 
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/handle.hpp"
@@ -334,4 +334,4 @@ struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
     return fmt::formatter<std::string>::format(out, ctx);
   }
 };
-#endif // PHLEX_MODE_TYPE_ID_HPP
+#endif // PHLEX_MODEL_TYPE_ID_HPP

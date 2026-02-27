@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PERSISTENCE_HPP__
-#define __PERSISTENCE_HPP__
+#ifndef FORM_PERSISTENCE_PERSISTENCE_HPP
+#define FORM_PERSISTENCE_PERSISTENCE_HPP
 
 #include "ipersistence.hpp"
 
@@ -63,4 +63,4 @@ namespace form::detail::experimental {
 
 } // namespace form::detail::experimental
 
-#endif
+#endif // FORM_PERSISTENCE_PERSISTENCE_HPP
