@@ -29,7 +29,9 @@ namespace phlex::experimental {
     template <typename creator_t>
     std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
     {
-      char const* plugin_path_ptr = std::getenv("PHLEX_PLUGIN_PATH");
+      // Called during single-threaded graph construction
+      char const* plugin_path_ptr =
+        std::getenv("PHLEX_PLUGIN_PATH"); // NOLINT(concurrency-mt-unsafe)
       if (!plugin_path_ptr)
         throw std::runtime_error("PHLEX_PLUGIN_PATH has not been set.");
 

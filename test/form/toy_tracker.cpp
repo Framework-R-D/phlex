@@ -19,7 +19,7 @@ std::vector<TrackStart> ToyTracker::operator()()
 int32_t ToyTracker::generateRandom()
 {
   //Get a 32-bit random integer with even the lowest allowed precision of rand()
-  int rand1 = rand() % 32768;
-  int rand2 = rand() % 32768;
+  int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Test code, single-threaded
+  int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Test code, single-threaded
   return (rand1 * 32768 + rand2);
 }
