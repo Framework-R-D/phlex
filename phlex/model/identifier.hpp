@@ -34,7 +34,7 @@ namespace phlex::experimental {
     explicit identifier(std::string&& str);
 
     // char const* calls string_view
-    explicit identifier(char const* lit) : identifier(std::string_view(lit)) {}
+    identifier(char const* lit) : identifier(std::string_view(lit)) {}
 
     identifier& operator=(identifier const& rhs) = default;
     identifier& operator=(identifier&& rhs) noexcept = default;
