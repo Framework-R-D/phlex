@@ -1,7 +1,7 @@
 //Utilities to make FORM unit tests easier to write and maintain
 
-#ifndef __TEST_UTILS_HPP__
-#define __TEST_UTILS_HPP__
+#ifndef FORM_TEST_UTILS_HPP
+#define FORM_TEST_UTILS_HPP
 
 #include "storage/istorage.hpp"
 #include "storage/storage_associative_container.hpp"
@@ -124,4 +124,4 @@ namespace form::test {
 
 } // namespace form::test
 
-#endif //__TEST_UTILS_HPP__
+#endif // FORM_TEST_UTILS_HPP
