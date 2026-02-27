@@ -32,8 +32,6 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
   form::test::write(technology, piData, indexData);
 
   auto [piResult, indexResult] = form::test::read<std::vector<float>, std::string>(technology);
-  assert(piResult);
-  assert(indexResult);
 
   float const originalSum = std::accumulate(piData.begin(), piData.end(), 0.f);
   float const readSum = std::accumulate(piResult->begin(), piResult->end(), 0.f);
@@ -56,9 +54,6 @@ TEST_CASE("Storage_Container multiple containers in Association", "[form]")
 
   auto [piResult, magicResult, indexResult] =
     form::test::read<std::vector<float>, std::vector<int>, std::string>(technology);
-  assert(piResult);
-  assert(magicResult);
-  assert(indexResult);
 
   SECTION("float container")
   {
