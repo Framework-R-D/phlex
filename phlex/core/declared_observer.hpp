@@ -87,7 +87,9 @@ namespace phlex::experimental {
     }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<num_inputs> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft,
+              messages_t<num_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
       if constexpr (num_inputs == 1ull) {
         std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);

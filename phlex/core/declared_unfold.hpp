@@ -190,7 +190,8 @@ namespace phlex::experimental {
     input_retriever_types<input_args> input_{input_arguments<input_args>()};
     product_specifications output_;
     join_or_none_t<num_inputs> join_;
-    tbb::flow::multifunction_node<messages_t<num_inputs>, std::tuple<message, data_cell_index_ptr>> unfold_;
+    tbb::flow::multifunction_node<messages_t<num_inputs>, std::tuple<message, data_cell_index_ptr>>
+      unfold_;
     flusher_t flusher_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};

@@ -76,23 +76,24 @@ namespace phlex::experimental {
       output_{to_product_specifications(
         full_name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
-      transform_{g,
-                 concurrency,
-                 [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto& output) {
-                   auto const& msg = most_derived(messages);
-                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
+      transform_{
+        g,
+        concurrency,
+        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto& output) {
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
-                   auto result = call(ft, messages, std::make_index_sequence<num_inputs>{});
-                   ++calls_;
-                   ++product_count_[store->index()->layer_hash()];
+          auto result = call(ft, messages, std::make_index_sequence<num_inputs>{});
+          ++calls_;
+          ++product_count_[store->index()->layer_hash()];
 
-                   products new_products;
-                   new_products.add_all(output_, std::move(result));
-                   auto new_store = std::make_shared<product_store>(
-                     store->index(), this->full_name(), std::move(new_products));
+          products new_products;
+          new_products.add_all(output_, std::move(result));
+          auto new_store = std::make_shared<product_store>(
+            store->index(), this->full_name(), std::move(new_products));
 
-                   std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
-                 }}
+          std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
+        }}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, transform_);
@@ -117,7 +118,9 @@ namespace phlex::experimental {
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
-    auto call(function_t const& ft, messages_t<num_inputs> const& messages, std::index_sequence<Is...>)
+    auto call(function_t const& ft,
+              messages_t<num_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
       if constexpr (num_inputs == 1ull) {
         return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);

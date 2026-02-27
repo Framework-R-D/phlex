@@ -65,17 +65,17 @@ namespace phlex::experimental {
                    product_queries input_products) :
       declared_predicate{std::move(name), std::move(predicates), std::move(input_products)},
       join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
-      predicate_{
-        g,
-        concurrency,
-        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages) -> predicate_result {
-          auto const& msg = most_derived(messages);
-          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+      predicate_{g,
+                 concurrency,
+                 [this, ft = alg.release_algorithm()](
+                   messages_t<num_inputs> const& messages) -> predicate_result {
+                   auto const& msg = most_derived(messages);
+                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
-          bool const rc = call(ft, messages, std::make_index_sequence<num_inputs>{});
-          ++calls_;
-          return {message_id, rc};
-        }}
+                   bool const rc = call(ft, messages, std::make_index_sequence<num_inputs>{});
+                   ++calls_;
+                   return {message_id, rc};
+                 }}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, predicate_);
@@ -95,7 +95,9 @@ namespace phlex::experimental {
     tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
 
     template <std::size_t... Is>
-    bool call(function_t const& ft, messages_t<num_inputs> const& messages, std::index_sequence<Is...>)
+    bool call(function_t const& ft,
+              messages_t<num_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
       if constexpr (num_inputs == 1ull) {
         return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);

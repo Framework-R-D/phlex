@@ -90,28 +90,29 @@ namespace phlex::experimental {
                       }},
       join_{make_join_or_none<num_inputs>(
         g, full_name(), layers())}, // FIXME: This should change to include result product!
-      fold_{
-        g, concurrency, [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto&) {
-          // N.B. The assumption is that a fold will *never* need to cache
-          //      the product store it creates.  Any flush messages *do not* need
-          //      to be propagated to downstream nodes.
-          auto const& msg = most_derived(messages);
-          auto const& index = msg.store->index();
+      fold_{g,
+            concurrency,
+            [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto&) {
+              // N.B. The assumption is that a fold will *never* need to cache
+              //      the product store it creates.  Any flush messages *do not* need
+              //      to be propagated to downstream nodes.
+              auto const& msg = most_derived(messages);
+              auto const& index = msg.store->index();
 
-          auto fold_index = index->parent(partition_);
-          if (not fold_index) {
-            return;
-          }
+              auto fold_index = index->parent(partition_);
+              if (not fold_index) {
+                return;
+              }
 
-          auto const& index_hash_for_counter = fold_index->hash();
+              auto const& index_hash_for_counter = fold_index->hash();
 
-          call(ft, messages, std::make_index_sequence<num_inputs>{});
-          ++calls_;
+              call(ft, messages, std::make_index_sequence<num_inputs>{});
+              ++calls_;
 
-          counter_for(index_hash_for_counter).increment(index->layer_hash());
+              counter_for(index_hash_for_counter).increment(index->layer_hash());
 
-          emit_and_evict_if_done(fold_index);
-        }}
+              emit_and_evict_if_done(fold_index);
+            }}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, fold_);
@@ -145,7 +146,9 @@ namespace phlex::experimental {
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<num_inputs> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft,
+              messages_t<num_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
       auto const parent_index = most_derived(messages).store->index()->parent(partition_);
 
