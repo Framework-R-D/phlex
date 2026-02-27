@@ -56,10 +56,10 @@ namespace phlex::experimental {
   class fold_node : public declared_fold, private count_stores {
     using all_parameter_types = typename AlgorithmBits::input_parameter_types;
     using input_parameter_types = skip_first_type<all_parameter_types>; // Skip fold object
-    static constexpr auto n = std::tuple_size_v<input_parameter_types>;
+    static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
     using r = std::decay_t<std::tuple_element_t<0, all_parameter_types>>;
 
-    static constexpr std::size_t m = 1; // hard-coded for now
+    static constexpr std::size_t num_outputs = 1; // hard-coded for now
     using function_t = typename AlgorithmBits::bound_type;
 
   public:
@@ -88,10 +88,10 @@ namespace phlex::experimental {
                         emit_and_evict_if_done(index);
                         return {};
                       }},
-      join_{make_join_or_none<n>(
+      join_{make_join_or_none<num_inputs>(
         g, full_name(), layers())}, // FIXME: This should change to include result product!
       fold_{
-        g, concurrency, [this, ft = alg.release_algorithm()](messages_t<n> const& messages, auto&) {
+        g, concurrency, [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto&) {
           // N.B. The assumption is that a fold will *never* need to cache
           //      the product store it creates.  Any flush messages *do not* need
           //      to be propagated to downstream nodes.
@@ -105,7 +105,7 @@ namespace phlex::experimental {
 
           auto const& index_hash_for_counter = fold_index->hash();
 
-          call(ft, messages, std::make_index_sequence<n>{});
+          call(ft, messages, std::make_index_sequence<num_inputs>{});
           ++calls_;
 
           counter_for(index_hash_for_counter).increment(index->layer_hash());
@@ -113,7 +113,7 @@ namespace phlex::experimental {
           emit_and_evict_if_done(fold_index);
         }}
     {
-      if constexpr (n > 1ull) {
+      if constexpr (num_inputs > 1ull) {
         make_edge(join_, fold_);
       }
     }
@@ -132,12 +132,12 @@ namespace phlex::experimental {
 
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<n>(join_, input(), product_label, fold_);
+      return receiver_for<num_inputs>(join_, input(), product_label, fold_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
-      return input_ports<n>(join_, fold_);
+      return input_ports<num_inputs>(join_, fold_);
     }
 
     tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
@@ -145,7 +145,7 @@ namespace phlex::experimental {
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<n> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft, messages_t<num_inputs> const& messages, std::index_sequence<Is...>)
     {
       auto const parent_index = most_derived(messages).store->index()->parent(partition_);
 
@@ -160,7 +160,7 @@ namespace phlex::experimental {
             .first;
       }
 
-      if constexpr (n == 1ull) {
+      if constexpr (num_inputs == 1ull) {
         std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(messages)...);
       } else {
         std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
@@ -196,8 +196,8 @@ namespace phlex::experimental {
     product_specifications output_;
     std::string partition_;
     tbb::flow::function_node<flush_message> flush_receiver_;
-    join_or_none_t<n> join_;
-    tbb::flow::multifunction_node<messages_t<n>, message_tuple<1>> fold_;
+    join_or_none_t<num_inputs> join_;
+    tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1>> fold_;
     tbb::concurrent_unordered_map<data_cell_index::hash_type, std::unique_ptr<r>> results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;

@@ -62,8 +62,8 @@ namespace phlex::experimental {
   template <std::size_t I, typename Tuple>
   auto const& get_most_derived(Tuple const& tup, std::tuple_element_t<I - 1, Tuple> const& element)
   {
-    constexpr auto n = std::tuple_size_v<Tuple>;
-    if constexpr (I == n - 1) {
+    constexpr auto num_inputs = std::tuple_size_v<Tuple>;
+    if constexpr (I == num_inputs - 1) {
       return more_derived(element, std::get<I>(tup));
     } else {
       return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
