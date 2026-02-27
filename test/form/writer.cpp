@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
 #include "data_products/track_start.hpp"
-#include "form/form.hpp"
+#include "form/form_writer.hpp"
 #include "form/technology.hpp"
 #include "test_helpers.hpp"
 #include "toy_tracker.hpp"
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
   tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"]
     .emplace_back("force_streamer_field", "true");
 
-  form::experimental::form_interface form(output_config, tech_config);
+  form::experimental::form_writer_interface form(output_config, tech_config);
 
   ToyTracker tracker(4 * 1024);
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
 #include "data_products/track_start.hpp"
-#include "form/form.hpp"
+#include "form/form_reader.hpp"
 #include "form/technology.hpp"
 #include "test_helpers.hpp"
 
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 
   form::experimental::config::tech_setting_config tech_config;
 
-  form::experimental::form_interface form(output_config, tech_config);
+  form::experimental::form_reader_interface form(output_config, tech_config);
 
   bool all_passed = true;
 

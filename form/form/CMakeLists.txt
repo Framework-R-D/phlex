@@ -3,5 +3,5 @@
 # External dependencies: find_package( PHLEX )
 
 # Component(s) in the package:
-add_library(form form.cpp config.cpp)
+add_library(form form_reader.cpp form_writer.cpp config.cpp)
 target_link_libraries(form persistence)

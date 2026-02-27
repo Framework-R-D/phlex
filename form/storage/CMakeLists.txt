@@ -3,11 +3,15 @@
 # Component(s) in the package:
 add_library(
   storage
-  storage.cpp
+  storage_reader.cpp
+  storage_writer.cpp
   storage_file.cpp
-  storage_container.cpp
-  storage_association.cpp
-  storage_associative_container.cpp
+  storage_read_container.cpp
+  storage_write_container.cpp
+  storage_read_association.cpp
+  storage_write_association.cpp
+  storage_associative_read_container.cpp
+  storage_associative_write_container.cpp
 )
 
 if(FORM_USE_ROOT_STORAGE)
