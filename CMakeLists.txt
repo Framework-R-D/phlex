@@ -63,7 +63,6 @@ option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
-option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
 
 add_compile_options(
   -Wall
@@ -163,22 +162,6 @@ if(ENABLE_COVERAGE)
   endif()
 endif()
 
-# Configure clang-tidy integration
-find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
-
-if(ENABLE_CLANG_TIDY)
-  if(CLANG_TIDY_EXECUTABLE)
-    message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXECUTABLE}")
-    set(
-      CMAKE_CXX_CLANG_TIDY
-      ${CLANG_TIDY_EXECUTABLE}
-      --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
-    )
-  else()
-    message(WARNING "clang-tidy not found, disabling clang-tidy checks")
-  endif()
-endif()
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
@@ -200,12 +183,6 @@ if(BUILD_TESTING)
   if(ENABLE_COVERAGE)
     create_coverage_targets()
   endif()
-endif()
-
-# Report clang-tidy availability
-if(CLANG_TIDY_EXECUTABLE)
-  message(STATUS "Clang-tidy available: ${CLANG_TIDY_EXECUTABLE}")
-  message(STATUS "Use -DCMAKE_CXX_CLANG_TIDY=clang-tidy to enable automatic checks during build")
 endif()
 
 cet_cmake_config()
