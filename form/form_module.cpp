@@ -52,7 +52,7 @@ namespace {
       // STEP 1: Extract metadata from Phlex's product_store
 
       // Extract creator (algorithm name)
-      std::string creator = store.source();
+      std::string creator = store.source().full();
 
       // Extract segment ID (partition) - extract once for entire store
       std::string segment_id = store.index()->to_string();
@@ -75,10 +75,10 @@ namespace {
         // product_name: "tracks" (from the map key)
         // product_ptr: pointer to the actual product data
 
-        std::cout << "  Product: " << product_name << "\n";
+        std::cout << "  Product: " << product_name.full() << "\n";
 
         // Create FORM product with metadata
-        products.emplace_back(product_name,           // label, from map key
+        products.emplace_back(product_name.full(),    // label, from map key
                               product_ptr->address(), // data,  from phlex product_base
                               &product_ptr->type()    // type, from phlex product_base
         );
