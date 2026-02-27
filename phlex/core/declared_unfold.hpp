@@ -60,9 +60,8 @@ namespace phlex::experimental {
                     std::string child_layer);
     virtual ~declared_unfold();
 
-    virtual tbb::flow::sender<message>& sender() = 0;
+    virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::sender<data_cell_index_ptr>& output_index_port() = 0;
-    virtual tbb::flow::sender<message>& to_output() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
     virtual flusher_t& flusher() = 0;
@@ -113,7 +112,9 @@ namespace phlex::experimental {
                 generator g{store, this->full_name(), child_layer()};
                 call(p, ufold, store->index(), g, messages, std::make_index_sequence<N>{});
 
-                flusher_.try_put({store->index(), g.flush_result(), original_message_id});
+                flusher_.try_put({.index = store->index(),
+                                  .counts = g.flush_result(),
+                                  .original_id = original_message_id});
               }},
       flusher_{g}
     {
@@ -132,12 +133,14 @@ namespace phlex::experimental {
       return input_ports<N>(join_, unfold_);
     }
 
-    tbb::flow::sender<message>& sender() override { return output_port<0>(unfold_); }
+    tbb::flow::sender<message>& output_port() override
+    {
+      return tbb::flow::output_port<0>(unfold_);
+    }
     tbb::flow::sender<data_cell_index_ptr>& output_index_port() override
     {
-      return output_port<1>(unfold_);
+      return tbb::flow::output_port<1>(unfold_);
     }
-    tbb::flow::sender<message>& to_output() override { return sender(); }
     product_specifications const& output() const override { return output_; }
     flusher_t& flusher() override { return flusher_; }
 
@@ -172,13 +175,11 @@ namespace phlex::experimental {
           running_value = next_value;
         }
         ++product_count_;
-        auto child = g.make_child_for(counter++, std::move(new_products));
-        message const child_msg{child, msg_counter_.fetch_add(1)};
-        output_port<0>(unfold_).try_put(child_msg);
-        output_port<1>(unfold_).try_put(child->index());
 
-        // Every data cell needs a flush (for now)
-        flusher_.try_put({child->index(), nullptr, -1ull});
+        auto child = g.make_child_for(counter++, std::move(new_products));
+        tbb::flow::output_port<0>(unfold_).try_put(
+          {.store = child, .id = msg_counter_.fetch_add(1)});
+        tbb::flow::output_port<1>(unfold_).try_put(child->index());
       }
     }
 

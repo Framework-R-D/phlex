@@ -21,6 +21,16 @@
     },
     d: {
       cpp: 'verify_difference',
+      i: {
+        creator: 'b_creator',
+        layer: 'event',
+        suffix: 'b',
+      },
+      j: {
+        creator: 'c_creator',
+        layer: 'event',
+        suffix: 'c',
+      },
       expected: 0,
     },
   },

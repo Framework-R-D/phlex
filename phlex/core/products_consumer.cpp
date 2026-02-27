@@ -1,12 +1,12 @@
 #include "phlex/core/products_consumer.hpp"
 
 namespace {
-  std::vector<std::string> layers_from(phlex::product_queries const& queries)
+  std::vector<phlex::experimental::identifier> layers_from(phlex::product_queries const& queries)
   {
-    std::vector<std::string> result;
+    std::vector<phlex::experimental::identifier> result;
     result.reserve(queries.size());
     for (auto const& query : queries) {
-      result.push_back(query.layer());
+      result.push_back(query.layer);
     }
     return result;
   }
@@ -33,5 +33,5 @@ namespace phlex::experimental {
   }
 
   product_queries const& products_consumer::input() const noexcept { return input_products_; }
-  std::vector<std::string> const& products_consumer::layers() const noexcept { return layers_; }
+  std::vector<identifier> const& products_consumer::layers() const noexcept { return layers_; }
 }

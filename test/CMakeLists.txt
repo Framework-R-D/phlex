@@ -255,7 +255,7 @@ add_subdirectory(plugins)
 add_subdirectory(utilities)
 add_subdirectory(mock-workflow)
 add_subdirectory(demo-giantdata)
-add_subdirectory(python)
+# add_subdirectory(python)
 
 if(PHLEX_USE_FORM)
   add_subdirectory(form)

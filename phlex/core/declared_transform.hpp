@@ -43,8 +43,7 @@ namespace phlex::experimental {
                        product_queries input_products);
     virtual ~declared_transform();
 
-    virtual tbb::flow::sender<message>& sender() = 0;
-    virtual tbb::flow::sender<message>& to_output() = 0;
+    virtual tbb::flow::sender<message>& output_port() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
@@ -82,19 +81,17 @@ namespace phlex::experimental {
                  [this, ft = alg.release_algorithm()](messages_t<N> const& messages, auto& output) {
                    auto const& msg = most_derived(messages);
                    auto const& [store, message_id] = std::tie(msg.store, msg.id);
-                   auto& [stay_in_graph, to_output] = output;
 
                    auto result = call(ft, messages, std::make_index_sequence<N>{});
                    ++calls_;
                    ++product_count_[store->index()->layer_hash()];
+
                    products new_products;
                    new_products.add_all(output_, std::move(result));
                    auto new_store = std::make_shared<product_store>(
                      store->index(), this->full_name(), std::move(new_products));
 
-                   message const new_msg{std::move(new_store), message_id};
-                   stay_in_graph.try_put(new_msg);
-                   to_output.try_put(new_msg);
+                   std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
                  }}
     {
       if constexpr (N > 1ull) {
@@ -113,8 +110,10 @@ namespace phlex::experimental {
       return input_ports<N>(join_, transform_);
     }
 
-    tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
-    tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
+    tbb::flow::sender<message>& output_port() override
+    {
+      return tbb::flow::output_port<0>(transform_);
+    }
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
@@ -141,7 +140,7 @@ namespace phlex::experimental {
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, message_tuple<2u>> transform_;
+    tbb::flow::multifunction_node<messages_t<N>, message_tuple<1u>> transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };

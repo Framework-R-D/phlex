@@ -1,5 +1,5 @@
-#ifndef PHLEX_MODEL_IDENTIFIER_H_
-#define PHLEX_MODEL_IDENTIFIER_H_
+#ifndef PHLEX_MODEL_IDENTIFIER_HPP
+#define PHLEX_MODEL_IDENTIFIER_HPP
 
 #include <boost/json/fwd.hpp>
 
@@ -37,6 +37,12 @@ namespace phlex::experimental {
     bool operator==(identifier const& rhs) const noexcept;
     std::strong_ordering operator<=>(identifier const& rhs) const noexcept;
 
+    // check if empty
+    bool empty() const noexcept { return content_.empty(); }
+
+    // transitional access to contained string
+    std::string const& trans_get_string() const noexcept { return content_; }
+
     // Comparison operators with _id queries
     friend bool operator==(identifier const& lhs, identifier_query rhs);
     friend std::strong_ordering operator<=>(identifier const& lhs, identifier_query rhs);
@@ -65,4 +71,4 @@ struct std::hash<phlex::experimental::identifier> {
   }
 };
 
-#endif // PHLEX_MODEL_IDENTIFIER_H_
+#endif // PHLEX_MODEL_IDENTIFIER_HPP

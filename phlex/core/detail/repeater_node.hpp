@@ -17,7 +17,7 @@ namespace phlex::experimental::detail {
 
   class repeater_node : public tbb::flow::composite_node<repeater_node_input, message_tuple<1>> {
   public:
-    repeater_node(tbb::flow::graph& g, std::string node_name, std::string layer_name);
+    repeater_node(tbb::flow::graph& g, std::string node_name, identifier layer_name);
 
     tbb::flow::receiver<message>& data_port();
     tbb::flow::receiver<indexed_end_token>& flush_port();
@@ -55,7 +55,7 @@ namespace phlex::experimental::detail {
     cache_t cached_products_;
     std::atomic<bool> cache_enabled_{true};
     std::string node_name_;
-    std::string layer_;
+    identifier layer_;
   };
 }
 

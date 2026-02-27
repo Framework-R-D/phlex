@@ -110,7 +110,7 @@ namespace phlex {
 
   data_cell_index_ptr data_cell_index::parent() const noexcept { return parent_; }
 
-  data_cell_index_ptr data_cell_index::parent(std::string const& layer_name) const
+  data_cell_index_ptr data_cell_index::parent(std::string_view layer_name) const
   {
     data_cell_index_ptr parent = parent_;
     while (parent) {

@@ -5,6 +5,7 @@
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
@@ -54,7 +55,7 @@ namespace phlex::experimental {
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
 
   struct named_index_port {
-    std::string layer;
+    identifier layer;
     tbb::flow::receiver<indexed_end_token>* token_port;
     tbb::flow::receiver<index_message>* index_port;
   };

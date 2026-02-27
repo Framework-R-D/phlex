@@ -5,6 +5,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -32,7 +33,7 @@ namespace phlex::experimental {
     class multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
-                      std::string layer,
+                      identifier layer,
                       tbb::flow::receiver<indexed_end_token>* flush_port,
                       tbb::flow::receiver<index_message>* input_port);
 
@@ -43,7 +44,7 @@ namespace phlex::experimental {
       bool is_parent_of(data_cell_index_ptr const& index) const;
 
     private:
-      std::string layer_;
+      identifier layer_;
       detail::index_set_node broadcaster_;
       detail::flush_node flusher_;
       int counter_ = 0;
@@ -116,7 +117,7 @@ namespace phlex::experimental {
     // Routing to provider nodes
     // The following maps are used to route data-cell indices to provider nodes.
     // The first map is from layer name to the corresponding broadcaster node.
-    std::unordered_map<std::string, detail::index_set_node_ptr> broadcasters_;
+    std::unordered_map<identifier, detail::index_set_node_ptr> broadcasters_;
     // The second map is a cache from a layer hash matched to a broadcaster node, to avoid
     // repeated lookups for the same layer.
     std::unordered_map<std::size_t, detail::index_set_node_ptr> matched_broadcasters_;
@@ -125,7 +126,7 @@ namespace phlex::experimental {
     // Routing to multi-layer join nodes
     // The first map is from the node name to the corresponding broadcaster nodes and flush
     // nodes.
-    std::unordered_map<std::string, detail::multilayer_slots> multibroadcasters_;
+    std::unordered_map<identifier, detail::multilayer_slots> multibroadcasters_;
     // The second map is a cache from a layer hash matched to a set of multilayer slots, to
     // avoid repeated lookups for the same layer.
     std::unordered_map<std::size_t, detail::multilayer_slots> matched_routing_entries_;

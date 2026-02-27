@@ -15,5 +15,5 @@ namespace phlex::experimental {
     return output_product_;
   }
 
-  std::string const& declared_provider::layer() const noexcept { return output_product_.layer(); }
+  identifier const& declared_provider::layer() const noexcept { return output_product_.layer; }
 }

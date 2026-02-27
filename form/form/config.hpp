@@ -1,5 +1,5 @@
-#ifndef __FORM_CONFIG_HPP__
-#define __FORM_CONFIG_HPP__
+#ifndef FORM_FORM_CONFIG_HPP
+#define FORM_FORM_CONFIG_HPP
 
 #include <map>
 #include <memory>
@@ -53,4 +53,4 @@ namespace form::experimental::config {
 
 } // namespace form::experimental::config
 
-#endif
+#endif // FORM_FORM_CONFIG_HPP

@@ -55,14 +55,14 @@ runs:
         fi
 
     - name: No changes to apply
-      if: steps.check_changes.outputs.changes == 'false'
+      if: steps.check_changes.outputs.changes == 'false' && github.event.pull_request.number
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: 'No automatic ${{ inputs.tool }} fixes were necessary.'
 
     - name: Get PR maintainer_can_modify property
       id: pr-properties
-      if: steps.check_changes.outputs.changes == 'true'
+      if: steps.check_changes.outputs.changes == 'true' && github.event.pull_request.number
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       with:
         script: |
@@ -123,7 +123,7 @@ runs:
         exit 1
 
     - name: Notify of commit
-      if: steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == 'true'
+      if: steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == 'true' && github.event.pull_request.number
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: |
@@ -141,13 +141,13 @@ runs:
 
     - name: Upload patch
       if: steps.create_patch.outputs.patch_name
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: fix-patch
         path: ${{ inputs.working-directory }}/${{ steps.create_patch.outputs.patch_name }}
 
     - name: Comment with patch instructions
-      if: steps.create_patch.outputs.patch_name
+      if: steps.create_patch.outputs.patch_name && github.event.pull_request.number
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: |

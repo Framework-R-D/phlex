@@ -87,33 +87,33 @@
     },
     "extensions": {
         "recommendations": [
+            "charliermarsh.ruff",
+            "github.copilot-chat",
+            "github.vscode-github-actions",
+            "github.vscode-pull-request-github",
             "ms-vscode.cmake-tools",
             "ms-vscode.cpptools",
             "ms-vscode.cpptools-extension-pack",
-            "twxs.cmake",
+            "ms-vscode.hexeditor",
             "ms-vscode.vscode-json",
             "redhat.vscode-yaml",
-            "charliermarsh.ruff",
-            "github.vscode-github-actions",
-            "github.copilot",
-            "github.copilot-chat",
-            "github.vscode-pull-request-github",
-            "ms-vscode.hexeditor"
+            "twxs.cmake"
         ],
         "unwantedRecommendations": [
-            "reditorsupport.r",
-            "ms-vscode.r",
+            "github.copilot",
             "ikuyadeu.r",
-            "ms-vscode.r-debugger",
-            "vscjava.vscode-java-pack",
-            "redhat.java",
-            "vscjava.vscode-java-debug",
-            "vscjava.vscode-java-test",
-            "vscjava.vscode-maven",
-            "vscjava.vscode-gradle",
+            "ms-python.flake8",
             "ms-python.python",
             "ms-toolsai.jupyter",
-            "ms-python.flake8"
+            "ms-vscode.r",
+            "ms-vscode.r-debugger",
+            "redhat.java",
+            "reditorsupport.r",
+            "vscjava.vscode-gradle",
+            "vscjava.vscode-java-debug",
+            "vscjava.vscode-java-pack",
+            "vscjava.vscode-java-test",
+            "vscjava.vscode-maven"
         ]
     }
 }

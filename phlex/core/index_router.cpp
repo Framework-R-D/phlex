@@ -13,12 +13,12 @@
 using namespace phlex::experimental;
 
 namespace {
-  auto delimited_layer_path(std::string layer_path)
+  std::string delimited_layer_path(std::string_view const layer_path)
   {
     if (not layer_path.starts_with("/")) {
-      return "/" + layer_path;
+      return fmt::format("/{}", layer_path);
     }
-    return layer_path;
+    return std::string{layer_path};
   }
 
   void send_messages(phlex::data_cell_index_ptr const& index,
@@ -77,7 +77,7 @@ namespace phlex::experimental {
   // multilayer_slot implementation
 
   detail::multilayer_slot::multilayer_slot(tbb::flow::graph& g,
-                                           std::string layer,
+                                           identifier layer,
                                            tbb::flow::receiver<indexed_end_token>* flush_port,
                                            tbb::flow::receiver<index_message>* input_port) :
     layer_{std::move(layer)}, broadcaster_{g}, flusher_{g}
@@ -89,7 +89,8 @@ namespace phlex::experimental {
   void detail::multilayer_slot::put_message(data_cell_index_ptr const& index,
                                             std::size_t message_id)
   {
-    if (layer_ == index->layer_name()) {
+    auto const layer = static_cast<std::string_view>(layer_);
+    if (layer == index->layer_name()) {
       broadcaster_.try_put({.index = index, .msg_id = message_id, .cache = false});
       return;
     }
@@ -97,7 +98,7 @@ namespace phlex::experimental {
     // Flush values are only used for indices that are *not* the "lowest" in the branch
     // of the hierarchy.
     ++counter_;
-    broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
+    broadcaster_.try_put({.index = index->parent(layer), .msg_id = message_id});
   }
 
   void detail::multilayer_slot::put_end_token(data_cell_index_ptr const& index)
@@ -113,12 +114,12 @@ namespace phlex::experimental {
 
   bool detail::multilayer_slot::matches_exactly(std::string const& layer_path) const
   {
-    return layer_path.ends_with(delimited_layer_path(layer_));
+    return layer_path.ends_with(delimited_layer_path(static_cast<std::string_view>(layer_)));
   }
 
   bool detail::multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
   {
-    return index->parent(layer_) != nullptr;
+    return index->parent(static_cast<std::string_view>(layer_)) != nullptr;
   }
 
   //========================================================================================
@@ -136,8 +137,8 @@ namespace phlex::experimental {
 
     // Create the index-set broadcast nodes for providers
     for (auto& [pq, provider_port] : provider_input_ports_ | std::views::values) {
-      auto [it, _] =
-        broadcasters_.try_emplace(pq.layer(), std::make_shared<detail::index_set_node>(g));
+      auto [it, _] = broadcasters_.try_emplace(static_cast<identifier const&>(pq.layer),
+                                               std::make_shared<detail::index_set_node>(g));
       make_edge(*it->second, *provider_port);
     }
 
@@ -150,7 +151,7 @@ namespace phlex::experimental {
         auto entry = std::make_shared<detail::multilayer_slot>(g, layer, flush_port, input_port);
         casters.push_back(entry);
       }
-      multibroadcasters_.try_emplace(node_name, std::move(casters));
+      multibroadcasters_.try_emplace(identifier{node_name}, std::move(casters));
     }
   }
 
@@ -262,7 +263,7 @@ namespace phlex::experimental {
 
     std::vector<decltype(broadcasters_.begin())> candidates;
     for (auto it = broadcasters_.begin(), e = broadcasters_.end(); it != e; ++it) {
-      if (search_token.ends_with(delimited_layer_path(it->first))) {
+      if (search_token.ends_with(delimited_layer_path(static_cast<std::string_view>(it->first)))) {
         candidates.push_back(it);
       }
     }
@@ -275,9 +276,9 @@ namespace phlex::experimental {
       return nullptr;
     }
 
-    std::string msg{"Multiple layers match specification " + layer_path + ":\n"};
+    std::string msg = fmt::format("Multiple layers match specification {}:\n", layer_path);
     for (auto const& it : candidates) {
-      msg += "\n- " + it->first;
+      msg += fmt::format("\n- {}", it->first);
     }
     throw std::runtime_error(msg);
   }

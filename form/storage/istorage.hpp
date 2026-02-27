@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __ISTORAGE_HPP__
-#define __ISTORAGE_HPP__
+#ifndef FORM_STORAGE_ISTORAGE_HPP
+#define FORM_STORAGE_ISTORAGE_HPP
 
 #include "core/placement.hpp"
 #include "core/token.hpp"
@@ -68,4 +68,4 @@ namespace form::detail::experimental {
 
 } // namespace form::detail::experimental
 
-#endif
+#endif // FORM_STORAGE_ISTORAGE_HPP

@@ -6,7 +6,7 @@
 
 namespace phlex::experimental::detail {
 
-  repeater_node::repeater_node(tbb::flow::graph& g, std::string node_name, std::string layer_name) :
+  repeater_node::repeater_node(tbb::flow::graph& g, std::string node_name, identifier layer_name) :
     base_t{g},
     indexer_{g},
     repeater_{g,

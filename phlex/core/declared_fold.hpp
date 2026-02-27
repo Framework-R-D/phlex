@@ -41,8 +41,7 @@ namespace phlex::experimental {
                   product_queries input_products);
     virtual ~declared_fold();
 
-    virtual tbb::flow::sender<message>& sender() = 0;
-    virtual tbb::flow::sender<message>& to_output() = 0;
+    virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
@@ -126,7 +125,8 @@ namespace phlex::experimental {
         auto parent = std::make_shared<product_store>(fold_index, this->full_name());
         commit_(parent);
         ++product_count_;
-        output_port<0>(fold_).try_put({parent, counter->original_message_id()});
+        tbb::flow::output_port<0>(fold_).try_put(
+          {.store = parent, .id = counter->original_message_id()});
       }
     }
 
@@ -141,8 +141,7 @@ namespace phlex::experimental {
     }
 
     tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
-    tbb::flow::sender<message>& sender() override { return output_port<0ull>(fold_); }
-    tbb::flow::sender<message>& to_output() override { return sender(); }
+    tbb::flow::sender<message>& output_port() override { return tbb::flow::output_port<0>(fold_); }
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>

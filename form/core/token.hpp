@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __TOKEN_HPP__
-#define __TOKEN_HPP__
+#ifndef FORM_CORE_TOKEN_HPP
+#define FORM_CORE_TOKEN_HPP
 
 #include <string>
 
@@ -41,4 +41,4 @@ namespace form::detail::experimental {
     int m_id;
   };
 } // namespace form::detail::experimental
-#endif
+#endif // FORM_CORE_TOKEN_HPP

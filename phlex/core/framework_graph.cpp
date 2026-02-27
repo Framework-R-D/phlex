@@ -142,9 +142,9 @@ namespace phlex::experimental {
                nodes_.unfolds,
                nodes_.transforms);
 
-    std::map<std::string, flusher_t*> flushers_from_unfolds;
+    std::map<identifier, flusher_t*> flushers_from_unfolds;
     for (auto const& n : nodes_.unfolds | std::views::values) {
-      flushers_from_unfolds.try_emplace(n->child_layer(), &n->flusher());
+      flushers_from_unfolds.try_emplace(identifier{n->child_layer()}, &n->flusher());
     }
 
     // Connect edges between all nodes, the graph-wide flusher, and the unfolds' flushers
@@ -154,7 +154,7 @@ namespace phlex::experimental {
           std::set<flusher_t*> flushers;
           // For providers
           for (product_query const& pq : n->input()) {
-            if (auto it = unfold_flushers.find(pq.layer()); it != unfold_flushers.end()) {
+            if (auto it = unfold_flushers.find(pq.layer); it != unfold_flushers.end()) {
               flushers.insert(it->second);
             } else {
               flushers.insert(&index_router_.flusher());

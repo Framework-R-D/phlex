@@ -43,16 +43,22 @@ TEST_CASE("Testing families", "[data model]")
 
   // Wire up providers for each level
   g.provide("run_id_provider", provide_index, concurrency::unlimited)
-    .output_product("id"_in("run"));
+    .output_product(product_query{.creator = "dummy"_id, .layer = "run"_id, .suffix = "id"_id});
   g.provide("subrun_id_provider", provide_index, concurrency::unlimited)
-    .output_product("id"_in("subrun"));
+    .output_product(product_query{.creator = "dummy"_id, .layer = "subrun"_id, .suffix = "id"_id});
   g.provide("event_id_provider", provide_index, concurrency::unlimited)
-    .output_product("id"_in("event"));
+    .output_product(product_query{.creator = "dummy"_id, .layer = "event"_id, .suffix = "id"_id});
 
-  g.observe("se", check_two_ids).input_family("id"_in("subrun"), "id"_in("event"));
-  g.observe("rs", check_two_ids).input_family("id"_in("run"), "id"_in("subrun"));
+  g.observe("se", check_two_ids)
+    .input_family(product_query{.creator = "dummy"_id, .layer = "subrun"_id, .suffix = "id"_id},
+                  product_query{.creator = "dummy"_id, .layer = "event"_id, .suffix = "id"_id});
+  g.observe("rs", check_two_ids)
+    .input_family(product_query{.creator = "dummy"_id, .layer = "run"_id, .suffix = "id"_id},
+                  product_query{.creator = "dummy"_id, .layer = "subrun"_id, .suffix = "id"_id});
   g.observe("rse", check_three_ids)
-    .input_family("id"_in("run"), "id"_in("subrun"), "id"_in("event"));
+    .input_family(product_query{.creator = "dummy"_id, .layer = "run"_id, .suffix = "id"_id},
+                  product_query{.creator = "dummy"_id, .layer = "subrun"_id, .suffix = "id"_id},
+                  product_query{.creator = "dummy"_id, .layer = "event"_id, .suffix = "id"_id});
   g.execute();
 
   CHECK(g.execution_count("se") == 1ull);

@@ -44,11 +44,15 @@ TEST_CASE("Test vector of abstract types")
 
   experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
-    .output_product("thing"_in("event"));
-  g.transform("read_thing", read_abstract).input_family("thing"_in("event")).output_products("sum");
+    .output_product(
+      product_query{.creator = "dummy"_id, .layer = "event"_id, .suffix = "thing"_id});
+  g.transform("read_thing", read_abstract)
+    .input_family(product_query{.creator = "dummy"_id, .layer = "event"_id, .suffix = "thing"_id})
+    .output_products("sum");
   g.observe(
      "verify_sum", [](int sum) { CHECK(sum == 3); }, concurrency::serial)
-    .input_family("sum"_in("event"));
+    .input_family(
+      product_query{.creator = "read_thing"_id, .layer = "event"_id, .suffix = "sum"_id});
   g.execute();
 
   CHECK(g.execution_count("provide_thing") == 1);

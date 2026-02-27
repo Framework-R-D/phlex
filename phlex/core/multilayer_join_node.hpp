@@ -66,7 +66,7 @@ namespace phlex::experimental {
   public:
     multilayer_join_node(tbb::flow::graph& g,
                          std::string const& node_name,
-                         std::vector<std::string> layer_names) :
+                         std::vector<identifier> layer_names) :
       base_t{g},
       join_{make_join(g, std::make_index_sequence<n_inputs>{})},
       name_{node_name},
@@ -119,7 +119,7 @@ namespace phlex::experimental {
     std::vector<std::unique_ptr<detail::repeater_node>> repeaters_;
     tbb::flow::join_node<args_t, tbb::flow::tag_matching> join_;
     std::string const name_;
-    std::vector<std::string> const layers_;
+    std::vector<identifier> const layers_;
   };
 
   namespace detail {
@@ -150,7 +150,7 @@ namespace phlex::experimental {
   template <std::size_t N>
   join_or_none_t<N> make_join_or_none(tbb::flow::graph& g,
                                       std::string const& node_name,
-                                      std::vector<std::string> const& layers)
+                                      std::vector<identifier> const& layers)
   {
     if constexpr (N > 1ull) {
       return multilayer_join_node<N>{g, node_name, layers};

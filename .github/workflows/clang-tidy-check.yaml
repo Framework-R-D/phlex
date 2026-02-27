@@ -3,6 +3,7 @@ name: Clang-Tidy Check
 
 permissions:
   contents: read
+  pull-requests: read
 
 
 on:
@@ -121,7 +122,7 @@ jobs:
         build-type: Debug
         extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml'"
 
-    - name: Run clang-tidy using CMake target
+    - name: Run clang-tidy using CMake
       id: tidy
       shell: bash
       run: |
@@ -130,7 +131,7 @@ jobs:
 
         echo "➡️ Running clang-tidy checks..."
         cmake_status=0
-        cmake --build . -j $(nproc) > clang-tidy.log 2>&1 || cmake_status=$?
+        cmake --build . -j "$(nproc)" > clang-tidy.log 2>&1 || cmake_status=$?
 
         # Distinguish tooling failures from issue detection by checking log content
         if [ "$cmake_status" -ne 0 ]; then
@@ -156,7 +157,7 @@ jobs:
 
     - name: Upload clang-tidy report
       if: always()
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: clang-tidy-report
         path: phlex-build/clang-tidy-fixes.yaml
@@ -165,7 +166,7 @@ jobs:
 
     - name: Upload clang-tidy log
       if: always()
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: clang-tidy-log
         path: phlex-build/clang-tidy.log
@@ -181,14 +182,14 @@ jobs:
       issues: write
     steps:
       - name: Download clang-tidy report
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: clang-tidy-report
           path: phlex-build
         continue-on-error: true
 
       - name: Download clang-tidy log
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: clang-tidy-log
           path: phlex-build
@@ -196,7 +197,7 @@ jobs:
 
       - name: Setup Node.js
         if: github.event_name == 'issue_comment'
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           node-version: '20.x'
 
