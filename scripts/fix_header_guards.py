@@ -38,9 +38,11 @@ def check_header_guard(file_path: Path, root: Path) -> tuple[bool, str | None]:
             define_idx, define_macro = i, m.group(1)
             break
 
-    for i in range(len(lines) - 1, max(len(lines) - 10, -1), -1):
-        if m := re.match(r"#endif\s*//\s*(\w+)\s*$", lines[i]):
-            endif_macro = m.group(1)
+    for i in range(len(lines) - 1, -1, -1):
+        line = lines[i].strip()
+        if line.startswith("#endif"):
+            if m := re.match(r"#endif\s*//\s*(\w+)\s*$", lines[i]):
+                endif_macro = m.group(1)
             break
 
     if ifndef_idx is None or define_idx is None:
@@ -71,8 +73,9 @@ def fix_header_guard(file_path: Path, root: Path) -> bool:
             define_idx = i
             break
 
-    for i in range(len(lines) - 1, max(len(lines) - 10, -1), -1):
-        if re.match(r"#endif\s*//\s*\w+\s*$", lines[i]):
+    for i in range(len(lines) - 1, -1, -1):
+        line = lines[i].strip()
+        if line.startswith("#endif"):
             endif_idx = i
             break
 
