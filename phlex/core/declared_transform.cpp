@@ -1,8 +1,5 @@
 #include "phlex/core/declared_transform.hpp"
 
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
-
 namespace phlex::experimental {
   declared_transform::declared_transform(algorithm_name name,
                                          std::vector<std::string> predicates,
@@ -12,18 +9,4 @@ namespace phlex::experimental {
   }
 
   declared_transform::~declared_transform() = default;
-
-  void declared_transform::report_cached_stores(stores_t const& stores) const
-  {
-    if (stores.size() > 0ull) {
-      spdlog::warn("Transform {} has {} cached stores.", full_name(), stores.size());
-    }
-    for (auto const& [hash, store] : stores) {
-      if (not store) {
-        spdlog::warn("Store with hash {} is null!", hash);
-        continue;
-      }
-      spdlog::debug(" => ID: {} (hash: {})", store->index()->to_string(), hash);
-    }
-  }
 }

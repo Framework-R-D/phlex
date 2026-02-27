@@ -12,6 +12,7 @@ if(FORM_USE_ROOT_STORAGE)
       form_test_data_products
       TEST_ARGS
       "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
+      "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums.txt"
   )
   target_include_directories(WriteVector PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
@@ -24,6 +25,7 @@ if(FORM_USE_ROOT_STORAGE)
       form_test_data_products
       TEST_ARGS
       "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
+      "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums.txt"
       TEST_PROPERTIES
       DEPENDS
       WriteVector

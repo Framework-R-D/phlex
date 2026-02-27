@@ -22,8 +22,7 @@ namespace phlex::experimental {
 
     struct named_output_port {
       algorithm_name node;
-      tbb::flow::sender<message>* port;
-      tbb::flow::sender<message>* to_output;
+      tbb::flow::sender<message>* output_port;
       type_id type;
     };
 
@@ -48,9 +47,9 @@ namespace phlex::experimental {
       for (auto const& product_name : node->output()) {
         if (product_name.name().empty())
           continue;
-        result.emplace(
-          product_name.name(),
-          named_output_port{node_name, &node->sender(), &node->to_output(), product_name.type()});
+
+        result.emplace(product_name.name(),
+                       named_output_port{node_name, &node->output_port(), product_name.type()});
       }
     }
     return result;

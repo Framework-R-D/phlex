@@ -57,7 +57,6 @@ set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
-include(Modules/private/CreateClangTidyTargets.cmake)
 include(Modules/private/CreateCoverageTargets.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
@@ -203,7 +202,10 @@ if(BUILD_TESTING)
   endif()
 endif()
 
-# Create clang-tidy targets
-create_clang_tidy_targets()
+# Report clang-tidy availability
+if(CLANG_TIDY_EXECUTABLE)
+  message(STATUS "Clang-tidy available: ${CLANG_TIDY_EXECUTABLE}")
+  message(STATUS "Use -DCMAKE_CXX_CLANG_TIDY=clang-tidy to enable automatic checks during build")
+endif()
 
 cet_cmake_config()

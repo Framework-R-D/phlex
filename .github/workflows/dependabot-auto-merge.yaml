@@ -57,29 +57,10 @@ jobs:
         if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
         shell: bash
         run: |
-          # Attempt to enable auto-merge. The gh CLI doesn't provide structured error codes,
-          # so we must parse error messages. Common expected errors:
-          # - "auto-merge is already enabled" - auto-merge was already set
-          # - "not authorized for this protected branch" - branch protection requirements not yet met
-          #   NOTE: This typically occurs when the GITHUB_TOKEN doesn't have sufficient permissions.
-          #   For workflows triggered by Dependabot PRs, the token has restricted permissions even
-          #   with contents:write and pull-requests:write. Solutions include:
-          #   1. Use a GitHub App token (most secure)
-          #   2. Use a PAT stored in secrets (simpler but less secure)
-          #   3. Use pull_request_target trigger (has security implications)
-          # - "Required status checks" - waiting for CI checks to pass
-          # - "Required approving review" - waiting for approval
           set -o pipefail
           if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
-            if grep -qE "auto-merge is already enabled|not authorized for this protected branch|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
+            if grep -qE "auto-merge is already enabled|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
               echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
-              if grep -q "not authorized for this protected branch" /tmp/gh-output.txt; then
-                echo ""
-                echo "NOTE: The 'not authorized for this protected branch' error typically means:"
-                echo "  - The GITHUB_TOKEN has restricted permissions when triggered by Dependabot PRs"
-                echo "  - To fix this, consider using a GitHub App token or PAT with appropriate permissions"
-                echo "  - See workflow comments for more details"
-              fi
               exit 0
             else
               echo "Unexpected error enabling auto-merge:"
@@ -88,4 +69,4 @@ jobs:
             fi
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}

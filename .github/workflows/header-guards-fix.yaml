@@ -1,0 +1,97 @@
+name: Header Guards Fix
+run-name: "${{ github.actor }} fixing header guards"
+
+on:
+  issue_comment:
+    types:
+      - created
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: true
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        required: false
+        type: string
+
+permissions:
+  pull-requests: write
+  contents: write
+
+env:
+  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    name: Parse command
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
+        (
+          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
+          startsWith(github.event.comment.body, format('@{0}bot header-guards-fix', github.event.repository.name))
+        )
+      )
+    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
+    # This covers repo owners, invited collaborators, and all org members.
+    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
+    outputs:
+      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo }}
+
+    steps:
+      - name: Get PR Info
+        if: github.event_name == 'issue_comment'
+        id: get_pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+  apply_fixes:
+    runs-on: ubuntu-latest
+    name: Apply fixes
+    needs: pre-check
+    if: needs.pre-check.result == 'success'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: ${{ env.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
+          token: ${{ secrets.WORKFLOW_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Fix header guards
+        working-directory: ${{ env.local_checkout_path }}
+        run: |
+          echo "Fixing header guards..."
+          python3 scripts/fix_header_guards.py --root . phlex plugins form || true
+
+      - name: Handle fix commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
+        with:
+          tool: header-guards
+          working-directory: ${{ env.local_checkout_path }}
+          token: ${{ secrets.WORKFLOW_PAT }}
+          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
+          pr-info-repo: ${{ needs.pre-check.outputs.repo }}

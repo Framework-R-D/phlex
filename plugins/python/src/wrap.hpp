@@ -1,5 +1,5 @@
-#ifndef phlex_python_wrap_hpp
-#define phlex_python_wrap_hpp
+#ifndef PLUGINS_PYTHON_SRC_WRAP_HPP
+#define PLUGINS_PYTHON_SRC_WRAP_HPP
 
 // =======================================================================================
 //
@@ -68,4 +68,4 @@ namespace phlex::experimental {
 
 } // namespace phlex::experimental
 
-#endif // phlex_python_pymodule_hpp
+#endif // PLUGINS_PYTHON_SRC_WRAP_HPP

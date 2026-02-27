@@ -300,7 +300,7 @@ jobs:
           build-path: ${{ env.local_build_path }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
+        uses: github/codeql-action/init@89a39a4e59826350b863aa6b6252a07ad50cf83e # v4.32.4
         with:
           languages: ${{ matrix.language }}
           config-file: ${{ env.local_checkout_path }}/.github/codeql/codeql-config.yml
@@ -326,14 +326,14 @@ jobs:
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
+        uses: github/codeql-action/analyze@89a39a4e59826350b863aa6b6252a07ad50cf83e # v4.32.4
         with:
           checkout_path: ${{ env.local_checkout_path }}
           output: results
           category: ${{ matrix.language }}
 
       - name: Upload SARIF results
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: codeql-sarif-${{ matrix.language }}
           path: results
@@ -370,7 +370,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download CodeQL SARIF artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           pattern: codeql-sarif-*
           path: sarif
@@ -404,7 +404,7 @@ jobs:
 
       - name: Upload CodeQL alerts debug log
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: codeql-alerts-debug-log
           path: ${{ steps.set_log_path.outputs.path }}
@@ -423,7 +423,7 @@ jobs:
         if: >-
           github.event_name == 'pull_request' &&
           steps.check_codeql.outputs.comment_path != ''
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: codeql-pr-data
           path: pr_comment_data/

@@ -1,5 +1,5 @@
-#ifndef PHLEX_MODE_TYPE_ID_HPP
-#define PHLEX_MODE_TYPE_ID_HPP
+#ifndef PHLEX_MODEL_TYPE_ID_HPP
+#define PHLEX_MODEL_TYPE_ID_HPP
 
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/handle.hpp"
@@ -42,6 +42,19 @@ namespace phlex::experimental {
     constexpr bool has_children() const { return valid() && (id_ & 0x40); }
 
     constexpr builtin fundamental() const { return static_cast<builtin>(id_ & 0x0F); }
+
+    template <class Provider, class Hash, class Flavor>
+    friend constexpr void tag_invoke(boost::hash2::hash_append_tag const&,
+                                     Provider const&,
+                                     Hash& h,
+                                     Flavor const& f,
+                                     type_id const* v)
+    {
+      boost::hash2::hash_append(h, f, v->id_);
+      if (v->has_children()) {
+        boost::hash2::hash_append(h, f, v->children_);
+      }
+    }
 
     constexpr std::strong_ordering operator<=>(type_id const& rhs) const
     {
@@ -331,11 +344,4 @@ struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
   }
 };
 
-template <>
-struct std::hash<phlex::experimental::type_id> {
-  std::size_t operator()(phlex::experimental::type_id const& id) const noexcept
-  {
-    return hash_value(id);
-  }
-};
-#endif // PHLEX_MODE_TYPE_ID_HPP
+#endif // PHLEX_MODEL_TYPE_ID_HPP

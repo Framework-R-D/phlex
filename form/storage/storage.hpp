@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __STORAGE_HPP__
-#define __STORAGE_HPP__
+#ifndef FORM_STORAGE_STORAGE_HPP
+#define FORM_STORAGE_STORAGE_HPP
 
 #include "istorage.hpp"
 
@@ -57,4 +57,4 @@ namespace form::detail::experimental {
 
 } // namespace form::detail::experimental
 
-#endif
+#endif // FORM_STORAGE_STORAGE_HPP
