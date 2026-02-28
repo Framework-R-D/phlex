@@ -281,6 +281,32 @@ rm -f /tmp/spack.yaml
 CLEAN_TEMP_FILES
 
 ########################################################################
+# Install Perfetto SDK for profiling
+
+RUN <<'INSTALL_PERFETTO'
+set -euo pipefail
+
+# Install Perfetto SDK and tools
+apt-get update
+apt-get install -y --no-install-recommends \
+  wget
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+
+mkdir -p /opt/perfetto
+cd /opt/perfetto
+PERFETTO_VERSION=v51.0
+wget -O perfetto.h https://raw.githubusercontent.com/google/perfetto/${PERFETTO_VERSION}/sdk/perfetto.h
+wget -O perfetto.cc https://raw.githubusercontent.com/google/perfetto/${PERFETTO_VERSION}/sdk/perfetto.cc
+chmod 644 perfetto.h perfetto.cc
+
+# Install tracebox for system-wide profiling
+wget -O tracebox https://get.perfetto.dev/tracebox
+chmod +x tracebox
+mv tracebox /usr/local/bin/
+INSTALL_PERFETTO
+
+########################################################################
 # Finalize CI image stage
 
 FROM base AS ci
