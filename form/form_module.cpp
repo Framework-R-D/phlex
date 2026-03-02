@@ -84,7 +84,7 @@ namespace {
         std::cout << "  Product: " << product_name.full() << "\n";
 
         // Create FORM product with metadata
-        products.emplace_back(product_name.full(),    // label, from map key
+        products.emplace_back(product_name.name().trans_get_string(),    // label, from map key
                               product_ptr->address(), // data,  from phlex product_base
                               &product_ptr->type()    // type, from phlex product_base
         );
