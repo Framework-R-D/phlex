@@ -17,7 +17,7 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
   form::test::write(technology, primes);
 
   auto file = createFile(technology, form::test::testFileName, 'i');
-  auto container = createContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
+  auto container = createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
   container->setFile(file);
   void const* dataPtr;
   CHECK_THROWS_AS(container->read(0, &dataPtr, typeid(double)), std::runtime_error);
@@ -78,7 +78,7 @@ TEST_CASE("FORM Container setup error handling")
 {
   int const technology = form::technology::ROOT_TTREE;
   auto file = createFile(technology, "testContainerErrorHandling.root", 'o');
-  auto container = createContainer(technology, "test/testData");
+  auto writeContainer = createWriteContainer(technology, "test/testData");
 
   std::vector<float> testData;
   void const* ptrTestData = &testData;
@@ -86,24 +86,27 @@ TEST_CASE("FORM Container setup error handling")
 
   SECTION("fill() before setParent()")
   {
-    CHECK_THROWS_AS(container->setupWrite(typeInfo), std::runtime_error);
-    CHECK_THROWS_AS(container->fill(ptrTestData), std::runtime_error);
+    CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
+    CHECK_THROWS_AS(writeContainer->fill(ptrTestData), std::runtime_error);
   }
 
   SECTION("commit() before setParent()")
   {
-    CHECK_THROWS_AS(container->commit(), std::runtime_error);
+    CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
   }
+
+  auto readContainer = createReadContainer(technology, "test/testData");
 
   SECTION("read() before setParent()")
   {
-    CHECK_THROWS_AS(container->read(0, &ptrTestData, typeInfo), std::runtime_error);
+    CHECK_THROWS_AS(readContainer->read(0, &ptrTestData, typeInfo), std::runtime_error);
   }
 
   SECTION("mismatched file type")
   {
     std::shared_ptr<IStorage_File> wrongFile(
       new Storage_File("testContainerErrorHandling.root", 'o'));
-    CHECK_THROWS_AS(container->setFile(wrongFile), std::runtime_error);
+    CHECK_THROWS_AS(readContainer->setFile(wrongFile), std::runtime_error);
+    CHECK_THROWS_AS(writeContainer->setFile(wrongFile), std::runtime_error);
   }
 }
