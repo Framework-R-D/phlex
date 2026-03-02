@@ -50,3 +50,9 @@ cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
          form
 )
 target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
+
+cet_test(form_storage_test USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
+         root_storage
+         storage
+)
+target_include_directories(form_storage_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
