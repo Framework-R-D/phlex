@@ -58,8 +58,12 @@ namespace phlex {
       throw std::logic_error("Product suffixes are (temporarily) mandatory");
     }
     // Not efficient, but this should be temporary
-    return experimental::product_specification::create(suffix->trans_get_string());
+    using namespace phlex::experimental;
+    auto const& creator_identifier = static_cast<experimental::identifier const&>(creator);
+    return product_specification{
+      algorithm_name::create(static_cast<std::string_view>(creator_identifier)), *suffix, type};
   }
+
   bool product_query::operator==(product_query const& rhs) const
   {
     using experimental::identifier;
