@@ -20,12 +20,12 @@ static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
 
 void generate(std::vector<float>& vrand, int size)
 {
-  int rand1 = rand() % 32768;
-  int rand2 = rand() % 32768;
+  int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
+  int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
   int npx = (rand1 * 32768 + rand2) % size;
   for (int nelement = 0; nelement < npx; ++nelement) {
-    int rand1 = rand() % 32768;
-    int rand2 = rand() % 32768;
+    int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
+    int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
     float random = float(rand1 * 32768 + rand2) / (32768 * 32768);
     vrand.push_back(random);
   }
