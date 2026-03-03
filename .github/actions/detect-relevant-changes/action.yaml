@@ -21,7 +21,9 @@ inputs:
     required: false
     default: ""
   type-pattern-add:
-    description: "Additional type-to-glob mappings (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added automatically."
+    description: >-
+      Additional type-to-glob mappings (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added
+      automatically.
     required: false
     default: ""
 outputs:
@@ -44,6 +46,7 @@ runs:
         FILE_TYPE: ${{ inputs.file-type }}
         INCLUDE_GLOBS: ${{ inputs.include-globs }}
         TYPE_PATTERN_ADD: ${{ inputs.type-pattern-add }}
+      # yamllint disable rule:line-length
       run: |
         set -euo pipefail
 
@@ -210,3 +213,4 @@ runs:
           echo "matched=false" >> "$GITHUB_OUTPUT"
           echo "matched_files=" >> "$GITHUB_OUTPUT"
         fi
+      # yamllint enable

@@ -73,7 +73,9 @@ runs:
           });
           core.setOutput('maintainer_can_modify', pr.maintainer_can_modify);
     - name: Commit fixes
-      if: steps.check_changes.outputs.changes == 'true' && (inputs.pr-info-repo == github.repository || steps.pr-properties.outputs.maintainer_can_modify == 'true')
+      if: >-
+        steps.check_changes.outputs.changes == 'true' && (inputs.pr-info-repo == github.repository ||
+        steps.pr-properties.outputs.maintainer_can_modify == 'true')
       id: commit_and_push
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -126,12 +128,16 @@ runs:
       if: steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
+        # yamllint disable rule:line-length
         message: |
           Automatic ${{ inputs.tool }} fixes pushed (commit ${{ steps.commit_and_push.outputs.commit_sha_short || steps.commit_and_push.outputs.commit_sha }}).
           ⚠️ **Note:** Some issues may require manual review and fixing.
+        # yamllint enable
 
     - name: Create patch
-      if: steps.check_changes.outputs.changes == 'true' && inputs.pr-info-repo != github.repository && steps.pr-properties.outputs.maintainer_can_modify != 'true'
+      if: >-
+        steps.check_changes.outputs.changes == 'true' && inputs.pr-info-repo != github.repository &&
+        steps.pr-properties.outputs.maintainer_can_modify != 'true'
       id: create_patch
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -150,6 +156,7 @@ runs:
       if: steps.create_patch.outputs.patch_name
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
+        # yamllint disable rule:line-length
         message: |
           Automatic fixes are available but could not be applied directly because this PR is from a fork and "Allow edits from maintainers" is not enabled.
           Please apply the patch below to fix the issues:
@@ -162,3 +169,4 @@ runs:
              ```bash
              git commit -am "Apply ${{ inputs.tool }} fixes"
              ```
+        # yamllint enable

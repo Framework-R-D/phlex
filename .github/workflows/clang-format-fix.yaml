@@ -21,8 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      (
+      github.event_name == 'workflow_dispatch' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
@@ -35,7 +34,9 @@ jobs:
     # This covers repo owners, invited collaborators, and all org members.
     # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     outputs:
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      ref:
+        ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) ||
+        steps.get_pr.outputs.ref }}
       repo: ${{ steps.get_pr.outputs.repo || github.repository }}
 
     steps:
