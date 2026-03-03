@@ -66,6 +66,12 @@ jobs:
     name: Apply fixes
     needs: pre-check
     if: needs.pre-check.result == 'success'
+    outputs:
+      changes: ${{ steps.handle_commit.outputs.changes }}
+      pushed: ${{ steps.handle_commit.outputs.pushed }}
+      commit_sha: ${{ steps.handle_commit.outputs.commit_sha }}
+      commit_sha_short: ${{ steps.handle_commit.outputs.commit_sha_short }}
+      patch_name: ${{ steps.handle_commit.outputs.patch_name }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -94,6 +100,7 @@ jobs:
           ruff check --fix . || true
 
       - name: Handle fix commit
+        id: handle_commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: ruff
@@ -101,3 +108,4 @@ jobs:
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}
           pr-info-repo: ${{ needs.pre-check.outputs.repo }}
+          skip-comment: ${{ github.event_name == 'workflow_call' }}

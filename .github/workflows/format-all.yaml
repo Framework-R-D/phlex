@@ -1,0 +1,158 @@
+name: Format All
+run-name: "${{ github.actor }} fixing all format issues"
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    name: Parse command
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
+      startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
+    outputs:
+      ref: ${{ steps.get_pr.outputs.ref }}
+      repo: ${{ steps.get_pr.outputs.repo }}
+    steps:
+      - name: Get PR Info
+        id: get_pr
+        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+  clang-format:
+    needs: pre-check
+    uses: Framework-R-D/phlex/.github/workflows/clang-format-fix.yaml@main
+    with:
+      checkout-path: phlex-src
+      ref: ${{ needs.pre-check.outputs.ref }}
+      repo: ${{ needs.pre-check.outputs.repo }}
+    secrets: inherit
+
+  cmake-format:
+    needs: pre-check
+    uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@main
+    with:
+      checkout-path: phlex-src
+      ref: ${{ needs.pre-check.outputs.ref }}
+      repo: ${{ needs.pre-check.outputs.repo }}
+    secrets: inherit
+
+  header-guards:
+    needs: pre-check
+    uses: Framework-R-D/phlex/.github/workflows/header-guards-fix.yaml@main
+    with:
+      checkout-path: phlex-src
+      ref: ${{ needs.pre-check.outputs.ref }}
+      repo: ${{ needs.pre-check.outputs.repo }}
+    secrets: inherit
+
+  jsonnet-format:
+    needs: pre-check
+    uses: Framework-R-D/phlex/.github/workflows/jsonnet-format-fix.yaml@main
+    with:
+      checkout-path: phlex-src
+      ref: ${{ needs.pre-check.outputs.ref }}
+      repo: ${{ needs.pre-check.outputs.repo }}
+    secrets: inherit
+
+  markdown:
+    needs: pre-check
+    uses: Framework-R-D/phlex/.github/workflows/markdown-fix.yaml@main
+    with:
+      checkout-path: phlex-src
+      ref: ${{ needs.pre-check.outputs.ref }}
+      repo: ${{ needs.pre-check.outputs.repo }}
+    secrets: inherit
+
+  python:
+    needs: pre-check
+    uses: Framework-R-D/phlex/.github/workflows/python-fix.yaml@main
+    with:
+      checkout-path: phlex-src
+      ref: ${{ needs.pre-check.outputs.ref }}
+      repo: ${{ needs.pre-check.outputs.repo }}
+    secrets: inherit
+
+  combine-results:
+    needs: [clang-format, cmake-format, header-guards, jsonnet-format, markdown, python]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect results
+        id: collect
+        run: |
+          messages=()
+          
+          if [ "${{ needs.clang-format.outputs.changes }}" == "true" ]; then
+            if [ "${{ needs.clang-format.outputs.pushed }}" == "true" ]; then
+              messages+=("✅ clang-format fixes pushed (commit ${{ needs.clang-format.outputs.commit_sha_short }})")
+            elif [ -n "${{ needs.clang-format.outputs.patch_name }}" ]; then
+              messages+=("⚠️ clang-format fixes available as patch")
+            fi
+          fi
+          
+          if [ "${{ needs.cmake-format.outputs.changes }}" == "true" ]; then
+            if [ "${{ needs.cmake-format.outputs.pushed }}" == "true" ]; then
+              messages+=("✅ cmake-format fixes pushed (commit ${{ needs.cmake-format.outputs.commit_sha_short }})")
+            elif [ -n "${{ needs.cmake-format.outputs.patch_name }}" ]; then
+              messages+=("⚠️ cmake-format fixes available as patch")
+            fi
+          fi
+          
+          if [ "${{ needs.header-guards.outputs.changes }}" == "true" ]; then
+            if [ "${{ needs.header-guards.outputs.pushed }}" == "true" ]; then
+              messages+=("✅ header-guards fixes pushed (commit ${{ needs.header-guards.outputs.commit_sha_short }})")
+            elif [ -n "${{ needs.header-guards.outputs.patch_name }}" ]; then
+              messages+=("⚠️ header-guards fixes available as patch")
+            fi
+          fi
+          
+          if [ "${{ needs.jsonnet-format.outputs.changes }}" == "true" ]; then
+            if [ "${{ needs.jsonnet-format.outputs.pushed }}" == "true" ]; then
+              messages+=("✅ jsonnetfmt fixes pushed (commit ${{ needs.jsonnet-format.outputs.commit_sha_short }})")
+            elif [ -n "${{ needs.jsonnet-format.outputs.patch_name }}" ]; then
+              messages+=("⚠️ jsonnetfmt fixes available as patch")
+            fi
+          fi
+          
+          if [ "${{ needs.markdown.outputs.changes }}" == "true" ]; then
+            if [ "${{ needs.markdown.outputs.pushed }}" == "true" ]; then
+              messages+=("✅ markdownlint fixes pushed (commit ${{ needs.markdown.outputs.commit_sha_short }})")
+            elif [ -n "${{ needs.markdown.outputs.patch_name }}" ]; then
+              messages+=("⚠️ markdownlint fixes available as patch")
+            fi
+          fi
+          
+          if [ "${{ needs.python.outputs.changes }}" == "true" ]; then
+            if [ "${{ needs.python.outputs.pushed }}" == "true" ]; then
+              messages+=("✅ ruff fixes pushed (commit ${{ needs.python.outputs.commit_sha_short }})")
+            elif [ -n "${{ needs.python.outputs.patch_name }}" ]; then
+              messages+=("⚠️ ruff fixes available as patch")
+            fi
+          fi
+          
+          if [ ${#messages[@]} -eq 0 ]; then
+            echo "message=No automatic format fixes were necessary." >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "message<<EOF"
+              echo "### Format Fixes Applied"
+              printf '%s\n' "${messages[@]}"
+              echo ""
+              echo "⚠️ **Note:** Some issues may require manual review and fixing."
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post combined comment
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          message: ${{ steps.collect.outputs.message }}
