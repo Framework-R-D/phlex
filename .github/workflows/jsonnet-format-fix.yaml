@@ -25,6 +25,11 @@ run-name: "${{ github.actor }} fixing Jsonnet format"
         description: "The repository to checkout from"
         required: true
         type: string
+      skip-comment:
+        description: "Skip posting PR comments"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   pull-requests: write
@@ -103,4 +108,4 @@ jobs:
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}
           pr-info-repo: ${{ needs.pre-check.outputs.repo }}
-          skip-comment: ${{ github.event_name == 'workflow_call' }}
+          skip-comment: ${{ inputs.skip-comment || 'false' }}

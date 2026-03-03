@@ -34,6 +34,7 @@ jobs:
       checkout-path: phlex-src
       ref: ${{ needs.pre-check.outputs.ref }}
       repo: ${{ needs.pre-check.outputs.repo }}
+      skip-comment: true
     secrets: inherit
 
   cmake-format:
@@ -43,6 +44,7 @@ jobs:
       checkout-path: phlex-src
       ref: ${{ needs.pre-check.outputs.ref }}
       repo: ${{ needs.pre-check.outputs.repo }}
+      skip-comment: true
     secrets: inherit
 
   header-guards:
@@ -52,6 +54,7 @@ jobs:
       checkout-path: phlex-src
       ref: ${{ needs.pre-check.outputs.ref }}
       repo: ${{ needs.pre-check.outputs.repo }}
+      skip-comment: true
     secrets: inherit
 
   jsonnet-format:
@@ -61,6 +64,7 @@ jobs:
       checkout-path: phlex-src
       ref: ${{ needs.pre-check.outputs.ref }}
       repo: ${{ needs.pre-check.outputs.repo }}
+      skip-comment: true
     secrets: inherit
 
   markdown:
@@ -70,6 +74,7 @@ jobs:
       checkout-path: phlex-src
       ref: ${{ needs.pre-check.outputs.ref }}
       repo: ${{ needs.pre-check.outputs.repo }}
+      skip-comment: true
     secrets: inherit
 
   python:
@@ -79,6 +84,7 @@ jobs:
       checkout-path: phlex-src
       ref: ${{ needs.pre-check.outputs.ref }}
       repo: ${{ needs.pre-check.outputs.repo }}
+      skip-comment: true
     secrets: inherit
 
   combine-results:
