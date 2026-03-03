@@ -1,0 +1,39 @@
+//A TrackStart is a 3-vector of position components.
+//This is a simple test data product for demonstrating the features of FORM.
+
+#include <iostream>
+
+#ifndef TRACKSTART_HPP
+#define TRACKSTART_HPP
+
+class TrackStart {
+public:
+  TrackStart();
+  TrackStart(float x, float y, float z, int index);
+  ~TrackStart() = default;
+
+  float getX() const;
+  float getY() const;
+  float getZ() const;
+  int getIndex() const;
+
+  void setX(float x);
+  void setY(float y);
+  void setZ(float z);
+  void setIndex(int index);
+
+  TrackStart operator+(TrackStart const& other) const;
+  TrackStart& operator+=(TrackStart const& other);
+  TrackStart operator-(TrackStart const& other) const;
+
+private:
+  float m_x;
+  float m_y;
+  float m_z;
+
+  int m_index;
+};
+
+std::ostream& operator<<(std::ostream& os, TrackStart const& track);
+
+#endif //TRACKSTART_HPP
