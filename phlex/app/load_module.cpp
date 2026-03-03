@@ -9,6 +9,7 @@
 #include "boost/dll/import.hpp"
 #include "boost/json.hpp"
 
+#include <cstdlib>
 #include <functional>
 #include <string>
 #include <string_view>

@@ -1,6 +1,8 @@
 #include "toy_tracker.hpp"
 #include "data_products/track_start.hpp"
 
+#include <cstdlib>
+
 ToyTracker::ToyTracker(int maxTracks) : m_maxTracks(maxTracks) {}
 
 std::vector<TrackStart> ToyTracker::operator()()
