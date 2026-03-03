@@ -149,6 +149,7 @@ jobs:
 Automatically formats CMake files using `gersemi` and commits the changes.
 
 **Trigger Methods:**
+
 - `@phlexbot cmake-fix` comment on a PR (individual workflow)
 - `@phlexbot format` comment on a PR (via `format-all.yaml`)
 - `workflow_call` from another workflow
@@ -209,6 +210,7 @@ jobs:
 Automatically formats and fixes Python code using `ruff` and commits the changes.
 
 **Trigger Methods:**
+
 - `@phlexbot python-fix` comment on a PR (individual workflow)
 - `@phlexbot format` comment on a PR (via `format-all.yaml`)
 - `workflow_call` from another workflow
@@ -269,6 +271,7 @@ jobs:
 Automatically formats Markdown files using `markdownlint` and commits the changes.
 
 **Trigger Methods:**
+
 - `@phlexbot markdown-fix` comment on a PR (individual workflow)
 - `@phlexbot format` comment on a PR (via `format-all.yaml`)
 - `workflow_call` from another workflow
@@ -353,6 +356,7 @@ jobs:
 Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes.
 
 **Trigger Methods:**
+
 - `@phlexbot jsonnet-fix` comment on a PR (individual workflow)
 - `@phlexbot format` comment on a PR (via `format-all.yaml`)
 - `workflow_call` from another workflow
@@ -431,6 +435,7 @@ jobs:
 Automatically formats C++ files using `clang-format` and commits the changes.
 
 **Trigger Methods:**
+
 - `@phlexbot clang-fix` comment on a PR (individual workflow)
 - `@phlexbot format` comment on a PR (via `format-all.yaml`)
 - `workflow_call` from another workflow
@@ -470,6 +475,7 @@ jobs:
 Automatically fixes header guard formatting and commits the changes.
 
 **Trigger Methods:**
+
 - `@phlexbot header-guards-fix` comment on a PR (individual workflow)
 - `@phlexbot format` comment on a PR (via `format-all.yaml`)
 - `workflow_call` from another workflow
@@ -509,6 +515,7 @@ jobs:
 Automatically formats YAML files using `prettier` and commits the changes.
 
 **Trigger Methods:**
+
 - `@phlexbot yaml-fix` comment on a PR (individual workflow)
 - `@phlexbot format` comment on a PR (via `format-all.yaml`)
 - `workflow_call` from another workflow
@@ -548,9 +555,11 @@ jobs:
 Centralized workflow that calls all format fix workflows in parallel and posts a single combined PR comment with results.
 
 **Trigger Methods:**
+
 - `@phlexbot format` comment on a PR
 
 **Behavior:**
+
 - Invokes all fix workflows (clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml) via `workflow_call`
 - Each sub-workflow runs with `skip-comment: true` to suppress individual comments
 - Collects all results and posts a single summary comment
