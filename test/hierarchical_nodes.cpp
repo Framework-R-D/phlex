@@ -26,8 +26,8 @@
 #include "spdlog/spdlog.h"
 
 #include <atomic>
+#include <chrono>
 #include <cmath>
-#include <ctime>
 #include <string>
 
 using namespace phlex;
@@ -64,19 +64,14 @@ namespace {
     return std::sqrt(static_cast<double>(data.total) / data.number);
   }
 
-  std::string strtime(std::time_t tm)
+  std::string strtime(std::chrono::system_clock::time_point tp)
   {
-    char buffer[32];
-    std::strncpy(buffer, std::ctime(&tm), 26);
-    return buffer;
+    return fmt::format("{:%a %b %d %H:%M:%S %Y}", tp);
   }
 
   void print_result(handle<double> result, std::string const& stringized_time)
   {
-    spdlog::debug("{}: {} @ {}",
-                  result.data_cell_index().to_string(),
-                  *result,
-                  stringized_time.substr(0, stringized_time.find('\n')));
+    spdlog::debug("{}: {} @ {}", result.data_cell_index().to_string(), *result, stringized_time);
   }
 }
 
@@ -89,9 +84,9 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_time",
-            [](data_cell_index const& index) -> std::time_t {
+            [](data_cell_index const& index) {
               spdlog::info("Providing time for {}", index.to_string());
-              return std::time(nullptr);
+              return std::chrono::system_clock::now();
             })
     .output_product(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "time"_id});
 
