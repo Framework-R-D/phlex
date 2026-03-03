@@ -105,7 +105,7 @@ namespace phlex::experimental {
                 return;
               }
 
-              auto const& index_hash_for_counter = fold_index->hash();
+              auto index_hash_for_counter = fold_index->hash();
 
               call(ft, messages, std::make_index_sequence<num_inputs>{});
               ++calls_;
