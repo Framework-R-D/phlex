@@ -108,7 +108,7 @@ jobs:
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}
           pr-info-repo: ${{ needs.pre-check.outputs.repo }}
-          skip-comment: ${{ inputs.skip-comment || 'false' }}
+          skip-comment: ${{ inputs.skip-comment }}
 
       - name: Remove eyes reaction
         if: github.event_name == 'issue_comment' && inputs.skip-comment != true
