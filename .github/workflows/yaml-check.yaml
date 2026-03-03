@@ -1,5 +1,5 @@
 name: YAML Check
-'run-name': "${{ github.actor }} checking YAML files"
+"run-name": "${{ github.actor }} checking YAML files"
 
 permissions:
   contents: read
@@ -39,32 +39,32 @@ jobs:
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        fetch-depth: 0
-        path: phlex-src
-        ref: ${{ needs.pre-check.outputs.ref }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: phlex-src
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect relevant changes
-      id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-      with:
-        repo-path: phlex-src
-        base-ref: ${{ needs.pre-check.outputs.base_sha }}
-        head-ref: ${{ needs.pre-check.outputs.ref }}
-        file-type: yaml
+      - name: Detect relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: phlex-src
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ needs.pre-check.outputs.ref }}
+          file-type: yaml
 
-    - name: Report detection outcome
-      run: |
-        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No YAML-related changes detected; check will be skipped."
-        else
-          echo "::group::YAML-related files"
-          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-          echo "::endgroup::"
-        fi
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No YAML-related changes detected; check will be skipped."
+          else
+            echo "::group::YAML-related files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
 
   yaml-check:
     needs: [pre-check, detect-changes]
@@ -78,7 +78,6 @@ jobs:
         )
       )
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -90,7 +89,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install yamllint
         run: pip install yamllint
@@ -124,5 +123,5 @@ jobs:
       contents: read
 
     steps:
-    - name: No relevant YAML changes detected
-      run: echo "::notice::No YAML-related changes detected; yaml-check skipped."
+      - name: No relevant YAML changes detected
+        run: echo "::notice::No YAML-related changes detected; yaml-check skipped."

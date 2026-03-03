@@ -73,36 +73,36 @@ jobs:
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        fetch-depth: 0
-        path: ${{ env.local_checkout_path }}
-        ref: ${{ needs.pre-check.outputs.ref }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: ${{ env.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect relevant changes
-      id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-      with:
-        repo-path: ${{ env.local_checkout_path }}
-        base-ref: ${{ needs.pre-check.outputs.base_sha }}
-        head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
-        include-globs: |
-          .github/workflows/**/*.yml
-          .github/workflows/**/*.yaml
-          .github/actions/**/*.yml
-          .github/actions/**/*.yaml
+      - name: Detect relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: ${{ env.local_checkout_path }}
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
+          include-globs: |
+            .github/workflows/**/*.yml
+            .github/workflows/**/*.yaml
+            .github/actions/**/*.yml
+            .github/actions/**/*.yaml
 
-    - name: Report detection outcome
-      run: |
-        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No actionlint related changes detected; job will be skipped."
-        else
-          echo "::group::Actionlint relevant files"
-          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-          echo "::endgroup::"
-        fi
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No actionlint related changes detected; job will be skipped."
+          else
+            echo "::group::Actionlint relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
 
   actionlint-check:
     needs: [pre-check, detect-changes]
@@ -120,35 +120,35 @@ jobs:
       contents: read
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        ref: ${{ needs.pre-check.outputs.ref }}
-        path: ${{ env.local_checkout_path }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.pre-check.outputs.ref }}
+          path: ${{ env.local_checkout_path }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Announce actionlint check
-      run: echo "➡️ Running actionlint check..."
+      - name: Announce actionlint check
+        run: echo "➡️ Running actionlint check..."
 
-    - name: Run actionlint
-      id: lint
-      run: |
-        docker run --rm \
-          -v "${{ github.workspace }}/${{ env.local_checkout_path }}:/work" \
-          -w /work \
-          rhysd/actionlint:latest \
-          -config-file .github/actionlint.yaml
-      continue-on-error: true
+      - name: Run actionlint
+        id: lint
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/${{ env.local_checkout_path }}:/work" \
+            -w /work \
+            rhysd/actionlint:latest \
+            -config-file .github/actionlint.yaml
+        continue-on-error: true
 
-    - name: Evaluate actionlint result
-      if: always() && steps.lint.outcome != 'skipped'
-      run: |
-        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
-          echo "✅ actionlint check passed."
-        else
-          echo "::error::actionlint check failed. Please review the output above for details."
-          exit 1
-        fi
+      - name: Evaluate actionlint result
+        if: always() && steps.lint.outcome != 'skipped'
+        run: |
+          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
+            echo "✅ actionlint check passed."
+          else
+            echo "::error::actionlint check failed. Please review the output above for details."
+            exit 1
+          fi
 
   actionlint-check-skipped:
     needs: [pre-check, detect-changes]
@@ -166,5 +166,5 @@ jobs:
       contents: read
 
     steps:
-    - name: No relevant workflow changes detected
-      run: echo "::notice::No actionlint relevant changes detected; check skipped."
+      - name: No relevant workflow changes detected
+        run: echo "::notice::No actionlint relevant changes detected; check skipped."

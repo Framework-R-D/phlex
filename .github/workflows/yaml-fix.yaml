@@ -1,5 +1,5 @@
 name: YAML Fix
-'run-name': "${{ github.actor }} fixing YAML files"
+"run-name": "${{ github.actor }} fixing YAML files"
 
 on:
   issue_comment:
@@ -59,7 +59,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: '20.x'
+          node-version: "20.x"
 
       - name: Install prettier
         run: npm install -g prettier

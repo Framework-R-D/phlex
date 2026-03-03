@@ -1,5 +1,5 @@
 name: Clang-Tidy Fix
-'run-name': "${{ github.actor }} fixing C++ code with clang-tidy"
+"run-name": "${{ github.actor }} fixing C++ code with clang-tidy"
 
 on:
   issue_comment:

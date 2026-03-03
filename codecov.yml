@@ -25,15 +25,15 @@ comment:
   require_head: yes
 
 ignore:
-  - "test/**/*"           # Ignore test files
-  - "**/CMakeFiles/**"    # Ignore CMake generated files
-  - "build/**"            # Ignore build directories (generic 1/3)
-  - "build-*/**"          # Ignore build directories (generic 2/3)
-  - "*-build/**"          # Ignore build directories (generic 3/3)
+  - "test/**/*" # Ignore test files
+  - "**/CMakeFiles/**" # Ignore CMake generated files
+  - "build/**" # Ignore build directories (generic 1/3)
+  - "build-*/**" # Ignore build directories (generic 2/3)
+  - "*-build/**" # Ignore build directories (generic 3/3)
   - ".coverage-generated/**" # Ignore normalized symlink tree
-  - "ci/**"               # Ignore CI scripts
-  - "docs/**"             # Ignore documentation
-  - "examples/**"         # Ignore example code
+  - "ci/**" # Ignore CI scripts
+  - "docs/**" # Ignore documentation
+  - "examples/**" # Ignore example code
 
 github_checks:
   annotations: true
