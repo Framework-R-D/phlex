@@ -86,7 +86,6 @@ jobs:
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
-    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     runs-on: ubuntu-latest
     permissions:
       contents: read

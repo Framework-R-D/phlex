@@ -30,6 +30,8 @@ jobs:
           startsWith(github.event.comment.body, format('@{0}bot yaml-fix', github.event.repository.name))
         )
       )
+    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
+    # This covers repo owners, invited collaborators, and all org members.
     outputs:
       ref:
         ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) ||
