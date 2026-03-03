@@ -20,21 +20,20 @@ PHLEX_REGISTER_PROVIDERS(s, config)
   std::cout << "Registering FORM source providers...\n";
 
   // --- Extract configuration ---
-  std::string const input_file  = config.get<std::string>("input_file");
-  std::string const creator     = config.get<std::string>("creator");
+  std::string const input_file = config.get<std::string>("input_file");
+  std::string const creator = config.get<std::string>("creator");
   std::string const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
 
   std::cout << "Configuration:\n";
-  std::cout << "  input_file:  " << input_file  << "\n";
-  std::cout << "  creator:     " << creator     << "\n";
+  std::cout << "  input_file:  " << input_file << "\n";
+  std::cout << "  creator:     " << creator << "\n";
   std::cout << "  technology:  " << tech_string << "\n";
 
   // --- Resolve technology enum ---
   std::unordered_map<std::string_view, int> const tech_lookup = {
-    {"ROOT_TTREE",   form::technology::ROOT_TTREE},
+    {"ROOT_TTREE", form::technology::ROOT_TTREE},
     {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
-    {"HDF5",         form::technology::HDF5}
-  };
+    {"HDF5", form::technology::HDF5}};
 
   auto it = tech_lookup.find(tech_string);
   if (it == tech_lookup.end()) {
@@ -66,11 +65,7 @@ PHLEX_REGISTER_PROVIDERS(s, config)
               }
               return *static_cast<int const*>(pb.data);
             })
-    .output_product(product_query{
-      .creator = "input"_id,
-      .layer   = "event"_id,
-      .suffix  = "i"_id
-    });
+    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "i"_id});
 
   s.provide("provide_j",
             [reader, creator](data_cell_index const& id) -> int {
@@ -82,11 +77,7 @@ PHLEX_REGISTER_PROVIDERS(s, config)
               }
               return *static_cast<int const*>(pb.data);
             })
-    .output_product(product_query{
-      .creator = "input"_id,
-      .layer   = "event"_id,
-      .suffix  = "j"_id
-    });
+    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "j"_id});
 
   std::cout << "FORM source providers registered successfully\n";
 }
