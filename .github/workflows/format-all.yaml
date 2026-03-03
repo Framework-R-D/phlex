@@ -87,8 +87,18 @@ jobs:
       skip-comment: true
     secrets: inherit
 
+  yaml:
+    needs: pre-check
+    uses: Framework-R-D/phlex/.github/workflows/yaml-fix.yaml@maintenance/phlexbot-format-rollup
+    with:
+      checkout-path: phlex-src
+      ref: ${{ needs.pre-check.outputs.ref }}
+      repo: ${{ needs.pre-check.outputs.repo }}
+      skip-comment: true
+    secrets: inherit
+
   combine-results:
-    needs: [clang-format, cmake-format, header-guards, jsonnet-format, markdown, python]
+    needs: [clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -168,6 +178,14 @@ jobs:
               messages+=("✅ ruff fixes pushed (commit ${{ needs.python.outputs.commit_sha_short }})")
             elif [ -n "${{ needs.python.outputs.patch_name }}" ]; then
               messages+=("⚠️ ruff fixes available as patch")
+            fi
+          fi
+          
+          if [ "${{ needs.yaml.outputs.changes }}" == "true" ]; then
+            if [ "${{ needs.yaml.outputs.pushed }}" == "true" ]; then
+              messages+=("✅ YAML formatter fixes pushed (commit ${{ needs.yaml.outputs.commit_sha_short }})")
+            elif [ -n "${{ needs.yaml.outputs.patch_name }}" ]; then
+              messages+=("⚠️ YAML formatter fixes available as patch")
             fi
           fi
           
