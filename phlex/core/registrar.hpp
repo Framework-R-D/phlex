@@ -67,8 +67,8 @@ namespace phlex::experimental {
     using node_creator = std::function<Ptr(std::vector<std::string>, std::vector<std::string>)>;
 
   public:
-    explicit registrar(nodes& nodes, std::vector<std::string>& errors) :
-      nodes_{&nodes}, errors_{&errors}
+    explicit registrar(nodes& node_map, std::vector<std::string>& errors) :
+      nodes_{&node_map}, errors_{&errors}
     {
     }
 
