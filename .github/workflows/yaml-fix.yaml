@@ -1,5 +1,5 @@
-name: Clang-Format Fix
-run-name: "${{ github.actor }} fixing C++ code format"
+name: YAML Fix
+"run-name": "${{ github.actor }} fixing YAML files"
 
 "on":
   issue_comment:
@@ -27,7 +27,7 @@ jobs:
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         (
           startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
-          startsWith(github.event.comment.body, format('@{0}bot clang-fix', github.event.repository.name))
+          startsWith(github.event.comment.body, format('@{0}bot yaml-fix', github.event.repository.name))
         )
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
@@ -44,30 +44,38 @@ jobs:
         id: get_pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
-  apply_formatting:
+  apply_yaml_fixes:
     runs-on: ubuntu-latest
-    name: Apply formatting
+    name: Apply YAML fixes
     needs: pre-check
     if: ${{ needs.pre-check.result == 'success' }}
+
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: phlex-src
           ref: ${{ needs.pre-check.outputs.ref }}
           repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
-      - uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          source: "./phlex-src"
-          clangFormatVersion: 20
-          inplace: "True"
-          extensions: cpp,hpp,cpp.in,hpp.in
+          node-version: "20.x"
+
+      - name: Install prettier
+        run: npm install -g prettier
+
+      - name: Apply YAML formatting
+        run: |
+          cd phlex-src
+          prettier --write '**/*.{yaml,yml}'
 
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
-          tool: clang-format
+          tool: YAML formatter
           working-directory: phlex-src
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}

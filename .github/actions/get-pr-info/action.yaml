@@ -1,17 +1,17 @@
-name: 'Get PR Info'
-description: 'Gets PR information for workflows triggered by an issue comment'
+name: "Get PR Info"
+description: "Gets PR information for workflows triggered by an issue comment"
 outputs:
   ref:
-    description: 'The head ref of the PR'
+    description: "The head ref of the PR"
     value: ${{ steps.get_pr_info.outputs.ref }}
   sha:
-    description: 'The head SHA of the PR'
+    description: "The head SHA of the PR"
     value: ${{ steps.get_pr_info.outputs.sha }}
   repo:
-    description: 'The full name of the head repository'
+    description: "The full name of the head repository"
     value: ${{ steps.get_pr_info.outputs.repo }}
   base_sha:
-    description: 'The SHA of the base branch'
+    description: "The SHA of the base branch"
     value: ${{ steps.get_pr_info.outputs.base_sha }}
 runs:
   using: "composite"

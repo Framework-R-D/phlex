@@ -1,12 +1,11 @@
 name: Clang-Tidy Check
-'run-name': "${{ github.actor }} checking C++ code with clang-tidy"
+"run-name": "${{ github.actor }} checking C++ code with clang-tidy"
 
 permissions:
   contents: read
   pull-requests: read
 
-
-on:
+"on":
   pull_request:
   issue_comment:
     types: [created]
@@ -20,9 +19,7 @@ on:
 jobs:
   pre-check:
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
-      (
+      github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
@@ -31,7 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.pr.outputs.ref || github.sha }}
+      ref:
+        ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) ||
+        steps.pr.outputs.ref || github.sha }}
       repo: ${{ steps.pr.outputs.repo || github.repository }}
       base_sha: ${{ steps.pr.outputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
       pr_number: ${{ github.event.pull_request.number || github.event.issue.number }}
@@ -48,9 +47,8 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
-      needs.pre-check.outputs.is_act != 'true'
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act
+      != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -60,40 +58,39 @@ jobs:
       has_changes: ${{ steps.filter.outputs.matched }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        fetch-depth: 0
-        path: phlex-src
-        ref: ${{ needs.pre-check.outputs.ref }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: phlex-src
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect relevant changes
-      id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-      with:
-        repo-path: phlex-src
-        base-ref: ${{ needs.pre-check.outputs.base_sha }}
-        head-ref: ${{ needs.pre-check.outputs.ref }}
-        file-type: |
-          cpp
-          cmake
+      - name: Detect relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: phlex-src
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ needs.pre-check.outputs.ref }}
+          file-type: |
+            cpp
+            cmake
 
-    - name: Report detection outcome
-      run: |
-        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No clang-tidy relevant changes detected; job will be skipped."
-        else
-          echo "::group::Clang-tidy relevant files"
-          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-          echo "::endgroup::"
-        fi
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No clang-tidy relevant changes detected; job will be skipped."
+          else
+            echo "::group::Clang-tidy relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
 
   clang-tidy-check:
     needs: [pre-check, detect-changes]
     if: >
-      always() &&
-      (
+      always() && (
         needs.detect-changes.result == 'skipped' ||
         (
           needs.detect-changes.result == 'success' &&
@@ -101,81 +98,84 @@ jobs:
         )
       )
     runs-on: ubuntu-24.04
-
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        ref: ${{ needs.pre-check.outputs.ref }}
-        path: phlex-src
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.pre-check.outputs.ref }}
+          path: phlex-src
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Setup build environment
-      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+      - name: Setup build environment
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
-    - name: Configure CMake (Debug)
-      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
-      with:
-        build-type: Debug
-        extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml'"
+      - name: Configure CMake (Debug)
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        with:
+          build-type: Debug
+          extra-options:
+            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+            -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml'"
 
-    - name: Run clang-tidy using CMake
-      id: tidy
-      shell: bash
-      run: |
-        . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/phlex-build"
+      - name: Run clang-tidy using CMake
+        id: tidy
+        shell: bash
+        run: |
+          . /entrypoint.sh
+          cd "$GITHUB_WORKSPACE/phlex-build"
 
-        echo "➡️ Running clang-tidy checks..."
-        cmake_status=0
-        cmake --build . -j "$(nproc)" > clang-tidy.log 2>&1 || cmake_status=$?
+          echo "➡️ Running clang-tidy checks..."
+          cmake_status=0
+          cmake --build . -j "$(nproc)" > clang-tidy.log 2>&1 || cmake_status=$?
 
-        # Distinguish tooling failures from issue detection by checking log content
-        if [ "$cmake_status" -ne 0 ]; then
-          if ! grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
-            echo "::error::clang-tidy failed without producing diagnostic output (exit code $cmake_status)"
-            echo "::group::clang-tidy log output"
-            cat clang-tidy.log
-            echo "::endgroup::"
-            exit "$cmake_status"
+          # Distinguish tooling failures from issue detection by checking log content
+          if [ "$cmake_status" -ne 0 ]; then
+            if ! grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
+              echo "::error::clang-tidy failed without producing diagnostic output (exit code $cmake_status)"
+              echo "::group::clang-tidy log output"
+              cat clang-tidy.log
+              echo "::endgroup::"
+              exit "$cmake_status"
+            fi
           fi
-        fi
 
-        if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
-          echo "has_issues=true" >> "$GITHUB_OUTPUT"
-          echo "::warning::Clang-tidy found issues in the code"
-          echo "Error count by check (full details in clang-tidy-log artifact):"
-          sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
-          echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-        else
-          echo "has_issues=false" >> "$GITHUB_OUTPUT"
-          echo "✅ clang-tidy check passed"
-        fi
+          if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
+            echo "has_issues=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Clang-tidy found issues in the code"
+            echo "Error count by check (full details in clang-tidy-log artifact):"
+            sed -nEe '\&^/& s&^.*\[([^][:space:]]+)\]$&\1&p' clang-tidy.log | sort | uniq -c | sort -n -k 1 -r
+            echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
+          else
+            echo "has_issues=false" >> "$GITHUB_OUTPUT"
+            echo "✅ clang-tidy check passed"
+          fi
 
-    - name: Upload clang-tidy report
-      if: always()
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-      with:
-        name: clang-tidy-report
-        path: phlex-build/clang-tidy-fixes.yaml
-        retention-days: 7
-        if-no-files-found: ignore
+      - name: Upload clang-tidy report
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: clang-tidy-report
+          path: phlex-build/clang-tidy-fixes.yaml
+          retention-days: 7
+          if-no-files-found: ignore
 
-    - name: Upload clang-tidy log
-      if: always()
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-      with:
-        name: clang-tidy-log
-        path: phlex-build/clang-tidy.log
-        retention-days: 7
-        if-no-files-found: ignore
+      - name: Upload clang-tidy log
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: clang-tidy-log
+          path: phlex-build/clang-tidy.log
+          retention-days: 7
+          if-no-files-found: ignore
 
   clang-tidy-pr-comments:
     needs: [pre-check, clang-tidy-check]
-    if: always() && needs.clang-tidy-check.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'issue_comment')
+    if:
+      always() && needs.clang-tidy-check.result == 'success' && (github.event_name == 'pull_request' ||
+      github.event_name == 'issue_comment')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -199,7 +199,7 @@ jobs:
         if: github.event_name == 'issue_comment'
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: '20.x'
+          node-version: "20.x"
 
       - name: Install js-yaml
         if: github.event_name == 'issue_comment'
@@ -273,14 +273,12 @@ jobs:
   clang-tidy-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
-      needs.pre-check.outputs.is_act != 'true' &&
-      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act
+      != 'true' && (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-    - name: No relevant clang-tidy changes detected
-      run: echo "::notice::No clang-tidy relevant changes detected; check skipped."
+      - name: No relevant clang-tidy changes detected
+        run: echo "::notice::No clang-tidy relevant changes detected; check skipped."

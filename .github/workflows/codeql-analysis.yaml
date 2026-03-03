@@ -1,12 +1,12 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: "CodeQL Analysis"
 
-on:
+"on":
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
   schedule:
-    - cron: '0 3 * * 0'  # weekly (UTC) — adjust as needed
+    - cron: "0 3 * * 0" # weekly (UTC) — adjust as needed
   workflow_dispatch:
     inputs:
       ref:
@@ -70,11 +70,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      ref:
+        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.ref || github.ref)) || github.sha }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
-      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+      base_sha:
+        ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha ||
+        github.event.before }}
       skip_detection: ${{ steps.should_skip.outputs.skip }}
-      local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+      local_checkout_path:
+        ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
+        github.event.repository.name) }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -97,8 +103,7 @@ jobs:
   detect-changes-cpp:
     needs: pre-check
     if: >
-      needs.pre-check.result == 'success' &&
-      needs.pre-check.outputs.skip_detection != 'true'
+      needs.pre-check.result == 'success' && needs.pre-check.outputs.skip_detection != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -137,8 +142,7 @@ jobs:
   detect-changes-python:
     needs: pre-check
     if: >
-      needs.pre-check.result == 'success' &&
-      needs.pre-check.outputs.skip_detection != 'true'
+      needs.pre-check.result == 'success' && needs.pre-check.outputs.skip_detection != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -175,8 +179,7 @@ jobs:
   detect-changes-actions:
     needs: pre-check
     if: >
-      needs.pre-check.result == 'success' &&
-      needs.pre-check.outputs.skip_detection != 'true'
+      needs.pre-check.result == 'success' && needs.pre-check.outputs.skip_detection != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -243,13 +246,16 @@ jobs:
 
           # Build array based on detection results
           langs=()
-          if [ "${{ needs.detect-changes-cpp.result }}" = "success" ] && [ "${{ needs.detect-changes-cpp.outputs.has_changes }}" = "true" ]; then
+          if [ "${{ needs.detect-changes-cpp.result }}" = "success" ] &&
+            [ "${{ needs.detect-changes-cpp.outputs.has_changes }}" = "true" ]; then
             langs+=("cpp")
           fi
-          if [ "${{ needs.detect-changes-python.result }}" = "success" ] && [ "${{ needs.detect-changes-python.outputs.has_changes }}" = "true" ]; then
+          if [ "${{ needs.detect-changes-python.result }}" = "success" ] &&
+            [ "${{ needs.detect-changes-python.outputs.has_changes }}" = "true" ]; then
             langs+=("python")
           fi
-          if [ "${{ needs.detect-changes-actions.result }}" = "success" ] && [ "${{ needs.detect-changes-actions.outputs.has_changes }}" = "true" ]; then
+          if [ "${{ needs.detect-changes-actions.result }}" = "success" ] &&
+            [ "${{ needs.detect-changes-actions.outputs.has_changes }}" = "true" ]; then
             langs+=("actions")
           fi
 
@@ -271,16 +277,19 @@ jobs:
   codeql:
     needs: [pre-check, determine-languages]
     if: >
-      needs.determine-languages.result == 'success' &&
-      needs.determine-languages.outputs.languages != '[]'
+      needs.determine-languages.result == 'success' && needs.determine-languages.outputs.languages != '[]'
     name: Analyze ${{ matrix.language }} with CodeQL
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
     env:
       local_checkout_path: ${{ needs.pre-check.outputs.local_checkout_path }}
-      local_build_path: ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}
-      CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE: ${{ github.workspace }}/${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}/compile_commands.json
+      local_build_path:
+        ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build',
+        github.event.repository.name) }}
+      CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE:
+        ${{ github.workspace }}/${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build',
+        github.event.repository.name) }}/compile_commands.json
     strategy:
       fail-fast: false
       matrix:
@@ -412,8 +421,7 @@ jobs:
 
       - name: Prepare PR comment data
         if: >-
-          github.event_name == 'pull_request' &&
-          steps.check_codeql.outputs.comment_path != ''
+          github.event_name == 'pull_request' && steps.check_codeql.outputs.comment_path != ''
         run: |
           mkdir -p pr_comment_data
           echo "${{ github.event.pull_request.number }}" > pr_comment_data/pr_number.txt
@@ -421,8 +429,7 @@ jobs:
 
       - name: Upload PR comment data
         if: >-
-          github.event_name == 'pull_request' &&
-          steps.check_codeql.outputs.comment_path != ''
+          github.event_name == 'pull_request' && steps.check_codeql.outputs.comment_path != ''
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: codeql-pr-data
@@ -432,8 +439,7 @@ jobs:
       - name: Fail workflow due to new CodeQL alerts
         # Fails the check on the PR so the user sees red X
         if: >-
-          github.event_name == 'pull_request' &&
-          steps.check_codeql.outputs.new_alerts == 'true'
+          github.event_name == 'pull_request' && steps.check_codeql.outputs.new_alerts == 'true'
         run: |
           echo "New CodeQL alerts detected; failing job."
           exit 1

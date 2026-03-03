@@ -1,7 +1,7 @@
 name: Markdown Fix
 run-name: "${{ github.actor }} fixing Markdown format"
 
-on:
+"on":
   issue_comment:
     types:
       - created
@@ -31,16 +31,16 @@ permissions:
   contents: write
 
 env:
-  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path:
+    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
+    github.event.repository.name) }}
 
 jobs:
   pre-check:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'workflow_call' ||
-      (
+      github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
@@ -51,10 +51,13 @@ jobs:
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
-    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     outputs:
-      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
-      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo }}
+      ref:
+        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo:
+        ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' &&
+        github.repository) || steps.get_pr.outputs.repo }}
 
     steps:
       - name: Get PR Info
@@ -79,7 +82,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install markdownlint-cli2
         run: npm install -g markdownlint-cli2

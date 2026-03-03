@@ -1,18 +1,18 @@
-name: 'Generate Build Matrix'
-description: 'Generates a dynamic build matrix for the cmake-build workflow'
+name: "Generate Build Matrix"
+description: "Generates a dynamic build matrix for the cmake-build workflow"
 inputs:
   user-input:
-    description: 'The user-provided build combinations from a workflow_dispatch event'
+    description: "The user-provided build combinations from a workflow_dispatch event"
     required: false
   comment-body:
-    description: 'The body of the issue comment that triggered the workflow'
+    description: "The body of the issue comment that triggered the workflow"
     required: false
 outputs:
   matrix:
-    description: 'The generated build matrix in JSON format'
+    description: "The generated build matrix in JSON format"
     value: ${{ steps.generate.outputs.matrix }}
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - id: generate
       run: python "$ACTION_PATH/generate_matrix.py"

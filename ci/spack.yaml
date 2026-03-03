@@ -1,14 +1,14 @@
 spack:
   specs:
-  - phlex
-  - catch2
-  - cmake
-  - lcov
-  - ninja
-  - py-gcovr
-  - py-pip # Needed temporarily for ruff installation
-  - py-pytest-cov # Needed for Python coverage reports
-  - |
+    - phlex
+    - catch2
+    - cmake
+    - lcov
+    - ninja
+    - py-gcovr
+    - py-pip # Needed temporarily for ruff installation
+    - py-pytest-cov # Needed for Python coverage reports
+    - |
       llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
   view: true
@@ -19,34 +19,33 @@ spack:
   packages:
     all:
       target:
-      - x86_64_v3
+        - x86_64_v3
 
     cmake:
       require:
-      - "~qtgui"
-      - "@4:"
+        - "~qtgui"
+        - "@4:"
 
     phlex:
       require:
-      - "+form"
-      - "cxxstd=23"
-      - "%gcc@15"
-
+        - "+form"
+        - "cxxstd=23"
+        - "%gcc@15"
 
     # GCC 15 uses C23 as the default C language, and the versions of
     # libunwind and unuran available in Spack (as of 8/12/2025) do not
     # yet support C23.
     libunwind:
       require:
-      - "cflags='-std=c17'"
+        - "cflags='-std=c17'"
 
     unuran:
       require:
-      - "cflags='-std=c17'"
+        - "cflags='-std=c17'"
 
     # ROOT should be built with the same version of the C++ standard
     # as will be used by Phlex (C++20 for now).
     root:
       require:
-      - "~x"  # No graphics libraries required
-      - "cxxstd=23"
+        - "~x" # No graphics libraries required
+        - "cxxstd=23"

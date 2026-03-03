@@ -5,7 +5,7 @@ permissions:
   contents: read
   pull-requests: read
 
-on:
+"on":
   pull_request:
   workflow_dispatch:
     inputs:
@@ -42,16 +42,22 @@ on:
         type: string
 
 env:
-  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path:
+    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
+    github.event.repository.name) }}
 
 jobs:
   pre-check:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      ref:
+        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.ref || github.ref)) || github.sha }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
-      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+      base_sha:
+        ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha ||
+        github.event.before }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -60,13 +66,10 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
-      (
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && (
         github.event_name != 'workflow_call' ||
         (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
-      ) &&
-      needs.pre-check.outputs.is_act != 'true'
+      ) && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,38 +77,37 @@ jobs:
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        fetch-depth: 0
-        path: ${{ env.local_checkout_path }}
-        ref: ${{ needs.pre-check.outputs.ref }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: ${{ env.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect relevant changes
-      id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-      with:
-        repo-path: ${{ env.local_checkout_path }}
-        base-ref: ${{ needs.pre-check.outputs.base_sha }}
-        head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
-        file-type: python
+      - name: Detect relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: ${{ env.local_checkout_path }}
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
+          file-type: python
 
-    - name: Report detection outcome
-      run: |
-        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No python check relevant changes detected; job will be skipped."
-        else
-          echo "::group::Python check relevant files"
-          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-          echo "::endgroup::"
-        fi
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No python check relevant changes detected; job will be skipped."
+          else
+            echo "::group::Python check relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
 
   python-check:
     needs: [pre-check, detect-changes]
     if: >
-      always() &&
-      (
+      always() && (
         needs.detect-changes.result == 'skipped' ||
         (
           needs.detect-changes.result == 'success' &&
@@ -117,65 +119,64 @@ jobs:
       contents: read
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        ref: ${{ needs.pre-check.outputs.ref }}
-        path: ${{ env.local_checkout_path }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.pre-check.outputs.ref }}
+          path: ${{ env.local_checkout_path }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Set up Python
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.x"
 
-    - name: Install Python dependencies
-      run: |
-        pip install ruff mypy
+      - name: Install Python dependencies
+        run: |
+          pip install ruff mypy
 
-    - name: Run ruff check
-      id: ruff
-      working-directory: ${{ env.local_checkout_path }}
-      env:
-        FORCE_COLOR: 1
-      run: |
-        echo "➡️ Checking Python code with ruff..."
-        ruff check
-      continue-on-error: true
+      - name: Run ruff check
+        id: ruff
+        working-directory: ${{ env.local_checkout_path }}
+        env:
+          FORCE_COLOR: 1
+        run: |
+          echo "➡️ Checking Python code with ruff..."
+          ruff check
+        continue-on-error: true
 
-    - name: Run MyPy check
-      id: mypy
-      working-directory: ${{ env.local_checkout_path }}
-      run: |
-        echo "➡️ Checking Python code with MyPy..."
-        mypy --color-output .
-      continue-on-error: true
+      - name: Run MyPy check
+        id: mypy
+        working-directory: ${{ env.local_checkout_path }}
+        run: |
+          echo "➡️ Checking Python code with MyPy..."
+          mypy --color-output .
+        continue-on-error: true
 
-    - name: Evaluate Python checks result
-      if: always() && (steps.ruff.outcome != 'skipped' || steps.mypy.outcome != 'skipped')
-      run: |
-        if [ "${{ steps.ruff.outcome }}" = 'success' ] && [ "${{ steps.mypy.outcome }}" = 'success' ]; then
-          echo "✅ Python checks passed."
-        else
-          echo "::error::Python checks failed. Comment '@${{ github.event.repository.name }}bot python-fix' on the PR to attempt auto-fix."
-          exit 1
-        fi
+      - name: Evaluate Python checks result
+        if: always() && (steps.ruff.outcome != 'skipped' || steps.mypy.outcome != 'skipped')
+        # yamllint disable rule:line-length
+        run: |
+          if [ "${{ steps.ruff.outcome }}" = 'success' ] && [ "${{ steps.mypy.outcome }}" = 'success' ]; then
+            echo "✅ Python checks passed."
+          else
+            echo "::error::Python checks failed. Comment '@${{ github.event.repository.name }}bot python-fix' on the PR to attempt auto-fix."
+            exit 1
+          fi
+        # yamllint enable
 
   python-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
-      (
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && (
         github.event_name != 'workflow_call' ||
         (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
-      ) &&
-      needs.pre-check.outputs.is_act != 'true' &&
-      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+      ) && needs.pre-check.outputs.is_act != 'true' && (needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-    - name: No relevant Python changes detected
-      run: echo "No Python relevant changes detected; check skipped."
+      - name: No relevant Python changes detected
+        run: echo "No Python relevant changes detected; check skipped."

@@ -1,7 +1,7 @@
 name: Python Fix
 run-name: "${{ github.actor }} fixing Python code"
 
-on:
+"on":
   issue_comment:
     types:
       - created
@@ -31,16 +31,16 @@ permissions:
   contents: write
 
 env:
-  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path:
+    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
+    github.event.repository.name) }}
 
 jobs:
   pre-check:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'workflow_call' ||
-      (
+      github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
@@ -48,10 +48,13 @@ jobs:
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
-    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     outputs:
-      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
-      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo }}
+      ref:
+        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      repo:
+        ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' &&
+        github.repository) || steps.get_pr.outputs.repo }}
     steps:
       - name: Get PR Info
         if: github.event_name == 'issue_comment'
@@ -74,7 +77,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install Python dependencies
         run: |

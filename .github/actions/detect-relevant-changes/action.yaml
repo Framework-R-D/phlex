@@ -21,7 +21,9 @@ inputs:
     required: false
     default: ""
   type-pattern-add:
-    description: "Additional type-to-glob mappings (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added automatically."
+    description: >-
+      Additional type-to-glob mappings (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added
+      automatically.
     required: false
     default: ""
 outputs:
@@ -44,6 +46,7 @@ runs:
         FILE_TYPE: ${{ inputs.file-type }}
         INCLUDE_GLOBS: ${{ inputs.include-globs }}
         TYPE_PATTERN_ADD: ${{ inputs.type-pattern-add }}
+      # yamllint disable rule:line-length
       run: |
         set -euo pipefail
 
@@ -55,10 +58,12 @@ runs:
         DEFAULT_TYPE_PATTERNS[python]=$'*.py'
         DEFAULT_TYPE_PATTERNS[md]=$'*.md'
         DEFAULT_TYPE_PATTERNS[jsonnet]=$'*.jsonnet\n*.libsonnet'
+        DEFAULT_TYPE_PATTERNS[yaml]=$'*.yaml\n*.yml'
         # Types that do not support .in variants for relevance detection
         declare -A NO_IN_VARIANT_TYPES
         NO_IN_VARIANT_TYPES[jsonnet]="1"
-        
+        NO_IN_VARIANT_TYPES[yaml]="1"
+
         parse_list() {
           local input="$1"
           printf '%s' "$input" | tr ',' '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'
@@ -208,3 +213,4 @@ runs:
           echo "matched=false" >> "$GITHUB_OUTPUT"
           echo "matched_files=" >> "$GITHUB_OUTPUT"
         fi
+      # yamllint enable

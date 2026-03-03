@@ -1,12 +1,12 @@
 name: CMake Build and Test
 run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
 
-on:
+"on":
   pull_request:
   issue_comment:
     types: [created]
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       ref:
@@ -23,7 +23,7 @@ on:
           - `+clang/none +clang/valgrind` (run default matrix plus specified)
           Default (if empty): Run all except clang/none and clang/valgrind.
         required: false
-        default: ''
+        default: ""
   workflow_call:
     inputs:
       checkout-path:
@@ -67,17 +67,18 @@ permissions:
 env:
   BUILD_TYPE: Release
   CICOLOR_FORCE: 1
-  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
-  local_build_path: ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name) }}
+  local_checkout_path:
+    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
+    github.event.repository.name) }}
+  local_build_path:
+    ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name)
+    }}
 
 jobs:
   pre-check:
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request' ||
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_call' ||
-      (
+      github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push' ||
+      github.event_name == 'workflow_call' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
@@ -85,7 +86,6 @@ jobs:
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
-    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -93,9 +93,13 @@ jobs:
 
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.pr.outputs.ref || steps.pr.outputs.sha || github.sha }}
+      ref:
+        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.ref || github.ref)) || steps.pr.outputs.ref || steps.pr.outputs.sha || github.sha }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || steps.pr.outputs.repo || github.repository }}
-      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || steps.pr.outputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
+      base_sha:
+        ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || steps.pr.outputs.base_sha ||
+        github.event.pull_request.base.sha || github.event.before }}
 
     steps:
       - name: Get PR Info
@@ -110,8 +114,7 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      needs.pre-check.result == 'success' &&
-      (
+      needs.pre-check.result == 'success' && (
         github.event_name == 'pull_request' ||
         github.event_name == 'push' ||
         (
@@ -120,8 +123,7 @@ jobs:
           github.event.inputs == null &&
           github.event.comment == null
         )
-      ) &&
-      needs.pre-check.outputs.is_act != 'true'
+      ) && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -168,15 +170,15 @@ jobs:
       - id: generate
         uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
         with:
-          user-input: ${{ (github.event_name == 'workflow_call' && inputs.build-combinations) || github.event.inputs.build-combinations }}
+          user-input:
+            ${{ (github.event_name == 'workflow_call' && inputs.build-combinations) ||
+            github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
 
   build:
     needs: [pre-check, detect-changes, generate-matrix]
     if: >
-      always() &&
-      needs.pre-check.result == 'success' &&
-      (
+      always() && needs.pre-check.result == 'success' && (
         needs.detect-changes.result == 'skipped' ||
         (
           needs.detect-changes.result == 'success' &&
@@ -192,103 +194,98 @@ jobs:
       image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        path: ${{ env.local_checkout_path }}
-        ref: ${{ needs.pre-check.outputs.ref }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Check out code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: ${{ env.local_checkout_path }}
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Setup build environment
-      uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
-      with:
-        build-path: ${{ env.local_build_path }}
+      - name: Setup build environment
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        with:
+          build-path: ${{ env.local_build_path }}
 
-    - name: Announce CMake configuration
-      run: echo "➡️ Configuring CMake..."
+      - name: Announce CMake configuration
+        run: echo "➡️ Configuring CMake..."
 
-    - name: Extract repository name
-      id: repo_name
-      env:
-        REPO_FULL_NAME: ${{ needs.pre-check.outputs.repo }}
-      run: echo "name=${REPO_FULL_NAME##*/}" >> "$GITHUB_OUTPUT"
+      - name: Extract repository name
+        id: repo_name
+        env:
+          REPO_FULL_NAME: ${{ needs.pre-check.outputs.repo }}
+        run: echo "name=${REPO_FULL_NAME##*/}" >> "$GITHUB_OUTPUT"
 
-    - name: Configure CMake
-      id: configure
-      uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
-      with:
-        source-path: ${{ env.local_checkout_path }}
-        build-path: ${{ env.local_build_path }}
-        build-type: ${{ env.BUILD_TYPE }}
-        cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
-        extra-options: |
-          ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', steps.repo_name.outputs.name) || '' }}
-          ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', steps.repo_name.outputs.name) || '' }}
+      - name: Configure CMake
+        id: configure
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        with:
+          source-path: ${{ env.local_checkout_path }}
+          build-path: ${{ env.local_build_path }}
+          build-type: ${{ env.BUILD_TYPE }}
+          cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+          extra-options: |
+            ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', steps.repo_name.outputs.name) || '' }}
+            ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', steps.repo_name.outputs.name) || '' }}
 
-    - name: Build
-      id: build
-      uses: Framework-R-D/phlex/.github/actions/build-cmake@main
-      with:
-        build-path: ${{ env.local_build_path }}
+      - name: Build
+        id: build
+        uses: Framework-R-D/phlex/.github/actions/build-cmake@main
+        with:
+          build-path: ${{ env.local_build_path }}
 
-    - name: Run tests
-      if: matrix.sanitizer != 'valgrind'
-      run: |
-        . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
+      - name: Run tests
+        if: matrix.sanitizer != 'valgrind'
+        run: |
+          . /entrypoint.sh
+          cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
 
-        echo "➡️ Running tests..."
-        echo "::group::Running ctest"
-        if ctest --progress --output-on-failure -j "$(nproc)"; then
-          echo "::endgroup::"
-          echo "✅ All tests passed."
-        else
-          echo "::endgroup::"
-          echo "::error:: Some tests failed."
-          exit 1
-        fi
+          echo "➡️ Running tests..."
+          echo "::group::Running ctest"
+          if ctest --progress --output-on-failure -j "$(nproc)"; then
+            echo "::endgroup::"
+            echo "✅ All tests passed."
+          else
+            echo "::endgroup::"
+            echo "::error:: Some tests failed."
+            exit 1
+          fi
 
-    - name: Run Valgrind tests
-      if: matrix.sanitizer == 'valgrind'
-      run: |
-        . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
+      - name: Run Valgrind tests
+        if: matrix.sanitizer == 'valgrind'
+        run: |
+          . /entrypoint.sh
+          cd "$GITHUB_WORKSPACE/${{ env.local_build_path }}"
 
-        echo "➡️ Running Valgrind tests..."
-        echo "::group::Running ctest -T memcheck"
-        if ctest -T memcheck; then
-          echo "::endgroup::"
-          echo "✅ Valgrind tests passed."
-        else
-          echo "::endgroup::"
-          echo "⚠️ Valgrind tests failed, but the workflow will continue."
-        fi
+          echo "➡️ Running Valgrind tests..."
+          echo "::group::Running ctest -T memcheck"
+          if ctest -T memcheck; then
+            echo "::endgroup::"
+            echo "✅ Valgrind tests passed."
+          else
+            echo "::endgroup::"
+            echo "⚠️ Valgrind tests failed, but the workflow will continue."
+          fi
 
   cmake-build-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
-      (
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && (
         github.event_name != 'workflow_call' ||
         (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
-      ) &&
-      needs.pre-check.outputs.is_act != 'true' &&
-      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+      ) && needs.pre-check.outputs.is_act != 'true' && (needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-    - name: No relevant C++ or CMake changes detected
-      run: echo "::notice::No relevant C++ or CMake changes detected; build skipped."
+      - name: No relevant C++ or CMake changes detected
+        run: echo "::notice::No relevant C++ or CMake changes detected; build skipped."
 
   build-complete:
     needs: [pre-check, build]
     if: >
-      always() &&
-      github.event_name == 'issue_comment' &&
-      needs.pre-check.result == 'success'
+      always() && github.event_name == 'issue_comment' && needs.pre-check.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -297,13 +294,15 @@ jobs:
       - name: Comment on build completion
         uses: Framework-R-D/phlex/.github/actions/pr-comment@main
         with:
+          # yamllint disable rule:line-length
           message: |
             Build and test workflow completed.
-            
-            **Result:** ${{ needs.build.result == 'success' && '✅ All builds and tests passed.' 
-              || needs.build.result == 'failure' && '❌ Some builds or tests failed.' 
-              || needs.build.result == 'cancelled' && '⚠️ Build was cancelled before completion.' 
-              || needs.build.result == 'skipped' && 'ℹ️ Build job was skipped.' 
+
+            **Result:** ${{ needs.build.result == 'success' && '✅ All builds and tests passed.'
+              || needs.build.result == 'failure' && '❌ Some builds or tests failed.'
+              || needs.build.result == 'cancelled' && '⚠️ Build was cancelled before completion.'
+              || needs.build.result == 'skipped' && 'ℹ️ Build job was skipped.'
               || format('ℹ️ Build job completed with status: {0}.', needs.build.result) }}
-            
+
             See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.
+          # yamllint enable
