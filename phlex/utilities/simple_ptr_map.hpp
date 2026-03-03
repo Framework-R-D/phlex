@@ -43,9 +43,9 @@ namespace phlex::experimental {
     simple_ptr_map(simple_ptr_map const&) = delete;
     simple_ptr_map& operator=(simple_ptr_map const&) = delete;
 
-    auto try_emplace(std::string node_name, ptr ptr)
+    auto try_emplace(std::string node_name, ptr node_ptr)
     {
-      return data_.try_emplace(std::move(node_name), std::move(ptr));
+      return data_.try_emplace(std::move(node_name), std::move(node_ptr));
     }
 
     auto begin() const { return data_.begin(); }
