@@ -74,7 +74,7 @@ namespace phlex::experimental {
               std::string partition) :
       declared_fold{std::move(name), std::move(predicates), std::move(product_labels)},
       initializer_{std::move(initializer)},
-      output_{to_product_specifications(full_name(), std::move(output), make_type_ids<r>())},
+      output_{to_product_specifications(full_name(), std::move(output), make_type_ids<result_type>())},
       partition_{std::move(partition)},
       flush_receiver_{g,
                       tbb::flow::unlimited,
@@ -177,8 +177,8 @@ namespace phlex::experimental {
     template <size_t... Is>
     auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
     {
-      return std::unique_ptr<r>{
-        new r{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
+      return std::unique_ptr<result_type>{
+        new result_type{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
     }
 
     auto commit(product_store_ptr& store)
@@ -201,7 +201,7 @@ namespace phlex::experimental {
     tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1>> fold_;
-    tbb::concurrent_unordered_map<data_cell_index::hash_type, std::unique_ptr<r>> results_;
+    tbb::concurrent_unordered_map<data_cell_index::hash_type, std::unique_ptr<result_type>> results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;
   };
