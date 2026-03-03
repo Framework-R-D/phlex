@@ -37,7 +37,6 @@ cet_make_library(
   phlex::model
   phlex::utilities
   PRIVATE
-  phlex::graph
   Boost::json
   spdlog::spdlog
 )
@@ -101,7 +100,6 @@ cet_make_library(
   LIBRARIES
   phlex_core
   phlex::metaprogramming
-  phlex::graph
   phlex::model
   phlex::utilities
   Boost::json

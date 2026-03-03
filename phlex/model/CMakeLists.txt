@@ -18,7 +18,6 @@ cet_make_library(
   spdlog::spdlog
   fmt::fmt
   PRIVATE
-  phlex::graph
   phlex::utilities
   TBB::tbb
 )
