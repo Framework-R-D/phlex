@@ -61,7 +61,7 @@ jobs:
         with:
           source: "./phlex-src"
           clangFormatVersion: 20
-          inplace: True
+          inplace: "True"
           extensions: cpp,hpp,cpp.in,hpp.in
 
       - name: Handle fix commit
