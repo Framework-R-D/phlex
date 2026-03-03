@@ -1,7 +1,7 @@
 name: Header Guards Fix
 run-name: "${{ github.actor }} fixing header guards"
 
-on:
+"on":
   issue_comment:
     types:
       - created

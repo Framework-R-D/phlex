@@ -4,7 +4,7 @@ name: YAML Check
 permissions:
   contents: read
 
-on:
+"on":
   pull_request:
   workflow_dispatch:
     inputs:

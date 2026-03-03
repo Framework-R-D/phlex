@@ -5,7 +5,7 @@ permissions:
   contents: read
   pull-requests: read
 
-on:
+"on":
   pull_request:
   workflow_dispatch:
     inputs:

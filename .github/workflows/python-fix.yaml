@@ -1,7 +1,7 @@
 name: Python Fix
 run-name: "${{ github.actor }} fixing Python code"
 
-on:
+"on":
   issue_comment:
     types:
       - created

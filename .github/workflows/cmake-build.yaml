@@ -1,7 +1,7 @@
 name: CMake Build and Test
 run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
 
-on:
+"on":
   pull_request:
   issue_comment:
     types: [created]

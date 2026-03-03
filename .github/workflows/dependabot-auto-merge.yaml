@@ -1,5 +1,5 @@
 name: Dependabot auto-merge
-on:
+"on":
   # Use pull_request_target instead of pull_request to get elevated permissions
   # This is safe for Dependabot PRs because:
   # 1. We verify the PR author is dependabot[bot]

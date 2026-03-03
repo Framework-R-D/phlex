@@ -1,7 +1,7 @@
 name: CMake Format Fix
 run-name: "${{ github.actor }} fixing CMake format"
 
-on:
+"on":
   issue_comment:
     types:
       - created

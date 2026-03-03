@@ -2,7 +2,7 @@
 name: Code Coverage
 run-name: "${{ github.actor }} running code coverage"
 
-on:
+"on":
   push:
     branches: [main, develop]
   pull_request:

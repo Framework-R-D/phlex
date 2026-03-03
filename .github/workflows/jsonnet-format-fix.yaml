@@ -1,7 +1,7 @@
 name: Jsonnet Format Fix
 run-name: "${{ github.actor }} fixing Jsonnet format"
 
-on:
+"on":
   issue_comment:
     types:
       - created

@@ -1,6 +1,6 @@
 name: "CodeQL - Post Comment"
 
-on:
+"on":
   workflow_run:
     workflows: ["CodeQL Analysis"]
     types:

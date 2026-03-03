@@ -1,7 +1,7 @@
 name: YAML Fix
 "run-name": "${{ github.actor }} fixing YAML files"
 
-on:
+"on":
   issue_comment:
     types:
       - created

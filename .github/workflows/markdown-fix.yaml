@@ -1,7 +1,7 @@
 name: Markdown Fix
 run-name: "${{ github.actor }} fixing Markdown format"
 
-on:
+"on":
   issue_comment:
     types:
       - created

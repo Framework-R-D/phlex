@@ -1,7 +1,7 @@
 name: Clang-Format Fix
 run-name: "${{ github.actor }} fixing C++ code format"
 
-on:
+"on":
   issue_comment:
     types:
       - created
