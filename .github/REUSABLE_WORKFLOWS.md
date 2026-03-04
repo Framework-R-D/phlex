@@ -82,13 +82,25 @@ You can achieve this by passing the appropriate value to the `skip-relevance-che
       skip-relevance-check: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment' }}
 ```
 
-Additionally, to ensure the reusable workflow can access the correct code in an extra-repository context, always pass the `ref` and `repo`:
+Additionally, to ensure the reusable workflow can access the correct code in an extra-repository context, always pass the `ref` and `repo`. The correct value depends on whether the workflow is a **check** (read-only) or **fix** (push-capable) workflow:
 
-```yaml
-    with:
-      ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      repo: ${{ github.repository }}
-```
+- **Check workflows** (e.g., `cmake-format-check.yaml`): a commit SHA is safe and precise.
+
+  ```yaml
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        repo: ${{ github.repository }}
+  ```
+
+- **Fix workflows** (e.g., `cmake-format-fix.yaml`): a branch name is **required** because the
+  workflow pushes commits with `git push origin HEAD:<ref>`. A commit SHA will cause the push to
+  fail.
+
+  ```yaml
+      with:
+        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+        repo: ${{ github.repository }}
+  ```
 
 ---
 
@@ -146,40 +158,25 @@ jobs:
 
 ### 3. `cmake-format-fix.yaml`
 
-Automatically formats CMake files using `gersemi` and commits the changes. Typically triggered by an `issue_comment`.
+Automatically formats CMake files using `gersemi` and commits the changes.
+
+**Trigger Methods:**
+
+- `@phlexbot cmake-fix` comment on a PR (individual workflow)
+- `@phlexbot format` comment on a PR (via `format-all.yaml`)
+- `workflow_call` from another workflow
+- `workflow_dispatch` manual trigger
 
 #### Usage Example
 
 ```yaml
-name: 'Bot Commands'
-on:
-  issue_comment:
-    types: [created]
-
 jobs:
-  pre-check:
-    # Extract PR details for the comment trigger
-    if: >
-      github.event.issue.pull_request &&
-      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-      (
-        startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
-        startsWith(github.event.comment.body, format('@{0}bot cmake-fix', github.event.repository.name))
-      )
-    runs-on: ubuntu-latest
-    outputs:
-      ref: ${{ steps.pr_info.outputs.ref }}
-      repo: ${{ steps.pr_info.outputs.repo }}
-    steps:
-      - id: pr_info
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@<commit_sha>
-
-  format-cmake:
-    needs: pre-check
+  fix-cmake:
     uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@<commit_sha>
     with:
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ github.event.pull_request.head.ref }}
+      repo: ${{ github.repository }}
+      skip-comment: "true"  # Set to true when calling from a parent workflow
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -187,8 +184,17 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments (use when called from a parent workflow that will post a combined comment).
+
+#### Outputs
+
+- `changes` (string): Whether changes were detected (`true`/`false`).
+- `pushed` (string): Whether changes were pushed (`true`/`false`).
+- `commit_sha` (string): The full SHA of the pushed commit.
+- `commit_sha_short` (string): The short SHA of the pushed commit.
+- `patch_name` (string): The name of the patch file if created.
 
 ### 4. `python-check.yaml`
 
@@ -205,7 +211,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Python files have changed.
+- `skip-relevance-check` (boolean, optional, default: false): Bypass the check that only runs if Python files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -213,36 +219,25 @@ jobs:
 
 ### 5. `python-fix.yaml`
 
-Automatically formats and fixes Python code using `ruff` and commits the changes. Typically triggered by an `issue_comment`.
+Automatically formats and fixes Python code using `ruff` and commits the changes.
+
+**Trigger Methods:**
+
+- `@phlexbot python-fix` comment on a PR (individual workflow)
+- `@phlexbot format` comment on a PR (via `format-all.yaml`)
+- `workflow_call` from another workflow
+- `workflow_dispatch` manual trigger
 
 #### Usage Example
 
 ```yaml
-name: 'Bot Commands'
-on:
-  issue_comment:
-    types: [created]
-
 jobs:
-  pre-check:
-    if: >
-      github.event.issue.pull_request &&
-      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-      startsWith(github.event.comment.body, format('@{0}bot python-fix', github.event.repository.name))
-    runs-on: ubuntu-latest
-    outputs:
-      ref: ${{ steps.pr_info.outputs.ref }}
-      repo: ${{ steps.pr_info.outputs.repo }}
-    steps:
-      - id: pr_info
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@<commit_sha>
-
   fix-python:
-    needs: pre-check
     uses: Framework-R-D/phlex/.github/workflows/python-fix.yaml@<commit_sha>
     with:
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ github.event.pull_request.head.ref }}
+      repo: ${{ github.repository }}
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -250,8 +245,17 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
+
+#### Outputs
+
+- `changes` (string): Whether changes were detected.
+- `pushed` (string): Whether changes were pushed.
+- `commit_sha` (string): The full SHA of the pushed commit.
+- `commit_sha_short` (string): The short SHA of the pushed commit.
+- `patch_name` (string): The name of the patch file if created.
 
 ### 6. `markdown-check.yaml`
 
@@ -276,40 +280,25 @@ jobs:
 
 ### 7. `markdown-fix.yaml`
 
-Automatically formats Markdown files using `markdownlint` and commits the changes. Typically triggered by an `issue_comment`.
+Automatically formats Markdown files using `markdownlint` and commits the changes.
+
+**Trigger Methods:**
+
+- `@phlexbot markdown-fix` comment on a PR (individual workflow)
+- `@phlexbot format` comment on a PR (via `format-all.yaml`)
+- `workflow_call` from another workflow
+- `workflow_dispatch` manual trigger
 
 #### Usage Example
 
 ```yaml
-name: 'Bot Commands'
-on:
-  issue_comment:
-    types: [created]
-
 jobs:
-  pre-check:
-    if: >
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request &&
-      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-      (
-        startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
-        startsWith(github.event.comment.body, format('@{0}bot markdown-fix', github.event.repository.name))
-      )
-    runs-on: ubuntu-latest
-    outputs:
-      ref: ${{ steps.pr_info.outputs.ref }}
-      repo: ${{ steps.pr_info.outputs.repo }}
-    steps:
-      - id: pr_info
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@<commit_sha>
-
   fix-markdown:
-    needs: pre-check
     uses: Framework-R-D/phlex/.github/workflows/markdown-fix.yaml@<commit_sha>
     with:
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ github.event.pull_request.head.ref }}
+      repo: ${{ github.repository }}
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -317,8 +306,17 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
+
+#### Outputs
+
+- `changes` (string): Whether changes were detected.
+- `pushed` (string): Whether changes were pushed.
+- `commit_sha` (string): The full SHA of the pushed commit.
+- `commit_sha_short` (string): The short SHA of the pushed commit.
+- `patch_name` (string): The name of the patch file if created.
 
 ### 8. `actionlint-check.yaml`
 
@@ -367,39 +365,25 @@ jobs:
 
 ### 10. `jsonnet-format-fix.yaml`
 
-Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes. Typically triggered by an `issue_comment`.
+Automatically formats Jsonnet files using `jsonnetfmt` and commits the changes.
+
+**Trigger Methods:**
+
+- `@phlexbot jsonnet-fix` comment on a PR (individual workflow)
+- `@phlexbot format` comment on a PR (via `format-all.yaml`)
+- `workflow_call` from another workflow
+- `workflow_dispatch` manual trigger
 
 #### Usage Example
 
 ```yaml
-name: 'Bot Commands'
-on:
-  issue_comment:
-    types: [created]
-
 jobs:
-  pre-check:
-    if: >
-      github.event.issue.pull_request &&
-      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-      (
-        startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
-        startsWith(github.event.comment.body, format('@{0}bot jsonnet-fix', github.event.repository.name))
-      )
-    runs-on: ubuntu-latest
-    outputs:
-      ref: ${{ steps.pr_info.outputs.ref }}
-      repo: ${{ steps.pr_info.outputs.repo }}
-    steps:
-      - id: pr_info
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@<commit_sha>
-
   fix-jsonnet:
-    needs: pre-check
     uses: Framework-R-D/phlex/.github/workflows/jsonnet-format-fix.yaml@<commit_sha>
     with:
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ github.event.pull_request.head.ref }}
+      repo: ${{ github.repository }}
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -407,8 +391,17 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to checkout.
+- `ref` (string, **required**): The branch name to checkout and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to checkout from.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
+
+#### Outputs
+
+- `changes` (string): Whether changes were detected.
+- `pushed` (string): Whether changes were pushed.
+- `commit_sha` (string): The full SHA of the pushed commit.
+- `commit_sha_short` (string): The short SHA of the pushed commit.
+- `patch_name` (string): The name of the patch file if created.
 
 ### 11. `codeql-analysis.yaml`
 
@@ -449,6 +442,143 @@ jobs:
 - **Pushes to main/develop**: All languages are analyzed regardless of changes.
 - **Language Override**: Providing the `language-matrix` input in `workflow_call` bypasses automatic detection.
 
+### 12. `clang-format-fix.yaml`
+
+Automatically formats C++ files using `clang-format` and commits the changes.
+
+**Trigger Methods:**
+
+- `@phlexbot clang-fix` comment on a PR (individual workflow)
+- `@phlexbot format` comment on a PR (via `format-all.yaml`)
+- `workflow_call` from another workflow
+- `workflow_dispatch` manual trigger
+
+#### Usage Example
+
+```yaml
+jobs:
+  fix-clang-format:
+    uses: Framework-R-D/phlex/.github/workflows/clang-format-fix.yaml@<commit_sha>
+    with:
+      ref: ${{ github.event.pull_request.head.ref }}
+      repo: ${{ github.repository }}
+      skip-comment: "true"
+    secrets:
+      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
+- `repo` (string, **required**): The repository to check out from.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
+
+#### Outputs
+
+- `changes` (string): Whether changes were detected.
+- `pushed` (string): Whether changes were pushed.
+- `commit_sha` (string): The full SHA of the pushed commit.
+- `commit_sha_short` (string): The short SHA of the pushed commit.
+- `patch_name` (string): The name of the patch file if created.
+
+### 13. `header-guards-fix.yaml`
+
+Automatically fixes header guard formatting and commits the changes.
+
+**Trigger Methods:**
+
+- `@phlexbot header-guards-fix` comment on a PR (individual workflow)
+- `@phlexbot format` comment on a PR (via `format-all.yaml`)
+- `workflow_call` from another workflow
+- `workflow_dispatch` manual trigger
+
+#### Usage Example
+
+```yaml
+jobs:
+  fix-header-guards:
+    uses: Framework-R-D/phlex/.github/workflows/header-guards-fix.yaml@<commit_sha>
+    with:
+      ref: ${{ github.event.pull_request.head.ref }}
+      repo: ${{ github.repository }}
+      skip-comment: "true"
+    secrets:
+      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
+- `repo` (string, **required**): The repository to check out from.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
+
+#### Outputs
+
+- `changes` (string): Whether changes were detected.
+- `pushed` (string): Whether changes were pushed.
+- `commit_sha` (string): The full SHA of the pushed commit.
+- `commit_sha_short` (string): The short SHA of the pushed commit.
+- `patch_name` (string): The name of the patch file if created.
+
+### 14. `yaml-fix.yaml`
+
+Automatically formats YAML files using `prettier` and commits the changes.
+
+**Trigger Methods:**
+
+- `@phlexbot yaml-fix` comment on a PR (individual workflow)
+- `@phlexbot format` comment on a PR (via `format-all.yaml`)
+- `workflow_call` from another workflow
+- `workflow_dispatch` manual trigger
+
+#### Usage Example
+
+```yaml
+jobs:
+  fix-yaml:
+    uses: Framework-R-D/phlex/.github/workflows/yaml-fix.yaml@<commit_sha>
+    with:
+      ref: ${{ github.event.pull_request.head.ref }}
+      repo: ${{ github.repository }}
+      skip-comment: "true"
+    secrets:
+      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
+- `repo` (string, **required**): The repository to check out from.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
+
+#### Outputs
+
+- `changes` (string): Whether changes were detected.
+- `pushed` (string): Whether changes were pushed.
+- `commit_sha` (string): The full SHA of the pushed commit.
+- `commit_sha_short` (string): The short SHA of the pushed commit.
+- `patch_name` (string): The name of the patch file if created.
+
+### 15. `format-all.yaml`
+
+Centralized workflow that calls all format fix workflows in parallel and posts a single combined PR comment with results.
+
+**Trigger Methods:**
+
+- `@phlexbot format` comment on a PR
+
+**Behavior:**
+
+- Invokes all fix workflows (clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml) via `workflow_call`
+- Each sub-workflow runs with `skip-comment: "true"` to suppress individual comments
+- Collects all results and posts a single summary comment
+- Removes the 👀 reaction and adds a 🚀 reaction when complete
+
+**Note:** This workflow is not designed to be called via `workflow_call` from other repositories. It is specifically for use within the Phlex repository.
+
 ### Other Workflows
 
-The repository also provides `clang-format-check.yaml`, `clang-format-fix.yaml`, `clang-tidy-check.yaml`, and `clang-tidy-fix.yaml`. However, these workflows are currently **not** available for reuse via `workflow_call` as they are specifically intended for use on this repository and its forks.
+The repository also provides `clang-tidy-check.yaml` and `clang-tidy-fix.yaml`. These workflows are currently **not** available for reuse via `workflow_call` as they are specifically intended for use on this repository and its forks.

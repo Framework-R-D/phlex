@@ -134,9 +134,8 @@ jobs:
       - name: Check header guards
         id: check
         working-directory: ${{ env.local_checkout_path }}
-        run: >-
-          python3 scripts/fix_header_guards.py --check --root . phlex plugins form > check_output.txt 2>&1 ||
-          echo "has_issues=true" >> "$GITHUB_OUTPUT"
+        run: |
+          python3 scripts/fix_header_guards.py --check --root . phlex plugins form > check_output.txt 2>&1 || echo "has_issues=true" >> "$GITHUB_OUTPUT"
           cat check_output.txt
 
       - name: Report results
