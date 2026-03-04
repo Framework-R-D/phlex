@@ -16,7 +16,7 @@ using namespace phlex;
 namespace {
   // Tracks pipeline execution to verify that fold operations begin before all unfold
   // operations complete (pipelined execution rather than batched execution).
-  struct ExecutionTracker {
+  struct execution_tracker {
     // Total number of unfold operations completed
     std::atomic<std::size_t> unfold_completed{0};
 
@@ -41,7 +41,7 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   constexpr std::size_t wires_per_spill = apas_per_spill * 256ull;
   constexpr std::size_t chunksize = 256;
 
-  ExecutionTracker tracker;
+  execution_tracker tracker;
   tracker.total_expected = n_spills * apas_per_spill;
 
   // Create data layers using layer generator

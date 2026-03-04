@@ -1,14 +1,14 @@
 name: Clang-Tidy Fix
-'run-name': "${{ github.actor }} fixing C++ code with clang-tidy"
+"run-name": "${{ github.actor }} fixing C++ code with clang-tidy"
 
-on:
+"on":
   issue_comment:
     types:
       - created
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
         required: false
         type: string
       tidy-checks:
@@ -25,8 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      (
+      github.event_name == 'workflow_dispatch' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
@@ -34,11 +33,14 @@ jobs:
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
-    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     outputs:
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+      ref:
+        ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref_name)) ||
+        steps.get_pr.outputs.ref }}
       repo: ${{ steps.get_pr.outputs.repo || github.repository }}
-      tidy_checks: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tidy-checks || steps.parse_comment.outputs.tidy_checks }}
+      tidy_checks:
+        ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tidy-checks ||
+        steps.parse_comment.outputs.tidy_checks }}
 
     steps:
       - id: parse_comment
@@ -48,7 +50,8 @@ jobs:
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
           bot_name="${{ github.event.repository.name }}bot"
-          checks_line=$(echo "$COMMENT_BODY" | sed -nE "s/^@${bot_name}[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p" | tr -d '\r')
+          checks_line=$(echo "$COMMENT_BODY" |
+            sed -nE "s/^@${bot_name}[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p" | tr -d '\r')
           if [ -n "$checks_line" ]; then
             tidy_checks="$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)"
             echo "tidy_checks=$tidy_checks" >> "$GITHUB_OUTPUT"
@@ -76,44 +79,95 @@ jobs:
           repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
+      - name: Try to download existing fixes from check workflow
+        id: download_fixes_check
+        if: needs.pre-check.outputs.tidy_checks == ''
+        uses: dawidd6/action-download-artifact@2536c51d3d126276eb39f74d6bc9c72ac6ef30d3 # v16
+        with:
+          workflow: clang-tidy-check.yaml
+          name: clang-tidy-report
+          path: fixes
+          branch: ${{ needs.pre-check.outputs.ref }}
+        continue-on-error: true
+
+      - name: Try to download existing fixes from previous fix workflow
+        id: download_fixes_fix
+        if: steps.download_fixes_check.outcome != 'success' && needs.pre-check.outputs.tidy_checks == ''
+        uses: dawidd6/action-download-artifact@2536c51d3d126276eb39f74d6bc9c72ac6ef30d3 # v16
+        with:
+          workflow: clang-tidy-fix.yaml
+          name: clang-tidy-report
+          path: fixes
+          branch: ${{ needs.pre-check.outputs.ref }}
+        continue-on-error: true
+
+      - name: Apply fixes from artifact if available
+        id: apply_from_artifact
+        if:
+          needs.pre-check.outputs.tidy_checks == '' && (steps.download_fixes_check.outcome == 'success' ||
+          steps.download_fixes_fix.outcome == 'success')
+        run: |
+          if [ -f fixes/clang-tidy-fixes.yaml ]; then
+            echo "Applying fixes from existing artifact..."
+            cd phlex-src
+            clang-apply-replacements ../fixes || true
+            echo "applied=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "applied=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup build environment
+        if: steps.apply_from_artifact.outputs.applied != 'true'
         uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
 
-      - name: Configure CMake for clang-tidy
+      - name: Prepare CMake configuration options
+        if: steps.apply_from_artifact.outputs.applied != 'true'
+        id: prep_tidy_opts
         env:
           TIDY_CHECKS: ${{ needs.pre-check.outputs.tidy_checks }}
         run: |
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE"
 
-          CLANG_TIDY_OPTS="clang-tidy;--fix;--export-fixes=clang-tidy-fixes.yaml"
+          CLANG_TIDY_OPTS="clang-tidy;--export-fixes=clang-tidy-fixes.yaml"
           if [ -n "$TIDY_CHECKS" ]; then
             CHECKS_NORMALIZED=$(echo "$TIDY_CHECKS" | tr ' ' ',')
             CLANG_TIDY_OPTS="${CLANG_TIDY_OPTS};--checks=-*,${CHECKS_NORMALIZED}"
           fi
+          echo "clang_tidy_opts=${CLANG_TIDY_OPTS}" >> "$GITHUB_OUTPUT"
 
-          cmake -B phlex-build -S phlex-src \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
-            -DCMAKE_CXX_CLANG_TIDY="${CLANG_TIDY_OPTS}"
+      - name: Configure CMake (Debug)
+        if: steps.apply_from_artifact.outputs.applied != 'true'
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        with:
+          build-type: Debug
+          extra-options:
+            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='${{
+            steps.prep_tidy_opts.outputs.clang_tidy_opts }}'"
 
-      - name: Apply clang-tidy fixes using CMake build
+      - name: Generate clang-tidy fixes using CMake build
+        if: steps.apply_from_artifact.outputs.applied != 'true'
         run: |
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE/phlex-build"
+          cmake --build . -j "$(nproc)" || true
 
-          echo "Applying clang-tidy fixes..."
-          cmake --build . -j $(nproc) || true
-          echo "Clang-tidy fixes applied"
+      - name: Apply clang-tidy fixes
+        if: steps.apply_from_artifact.outputs.applied != 'true'
+        run: |
+          cd "$GITHUB_WORKSPACE/phlex-build"
+          if [ -f clang-tidy-fixes.yaml ]; then
+            clang-apply-replacements . || true
+          fi
 
       - name: Upload clang-tidy report
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: clang-tidy-report
           path: phlex-build/clang-tidy-fixes.yaml
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Handle fix commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
@@ -131,7 +185,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Download clang-tidy report
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: clang-tidy-report
           path: phlex-build

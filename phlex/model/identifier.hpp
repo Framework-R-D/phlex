@@ -1,5 +1,5 @@
-#ifndef PHLEX_MODEL_IDENTIFIER_H_
-#define PHLEX_MODEL_IDENTIFIER_H_
+#ifndef PHLEX_MODEL_IDENTIFIER_HPP
+#define PHLEX_MODEL_IDENTIFIER_HPP
 
 #include <boost/json/fwd.hpp>
 
@@ -71,4 +71,4 @@ struct std::hash<phlex::experimental::identifier> {
   }
 };
 
-#endif // PHLEX_MODEL_IDENTIFIER_H_
+#endif // PHLEX_MODEL_IDENTIFIER_HPP

@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __PLACEMENT_HPP__
-#define __PLACEMENT_HPP__
+#ifndef FORM_CORE_PLACEMENT_HPP
+#define FORM_CORE_PLACEMENT_HPP
 
 #include <string>
 
@@ -35,4 +35,4 @@ namespace form::detail::experimental {
   };
 } // namespace form::detail::experimental
 
-#endif
+#endif // FORM_CORE_PLACEMENT_HPP

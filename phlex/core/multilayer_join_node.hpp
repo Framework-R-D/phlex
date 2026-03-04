@@ -43,14 +43,14 @@ namespace phlex::experimental {
   //               ├──► join_node ──► message tuple
   //   data[N-1] ──┘
 
-  template <std::size_t n_inputs>
-    requires(n_inputs > 1)
-  class multilayer_join_node : public multilayer_join_node_base_t<message_tuple<n_inputs>> {
-    using base_t = multilayer_join_node_base_t<message_tuple<n_inputs>>;
+  template <std::size_t NInputs>
+    requires(NInputs > 1)
+  class multilayer_join_node : public multilayer_join_node_base_t<message_tuple<NInputs>> {
+    using base_t = multilayer_join_node_base_t<message_tuple<NInputs>>;
     using input_t = typename base_t::input_ports_type;
     using output_t = typename base_t::output_ports_type;
 
-    using args_t = message_tuple<n_inputs>;
+    using args_t = message_tuple<NInputs>;
 
     template <std::size_t... Is>
     static auto make_join(tbb::flow::graph& g, std::index_sequence<Is...>)
@@ -68,11 +68,11 @@ namespace phlex::experimental {
                          std::string const& node_name,
                          std::vector<identifier> layer_names) :
       base_t{g},
-      join_{make_join(g, std::make_index_sequence<n_inputs>{})},
+      join_{make_join(g, std::make_index_sequence<NInputs>{})},
       name_{node_name},
       layers_{std::move(layer_names)}
     {
-      assert(n_inputs == layers_.size());
+      assert(NInputs == layers_.size());
 
       // Collapse to the set of distinct layer names.  More than one distinct layer means
       // at least one input crosses a layer boundary and therefore every input stream
@@ -81,7 +81,7 @@ namespace phlex::experimental {
 
       // Add repeaters only if the inputs span more than one distinct layer.
       if (collapsed_layers.size() > 1) {
-        repeaters_.reserve(n_inputs);
+        repeaters_.reserve(NInputs);
         for (auto const& layer : layers_) {
           repeaters_.push_back(std::make_unique<detail::repeater_node>(g, name_, layer));
         }
@@ -99,7 +99,7 @@ namespace phlex::experimental {
         }
       };
 
-      set_ports(std::make_index_sequence<n_inputs>{});
+      set_ports(std::make_index_sequence<NInputs>{});
     }
 
     // Returns one named_index_port per repeater so that the index router can deliver

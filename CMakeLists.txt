@@ -57,14 +57,12 @@ set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
-include(Modules/private/CreateClangTidyTargets.cmake)
 include(Modules/private/CreateCoverageTargets.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
-option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" OFF)
 
 add_compile_options(
   -Wall
@@ -164,22 +162,6 @@ if(ENABLE_COVERAGE)
   endif()
 endif()
 
-# Configure clang-tidy integration
-find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-20 clang-tidy)
-
-if(ENABLE_CLANG_TIDY)
-  if(CLANG_TIDY_EXECUTABLE)
-    message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXECUTABLE}")
-    set(
-      CMAKE_CXX_CLANG_TIDY
-      ${CLANG_TIDY_EXECUTABLE}
-      --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
-    )
-  else()
-    message(WARNING "clang-tidy not found, disabling clang-tidy checks")
-  endif()
-endif()
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
@@ -202,8 +184,5 @@ if(BUILD_TESTING)
     create_coverage_targets()
   endif()
 endif()
-
-# Create clang-tidy targets
-create_clang_tidy_targets()
 
 cet_cmake_config()

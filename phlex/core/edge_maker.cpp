@@ -27,7 +27,7 @@ namespace phlex::experimental {
                           provider.full_name(),
                           node_name,
                           port.product_label.to_string());
-            make_edge(provider.sender(), *(port.port));
+            make_edge(provider.output_port(), *(port.port));
             found_match = true;
             break;
           }

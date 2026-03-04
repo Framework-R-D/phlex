@@ -32,7 +32,7 @@ namespace phlex::experimental {
     identifier const& layer() const noexcept;
 
     virtual tbb::flow::receiver<index_message>* input_port() = 0;
-    virtual tbb::flow::sender<message>& sender() = 0;
+    virtual tbb::flow::sender<message>& output_port() = 0;
     virtual std::size_t num_calls() const = 0;
 
   private:
@@ -60,7 +60,6 @@ namespace phlex::experimental {
       provider_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](index_message const& index_msg, auto& output) {
-                  auto& [stay_in_graph, to_output] = output;
                   auto const [index, msg_id, _] = index_msg;
 
                   auto result = std::invoke(ft, *index);
@@ -71,9 +70,7 @@ namespace phlex::experimental {
                   auto store = std::make_shared<product_store>(
                     index, this->full_name(), std::move(new_products));
 
-                  message const new_msg{store, msg_id};
-                  stay_in_graph.try_put(new_msg);
-                  to_output.try_put(new_msg);
+                  std::get<0>(output).try_put({.store = std::move(store), .id = msg_id});
                 }}
     {
       spdlog::debug(
@@ -82,12 +79,15 @@ namespace phlex::experimental {
 
   private:
     tbb::flow::receiver<index_message>* input_port() override { return &provider_; }
-    tbb::flow::sender<message>& sender() override { return output_port<0>(provider_); }
+    tbb::flow::sender<message>& output_port() override
+    {
+      return tbb::flow::output_port<0>(provider_);
+    }
 
     std::size_t num_calls() const final { return calls_.load(); }
 
     product_specification output_;
-    tbb::flow::multifunction_node<index_message, message_tuple<2u>> provider_;
+    tbb::flow::multifunction_node<index_message, message_tuple<1u>> provider_;
     std::atomic<std::size_t> calls_;
   };
 

@@ -45,9 +45,9 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits>
   class observer_node : public declared_observer {
-    using InputArgs = typename AlgorithmBits::input_parameter_types;
+    using input_args = typename AlgorithmBits::input_parameter_types;
     using function_t = typename AlgorithmBits::bound_type;
-    static constexpr auto N = AlgorithmBits::number_inputs;
+    static constexpr auto num_inputs = AlgorithmBits::number_inputs;
 
   public:
     static constexpr auto number_output_products = 0;
@@ -60,17 +60,17 @@ namespace phlex::experimental {
                   AlgorithmBits alg,
                   product_queries input_products) :
       declared_observer{std::move(name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none<N>(g, full_name(), layers())},
+      join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
       observer_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](
-                  messages_t<N> const& messages) -> oneapi::tbb::flow::continue_msg {
-                  call(ft, messages, std::make_index_sequence<N>{});
+                  messages_t<num_inputs> const& messages) -> oneapi::tbb::flow::continue_msg {
+                  call(ft, messages, std::make_index_sequence<num_inputs>{});
                   ++calls_;
                   return {};
                 }}
     {
-      if constexpr (N > 1ull) {
+      if constexpr (num_inputs > 1ull) {
         make_edge(join_, observer_);
       }
     }
@@ -78,18 +78,20 @@ namespace phlex::experimental {
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label, observer_);
+      return receiver_for<num_inputs>(join_, input(), product_label, observer_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
-      return input_ports<N>(join_, observer_);
+      return input_ports<num_inputs>(join_, observer_);
     }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft,
+              messages_t<num_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
-      if constexpr (N == 1ull) {
+      if constexpr (num_inputs == 1ull) {
         std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
       } else {
         std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
@@ -99,9 +101,9 @@ namespace phlex::experimental {
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
-    input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>> observer_;
+    input_retriever_types<input_args> input_{input_arguments<input_args>()};
+    join_or_none_t<num_inputs> join_;
+    tbb::flow::function_node<messages_t<num_inputs>> observer_;
     std::atomic<std::size_t> calls_;
   };
 }

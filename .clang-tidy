@@ -17,6 +17,7 @@ Checks: >
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-macro-usage,
   -cppcoreguidelines-non-private-member-variables-in-classes,
+  -llvm-header-guard, # Use scripts/fix_header_guards.py instead
   misc-*,
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,

@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
-#ifndef __IPERSISTENCE_HPP__
-#define __IPERSISTENCE_HPP__
+#ifndef FORM_PERSISTENCE_IPERSISTENCE_HPP
+#define FORM_PERSISTENCE_IPERSISTENCE_HPP
 
 #include <map>
 #include <memory>
@@ -45,4 +45,4 @@ namespace form::detail::experimental {
 
 } // namespace form::detail::experimental
 
-#endif
+#endif // FORM_PERSISTENCE_IPERSISTENCE_HPP

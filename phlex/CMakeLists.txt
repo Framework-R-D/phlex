@@ -2,7 +2,6 @@ cet_register_export_set(SET_NAME phlex NAMESPACE phlex SET_DEFAULT)
 
 add_subdirectory(metaprogramming)
 add_subdirectory(utilities)
-add_subdirectory(graph)
 add_subdirectory(model)
 add_subdirectory(core)
 
