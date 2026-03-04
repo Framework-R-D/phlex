@@ -30,6 +30,22 @@ run-name: "${{ github.actor }} fixing C++ code format"
         required: false
         type: string
         default: "false"
+    outputs:
+      changes:
+        description: "Whether any fixes were applied"
+        value: ${{ jobs.apply_formatting.outputs.changes }}
+      pushed:
+        description: "Whether the fixes were pushed to the remote branch"
+        value: ${{ jobs.apply_formatting.outputs.pushed }}
+      commit_sha:
+        description: "The full commit SHA of the applied fixes"
+        value: ${{ jobs.apply_formatting.outputs.commit_sha }}
+      commit_sha_short:
+        description: "The short commit SHA of the applied fixes"
+        value: ${{ jobs.apply_formatting.outputs.commit_sha_short }}
+      patch_name:
+        description: "Name of the patch file if fixes could not be pushed"
+        value: ${{ jobs.apply_formatting.outputs.patch_name }}
 
 permissions:
   pull-requests: write
