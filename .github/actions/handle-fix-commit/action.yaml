@@ -129,7 +129,9 @@ runs:
         exit 1
 
     - name: Notify of commit
-      if: steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == true && inputs.skip-comment != 'true'
+      if:
+        steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == true &&
+        inputs.skip-comment != 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         # yamllint disable rule:line-length
