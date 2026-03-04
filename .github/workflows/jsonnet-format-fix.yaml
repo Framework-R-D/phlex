@@ -18,7 +18,7 @@ run-name: "${{ github.actor }} fixing Jsonnet format"
         required: false
         type: string
       ref:
-        description: "The branch, ref, or SHA to checkout"
+        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA)"
         required: true
         type: string
       repo:

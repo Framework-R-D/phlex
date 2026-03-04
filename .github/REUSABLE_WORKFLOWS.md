@@ -162,7 +162,7 @@ jobs:
   fix-cmake:
     uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@<commit_sha>
     with:
-      ref: ${{ github.event.pull_request.head.sha }}
+      ref: ${{ github.event.pull_request.head.ref }}
       repo: ${{ github.repository }}
       skip-comment: "true"  # Set to true when calling from a parent workflow
     secrets:
@@ -172,7 +172,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
 - `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments (use when called from a parent workflow that will post a combined comment).
 
@@ -223,7 +223,7 @@ jobs:
   fix-python:
     uses: Framework-R-D/phlex/.github/workflows/python-fix.yaml@<commit_sha>
     with:
-      ref: ${{ github.event.pull_request.head.sha }}
+      ref: ${{ github.event.pull_request.head.ref }}
       repo: ${{ github.repository }}
       skip-comment: "true"
     secrets:
@@ -233,7 +233,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
 - `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
@@ -284,7 +284,7 @@ jobs:
   fix-markdown:
     uses: Framework-R-D/phlex/.github/workflows/markdown-fix.yaml@<commit_sha>
     with:
-      ref: ${{ github.event.pull_request.head.sha }}
+      ref: ${{ github.event.pull_request.head.ref }}
       repo: ${{ github.repository }}
       skip-comment: "true"
     secrets:
@@ -294,7 +294,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
 - `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
@@ -369,7 +369,7 @@ jobs:
   fix-jsonnet:
     uses: Framework-R-D/phlex/.github/workflows/jsonnet-format-fix.yaml@<commit_sha>
     with:
-      ref: ${{ github.event.pull_request.head.sha }}
+      ref: ${{ github.event.pull_request.head.ref }}
       repo: ${{ github.repository }}
       skip-comment: "true"
     secrets:
@@ -379,7 +379,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to checkout.
+- `ref` (string, **required**): The branch name to checkout and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to checkout from.
 - `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
@@ -448,7 +448,7 @@ jobs:
   fix-clang-format:
     uses: Framework-R-D/phlex/.github/workflows/clang-format-fix.yaml@<commit_sha>
     with:
-      ref: ${{ github.event.pull_request.head.sha }}
+      ref: ${{ github.event.pull_request.head.ref }}
       repo: ${{ github.repository }}
       skip-comment: "true"
     secrets:
@@ -458,7 +458,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
 - `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
@@ -488,7 +488,7 @@ jobs:
   fix-header-guards:
     uses: Framework-R-D/phlex/.github/workflows/header-guards-fix.yaml@<commit_sha>
     with:
-      ref: ${{ github.event.pull_request.head.sha }}
+      ref: ${{ github.event.pull_request.head.ref }}
       repo: ${{ github.repository }}
       skip-comment: "true"
     secrets:
@@ -498,7 +498,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
 - `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
@@ -528,7 +528,7 @@ jobs:
   fix-yaml:
     uses: Framework-R-D/phlex/.github/workflows/yaml-fix.yaml@<commit_sha>
     with:
-      ref: ${{ github.event.pull_request.head.sha }}
+      ref: ${{ github.event.pull_request.head.ref }}
       repo: ${{ github.repository }}
       skip-comment: "true"
     secrets:
@@ -538,7 +538,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `ref` (string, **required**): The branch, ref, or SHA to check out.
+- `ref` (string, **required**): The branch name to check out and push fixes to (must be a branch, not a commit SHA).
 - `repo` (string, **required**): The repository to check out from.
 - `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
