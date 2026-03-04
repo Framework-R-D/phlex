@@ -21,8 +21,8 @@ namespace phlex::experimental {
   class identifier {
   public:
     static std::uint64_t hash_string(std::string_view str);
-    // The default constructor turns out to be necessary so other classes containing identifiers
-    // can have default constructors. For now, identifier() != ""_id. Let's see how it goes.
+    // The default constructor is necessary so other classes containing identifiers
+    // can have default constructors.
     identifier() = default;
     identifier(identifier const& other) = default;
     identifier(identifier&& other) noexcept = default;
@@ -62,7 +62,7 @@ namespace phlex::experimental {
 
   private:
     std::string content_;
-    std::uint64_t hash_{0};
+    std::uint64_t hash_{hash_string("")};
   };
 
   // Identifier UDL
