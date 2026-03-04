@@ -78,7 +78,7 @@ jobs:
 
     steps:
       - name: Get PR Info
-        if: github.event_name == 'issue_comment'
+        if: github.event_name == 'issue_comment' && inputs.ref == ''
         id: get_pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
