@@ -19,7 +19,7 @@ int main(int const argc, char const** argv)
   ToyTracker tracker(4 * 1024);
   std::vector<TrackStart> const prods = tracker();
 
-  std::ofstream outFile("form_schema_write_log.txt");
+  std::ofstream outFile("form_root_schema_write_log.txt");
   for (auto const& prod : prods)
     outFile << prod << std::endl;
 

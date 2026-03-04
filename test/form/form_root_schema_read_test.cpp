@@ -16,7 +16,7 @@ int main(int const argc, char const** argv)
     return 1;
 
   auto const& [prods] = read<std::vector<TrackStart>>(technology);
-  std::ofstream outFile("form_schema_read_log.txt");
+  std::ofstream outFile("form_root_schema_read_log.txt");
   for (auto const& prod : *prods)
     outFile << prod << std::endl;
 
