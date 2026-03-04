@@ -22,8 +22,8 @@ run-name: "${{ github.actor }} fixing Markdown format"
       skip-comment:
         description: "Skip posting PR comments"
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: "false"
   workflow_dispatch:
     inputs:
       ref:
