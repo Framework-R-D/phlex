@@ -3,9 +3,9 @@
 #include "test/form/data_products/extra_member/track_start.hpp"
 #include "test/form/test_utils.hpp"
 
+#include <fstream>
 #include <iostream>
 #include <vector>
-#include <fstream>
 
 using namespace form::test;
 

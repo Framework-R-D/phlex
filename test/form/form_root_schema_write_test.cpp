@@ -1,12 +1,12 @@
 //Schema evolution test component: write old version of a data product to disk
 
 #include "test/form/data_products/track_start.hpp"
-#include "test/form/toy_tracker.hpp"
 #include "test/form/test_utils.hpp"
+#include "test/form/toy_tracker.hpp"
 
+#include <fstream>
 #include <iostream>
 #include <vector>
-#include <fstream>
 
 using namespace form::test;
 
