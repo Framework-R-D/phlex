@@ -39,6 +39,8 @@ class Checker:
             f"{sys.prefix}/lib/python{sys.version_info.major}."
             f"{sys.version_info.minor}/site-packages"
         )
+        print("HAVE:", sys.path, flush=True)
+        print(venv_site_packages, flush=True)
         assert any(p == venv_site_packages for p in sys.path)
 
 

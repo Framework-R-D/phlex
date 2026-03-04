@@ -15,12 +15,18 @@
     test_three_args: {
       py: 'test_callbacks',
       mode: 'three_args',
-      input: ['i', 'j', 'k'],
+      input: [
+        { creator: 'input', layer: 'event', suffix: 'i' },
+        { creator: 'input', layer: 'event', suffix: 'j' },
+        { creator: 'input', layer: 'event', suffix: 'k' },
+      ],
       output: ['sum_ijk'],
     },
     verify_three: {
       py: 'verify',
-      input: ['sum_ijk'],
+      input: [
+        { creator: 'test_three_args', layer: 'event', suffix: 'sum_ijk' },
+      ],
       sum_total: 1,  // 1 event * (0+0+0? wait, i=event_num-1. event1->0. sum=0. )
       // provider generates i, j starting at 0?
       // cppsource4py probably uses event number.

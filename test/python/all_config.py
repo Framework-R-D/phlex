@@ -42,6 +42,29 @@ class ConfigConsumer:
         assert config["some_floats"] == (3.1415, 2.71828)
         assert config["some_strings"] == ("aap", "noot", "mies")
 
+        # aggregate type
+        assert len(config["some_object"]) == 2
+        assert config["some_object"]["here"] == "here"
+        assert config["some_object"]["there"] == "there"
+
+        assert len(config["some_objects"]) == 3
+        expected = [
+            {'a': 'b', 'c': 'd', 'e': 'f'},
+            {'g': 'h', 'i': 'j', 'k': 'l'},
+            {'m': 'n', 'o': 'p', 'q': 'r'},
+        ]
+        for i in range(3):
+            assert config["some_objects"][i] == expected[i]
+
+        # special case of empty collection
+        assert config["empty"] == ()
+
+        try:
+            config[42]   # should raise
+            assert not "did not raise TypeError"
+        except TypeError:
+            pass         # all good as exception was raised
+
     def __call__(self, i: int, j: int) -> None:
         """Dummy routine to do something.
 
