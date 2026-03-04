@@ -49,9 +49,9 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits>
   class predicate_node : public declared_predicate {
-    using InputArgs = typename AlgorithmBits::input_parameter_types;
+    using input_args = typename AlgorithmBits::input_parameter_types;
     using function_t = typename AlgorithmBits::bound_type;
-    static constexpr auto N = AlgorithmBits::number_inputs;
+    static constexpr auto num_inputs = AlgorithmBits::number_inputs;
 
   public:
     static constexpr auto number_output_products = 0ull;
@@ -64,20 +64,20 @@ namespace phlex::experimental {
                    AlgorithmBits alg,
                    product_queries input_products) :
       declared_predicate{std::move(name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none<N>(g, full_name(), layers())},
-      predicate_{
-        g,
-        concurrency,
-        [this, ft = alg.release_algorithm()](messages_t<N> const& messages) -> predicate_result {
-          auto const& msg = most_derived(messages);
-          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+      join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
+      predicate_{g,
+                 concurrency,
+                 [this, ft = alg.release_algorithm()](
+                   messages_t<num_inputs> const& messages) -> predicate_result {
+                   auto const& msg = most_derived(messages);
+                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
-          bool const rc = call(ft, messages, std::make_index_sequence<N>{});
-          ++calls_;
-          return {message_id, rc};
-        }}
+                   bool const rc = call(ft, messages, std::make_index_sequence<num_inputs>{});
+                   ++calls_;
+                   return {message_id, rc};
+                 }}
     {
-      if constexpr (N > 1ull) {
+      if constexpr (num_inputs > 1ull) {
         make_edge(join_, predicate_);
       }
     }
@@ -85,19 +85,21 @@ namespace phlex::experimental {
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label, predicate_);
+      return receiver_for<num_inputs>(join_, input(), product_label, predicate_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
-      return input_ports<N>(join_, predicate_);
+      return input_ports<num_inputs>(join_, predicate_);
     }
     tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
 
     template <std::size_t... Is>
-    bool call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    bool call(function_t const& ft,
+              messages_t<num_inputs> const& messages,
+              std::index_sequence<Is...>)
     {
-      if constexpr (N == 1ull) {
+      if constexpr (num_inputs == 1ull) {
         return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
       } else {
         return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
@@ -107,9 +109,9 @@ namespace phlex::experimental {
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
-    input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
-    join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>, predicate_result> predicate_;
+    input_retriever_types<input_args> input_{input_arguments<input_args>()};
+    join_or_none_t<num_inputs> join_;
+    tbb::flow::function_node<messages_t<num_inputs>, predicate_result> predicate_;
     std::atomic<std::size_t> calls_;
   };
 

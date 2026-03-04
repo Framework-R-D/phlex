@@ -79,9 +79,9 @@ namespace phlex::experimental {
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_node : public declared_unfold {
-    using InputArgs = constructor_parameter_types<Object>;
-    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
-    static constexpr std::size_t M = number_output_objects<Unfold>;
+    using input_args = constructor_parameter_types<Object>;
+    static constexpr std::size_t num_inputs = std::tuple_size_v<input_args>;
+    static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
 
   public:
     unfold_node(algorithm_name name,
@@ -100,17 +100,17 @@ namespace phlex::experimental {
       output_{to_product_specifications(full_name(),
                                         std::move(output_products),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
-      join_{make_join_or_none<N>(g, full_name(), layers())},
+      join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
       unfold_{g,
               concurrency,
               [this, p = std::move(predicate), ufold = std::move(unfold)](
-                messages_t<N> const& messages, auto&) {
+                messages_t<num_inputs> const& messages, auto&) {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
 
                 std::size_t const original_message_id{msg_counter_};
                 generator g{store, this->full_name(), child_layer()};
-                call(p, ufold, store->index(), g, messages, std::make_index_sequence<N>{});
+                call(p, ufold, store->index(), g, messages, std::make_index_sequence<num_inputs>{});
 
                 flusher_.try_put({.index = store->index(),
                                   .counts = g.flush_result(),
@@ -118,7 +118,7 @@ namespace phlex::experimental {
               }},
       flusher_{g}
     {
-      if constexpr (N > 1ull) {
+      if constexpr (num_inputs > 1ull) {
         make_edge(join_, unfold_);
       }
     }
@@ -126,11 +126,11 @@ namespace phlex::experimental {
   private:
     tbb::flow::receiver<message>& port_for(product_query const& product_label) override
     {
-      return receiver_for<N>(join_, input(), product_label, unfold_);
+      return receiver_for<num_inputs>(join_, input(), product_label, unfold_);
     }
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
-      return input_ports<N>(join_, unfold_);
+      return input_ports<num_inputs>(join_, unfold_);
     }
 
     tbb::flow::sender<message>& output_port() override
@@ -149,12 +149,12 @@ namespace phlex::experimental {
               Unfold const& unfold,
               data_cell_index_ptr const& unfolded_id,
               generator& g,
-              messages_t<N> const& messages,
+              messages_t<num_inputs> const& messages,
               std::index_sequence<Is...>)
     {
       ++calls_;
       Object obj = [this, &messages]() {
-        if constexpr (N == 1ull) {
+        if constexpr (num_inputs == 1ull) {
           return Object(std::get<Is>(input_).retrieve(messages)...);
         } else {
           return Object(std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
@@ -187,10 +187,11 @@ namespace phlex::experimental {
     std::size_t num_calls() const final { return calls_.load(); }
     std::size_t product_count() const final { return product_count_.load(); }
 
-    input_retriever_types<InputArgs> input_{input_arguments<InputArgs>()};
+    input_retriever_types<input_args> input_{input_arguments<input_args>()};
     product_specifications output_;
-    join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, std::tuple<message, data_cell_index_ptr>> unfold_;
+    join_or_none_t<num_inputs> join_;
+    tbb::flow::multifunction_node<messages_t<num_inputs>, std::tuple<message, data_cell_index_ptr>>
+      unfold_;
     flusher_t flusher_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
