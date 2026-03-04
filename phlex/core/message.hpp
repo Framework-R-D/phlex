@@ -70,7 +70,7 @@ namespace phlex::experimental {
   inline message const& most_derived(message const& msg) { return msg; }
 
   phlex_core_EXPORT std::size_t port_index_for(product_queries const& product_labels,
-                             product_query const& product_label);
+                                               product_query const& product_label);
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP

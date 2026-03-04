@@ -27,8 +27,8 @@ namespace phlex::experimental {
 
   using product_name_t = std::string;
 
-  phlex_core_EXPORT index_router::provider_input_ports_t
-  make_provider_edges(index_router::head_ports_t head_ports, declared_providers& providers);
+  phlex_core_EXPORT index_router::provider_input_ports_t make_provider_edges(
+    index_router::head_ports_t head_ports, declared_providers& providers);
 
   class edge_maker {
   public:

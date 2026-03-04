@@ -40,9 +40,8 @@ namespace phlex::experimental {
 
   using product_specifications = std::vector<product_specification>;
 
-  phlex_model_EXPORT product_specifications to_product_specifications(std::string name,
-                                                   std::vector<std::string> output_labels,
-                                                   std::vector<type_id> output_types);
+  phlex_model_EXPORT product_specifications to_product_specifications(
+    std::string name, std::vector<std::string> output_labels, std::vector<type_id> output_types);
 }
 
 #endif // PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
