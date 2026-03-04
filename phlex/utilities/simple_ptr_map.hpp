@@ -32,9 +32,9 @@ namespace phlex::experimental {
     std::map<std::string, ptr> data_;
 
   public:
-    // std::map<std::string, Ptr> has a default constructor that does
+    // std::map<std::string, ptr> has a default constructor that does
     // not invoke the deleted default constructor of its
-    // std::pair<std::string const, Ptr> data member, but the compiler
+    // std::pair<std::string const, ptr> data member, but the compiler
     // doesn't look at that when deciding whether to delete the default
     // constructor of simple_ptr_map
     simple_ptr_map() = default;
