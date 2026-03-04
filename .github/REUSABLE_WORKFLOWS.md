@@ -116,7 +116,7 @@ jobs:
 
 - `checkout-path` (string, optional): Path to check out code to.
 - `build-path` (string, optional): Path for build artifacts.
-- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs the build if C++ or CMake files have changed.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs the build if C++ or CMake files have changed.
 - `build-combinations` (string, optional): A space-separated list of build combinations to run.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
@@ -138,7 +138,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if CMake files have changed.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if CMake files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -199,7 +199,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if Python files have changed.
+- `skip-relevance-check` (boolean, optional, default: false): Bypass the check that only runs if Python files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -260,7 +260,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if Markdown files have changed.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Markdown files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -321,7 +321,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if workflow files have changed.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if workflow files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -345,7 +345,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if Jsonnet files have changed.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Jsonnet files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to checkout.
 - `repo` (string, optional): The repository to checkout from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
