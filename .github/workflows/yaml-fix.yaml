@@ -28,8 +28,8 @@ name: YAML Fix
       skip-comment:
         description: "Skip posting PR comments"
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: "false"
 
 permissions:
   pull-requests: write
