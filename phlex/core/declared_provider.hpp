@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DECLARED_PROVIDER_HPP
 #define PHLEX_CORE_DECLARED_PROVIDER_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
@@ -22,7 +24,7 @@
 
 namespace phlex::experimental {
 
-  class declared_provider {
+  class phlex_core_EXPORT declared_provider {
   public:
     declared_provider(algorithm_name name, product_query output_product);
     virtual ~declared_provider();

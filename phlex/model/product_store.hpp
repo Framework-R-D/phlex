@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
 #define PHLEX_MODEL_PRODUCT_STORE_HPP
 
+#include "phlex_model_export.hpp"
+
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
@@ -13,7 +15,7 @@
 #include <type_traits>
 
 namespace phlex::experimental {
-  class product_store {
+  class phlex_model_EXPORT product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
                            std::string source = "Source",
@@ -53,7 +55,8 @@ namespace phlex::experimental {
       source_; // FIXME: Should not have to copy the string (the source should outlive the product store)
   };
 
-  product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
+  phlex_model_EXPORT product_store_ptr const& more_derived(product_store_ptr const& a,
+                                                           product_store_ptr const& b);
 
   // Non-template overload for single product_store_ptr case
   inline product_store_ptr const& most_derived(product_store_ptr const& store) { return store; }

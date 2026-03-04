@@ -1,6 +1,8 @@
 #ifndef PHLEX_CONFIGURATION_HPP
 #define PHLEX_CONFIGURATION_HPP
 
+#include "phlex_configuration_internal_export.hpp"
+
 #include "boost/json.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/identifier.hpp"
@@ -22,8 +24,8 @@ namespace phlex {
     }
 
     // Used later for product_query
-    std::optional<phlex::experimental::identifier> value_if_exists(boost::json::object const& obj,
-                                                                   std::string_view parameter);
+    phlex_configuration_internal_EXPORT std::optional<phlex::experimental::identifier>
+    value_if_exists(boost::json::object const& obj, std::string_view parameter);
 
     // helper for unpacking json array
     template <typename T, std::size_t... I>
@@ -34,7 +36,7 @@ namespace phlex {
     }
   }
 
-  class configuration {
+  class phlex_configuration_internal_EXPORT configuration {
   public:
     configuration() = default;
     explicit configuration(boost::json::object const& config) : config_{config} {}
@@ -89,15 +91,15 @@ namespace phlex {
   // To enable direct conversions from Boost JSON types to our own types, we implement
   // tag_invoke(...) function overloads, which are the customization points Boost JSON
   // provides.
-  configuration tag_invoke(boost::json::value_to_tag<configuration> const&,
-                           boost::json::value const& jv);
+  phlex_configuration_internal_EXPORT configuration
+  tag_invoke(boost::json::value_to_tag<configuration> const&, boost::json::value const& jv);
 
-  product_query tag_invoke(boost::json::value_to_tag<product_query> const&,
-                           boost::json::value const& jv);
+  phlex_configuration_internal_EXPORT product_query
+  tag_invoke(boost::json::value_to_tag<product_query> const&, boost::json::value const& jv);
 
   namespace experimental {
-    identifier tag_invoke(boost::json::value_to_tag<identifier> const&,
-                          boost::json::value const& jv);
+    phlex_configuration_internal_EXPORT identifier
+    tag_invoke(boost::json::value_to_tag<identifier> const&, boost::json::value const& jv);
   }
 
   template <std::size_t N>

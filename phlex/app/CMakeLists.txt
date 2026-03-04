@@ -16,6 +16,7 @@ cet_make_library(
   Boost::json
   Boost::boost
 )
+phlex_apply_symbol_visibility(run_phlex)
 
 install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
 

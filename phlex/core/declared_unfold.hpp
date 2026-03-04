@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DECLARED_UNFOLD_HPP
 #define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -31,7 +33,7 @@
 
 namespace phlex::experimental {
 
-  class generator {
+  class phlex_core_EXPORT generator {
   public:
     explicit generator(product_store_const_ptr const& parent,
                        std::string node_name,
@@ -52,7 +54,7 @@ namespace phlex::experimental {
     std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };
 
-  class declared_unfold : public products_consumer {
+  class phlex_core_EXPORT declared_unfold : public products_consumer {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
