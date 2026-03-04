@@ -10,6 +10,7 @@
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -34,7 +35,7 @@ namespace phlex::experimental {
   class generator {
   public:
     explicit generator(product_store_const_ptr const& parent,
-                       std::string node_name,
+                       algorithm_name node_name,
                        std::string const& child_layer_name);
     flush_counts_ptr flush_result() const;
 
@@ -47,7 +48,7 @@ namespace phlex::experimental {
   private:
     product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
-    std::string node_name_;
+    algorithm_name node_name_;
     std::string const& child_layer_name_;
     std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };

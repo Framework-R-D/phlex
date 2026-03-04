@@ -3,6 +3,7 @@
 #include "catch2/catch_test_macros.hpp"
 
 using namespace phlex;
+using namespace phlex::experimental::literals;
 
 TEST_CASE("Verify independent hashes", "[data model]")
 {
@@ -57,9 +58,9 @@ TEST_CASE("data_cell_index methods", "[data model]")
     auto subrun = run0->make_child(5, "subrun");
     auto event = subrun->make_child(100, "event");
 
-    CHECK(event->parent("subrun") == subrun);
-    CHECK(event->parent("run") == run0);
-    CHECK(event->parent("nonexistent") == nullptr);
+    CHECK(event->parent("subrun"_id) == subrun);
+    CHECK(event->parent("run"_id) == run0);
+    CHECK(event->parent("nonexistent"_id) == nullptr);
   }
 
   SECTION("Layer path")

@@ -82,6 +82,7 @@ namespace phlex {
     experimental::product_specification spec() const;
   };
 
+  inline std::string format_as(product_query const& q) { return q.to_string(); }
   using product_queries = std::vector<product_query>;
   namespace detail {
     // C is a container of product_queries

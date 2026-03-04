@@ -8,8 +8,8 @@ namespace phlex::experimental {
 
   std::string consumer::full_name() const { return name_.full(); }
 
-  std::string const& consumer::plugin() const noexcept { return name_.plugin(); }
-  std::string const& consumer::algorithm() const noexcept { return name_.algorithm(); }
+  identifier const& consumer::plugin() const noexcept { return name_.plugin(); }
+  identifier const& consumer::algorithm() const noexcept { return name_.algorithm(); }
 
   std::vector<std::string> const& consumer::when() const noexcept { return predicates_; }
 }

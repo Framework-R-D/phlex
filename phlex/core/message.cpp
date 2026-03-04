@@ -1,6 +1,8 @@
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
 
+#include "fmt/format.h"
+
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
@@ -26,8 +28,8 @@ namespace phlex::experimental {
     auto const [b, e] = std::tuple{cbegin(product_labels), cend(product_labels)};
     auto it = std::find(b, e, product_label);
     if (it == e) {
-      throw std::runtime_error("Algorithm does not accept product '" + product_label.spec().name() +
-                               "'.");
+      throw std::runtime_error(
+        fmt::format("Algorithm does not accept product '{}'.", product_label));
     }
     return std::distance(b, it);
   }

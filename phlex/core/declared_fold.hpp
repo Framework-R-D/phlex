@@ -186,9 +186,9 @@ namespace phlex::experimental {
     {
       auto& result = results_.at(store->index()->hash());
       if constexpr (requires { send(*result); }) {
-        store->add_product(output()[0].name(), send(*result));
+        store->add_product(output()[0], send(*result));
       } else {
-        store->add_product(output()[0].name(), std::move(result));
+        store->add_product(output()[0], std::move(result));
       }
       // Reclaim some memory; it would be better to erase the entire entry from the map,
       // but that is not thread-safe.
@@ -198,7 +198,7 @@ namespace phlex::experimental {
     InitTuple initializer_;
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
-    std::string partition_;
+    identifier partition_;
     tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1>> fold_;

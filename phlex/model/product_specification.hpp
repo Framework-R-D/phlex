@@ -2,7 +2,10 @@
 #define PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
 
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/type_id.hpp"
+
+#include "boost/container_hash/hash.hpp"
 
 #include <string>
 #include <utility>
@@ -13,14 +16,15 @@ namespace phlex::experimental {
   public:
     product_specification();
     product_specification(char const* name);
-    product_specification(std::string name);
-    product_specification(algorithm_name qualifier, std::string name, type_id type);
+    product_specification(std::string const& name);
+    product_specification(std::string_view name);
+    product_specification(algorithm_name qualifier, identifier name, type_id type);
 
     std::string full() const;
     algorithm_name const& qualifier() const noexcept { return qualifier_; }
-    std::string const& plugin() const noexcept { return qualifier_.plugin(); }
-    std::string const& algorithm() const noexcept { return qualifier_.algorithm(); }
-    std::string const& name() const noexcept { return name_; }
+    identifier const& plugin() const noexcept { return qualifier_.plugin(); }
+    identifier const& algorithm() const noexcept { return qualifier_.algorithm(); }
+    identifier const& name() const noexcept { return name_; }
     type_id type() const noexcept { return type_id_; }
 
     void set_type(type_id&& type) { type_id_ = std::move(type); }
@@ -28,19 +32,32 @@ namespace phlex::experimental {
     auto operator<=>(product_specification const&) const = default;
 
     static product_specification create(char const* c);
-    static product_specification create(std::string const& s);
+    static product_specification create(std::string_view s);
+
+    friend struct std::hash<product_specification>;
 
   private:
     algorithm_name qualifier_;
-    std::string name_;
+    identifier name_;
     type_id type_id_{};
   };
 
   using product_specifications = std::vector<product_specification>;
 
-  product_specifications to_product_specifications(std::string name,
+  product_specifications to_product_specifications(std::string_view name,
                                                    std::vector<std::string> output_labels,
                                                    std::vector<type_id> output_types);
 }
 
+template <>
+struct std::hash<phlex::experimental::product_specification> {
+  std::size_t operator()(phlex::experimental::product_specification const& spec) const noexcept
+  {
+    std::size_t hash = spec.qualifier_.plugin().hash();
+    boost::hash_combine(hash, spec.qualifier_.algorithm().hash());
+    boost::hash_combine(hash, spec.name_.hash());
+    boost::hash_combine(hash, spec.type_id_);
+    return hash;
+  }
+};
 #endif // PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP

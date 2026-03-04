@@ -4,12 +4,13 @@
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/handle.hpp"
 
+#include "boost/container_hash/hash.hpp"
+#include "boost/core/demangle.hpp"
+#include "boost/hash2/hash_append.hpp"
+#include "boost/pfr/core.hpp"
+
 #include "fmt/format.h"
 #include "fmt/ranges.h"
-#include <boost/core/demangle.hpp>
-#include <boost/hash2/hash_append_fwd.hpp>
-#include <boost/pfr/core.hpp>
-#include <boost/pfr/traits.hpp>
 
 #include <string>
 #include <type_traits>
@@ -81,7 +82,9 @@ namespace phlex::experimental {
 
     template <typename T>
     friend constexpr type_id make_type_id();
+    friend std::size_t hash_value(type_id const& id);
     friend struct fmt::formatter<type_id>;
+    friend struct std::hash<type_id>;
 
   private:
     unsigned char id_ = 0xFF;
@@ -271,6 +274,14 @@ namespace phlex::experimental {
     return make_type_ids<return_type<F>>();
   }
 
+  inline std::size_t hash_value(type_id const& id)
+  {
+    std::size_t hash = std::hash<unsigned char>{}(id.id_);
+    if (id.has_children()) {
+      boost::hash_combine(hash, id.children_);
+    }
+    return hash;
+  }
 }
 
 template <>
@@ -334,4 +345,5 @@ struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
     return fmt::formatter<std::string>::format(out, ctx);
   }
 };
+
 #endif // PHLEX_MODEL_TYPE_ID_HPP

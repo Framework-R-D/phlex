@@ -56,7 +56,9 @@ namespace phlex::experimental {
                   AlgorithmBits alg,
                   product_query output) :
       declared_provider{std::move(name), output},
-      output_{output.spec()},
+      output_{algorithm_name::create(std::string_view(identifier(output.creator))),
+              output.suffix.value_or(identifier("")),
+              output.type},
       provider_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](index_message const& index_msg, auto& output) {
@@ -66,7 +68,7 @@ namespace phlex::experimental {
                   ++calls_;
 
                   products new_products;
-                  new_products.add(output_.name(), std::move(result));
+                  new_products.add(output_, std::move(result));
                   auto store = std::make_shared<product_store>(
                     index, this->full_name(), std::move(new_products));
 

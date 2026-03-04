@@ -5,7 +5,11 @@
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/handle.hpp"
 
+#include "fmt/format.h"
+
+#include <algorithm>
 #include <cstddef>
+#include <ranges>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -18,7 +22,30 @@ namespace phlex::experimental {
     product_query query;
     auto retrieve(message const& msg) const
     {
-      return msg.store->get_handle<handle_arg_t>(query.spec().name());
+      namespace views = std::ranges::views;
+      auto const& store = msg.store;
+      // TODO: This needs to be replaced with a properly engineered solution
+      auto all_products = std::ranges::subrange(store->begin(), store->end()) | views::keys;
+      auto products =
+        all_products |
+        views::filter([this](product_specification const& spec) { return query.match(spec); }) |
+        views::transform([](product_specification const& spec) { return std::cref(spec); }) |
+        std::ranges::to<std::vector>();
+      if (products.empty()) {
+        throw std::runtime_error(fmt::format(
+          "No products found matching the query {}\n Store (id {} from {}) contains:\n    - {}",
+          query,
+          store->index()->to_string(),
+          store->source().full(),
+          fmt::join(all_products | views::transform(&product_specification::full), "\n    - ")));
+      }
+      if (products.size() > 1) {
+        throw std::runtime_error(fmt::format(
+          "Multiple products found matching the query {}:\n    - {}",
+          query,
+          fmt::join(products | views::transform(&product_specification::full), "\n    - ")));
+      }
+      return store->get_handle<handle_arg_t>(products[0]);
     }
   };
 

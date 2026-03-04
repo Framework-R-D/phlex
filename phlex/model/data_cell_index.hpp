@@ -2,6 +2,7 @@
 #define PHLEX_MODEL_DATA_CELL_INDEX_HPP
 
 #include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
 
 #include <cstddef>
 #include <initializer_list>
@@ -20,10 +21,10 @@ namespace phlex {
 
     using hash_type = std::size_t;
     data_cell_index_ptr make_child(std::size_t data_cell_number, std::string layer_name) const;
-    std::string const& layer_name() const noexcept;
+    experimental::identifier const& layer_name() const noexcept;
     std::string layer_path() const;
     std::size_t depth() const noexcept;
-    data_cell_index_ptr parent(std::string_view layer_name) const;
+    data_cell_index_ptr parent(experimental::identifier const& layer_name) const;
     data_cell_index_ptr parent() const noexcept;
     bool has_parent() const noexcept;
     std::size_t number() const;
@@ -39,10 +40,12 @@ namespace phlex {
 
   private:
     data_cell_index();
-    explicit data_cell_index(data_cell_index_ptr parent, std::size_t i, std::string layer_name);
+    explicit data_cell_index(data_cell_index_ptr parent,
+                             std::size_t i,
+                             experimental::identifier layer_name);
     data_cell_index_ptr parent_{nullptr};
     std::size_t number_{-1ull};
-    std::string layer_name_;
+    experimental::identifier layer_name_;
     std::size_t layer_hash_;
     std::size_t depth_{};
     hash_type hash_{0};

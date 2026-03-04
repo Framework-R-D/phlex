@@ -8,6 +8,7 @@
 #include <vector>
 
 using namespace phlex;
+using namespace phlex::experimental::literals;
 
 namespace {
   struct Composer {

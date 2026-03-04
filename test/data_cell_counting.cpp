@@ -6,10 +6,11 @@
 #include "catch2/catch_test_macros.hpp"
 
 using namespace phlex::experimental;
+using namespace phlex::experimental::literals;
 using phlex::data_cell_index;
 
 namespace {
-  auto const job_hash_value = hash("job");
+  auto const job_hash_value = "job"_idq.hash;
 }
 
 TEST_CASE("Counter with nothing processed", "[data model]")
@@ -22,9 +23,9 @@ TEST_CASE("Counter one layer deep", "[data model]")
 {
   data_cell_counter job_counter{};
   for (std::size_t i = 0; i != 10; ++i) {
-    job_counter.make_child("event");
+    job_counter.make_child("event"_id);
   }
-  auto const event_hash_value = hash(job_hash_value, "event");
+  auto const event_hash_value = hash(job_hash_value, "event"_idq.hash);
   CHECK(job_counter.result().count_for(event_hash_value) == 10);
 }
 
@@ -77,9 +78,9 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
     CHECK(h.count_for("event", true) == processed_events);
   };
 
-  auto const run_hash_value = hash(job_hash_value, "run");
-  auto const subrun_hash_value = hash(run_hash_value, "subrun");
-  auto const event_hash_value = hash(subrun_hash_value, "event");
+  auto const run_hash_value = hash(job_hash_value, "run"_idq.hash);
+  auto const subrun_hash_value = hash(run_hash_value, "subrun"_idq.hash);
+  auto const event_hash_value = hash(subrun_hash_value, "event"_idq.hash);
 
   auto job_index = data_cell_index::base_ptr();
   counters.update(job_index);
