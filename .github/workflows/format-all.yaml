@@ -131,62 +131,70 @@ jobs:
         id: collect
         run: |
           messages=()
+          has_failures=false
 
-          if [ "${{ needs.clang-format.outputs.changes }}" == "true" ]; then
-            if [ "${{ needs.clang-format.outputs.pushed }}" == "true" ]; then
-              messages+=("✅ clang-format fixes pushed (commit ${{ needs.clang-format.outputs.commit_sha_short }})")
-            elif [ -n "${{ needs.clang-format.outputs.patch_name }}" ]; then
-              messages+=("⚠️ clang-format fixes available as patch")
+          check_job() {
+            local name="$1" result="$2" changes="$3" pushed="$4" patch_name="$5" sha_short="$6"
+            if [ "$result" == "failure" ] || [ "$result" == "cancelled" ]; then
+              messages+=("❌ $name workflow $result")
+              has_failures=true
+            elif [ "$changes" == "true" ]; then
+              if [ "$pushed" == "true" ]; then
+                messages+=("✅ $name fixes pushed (commit $sha_short)")
+              elif [ -n "$patch_name" ]; then
+                messages+=("⚠️ $name fixes available as patch")
+              fi
             fi
-          fi
+          }
 
-          if [ "${{ needs.cmake-format.outputs.changes }}" == "true" ]; then
-            if [ "${{ needs.cmake-format.outputs.pushed }}" == "true" ]; then
-              messages+=("✅ cmake-format fixes pushed (commit ${{ needs.cmake-format.outputs.commit_sha_short }})")
-            elif [ -n "${{ needs.cmake-format.outputs.patch_name }}" ]; then
-              messages+=("⚠️ cmake-format fixes available as patch")
-            fi
-          fi
+          check_job "clang-format" \
+            "${{ needs.clang-format.result }}" \
+            "${{ needs.clang-format.outputs.changes }}" \
+            "${{ needs.clang-format.outputs.pushed }}" \
+            "${{ needs.clang-format.outputs.patch_name }}" \
+            "${{ needs.clang-format.outputs.commit_sha_short }}"
 
-          if [ "${{ needs.header-guards.outputs.changes }}" == "true" ]; then
-            if [ "${{ needs.header-guards.outputs.pushed }}" == "true" ]; then
-              messages+=("✅ header-guards fixes pushed (commit ${{ needs.header-guards.outputs.commit_sha_short }})")
-            elif [ -n "${{ needs.header-guards.outputs.patch_name }}" ]; then
-              messages+=("⚠️ header-guards fixes available as patch")
-            fi
-          fi
+          check_job "cmake-format" \
+            "${{ needs.cmake-format.result }}" \
+            "${{ needs.cmake-format.outputs.changes }}" \
+            "${{ needs.cmake-format.outputs.pushed }}" \
+            "${{ needs.cmake-format.outputs.patch_name }}" \
+            "${{ needs.cmake-format.outputs.commit_sha_short }}"
 
-          if [ "${{ needs.jsonnet-format.outputs.changes }}" == "true" ]; then
-            if [ "${{ needs.jsonnet-format.outputs.pushed }}" == "true" ]; then
-              messages+=("✅ jsonnetfmt fixes pushed (commit ${{ needs.jsonnet-format.outputs.commit_sha_short }})")
-            elif [ -n "${{ needs.jsonnet-format.outputs.patch_name }}" ]; then
-              messages+=("⚠️ jsonnetfmt fixes available as patch")
-            fi
-          fi
+          check_job "header-guards" \
+            "${{ needs.header-guards.result }}" \
+            "${{ needs.header-guards.outputs.changes }}" \
+            "${{ needs.header-guards.outputs.pushed }}" \
+            "${{ needs.header-guards.outputs.patch_name }}" \
+            "${{ needs.header-guards.outputs.commit_sha_short }}"
 
-          if [ "${{ needs.markdown.outputs.changes }}" == "true" ]; then
-            if [ "${{ needs.markdown.outputs.pushed }}" == "true" ]; then
-              messages+=("✅ markdownlint fixes pushed (commit ${{ needs.markdown.outputs.commit_sha_short }})")
-            elif [ -n "${{ needs.markdown.outputs.patch_name }}" ]; then
-              messages+=("⚠️ markdownlint fixes available as patch")
-            fi
-          fi
+          check_job "jsonnetfmt" \
+            "${{ needs.jsonnet-format.result }}" \
+            "${{ needs.jsonnet-format.outputs.changes }}" \
+            "${{ needs.jsonnet-format.outputs.pushed }}" \
+            "${{ needs.jsonnet-format.outputs.patch_name }}" \
+            "${{ needs.jsonnet-format.outputs.commit_sha_short }}"
 
-          if [ "${{ needs.python.outputs.changes }}" == "true" ]; then
-            if [ "${{ needs.python.outputs.pushed }}" == "true" ]; then
-              messages+=("✅ ruff fixes pushed (commit ${{ needs.python.outputs.commit_sha_short }})")
-            elif [ -n "${{ needs.python.outputs.patch_name }}" ]; then
-              messages+=("⚠️ ruff fixes available as patch")
-            fi
-          fi
+          check_job "markdownlint" \
+            "${{ needs.markdown.result }}" \
+            "${{ needs.markdown.outputs.changes }}" \
+            "${{ needs.markdown.outputs.pushed }}" \
+            "${{ needs.markdown.outputs.patch_name }}" \
+            "${{ needs.markdown.outputs.commit_sha_short }}"
 
-          if [ "${{ needs.yaml.outputs.changes }}" == "true" ]; then
-            if [ "${{ needs.yaml.outputs.pushed }}" == "true" ]; then
-              messages+=("✅ YAML formatter fixes pushed (commit ${{ needs.yaml.outputs.commit_sha_short }})")
-            elif [ -n "${{ needs.yaml.outputs.patch_name }}" ]; then
-              messages+=("⚠️ YAML formatter fixes available as patch")
-            fi
-          fi
+          check_job "ruff" \
+            "${{ needs.python.result }}" \
+            "${{ needs.python.outputs.changes }}" \
+            "${{ needs.python.outputs.pushed }}" \
+            "${{ needs.python.outputs.patch_name }}" \
+            "${{ needs.python.outputs.commit_sha_short }}"
+
+          check_job "YAML formatter" \
+            "${{ needs.yaml.result }}" \
+            "${{ needs.yaml.outputs.changes }}" \
+            "${{ needs.yaml.outputs.pushed }}" \
+            "${{ needs.yaml.outputs.patch_name }}" \
+            "${{ needs.yaml.outputs.commit_sha_short }}"
 
           if [ ${#messages[@]} -eq 0 ]; then
             echo "message=No automatic format fixes were necessary." >> "$GITHUB_OUTPUT"
@@ -201,7 +209,12 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
+          if [ "$has_failures" == "true" ]; then
+            exit 1
+          fi
+
       - name: Post combined comment
+        if: always()
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
           message: ${{ steps.collect.outputs.message }}
