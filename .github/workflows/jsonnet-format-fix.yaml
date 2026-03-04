@@ -108,10 +108,10 @@ jobs:
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}
           pr-info-repo: ${{ needs.pre-check.outputs.repo }}
-          skip-comment: ${{ inputs.skip-comment }}
+          skip-comment: ${{ github.event_name == 'workflow_call' && inputs.skip-comment || 'false' }}
 
       - name: Remove eyes reaction
-        if: github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
+        if: github.event_name == 'issue_comment'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
@@ -131,7 +131,7 @@ jobs:
             }
 
       - name: Add completion reaction
-        if: github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
+        if: github.event_name == 'issue_comment'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |

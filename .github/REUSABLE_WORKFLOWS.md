@@ -116,7 +116,7 @@ jobs:
 
 - `checkout-path` (string, optional): Path to check out code to.
 - `build-path` (string, optional): Path for build artifacts.
-- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs the build if C++ or CMake files have changed.
+- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs the build if C++ or CMake files have changed.
 - `build-combinations` (string, optional): A space-separated list of build combinations to run.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
@@ -138,7 +138,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if CMake files have changed.
+- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if CMake files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -164,7 +164,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       repo: ${{ github.repository }}
-      skip-comment: true  # Set to true when calling from a parent workflow
+      skip-comment: "true"  # Set to true when calling from a parent workflow
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -174,7 +174,7 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `ref` (string, **required**): The branch, ref, or SHA to check out.
 - `repo` (string, **required**): The repository to check out from.
-- `skip-comment` (boolean, optional, default: `false`): Skip posting individual PR comments (use when called from a parent workflow that will post a combined comment).
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments (use when called from a parent workflow that will post a combined comment).
 
 #### Outputs
 
@@ -199,7 +199,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Python files have changed.
+- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if Python files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -225,7 +225,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       repo: ${{ github.repository }}
-      skip-comment: true
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -235,7 +235,7 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `ref` (string, **required**): The branch, ref, or SHA to check out.
 - `repo` (string, **required**): The repository to check out from.
-- `skip-comment` (boolean, optional, default: `false`): Skip posting individual PR comments.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
 #### Outputs
 
@@ -260,7 +260,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Markdown files have changed.
+- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if Markdown files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -286,7 +286,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       repo: ${{ github.repository }}
-      skip-comment: true
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -296,7 +296,7 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `ref` (string, **required**): The branch, ref, or SHA to check out.
 - `repo` (string, **required**): The repository to check out from.
-- `skip-comment` (boolean, optional, default: `false`): Skip posting individual PR comments.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
 #### Outputs
 
@@ -321,7 +321,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if workflow files have changed.
+- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if workflow files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -345,7 +345,7 @@ jobs:
 #### All Inputs
 
 - `checkout-path` (string, optional): Path to check out code to.
-- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if Jsonnet files have changed.
+- `skip-relevance-check` (string, optional, default: `"false"`): Bypass the check that only runs if Jsonnet files have changed.
 - `ref` (string, optional): The branch, ref, or SHA to checkout.
 - `repo` (string, optional): The repository to checkout from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
@@ -371,7 +371,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       repo: ${{ github.repository }}
-      skip-comment: true
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -381,7 +381,7 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `ref` (string, **required**): The branch, ref, or SHA to checkout.
 - `repo` (string, **required**): The repository to checkout from.
-- `skip-comment` (boolean, optional, default: `false`): Skip posting individual PR comments.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
 #### Outputs
 
@@ -450,7 +450,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       repo: ${{ github.repository }}
-      skip-comment: true
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -460,7 +460,7 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `ref` (string, **required**): The branch, ref, or SHA to check out.
 - `repo` (string, **required**): The repository to check out from.
-- `skip-comment` (boolean, optional, default: `false`): Skip posting individual PR comments.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
 #### Outputs
 
@@ -490,7 +490,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       repo: ${{ github.repository }}
-      skip-comment: true
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -500,7 +500,7 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `ref` (string, **required**): The branch, ref, or SHA to check out.
 - `repo` (string, **required**): The repository to check out from.
-- `skip-comment` (boolean, optional, default: `false`): Skip posting individual PR comments.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
 #### Outputs
 
@@ -530,7 +530,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       repo: ${{ github.repository }}
-      skip-comment: true
+      skip-comment: "true"
     secrets:
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
 ```
@@ -540,7 +540,7 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `ref` (string, **required**): The branch, ref, or SHA to check out.
 - `repo` (string, **required**): The repository to check out from.
-- `skip-comment` (boolean, optional, default: `false`): Skip posting individual PR comments.
+- `skip-comment` (string, optional, default: `"false"`): Skip posting individual PR comments.
 
 #### Outputs
 
@@ -561,7 +561,7 @@ Centralized workflow that calls all format fix workflows in parallel and posts a
 **Behavior:**
 
 - Invokes all fix workflows (clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml) via `workflow_call`
-- Each sub-workflow runs with `skip-comment: true` to suppress individual comments
+- Each sub-workflow runs with `skip-comment: "true"` to suppress individual comments
 - Collects all results and posts a single summary comment
 - Removes the 👀 reaction and adds a 🚀 reaction when complete
 
