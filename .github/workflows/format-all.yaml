@@ -97,8 +97,8 @@ jobs:
     secrets: inherit
 
   combine-results:
-    needs: [clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml]
-    if: always()
+    needs: [pre-check, clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml]
+    if: ${{ always() && needs.pre-check.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Remove eyes reaction
