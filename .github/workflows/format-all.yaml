@@ -15,10 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request &&
-      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-      startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
+      github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(fromJSON('["OWNER",
+      "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) && startsWith(github.event.comment.body,
+      format('@{0}bot format', github.event.repository.name))
     outputs:
       ref: ${{ steps.get_pr.outputs.ref }}
       repo: ${{ steps.get_pr.outputs.repo }}
@@ -132,7 +131,7 @@ jobs:
         id: collect
         run: |
           messages=()
-          
+
           if [ "${{ needs.clang-format.outputs.changes }}" == "true" ]; then
             if [ "${{ needs.clang-format.outputs.pushed }}" == "true" ]; then
               messages+=("✅ clang-format fixes pushed (commit ${{ needs.clang-format.outputs.commit_sha_short }})")
@@ -140,7 +139,7 @@ jobs:
               messages+=("⚠️ clang-format fixes available as patch")
             fi
           fi
-          
+
           if [ "${{ needs.cmake-format.outputs.changes }}" == "true" ]; then
             if [ "${{ needs.cmake-format.outputs.pushed }}" == "true" ]; then
               messages+=("✅ cmake-format fixes pushed (commit ${{ needs.cmake-format.outputs.commit_sha_short }})")
@@ -148,7 +147,7 @@ jobs:
               messages+=("⚠️ cmake-format fixes available as patch")
             fi
           fi
-          
+
           if [ "${{ needs.header-guards.outputs.changes }}" == "true" ]; then
             if [ "${{ needs.header-guards.outputs.pushed }}" == "true" ]; then
               messages+=("✅ header-guards fixes pushed (commit ${{ needs.header-guards.outputs.commit_sha_short }})")
@@ -156,7 +155,7 @@ jobs:
               messages+=("⚠️ header-guards fixes available as patch")
             fi
           fi
-          
+
           if [ "${{ needs.jsonnet-format.outputs.changes }}" == "true" ]; then
             if [ "${{ needs.jsonnet-format.outputs.pushed }}" == "true" ]; then
               messages+=("✅ jsonnetfmt fixes pushed (commit ${{ needs.jsonnet-format.outputs.commit_sha_short }})")
@@ -164,7 +163,7 @@ jobs:
               messages+=("⚠️ jsonnetfmt fixes available as patch")
             fi
           fi
-          
+
           if [ "${{ needs.markdown.outputs.changes }}" == "true" ]; then
             if [ "${{ needs.markdown.outputs.pushed }}" == "true" ]; then
               messages+=("✅ markdownlint fixes pushed (commit ${{ needs.markdown.outputs.commit_sha_short }})")
@@ -172,7 +171,7 @@ jobs:
               messages+=("⚠️ markdownlint fixes available as patch")
             fi
           fi
-          
+
           if [ "${{ needs.python.outputs.changes }}" == "true" ]; then
             if [ "${{ needs.python.outputs.pushed }}" == "true" ]; then
               messages+=("✅ ruff fixes pushed (commit ${{ needs.python.outputs.commit_sha_short }})")
@@ -180,7 +179,7 @@ jobs:
               messages+=("⚠️ ruff fixes available as patch")
             fi
           fi
-          
+
           if [ "${{ needs.yaml.outputs.changes }}" == "true" ]; then
             if [ "${{ needs.yaml.outputs.pushed }}" == "true" ]; then
               messages+=("✅ YAML formatter fixes pushed (commit ${{ needs.yaml.outputs.commit_sha_short }})")
@@ -188,7 +187,7 @@ jobs:
               messages+=("⚠️ YAML formatter fixes available as patch")
             fi
           fi
-          
+
           if [ ${#messages[@]} -eq 0 ]; then
             echo "message=No automatic format fixes were necessary." >> "$GITHUB_OUTPUT"
           else

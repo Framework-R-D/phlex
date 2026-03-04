@@ -20,14 +20,10 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'pull_request_target' &&
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.base.ref == 'main') ||
-      (github.event_name == 'pull_request_review' &&
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.base.ref == 'main') ||
-      (github.event_name == 'check_suite' &&
-      github.event.check_suite.pull_requests[0] != null &&
+      (github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == 'main') || (github.event_name == 'pull_request_review' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
+      (github.event_name == 'check_suite' && github.event.check_suite.pull_requests[0] != null &&
       startsWith(github.event.check_suite.head_branch, 'dependabot/'))
     steps:
       - name: Get PR details
@@ -76,6 +72,5 @@ jobs:
             fi
           fi
         # yamllint enable
-
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
