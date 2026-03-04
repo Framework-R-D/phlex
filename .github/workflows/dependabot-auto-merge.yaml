@@ -1,5 +1,5 @@
 name: Dependabot auto-merge
-on:
+"on":
   # Use pull_request_target instead of pull_request to get elevated permissions
   # This is safe for Dependabot PRs because:
   # 1. We verify the PR author is dependabot[bot]
@@ -19,10 +19,12 @@ permissions:
 jobs:
   dependabot:
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
-      (github.event_name == 'pull_request_review' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
-      (github.event_name == 'check_suite' && github.event.check_suite.pull_requests[0] != null && startsWith(github.event.check_suite.head_branch, 'dependabot/'))
+    if: >-
+      (github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == 'main') || (github.event_name == 'pull_request_review' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.base.ref == 'main') ||
+      (github.event_name == 'check_suite' && github.event.check_suite.pull_requests[0] != null &&
+      startsWith(github.event.check_suite.head_branch, 'dependabot/'))
     steps:
       - name: Get PR details
         id: pr
@@ -36,7 +38,7 @@ jobs:
             PR_JSON=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json author,baseRefName)
             AUTHOR=$(echo "$PR_JSON" | jq -r '.author.login')
             BASE_REF=$(echo "$PR_JSON" | jq -r '.baseRefName')
-            
+
             {
               echo "author=$AUTHOR"
               echo "base_ref=$BASE_REF"
@@ -56,6 +58,7 @@ jobs:
       - name: Enable auto-merge for Dependabot PRs
         if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
         shell: bash
+        # yamllint disable rule:line-length
         run: |
           set -o pipefail
           if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
@@ -68,5 +71,6 @@ jobs:
               exit 1
             fi
           fi
+        # yamllint enable
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}

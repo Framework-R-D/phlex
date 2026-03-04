@@ -1,9 +1,8 @@
-name: Clang-Format Check
-run-name: "${{ github.actor }} checking C++ code format"
+name: YAML Check
+"run-name": "${{ github.actor }} checking YAML files"
 
 permissions:
   contents: read
-  pull-requests: read
 
 "on":
   pull_request:
@@ -30,7 +29,8 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act
+      != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,19 +53,19 @@ jobs:
           repo-path: phlex-src
           base-ref: ${{ needs.pre-check.outputs.base_sha }}
           head-ref: ${{ needs.pre-check.outputs.ref }}
-          file-type: cpp
+          file-type: yaml
 
       - name: Report detection outcome
         run: |
           if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-            echo "::notice::No clang-format related changes detected; job will be skipped."
+            echo "::notice::No YAML-related changes detected; check will be skipped."
           else
-            echo "::group::Clang-format relevant files"
+            echo "::group::YAML-related files"
             printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
             echo "::endgroup::"
           fi
 
-  clang-format-check:
+  yaml-check:
     needs: [pre-check, detect-changes]
     if: >
       always() && (
@@ -76,9 +76,6 @@ jobs:
         )
       )
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -87,38 +84,40 @@ jobs:
           path: phlex-src
           repository: ${{ needs.pre-check.outputs.repo }}
 
-      - name: Announce clang-format check
-        run: echo "➡️ Running clang-format check..."
-
-      - name: Run clang-format lint
-        id: lint
-        uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          source: "./phlex-src"
-          clangFormatVersion: 20
-          extensions: cpp,hpp,cpp.in,hpp.in
+          python-version: "3.x"
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        id: lint
+        working-directory: phlex-src
+        run: yamllint .
         continue-on-error: true
 
-      - name: Evaluate clang-format result
+      - name: Evaluate yamllint result
         if: always() && steps.lint.outcome != 'skipped'
         run: |
-          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
-            echo "✅ clang-format check passed."
+          if [ "${{ steps.lint.outcome }}" = "success" ]; then
+            echo "✅ YAML check passed."
           else
-            echo "::error::clang-format check failed. Please review the output above for details."
-            echo "::error::Comment '@${{ github.event.repository.name }}bot format' on the PR to attempt auto-fix."
+            echo "::error::YAML check failed."
+            echo "::error::Comment '@${{ github.event.repository.name }}bot yaml-fix' on the PR to auto-fix."
             exit 1
           fi
 
-  clang-format-check-skipped:
+  yaml-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true' &&
-      needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true'
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act
+      != 'true' && (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: No relevant C++ changes detected
-        run: echo "::notice::No clang-format relevant changes detected; check skipped."
+      - name: No relevant YAML changes detected
+        run: echo "::notice::No YAML-related changes detected; yaml-check skipped."

@@ -112,23 +112,23 @@ namespace phlex::experimental {
       } else {
         id = 0x0;
       }
-      using SignedT = std::make_signed_t<T>;
+      using signed_t = std::make_signed_t<T>;
 
-      if constexpr (std::is_same_v<signed char, SignedT>) {
+      if constexpr (std::is_same_v<signed char, signed_t>) {
         // We're choosing to treat signed char and char identically
         return id | static_cast<unsigned char>(type_id::builtin::char_v);
-      } else if constexpr (std::is_same_v<int, SignedT>) {
+      } else if constexpr (std::is_same_v<int, signed_t>) {
         // ints are generally either long or long long, depending on implementation
         // Treating them separately here to reduce confusion
         id |= static_cast<unsigned char>(type_id::builtin::int_v);
         return id;
-      } else if constexpr (std::is_same_v<short, SignedT>) {
+      } else if constexpr (std::is_same_v<short, signed_t>) {
         id |= static_cast<unsigned char>(type_id::builtin::short_v);
         return id;
-      } else if constexpr (std::is_same_v<long, SignedT>) {
+      } else if constexpr (std::is_same_v<long, signed_t>) {
         id |= static_cast<unsigned char>(type_id::builtin::long_v);
         return id;
-      } else if constexpr (std::is_same_v<long long, SignedT>) {
+      } else if constexpr (std::is_same_v<long long, signed_t>) {
         id |= static_cast<unsigned char>(type_id::builtin::long_long_v);
         return id;
       } else {

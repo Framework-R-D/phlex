@@ -39,6 +39,10 @@ inputs:
     description: "The number of times to retry pushing the commit."
     required: false
     default: "6"
+  skip-comment:
+    description: "Skip posting PR comments (for workflow_call usage)"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -55,25 +59,36 @@ runs:
         fi
 
     - name: No changes to apply
-      if: steps.check_changes.outputs.changes == 'false' && github.event.pull_request.number
+      if: steps.check_changes.outputs.changes == 'false' && inputs.skip-comment != 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
         message: "No automatic ${{ inputs.tool }} fixes were necessary."
 
     - name: Get PR maintainer_can_modify property
       id: pr-properties
-      if: steps.check_changes.outputs.changes == 'true' && github.event.pull_request.number
+      if: steps.check_changes.outputs.changes == 'true'
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       with:
         script: |
+          // context.issue.number is only available when the root trigger is an
+          // issue_comment event. For workflow_dispatch triggers (and any other
+          // non-PR-comment trigger), default to false so the commit path still
+          // works for same-repo pushes via the first clause of the commit condition.
+          const prNumber = context.issue.number;
+          if (!prNumber) {
+            core.setOutput('maintainer_can_modify', 'false');
+            return;
+          }
           const { data: pr } = await github.rest.pulls.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            pull_number: context.issue.number
+            pull_number: prNumber
           });
           core.setOutput('maintainer_can_modify', pr.maintainer_can_modify);
     - name: Commit fixes
-      if: steps.check_changes.outputs.changes == 'true' && (inputs.pr-info-repo == github.repository || steps.pr-properties.outputs.maintainer_can_modify == 'true')
+      if: >-
+        steps.check_changes.outputs.changes == 'true' && (inputs.pr-info-repo == github.repository ||
+        steps.pr-properties.outputs.maintainer_can_modify == 'true')
       id: commit_and_push
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -123,15 +138,21 @@ runs:
         exit 1
 
     - name: Notify of commit
-      if: steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == 'true' && github.event.pull_request.number
+      if:
+        steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == 'true' &&
+        inputs.skip-comment != 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
+        # yamllint disable rule:line-length
         message: |
           Automatic ${{ inputs.tool }} fixes pushed (commit ${{ steps.commit_and_push.outputs.commit_sha_short || steps.commit_and_push.outputs.commit_sha }}).
           ⚠️ **Note:** Some issues may require manual review and fixing.
+        # yamllint enable
 
     - name: Create patch
-      if: steps.check_changes.outputs.changes == 'true' && inputs.pr-info-repo != github.repository && steps.pr-properties.outputs.maintainer_can_modify != 'true'
+      if: >-
+        steps.check_changes.outputs.changes == 'true' && inputs.pr-info-repo != github.repository &&
+        steps.pr-properties.outputs.maintainer_can_modify != 'true'
       id: create_patch
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -147,9 +168,10 @@ runs:
         path: ${{ inputs.working-directory }}/${{ steps.create_patch.outputs.patch_name }}
 
     - name: Comment with patch instructions
-      if: steps.create_patch.outputs.patch_name && github.event.pull_request.number
+      if: steps.create_patch.outputs.patch_name && inputs.skip-comment != 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
+        # yamllint disable rule:line-length
         message: |
           Automatic fixes are available but could not be applied directly because this PR is from a fork and "Allow edits from maintainers" is not enabled.
           Please apply the patch below to fix the issues:
@@ -162,3 +184,4 @@ runs:
              ```bash
              git commit -am "Apply ${{ inputs.tool }} fixes"
              ```
+        # yamllint enable

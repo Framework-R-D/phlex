@@ -1,10 +1,16 @@
-name: Markdown Fix
-run-name: "${{ github.actor }} fixing Markdown format"
+name: YAML Fix
+"run-name": "${{ github.actor }} fixing YAML files"
 
 "on":
   issue_comment:
     types:
       - created
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
+        required: false
+        type: string
   workflow_call:
     inputs:
       checkout-path:
@@ -27,25 +33,19 @@ run-name: "${{ github.actor }} fixing Markdown format"
     outputs:
       changes:
         description: "Whether any fixes were applied"
-        value: ${{ jobs.apply_fixes.outputs.changes }}
+        value: ${{ jobs.apply_yaml_fixes.outputs.changes }}
       pushed:
         description: "Whether the fixes were pushed to the remote branch"
-        value: ${{ jobs.apply_fixes.outputs.pushed }}
+        value: ${{ jobs.apply_yaml_fixes.outputs.pushed }}
       commit_sha:
         description: "The full commit SHA of the applied fixes"
-        value: ${{ jobs.apply_fixes.outputs.commit_sha }}
+        value: ${{ jobs.apply_yaml_fixes.outputs.commit_sha }}
       commit_sha_short:
         description: "The short commit SHA of the applied fixes"
-        value: ${{ jobs.apply_fixes.outputs.commit_sha_short }}
+        value: ${{ jobs.apply_yaml_fixes.outputs.commit_sha_short }}
       patch_name:
         description: "Name of the patch file if fixes could not be pushed"
-        value: ${{ jobs.apply_fixes.outputs.patch_name }}
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
-        required: false
-        type: string
+        value: ${{ jobs.apply_yaml_fixes.outputs.patch_name }}
 
 permissions:
   pull-requests: write
@@ -65,7 +65,7 @@ jobs:
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-        startsWith(github.event.comment.body, format('@{0}bot markdown-fix', github.event.repository.name))
+        startsWith(github.event.comment.body, format('@{0}bot yaml-fix', github.event.repository.name))
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
@@ -83,17 +83,18 @@ jobs:
         id: get_pr
         uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
 
-  apply_fixes:
+  apply_yaml_fixes:
     runs-on: ubuntu-latest
-    name: Apply fixes
+    name: Apply YAML fixes
     needs: pre-check
-    if: needs.pre-check.result == 'success'
+    if: ${{ needs.pre-check.result == 'success' }}
     outputs:
       changes: ${{ steps.handle_commit.outputs.changes }}
       pushed: ${{ steps.handle_commit.outputs.pushed }}
       commit_sha: ${{ steps.handle_commit.outputs.commit_sha }}
       commit_sha_short: ${{ steps.handle_commit.outputs.commit_sha_short }}
       patch_name: ${{ steps.handle_commit.outputs.patch_name }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -103,25 +104,24 @@ jobs:
           repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: "20"
+          node-version: "20.x"
 
-      - name: Install markdownlint-cli2
-        run: npm install -g markdownlint-cli2
+      - name: Install prettier
+        run: npm install -g prettier
 
-      - name: Run markdownlint-cli2 fix
-        working-directory: ${{ env.local_checkout_path }}
+      - name: Apply YAML formatting
         run: |
-          echo "Fixing Markdown format with markdownlint-cli2..."
-          markdownlint-cli2 --fix "**/*.md" "!**/CHANGELOG.md" || true
+          cd ${{ env.local_checkout_path }}
+          prettier --write '**/*.{yaml,yml}'
 
       - name: Handle fix commit
         id: handle_commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
-          tool: markdownlint
+          tool: YAML formatter
           working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}

@@ -5,7 +5,7 @@ permissions:
   contents: read
   pull-requests: read
 
-on:
+"on":
   pull_request:
   workflow_dispatch:
     inputs:
@@ -42,16 +42,22 @@ on:
         type: string
 
 env:
-  local_checkout_path: ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path:
+    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
+    github.event.repository.name) }}
 
 jobs:
   pre-check:
     runs-on: ubuntu-latest
     outputs:
       is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
+      ref:
+        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.ref || github.ref)) || github.sha }}
       repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
-      base_sha: ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha || github.event.before }}
+      base_sha:
+        ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha ||
+        github.event.before }}
     steps:
       - name: Detect act environment
         id: detect_act
@@ -60,13 +66,10 @@ jobs:
   detect-changes:
     needs: pre-check
     if: >
-      needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
-      (
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && (
         github.event_name != 'workflow_call' ||
         (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
-      ) &&
-      needs.pre-check.outputs.is_act != 'true'
+      ) && needs.pre-check.outputs.is_act != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -104,8 +107,7 @@ jobs:
   jsonnet-format-check:
     needs: [pre-check, detect-changes]
     if: >
-      always() &&
-      (
+      always() && (
         needs.detect-changes.result == 'skipped' ||
         (
           needs.detect-changes.result == 'success' &&
@@ -134,6 +136,7 @@ jobs:
 
       - name: Evaluate Jsonnet formatting result
         if: always() && steps.lint.outcome != 'skipped'
+        # yamllint disable rule:line-length
         run: |
           if [ "${{ steps.lint.outcome }}" = 'success' ]; then
             echo "✅ Jsonnet formatting check passed."
@@ -142,18 +145,16 @@ jobs:
             echo "::error::Run 'jsonnetfmt -i <file>' locally or comment '@${{ github.event.repository.name }}bot format' on the PR to auto-fix."
             exit 1
           fi
+        # yamllint enable
 
   jsonnet-format-check-skipped:
     needs: [pre-check, detect-changes]
     if: >
-      needs.pre-check.result == 'success' &&
-      github.event_name != 'workflow_dispatch' &&
-      (
+      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && (
         github.event_name != 'workflow_call' ||
         (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
-      ) &&
-      needs.pre-check.outputs.is_act != 'true' &&
-      (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
+      ) && needs.pre-check.outputs.is_act != 'true' && (needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.has_changes != 'true')
     runs-on: ubuntu-latest
     steps:
       - name: No relevant Jsonnet changes detected

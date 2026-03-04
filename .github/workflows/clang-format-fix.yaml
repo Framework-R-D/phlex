@@ -1,42 +1,81 @@
 name: Clang-Format Fix
 run-name: "${{ github.actor }} fixing C++ code format"
 
-on:
+"on":
   issue_comment:
     types:
       - created
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
         required: false
         type: string
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      ref:
+        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA)"
+        required: true
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: true
+        type: string
+      skip-comment:
+        description: "Skip posting PR comments"
+        required: false
+        type: string
+        default: "false"
+    outputs:
+      changes:
+        description: "Whether any fixes were applied"
+        value: ${{ jobs.apply_formatting.outputs.changes }}
+      pushed:
+        description: "Whether the fixes were pushed to the remote branch"
+        value: ${{ jobs.apply_formatting.outputs.pushed }}
+      commit_sha:
+        description: "The full commit SHA of the applied fixes"
+        value: ${{ jobs.apply_formatting.outputs.commit_sha }}
+      commit_sha_short:
+        description: "The short commit SHA of the applied fixes"
+        value: ${{ jobs.apply_formatting.outputs.commit_sha_short }}
+      patch_name:
+        description: "Name of the patch file if fixes could not be pushed"
+        value: ${{ jobs.apply_formatting.outputs.patch_name }}
 
 permissions:
   pull-requests: write
   contents: write
+
+env:
+  local_checkout_path:
+    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
+    github.event.repository.name) }}
 
 jobs:
   pre-check:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      (
+      github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
-        (
-          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name)) ||
-          startsWith(github.event.comment.body, format('@{0}bot clang-fix', github.event.repository.name))
-        )
+        startsWith(github.event.comment.body, format('@{0}bot clang-fix', github.event.repository.name))
       )
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
-    # See .github/AUTHORIZATION_ANALYSIS.md for security rationale.
     outputs:
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
-      repo: ${{ steps.get_pr.outputs.repo || github.repository }}
+      ref:
+        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.ref || github.ref_name)) || steps.get_pr.outputs.ref }}
+      repo:
+        ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' &&
+        github.repository) || steps.get_pr.outputs.repo }}
 
     steps:
       - name: Get PR Info
@@ -49,26 +88,72 @@ jobs:
     name: Apply formatting
     needs: pre-check
     if: ${{ needs.pre-check.result == 'success' }}
+    outputs:
+      changes: ${{ steps.handle_commit.outputs.changes }}
+      pushed: ${{ steps.handle_commit.outputs.pushed }}
+      commit_sha: ${{ steps.handle_commit.outputs.commit_sha }}
+      commit_sha_short: ${{ steps.handle_commit.outputs.commit_sha_short }}
+      patch_name: ${{ steps.handle_commit.outputs.patch_name }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: phlex-src
+          path: ${{ env.local_checkout_path }}
           ref: ${{ needs.pre-check.outputs.ref }}
           repository: ${{ needs.pre-check.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
         with:
-          source: "./phlex-src"
+          source: "./${{ env.local_checkout_path }}"
           clangFormatVersion: 20
-          inplace: True
+          inplace: "True"
           extensions: cpp,hpp,cpp.in,hpp.in
 
       - name: Handle fix commit
+        id: handle_commit
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: clang-format
-          working-directory: phlex-src
+          working-directory: ${{ env.local_checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.pre-check.outputs.ref }}
           pr-info-repo: ${{ needs.pre-check.outputs.repo }}
+          skip-comment: ${{ github.event_name == 'workflow_call' && inputs.skip-comment || 'false' }}
+
+      - name: Remove eyes reaction
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            try {
+              const { data: reactions } = await github.rest.reactions.listForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id
+              });
+              const eyesReaction = reactions.find(
+                (r) => r.content === 'eyes' && r.user && r.user.login === 'github-actions[bot]'
+              );
+              if (eyesReaction) {
+                await github.rest.reactions.deleteForIssueComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: context.payload.comment.id,
+                  reaction_id: eyesReaction.id
+                });
+              }
+            } catch (_) {
+              // Reaction cleanup is best-effort; do not fail the workflow.
+            }
+
+      - name: Add completion reaction
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });

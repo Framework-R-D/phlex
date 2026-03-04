@@ -27,11 +27,11 @@ namespace phlex::experimental {
   template <template <typename...> typename HOF, typename AlgorithmBits>
   class registration_api {
     using hof_type = HOF<AlgorithmBits>;
-    using NodePtr = typename hof_type::node_ptr_type;
+    using node_ptr = typename hof_type::node_ptr_type;
     using input_parameter_types = typename AlgorithmBits::input_parameter_types;
 
-    static constexpr auto N = AlgorithmBits::number_inputs;
-    static constexpr auto M = hof_type::number_output_products;
+    static constexpr auto num_inputs = AlgorithmBits::number_inputs;
+    static constexpr auto num_outputs = hof_type::number_output_products;
 
   public:
     registration_api(configuration const* config,
@@ -46,15 +46,15 @@ namespace phlex::experimental {
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
-      registrar_{nodes.registrar_for<NodePtr>(errors)}
+      registrar_{nodes.registrar_for<node_ptr>(errors)}
     {
     }
 
-    auto input_family(std::array<product_query, N> input_args)
+    auto input_family(std::array<product_query, num_inputs> input_args)
     {
       populate_types<input_parameter_types>(input_args);
 
-      if constexpr (M == 0ull) {
+      if constexpr (num_outputs == 0ull) {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](auto predicates, auto /* output_products */) {
             return std::make_unique<hof_type>(std::move(name_),
@@ -76,12 +76,12 @@ namespace phlex::experimental {
                                               std::move(output_products));
           });
       }
-      return upstream_predicates<NodePtr, M>{std::move(registrar_), config_};
+      return upstream_predicates<node_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
     auto input_family(std::same_as<product_query> auto... input_args)
     {
-      static_assert(N == sizeof...(input_args),
+      static_assert(num_inputs == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input_family({std::move(input_args)...});
@@ -93,7 +93,7 @@ namespace phlex::experimental {
     AlgorithmBits alg_;
     concurrency concurrency_;
     tbb::flow::graph& graph_;
-    registrar<NodePtr> registrar_;
+    registrar<node_ptr> registrar_;
   };
 
   template <template <typename...> typename HOF, typename AlgorithmBits>
@@ -159,11 +159,11 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits, typename... InitArgs>
   class fold_api {
-    using InitTuple = std::tuple<InitArgs...>;
+    using init_tuple = std::tuple<InitArgs...>;
     using input_parameter_types = skip_first_type<typename AlgorithmBits::input_parameter_types>;
 
-    static constexpr auto N = AlgorithmBits::number_inputs;
-    static constexpr auto M = 1; // For now
+    static constexpr auto num_inputs = AlgorithmBits::number_inputs;
+    static constexpr auto num_outputs = 1; // For now
 
   public:
     fold_api(configuration const* config,
@@ -186,13 +186,13 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<product_query, N - 1> input_args)
+    auto input_family(std::array<product_query, num_inputs - 1> input_args)
     {
       populate_types<input_parameter_types>(input_args);
 
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
-          return std::make_unique<fold_node<AlgorithmBits, InitTuple>>(
+          return std::make_unique<fold_node<AlgorithmBits, init_tuple>>(
             std::move(name_),
             concurrency_.value,
             std::move(predicates),
@@ -203,12 +203,12 @@ namespace phlex::experimental {
             std::move(output_products),
             std::move(partition_));
         });
-      return upstream_predicates<declared_fold_ptr, M>{std::move(registrar_), config_};
+      return upstream_predicates<declared_fold_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
     auto input_family(std::same_as<product_query> auto... input_args)
     {
-      static_assert(N - 1 == sizeof...(input_args),
+      static_assert(num_inputs - 1 == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input_family({std::move(input_args)...});
@@ -221,7 +221,7 @@ namespace phlex::experimental {
     concurrency concurrency_;
     tbb::flow::graph& graph_;
     std::string partition_;
-    InitTuple init_;
+    init_tuple init_;
     registrar<declared_fold_ptr> registrar_;
   };
 
@@ -232,8 +232,8 @@ namespace phlex::experimental {
   class unfold_api {
     using input_parameter_types = constructor_parameter_types<Object>;
 
-    static constexpr auto N = std::tuple_size_v<input_parameter_types>;
-    static constexpr std::size_t M = number_output_objects<Unfold>;
+    static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
+    static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
 
     // FIXME: Should maybe use some type of static assert, but not in a way that
     //        constrains the arguments of the Predicate and the Unfold to be the same.
@@ -262,7 +262,7 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<product_query, N> input_args)
+    auto input_family(std::array<product_query, num_inputs> input_args)
     {
       populate_types<input_parameter_types>(input_args);
 
@@ -279,12 +279,12 @@ namespace phlex::experimental {
             std::move(output_products),
             std::move(destination_layer_));
         });
-      return upstream_predicates<declared_unfold_ptr, M>{std::move(registrar_), config_};
+      return upstream_predicates<declared_unfold_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
     auto input_family(std::same_as<product_query> auto... input_args)
     {
-      static_assert(N == sizeof...(input_args),
+      static_assert(num_inputs == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input_family({std::move(input_args)...});
