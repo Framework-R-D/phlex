@@ -82,13 +82,25 @@ You can achieve this by passing the appropriate value to the `skip-relevance-che
       skip-relevance-check: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment' }}
 ```
 
-Additionally, to ensure the reusable workflow can access the correct code in an extra-repository context, always pass the `ref` and `repo`:
+Additionally, to ensure the reusable workflow can access the correct code in an extra-repository context, always pass the `ref` and `repo`. The correct value depends on whether the workflow is a **check** (read-only) or **fix** (push-capable) workflow:
 
-```yaml
-    with:
-      ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      repo: ${{ github.repository }}
-```
+- **Check workflows** (e.g., `cmake-format-check.yaml`): a commit SHA is safe and precise.
+
+  ```yaml
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        repo: ${{ github.repository }}
+  ```
+
+- **Fix workflows** (e.g., `cmake-format-fix.yaml`): a branch name is **required** because the
+  workflow pushes commits with `git push origin HEAD:<ref>`. A commit SHA will cause the push to
+  fail.
+
+  ```yaml
+      with:
+        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+        repo: ${{ github.repository }}
+  ```
 
 ---
 
