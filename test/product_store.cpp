@@ -7,7 +7,6 @@
 #include <vector>
 
 using namespace phlex::experimental;
-using namespace phlex::experimental::literals;
 
 TEST_CASE("Product store insertion", "[data model]")
 {

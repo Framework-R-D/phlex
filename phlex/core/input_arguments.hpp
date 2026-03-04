@@ -25,7 +25,6 @@ namespace phlex::experimental {
       namespace views = std::ranges::views;
       auto const& store = msg.store;
       // TODO: This needs to be replaced with a properly engineered solution
-      // return msg.store->get_handle<handle_arg_t>(query.spec());
       auto all_products = std::ranges::subrange(store->begin(), store->end()) | views::keys;
       auto products =
         all_products |

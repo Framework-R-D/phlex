@@ -12,7 +12,6 @@ using namespace phlex;
 
 void cells_to_process(experimental::async_driver<data_cell_index_ptr>& d)
 {
-  using namespace experimental::literals;
   unsigned int const num_runs = 2;
   unsigned int const num_subruns = 2;
   unsigned int const num_spills = 3;

@@ -19,9 +19,10 @@ namespace phlex::experimental {
     }
     std::map<std::string, named_output_port const*> candidates;
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
-      // TODO: Getting there
-      if (producer.node.plugin() == identifier(query.creator) ||
-          producer.node.algorithm() == identifier(query.creator)) {
+      // TODO: Getting there -- this whole thing needs to be replaced with something
+      //       that indexes all the fields from the beginning.
+      if (producer.node.plugin() == query.creator ||
+          producer.node.algorithm() == query.creator) {
         if (query.type != producer.type) {
           spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
                         "from candidate list.",
