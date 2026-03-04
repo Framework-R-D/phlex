@@ -10,6 +10,8 @@ Welcome to Phlex's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   api/module_graph_proxy
+   api/source_graph_proxy
    api/graph_proxy
    api/framework_graph
    api/registrar
