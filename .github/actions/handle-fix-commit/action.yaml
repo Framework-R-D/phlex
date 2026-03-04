@@ -42,7 +42,7 @@ inputs:
   skip-comment:
     description: "Skip posting PR comments (for workflow_call usage)"
     required: false
-    default: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -130,7 +130,7 @@ runs:
 
     - name: Notify of commit
       if:
-        steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == true &&
+        steps.commit_and_push.conclusion == 'success' && steps.commit_and_push.outputs.pushed == 'true' &&
         inputs.skip-comment != 'true'
       uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
       with:
