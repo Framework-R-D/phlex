@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_PRODUCTS_HPP
 #define PHLEX_MODEL_PRODUCTS_HPP
 
+#include "phlex_model_export.hpp"
+
 #include "phlex/model/product_specification.hpp"
 
 #include <cassert>
@@ -32,7 +34,7 @@ namespace phlex::experimental {
     std::remove_cvref_t<T> obj;
   };
 
-  class products {
+  class phlex_model_EXPORT products {
     using collection_t = std::unordered_map<std::string, std::unique_ptr<product_base>>;
 
   public:

@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_IDENTIFIER_HPP
 #define PHLEX_MODEL_IDENTIFIER_HPP
 
+#include "phlex_model_export.hpp"
+
 #include <boost/json/fwd.hpp>
 
 #include <fmt/format.h>
@@ -18,7 +20,7 @@ namespace phlex::experimental {
 
   /// Carries around the string itself (as a shared_ptr to string to make copies lighter)
   /// along with a precomputed hash used for all comparisons
-  class identifier {
+  class phlex_model_EXPORT identifier {
   public:
     static std::uint64_t hash_string(std::string_view str);
     identifier(identifier const& other) = default;
@@ -44,8 +46,8 @@ namespace phlex::experimental {
     std::string const& trans_get_string() const noexcept { return content_; }
 
     // Comparison operators with _id queries
-    friend bool operator==(identifier const& lhs, identifier_query rhs);
-    friend std::strong_ordering operator<=>(identifier const& lhs, identifier_query rhs);
+    friend phlex_model_EXPORT bool operator==(identifier const& lhs, identifier_query rhs);
+    friend phlex_model_EXPORT std::strong_ordering operator<=>(identifier const& lhs, identifier_query rhs);
     friend std::hash<identifier>;
 
   private:
@@ -55,8 +57,8 @@ namespace phlex::experimental {
 
   // Identifier UDL
   namespace literals {
-    identifier operator""_id(char const* lit, std::size_t len);
-    identifier_query operator""_idq(char const* lit, std::size_t len);
+    phlex_model_EXPORT identifier operator""_id(char const* lit, std::size_t len);
+    phlex_model_EXPORT identifier_query operator""_idq(char const* lit, std::size_t len);
   }
 
   // Really trying to avoid the extra function call here
