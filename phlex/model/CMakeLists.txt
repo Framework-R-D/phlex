@@ -21,6 +21,7 @@ cet_make_library(
   phlex::utilities
   TBB::tbb
 )
+phlex_apply_symbol_visibility(phlex_model)
 
 install(
   FILES

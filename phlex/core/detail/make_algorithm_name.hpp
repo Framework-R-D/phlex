@@ -4,6 +4,8 @@
 // This simple utility is placed in an implementation file to avoid including the
 // phlex/configuration.hpp in framework code.
 
+#include "phlex_core_export.hpp"
+
 #include <string>
 
 namespace phlex {
@@ -14,7 +16,7 @@ namespace phlex::experimental {
   class algorithm_name;
 
   namespace detail {
-    algorithm_name make_algorithm_name(configuration const* config, std::string name);
+    phlex_core_EXPORT algorithm_name make_algorithm_name(configuration const* config, std::string name);
   }
 }
 

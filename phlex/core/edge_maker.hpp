@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_EDGE_MAKER_HPP
 #define PHLEX_CORE_EDGE_MAKER_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/declared_provider.hpp"
@@ -25,8 +27,8 @@ namespace phlex::experimental {
 
   using product_name_t = std::string;
 
-  index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
-                                                           declared_providers& providers);
+  phlex_core_EXPORT index_router::provider_input_ports_t
+  make_provider_edges(index_router::head_ports_t head_ports, declared_providers& providers);
 
   class edge_maker {
   public:

@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_INPUT_ARGUMENTS_HPP
 #define PHLEX_CORE_INPUT_ARGUMENTS_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/handle.hpp"
@@ -29,7 +31,7 @@ namespace phlex::experimental {
   }
 
   namespace detail {
-    void verify_no_duplicate_input_products(std::string const& algorithm_name,
+    phlex_core_EXPORT void verify_no_duplicate_input_products(std::string const& algorithm_name,
                                             product_queries to_sort);
   }
 
