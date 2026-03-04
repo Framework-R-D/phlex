@@ -3,10 +3,10 @@ name: "CodeQL Analysis"
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
   schedule:
-    - cron: '0 3 * * 0'  # weekly (UTC) — adjust as needed
+    - cron: "0 3 * * 0" # weekly (UTC) — adjust as needed
   workflow_dispatch:
     inputs:
       ref:
@@ -215,7 +215,13 @@ jobs:
           fi
 
   determine-languages:
-    needs: [pre-check, detect-changes-cpp, detect-changes-python, detect-changes-actions]
+    needs:
+      [
+        pre-check,
+        detect-changes-cpp,
+        detect-changes-python,
+        detect-changes-actions,
+      ]
     if: always() && needs.pre-check.result == 'success'
     runs-on: ubuntu-latest
     outputs:

@@ -39,32 +39,32 @@ jobs:
     outputs:
       has_changes: ${{ steps.filter.outputs.matched }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        fetch-depth: 0
-        path: phlex-src
-        ref: ${{ needs.pre-check.outputs.ref }}
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: phlex-src
+          ref: ${{ needs.pre-check.outputs.ref }}
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Detect relevant changes
-      id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-      with:
-        repo-path: phlex-src
-        base-ref: ${{ needs.pre-check.outputs.base_sha }}
-        head-ref: ${{ needs.pre-check.outputs.ref }}
-        file-type: cpp
+      - name: Detect relevant changes
+        id: filter
+        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+        with:
+          repo-path: phlex-src
+          base-ref: ${{ needs.pre-check.outputs.base_sha }}
+          head-ref: ${{ needs.pre-check.outputs.ref }}
+          file-type: cpp
 
-    - name: Report detection outcome
-      run: |
-        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No clang-format related changes detected; job will be skipped."
-        else
-          echo "::group::Clang-format relevant files"
-          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-          echo "::endgroup::"
-        fi
+      - name: Report detection outcome
+        run: |
+          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+            echo "::notice::No clang-format related changes detected; job will be skipped."
+          else
+            echo "::group::Clang-format relevant files"
+            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+            echo "::endgroup::"
+          fi
 
   clang-format-check:
     needs: [pre-check, detect-changes]
@@ -82,35 +82,35 @@ jobs:
       contents: read
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        ref: ${{ needs.pre-check.outputs.ref }}
-        path: phlex-src
-        repository: ${{ needs.pre-check.outputs.repo }}
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.pre-check.outputs.ref }}
+          path: phlex-src
+          repository: ${{ needs.pre-check.outputs.repo }}
 
-    - name: Announce clang-format check
-      run: echo "➡️ Running clang-format check..."
+      - name: Announce clang-format check
+        run: echo "➡️ Running clang-format check..."
 
-    - name: Run clang-format lint
-      id: lint
-      uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
-      with:
-        source: "./phlex-src"
-        clangFormatVersion: 20
-        extensions: cpp,hpp,cpp.in,hpp.in
-      continue-on-error: true
+      - name: Run clang-format lint
+        id: lint
+        uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
+        with:
+          source: "./phlex-src"
+          clangFormatVersion: 20
+          extensions: cpp,hpp,cpp.in,hpp.in
+        continue-on-error: true
 
-    - name: Evaluate clang-format result
-      if: always() && steps.lint.outcome != 'skipped'
-      run: |
-        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
-          echo "✅ clang-format check passed."
-        else
-          echo "::error::clang-format check failed. Please review the output above for details."
-          echo "::error::Comment '@${{ github.event.repository.name }}bot format' on the PR to attempt auto-fix."
-          exit 1
-        fi
+      - name: Evaluate clang-format result
+        if: always() && steps.lint.outcome != 'skipped'
+        run: |
+          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
+            echo "✅ clang-format check passed."
+          else
+            echo "::error::clang-format check failed. Please review the output above for details."
+            echo "::error::Comment '@${{ github.event.repository.name }}bot format' on the PR to attempt auto-fix."
+            exit 1
+          fi
 
   clang-format-check-skipped:
     needs: [pre-check, detect-changes]
@@ -124,5 +124,5 @@ jobs:
       contents: read
 
     steps:
-    - name: No relevant C++ changes detected
-      run: echo "::notice::No clang-format relevant changes detected; check skipped."
+      - name: No relevant C++ changes detected
+        run: echo "::notice::No clang-format relevant changes detected; check skipped."
