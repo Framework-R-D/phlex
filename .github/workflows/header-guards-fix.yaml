@@ -27,7 +27,7 @@ run-name: "${{ github.actor }} fixing header guards"
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
+        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
         required: false
         type: string
 
@@ -56,7 +56,7 @@ jobs:
     outputs:
       ref:
         ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
-        (github.event.inputs.ref || github.ref)) || steps.get_pr.outputs.ref }}
+        (github.event.inputs.ref || github.ref_name)) || steps.get_pr.outputs.ref }}
       repo:
         ${{ (github.event_name == 'workflow_call' && inputs.repo) || (github.event_name == 'workflow_dispatch' &&
         github.repository) || steps.get_pr.outputs.repo }}
