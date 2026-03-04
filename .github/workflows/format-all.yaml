@@ -129,6 +129,7 @@ jobs:
 
       - name: Collect results
         id: collect
+        shell: bash
         run: |
           messages=()
           has_failures=false
