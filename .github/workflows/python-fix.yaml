@@ -120,19 +120,25 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
-            const reactions = await github.rest.reactions.listForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id
-            });
-            const eyesReaction = reactions.data.find(r => r.content === 'eyes' && r.user.type === 'Bot');
-            if (eyesReaction) {
-              await github.rest.reactions.deleteForIssueComment({
+            try {
+              const { data: reactions } = await github.rest.reactions.listForIssueComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: context.payload.comment.id,
-                reaction_id: eyesReaction.id
-              }).catch(() => {});
+                comment_id: context.payload.comment.id
+              });
+              const eyesReaction = reactions.find(
+                (r) => r.content === 'eyes' && r.user && r.user.login === 'github-actions[bot]'
+              );
+              if (eyesReaction) {
+                await github.rest.reactions.deleteForIssueComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: context.payload.comment.id,
+                  reaction_id: eyesReaction.id
+                });
+              }
+            } catch (_) {
+              // Reaction cleanup is best-effort; do not fail the workflow.
             }
 
       - name: Add completion reaction
