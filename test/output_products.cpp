@@ -42,15 +42,15 @@ TEST_CASE("Output data products", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const&) -> int { return 17; })
-    .output_product(product_query{
-      .creator = "input"_id, .layer = "spill"_id, .suffix = "number_from_provider"_id});
+    .output_product(
+      product_query{.creator = "input", .layer = "spill", .suffix = "number_from_provider"});
 
   g.transform(
      "square_number",
      [](int const number) -> int { return number * number; },
      concurrency::unlimited)
-    .input_family(product_query{
-      .creator = "input"_id, .layer = "spill"_id, .suffix = "number_from_provider"_id})
+    .input_family(
+      product_query{.creator = "input", .layer = "spill", .suffix = "number_from_provider"})
     .output_products("squared_number");
 
   std::set<std::string> products_from_nodes;

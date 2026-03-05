@@ -52,8 +52,8 @@ TEST_CASE("Retrieve product_query", "[config]")
   configuration config{underlying_config};
 
   auto input_query = config.get<product_query>("input");
-  CHECK(input_query.match(
-    product_query{.creator = "tracks_alg"_id, .layer = "job"_id, .suffix = "tracks"_id}));
+  CHECK(
+    input_query.match(product_query{.creator = "tracks_alg", .layer = "job", .suffix = "tracks"}));
   CHECK_THROWS_WITH(config.get<product_query>("malformed1"),
                     ContainsSubstring("Error retrieving parameter 'malformed1'") &&
                       ContainsSubstring("not a string"));

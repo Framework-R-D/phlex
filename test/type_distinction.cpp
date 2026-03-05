@@ -57,53 +57,45 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
 
   // Register providers
   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
-    .output_product(
-      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "numbers"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "numbers"});
   g.provide("provide_length", provide_length, concurrency::unlimited)
-    .output_product(
-      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "length"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "length"});
 
   SECTION("Duplicate product name but differ in creator name")
   {
     g.observe("starter", [](int num) { spdlog::info("Received {}", num); })
-      .input_family(
-        product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "numbers"_id});
+      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "numbers"});
     g.transform("triple_numbers", triple, concurrency::unlimited)
-      .input_family(
-        product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "numbers"_id})
+      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "numbers"})
       .output_products("tripled");
     spdlog::info("Registered tripled");
     g.transform("expand_orig", expand, concurrency::unlimited)
-      .input_family(
-        product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "numbers"_id},
-        product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "length"_id})
+      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "numbers"},
+                    product_query{.creator = "input", .layer = "event", .suffix = "length"})
       .output_products("expanded_one");
     spdlog::info("Registered expanded_one");
     g.transform("expand_triples", expand, concurrency::unlimited)
       .input_family(
-        product_query{.creator = "triple_numbers"_id, .layer = "event"_id, .suffix = "tripled"_id},
-        product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "length"_id})
+        product_query{.creator = "triple_numbers", .layer = "event", .suffix = "tripled"},
+        product_query{.creator = "input", .layer = "event", .suffix = "length"})
       .output_products("expanded_three");
     spdlog::info("Registered expanded_three");
 
     g.transform("add_nums", add_numbers, concurrency::unlimited)
       .input_family(
-        product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "numbers"_id},
-        product_query{.creator = "triple_numbers"_id, .layer = "event"_id, .suffix = "tripled"_id})
+        product_query{.creator = "input", .layer = "event", .suffix = "numbers"},
+        product_query{.creator = "triple_numbers", .layer = "event", .suffix = "tripled"})
       .output_products("sums");
     spdlog::info("Registered sums");
 
     g.transform("add_vect", add_vectors, concurrency::unlimited)
       .input_family(
-        product_query{
-          .creator = "expand_orig"_id, .layer = "event"_id, .suffix = "expanded_one"_id},
-        product_query{
-          .creator = "expand_triples"_id, .layer = "event"_id, .suffix = "expanded_three"_id})
+        product_query{.creator = "expand_orig", .layer = "event", .suffix = "expanded_one"},
+        product_query{.creator = "expand_triples", .layer = "event", .suffix = "expanded_three"})
       .output_products("sums");
 
     g.transform("extract_result", triple, concurrency::unlimited)
-      .input_family(
-        product_query{.creator = "add_nums"_id, .layer = "event"_id, .suffix = "sums"_id})
+      .input_family(product_query{.creator = "add_nums", .layer = "event", .suffix = "sums"})
       .output_products("result");
     spdlog::info("Registered result");
   }
@@ -111,19 +103,16 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
   SECTION("Duplicate product name and creator, differ only in type")
   {
     g.transform("square", square, concurrency::unlimited)
-      .input_family(
-        product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "numbers"_id})
+      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "numbers"})
       .output_products("square_result", "square_result");
 
     g.transform("extract_result", id, concurrency::unlimited)
-      .input_family(
-        product_query{.creator = "square"_id, .layer = "event"_id, .suffix = "square_result"_id})
+      .input_family(product_query{.creator = "square", .layer = "event", .suffix = "square_result"})
       .output_products("result");
   }
 
   g.observe("print_result", [](int res) { spdlog::info("Result: {}", res); })
-    .input_family(
-      product_query{.creator = "extract_result"_id, .layer = "event"_id, .suffix = "result"_id});
+    .input_family(product_query{.creator = "extract_result", .layer = "event", .suffix = "result"});
   spdlog::info("Registered observe");
   g.execute();
   spdlog::info("Executed");
