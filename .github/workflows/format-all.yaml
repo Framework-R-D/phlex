@@ -148,7 +148,7 @@ jobs:
 
           check_job() {
             local name="$1" result="$2" changes="$3" pushed="$4" patch_name="$5" sha_short="$6"
-            if [ "$result" == "failure" ] || [ "$result" == "cancelled" ]; then
+            if [ "$result" == "failure" ] || [ "$result" == "cancelled" ] || [ "$result" == "skipped" ]; then
               messages+=("❌ $name workflow $result")
               has_failures=true
             elif [ "$changes" == "true" ]; then
