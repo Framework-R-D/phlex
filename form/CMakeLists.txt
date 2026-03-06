@@ -32,3 +32,9 @@ target_link_libraries(form_module PRIVATE phlex::module form)
 target_include_directories(form_module PRIVATE ${PROJECT_SOURCE_DIR})
 
 install(TARGETS form_module LIBRARY DESTINATION lib)
+
+add_library(form_source MODULE form_source.cpp)
+target_link_libraries(form_source PRIVATE phlex::module form)
+target_include_directories(form_source PRIVATE ${PROJECT_SOURCE_DIR})
+install(TARGETS form_source LIBRARY DESTINATION lib)
+
