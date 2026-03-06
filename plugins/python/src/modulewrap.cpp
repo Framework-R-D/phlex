@@ -345,19 +345,20 @@ namespace {
   static long pylong_as_strictlong(PyObject* pyobject)
   {
     // convert <pybject> to C++ long, don't allow truncation
-    if (PyLong_Check(pyobject)) {      // native Python integer
-        return PyLong_AsLong(pyobject);
+    if (PyLong_Check(pyobject)) { // native Python integer
+      return PyLong_AsLong(pyobject);
     }
 
     // accept numpy signed integer scalars (int8, int16, int32, int64)
     if (PyArray_IsScalar(pyobject, SignedInteger)) {
-        // convert to Python int first, then to C long, that way we get a Python
-        // OverflowError if out-of-range
-        PyObject* pylong = PyNumber_Long(pyobject);
-        if (!pylong) return (long)-1;
-        long result = PyLong_AsLong(pylong);
-        Py_DECREF(pylong);
-        return result;
+      // convert to Python int first, then to C long, that way we get a Python
+      // OverflowError if out-of-range
+      PyObject* pylong = PyNumber_Long(pyobject);
+      if (!pylong)
+        return (long)-1;
+      long result = PyLong_AsLong(pylong);
+      Py_DECREF(pylong);
+      return result;
     }
 
     PyErr_SetString(PyExc_TypeError, "int/long conversion expects a signed integer object");
@@ -374,13 +375,14 @@ namespace {
 
     // accept numpy unsigned integer scalars (uint8, uint16, uint32, uint64)
     if (PyArray_IsScalar(pyobject, UnsignedInteger)) {
-        // convert to Python int first, then to C unsigned long, that way we get a
-        // Python OverflowError if out-of-range
-        PyObject* pylong = PyNumber_Long(pyobject);
-        if (!pylong) return (long)-1;
-        unsigned long result = PyLong_AsUnsignedLong(pylong);
-        Py_DECREF(pylong);
-        return result;
+      // convert to Python int first, then to C unsigned long, that way we get a
+      // Python OverflowError if out-of-range
+      PyObject* pylong = PyNumber_Long(pyobject);
+      if (!pylong)
+        return (long)-1;
+      unsigned long result = PyLong_AsUnsignedLong(pylong);
+      Py_DECREF(pylong);
+      return result;
     }
 
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
@@ -778,8 +780,8 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string suff0 = "py_" + std::string{static_cast<std::string_view>(*pq0.suffix)};
 
   switch (input_queries.size()) {
-	  case 1: {
-	    auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
+  case 1: {
+    auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
     mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
@@ -848,7 +850,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
     if (dtype == "[int32_t]") {
       insert_converter(mod, cname, py_to_vint, out_pq, output);
-    } else if (dtype ==  "[uint32_t]") {
+    } else if (dtype == "[uint32_t]") {
       insert_converter(mod, cname, py_to_vuint, out_pq, output);
     } else if (dtype == "[int64_t]") {
       insert_converter(mod, cname, py_to_vlong, out_pq, output);
@@ -859,8 +861,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     } else if (dtype == "[double]") {
       insert_converter(mod, cname, py_to_vdouble, out_pq, output);
     } else {
-      PyErr_Format(
-        PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
+      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;
     }
   } else {
