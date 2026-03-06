@@ -298,54 +298,30 @@ namespace {
 
   static std::string annotation_as_text(PyObject* pyobj)
   {
-    std::string ann;
-    if (!PyUnicode_Check(pyobj)) {
-      PyObject* pystr = PyObject_GetAttrString(pyobj, "__name__"); // eg. for classes
-
-      // generics like Union have a __name__ that is not useful for our purposes
-      if (pystr) {
-        char const* cstr = PyUnicode_AsUTF8(pystr);
-        if (cstr && (strcmp(cstr, "Union") == 0 || strcmp(cstr, "Optional") == 0)) {
-          Py_DECREF(pystr);
-          pystr = nullptr;
-        }
+    static PyObject* normalizer = nullptr;
+    if (!normalizer) {
+      PyObject* phlexmod = PyImport_ImportModule("phlex");
+      if (phlexmod) {
+        normalizer = PyObject_GetAttrString(phlexmod, "normalize_type");
+        Py_DECREF(phlexmod);
       }
 
-      if (!pystr) {
-        PyErr_Clear();
-        pystr = PyObject_Str(pyobj);
+      if (!normalizer) {
+        std::string msg;
+        if (msg_from_py_error(msg, false))
+          throw std::runtime_error("unable to retrieve the phlex type normalizer: " + msg);
       }
-
-      if (pystr) {
-        char const* cstr = PyUnicode_AsUTF8(pystr);
-        if (cstr)
-          ann = cstr;
-        Py_DECREF(pystr);
-      }
-
-      // for numpy typing, there's no useful way of figuring out the type from the
-      // name of the type, only from its string representation, so fall through and
-      // let this method return str()
-      if (ann != "ndarray" && ann != "list")
-        return ann;
-
-      // start over for numpy type using result from str()
-      pystr = PyObject_Str(pyobj);
-      if (pystr) {
-        char const* cstr = PyUnicode_AsUTF8(pystr);
-        if (cstr) // if failed, ann will remain "ndarray"
-          ann = cstr;
-        Py_DECREF(pystr);
-      }
-      return ann;
     }
 
-    // unicode object, i.e. string name of the type
-    char const* cstr = PyUnicode_AsUTF8(pyobj);
-    if (cstr)
-      ann = cstr;
-    else
-      PyErr_Clear();
+    PyObject* norm = PyObject_CallOneArg(normalizer, pyobj);
+    if (!norm) {
+      std::string msg;
+      if (msg_from_py_error(msg, false))
+        throw std::runtime_error("normalization error: " + msg);
+    }
+
+    std::string ann = PyUnicode_AsUTF8(norm);
+    Py_DECREF(norm);
 
     return ann;
   }
@@ -369,11 +345,23 @@ namespace {
   static long pylong_as_strictlong(PyObject* pyobject)
   {
     // convert <pybject> to C++ long, don't allow truncation
-    if (!PyLong_Check(pyobject)) {
-      PyErr_SetString(PyExc_TypeError, "int/long conversion expects an integer object");
-      return (long)-1;
+    if (PyLong_Check(pyobject)) {      // native Python integer
+        return PyLong_AsLong(pyobject);
     }
-    return (long)PyLong_AsLong(pyobject); // already does long range check
+
+    // accept numpy signed integer scalars (int8, int16, int32, int64)
+    if (PyArray_IsScalar(pyobject, SignedInteger)) {
+        // convert to Python int first, then to C long, that way we get a Python
+        // OverflowError if out-of-range
+        PyObject* pylong = PyNumber_Long(pyobject);
+        if (!pylong) return (long)-1;
+        long result = PyLong_AsLong(pylong);
+        Py_DECREF(pylong);
+        return result;
+    }
+
+    PyErr_SetString(PyExc_TypeError, "int/long conversion expects a signed integer object");
+    return (long)-1;
   }
 
   static unsigned long pylong_or_int_as_ulong(PyObject* pyobject)
@@ -382,6 +370,17 @@ namespace {
     if (PyFloat_Check(pyobject)) {
       PyErr_SetString(PyExc_TypeError, "can\'t convert float to unsigned long");
       return (unsigned long)-1;
+    }
+
+    // accept numpy unsigned integer scalars (uint8, uint16, uint32, uint64)
+    if (PyArray_IsScalar(pyobject, UnsignedInteger)) {
+        // convert to Python int first, then to C unsigned long, that way we get a
+        // Python OverflowError if out-of-range
+        PyObject* pylong = PyNumber_Long(pyobject);
+        if (!pylong) return (long)-1;
+        unsigned long result = PyLong_AsUnsignedLong(pylong);
+        Py_DECREF(pylong);
+        return result;
     }
 
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
@@ -420,10 +419,10 @@ namespace {
   }
 
   BASIC_CONVERTER(bool, bool, PyBool_FromLong, pylong_as_bool)
-  BASIC_CONVERTER(int, int, PyLong_FromLong, PyLong_AsLong)
-  BASIC_CONVERTER(uint, unsigned int, PyLong_FromLong, pylong_or_int_as_ulong)
-  BASIC_CONVERTER(long, long, PyLong_FromLong, pylong_as_strictlong)
-  BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
+  BASIC_CONVERTER(int, std::int32_t, PyLong_FromLong, PyLong_AsLong)
+  BASIC_CONVERTER(uint, std::uint32_t, PyLong_FromLong, pylong_or_int_as_ulong)
+  BASIC_CONVERTER(long, std::int64_t, PyLong_FromLong, pylong_as_strictlong)
+  BASIC_CONVERTER(ulong, std::uint64_t, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
@@ -466,10 +465,10 @@ namespace {
     return (intptr_t)pyll;                                                                         \
   }
 
-  VECTOR_CONVERTER(vint, int, NPY_INT)
-  VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
-  VECTOR_CONVERTER(vlong, long, NPY_LONG)
-  VECTOR_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  VECTOR_CONVERTER(vint, std::int32_t, NPY_INT32)
+  VECTOR_CONVERTER(vuint, std::uint32_t, NPY_UINT32)
+  VECTOR_CONVERTER(vlong, std::int64_t, NPY_INT64)
+  VECTOR_CONVERTER(vulong, std::uint64_t, NPY_UINT64)
   VECTOR_CONVERTER(vfloat, float, NPY_FLOAT)
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
@@ -517,10 +516,10 @@ namespace {
     return vec;                                                                                    \
   }
 
-  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT, PyLong_AsLong)
-  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT, pylong_or_int_as_ulong)
-  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG, pylong_as_strictlong)
-  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG, pylong_or_int_as_ulong)
+  NUMPY_ARRAY_CONVERTER(vint, std::int32_t, NPY_INT32, PyLong_AsLong)
+  NUMPY_ARRAY_CONVERTER(vuint, std::uint32_t, NPY_UINT32, pylong_or_int_as_ulong)
+  NUMPY_ARRAY_CONVERTER(vlong, std::int64_t, NPY_INT64, pylong_as_strictlong)
+  NUMPY_ARRAY_CONVERTER(vulong, std::uint64_t, NPY_UINT64, pylong_or_int_as_ulong)
   NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT, PyFloat_AsDouble)
   NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE, PyFloat_AsDouble)
 
@@ -687,52 +686,34 @@ static bool insert_input_converters(py_phlex_module* mod,
 
     if (inp_type == "bool")
       insert_converter(mod, pyname, bool_to_py, inp_pq, output);
-    else if (inp_type == "int")
+    else if (inp_type == "int32_t")
       insert_converter(mod, pyname, int_to_py, inp_pq, output);
-    else if (inp_type == "unsigned int")
+    else if (inp_type == "uint32_t")
       insert_converter(mod, pyname, uint_to_py, inp_pq, output);
-    else if (inp_type == "long")
+    else if (inp_type == "int64_t")
       insert_converter(mod, pyname, long_to_py, inp_pq, output);
-    else if (inp_type == "unsigned long")
+    else if (inp_type == "uint64_t")
       insert_converter(mod, pyname, ulong_to_py, inp_pq, output);
     else if (inp_type == "float")
       insert_converter(mod, pyname, float_to_py, inp_pq, output);
     else if (inp_type == "double")
       insert_converter(mod, pyname, double_to_py, inp_pq, output);
-    else if (inp_type.compare(0, 13, "numpy.ndarray") == 0 || inp_type.compare(0, 4, "list") == 0) {
+    else if (inp_type.compare(0, 7, "ndarray") == 0 || inp_type.compare(0, 4, "list") == 0) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
       // until we have an IDL
-      auto pos = inp_type.rfind("numpy.dtype");
-      if (pos == std::string::npos) {
-        if (inp_type[0] == 'l') {
-          pos = 0;
-        } else {
-          PyErr_Format(
-            PyExc_TypeError, "could not determine dtype of input type \"%s\"", inp_type.c_str());
-          return false;
-        }
-      } else {
-        pos += 18;
-      }
-
-      if (inp_type.compare(pos, std::string::npos, "uint32]]") == 0 ||
-          inp_type == "list[unsigned int]" || inp_type == "list['unsigned int']") {
-        insert_converter(mod, pyname, vuint_to_py, inp_pq, output);
-      } else if (inp_type.compare(pos, std::string::npos, "int32]]") == 0 ||
-                 inp_type == "list[int]") {
+      std::string_view dtype{inp_type.begin() + inp_type.rfind('['), inp_type.end()};
+      if (dtype == "[int32_t]") {
         insert_converter(mod, pyname, vint_to_py, inp_pq, output);
-      } else if (inp_type.compare(pos, std::string::npos, "uint64]]") == 0 || // need not be true
-                 inp_type == "list[unsigned long]" || inp_type == "list['unsigned long']") {
-        insert_converter(mod, pyname, vulong_to_py, inp_pq, output);
-      } else if (inp_type.compare(pos, std::string::npos, "int64]]") == 0 || // id.
-                 inp_type == "list[long]" || inp_type == "list['long']") {
+      } else if (dtype == "[uint32_t]") {
+        insert_converter(mod, pyname, vuint_to_py, inp_pq, output);
+      } else if (dtype == "[int64_t]") {
         insert_converter(mod, pyname, vlong_to_py, inp_pq, output);
-      } else if (inp_type.compare(pos, std::string::npos, "float32]]") == 0 ||
-                 inp_type == "list[float]") {
+      } else if (dtype == "[uint64_t]") {
+        insert_converter(mod, pyname, vulong_to_py, inp_pq, output);
+      } else if (dtype == "[float]") {
         insert_converter(mod, pyname, vfloat_to_py, inp_pq, output);
-      } else if (inp_type.compare(pos, std::string::npos, "float64]]") == 0 ||
-                 inp_type == "list[double]" || inp_type == "list['double']") {
+      } else if (dtype == "[double]") {
         insert_converter(mod, pyname, vdouble_to_py, inp_pq, output);
       } else {
         PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
@@ -797,8 +778,8 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string suff0 = "py_" + std::string{static_cast<std::string_view>(*pq0.suffix)};
 
   switch (input_queries.size()) {
-  case 1: {
-    auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
+	  case 1: {
+	    auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
     mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
@@ -845,64 +826,45 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   auto out_pq = product_query{.creator = identifier(pyname),
                               .layer = identifier(output_layer),
                               .suffix = identifier(pyoutput)};
-  std::string output_type = output_types[0];
+  std::string out_type = output_types[0];
   std::string output = output_labels[0];
-  if (output_type == "bool")
+  if (out_type == "bool")
     insert_converter(mod, cname, py_to_bool, out_pq, output);
-  else if (output_type == "int")
+  else if (out_type == "int32_t")
     insert_converter(mod, cname, py_to_int, out_pq, output);
-  else if (output_type == "unsigned int")
+  else if (out_type == "uint32_t")
     insert_converter(mod, cname, py_to_uint, out_pq, output);
-  else if (output_type == "long")
+  else if (out_type == "int64_t")
     insert_converter(mod, cname, py_to_long, out_pq, output);
-  else if (output_type == "unsigned long")
+  else if (out_type == "uint64_t")
     insert_converter(mod, cname, py_to_ulong, out_pq, output);
-  else if (output_type == "float")
+  else if (out_type == "float")
     insert_converter(mod, cname, py_to_float, out_pq, output);
-  else if (output_type == "double")
+  else if (out_type == "double")
     insert_converter(mod, cname, py_to_double, out_pq, output);
-  else if (output_type.compare(0, 13, "numpy.ndarray") == 0 ||
-           output_type.compare(0, 4, "list") == 0) {
+  else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
-    auto pos = output_type.rfind("numpy.dtype");
-    if (pos == std::string::npos) {
-      if (output_type[0] == 'l') {
-        pos = 0;
-      } else {
-        PyErr_Format(
-          PyExc_TypeError, "could not determine dtype of output type \"%s\"", output_type.c_str());
-        return nullptr;
-      }
-    } else {
-      pos += 18;
-    }
-
-    if (output_type.compare(pos, std::string::npos, "uint32]]") == 0 ||
-        output_type == "list[unsigned int]" || output_type == "list['unsigned int']") {
-      insert_converter(mod, cname, py_to_vuint, out_pq, output);
-    } else if (output_type.compare(pos, std::string::npos, "int32]]") == 0 ||
-               output_type == "list[int]") {
+    std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
+    if (dtype == "[int32_t]") {
       insert_converter(mod, cname, py_to_vint, out_pq, output);
-    } else if (output_type.compare(pos, std::string::npos, "uint64]]") == 0 || // need not be true
-               output_type == "list[unsigned long]" || output_type == "list['unsigned long']") {
-      insert_converter(mod, cname, py_to_vulong, out_pq, output);
-    } else if (output_type.compare(pos, std::string::npos, "int64]]") == 0 || // id.
-               output_type == "list[long]" || output_type == "list['long']") {
+    } else if (dtype ==  "[uint32_t]") {
+      insert_converter(mod, cname, py_to_vuint, out_pq, output);
+    } else if (dtype == "[int64_t]") {
       insert_converter(mod, cname, py_to_vlong, out_pq, output);
-    } else if (output_type.compare(pos, std::string::npos, "float32]]") == 0 ||
-               output_type == "list[float]") {
+    } else if (dtype == "[uint64_t]") {
+      insert_converter(mod, cname, py_to_vulong, out_pq, output);
+    } else if (dtype == "[float]") {
       insert_converter(mod, cname, py_to_vfloat, out_pq, output);
-    } else if (output_type.compare(pos, std::string::npos, "float64]]") == 0 ||
-               output_type == "list[double]" || output_type == "list['double']") {
+    } else if (dtype == "[double]") {
       insert_converter(mod, cname, py_to_vdouble, out_pq, output);
     } else {
       PyErr_Format(
-        PyExc_TypeError, "unsupported collection output type \"%s\"", output_type.c_str());
+        PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;
     }
   } else {
-    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output_type.c_str());
+    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
     return nullptr;
   }
 

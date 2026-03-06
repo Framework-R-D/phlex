@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for the phlex.Variant class."""
 
-import unittest
+from pytest import raises
 
 from phlex import MissingAnnotation, Variant
 
@@ -14,31 +14,32 @@ def example_func(a, b=1):
 ann = {"a": int, "b": int, "return": int}
 
 
-class TestVariant(unittest.TestCase):
+class TestVariant:
     """Tests for Variant wrapper."""
 
     def test_initialization(self):
         """Test proper initialization and attribute exposure."""
         wrapper = Variant(example_func, ann, "example_wrapper")
 
-        self.assertEqual(wrapper.__name__, "example_wrapper")
-        self.assertEqual(wrapper.__annotations__, ann)
-        self.assertEqual(wrapper.phlex_callable, example_func)
+        assert wrapper.__name__ == "example_wrapper"
+        assert wrapper.__annotations__ == ann
+        assert wrapper.phlex_callable == example_func
         # Check introspection attributes are exposed
-        self.assertEqual(wrapper.__code__, example_func.__code__)
-        self.assertEqual(wrapper.__defaults__, example_func.__defaults__)
+        assert wrapper.__code__ == example_func.__code__
+        assert wrapper.__defaults__ == example_func.__defaults__
 
     def test_call_by_default_raises(self):
         """Test that calling the wrapper raises AssertionError by default."""
         wrapper = Variant(example_func, ann, "no_call")
-        with self.assertRaises(AssertionError) as cm:
+        with raises(AssertionError) as cm:
             wrapper(1)
-        self.assertIn("was called directly", str(cm.exception))
+
+        assert "was called directly" in str(cm.value)
 
     def test_allow_call(self):
         """Test that calling is allowed when configured."""
         wrapper = Variant(example_func, ann, "yes_call", allow_call=True)
-        self.assertEqual(wrapper(10, 20), 30)
+        assert wrapper(10, 20) == 30
 
     def test_clone_shallow(self):
         """Test shallow cloning behavior."""
@@ -46,7 +47,7 @@ class TestVariant(unittest.TestCase):
         # but let's test the flag logic in Variant
         wrapper = Variant(example_func, ann, "clone_shallow", clone=True)
         # function copy is same object
-        self.assertEqual(wrapper.phlex_callable, example_func)
+        assert wrapper.phlex_callable == example_func
 
         # Test valid copy logic with a mutable callable
         class CallableObj:
@@ -55,7 +56,7 @@ class TestVariant(unittest.TestCase):
 
         obj = CallableObj()
         wrapper_obj = Variant(obj, {}, "obj_clone", clone=True)
-        self.assertNotEqual(id(wrapper_obj.phlex_callable), id(obj))  # copy was made?
+        assert id(wrapper_obj.phlex_callable) != id(obj)  # copy was made?
         # copy.copy of a custom object usually creates a new instance if generic
 
     def test_clone_deep(self):
@@ -70,8 +71,8 @@ class TestVariant(unittest.TestCase):
 
         c = Container()
         wrapper = Variant(c, {}, "deep_clone", clone="deep")
-        self.assertNotEqual(id(wrapper.phlex_callable), id(c))
-        self.assertNotEqual(id(wrapper.phlex_callable.data), id(c.data))
+        assert id(wrapper.phlex_callable) != id(c)
+        assert id(wrapper.phlex_callable.data) !=  id(c.data)
 
     def test_missing_annotation_raises(self):
         """Test that MissingAnnotation is raised when a required argument is missing."""
@@ -81,11 +82,11 @@ class TestVariant(unittest.TestCase):
 
         # Missing 'y'
         incomplete_ann = {"x": int, "return": int}
-        with self.assertRaises(MissingAnnotation) as cm:
+        with raises(MissingAnnotation) as cm:
             Variant(func, incomplete_ann, "missing_y")
 
-        self.assertEqual(str(cm.exception), "argument 'y' is not annotated")
-        self.assertEqual(cm.exception.arg, "y")
+        assert str(cm.value) == "argument 'y' is not annotated"
+        assert cm.value.arg == "y"
 
     def test_missing_optional_annotation_does_not_raise(self):
         """Test that MissingAnnotation is not raised for arguments with default values."""
@@ -96,9 +97,6 @@ class TestVariant(unittest.TestCase):
         # Missing 'y', but it has a default value
         incomplete_ann = {"x": int, "return": int}
         wrapper = Variant(func, incomplete_ann, "missing_optional_y")
-        self.assertIn("x", wrapper.__annotations__)
-        self.assertNotIn("y", wrapper.__annotations__)
+        assert "x" in wrapper.__annotations__
+        assert "y" not in wrapper.__annotations__
 
-
-if __name__ == "__main__":
-    unittest.main()
