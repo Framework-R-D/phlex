@@ -1,7 +1,7 @@
-#include "phlex/source.hpp"
 #include "form/config.hpp"
 #include "form/form.hpp"
 #include "form/technology.hpp"
+#include "phlex/source.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -16,16 +16,16 @@ using namespace phlex::experimental;
 PHLEX_REGISTER_PROVIDERS(s, config)
 {
   // --- Extract configuration ---
-  std::string const input_file  = config.get<std::string>("input_file");
-  std::string const creator     = config.get<std::string>("creator");
+  std::string const input_file = config.get<std::string>("input_file");
+  std::string const creator = config.get<std::string>("creator");
   std::string const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
-  auto const products           = config.get<std::vector<std::string>>("products");
+  auto const products = config.get<std::vector<std::string>>("products");
 
   // --- Resolve technology enum ---
   std::unordered_map<std::string_view, int> const tech_lookup = {
-    {"ROOT_TTREE",   form::technology::ROOT_TTREE},
+    {"ROOT_TTREE", form::technology::ROOT_TTREE},
     {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
-    {"HDF5",         form::technology::HDF5}};
+    {"HDF5", form::technology::HDF5}};
 
   auto const it = tech_lookup.find(tech_string);
   if (it == tech_lookup.end()) {
@@ -55,8 +55,7 @@ PHLEX_REGISTER_PROVIDERS(s, config)
                 }
                 return *static_cast<int const*>(pb.data);
               })
-      .output_product(product_query{.creator = identifier(creator),
-                                    .layer   = identifier("event"),
-                                    .suffix  = identifier(name)});
+      .output_product(product_query{
+        .creator = identifier(creator), .layer = identifier("event"), .suffix = identifier(name)});
   }
 }
