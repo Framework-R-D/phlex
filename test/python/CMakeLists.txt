@@ -1,15 +1,12 @@
-find_package(
-  Python 3.12
-  COMPONENTS Interpreter
-  REQUIRED
-  )
+find_package(Python 3.12 COMPONENTS Interpreter REQUIRED)
 
 # Verify installation of necessary python modules for specific tests
 
 function(check_python_module_version MODULE_NAME MIN_VERSION OUT_VAR)
   execute_process(
     COMMAND
-      ${Python_EXECUTABLE} -c "import sys
+      ${Python_EXECUTABLE} -c
+      "import sys
 try:
     import ${MODULE_NAME}
     installed_version = getattr(${MODULE_NAME}, '__version__', None)
@@ -32,39 +29,25 @@ except Exception as e:
     RESULT_VARIABLE _module_check_result
     OUTPUT_VARIABLE _module_check_out
     ERROR_VARIABLE _module_check_err
-    )
+  )
   message(
     STATUS
-      "Check ${MODULE_NAME}: Res=${_module_check_result} Out=${_module_check_out} Err=${_module_check_err}"
-    )
+    "Check ${MODULE_NAME}: Res=${_module_check_result} Out=${_module_check_out} Err=${_module_check_err}"
+  )
 
   if(_module_check_result EQUAL 0)
-    set(${OUT_VAR}
-        TRUE
-        PARENT_SCOPE
-        )
+    set(${OUT_VAR} TRUE PARENT_SCOPE)
   elseif(_module_check_result EQUAL 1)
-    set(${OUT_VAR}
-        FALSE
-        PARENT_SCOPE
-        ) # silent b/c common
+    set(${OUT_VAR} FALSE PARENT_SCOPE) # silent b/c common
   elseif(_module_check_result EQUAL 2)
     message(
       WARNING
-        "Python module '${MODULE_NAME}' found but version too low (min required: ${MIN_VERSION})."
-      )
-    set(${OUT_VAR}
-        FALSE
-        PARENT_SCOPE
-        )
+      "Python module '${MODULE_NAME}' found but version too low (min required: ${MIN_VERSION})."
+    )
+    set(${OUT_VAR} FALSE PARENT_SCOPE)
   else()
-    message(
-      WARNING "Unknown error while checking Python module '${MODULE_NAME}'."
-      )
-    set(${OUT_VAR}
-        FALSE
-        PARENT_SCOPE
-        )
+    message(WARNING "Unknown error while checking Python module '${MODULE_NAME}'.")
+    set(${OUT_VAR} FALSE PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -81,22 +64,24 @@ set(PYTHON_TEST_FILES test_typing.py test_variant.py)
 
 # Determine pytest command based on coverage support
 if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
-  set(PYTEST_COMMAND
-      ${PYTHON_TEST_EXECUTABLE} -m pytest --cov=${CMAKE_CURRENT_SOURCE_DIR}
-      --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
-      --cov-report=term-missing
-      --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
-      --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
-      --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc ${PYTHON_TEST_FILES}
-      )
+  set(
+    PYTEST_COMMAND
+    ${PYTHON_TEST_EXECUTABLE}
+    -m
+    pytest
+    --cov=${CMAKE_CURRENT_SOURCE_DIR}
+    --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
+    --cov-report=term-missing
+    --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
+    --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
+    --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc
+    ${PYTHON_TEST_FILES}
+  )
   message(STATUS "Python tests will run with coverage reporting (pytest-cov)")
 else()
   set(PYTEST_COMMAND ${PYTHON_TEST_EXECUTABLE} -m pytest ${PYTHON_TEST_FILES})
   if(ENABLE_COVERAGE AND NOT HAS_PYTEST_COV)
-    message(
-      WARNING
-        "ENABLE_COVERAGE is ON but pytest-cov not found; Python coverage disabled"
-      )
+    message(WARNING "ENABLE_COVERAGE is ON but pytest-cov not found; Python coverage disabled")
   endif()
 endif()
 
@@ -108,10 +93,7 @@ if(HAS_CPPYY)
     set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
   endif()
 
-  set_property(
-    TEST py:phlex PROPERTY ENVIRONMENT
-                           "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-    )
+  set_property(TEST py:phlex PROPERTY ENVIRONMENT "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}")
 
   set(PYTHON_TEST_FILES ${PYTHON_TEST_FILES} test_phlex.py)
 endif()
@@ -121,89 +103,69 @@ set(ACTIVE_PY_CPHLEX_TESTS "")
 # numpy support if installed
 if(HAS_NUMPY)
   # phlex-based tests that require numpy support
-  add_test(NAME py:vec COMMAND phlex::phlex -c
-                               ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet
-           )
+  add_test(NAME py:vec COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvec.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vec)
 
-  add_test(NAME py:vectypes
-           COMMAND phlex::phlex -c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet
-           )
+  add_test(NAME py:vectypes COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyvectypes.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:vectypes)
 
-  add_test(NAME py:callback3
-           COMMAND phlex::phlex -c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet
-           )
+  add_test(
+    NAME py:callback3
+    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycallback3.jsonnet
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:callback3)
 
   # Expect failure for these tests (check for error propagation and type
   # checking)
-  add_test(NAME py:raise COMMAND phlex::phlex -c
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet
-           )
+  add_test(NAME py:raise COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyraise.jsonnet)
   set_tests_properties(
-    py:raise PROPERTIES PASS_REGULAR_EXPRESSION
-                        "RuntimeError: Intentional failure"
-    )
+    py:raise
+    PROPERTIES PASS_REGULAR_EXPRESSION "RuntimeError: Intentional failure"
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:raise)
 
-  add_test(NAME py:badbool
-           COMMAND phlex::phlex -c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet
-           )
+  add_test(NAME py:badbool COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadbool.jsonnet)
   set_tests_properties(
     py:badbool
     PROPERTIES
       PASS_REGULAR_EXPRESSION
-      "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
-    )
+        "Python conversion error for type bool: boolean value should be bool, or integer 1 or 0"
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badbool)
 
-  add_test(NAME py:badint COMMAND phlex::phlex -c
-                                  ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet
-           )
+  add_test(NAME py:badint COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybadint.jsonnet)
   set_tests_properties(
     py:badint
     PROPERTIES
       PASS_REGULAR_EXPRESSION
-      "Python conversion error for type long: int/long conversion expects a signed integer object"
-    )
+        "Python conversion error for type long: int/long conversion expects a signed integer object"
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:badint)
 
-  add_test(NAME py:baduint
-           COMMAND phlex::phlex -c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet
-           )
+  add_test(NAME py:baduint COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pybaduint.jsonnet)
   set_tests_properties(
     py:baduint
     PROPERTIES
       PASS_REGULAR_EXPRESSION
-      "Python conversion error for type uint: can't convert negative value to unsigned long"
-    )
+        "Python conversion error for type uint: can't convert negative value to unsigned long"
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:baduint)
 
-  add_test(NAME py:mismatch_variant
-           COMMAND phlex::phlex -c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet
-           )
+  add_test(
+    NAME py:mismatch_variant
+    COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch_variant.jsonnet
+  )
   set_tests_properties(
     py:mismatch_variant
-    PROPERTIES PASS_REGULAR_EXPRESSION
-               "number of inputs .* does not match number of annotation types"
-    )
+    PROPERTIES
+      PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
+  )
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch_variant)
 
-  add_test(NAME py:veclists
-           COMMAND phlex::phlex -c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet
-           )
+  add_test(NAME py:veclists COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyveclists.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:veclists)
 
-  add_test(NAME py:types COMMAND phlex::phlex -c
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet
-           )
+  add_test(NAME py:types COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pytypes.jsonnet)
   list(APPEND ACTIVE_PY_CPHLEX_TESTS py:types)
 endif()
 
@@ -212,53 +174,44 @@ add_library(cppsource4py MODULE source.cpp)
 target_link_libraries(cppsource4py PRIVATE phlex::module)
 
 # phlex-based tests (no cppyy dependency)
-add_test(NAME py:add COMMAND phlex::phlex -c
-                             ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet
-         )
+add_test(NAME py:add COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
 
-add_test(NAME py:config COMMAND phlex::phlex -c
-                                ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet
-         )
+add_test(NAME py:config COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 
-add_test(NAME py:reduce COMMAND phlex::phlex -c
-                                ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet
-         )
+add_test(NAME py:reduce COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyreduce.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
-add_test(NAME py:coverage
-         COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet
-         )
+add_test(NAME py:coverage COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
 
-add_test(NAME py:mismatch
-         COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c
-                 ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
-         )
+add_test(
+  NAME py:mismatch
+  COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
+)
 set_tests_properties(
   py:mismatch
-  PROPERTIES PASS_REGULAR_EXPRESSION
-             "number of inputs .* does not match number of annotation types"
-  )
+  PROPERTIES
+    PASS_REGULAR_EXPRESSION "number of inputs .* does not match number of annotation types"
+)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:mismatch)
 
 # "failing" tests for checking error paths
-add_test(NAME py:failure COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/pyfailure.jsonnet
-         )
+add_test(
+  NAME py:failure
+  COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyfailure.jsonnet
+)
 set_tests_properties(
-  py:failure PROPERTIES PASS_REGULAR_EXPRESSION
-                        "failed to retrieve property \"input\""
-  )
+  py:failure
+  PROPERTIES PASS_REGULAR_EXPRESSION "failed to retrieve property \"input\""
+)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:failure)
 
 set(TEST_PYTHONPATH ${CMAKE_CURRENT_SOURCE_DIR})
 # Add the python plugin source directory to PYTHONPATH so tests can use phlex
 # package
-set(TEST_PYTHONPATH
-    ${TEST_PYTHONPATH}:${PROJECT_SOURCE_DIR}/plugins/python/python
-    )
+set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:${PROJECT_SOURCE_DIR}/plugins/python/python)
 
 # Always add site-packages to PYTHONPATH for tests, as embedded python might not
 # find them especially in spack environments where they are in non-standard
@@ -276,32 +229,28 @@ endif()
 set(TEST_PYTHONPATH ${TEST_PYTHONPATH}:$ENV{PYTHONPATH})
 
 # Environment variables required:
-set(PYTHON_TEST_ENVIRONMENT
-    "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
-    )
+set(
+  PYTHON_TEST_ENVIRONMENT
+  "SPDLOG_LEVEL=debug;PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR};PYTHONPATH=${TEST_PYTHONPATH};PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}"
+)
 
-set_tests_properties(
-  ${ACTIVE_PY_CPHLEX_TESTS} PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}"
-  )
+set_tests_properties(${ACTIVE_PY_CPHLEX_TESTS} PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
 
 # phlex-based test to ensure that sys.path is sanely set for virtual environment
 set(PY_VIRTUAL_ENV_DIR ${CMAKE_CURRENT_BINARY_DIR}/py_virtual_env)
 execute_process(COMMAND python -m venv ${PY_VIRTUAL_ENV_DIR})
 configure_file(pysyspath.jsonnet.in pysyspath.jsonnet @ONLY)
-add_test(NAME py:syspath COMMAND phlex::phlex -c
-                                 ${CMAKE_CURRENT_BINARY_DIR}/pysyspath.jsonnet
-         )
+add_test(NAME py:syspath COMMAND phlex::phlex -c ${CMAKE_CURRENT_BINARY_DIR}/pysyspath.jsonnet)
 
 # Activate the Python virtual environment "by hand".  Requires setting the
 # VIRTUAL_ENV environment variable and prepending to the PATH environment
 # variable.
 set_tests_properties(
   py:syspath
-  PROPERTIES ENVIRONMENT
-             "${PYTHON_TEST_ENVIRONMENT};VIRTUAL_ENV=${PY_VIRTUAL_ENV_DIR}"
-             ENVIRONMENT_MODIFICATION
-             "PATH=path_list_prepend:${PY_VIRTUAL_ENV_DIR}/bin"
-  )
+  PROPERTIES
+    ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT};VIRTUAL_ENV=${PY_VIRTUAL_ENV_DIR}"
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${PY_VIRTUAL_ENV_DIR}/bin"
+)
 
 # Python coverage target
 if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
@@ -309,11 +258,12 @@ if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
     # When cppyy is available, use the full pytest command
     add_custom_target(
       coverage-python
-      COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
-              PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL} ${PYTEST_COMMAND}
+      COMMAND
+        ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
+        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL} ${PYTEST_COMMAND}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Running Python coverage report"
-      )
+    )
   else()
     # When cppyy is not available, run a simpler pytest command for standalone
     # Python tests (like test_variant.py)
@@ -322,26 +272,17 @@ if(HAS_PYTEST_COV AND ENABLE_COVERAGE)
       coverage-python
       COMMAND
         ${CMAKE_COMMAND} -E env PYTHONPATH=${TEST_PYTHONPATH}
-        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL_FALLBACK} ${Python_EXECUTABLE}
-        -m pytest --cov=${CMAKE_CURRENT_SOURCE_DIR}
-        --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
-        --cov-report=term-missing
-        --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
+        PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL_FALLBACK} ${Python_EXECUTABLE} -m pytest
+        --cov=${CMAKE_CURRENT_SOURCE_DIR} --cov=${PROJECT_SOURCE_DIR}/plugins/python/python
+        --cov-report=term-missing --cov-report=xml:${CMAKE_BINARY_DIR}/coverage-python.xml
         --cov-report=html:${CMAKE_BINARY_DIR}/coverage-python-html
-        --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc
-        ${PYTHON_TEST_FILES}
+        --cov-config=${CMAKE_CURRENT_SOURCE_DIR}/.coveragerc ${PYTHON_TEST_FILES}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Running Python coverage report (standalone tests only)"
-      )
+    )
   endif()
 endif()
 
 # tests of the python support modules
-add_test(
-  NAME py:phlex
-  COMMAND ${PYTEST_COMMAND}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
-set_tests_properties(
-  py:phlex PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}"
-  )
+add_test(NAME py:phlex COMMAND ${PYTEST_COMMAND} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set_tests_properties(py:phlex PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
