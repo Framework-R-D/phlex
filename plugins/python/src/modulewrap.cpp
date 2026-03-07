@@ -353,9 +353,7 @@ namespace {
     if (PyArray_IsScalar(pyobject, SignedInteger)) {
       // convert to Python int first, then to C long, that way we get a Python
       // OverflowError if out-of-range
-      PyObject* pylong = PyNumber_Long(pyobject);
-      if (!pylong)
-        return (long)-1;
+      PyObject* pylong = PyNumber_Long(pyobject);     // doesn't fail b/c of type check
       long result = PyLong_AsLong(pylong);
       Py_DECREF(pylong);
       return result;
@@ -377,9 +375,7 @@ namespace {
     if (PyArray_IsScalar(pyobject, UnsignedInteger)) {
       // convert to Python int first, then to C unsigned long, that way we get a
       // Python OverflowError if out-of-range
-      PyObject* pylong = PyNumber_Long(pyobject);
-      if (!pylong)
-        return (long)-1;
+      PyObject* pylong = PyNumber_Long(pyobject);     // doesn't fail b/c of type check
       unsigned long result = PyLong_AsUnsignedLong(pylong);
       Py_DECREF(pylong);
       return result;
