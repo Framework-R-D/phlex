@@ -149,10 +149,7 @@ def normalize_type(tp: Any, globalns: Dict|None=None, localns: Dict|None=None) -
 
         if origin is np.ndarray:            # numpy arrays
             dtype_args = typing.get_args(args[1]) if len(args) >= 2 else ()
-            if dtype_args:
-                return "ndarray[" + normalize_type(dtype_args[0], globalns, localns) + "]"
-            else:
-                raise TypeError("Numpy array with unparameterized or no scalar type")
+            return "ndarray[" + normalize_type(dtype_args[0], globalns, localns) + "]"
 
         if isinstance(origin, type):        # regular python typing type
             name = origin.__name__
