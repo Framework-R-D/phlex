@@ -2,11 +2,12 @@
 """Unit tests for phlex typing normalization."""
 
 import ctypes
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 import numpy.typing as npt
 from phlex._typing import _C2C
+from pytest import raises
 
 from phlex import normalize_type
 
@@ -63,3 +64,32 @@ class TestTYPING:
                      (np.float64, "double"),):
             assert normalize_type(npt.NDArray[t]) == "ndarray["+s+"]"
 
+    def test_special_cases(self):
+        """Special cases."""
+        # None type
+        assert normalize_type(None) == "None"
+
+        # use of namespaces for evaluation
+        assert("foo") == "foo"
+        global foo
+        foo = np.int64
+        assert normalize_type("foo", globals()) == "int64_t"
+        bar = np.int32
+        assert normalize_type("bar", globals()) == "bar"
+        assert normalize_type("bar", localns=locals()) == "int32_t"
+
+        # union types are not allowed
+        raises(TypeError, normalize_type, List[int] | Dict[int, int])
+
+        # pointer types are not supported yet
+        raises(TypeError, normalize_type, ctypes.POINTER(ctypes.c_int))
+
+        # ctypes array
+        assert normalize_type((ctypes.c_int * 42)) == "array[int32_t]"
+
+        # something unknown
+        class SomeType:
+            def __repr__(self):
+                return "some type"
+
+        assert normalize_type(SomeType()) == "some type"
