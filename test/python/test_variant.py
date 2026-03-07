@@ -72,7 +72,7 @@ class TestVariant:
         c = Container()
         wrapper = Variant(c, {}, "deep_clone", clone="deep")
         assert id(wrapper.phlex_callable) != id(c)
-        assert id(wrapper.phlex_callable.data) !=  id(c.data)
+        assert id(wrapper.phlex_callable.data) != id(c.data)
 
     def test_missing_annotation_raises(self):
         """Test that MissingAnnotation is raised when a required argument is missing."""
@@ -99,4 +99,3 @@ class TestVariant:
         wrapper = Variant(func, incomplete_ann, "missing_optional_y")
         assert "x" in wrapper.__annotations__
         assert "y" not in wrapper.__annotations__
-

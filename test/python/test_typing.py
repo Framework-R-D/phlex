@@ -17,19 +17,21 @@ class TestTYPING:
 
     def test_list_normalization(self):
         """Normalization of various forms of list annotations."""
-        for types in (["int", int, ctypes.c_int],
-                      ["unsigned int", ctypes.c_uint],
-                      ["long", ctypes.c_long],
-                      ["unsigned long", ctypes.c_ulong],
-                      ["long long", ctypes.c_longlong],
-                      ["unsigned long long", ctypes.c_ulonglong],
-                      ["float", float, ctypes.c_float],
-                      ["double", ctypes.c_double],):
+        for types in (
+            ["int", int, ctypes.c_int],
+            ["unsigned int", ctypes.c_uint],
+            ["long", ctypes.c_long],
+            ["unsigned long", ctypes.c_ulong],
+            ["long long", ctypes.c_longlong],
+            ["unsigned long long", ctypes.c_ulonglong],
+            ["float", float, ctypes.c_float],
+            ["double", ctypes.c_double],
+        ):
             # TODO: the use of _C2C here is a bit circular
             tn = _C2C.get(types[0], types[0])
 
-            if 0 < tn.find('_'):
-                npt = tn[:tn.find('_')]
+            if 0 < tn.find("_"):
+                npt = tn[: tn.find("_")]
             elif tn == "float":
                 npt = "float32"
             elif tn == "double":
@@ -51,17 +53,19 @@ class TestTYPING:
 
     def test_numpy_array_normalization(self):
         """Normalization of standard Numpy typing."""
-        for t, s in ((np.bool_, "bool"),
-                     (np.int8, "int8_t"),
-                     (np.int16, "int16_t"),
-                     (np.int32, "int32_t"),
-                     (np.int64, "int64_t"),
-                     (np.uint8, "uint8_t"),
-                     (np.uint16, "uint16_t"),
-                     (np.uint32, "uint32_t"),
-                     (np.uint64, "uint64_t"),
-                     (np.float32, "float"),
-                     (np.float64, "double"),):
+        for t, s in (
+            (np.bool_, "bool"),
+            (np.int8, "int8_t"),
+            (np.int16, "int16_t"),
+            (np.int32, "int32_t"),
+            (np.int64, "int64_t"),
+            (np.uint8, "uint8_t"),
+            (np.uint16, "uint16_t"),
+            (np.uint32, "uint32_t"),
+            (np.uint64, "uint64_t"),
+            (np.float32, "float"),
+            (np.float64, "double"),
+        ):
             assert normalize_type(npt.NDArray[t]) == "ndarray["+s+"]"
 
     def test_special_cases(self):

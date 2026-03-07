@@ -74,17 +74,13 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         {"creator": "reduce0", "layer": "event", "suffix": "sum0"},
         {"creator": "reduce1", "layer": "event", "suffix": "sum1"},
     ]
-    m.transform(
-        add_sum01, name="reduce01", input_family=input_family01, output_products=["sum01"]
-    )
+    m.transform(add_sum01, name="reduce01", input_family=input_family01, output_products=["sum01"])
 
     input_family01 = [
         {"creator": "reduce2", "layer": "event", "suffix": "sum2"},
         {"creator": "reduce3", "layer": "event", "suffix": "sum3"},
     ]
-    m.transform(
-        add_sum23, name="reduce23", input_family=input_family01, output_products=["sum23"]
-    )
+    m.transform(add_sum23, name="reduce23", input_family=input_family01, output_products=["sum23"])
 
     # once more (and the configuration will add a verifier)
     input_family_final = [
