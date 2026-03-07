@@ -75,7 +75,7 @@ class TestTYPING:
 
         # use of namespaces for evaluation
         assert("foo") == "foo"
-        global foo
+        global foo # lgtm[py/unused-global-variable]
         foo = np.int64
         assert normalize_type("foo", globals()) == "int64_t"
         bar = np.int32
