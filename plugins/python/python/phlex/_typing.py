@@ -78,7 +78,7 @@ def _build_ctypes_map() -> dict[type, str]:
     for tp in _CTYPES_INTEGER:
         bits = ctypes.sizeof(tp) * 8
         # _type_ uses struct format chars: lowercase = signed, uppercase = unsigned
-        signed = tp._type_.islower()
+        signed = tp._type_.islower() # type: ignore # somehow mypy is confused
         result[tp] = f"{'int' if signed else 'uint'}{bits}_t"
     return result
 
