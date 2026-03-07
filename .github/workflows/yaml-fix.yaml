@@ -8,7 +8,9 @@ name: YAML Fix
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
+        description:
+          "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the
+          repository's default branch."
         required: false
         type: string
   workflow_call:
