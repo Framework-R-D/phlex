@@ -1,10 +1,14 @@
 #ifndef PHLEX_MODEL_IDENTIFIER_HPP
 #define PHLEX_MODEL_IDENTIFIER_HPP
 
+#include "phlex_model_export.hpp"
+
 #include <boost/json/fwd.hpp>
 
 #include <fmt/format.h>
 
+#include <compare>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -18,7 +22,7 @@ namespace phlex::experimental {
 
   /// Carries around the string itself (as a shared_ptr to string to make copies lighter)
   /// along with a precomputed hash used for all comparisons
-  class identifier {
+  class phlex_model_EXPORT identifier {
   public:
     static std::uint64_t hash_string(std::string_view str);
     // The default constructor is necessary so other classes containing identifiers
@@ -67,8 +71,8 @@ namespace phlex::experimental {
 
   // Identifier UDL
   namespace literals {
-    identifier operator""_id(char const* lit, std::size_t len);
-    identifier_query operator""_idq(char const* lit, std::size_t len);
+    phlex_model_EXPORT identifier operator""_id(char const* lit, std::size_t len);
+    phlex_model_EXPORT identifier_query operator""_idq(char const* lit, std::size_t len);
   }
 
   // Really trying to avoid the extra function call here

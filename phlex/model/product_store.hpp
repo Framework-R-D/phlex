@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
 #define PHLEX_MODEL_PRODUCT_STORE_HPP
 
+#include "phlex_model_export.hpp"
+
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
@@ -15,7 +17,7 @@
 #include <type_traits>
 
 namespace phlex::experimental {
-  class product_store {
+  class phlex_model_EXPORT product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
                            algorithm_name source = default_source(),

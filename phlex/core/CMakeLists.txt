@@ -81,6 +81,7 @@ install(
   DESTINATION include/phlex/core/detail
 )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
+phlex_apply_symbol_visibility(phlex_core)
 
 # AppleClang 15.0 still treats std::views::join as experimental
 if(

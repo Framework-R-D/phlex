@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_MESSAGE_HPP
 #define PHLEX_CORE_MESSAGE_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/fwd.hpp"
@@ -44,7 +46,7 @@ namespace phlex::experimental {
     std::size_t id;
   };
 
-  struct message_matcher {
+  struct phlex_core_EXPORT message_matcher {
     std::size_t operator()(message const& msg) const noexcept;
   };
 

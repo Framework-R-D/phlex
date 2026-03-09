@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 #define PHLEX_CORE_FRAMEWORK_GRAPH_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/filter.hpp"
@@ -31,7 +33,7 @@ namespace phlex {
 }
 
 namespace phlex::experimental {
-  class framework_graph {
+  class phlex_core_EXPORT framework_graph {
   public:
     explicit framework_graph(data_cell_index_ptr index,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());

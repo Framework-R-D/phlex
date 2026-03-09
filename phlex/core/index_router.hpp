@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_INDEX_ROUTER_HPP
 #define PHLEX_CORE_INDEX_ROUTER_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_counter.hpp"
@@ -30,7 +32,7 @@ namespace phlex::experimental {
     // join operation.  It:
     //   (a) routes index messages to either the matching layer or its data-layer parent, and
     //   (b) emits flush tokens to the repeater to evict a cached data product from memory.
-    class multilayer_slot {
+    class phlex_core_EXPORT multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
                       identifier layer,
@@ -55,7 +57,7 @@ namespace phlex::experimental {
     // A layer_scope object is an RAII object that manages layer-scoped operations during
     // data-cell-index routing. It updates flush counters on construction and ensures cleanup
     // (flushing end tokens and releasing fold results) on destruction.
-    class layer_scope {
+    class phlex_core_EXPORT layer_scope {
     public:
       layer_scope(flush_counters& counters,
                   flusher_t& flusher,
@@ -74,7 +76,7 @@ namespace phlex::experimental {
     };
   }
 
-  class index_router {
+  class phlex_core_EXPORT index_router {
   public:
     struct named_input_port {
       product_query product_label;

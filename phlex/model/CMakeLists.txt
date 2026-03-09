@@ -40,6 +40,7 @@ install(
 )
 
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})
+phlex_apply_symbol_visibility(phlex_model)
 
 # Interface library
 cet_make_library(

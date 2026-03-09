@@ -1,6 +1,8 @@
 #ifndef PHLEX_CONFIGURATION_HPP
 #define PHLEX_CONFIGURATION_HPP
 
+#include "phlex_configuration_internal_export.hpp"
+
 #include "boost/json.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/identifier.hpp"
@@ -22,8 +24,8 @@ namespace phlex {
     }
 
     // Used later for product_query
-    std::optional<phlex::experimental::identifier> value_if_exists(boost::json::object const& obj,
-                                                                   std::string_view parameter);
+    phlex_configuration_internal_EXPORT std::optional<phlex::experimental::identifier> value_if_exists(
+      boost::json::object const& obj, std::string_view parameter);
 
     // helper for unpacking json array
     template <typename T, std::size_t... I>
@@ -34,7 +36,7 @@ namespace phlex {
     }
   }
 
-  class configuration {
+  class phlex_configuration_internal_EXPORT configuration {
   public:
     configuration() = default;
     explicit configuration(boost::json::object const& config) : config_{config} {}

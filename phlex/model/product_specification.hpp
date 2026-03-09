@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
 #define PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
 
+#include "phlex_model_export.hpp"
+
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/type_id.hpp"
@@ -12,7 +14,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  class product_specification {
+  class phlex_model_EXPORT product_specification {
   public:
     product_specification();
     product_specification(char const* name);

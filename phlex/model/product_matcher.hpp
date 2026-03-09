@@ -9,13 +9,15 @@
 //
 // =======================================================================================
 
+#include "phlex_model_export.hpp"
+
 #include "phlex/model/fwd.hpp"
 
 #include <array>
 #include <string>
 
 namespace phlex::experimental {
-  class product_matcher {
+  class phlex_model_EXPORT product_matcher {
   public:
     explicit product_matcher(std::string matcher_spec);
     bool matches(product_store_const_ptr const& store) const;

@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 #define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 
+#include "phlex_core_export.hpp"
+
 #include "phlex/core/message.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
@@ -15,7 +17,7 @@
 namespace phlex::experimental {
   using product_name_t = identifier;
 
-  class edge_creation_policy {
+  class phlex_core_EXPORT edge_creation_policy {
   public:
     template <typename... Args>
     edge_creation_policy(Args&... producers);
