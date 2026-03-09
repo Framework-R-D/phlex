@@ -109,6 +109,7 @@ jobs:
         run: |
           if [ -f fixes/clang-tidy-fixes.yaml ]; then
             echo "Applying fixes from existing artifact..."
+            . /entrypoint.sh
             cd phlex-src
             clang-apply-replacements ../fixes || true
             echo "applied=true" >> "$GITHUB_OUTPUT"
@@ -155,6 +156,7 @@ jobs:
       - name: Apply clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'
         run: |
+          . /entrypoint.sh
           cd "$GITHUB_WORKSPACE/phlex-build"
           if [ -f clang-tidy-fixes.yaml ]; then
             clang-apply-replacements . || true
