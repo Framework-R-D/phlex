@@ -18,8 +18,7 @@ function(phlex_apply_symbol_visibility target)
   )
 
   target_include_directories(
-    ${target}
-    PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>
+    ${target} PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   )
 
   install(FILES "${EXPORT_HEADER}" DESTINATION include/phlex)
