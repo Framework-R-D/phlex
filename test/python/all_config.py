@@ -49,9 +49,9 @@ class ConfigConsumer:
 
         assert len(config["some_objects"]) == 3
         expected = [
-            {'a': 'b', 'c': 'd', 'e': 'f'},
-            {'g': 'h', 'i': 'j', 'k': 'l'},
-            {'m': 'n', 'o': 'p', 'q': 'r'},
+            {"a": "b", "c": "d", "e": "f"},
+            {"g": "h", "i": "j", "k": "l"},
+            {"m": "n", "o": "p", "q": "r"},
         ]
         for i in range(3):
             assert config["some_objects"][i] == expected[i]
@@ -60,10 +60,10 @@ class ConfigConsumer:
         assert config["empty"] == ()
 
         try:
-            config[42]   # should raise
+            config[42]  # should raise
             assert not "did not raise TypeError"
         except TypeError:
-            pass         # all good as exception was raised
+            pass  # all good as exception was raised
 
     def __call__(self, i: int, j: int) -> None:
         """Dummy routine to do something.
