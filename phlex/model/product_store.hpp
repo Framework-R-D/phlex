@@ -60,7 +60,8 @@ namespace phlex::experimental {
       source_; // FIXME: Should not have to copy (the source should outlive the product store)
   };
 
-  product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
+  phlex_model_EXPORT product_store_ptr const& more_derived(product_store_ptr const& a,
+                                                           product_store_ptr const& b);
 
   // Non-template overload for single product_store_ptr case
   inline product_store_ptr const& most_derived(product_store_ptr const& store) { return store; }

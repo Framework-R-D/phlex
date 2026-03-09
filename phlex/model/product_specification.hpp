@@ -46,9 +46,9 @@ namespace phlex::experimental {
 
   using product_specifications = std::vector<product_specification>;
 
-  product_specifications to_product_specifications(std::string_view name,
-                                                   std::vector<std::string> output_labels,
-                                                   std::vector<type_id> output_types);
+  phlex_model_EXPORT product_specifications to_product_specifications(std::string_view name,
+                                                                     std::vector<std::string> output_labels,
+                                                                     std::vector<type_id> output_types);
 }
 
 template <>
