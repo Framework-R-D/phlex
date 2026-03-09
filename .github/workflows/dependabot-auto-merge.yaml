@@ -61,7 +61,7 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           set -o pipefail
-          if ! gh pr merge --auto --merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
+          if ! gh pr merge --auto --rebase "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
             if grep -qE "auto-merge is already enabled|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
               echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
               exit 0
