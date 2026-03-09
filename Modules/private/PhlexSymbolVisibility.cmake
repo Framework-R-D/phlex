@@ -17,9 +17,7 @@ function(phlex_apply_symbol_visibility target)
     PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
   )
 
-  target_include_directories(
-    ${target} PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-  )
+  target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>)
 
   install(FILES "${EXPORT_HEADER}" DESTINATION include/phlex)
 endfunction()
