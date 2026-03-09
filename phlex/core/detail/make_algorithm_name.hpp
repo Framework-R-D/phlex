@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DETAIL_MAKE_ALGORITHM_NAME_HPP
 #define PHLEX_CORE_DETAIL_MAKE_ALGORITHM_NAME_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 // This simple utility is placed in an implementation file to avoid including the
 // phlex/configuration.hpp in framework code.
 
@@ -14,7 +16,8 @@ namespace phlex::experimental {
   class algorithm_name;
 
   namespace detail {
-    algorithm_name make_algorithm_name(configuration const* config, std::string_view name);
+    phlex_core_EXPORT algorithm_name make_algorithm_name(configuration const* config,
+                                                         std::string_view name);
   }
 }
 

@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_MESSAGE_HPP
 #define PHLEX_CORE_MESSAGE_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/fwd.hpp"
@@ -44,7 +46,7 @@ namespace phlex::experimental {
     std::size_t id;
   };
 
-  struct message_matcher {
+  struct phlex_core_EXPORT message_matcher {
     std::size_t operator()(message const& msg) const noexcept;
   };
 
@@ -62,13 +64,13 @@ namespace phlex::experimental {
   using named_index_ports = std::vector<named_index_port>;
 
   // Overload for use with most_derived
-  message const& more_derived(message const& a, message const& b);
+  phlex_core_EXPORT message const& more_derived(message const& a, message const& b);
 
   // Non-template overload for single message case
   inline message const& most_derived(message const& msg) { return msg; }
 
-  std::size_t port_index_for(product_queries const& product_labels,
-                             product_query const& product_label);
+  phlex_core_EXPORT std::size_t port_index_for(product_queries const& product_labels,
+                                               product_query const& product_label);
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP

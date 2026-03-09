@@ -1,10 +1,12 @@
 #ifndef PHLEX_MODEL_ALGORITHM_NAME_HPP
 #define PHLEX_MODEL_ALGORITHM_NAME_HPP
 
+#include "phlex/phlex_model_export.hpp"
+
 #include "phlex/model/identifier.hpp"
 
 namespace phlex::experimental {
-  class algorithm_name {
+  class phlex_model_EXPORT algorithm_name {
     enum class specified_fields { neither, either, both };
 
   public:
