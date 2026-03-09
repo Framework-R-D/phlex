@@ -2,3 +2,6 @@
 # This will allow enforcing "Require review from Code Owners" in branch protection.
 # Use the org/team slug form: @ORG/team-slug
 * @Framework-R-D/approvers
+
+# List of specific reviewers for files in .github:
+.github/ @aolivier23 @greenc-FNAL @knoepfel @marcpaterno @sabasehrish
