@@ -43,7 +43,9 @@ run-name: "${{ github.actor }} fixing header guards"
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
+        description:
+          "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the
+          repository's default branch."
         required: false
         type: string
 
@@ -52,8 +54,7 @@ permissions:
   contents: write
 
 env:
-  local_checkout_path:
-    ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path: ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
 
 jobs:
   pre-check:
@@ -70,11 +71,11 @@ jobs:
     # This covers repo owners, invited collaborators, and all org members.
     outputs:
       ref:
-        ${{ inputs.ref || (github.event_name == 'workflow_dispatch' &&
-        (github.event.inputs.ref || github.ref_name)) || steps.get_pr.outputs.ref }}
+        ${{ inputs.ref || (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref_name)) ||
+        steps.get_pr.outputs.ref }}
       repo:
-        ${{ inputs.repo || (github.event_name == 'workflow_dispatch' &&
-        github.repository) || steps.get_pr.outputs.repo }}
+        ${{ inputs.repo || (github.event_name == 'workflow_dispatch' && github.repository) || steps.get_pr.outputs.repo
+        }}
 
     steps:
       - name: Get PR Info
