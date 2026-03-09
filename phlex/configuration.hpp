@@ -91,15 +91,15 @@ namespace phlex {
   // To enable direct conversions from Boost JSON types to our own types, we implement
   // tag_invoke(...) function overloads, which are the customization points Boost JSON
   // provides.
-  configuration tag_invoke(boost::json::value_to_tag<configuration> const&,
-                           boost::json::value const& jv);
+  phlex_configuration_internal_EXPORT configuration
+  tag_invoke(boost::json::value_to_tag<configuration> const&, boost::json::value const& jv);
 
-  product_query tag_invoke(boost::json::value_to_tag<product_query> const&,
-                           boost::json::value const& jv);
+  phlex_configuration_internal_EXPORT product_query
+  tag_invoke(boost::json::value_to_tag<product_query> const&, boost::json::value const& jv);
 
   namespace experimental {
-    identifier tag_invoke(boost::json::value_to_tag<identifier> const&,
-                          boost::json::value const& jv);
+    phlex_configuration_internal_EXPORT identifier
+    tag_invoke(boost::json::value_to_tag<identifier> const&, boost::json::value const& jv);
   }
 
   template <std::size_t N>
