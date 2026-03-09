@@ -1,7 +1,7 @@
 #ifndef PHLEX_CONCURRENCY_HPP
 #define PHLEX_CONCURRENCY_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include <cstddef>
 

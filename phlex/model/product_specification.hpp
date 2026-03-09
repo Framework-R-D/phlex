@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
 #define PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
 
-#include "phlex_model_export.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"

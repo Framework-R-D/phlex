@@ -1,7 +1,7 @@
 #ifndef PHLEX_UTILITIES_HASHING_HPP
 #define PHLEX_UTILITIES_HASHING_HPP
 
-#include "phlex_utilities_export.hpp"
+#include "phlex/phlex_utilities_export.hpp"
 
 #include <cstddef>
 #include <cstdint>

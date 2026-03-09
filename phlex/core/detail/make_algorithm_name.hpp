@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_DETAIL_MAKE_ALGORITHM_NAME_HPP
 #define PHLEX_CORE_DETAIL_MAKE_ALGORITHM_NAME_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 // This simple utility is placed in an implementation file to avoid including the
 // phlex/configuration.hpp in framework code.

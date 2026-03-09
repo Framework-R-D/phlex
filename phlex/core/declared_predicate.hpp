@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_DECLARED_PREDICATE_HPP
 #define PHLEX_CORE_DECLARED_PREDICATE_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/detail/filter_impl.hpp"

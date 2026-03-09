@@ -1,7 +1,7 @@
 #ifndef PHLEX_CONFIGURATION_HPP
 #define PHLEX_CONFIGURATION_HPP
 
-#include "phlex_configuration_internal_export.hpp"
+#include "phlex/phlex_configuration_internal_export.hpp"
 
 #include "boost/json.hpp"
 #include "phlex/core/product_query.hpp"

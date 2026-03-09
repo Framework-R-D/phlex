@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_DETAIL_FILTER_IMPL_HPP
 #define PHLEX_CORE_DETAIL_FILTER_IMPL_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_query.hpp"

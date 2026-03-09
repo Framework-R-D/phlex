@@ -6,7 +6,7 @@
 // resource_usage object.  The destructor will also report the maximum RSS of the process.
 // =======================================================================================
 
-#include "phlex_utilities_export.hpp"
+#include "phlex/phlex_utilities_export.hpp"
 
 #include <chrono>
 

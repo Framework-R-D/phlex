@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_DATA_CELL_INDEX_HPP
 #define PHLEX_MODEL_DATA_CELL_INDEX_HPP
 
-#include "phlex_model_export.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"

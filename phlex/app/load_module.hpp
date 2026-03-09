@@ -1,7 +1,7 @@
 #ifndef PHLEX_APP_LOAD_MODULE_HPP
 #define PHLEX_APP_LOAD_MODULE_HPP
 
-#include "run_phlex_export.hpp"
+#include "phlex/run_phlex_export.hpp"
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/driver.hpp"

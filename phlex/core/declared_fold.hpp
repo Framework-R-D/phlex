@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_DECLARED_FOLD_HPP
 #define PHLEX_CORE_DECLARED_FOLD_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"

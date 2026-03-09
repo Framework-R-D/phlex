@@ -9,7 +9,7 @@
 //
 // =======================================================================================
 
-#include "phlex_model_export.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include "phlex/model/fwd.hpp"
 

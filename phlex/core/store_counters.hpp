@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_STORE_COUNTERS_HPP
 #define PHLEX_CORE_STORE_COUNTERS_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/fwd.hpp"
 #include "phlex/model/data_cell_counter.hpp"

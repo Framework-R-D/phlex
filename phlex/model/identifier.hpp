@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_IDENTIFIER_HPP
 #define PHLEX_MODEL_IDENTIFIER_HPP
 
-#include "phlex_model_export.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include <boost/json/fwd.hpp>
 

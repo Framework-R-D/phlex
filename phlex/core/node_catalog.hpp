@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_NODE_CATALOG_HPP
 #define PHLEX_CORE_NODE_CATALOG_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_observer.hpp"

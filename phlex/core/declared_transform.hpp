@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_DECLARED_TRANSFORM_HPP
 #define PHLEX_CORE_DECLARED_TRANSFORM_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 // FIXME: Add comments explaining the process.  For each implementation, explain what part
 //        of the process a given section of code is addressing.

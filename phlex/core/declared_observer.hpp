@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_DECLARED_OBSERVER_HPP
 #define PHLEX_CORE_DECLARED_OBSERVER_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"

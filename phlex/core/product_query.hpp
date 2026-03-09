@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_PRODUCT_QUERY_HPP
 #define PHLEX_CORE_PRODUCT_QUERY_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"

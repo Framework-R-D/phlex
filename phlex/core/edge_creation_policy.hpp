@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 #define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/message.hpp"
 #include "phlex/model/identifier.hpp"

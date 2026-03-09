@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_DATA_LAYER_HIERARCHY_HPP
 #define PHLEX_MODEL_DATA_LAYER_HIERARCHY_HPP
 
-#include "phlex_model_export.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"

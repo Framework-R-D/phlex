@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_DECLARED_OUTPUT_HPP
 #define PHLEX_CORE_DECLARED_OUTPUT_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"

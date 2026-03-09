@@ -1,7 +1,7 @@
 include(GenerateExportHeader)
 
 function(phlex_apply_symbol_visibility target)
-  set(EXPORT_HEADER "${PROJECT_BINARY_DIR}/include/${target}_export.hpp")
+  set(EXPORT_HEADER "${PROJECT_BINARY_DIR}/include/phlex/${target}_export.hpp")
   set(EXPORT_MACRO_NAME "${target}_EXPORT")
 
   generate_export_header(
@@ -22,7 +22,7 @@ function(phlex_apply_symbol_visibility target)
     PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>
   )
 
-  install(FILES "${EXPORT_HEADER}" DESTINATION include)
+  install(FILES "${EXPORT_HEADER}" DESTINATION include/phlex)
 endfunction()
 
 # Create a non-installed companion library <target>_internal with default (visible) symbol
@@ -74,7 +74,7 @@ function(phlex_make_internal_library target)
   # Cetmodules automatically adds $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> for
   # libraries it manages; replicate that here so consumers (e.g. layer_generator_internal)
   # can resolve project headers such as #include "phlex/core/...".
-  # The _export.hpp headers live in PROJECT_BINARY_DIR/include.
+  # The _export.hpp headers live in PROJECT_BINARY_DIR/include/phlex.
   # Without CXX_VISIBILITY_PRESET hidden the export macros expand to the default
   # visibility attribute, making every symbol visible — exactly what we want here.
   target_include_directories(

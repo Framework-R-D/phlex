@@ -1,7 +1,7 @@
 #ifndef PHLEX_MODEL_PRODUCTS_HPP
 #define PHLEX_MODEL_PRODUCTS_HPP
 
-#include "phlex_model_export.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include "phlex/model/product_specification.hpp"
 

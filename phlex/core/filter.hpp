@@ -1,7 +1,7 @@
 #ifndef PHLEX_CORE_FILTER_HPP
 #define PHLEX_CORE_FILTER_HPP
 
-#include "phlex_core_export.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
