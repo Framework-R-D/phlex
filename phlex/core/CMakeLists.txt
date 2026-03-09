@@ -91,6 +91,14 @@ if(
   target_compile_options(phlex_core PRIVATE "-fexperimental-library")
 endif()
 
+phlex_make_internal_library(
+  phlex_core
+  LIBRARIES
+  PUBLIC TBB::tbb phlex::metaprogramming phlex_model_internal phlex_utilities_internal
+  PRIVATE Boost::json spdlog::spdlog
+)
+add_library(phlex::core_internal ALIAS phlex_core_internal)
+
 # Interface library
 cet_make_library(
   LIBRARY_NAME
