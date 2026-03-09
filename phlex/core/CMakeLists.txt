@@ -60,6 +60,7 @@ install(
     graph_proxy.hpp
     input_arguments.hpp
     message.hpp
+    multilayer_join_node.hpp
     index_router.hpp
     node_catalog.hpp
     product_query.hpp
