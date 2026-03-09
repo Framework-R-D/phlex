@@ -16,7 +16,8 @@ namespace phlex::experimental {
   class algorithm_name;
 
   namespace detail {
-    phlex_core_EXPORT algorithm_name make_algorithm_name(configuration const* config, std::string_view name);
+    phlex_core_EXPORT algorithm_name make_algorithm_name(configuration const* config,
+                                                         std::string_view name);
   }
 }
 
