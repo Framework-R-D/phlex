@@ -64,13 +64,13 @@ namespace phlex::experimental {
   using named_index_ports = std::vector<named_index_port>;
 
   // Overload for use with most_derived
-  message const& more_derived(message const& a, message const& b);
+  phlex_core_EXPORT message const& more_derived(message const& a, message const& b);
 
   // Non-template overload for single message case
   inline message const& most_derived(message const& msg) { return msg; }
 
-  std::size_t port_index_for(product_queries const& product_labels,
-                             product_query const& product_label);
+  phlex_core_EXPORT std::size_t port_index_for(product_queries const& product_labels,
+                                               product_query const& product_label);
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP

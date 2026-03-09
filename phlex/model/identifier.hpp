@@ -60,8 +60,9 @@ namespace phlex::experimental {
     std::string const& trans_get_string() const noexcept { return content_; }
 
     // Comparison operators with _id queries
-    friend bool operator==(identifier const& lhs, identifier_query rhs);
-    friend std::strong_ordering operator<=>(identifier const& lhs, identifier_query rhs);
+    friend phlex_model_EXPORT bool operator==(identifier const& lhs, identifier_query rhs);
+    friend phlex_model_EXPORT std::strong_ordering operator<=>(identifier const& lhs,
+                                                               identifier_query rhs);
     friend std::hash<identifier>;
 
   private:
