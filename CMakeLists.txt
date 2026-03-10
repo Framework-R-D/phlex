@@ -59,6 +59,7 @@ FetchContent_MakeAvailable(Catch2 GSL mimicpp)
 
 include(Modules/private/CreateCoverageTargets.cmake)
 include(Modules/private/PhlexSymbolVisibility.cmake)
+include(Modules/private/PhlexOptimization.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)

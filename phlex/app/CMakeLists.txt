@@ -19,6 +19,7 @@ cet_make_library(
 
 install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
 phlex_apply_symbol_visibility(run_phlex)
+phlex_apply_optimizations(run_phlex)
 
 # We'll use C++17's filesystem instead of Boost's
 target_compile_definitions(run_phlex PRIVATE BOOST_DLL_USE_STD_FS)

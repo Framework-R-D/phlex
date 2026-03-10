@@ -41,6 +41,7 @@ install(
 
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})
 phlex_apply_symbol_visibility(phlex_model)
+phlex_apply_optimizations(phlex_model)
 
 phlex_make_internal_library(
   phlex_model
