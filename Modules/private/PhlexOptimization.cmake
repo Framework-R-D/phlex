@@ -50,13 +50,14 @@
 #     Debug / sanitizer   OFF               OFF
 #     not set             OFF               OFF
 #
-#   Automatic co-adjustment: PHLEX_HIDE_SYMBOLS defaults to ON whenever
-#   PHLEX_ENABLE_IPO is ON, even outside Release builds.  LTO achieves its
-#   full potential only in combination with hidden symbols — without
-#   -fvisibility=hidden, -fno-semantic-interposition cannot be applied and the
-#   LTO optimizer must treat every exported symbol as potentially interposable.
-#   Setting IPO=ON therefore implies symbol hiding unless the user explicitly
-#   overrides PHLEX_HIDE_SYMBOLS=OFF after configure.
+#   Automatic co-adjustment: PHLEX_HIDE_SYMBOLS is forced ON whenever
+#   PHLEX_ENABLE_IPO is ON, even if the user passes -DPHLEX_HIDE_SYMBOLS=OFF
+#   on the command line.  LTO achieves its full potential only in combination
+#   with hidden symbols — without -fvisibility=hidden,
+#   -fno-semantic-interposition cannot be applied and the LTO optimizer must
+#   treat every exported symbol as potentially interposable.
+#   The enforcement uses set(... FORCE) after both options are resolved from
+#   the cache, so the corrected value is always reflected in CMakeCache.txt.
 #
 #   -fno-semantic-interposition and -fno-plt are compile-level flags applied
 #   per-target at build time (not at configure time), so they automatically
@@ -127,10 +128,36 @@ option(
   PHLEX_HIDE_SYMBOLS
   [=[Hide non-exported symbols in shared libraries (ON = curated API with
 hidden-by-default visibility; OFF = all symbols visible).  Defaults to ON for
-Release/RelWithDebInfo builds and whenever PHLEX_ENABLE_IPO=ON, since LTO
-achieves its full potential only with a bounded exported-symbol set.]=]
+Release/RelWithDebInfo builds and whenever PHLEX_ENABLE_IPO=ON.  When
+PHLEX_ENABLE_IPO=ON this option is forced ON regardless of the value passed on
+the command line, since LTO achieves its full potential only with a bounded
+exported-symbol set.]=]
   "${_phlex_hide_default}"
 )
+
+# ---------------------------------------------------------------------------
+# Enforce option consistency: PHLEX_ENABLE_IPO=ON requires PHLEX_HIDE_SYMBOLS=ON.
+# option() only sets the default when the cache variable is not yet present, so
+# an explicit -DPHLEX_HIDE_SYMBOLS=OFF on the command line bypasses the default
+# logic above.  After both options are resolved from the cache we therefore
+# check for the invalid/suboptimal combination and force-correct it.
+# ---------------------------------------------------------------------------
+if(PHLEX_ENABLE_IPO AND NOT PHLEX_HIDE_SYMBOLS)
+  message(
+    STATUS
+    "Phlex: PHLEX_HIDE_SYMBOLS forced ON because PHLEX_ENABLE_IPO=ON "
+    "(LTO achieves full potential only with a bounded exported-symbol set; "
+    "-fno-semantic-interposition requires hidden-by-default visibility)."
+  )
+  set(PHLEX_HIDE_SYMBOLS
+      ON
+      CACHE BOOL
+      [=[Hide non-exported symbols in shared libraries (ON = curated API with
+hidden-by-default visibility; OFF = all symbols visible).  Forced ON because
+PHLEX_ENABLE_IPO=ON.]=]
+      FORCE
+  )
+endif()
 
 # ---------------------------------------------------------------------------
 # Activate LTO (if enabled and supported)
@@ -148,19 +175,6 @@ if(PHLEX_ENABLE_IPO)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
     message(STATUS "Phlex: LTO enabled for Release and RelWithDebInfo builds")
-    if(NOT PHLEX_HIDE_SYMBOLS)
-      # The user explicitly set PHLEX_HIDE_SYMBOLS=OFF after the default was
-      # derived. The flags in phlex_apply_optimizations() self-adjust: LTO
-      # will be active but -fno-semantic-interposition will not be applied
-      # (it requires a bounded exported-symbol set). All other flags continue
-      # to apply normally.
-      message(
-        STATUS
-        "Phlex: PHLEX_ENABLE_IPO=ON with PHLEX_HIDE_SYMBOLS=OFF — "
-        "-fno-semantic-interposition will not be applied (requires a bounded "
-        "exported-symbol set). All other optimizations remain active."
-      )
-    endif()
   else()
     message(
       WARNING
