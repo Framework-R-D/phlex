@@ -37,27 +37,29 @@
 #     therefore not enabled.
 #
 # Interaction with CMAKE_BUILD_TYPE
+#   Both PHLEX_HIDE_SYMBOLS and PHLEX_ENABLE_IPO default based on
+#   CMAKE_BUILD_TYPE (set in CMakeLists.txt before this module is included):
+#
+#     Release / RelWithDebInfo → PHLEX_HIDE_SYMBOLS=ON, PHLEX_ENABLE_IPO=ON
+#     Debug / Coverage / sanitizers → both default to OFF
+#     not set (multi-config generators) → both default to OFF (conservative)
+#
 #   -fno-semantic-interposition and -fno-plt are compile-level flags that are
-#   applied unconditionally (subject to compiler / platform support) regardless
-#   of build type; they complement but do not duplicate CMake's per-config
-#   CMAKE_CXX_FLAGS_RELEASE (-O3 -DNDEBUG) and CMAKE_CXX_FLAGS_DEBUG (-g).
+#   applied unconditionally (subject to compiler / platform support and
+#   PHLEX_HIDE_SYMBOLS) regardless of build type; they complement but do not
+#   duplicate CMake's per-config CMAKE_CXX_FLAGS_RELEASE (-O3 -DNDEBUG) and
+#   CMAKE_CXX_FLAGS_DEBUG (-g).
 #
 # PHLEX_ENABLE_IPO (default ON for Release/RelWithDebInfo, OFF otherwise)
 #   When ON, enables interprocedural optimization (link-time optimization) for
 #   Release and RelWithDebInfo configurations via the
 #   CMAKE_INTERPROCEDURAL_OPTIMIZATION_* variables.
 #
-#   The default is determined from CMAKE_BUILD_TYPE at first configure time:
-#     Release / RelWithDebInfo → ON   (maximise optimisation)
-#     Debug / Coverage / sanitizers  → OFF (preserve debuggability)
-#     not set (multi-config generators) → OFF (conservative fallback)
-#
-#   The option can always be overridden explicitly with -DPHLEX_ENABLE_IPO=ON|OFF.
-#
 #   LTO is safe with symbol hiding: export attributes preserve the complete
 #   exported-symbol set; the linker cannot eliminate or rename any symbol that
 #   carries a default-visibility attribute.  External plugins compiled without
 #   LTO link against the normal exported-symbol table and are unaffected.
+
 
 include_guard()
 

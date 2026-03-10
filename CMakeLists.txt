@@ -65,10 +65,21 @@ option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+
+# Default PHLEX_HIDE_SYMBOLS to ON for Release-class builds (symbol hiding
+# improves performance and reduces library size) and OFF for Debug builds
+# (all symbols visible aids debuggers, profilers, and sanitizer stack traces).
+# Mirrors the PHLEX_ENABLE_IPO default logic.
+if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo)$")
+  set(_phlex_hide_symbols_default ON)
+else()
+  set(_phlex_hide_symbols_default OFF)
+endif()
+
 option(
   PHLEX_HIDE_SYMBOLS
   "Hide non-exported symbols in shared libraries (ON = curated API; OFF = all symbols visible)"
-  ON
+  "${_phlex_hide_symbols_default}"
 )
 
 add_compile_options(
