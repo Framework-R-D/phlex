@@ -80,6 +80,27 @@ option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+option(ENABLE_BUILD_PROFILING "Enable monitoring of compile and link operations" OFF)
+
+# ##############################################################################
+# Enable collection of compile/link statistics.
+#
+# If lld is available but not default for the current toolset, then use
+# `-DCMAKE_LINKER_TYPE=LLD`
+if (ENABLE_BUILD_PROFILING)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CMAKE_COMMAND} -E time")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    add_compile_options("-ftime-trace")
+  endif()
+  if(CMAKE_CXX_COMPILER_LINKER_ID STREQUAL "LLD")
+    message(STATUS "LLD detected (Phlex build) - Enabling tracing")
+    add_link_options("-Wl,--time-trace")
+    add_link_options("-Wl,--Map=phlex_link.map")
+    add_link_options("-Wl,--print-archive-stats=-")
+  endif()
+endif()
+# ##############################################################################
 
 add_compile_options(
   -Wall
