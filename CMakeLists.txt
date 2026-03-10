@@ -64,6 +64,11 @@ option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+option(
+  PHLEX_HIDE_SYMBOLS
+  "Hide non-exported symbols in shared libraries (ON = curated API; OFF = all symbols visible)"
+  ON
+)
 
 add_compile_options(
   -Wall

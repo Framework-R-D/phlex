@@ -12,31 +12,48 @@ function(phlex_apply_symbol_visibility target)
     STATIC_DEFINE "${target}_STATIC_DEFINE"
   )
 
-  set_target_properties(
-    ${target}
-    PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-  )
+  if(PHLEX_HIDE_SYMBOLS)
+    set_target_properties(
+      ${target}
+      PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+    )
+  endif()
 
   target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>)
 
   install(FILES "${EXPORT_HEADER}" DESTINATION include/phlex)
 endfunction()
 
-# Create a non-installed companion library <target>_internal with default (visible) symbol
-# visibility for all symbols. This allows tests to access non-exported implementation
-# details without requiring every internal symbol to carry an EXPORT macro, and enables
+# Create a companion library <target>_internal:
+#
+# When PHLEX_HIDE_SYMBOLS is ON (default): a non-installed shared library with
+# default (visible) symbol visibility, compiled from the same sources as
+# <target>. This allows tests to access non-exported implementation details
+# without requiring every internal symbol to carry an EXPORT macro, and enables
 # before/after comparison of library/executable sizes and link/load times.
+#
+# When PHLEX_HIDE_SYMBOLS is OFF: an INTERFACE target that simply links to
+# <target>. Since all public library symbols are already visible in this mode,
+# no separate compilation is needed and _internal targets are effectively
+# identical to their public counterparts.
 #
 # Usage (in the same CMakeLists.txt that defines <target>):
 #   phlex_make_internal_library(<target> LIBRARIES [PUBLIC ...] [PRIVATE ...])
 #
-# The LIBRARIES arguments mirror those of the original cet_make_library call but may
-# substitute other _internal targets for the corresponding public ones so that the
-# full transitive symbol set is visible.
+# The LIBRARIES arguments mirror those of the original cet_make_library call but
+# may substitute other _internal targets for the corresponding public ones so
+# that the full transitive symbol set is visible (PHLEX_HIDE_SYMBOLS=ON only).
 function(phlex_make_internal_library target)
   cmake_parse_arguments(ARG "" "" "LIBRARIES" ${ARGN})
 
   set(internal "${target}_internal")
+
+  if(NOT PHLEX_HIDE_SYMBOLS)
+    # All public symbols already visible — _internal is a thin INTERFACE wrapper.
+    add_library(${internal} INTERFACE)
+    target_link_libraries(${internal} INTERFACE ${target})
+    return()
+  endif()
 
   # Retrieve sources and source directory from the public target so we don't
   # have to maintain a separate source list.
