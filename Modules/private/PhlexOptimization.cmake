@@ -36,10 +36,23 @@
 #     These flags may silently produce incorrect numerical results and are
 #     therefore not enabled.
 #
-# PHLEX_ENABLE_IPO (default OFF)
+# Interaction with CMAKE_BUILD_TYPE
+#   -fno-semantic-interposition and -fno-plt are compile-level flags that are
+#   applied unconditionally (subject to compiler / platform support) regardless
+#   of build type; they complement but do not duplicate CMake's per-config
+#   CMAKE_CXX_FLAGS_RELEASE (-O3 -DNDEBUG) and CMAKE_CXX_FLAGS_DEBUG (-g).
+#
+# PHLEX_ENABLE_IPO (default ON for Release/RelWithDebInfo, OFF otherwise)
 #   When ON, enables interprocedural optimization (link-time optimization) for
 #   Release and RelWithDebInfo configurations via the
 #   CMAKE_INTERPROCEDURAL_OPTIMIZATION_* variables.
+#
+#   The default is determined from CMAKE_BUILD_TYPE at first configure time:
+#     Release / RelWithDebInfo → ON   (maximise optimisation)
+#     Debug / Coverage / sanitizers  → OFF (preserve debuggability)
+#     not set (multi-config generators) → OFF (conservative fallback)
+#
+#   The option can always be overridden explicitly with -DPHLEX_ENABLE_IPO=ON|OFF.
 #
 #   LTO is safe with symbol hiding: export attributes preserve the complete
 #   exported-symbol set; the linker cannot eliminate or rename any symbol that
@@ -67,12 +80,23 @@ endif()
 cmake_policy(SET CMP0069 NEW)
 include(CheckIPOSupported)
 
+# Derive a sensible default: enable LTO automatically for Release-class builds
+# so that cmake -DCMAKE_BUILD_TYPE=Release "does the right thing" without
+# requiring a separate -DPHLEX_ENABLE_IPO=ON.  Debug/sanitizer/coverage builds
+# keep the default OFF to preserve debuggability.
+if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo)$")
+  set(_phlex_ipo_default ON)
+else()
+  set(_phlex_ipo_default OFF)
+endif()
+
 option(
   PHLEX_ENABLE_IPO
   [=[Enable interprocedural optimization (LTO) for Release and RelWithDebInfo
 builds.  Safe with symbol hiding because export macros preserve the complete
-exported-symbol set.  External plugins compiled without LTO are unaffected.]=]
-  OFF
+exported-symbol set.  External plugins compiled without LTO are unaffected.
+Defaults to ON when CMAKE_BUILD_TYPE is Release or RelWithDebInfo.]=]
+  "${_phlex_ipo_default}"
 )
 
 if(PHLEX_ENABLE_IPO)
