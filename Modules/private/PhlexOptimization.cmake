@@ -1,5 +1,7 @@
 # Provides phlex_apply_optimizations(target), which applies safe,
 # performance-oriented compiler flags to a Phlex shared library target.
+# Also defines the PHLEX_HIDE_SYMBOLS and PHLEX_ENABLE_IPO options and
+# ensures their defaults are mutually consistent.
 #
 # Two flags are applied (subject to compiler support and platform):
 #
@@ -36,29 +38,41 @@
 #     These flags may silently produce incorrect numerical results and are
 #     therefore not enabled.
 #
-# Interaction with CMAKE_BUILD_TYPE
-#   Both PHLEX_HIDE_SYMBOLS and PHLEX_ENABLE_IPO default based on
-#   CMAKE_BUILD_TYPE (set in CMakeLists.txt before this module is included):
+# Options and their interaction with CMAKE_BUILD_TYPE
 #
-#     Release / RelWithDebInfo → PHLEX_HIDE_SYMBOLS=ON, PHLEX_ENABLE_IPO=ON
-#     Debug / Coverage / sanitizers → both default to OFF
-#     not set (multi-config generators) → both default to OFF (conservative)
+#   Both PHLEX_HIDE_SYMBOLS and PHLEX_ENABLE_IPO are defined here so that their
+#   defaults can be derived together.  The effective defaults are:
 #
-#   -fno-semantic-interposition and -fno-plt are compile-level flags that are
-#   applied unconditionally (subject to compiler / platform support and
-#   PHLEX_HIDE_SYMBOLS) regardless of build type; they complement but do not
-#   duplicate CMake's per-config CMAKE_CXX_FLAGS_RELEASE (-O3 -DNDEBUG) and
-#   CMAKE_CXX_FLAGS_DEBUG (-g).
+#     CMAKE_BUILD_TYPE    PHLEX_ENABLE_IPO  PHLEX_HIDE_SYMBOLS
+#     ─────────────────   ───────────────   ─────────────────
+#     Release             ON                ON
+#     RelWithDebInfo      ON                ON
+#     Debug / sanitizer   OFF               OFF
+#     not set             OFF               OFF
+#
+#   Automatic co-adjustment: PHLEX_HIDE_SYMBOLS defaults to ON whenever
+#   PHLEX_ENABLE_IPO is ON, even outside Release builds.  LTO achieves its
+#   full potential only in combination with hidden symbols — without
+#   -fvisibility=hidden, -fno-semantic-interposition cannot be applied and the
+#   LTO optimizer must treat every exported symbol as potentially interposable.
+#   Setting IPO=ON therefore implies symbol hiding unless the user explicitly
+#   overrides PHLEX_HIDE_SYMBOLS=OFF after configure.
+#
+#   -fno-semantic-interposition and -fno-plt are compile-level flags applied
+#   per-target at build time (not at configure time), so they automatically
+#   reflect the final option values regardless of how they were set.
 #
 # PHLEX_ENABLE_IPO (default ON for Release/RelWithDebInfo, OFF otherwise)
-#   When ON, enables interprocedural optimization (link-time optimization) for
-#   Release and RelWithDebInfo configurations via the
-#   CMAKE_INTERPROCEDURAL_OPTIMIZATION_* variables.
+#   When ON, enables interprocedural optimization (LTO) for Release and
+#   RelWithDebInfo configurations.  LTO is safe with symbol hiding because
+#   export attributes preserve the complete exported-symbol set.  External
+#   plugins compiled without LTO link against the normal exported-symbol table
+#   and are unaffected.
 #
-#   LTO is safe with symbol hiding: export attributes preserve the complete
-#   exported-symbol set; the linker cannot eliminate or rename any symbol that
-#   carries a default-visibility attribute.  External plugins compiled without
-#   LTO link against the normal exported-symbol table and are unaffected.
+# PHLEX_HIDE_SYMBOLS (default ON when PHLEX_ENABLE_IPO=ON or Release/RelWithDebInfo)
+#   When ON: hidden-by-default visibility; export macros mark the public API.
+#   When OFF: all symbols visible; _internal targets become thin INTERFACE
+#   aliases of their public counterparts.
 
 
 include_guard()
@@ -77,15 +91,12 @@ if(NOT APPLE)
 endif()
 
 # ---------------------------------------------------------------------------
-# Interprocedural optimization (LTO)
+# Interprocedural optimization (LTO) — defined first so its value can inform
+# the PHLEX_HIDE_SYMBOLS default below.
 # ---------------------------------------------------------------------------
 cmake_policy(SET CMP0069 NEW)
 include(CheckIPOSupported)
 
-# Derive a sensible default: enable LTO automatically for Release-class builds
-# so that cmake -DCMAKE_BUILD_TYPE=Release "does the right thing" without
-# requiring a separate -DPHLEX_ENABLE_IPO=ON.  Debug/sanitizer/coverage builds
-# keep the default OFF to preserve debuggability.
 if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo)$")
   set(_phlex_ipo_default ON)
 else()
@@ -95,12 +106,35 @@ endif()
 option(
   PHLEX_ENABLE_IPO
   [=[Enable interprocedural optimization (LTO) for Release and RelWithDebInfo
-builds.  Safe with symbol hiding because export macros preserve the complete
-exported-symbol set.  External plugins compiled without LTO are unaffected.
-Defaults to ON when CMAKE_BUILD_TYPE is Release or RelWithDebInfo.]=]
+builds.  Defaults to ON when CMAKE_BUILD_TYPE is Release or RelWithDebInfo.
+When enabled, PHLEX_HIDE_SYMBOLS defaults to ON as well, since LTO achieves
+its full potential only with a bounded exported-symbol set.]=]
   "${_phlex_ipo_default}"
 )
 
+# ---------------------------------------------------------------------------
+# Symbol hiding — derived after PHLEX_ENABLE_IPO so that requesting IPO
+# automatically enables hiding by default (they work together for maximum
+# effect).
+# ---------------------------------------------------------------------------
+if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo)$" OR PHLEX_ENABLE_IPO)
+  set(_phlex_hide_default ON)
+else()
+  set(_phlex_hide_default OFF)
+endif()
+
+option(
+  PHLEX_HIDE_SYMBOLS
+  [=[Hide non-exported symbols in shared libraries (ON = curated API with
+hidden-by-default visibility; OFF = all symbols visible).  Defaults to ON for
+Release/RelWithDebInfo builds and whenever PHLEX_ENABLE_IPO=ON, since LTO
+achieves its full potential only with a bounded exported-symbol set.]=]
+  "${_phlex_hide_default}"
+)
+
+# ---------------------------------------------------------------------------
+# Activate LTO (if enabled and supported)
+# ---------------------------------------------------------------------------
 if(PHLEX_ENABLE_IPO)
   check_ipo_supported(
     RESULT _phlex_ipo_supported
@@ -114,6 +148,19 @@ if(PHLEX_ENABLE_IPO)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
     message(STATUS "Phlex: LTO enabled for Release and RelWithDebInfo builds")
+    if(NOT PHLEX_HIDE_SYMBOLS)
+      # The user explicitly set PHLEX_HIDE_SYMBOLS=OFF after the default was
+      # derived. The flags in phlex_apply_optimizations() self-adjust: LTO
+      # will be active but -fno-semantic-interposition will not be applied
+      # (it requires a bounded exported-symbol set). All other flags continue
+      # to apply normally.
+      message(
+        STATUS
+        "Phlex: PHLEX_ENABLE_IPO=ON with PHLEX_HIDE_SYMBOLS=OFF — "
+        "-fno-semantic-interposition will not be applied (requires a bounded "
+        "exported-symbol set). All other optimizations remain active."
+      )
+    endif()
   else()
     message(
       WARNING
