@@ -70,7 +70,7 @@ option(ENABLE_BUILD_PROFILING "Enable monitoring of compile and link operations"
 #
 # If lld is available but not default for the current toolset, then use
 # `-DCMAKE_LINKER_TYPE=LLD`
-if (ENABLE_BUILD_PROFILING)
+if(ENABLE_BUILD_PROFILING)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CMAKE_COMMAND} -E time")
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
