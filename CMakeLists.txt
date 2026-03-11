@@ -50,7 +50,13 @@ if(NOT CMAKE_CXX_FLAGS_RELEASE)
 endif()
 
 if(NOT CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -fno-omit-frame-pointer -g -DNDEBUG" CACHE STRING "" FORCE)
+  set(
+    CMAKE_CXX_FLAGS_RELWITHDEBINFO
+    "-O3 -fno-omit-frame-pointer -g -DNDEBUG"
+    CACHE STRING
+    ""
+    FORCE
+  )
 endif()
 # ##############################################################################
 
