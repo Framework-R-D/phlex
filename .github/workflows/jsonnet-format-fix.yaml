@@ -8,7 +8,9 @@ run-name: "${{ github.actor }} fixing Jsonnet format"
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
+        description:
+          "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the
+          repository's default branch."
         required: false
         type: string
   workflow_call:
@@ -52,8 +54,7 @@ permissions:
   contents: write
 
 env:
-  local_checkout_path:
-    ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
+  local_checkout_path: ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
 
 jobs:
   pre-check:
@@ -69,18 +70,15 @@ jobs:
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
     outputs:
-      ref:
-        ${{ inputs.ref || (github.event_name == 'workflow_dispatch' &&
-        (github.event.inputs.ref || github.ref_name)) || steps.get_pr.outputs.ref }}
-      repo:
-        ${{ inputs.repo || (github.event_name == 'workflow_dispatch' &&
-        github.repository) || steps.get_pr.outputs.repo }}
-
+      ref: ${{ steps.prepare.outputs.ref }}
+      repo: ${{ steps.prepare.outputs.repo }}
     steps:
-      - name: Get PR Info
-        if: github.event_name == 'issue_comment' && inputs.ref == ''
-        id: get_pr
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+      - name: Prepare outputs
+        id: prepare
+        uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@main
+        with:
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
 
   apply_jsonnet_formatting:
     runs-on: ubuntu-latest
@@ -125,40 +123,8 @@ jobs:
           pr-info-repo: ${{ needs.pre-check.outputs.repo }}
           skip-comment: ${{ inputs.skip-comment || 'false' }}
 
-      - name: Remove eyes reaction
-        if: github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      - name: Update PR comment reactions
+        if: always() && github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
         with:
-          script: |
-            try {
-              const { data: reactions } = await github.rest.reactions.listForIssueComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: context.payload.comment.id
-              });
-              const eyesReaction = reactions.find(
-                (r) => r.content === 'eyes' && r.user && r.user.login === 'github-actions[bot]'
-              );
-              if (eyesReaction) {
-                await github.rest.reactions.deleteForIssueComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: context.payload.comment.id,
-                  reaction_id: eyesReaction.id
-                });
-              }
-            } catch (_) {
-              // Reaction cleanup is best-effort; do not fail the workflow.
-            }
-
-      - name: Add completion reaction
-        if: github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        with:
-          script: |
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket'
-            });
+          status: ${{ job.status }}

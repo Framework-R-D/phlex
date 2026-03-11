@@ -8,7 +8,9 @@ name: Clang-Tidy Fix
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
+        description:
+          "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the
+          repository's default branch."
         required: false
         type: string
       tidy-checks:
@@ -34,14 +36,11 @@ jobs:
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
     outputs:
-      ref:
-        ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref_name)) ||
-        steps.get_pr.outputs.ref }}
-      repo: ${{ steps.get_pr.outputs.repo || github.repository }}
+      ref: ${{ steps.prepare.outputs.ref }}
+      repo: ${{ steps.prepare.outputs.repo }}
       tidy_checks:
         ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tidy-checks ||
         steps.parse_comment.outputs.tidy_checks }}
-
     steps:
       - id: parse_comment
         name: Parse comment for tidy checks
@@ -56,10 +55,9 @@ jobs:
             tidy_checks="$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)"
             echo "tidy_checks=$tidy_checks" >> "$GITHUB_OUTPUT"
           fi
-      - name: Get PR Info
-        if: github.event_name == 'issue_comment'
-        id: get_pr
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+      - name: Prepare outputs
+        id: prepare
+        uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@main
 
   apply_tidy_fixes:
     runs-on: ubuntu-24.04
@@ -208,3 +206,15 @@ jobs:
         with:
           clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  complete-comment:
+    needs: [pre-check, apply_tidy_fixes, clang-tidy-pr-comments]
+    if: always() && needs.pre-check.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update PR comment reactions
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        with:
+          status:
+            ${{ (needs.apply_tidy_fixes.result == 'success' && needs.clang-tidy-pr-comments.result == 'success') &&
+            'success' || 'failure' }}

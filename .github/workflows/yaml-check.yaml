@@ -17,14 +17,15 @@ jobs:
   pre-check:
     runs-on: ubuntu-latest
     outputs:
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
-      repo: ${{ github.repository }}
-      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+      is_act: ${{ steps.prepare.outputs.is_act }}
+      ref: ${{ steps.prepare.outputs.ref }}
+      repo: ${{ steps.prepare.outputs.repo }}
+      base_sha: ${{ steps.prepare.outputs.base_sha }}
+      pr_number: ${{ steps.prepare.outputs.pr_number }}
     steps:
-      - name: Detect act environment
-        id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+      - name: Prepare outputs
+        id: prepare
+        uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@main
 
   detect-changes:
     needs: pre-check

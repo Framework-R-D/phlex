@@ -1,0 +1,72 @@
+name: "Prepare Check Outputs"
+description: "Determines environment and target refs for check workflows."
+inputs:
+  ref:
+    description: "Manual ref override"
+    required: false
+  repo:
+    description: "Manual repo override"
+    required: false
+  pr-base-sha:
+    description: "Manual base SHA override"
+    required: false
+outputs:
+  is_act:
+    description: "Whether running in act"
+    value: ${{ steps.detect_act.outputs.is_act }}
+  ref:
+    description: "The resolved ref"
+    value: ${{ steps.resolve.outputs.ref }}
+  repo:
+    description: "The resolved repository"
+    value: ${{ steps.resolve.outputs.repo }}
+  base_sha:
+    description: "The resolved base SHA for diffing"
+    value: ${{ steps.resolve.outputs.base_sha }}
+  pr_number:
+    description: "The PR number if available"
+    value: ${{ steps.resolve.outputs.pr_number }}
+runs:
+  using: "composite"
+  steps:
+    - name: Get PR Info
+      if: github.event_name == 'issue_comment'
+      id: get_pr
+      uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+    - name: Detect act environment
+      id: detect_act
+      uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+    - name: Resolve outputs
+      id: resolve
+      shell: bash
+      run: |
+        REF="${{ inputs.ref }}"
+        REPO="${{ inputs.repo }}"
+        BASE_SHA="${{ inputs.pr-base-sha }}"
+        PR_NUMBER=""
+
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          REF="${REF:-${{ github.sha }}}"
+          BASE_SHA="${BASE_SHA:-${{ github.event.pull_request.base.sha }}}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+        elif [ "${{ github.event_name }}" == "issue_comment" ]; then
+          REF="${REF:-${{ steps.get_pr.outputs.ref }}}"
+          REPO="${REPO:-${{ steps.get_pr.outputs.repo }}}"
+          BASE_SHA="${BASE_SHA:-${{ steps.get_pr.outputs.base_sha }}}"
+          PR_NUMBER="${{ github.event.issue.number }}"
+        elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          REF="${REF:-${{ github.event.inputs.ref || github.ref }}}"
+          BASE_SHA="${BASE_SHA:-${{ github.event.before }}}"
+        else
+          REF="${REF:-${{ github.sha }}}"
+          BASE_SHA="${BASE_SHA:-${{ github.event.before }}}"
+        fi
+
+        REPO="${REPO:-${{ github.repository }}}"
+
+        echo "ref=$REF" >> "$GITHUB_OUTPUT"
+        echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+        echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+        echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"

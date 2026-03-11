@@ -69,22 +69,28 @@ jobs:
   pre-check:
     runs-on: ubuntu-latest
     outputs:
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref:
-        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
-        (github.event.inputs.ref || github.ref)) || github.sha }}
-      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
-      base_sha:
-        ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha ||
-        github.event.before }}
+      is_act: ${{ steps.prepare.outputs.is_act }}
+      ref: ${{ steps.prepare.outputs.ref }}
+      repo: ${{ steps.prepare.outputs.repo }}
+      base_sha: ${{ steps.prepare.outputs.base_sha }}
+      pr_number: ${{ steps.prepare.outputs.pr_number }}
       skip_detection: ${{ steps.should_skip.outputs.skip }}
-      local_checkout_path:
-        ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
-        github.event.repository.name) }}
+      local_checkout_path: ${{ steps.path.outputs.path }}
     steps:
-      - name: Detect act environment
-        id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+      - name: Prepare outputs
+        id: prepare
+        uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@main
+        with:
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          pr-base-sha: ${{ inputs.pr-base-sha }}
+
+      - name: Resolve checkout path
+        id: path
+        shell: bash
+        run: |
+          CHECKOUT_PATH="${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src', github.event.repository.name) }}"
+          echo "path=$CHECKOUT_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Determine if detection should be skipped
         id: should_skip
@@ -94,7 +100,7 @@ jobs:
              [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
              [ "${{ github.event_name }}" = "push" ] || \
              { [ "${{ github.event_name }}" = "workflow_call" ] && [ -n "${{ inputs.language-matrix }}" ]; } || \
-             [ "${{ steps.detect_act.outputs.is_act }}" = "true" ]; then
+             [ "${{ steps.prepare.outputs.is_act }}" = "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -218,13 +224,7 @@ jobs:
           fi
 
   determine-languages:
-    needs:
-      [
-        pre-check,
-        detect-changes-cpp,
-        detect-changes-python,
-        detect-changes-actions,
-      ]
+    needs: [pre-check, detect-changes-cpp, detect-changes-python, detect-changes-actions]
     if: always() && needs.pre-check.result == 'success'
     runs-on: ubuntu-latest
     outputs:
