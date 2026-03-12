@@ -5,8 +5,8 @@ description:
 inputs:
   status:
     description:
-      "The status of the workflow. If 'success', a 'rocket' reaction is added. Otherwise, a 'confused' reaction is
-      added. Defaults to 'success'."
+      "The status of the workflow. If 'success', a 'rocket' reaction is added. For any non-success status (including
+      'failure', 'cancelled', or 'skipped'), a 'confused' reaction is added. Defaults to 'success'."
     required: false
     default: "success"
 

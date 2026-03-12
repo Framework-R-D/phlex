@@ -62,7 +62,7 @@ jobs:
         id: setup
         uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
-          file-type: header-guards
+          file-type: cpp
 
   header-guards-check:
     needs: setup

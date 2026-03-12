@@ -98,7 +98,13 @@ runs:
           echo "base_sha=" >> "$GITHUB_OUTPUT"
           echo "pr_number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
           echo "checkout_path=${{ steps.prepare_fix.outputs.checkout_path }}" >> "$GITHUB_OUTPUT"
-          echo "build_path=" >> "$GITHUB_OUTPUT"
+          CHECKOUT_PATH="${{ steps.prepare_fix.outputs.checkout_path }}"
+          REPO_NAME="${CHECKOUT_PATH%-src}"
+          BUILD_PATH="${{ inputs.build-path }}"
+          if [ -z "$BUILD_PATH" ]; then
+            BUILD_PATH="${REPO_NAME}-build"
+          fi
+          echo "build_path=$BUILD_PATH" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Run change detection
