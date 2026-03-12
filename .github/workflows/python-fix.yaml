@@ -57,33 +57,34 @@ env:
   local_checkout_path: ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
 
 jobs:
-  pre-check:
+  setup:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'workflow_dispatch' || inputs.ref != '' || (
+      github.event_name == 'workflow_dispatch' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         startsWith(github.event.comment.body, format('@{0}bot python-fix', github.event.repository.name))
       )
-    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
-    # This covers repo owners, invited collaborators, and all org members.
     outputs:
-      ref: ${{ steps.prepare.outputs.ref }}
-      repo: ${{ steps.prepare.outputs.repo }}
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+      checkout_path: ${{ steps.setup.outputs.checkout_path }}
     steps:
-      - name: Prepare outputs
-        id: prepare
-        uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@main
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
+          mode: fix
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
+          checkout-path: ${{ inputs.checkout-path }}
 
   apply_fixes:
     runs-on: ubuntu-latest
     name: Apply fixes
-    needs: pre-check
+    needs: setup
     if: needs.pre-check.result == 'success'
     outputs:
       changes: ${{ steps.handle_commit.outputs.changes }}
@@ -94,9 +95,9 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: ${{ env.local_checkout_path }}
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          ref: ${{ needs.setup.outputs.ref }}
+          repository: ${{ needs.setup.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
@@ -109,7 +110,7 @@ jobs:
           pip install ruff
 
       - name: Run ruff format and fix
-        working-directory: ${{ env.local_checkout_path }}
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
         env:
           FORCE_COLOR: 1
         run: |
@@ -123,10 +124,10 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: ruff
-          working-directory: ${{ env.local_checkout_path }}
+          working-directory: ${{ needs.setup.outputs.checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
-          pr-info-repo: ${{ needs.pre-check.outputs.repo }}
+          pr-info-ref: ${{ needs.setup.outputs.ref }}
+          pr-info-repo: ${{ needs.setup.outputs.repo }}
           skip-comment: ${{ inputs.skip-comment || 'false' }}
 
       - name: Update PR comment reactions

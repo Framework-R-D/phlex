@@ -1,0 +1,53 @@
+name: "Collect Format Results"
+description: "Aggregates results from multiple formatting jobs and creates a summary comment."
+inputs:
+  results-json:
+    description: "JSON object containing job results"
+    required: true
+
+outputs:
+  message:
+    description: "The formatted summary message"
+    value: ${{ steps.collect.outputs.message }}
+  has_failures:
+    description: "Whether any job failed"
+    value: ${{ steps.collect.outputs.has_failures }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Aggregate results
+      id: collect
+      shell: bash
+      run: |
+        echo "results<<EOF" >> $GITHUB_ENV
+        echo '${{ inputs.results-json }}' >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+        # In a real script we would parse the JSON, but for a composite action
+        # we can pass pre-formatted data. To keep it simple and robust,
+        # let's assume the caller provides a bash-friendly format or we use python.
+
+        python3 -c "
+        import json, os
+        data = json.loads(os.environ['results'])
+        messages = []
+        has_failures = False
+        for name, res in data.items():
+            if res['result'] in ['failure', 'cancelled', 'skipped']:
+                messages.append(f'❌ {name} workflow {res[\"result\"]}')
+                has_failures = True
+            elif res.get('changes') == 'true':
+                if res.get('pushed') == 'true':
+                    messages.append(f'✅ {name} fixes pushed (commit {res.get(\"sha\", \"\")})')
+                elif res.get('patch'):
+                    messages.append(f'⚠️ {name} fixes available as patch {res.get(\"patch\")}')
+
+        output_msg = 'No automatic format fixes were necessary.'
+        if messages:
+            output_msg = '### Format Fixes Applied\n' + '\n'.join(messages) + '\n\n⚠️ **Note:** Some issues may require manual review.'
+
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f'message<<EOF\n{output_msg}\nEOF\n')
+            f.write(f'has_failures={str(has_failures).lower()}\n')
+        "

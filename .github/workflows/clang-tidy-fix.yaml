@@ -23,7 +23,7 @@ permissions:
   contents: write
 
 jobs:
-  pre-check:
+  setup:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
@@ -36,8 +36,10 @@ jobs:
     # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
     # This covers repo owners, invited collaborators, and all org members.
     outputs:
-      ref: ${{ steps.prepare.outputs.ref }}
-      repo: ${{ steps.prepare.outputs.repo }}
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+      checkout_path: ${{ steps.setup.outputs.checkout_path }}
+      build_path: ${{ steps.setup.outputs.build_path }}
       tidy_checks:
         ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tidy-checks ||
         steps.parse_comment.outputs.tidy_checks }}
@@ -55,15 +57,17 @@ jobs:
             tidy_checks="$(echo "$checks_line" | tr ',' ' ' | xargs -n1 | paste -sd, -)"
             echo "tidy_checks=$tidy_checks" >> "$GITHUB_OUTPUT"
           fi
-      - name: Prepare outputs
-        id: prepare
-        uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@main
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        with:
+          mode: fix
 
   apply_tidy_fixes:
     runs-on: ubuntu-24.04
     name: Apply clang-tidy fixes
-    needs: pre-check
-    if: ${{ needs.pre-check.result == 'success' }}
+    needs: setup
+    if: ${{ needs.setup.result == 'success' }}
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
@@ -72,43 +76,43 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: phlex-src
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          ref: ${{ needs.setup.outputs.ref }}
+          repository: ${{ needs.setup.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Try to download existing fixes from check workflow
         id: download_fixes_check
-        if: needs.pre-check.outputs.tidy_checks == ''
-        uses: dawidd6/action-download-artifact@09b07ec687d10771279a426c79925ee415c12906 # v17
+        if: needs.setup.outputs.tidy_checks == ''
+        uses: dawidd6/action-download-artifact@2536c51d3d126276eb39f74d6bc9c72ac6ef30d3 # v16
         with:
           workflow: clang-tidy-check.yaml
-          name: clang-tidy-report
+          name: clang-tidy-check
           path: fixes
-          branch: ${{ needs.pre-check.outputs.ref }}
+          branch: ${{ needs.setup.outputs.ref }}
         continue-on-error: true
 
       - name: Try to download existing fixes from previous fix workflow
         id: download_fixes_fix
-        if: steps.download_fixes_check.outcome != 'success' && needs.pre-check.outputs.tidy_checks == ''
-        uses: dawidd6/action-download-artifact@09b07ec687d10771279a426c79925ee415c12906 # v17
+        if: steps.download_fixes_check.outcome != 'success' && needs.setup.outputs.tidy_checks == ''
+        uses: dawidd6/action-download-artifact@2536c51d3d126276eb39f74d6bc9c72ac6ef30d3 # v16
         with:
           workflow: clang-tidy-fix.yaml
-          name: clang-tidy-report
+          name: clang-tidy-fix
           path: fixes
-          branch: ${{ needs.pre-check.outputs.ref }}
+          branch: ${{ needs.setup.outputs.ref }}
         continue-on-error: true
 
       - name: Apply fixes from artifact if available
         id: apply_from_artifact
         if:
-          needs.pre-check.outputs.tidy_checks == '' && (steps.download_fixes_check.outcome == 'success' ||
+          needs.setup.outputs.tidy_checks == '' && (steps.download_fixes_check.outcome == 'success' ||
           steps.download_fixes_fix.outcome == 'success')
         run: |
           if [ -f fixes/clang-tidy-fixes.yaml ]; then
             echo "Applying fixes from existing artifact..."
             . /entrypoint.sh
-            cd phlex-src
+            cd "${{ needs.setup.outputs.checkout_path }}"
             clang-apply-replacements ../fixes || true
             echo "applied=true" >> "$GITHUB_OUTPUT"
           else
@@ -118,12 +122,14 @@ jobs:
       - name: Setup build environment
         if: steps.apply_from_artifact.outputs.applied != 'true'
         uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        with:
+          build-path: ${{ needs.setup.outputs.build_path }}
 
       - name: Prepare CMake configuration options
         if: steps.apply_from_artifact.outputs.applied != 'true'
         id: prep_tidy_opts
         env:
-          TIDY_CHECKS: ${{ needs.pre-check.outputs.tidy_checks }}
+          TIDY_CHECKS: ${{ needs.setup.outputs.tidy_checks }}
         run: |
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE"
@@ -140,6 +146,8 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
         with:
           build-type: Debug
+          source-path: ${{ needs.setup.outputs.checkout_path }}
+          build-path: ${{ needs.setup.outputs.build_path }}
           extra-options:
             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='${{
             steps.prep_tidy_opts.outputs.clang_tidy_opts }}'"
@@ -148,24 +156,25 @@ jobs:
         if: steps.apply_from_artifact.outputs.applied != 'true'
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
           cmake --build . -j "$(nproc)" || true
 
       - name: Apply clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
           if [ -f clang-tidy-fixes.yaml ]; then
             clang-apply-replacements . || true
           fi
 
-      - name: Upload clang-tidy report
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: clang-tidy-report
-          path: phlex-build/clang-tidy-fixes.yaml
+          name: clang-tidy-fix
+          path: |
+            ${{ needs.setup.outputs.build_path }}/clang-tidy-fixes.yaml
           retention-days: 7
           if-no-files-found: ignore
 
@@ -173,48 +182,25 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: clang-tidy
-          working-directory: phlex-src
+          working-directory: ${{ needs.setup.outputs.checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
-          pr-info-repo: ${{ needs.pre-check.outputs.repo }}
+          pr-info-ref: ${{ needs.setup.outputs.ref }}
+          pr-info-repo: ${{ needs.setup.outputs.repo }}
 
-  clang-tidy-pr-comments:
-    needs: apply_tidy_fixes
+  report:
+    needs: [setup, apply_tidy_fixes]
+    if: always() && needs.setup.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-      - name: Download clang-tidy report
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Post Clang-Tidy results
+        uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@main
         with:
-          name: clang-tidy-report
-          path: phlex-build
-        continue-on-error: true
+          build-path: ${{ needs.setup.outputs.build_path }}
+          pr-number: ${{ needs.setup.outputs.pr_number }}
 
-      - name: Check if artifacts exist
-        id: check_artifacts
-        run: |
-          if [ -f phlex-build/clang-tidy-fixes.yaml ]; then
-            echo "has_fixes=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_fixes=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Post clang-tidy comments
-        if: steps.check_artifacts.outputs.has_fixes == 'true'
-        uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
-        with:
-          clang_tidy_fixes: phlex-build/clang-tidy-fixes.yaml
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-  complete-comment:
-    needs: [pre-check, apply_tidy_fixes, clang-tidy-pr-comments]
-    if: always() && needs.pre-check.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
       - name: Update PR comment reactions
         uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
         with:
-          status:
-            ${{ (needs.apply_tidy_fixes.result == 'success' && needs.clang-tidy-pr-comments.result == 'success') &&
-            'success' || 'failure' }}
+          status: ${{ needs.apply_tidy_fixes.result }}

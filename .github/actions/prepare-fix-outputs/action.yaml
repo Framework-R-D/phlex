@@ -7,6 +7,9 @@ inputs:
   repo:
     description: "Manual repo override"
     required: false
+  checkout-path:
+    description: "Manual checkout path override"
+    required: false
 outputs:
   ref:
     description: "The resolved ref"
@@ -14,6 +17,9 @@ outputs:
   repo:
     description: "The resolved repository"
     value: ${{ steps.resolve.outputs.repo }}
+  checkout_path:
+    description: "The resolved checkout path"
+    value: ${{ steps.resolve.outputs.checkout_path }}
 runs:
   using: "composite"
   steps:
@@ -49,5 +55,12 @@ runs:
           fi
         fi
 
+        REPO_NAME="${REPO##*/}"
+        CHECKOUT_PATH="${{ inputs.checkout-path }}"
+        if [ -z "$CHECKOUT_PATH" ]; then
+          CHECKOUT_PATH="${REPO_NAME}-src"
+        fi
+
         echo "ref=$REF" >> "$GITHUB_OUTPUT"
         echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+        echo "checkout_path=$CHECKOUT_PATH" >> "$GITHUB_OUTPUT"

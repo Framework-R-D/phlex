@@ -11,191 +11,111 @@ permissions:
   contents: write
 
 jobs:
-  pre-check:
+  setup:
     runs-on: ubuntu-latest
-    name: Parse command
     if: >
       github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(fromJSON('["OWNER",
       "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) && startsWith(github.event.comment.body,
       format('@{0}bot format', github.event.repository.name))
     outputs:
-      ref: ${{ steps.prepare.outputs.ref }}
-      repo: ${{ steps.prepare.outputs.repo }}
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
     steps:
-      - name: Prepare outputs
-        id: prepare
-        uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@main
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        with:
+          mode: fix
 
   clang-format:
-    needs: pre-check
+    needs: setup
     uses: Framework-R-D/phlex/.github/workflows/clang-format-fix.yaml@main
     with:
-      checkout-path: phlex-src
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ needs.setup.outputs.ref }}
+      repo: ${{ needs.setup.outputs.repo }}
       skip-comment: "true"
     secrets: inherit
 
   cmake-format:
-    needs: pre-check
+    needs: setup
     uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@main
     with:
-      checkout-path: phlex-src
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ needs.setup.outputs.ref }}
+      repo: ${{ needs.setup.outputs.repo }}
       skip-comment: "true"
     secrets: inherit
 
   header-guards:
-    needs: pre-check
+    needs: setup
     uses: Framework-R-D/phlex/.github/workflows/header-guards-fix.yaml@main
     with:
-      checkout-path: phlex-src
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ needs.setup.outputs.ref }}
+      repo: ${{ needs.setup.outputs.repo }}
       skip-comment: "true"
     secrets: inherit
 
   jsonnet-format:
-    needs: pre-check
+    needs: setup
     uses: Framework-R-D/phlex/.github/workflows/jsonnet-format-fix.yaml@main
     with:
-      checkout-path: phlex-src
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ needs.setup.outputs.ref }}
+      repo: ${{ needs.setup.outputs.repo }}
       skip-comment: "true"
     secrets: inherit
 
   markdown:
-    needs: pre-check
+    needs: setup
     uses: Framework-R-D/phlex/.github/workflows/markdown-fix.yaml@main
     with:
-      checkout-path: phlex-src
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ needs.setup.outputs.ref }}
+      repo: ${{ needs.setup.outputs.repo }}
       skip-comment: "true"
     secrets: inherit
 
   python:
-    needs: pre-check
+    needs: setup
     uses: Framework-R-D/phlex/.github/workflows/python-fix.yaml@main
     with:
-      checkout-path: phlex-src
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ needs.setup.outputs.ref }}
+      repo: ${{ needs.setup.outputs.repo }}
       skip-comment: "true"
     secrets: inherit
 
   yaml:
-    needs: pre-check
+    needs: setup
     uses: Framework-R-D/phlex/.github/workflows/yaml-fix.yaml@main
     with:
-      checkout-path: phlex-src
-      ref: ${{ needs.pre-check.outputs.ref }}
-      repo: ${{ needs.pre-check.outputs.repo }}
+      ref: ${{ needs.setup.outputs.ref }}
+      repo: ${{ needs.setup.outputs.repo }}
       skip-comment: "true"
     secrets: inherit
 
   combine-results:
-    needs: [pre-check, clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml]
-    if: ${{ always() && needs.pre-check.result == 'success' }}
+    needs: [setup, clang-format, cmake-format, header-guards, jsonnet-format, markdown, python, yaml]
+    if: always() && needs.setup.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Collect results
         id: collect
-        shell: bash
-        run: |
-          messages=()
-          has_failures=false
-
-          check_job() {
-            local name="$1" result="$2" changes="$3" pushed="$4" patch_name="$5" sha_short="$6"
-            if [ "$result" == "failure" ] || [ "$result" == "cancelled" ] || [ "$result" == "skipped" ]; then
-              messages+=("❌ $name workflow $result")
-              has_failures=true
-            elif [ "$changes" == "true" ]; then
-              if [ "$pushed" == "true" ]; then
-                messages+=("✅ $name fixes pushed (commit $sha_short)")
-              elif [ -n "$patch_name" ]; then
-                messages+=("⚠️ $name fixes available as a patch file (\`$patch_name\`) in the \"fix-patch\" artifact. Download the artifact from this workflow run, then run: \`git apply $patch_name\` from the repository root.")
-              fi
-            fi
-          }
-
-          check_job "clang-format" \
-            "${{ needs.clang-format.result }}" \
-            "${{ needs.clang-format.outputs.changes }}" \
-            "${{ needs.clang-format.outputs.pushed }}" \
-            "${{ needs.clang-format.outputs.patch_name }}" \
-            "${{ needs.clang-format.outputs.commit_sha_short }}"
-
-          check_job "cmake-format" \
-            "${{ needs.cmake-format.result }}" \
-            "${{ needs.cmake-format.outputs.changes }}" \
-            "${{ needs.cmake-format.outputs.pushed }}" \
-            "${{ needs.cmake-format.outputs.patch_name }}" \
-            "${{ needs.cmake-format.outputs.commit_sha_short }}"
-
-          check_job "header-guards" \
-            "${{ needs.header-guards.result }}" \
-            "${{ needs.header-guards.outputs.changes }}" \
-            "${{ needs.header-guards.outputs.pushed }}" \
-            "${{ needs.header-guards.outputs.patch_name }}" \
-            "${{ needs.header-guards.outputs.commit_sha_short }}"
-
-          check_job "jsonnetfmt" \
-            "${{ needs.jsonnet-format.result }}" \
-            "${{ needs.jsonnet-format.outputs.changes }}" \
-            "${{ needs.jsonnet-format.outputs.pushed }}" \
-            "${{ needs.jsonnet-format.outputs.patch_name }}" \
-            "${{ needs.jsonnet-format.outputs.commit_sha_short }}"
-
-          check_job "markdownlint" \
-            "${{ needs.markdown.result }}" \
-            "${{ needs.markdown.outputs.changes }}" \
-            "${{ needs.markdown.outputs.pushed }}" \
-            "${{ needs.markdown.outputs.patch_name }}" \
-            "${{ needs.markdown.outputs.commit_sha_short }}"
-
-          check_job "ruff" \
-            "${{ needs.python.result }}" \
-            "${{ needs.python.outputs.changes }}" \
-            "${{ needs.python.outputs.pushed }}" \
-            "${{ needs.python.outputs.patch_name }}" \
-            "${{ needs.python.outputs.commit_sha_short }}"
-
-          check_job "YAML formatter" \
-            "${{ needs.yaml.result }}" \
-            "${{ needs.yaml.outputs.changes }}" \
-            "${{ needs.yaml.outputs.pushed }}" \
-            "${{ needs.yaml.outputs.patch_name }}" \
-            "${{ needs.yaml.outputs.commit_sha_short }}"
-
-          if [ ${#messages[@]} -eq 0 ]; then
-            echo "message=No automatic format fixes were necessary." >> "$GITHUB_OUTPUT"
-          else
+        uses: Framework-R-D/phlex/.github/actions/collect-format-results@main
+        with:
+          results-json: |
             {
-              echo "message<<EOF"
-              echo "### Format Fixes Applied"
-              printf '%s\n' "${messages[@]}"
-              echo ""
-              echo "⚠️ **Note:** Some issues may require manual review and fixing."
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ "$has_failures" == "true" ]; then
-            exit 1
-          fi
+              "clang-format": { "result": "${{ needs.clang-format.result }}", "changes": "${{ needs.clang-format.outputs.changes }}", "pushed": "${{ needs.clang-format.outputs.pushed }}", "sha": "${{ needs.clang-format.outputs.commit_sha_short }}" },
+              "cmake-format": { "result": "${{ needs.cmake-format.result }}", "changes": "${{ needs.cmake-format.outputs.changes }}", "pushed": "${{ needs.cmake-format.outputs.pushed }}", "sha": "${{ needs.cmake-format.outputs.commit_sha_short }}" },
+              "header-guards": { "result": "${{ needs.header-guards.result }}", "changes": "${{ needs.header-guards.outputs.changes }}", "pushed": "${{ needs.header-guards.outputs.pushed }}", "sha": "${{ needs.header-guards.outputs.commit_sha_short }}" },
+              "jsonnetfmt": { "result": "${{ needs.jsonnet-format.result }}", "changes": "${{ needs.jsonnet-format.outputs.changes }}", "pushed": "${{ needs.jsonnet-format.outputs.pushed }}", "sha": "${{ needs.jsonnet-format.outputs.commit_sha_short }}" },
+              "markdownlint": { "result": "${{ needs.markdown.result }}", "changes": "${{ needs.markdown.outputs.changes }}", "pushed": "${{ needs.markdown.outputs.pushed }}", "sha": "${{ needs.markdown.outputs.commit_sha_short }}" },
+              "ruff": { "result": "${{ needs.python.result }}", "changes": "${{ needs.python.outputs.changes }}", "pushed": "${{ needs.python.outputs.pushed }}", "sha": "${{ needs.python.outputs.commit_sha_short }}" },
+              "YAML formatter": { "result": "${{ needs.yaml.result }}", "changes": "${{ needs.yaml.outputs.changes }}", "pushed": "${{ needs.yaml.outputs.pushed }}", "sha": "${{ needs.yaml.outputs.commit_sha_short }}" }
+            }
 
       - name: Post combined comment
-        if: always()
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
           message: ${{ steps.collect.outputs.message }}
 
       - name: Update PR comment reactions
-        if: always()
         uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
         with:
-          status: ${{ job.status }}
+          status: ${{ steps.collect.outputs.has_failures == 'true' && 'failure' || 'success' }}

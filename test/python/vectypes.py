@@ -259,13 +259,11 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         )
 
         sum_kwargs = {
-            "input_family": [
-                {
-                    "creator": list_collect.__name__ if use_lists else arr_collect.__name__,
-                    "layer": "event",
-                    "suffix": arr_name,
-                }
-            ],
+            "input_family": [{
+                "creator": list_collect.__name__ if use_lists else arr_collect.__name__,
+                "layer": "event",
+                "suffix": arr_name
+            }],
             "output_products": config[out_key],
         }
         if sum_name:

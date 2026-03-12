@@ -1,0 +1,68 @@
+name: "Run Change Detection"
+description: "Encapsulates checkout, detection of relevant changes, and reporting."
+inputs:
+  checkout-path:
+    description: "Path to check out code to"
+    required: true
+  ref:
+    description: "The branch, ref, or SHA to checkout"
+    required: true
+  repo:
+    description: "The repository to checkout from"
+    required: true
+  base-ref:
+    description: "The base ref for comparison"
+    required: true
+  file-type:
+    description: "Predefined file type (cpp, python, cmake, jsonnet, yaml, markdown, header-guards)"
+    required: false
+  include-globs:
+    description: "Custom include globs"
+    required: false
+  exclude-globs:
+    description: "Custom exclude globs"
+    required: false
+  head-ref:
+    description: "Explicit head ref (defaults to inputs.ref)"
+    required: false
+
+outputs:
+  has_changes:
+    description: "Whether relevant changes were detected"
+    value: ${{ steps.filter.outputs.matched }}
+  matched_files:
+    description: "The list of matched files"
+    value: ${{ steps.filter.outputs.matched_files }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check out source code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+        path: ${{ inputs.checkout-path }}
+        ref: ${{ inputs.ref }}
+        repository: ${{ inputs.repo }}
+
+    - name: Detect relevant changes
+      id: filter
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      with:
+        repo-path: ${{ inputs.checkout-path }}
+        base-ref: ${{ inputs.base-ref }}
+        head-ref: ${{ inputs.head-ref || inputs.ref }}
+        file-type: ${{ inputs.file-type }}
+        include-globs: ${{ inputs.include-globs }}
+        exclude-globs: ${{ inputs.exclude-globs }}
+
+    - name: Report detection outcome
+      shell: bash
+      run: |
+        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
+          echo "::notice::No relevant changes detected for ${{ inputs.file-type || 'custom globs' }}; job will be skipped."
+        else
+          echo "::group::Relevant files detected"
+          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          echo "::endgroup::"
+        fi
