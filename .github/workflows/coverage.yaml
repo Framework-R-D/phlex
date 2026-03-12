@@ -50,7 +50,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: ./.github/actions/workflow-setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@copilot/sub-pr-411-another-one
         with:
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -102,7 +102,7 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Setup build environment
-        uses: ./.github/actions/setup-build-env
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@copilot/sub-pr-411-another-one
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -112,7 +112,7 @@ jobs:
       - name: Configure CMake with GCC coverage
         id: configure_gcc
         if: ${{ steps.coverage_options.outputs.compiler == 'gcc' }}
-        uses: ./.github/actions/configure-cmake
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@copilot/sub-pr-411-another-one
         with:
           cpp-compiler: g++
           preset: coverage-gcc
@@ -124,7 +124,7 @@ jobs:
       - name: Configure CMake with Clang coverage
         id: configure_clang
         if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
-        uses: ./.github/actions/configure-cmake
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@copilot/sub-pr-411-another-one
         with:
           cpp-compiler: clang++
           preset: coverage-clang
@@ -145,7 +145,7 @@ jobs:
 
       - name: Build with coverage instrumentation
         id: build
-        uses: ./.github/actions/build-cmake
+        uses: Framework-R-D/phlex/.github/actions/build-cmake@copilot/sub-pr-411-another-one
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 

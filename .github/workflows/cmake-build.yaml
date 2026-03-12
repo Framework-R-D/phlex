@@ -101,7 +101,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: ./.github/actions/workflow-setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@copilot/sub-pr-411-another-one
         with:
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -120,7 +120,7 @@ jobs:
       matrix: ${{ steps.generate.outputs.matrix }}
     steps:
       - id: generate
-        uses: ./.github/actions/generate-build-matrix
+        uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@copilot/sub-pr-411-another-one
         with:
           user-input:
             ${{ (github.event_name == 'workflow_call' && inputs.build-combinations) ||
@@ -148,7 +148,7 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Setup build environment
-        uses: ./.github/actions/setup-build-env
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@copilot/sub-pr-411-another-one
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -163,7 +163,7 @@ jobs:
 
       - name: Configure CMake
         id: configure
-        uses: ./.github/actions/configure-cmake
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@copilot/sub-pr-411-another-one
         with:
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
@@ -175,7 +175,7 @@ jobs:
 
       - name: Build
         id: build
-        uses: ./.github/actions/build-cmake
+        uses: Framework-R-D/phlex/.github/actions/build-cmake@copilot/sub-pr-411-another-one
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 

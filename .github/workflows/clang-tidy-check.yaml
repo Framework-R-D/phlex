@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: ./.github/actions/workflow-setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@copilot/sub-pr-411-another-one
         with:
           file-type: |
             cpp
@@ -61,12 +61,12 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Setup build environment
-        uses: ./.github/actions/setup-build-env
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@copilot/sub-pr-411-another-one
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
       - name: Configure CMake (Debug)
-        uses: ./.github/actions/configure-cmake
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@copilot/sub-pr-411-another-one
         with:
           build-type: Debug
           source-path: ${{ needs.setup.outputs.checkout_path }}
@@ -115,7 +115,7 @@ jobs:
       issues: write
     steps:
       - name: Post Clang-Tidy results
-        uses: ./.github/actions/post-clang-tidy-results
+        uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@copilot/sub-pr-411-another-one
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}

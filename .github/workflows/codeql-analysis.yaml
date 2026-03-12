@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: ./.github/actions/workflow-setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@copilot/sub-pr-411-another-one
         with:
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -105,7 +105,7 @@ jobs:
       - name: Detect C++ changes
         id: detect_cpp
         if: steps.should_skip.outputs.skip != 'true'
-        uses: ./.github/actions/run-change-detection
+        uses: Framework-R-D/phlex/.github/actions/run-change-detection@copilot/sub-pr-411-another-one
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -119,7 +119,7 @@ jobs:
       - name: Detect Python changes
         id: detect_python
         if: steps.should_skip.outputs.skip != 'true'
-        uses: ./.github/actions/run-change-detection
+        uses: Framework-R-D/phlex/.github/actions/run-change-detection@copilot/sub-pr-411-another-one
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -131,7 +131,7 @@ jobs:
       - name: Detect Actions changes
         id: detect_actions
         if: steps.should_skip.outputs.skip != 'true'
-        uses: ./.github/actions/run-change-detection
+        uses: Framework-R-D/phlex/.github/actions/run-change-detection@copilot/sub-pr-411-another-one
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -228,7 +228,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup build environment
-        uses: ./.github/actions/setup-build-env
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@copilot/sub-pr-411-another-one
         with:
           build-path: ${{ env.local_build_path }}
 
@@ -242,7 +242,7 @@ jobs:
 
       - name: Produce compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
-        uses: ./.github/actions/configure-cmake
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@copilot/sub-pr-411-another-one
         with:
           build-type: ${{ env.BUILD_TYPE }}
           source-path: ${{ env.local_checkout_path }}

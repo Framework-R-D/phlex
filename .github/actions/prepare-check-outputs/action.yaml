@@ -44,11 +44,11 @@ runs:
     - name: Get PR Info
       if: github.event_name == 'issue_comment'
       id: get_pr
-      uses: ./.github/actions/get-pr-info
+      uses: Framework-R-D/phlex/.github/actions/get-pr-info@copilot/sub-pr-411-another-one
 
     - name: Detect act environment
       id: detect_act
-      uses: ./.github/actions/detect-act-env
+      uses: Framework-R-D/phlex/.github/actions/detect-act-env@copilot/sub-pr-411-another-one
 
     - name: Resolve outputs
       id: resolve

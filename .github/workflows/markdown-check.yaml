@@ -60,7 +60,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: ./.github/actions/workflow-setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@copilot/sub-pr-411-another-one
         with:
           file-type: md
 

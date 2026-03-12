@@ -47,7 +47,7 @@ runs:
 
     - name: Detect relevant changes
       id: filter
-      uses: ./.github/actions/detect-relevant-changes
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@copilot/sub-pr-411-another-one
       with:
         repo-path: ${{ inputs.checkout-path }}
         base-ref: ${{ inputs.base-ref }}

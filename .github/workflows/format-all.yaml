@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: ./.github/actions/workflow-setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@copilot/sub-pr-411-another-one
         with:
           mode: fix
 
@@ -97,7 +97,7 @@ jobs:
     steps:
       - name: Collect results
         id: collect
-        uses: ./.github/actions/collect-format-results
+        uses: Framework-R-D/phlex/.github/actions/collect-format-results@copilot/sub-pr-411-another-one
         with:
           results-json: |
             {
@@ -116,6 +116,6 @@ jobs:
           message: ${{ steps.collect.outputs.message }}
 
       - name: Update PR comment reactions
-        uses: ./.github/actions/complete-pr-comment
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@copilot/sub-pr-411-another-one
         with:
           status: ${{ steps.collect.outputs.has_failures == 'true' && 'failure' || 'success' }}

@@ -62,7 +62,7 @@ runs:
     - name: Prepare basic outputs (check mode)
       if: inputs.mode == 'check'
       id: prepare_check
-      uses: ./.github/actions/prepare-check-outputs
+      uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@copilot/sub-pr-411-another-one
       with:
         ref: ${{ inputs.ref }}
         repo: ${{ inputs.repo }}
@@ -73,7 +73,7 @@ runs:
     - name: Prepare basic outputs (fix mode)
       if: inputs.mode == 'fix'
       id: prepare_fix
-      uses: ./.github/actions/prepare-fix-outputs
+      uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@copilot/sub-pr-411-another-one
       with:
         ref: ${{ inputs.ref }}
         repo: ${{ inputs.repo }}
@@ -110,7 +110,7 @@ runs:
     - name: Run change detection
       id: detect
       if: inputs.file-type != '' || inputs.include-globs != ''
-      uses: ./.github/actions/run-change-detection
+      uses: Framework-R-D/phlex/.github/actions/run-change-detection@copilot/sub-pr-411-another-one
       with:
         checkout-path: ${{ steps.prepare.outputs.checkout_path }}
         ref: ${{ steps.prepare.outputs.ref }}

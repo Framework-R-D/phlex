@@ -75,7 +75,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: ./.github/actions/workflow-setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@copilot/sub-pr-411-another-one
         with:
           mode: fix
           ref: ${{ inputs.ref }}
@@ -116,7 +116,7 @@ jobs:
 
       - name: Handle fix commit
         id: handle_commit
-        uses: ./.github/actions/handle-fix-commit
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@copilot/sub-pr-411-another-one
         with:
           tool: jsonnetfmt
           working-directory: ${{ needs.setup.outputs.checkout_path }}
@@ -127,6 +127,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
-        uses: ./.github/actions/complete-pr-comment
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@copilot/sub-pr-411-another-one
         with:
           status: ${{ job.status }}
