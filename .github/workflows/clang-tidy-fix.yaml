@@ -21,6 +21,7 @@ name: Clang-Tidy Fix
 permissions:
   pull-requests: write
   contents: write
+  issues: write
 
 jobs:
   setup:
