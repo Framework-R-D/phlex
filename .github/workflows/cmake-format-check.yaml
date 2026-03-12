@@ -41,11 +41,6 @@ permissions:
         required: false
         type: string
 
-env:
-  local_checkout_path:
-    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
-    github.event.repository.name) }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -74,7 +69,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.ref }}
-          path: ${{ env.local_checkout_path }}
+          path: ${{ needs.setup.outputs.checkout_path }}
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Set up Python
@@ -89,7 +84,7 @@ jobs:
         id: lint
         run: |
           echo "➡️ Checking CMake file formatting..."
-          gersemi --check ${{ env.local_checkout_path }}
+          gersemi --check ${{ needs.setup.outputs.checkout_path }}
         continue-on-error: true
 
       - name: Evaluate CMake formatting result

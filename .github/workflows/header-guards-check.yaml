@@ -41,11 +41,6 @@ permissions:
         required: false
         type: string
 
-env:
-  local_checkout_path:
-    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
-    github.event.repository.name) }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -77,7 +72,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.ref }}
-          path: ${{ env.local_checkout_path }}
+          path: ${{ needs.setup.outputs.checkout_path }}
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Set up Python
@@ -87,7 +82,7 @@ jobs:
 
       - name: Check header guards
         id: check
-        working-directory: ${{ env.local_checkout_path }}
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
           python3 scripts/fix_header_guards.py --check --root . phlex plugins form > check_output.txt 2>&1 || echo "has_issues=true" >> "$GITHUB_OUTPUT"
           cat check_output.txt
