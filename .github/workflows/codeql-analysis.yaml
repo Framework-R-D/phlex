@@ -75,6 +75,7 @@ jobs:
       base_sha: ${{ steps.setup.outputs.base_sha }}
       pr_number: ${{ steps.setup.outputs.pr_number }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
+      build_path: ${{ steps.setup.outputs.build_path }}
       skip_detection: ${{ steps.should_skip.outputs.skip }}
       has_changes_cpp: ${{ steps.detect_cpp.outputs.has_changes }}
       has_changes_python: ${{ steps.detect_python.outputs.has_changes }}
@@ -88,6 +89,7 @@ jobs:
           repo: ${{ inputs.repo }}
           pr-base-sha: ${{ inputs.pr-base-sha }}
           checkout-path: ${{ inputs.checkout-path }}
+          build-path: ${{ inputs.build-path }}
 
       - name: Determine if detection should be skipped
         id: should_skip
@@ -111,7 +113,7 @@ jobs:
           ref: ${{ steps.setup.outputs.ref }}
           repo: ${{ steps.setup.outputs.repo }}
           base-ref: ${{ steps.setup.outputs.base_sha }}
-          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || steps.setup.outputs.ref }}
+          head-ref: ${{ inputs.pr-head-sha || steps.setup.outputs.ref }}
           file-type: |
             cpp
             cmake
@@ -125,7 +127,7 @@ jobs:
           ref: ${{ steps.setup.outputs.ref }}
           repo: ${{ steps.setup.outputs.repo }}
           base-ref: ${{ steps.setup.outputs.base_sha }}
-          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || steps.setup.outputs.ref }}
+          head-ref: ${{ inputs.pr-head-sha || steps.setup.outputs.ref }}
           file-type: python
 
       - name: Detect Actions changes
@@ -137,7 +139,7 @@ jobs:
           ref: ${{ steps.setup.outputs.ref }}
           repo: ${{ steps.setup.outputs.repo }}
           base-ref: ${{ steps.setup.outputs.base_sha }}
-          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || steps.setup.outputs.ref }}
+          head-ref: ${{ inputs.pr-head-sha || steps.setup.outputs.ref }}
           include-globs: |
             .github/workflows/*.yaml
             .github/workflows/*.yml
@@ -208,12 +210,9 @@ jobs:
       image: ghcr.io/framework-r-d/phlex-ci:latest
     env:
       local_checkout_path: ${{ needs.setup.outputs.checkout_path }}
-      local_build_path:
-        ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build',
-        github.event.repository.name) }}
+      local_build_path: ${{ needs.setup.outputs.build_path }}
       CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE:
-        ${{ github.workspace }}/${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build',
-        github.event.repository.name) }}/compile_commands.json
+        ${{ github.workspace }}/${{ needs.setup.outputs.build_path }}/compile_commands.json
     strategy:
       fail-fast: false
       matrix:

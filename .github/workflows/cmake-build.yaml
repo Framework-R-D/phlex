@@ -67,12 +67,6 @@ permissions:
 env:
   BUILD_TYPE: Release
   CICOLOR_FORCE: 1
-  local_checkout_path:
-    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
-    github.event.repository.name) }}
-  local_build_path:
-    ${{ (github.event_name == 'workflow_call' && inputs.build-path) || format('{0}-build', github.event.repository.name)
-    }}
 
 jobs:
   setup:
@@ -123,8 +117,7 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
         with:
           user-input:
-            ${{ (github.event_name == 'workflow_call' && inputs.build-combinations) ||
-            github.event.inputs.build-combinations }}
+            ${{ inputs.build-combinations || github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
 
   build:

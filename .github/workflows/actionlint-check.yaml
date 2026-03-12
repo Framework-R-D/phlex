@@ -41,11 +41,6 @@ permissions:
         required: false
         type: string
 
-env:
-  local_checkout_path:
-    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
-    github.event.repository.name) }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -81,7 +76,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.ref }}
-          path: ${{ env.local_checkout_path }}
+          path: ${{ needs.setup.outputs.checkout_path }}
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Announce actionlint check
@@ -91,7 +86,7 @@ jobs:
         id: lint
         run: |
           docker run --rm \
-            -v "${{ github.workspace }}/${{ env.local_checkout_path }}:/work" \
+            -v "${{ github.workspace }}/${{ needs.setup.outputs.checkout_path }}:/work" \
             -w /work \
             rhysd/actionlint:latest \
             -config-file .github/actionlint.yaml
