@@ -29,6 +29,9 @@ inputs:
   exclude-globs:
     description: "Exclude globs for change detection"
     required: false
+  head-ref:
+    description: "Explicit head ref for change detection (overrides the resolved ref)"
+    required: false
 
 outputs:
   is_act:
@@ -119,3 +122,4 @@ runs:
         file-type: ${{ inputs.file-type }}
         include-globs: ${{ inputs.include-globs }}
         exclude-globs: ${{ inputs.exclude-globs }}
+        head-ref: ${{ inputs.head-ref }}

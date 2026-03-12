@@ -102,6 +102,7 @@ jobs:
           pr-base-sha: ${{ inputs.pr-base-sha }}
           checkout-path: ${{ inputs.checkout-path }}
           build-path: ${{ inputs.build-path }}
+          head-ref: ${{ inputs.pr-head-sha }}
           file-type: |
             cpp
             cmake
@@ -123,7 +124,11 @@ jobs:
   build:
     needs: [setup, generate-matrix]
     if: >
-      always() && needs.setup.result == 'success' && needs.setup.outputs.has_changes == 'true'
+      always() && needs.setup.result == 'success' && (
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
+      )
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
