@@ -53,9 +53,6 @@ permissions:
   pull-requests: write
   contents: write
 
-env:
-  local_checkout_path: ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -113,7 +110,7 @@ jobs:
 
       - name: Apply YAML formatting
         run: |
-          cd ${{ env.local_checkout_path }}
+          cd ${{ needs.setup.outputs.checkout_path }}
           prettier --write '**/*.{yaml,yml}'
 
       - name: Handle fix commit

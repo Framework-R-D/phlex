@@ -53,9 +53,6 @@ permissions:
   pull-requests: write
   contents: write
 
-env:
-  local_checkout_path: ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -103,7 +100,7 @@ jobs:
 
       - uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
         with:
-          source: "./${{ env.local_checkout_path }}"
+          source: "./${{ needs.setup.outputs.checkout_path }}"
           clangFormatVersion: 20
           inplace: "True"
           extensions: cpp,hpp,cpp.in,hpp.in
