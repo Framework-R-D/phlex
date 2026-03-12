@@ -62,7 +62,9 @@ jobs:
         id: setup
         uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
-          file-type: actions
+          include-globs: |
+            .github/workflows/**
+            .github/actions/**
 
   actionlint-check:
     needs: setup

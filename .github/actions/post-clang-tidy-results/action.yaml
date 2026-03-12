@@ -47,7 +47,6 @@ runs:
       with:
         script: |
           const fs = require('fs');
-          const yaml = require('js-yaml');
           const fixesFile = '${{ inputs.build-path }}/clang-tidy-fixes.yaml';
 
           let totalIssues = 0;
@@ -55,14 +54,12 @@ runs:
 
           if (fs.existsSync(fixesFile)) {
             try {
-              const content = yaml.load(fs.readFileSync(fixesFile, 'utf8'));
-              if (content?.Diagnostics) {
-                content.Diagnostics.forEach(diag => {
-                  if (diag.DiagnosticName) {
-                    checkCounts[diag.DiagnosticName] = (checkCounts[diag.DiagnosticName] || 0) + 1;
-                    totalIssues++;
-                  }
-                });
+              const content = fs.readFileSync(fixesFile, 'utf8');
+              const matches = content.matchAll(/^\s*DiagnosticName:\s+(\S.+?)$/gm);
+              for (const match of matches) {
+                const name = match[1].trim();
+                checkCounts[name] = (checkCounts[name] || 0) + 1;
+                totalIssues++;
               }
             } catch (e) { console.log(e); }
           }

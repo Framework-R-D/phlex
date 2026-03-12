@@ -14,7 +14,7 @@ inputs:
     description: "The base ref for comparison"
     required: true
   file-type:
-    description: "Predefined file type (cpp, python, cmake, jsonnet, yaml, markdown, header-guards)"
+    description: "Predefined file type (cpp, python, cmake, jsonnet, yaml, md)"
     required: false
   include-globs:
     description: "Custom include globs"
