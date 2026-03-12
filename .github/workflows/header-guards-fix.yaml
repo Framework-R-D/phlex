@@ -59,8 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      inputs.ref != '' ||
-      github.event_name == 'workflow_dispatch' || (
+      inputs.ref != '' || github.event_name == 'workflow_dispatch' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&

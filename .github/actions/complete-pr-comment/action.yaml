@@ -1,8 +1,8 @@
 name: "Complete PR Comment"
 description: >-
   Removes the 'eyes' reaction and adds a completion reaction ('rocket' for success, 'confused' for 'failure',
-  'cancelled', or 'skipped') to the triggering comment. Requires `issues: write` permission in the calling
-  workflow to update comment reactions via the GitHub Reactions API.
+  'cancelled', or 'skipped') to the triggering comment. Requires `issues: write` permission in the calling workflow to
+  update comment reactions via the GitHub Reactions API.
 inputs:
   status:
     description:

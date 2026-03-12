@@ -117,8 +117,7 @@ jobs:
       - id: generate
         uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
         with:
-          user-input:
-            ${{ inputs.build-combinations || github.event.inputs.build-combinations }}
+          user-input: ${{ inputs.build-combinations || github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
 
   build:
