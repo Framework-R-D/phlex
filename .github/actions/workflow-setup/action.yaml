@@ -57,7 +57,7 @@ outputs:
     value: ${{ steps.prepare.outputs.build_path }}
   has_changes:
     description: "Whether relevant changes were detected"
-    value: ${{ steps.detect.outputs.has_changes }}
+    value: ${{ steps.changes.outputs.has_changes }}
 
 runs:
   using: "composite"
@@ -112,7 +112,7 @@ runs:
 
     - name: Run change detection
       id: detect
-      if: inputs.file-type != '' || inputs.include-globs != ''
+      if: (inputs.file-type != '' || inputs.include-globs != '') && steps.prepare.outputs.is_act != 'true'
       uses: Framework-R-D/phlex/.github/actions/run-change-detection@main
       with:
         checkout-path: ${{ steps.prepare.outputs.checkout_path }}
@@ -123,3 +123,14 @@ runs:
         include-globs: ${{ inputs.include-globs }}
         exclude-globs: ${{ inputs.exclude-globs }}
         head-ref: ${{ inputs.head-ref }}
+
+    - name: Set has_changes output
+      id: changes
+      shell: bash
+      run: |
+        if [ "${{ steps.prepare.outputs.is_act }}" = "true" ] && \
+           ([ "${{ inputs.file-type }}" != "" ] || [ "${{ inputs.include-globs }}" != "" ]); then
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_changes=${{ steps.detect.outputs.has_changes }}" >> "$GITHUB_OUTPUT"
+        fi

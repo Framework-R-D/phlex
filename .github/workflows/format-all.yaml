@@ -120,3 +120,9 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
         with:
           status: ${{ steps.collect.outputs.has_failures == 'true' && 'failure' || 'success' }}
+
+      - name: Fail on formatter failures
+        if: steps.collect.outputs.has_failures == 'true'
+        run: |
+          echo "One or more formatters failed, were canceled, or were skipped."
+          exit 1
