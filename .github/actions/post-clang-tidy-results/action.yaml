@@ -34,7 +34,7 @@ runs:
         fi
 
     - name: Post inline comments
-      if: steps.check.outputs.has_fixes == 'true'
+      if: steps.check.outputs.has_fixes == 'true' && inputs.pr-number != ''
       uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
       with:
         clang_tidy_fixes: ${{ inputs.build-path }}/clang-tidy-fixes.yaml
@@ -42,7 +42,7 @@ runs:
         pull_request_id: ${{ inputs.pr-number }}
 
     - name: Post summary comment
-      if: steps.check.outputs.has_fixes == 'true' && inputs.post-summary == 'true'
+      if: steps.check.outputs.has_fixes == 'true' && inputs.post-summary == 'true' && inputs.pr-number != ''
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       with:
         script: |

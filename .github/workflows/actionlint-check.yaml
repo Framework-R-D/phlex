@@ -60,11 +60,13 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/workflow-setup
         with:
           include-globs: |
-            .github/workflows/**
-            .github/actions/**
+            .github/workflows/**/*.yml
+            .github/workflows/**/*.yaml
+            .github/actions/**/*.yml
+            .github/actions/**/*.yaml
 
   actionlint-check:
     needs: setup

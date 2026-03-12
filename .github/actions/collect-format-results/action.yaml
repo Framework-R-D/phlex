@@ -40,8 +40,8 @@ runs:
             elif res.get('changes') == 'true':
                 if res.get('pushed') == 'true':
                     messages.append(f'✅ {name} fixes pushed (commit {res.get(\"sha\", \"\")})')
-                elif res.get('patch'):
-                    messages.append(f'⚠️ {name} fixes available as patch {res.get(\"patch\")}')
+                elif res.get('patch_name'):
+                    messages.append(f'⚠️ {name} fixes available as patch {res.get(\"patch_name\")}')
 
         output_msg = 'No automatic format fixes were necessary.'
         if messages:

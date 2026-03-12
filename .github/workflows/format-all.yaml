@@ -23,13 +23,13 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/workflow-setup
         with:
           mode: fix
 
   clang-format:
     needs: setup
-    uses: Framework-R-D/phlex/.github/workflows/clang-format-fix.yaml@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+    uses: ./.github/workflows/clang-format-fix.yaml
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -38,7 +38,7 @@ jobs:
 
   cmake-format:
     needs: setup
-    uses: Framework-R-D/phlex/.github/workflows/cmake-format-fix.yaml@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+    uses: ./.github/workflows/cmake-format-fix.yaml
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -47,7 +47,7 @@ jobs:
 
   header-guards:
     needs: setup
-    uses: Framework-R-D/phlex/.github/workflows/header-guards-fix.yaml@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+    uses: ./.github/workflows/header-guards-fix.yaml
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -56,7 +56,7 @@ jobs:
 
   jsonnet-format:
     needs: setup
-    uses: Framework-R-D/phlex/.github/workflows/jsonnet-format-fix.yaml@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+    uses: ./.github/workflows/jsonnet-format-fix.yaml
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -65,7 +65,7 @@ jobs:
 
   markdown:
     needs: setup
-    uses: Framework-R-D/phlex/.github/workflows/markdown-fix.yaml@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+    uses: ./.github/workflows/markdown-fix.yaml
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -74,7 +74,7 @@ jobs:
 
   python:
     needs: setup
-    uses: Framework-R-D/phlex/.github/workflows/python-fix.yaml@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+    uses: ./.github/workflows/python-fix.yaml
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -83,7 +83,7 @@ jobs:
 
   yaml:
     needs: setup
-    uses: Framework-R-D/phlex/.github/workflows/yaml-fix.yaml@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+    uses: ./.github/workflows/yaml-fix.yaml
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
@@ -97,17 +97,17 @@ jobs:
     steps:
       - name: Collect results
         id: collect
-        uses: Framework-R-D/phlex/.github/actions/collect-format-results@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/collect-format-results
         with:
           results-json: |
             {
-              "clang-format": { "result": "${{ needs.clang-format.result }}", "changes": "${{ needs.clang-format.outputs.changes }}", "pushed": "${{ needs.clang-format.outputs.pushed }}", "sha": "${{ needs.clang-format.outputs.commit_sha_short }}" },
-              "cmake-format": { "result": "${{ needs.cmake-format.result }}", "changes": "${{ needs.cmake-format.outputs.changes }}", "pushed": "${{ needs.cmake-format.outputs.pushed }}", "sha": "${{ needs.cmake-format.outputs.commit_sha_short }}" },
-              "header-guards": { "result": "${{ needs.header-guards.result }}", "changes": "${{ needs.header-guards.outputs.changes }}", "pushed": "${{ needs.header-guards.outputs.pushed }}", "sha": "${{ needs.header-guards.outputs.commit_sha_short }}" },
-              "jsonnetfmt": { "result": "${{ needs.jsonnet-format.result }}", "changes": "${{ needs.jsonnet-format.outputs.changes }}", "pushed": "${{ needs.jsonnet-format.outputs.pushed }}", "sha": "${{ needs.jsonnet-format.outputs.commit_sha_short }}" },
-              "markdownlint": { "result": "${{ needs.markdown.result }}", "changes": "${{ needs.markdown.outputs.changes }}", "pushed": "${{ needs.markdown.outputs.pushed }}", "sha": "${{ needs.markdown.outputs.commit_sha_short }}" },
-              "ruff": { "result": "${{ needs.python.result }}", "changes": "${{ needs.python.outputs.changes }}", "pushed": "${{ needs.python.outputs.pushed }}", "sha": "${{ needs.python.outputs.commit_sha_short }}" },
-              "YAML formatter": { "result": "${{ needs.yaml.result }}", "changes": "${{ needs.yaml.outputs.changes }}", "pushed": "${{ needs.yaml.outputs.pushed }}", "sha": "${{ needs.yaml.outputs.commit_sha_short }}" }
+              "clang-format": { "result": "${{ needs.clang-format.result }}", "changes": "${{ needs.clang-format.outputs.changes }}", "pushed": "${{ needs.clang-format.outputs.pushed }}", "sha": "${{ needs.clang-format.outputs.commit_sha_short }}", "patch_name": "${{ needs.clang-format.outputs.patch_name }}" },
+              "cmake-format": { "result": "${{ needs.cmake-format.result }}", "changes": "${{ needs.cmake-format.outputs.changes }}", "pushed": "${{ needs.cmake-format.outputs.pushed }}", "sha": "${{ needs.cmake-format.outputs.commit_sha_short }}", "patch_name": "${{ needs.cmake-format.outputs.patch_name }}" },
+              "header-guards": { "result": "${{ needs.header-guards.result }}", "changes": "${{ needs.header-guards.outputs.changes }}", "pushed": "${{ needs.header-guards.outputs.pushed }}", "sha": "${{ needs.header-guards.outputs.commit_sha_short }}", "patch_name": "${{ needs.header-guards.outputs.patch_name }}" },
+              "jsonnetfmt": { "result": "${{ needs.jsonnet-format.result }}", "changes": "${{ needs.jsonnet-format.outputs.changes }}", "pushed": "${{ needs.jsonnet-format.outputs.pushed }}", "sha": "${{ needs.jsonnet-format.outputs.commit_sha_short }}", "patch_name": "${{ needs.jsonnet-format.outputs.patch_name }}" },
+              "markdownlint": { "result": "${{ needs.markdown.result }}", "changes": "${{ needs.markdown.outputs.changes }}", "pushed": "${{ needs.markdown.outputs.pushed }}", "sha": "${{ needs.markdown.outputs.commit_sha_short }}", "patch_name": "${{ needs.markdown.outputs.patch_name }}" },
+              "ruff": { "result": "${{ needs.python.result }}", "changes": "${{ needs.python.outputs.changes }}", "pushed": "${{ needs.python.outputs.pushed }}", "sha": "${{ needs.python.outputs.commit_sha_short }}", "patch_name": "${{ needs.python.outputs.patch_name }}" },
+              "YAML formatter": { "result": "${{ needs.yaml.result }}", "changes": "${{ needs.yaml.outputs.changes }}", "pushed": "${{ needs.yaml.outputs.pushed }}", "sha": "${{ needs.yaml.outputs.commit_sha_short }}", "patch_name": "${{ needs.yaml.outputs.patch_name }}" }
             }
 
       - name: Post combined comment
@@ -116,6 +116,6 @@ jobs:
           message: ${{ steps.collect.outputs.message }}
 
       - name: Update PR comment reactions
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/complete-pr-comment
         with:
           status: ${{ steps.collect.outputs.has_failures == 'true' && 'failure' || 'success' }}
