@@ -3,7 +3,7 @@ description: "Handles ref resolution, environment detection, and change detectio
 inputs:
   mode:
     description: "Workflow mode ('check' or 'fix')"
-    required: true
+    required: false
     default: "check"
   ref:
     description: "Manual ref override"
@@ -62,7 +62,7 @@ runs:
     - name: Prepare basic outputs (check mode)
       if: inputs.mode == 'check'
       id: prepare_check
-      uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+      uses: ./.github/actions/prepare-check-outputs
       with:
         ref: ${{ inputs.ref }}
         repo: ${{ inputs.repo }}
@@ -73,7 +73,7 @@ runs:
     - name: Prepare basic outputs (fix mode)
       if: inputs.mode == 'fix'
       id: prepare_fix
-      uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+      uses: ./.github/actions/prepare-fix-outputs
       with:
         ref: ${{ inputs.ref }}
         repo: ${{ inputs.repo }}
@@ -110,7 +110,7 @@ runs:
     - name: Run change detection
       id: detect
       if: inputs.file-type != '' || inputs.include-globs != ''
-      uses: Framework-R-D/phlex/.github/actions/run-change-detection@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+      uses: ./.github/actions/run-change-detection
       with:
         checkout-path: ${{ steps.prepare.outputs.checkout_path }}
         ref: ${{ steps.prepare.outputs.ref }}

@@ -59,7 +59,7 @@ jobs:
           fi
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/workflow-setup
         with:
           mode: fix
 
@@ -121,7 +121,7 @@ jobs:
 
       - name: Setup build environment
         if: steps.apply_from_artifact.outputs.applied != 'true'
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/setup-build-env
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -143,7 +143,7 @@ jobs:
 
       - name: Configure CMake (Debug)
         if: steps.apply_from_artifact.outputs.applied != 'true'
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/configure-cmake
         with:
           build-type: Debug
           source-path: ${{ needs.setup.outputs.checkout_path }}
@@ -179,7 +179,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Handle fix commit
-        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/handle-fix-commit
         with:
           tool: clang-tidy
           working-directory: ${{ needs.setup.outputs.checkout_path }}
@@ -189,18 +189,18 @@ jobs:
 
   report:
     needs: [setup, apply_tidy_fixes]
-    if: always() && needs.setup.result == 'success'
+    if: always() && needs.setup.result == 'success' && needs.setup.outputs.pr_number != ''
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
       - name: Post Clang-Tidy results
-        uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/post-clang-tidy-results
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}
 
       - name: Update PR comment reactions
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
+        uses: ./.github/actions/complete-pr-comment
         with:
           status: ${{ needs.apply_tidy_fixes.result }}
