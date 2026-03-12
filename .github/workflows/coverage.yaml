@@ -28,7 +28,7 @@ permissions:
   pull-requests: read
 
 jobs:
-  pre-check:
+  setup:
     if: >
       github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push' ||
       (
@@ -37,71 +37,33 @@ jobs:
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         startsWith(github.event.comment.body, format('@{0}bot coverage', github.event.repository.name))
       )
-    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
-    # This covers repo owners, invited collaborators, and all org members.
     runs-on: ubuntu-latest
     outputs:
-      is_act: ${{ steps.prepare.outputs.is_act }}
-      ref: ${{ steps.prepare.outputs.ref }}
-      repo: ${{ steps.prepare.outputs.repo }}
-      base_sha: ${{ steps.prepare.outputs.base_sha }}
-      pr_number: ${{ steps.prepare.outputs.pr_number }}
+      is_act: ${{ steps.setup.outputs.is_act }}
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+      base_sha: ${{ steps.setup.outputs.base_sha }}
+      pr_number: ${{ steps.setup.outputs.pr_number }}
+      checkout_path: ${{ steps.setup.outputs.checkout_path }}
+      build_path: ${{ steps.setup.outputs.build_path }}
+      has_changes: ${{ steps.setup.outputs.has_changes }}
     steps:
-      - name: Prepare outputs
-        id: prepare
-        uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@main
-  detect-changes:
-    needs: pre-check
-    if: >
-      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && github.event_name !=
-      'issue_comment' && needs.pre-check.outputs.is_act != 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    outputs:
-      has_changes: ${{ steps.filter.outputs.matched }}
-    steps:
-      - name: Check out source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
-          fetch-depth: 0
-          path: phlex-src
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
-
-      - name: Detect relevant changes
-        id: filter
-        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-        with:
-          repo-path: phlex-src
-          base-ref: ${{ needs.pre-check.outputs.base_sha }}
-          head-ref: ${{ needs.pre-check.outputs.ref }}
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          pr-base-sha: ${{ inputs.pr-base-sha }}
           file-type: |
             cpp
             cmake
             python
 
-      - name: Report detection outcome
-        run: |
-          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-            echo "::notice::No coverage relevant changes detected; workflow will be skipped."
-          else
-            echo "::group::Coverage relevant files"
-            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-            echo "::endgroup::"
-          fi
-
   coverage:
-    needs: [pre-check, detect-changes]
+    needs: setup
     if: >
-      always() && (
-        needs.detect-changes.result == 'skipped' ||
-        (
-          needs.detect-changes.result == 'success' &&
-          needs.detect-changes.outputs.has_changes == 'true'
-        )
-      )
+      always() && needs.setup.outputs.has_changes == 'true'
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
@@ -135,12 +97,14 @@ jobs:
       - name: Check out source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.pre-check.outputs.ref }}
-          path: phlex-src
-          repository: ${{ needs.pre-check.outputs.repo }}
+          ref: ${{ needs.setup.outputs.ref }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          repository: ${{ needs.setup.outputs.repo }}
 
       - name: Setup build environment
         uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        with:
+          build-path: ${{ needs.setup.outputs.build_path }}
 
       - name: Announce CMake configuration
         run: echo "➡️ Configuring CMake for coverage..."
@@ -152,6 +116,8 @@ jobs:
         with:
           cpp-compiler: g++
           preset: coverage-gcc
+          source-path: ${{ needs.setup.outputs.checkout_path }}
+          build-path: ${{ needs.setup.outputs.build_path }}
           enable-form: ${{ steps.coverage_options.outputs.enable_form }}
           form-root-storage: ${{ steps.coverage_options.outputs.enable_form }}
 
@@ -162,6 +128,8 @@ jobs:
         with:
           cpp-compiler: clang++
           preset: coverage-clang
+          source-path: ${{ needs.setup.outputs.checkout_path }}
+          build-path: ${{ needs.setup.outputs.build_path }}
           enable-form: ${{ steps.coverage_options.outputs.enable_form }}
           form-root-storage: ${{ steps.coverage_options.outputs.enable_form }}
 
@@ -178,14 +146,16 @@ jobs:
       - name: Build with coverage instrumentation
         id: build
         uses: Framework-R-D/phlex/.github/actions/build-cmake@main
+        with:
+          build-path: ${{ needs.setup.outputs.build_path }}
 
       - name: Run tests with coverage
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
 
           echo "➡️ Running tests with coverage..."
-          PROFILE_ROOT="$GITHUB_WORKSPACE/phlex-build/test/profraw"
+          PROFILE_ROOT="$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}/test/profraw"
           echo "Cleaning LLVM profile directory: $PROFILE_ROOT"
           rm -rf "$PROFILE_ROOT"
           mkdir -p "$PROFILE_ROOT"
@@ -207,7 +177,7 @@ jobs:
         shell: bash
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
 
           echo "➡️ Generating coverage reports for GCC..."
           echo "::group::Running coverage-gcov target"
@@ -226,7 +196,7 @@ jobs:
         shell: bash
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
 
           echo "➡️ Generating coverage reports for Clang..."
           echo "::group::Running coverage-llvm target"
@@ -245,7 +215,7 @@ jobs:
         shell: bash
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
 
           echo "➡️ Generating Python coverage report..."
           echo "::group::Running coverage-python target"
@@ -269,7 +239,7 @@ jobs:
         if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
         shell: bash
         run: |
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
           if [ -f coverage.xml ]; then
             echo "has_coverage_xml=true" >> "$GITHUB_OUTPUT"
           else
@@ -305,7 +275,7 @@ jobs:
           ARTIFACT_DIR="$GITHUB_WORKSPACE/coverage-artifacts"
           rm -rf "$ARTIFACT_DIR"
           mkdir -p "$ARTIFACT_DIR"
-          cd "$GITHUB_WORKSPACE/phlex-build"
+          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
           for file in \
             coverage-llvm.txt \
             coverage-llvm.info \
@@ -426,16 +396,3 @@ jobs:
           path: coverage-artifacts/coverage-html/
           if-no-files-found: warn
           retention-days: 30
-
-  coverage-skipped:
-    needs: [pre-check, detect-changes]
-    if: >
-      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act
-      != 'true' && (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: No relevant coverage changes detected
-        run: echo "::notice::No relevant C++ changes detected; coverage workflow skipped."

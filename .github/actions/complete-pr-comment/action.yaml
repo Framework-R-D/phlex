@@ -1,12 +1,12 @@
 name: "Complete PR Comment"
 description:
-  "Removes the 'eyes' reaction and adds a completion reaction ('rocket' for success, 'confused' for failure) to the
+  "Removes the 'eyes' reaction and adds a completion reaction ('rocket' for success, 'confused' for 'failure', 'cancelled', or 'skipped') to the
   triggering comment."
 inputs:
   status:
     description:
-      "The status of the workflow. If 'success', a 'rocket' reaction is added. Otherwise, a 'confused' reaction is
-      added. Defaults to 'success'."
+      "The status of the workflow. If 'success', a 'rocket' reaction is added. For any non-success status (including
+      'failure', 'cancelled', or 'skipped'), a 'confused' reaction is added. Defaults to 'success'."
     required: false
     default: "success"
 

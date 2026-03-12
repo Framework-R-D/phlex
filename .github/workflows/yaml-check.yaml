@@ -14,76 +14,35 @@ permissions:
         type: string
 
 jobs:
-  pre-check:
+  setup:
     runs-on: ubuntu-latest
     outputs:
-      is_act: ${{ steps.prepare.outputs.is_act }}
-      ref: ${{ steps.prepare.outputs.ref }}
-      repo: ${{ steps.prepare.outputs.repo }}
-      base_sha: ${{ steps.prepare.outputs.base_sha }}
-      pr_number: ${{ steps.prepare.outputs.pr_number }}
+      is_act: ${{ steps.setup.outputs.is_act }}
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+      base_sha: ${{ steps.setup.outputs.base_sha }}
+      pr_number: ${{ steps.setup.outputs.pr_number }}
+      checkout_path: ${{ steps.setup.outputs.checkout_path }}
+      has_changes: ${{ steps.setup.outputs.has_changes }}
     steps:
-      - name: Prepare outputs
-        id: prepare
-        uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@main
-
-  detect-changes:
-    needs: pre-check
-    if: >
-      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act
-      != 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    outputs:
-      has_changes: ${{ steps.filter.outputs.matched }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
-          fetch-depth: 0
-          path: phlex-src
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
-
-      - name: Detect relevant changes
-        id: filter
-        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-        with:
-          repo-path: phlex-src
-          base-ref: ${{ needs.pre-check.outputs.base_sha }}
-          head-ref: ${{ needs.pre-check.outputs.ref }}
           file-type: yaml
 
-      - name: Report detection outcome
-        run: |
-          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-            echo "::notice::No YAML-related changes detected; check will be skipped."
-          else
-            echo "::group::YAML-related files"
-            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-            echo "::endgroup::"
-          fi
-
   yaml-check:
-    needs: [pre-check, detect-changes]
+    needs: setup
     if: >
-      always() && (
-        needs.detect-changes.result == 'skipped' ||
-        (
-          needs.detect-changes.result == 'success' &&
-          needs.detect-changes.outputs.has_changes == 'true'
-        )
-      )
+      always() && needs.setup.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.pre-check.outputs.ref }}
-          path: phlex-src
-          repository: ${{ needs.pre-check.outputs.repo }}
+          ref: ${{ needs.setup.outputs.ref }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          repository: ${{ needs.setup.outputs.repo }}
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
@@ -95,7 +54,7 @@ jobs:
 
       - name: Run yamllint
         id: lint
-        working-directory: phlex-src
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: yamllint .
         continue-on-error: true
 
@@ -109,16 +68,3 @@ jobs:
             echo "::error::Comment '@${{ github.event.repository.name }}bot yaml-fix' on the PR to auto-fix."
             exit 1
           fi
-
-  yaml-check-skipped:
-    needs: [pre-check, detect-changes]
-    if: >
-      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act
-      != 'true' && (needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: No relevant YAML changes detected
-        run: echo "::notice::No YAML-related changes detected; yaml-check skipped."

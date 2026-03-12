@@ -10,6 +10,12 @@ inputs:
   pr-base-sha:
     description: "Manual base SHA override"
     required: false
+  checkout-path:
+    description: "Manual checkout path override"
+    required: false
+  build-path:
+    description: "Manual build path override"
+    required: false
 outputs:
   is_act:
     description: "Whether running in act"
@@ -26,6 +32,12 @@ outputs:
   pr_number:
     description: "The PR number if available"
     value: ${{ steps.resolve.outputs.pr_number }}
+  checkout_path:
+    description: "The resolved checkout path"
+    value: ${{ steps.resolve.outputs.checkout_path }}
+  build_path:
+    description: "The resolved build path"
+    value: ${{ steps.resolve.outputs.build_path }}
 runs:
   using: "composite"
   steps:
@@ -65,8 +77,21 @@ runs:
         fi
 
         REPO="${REPO:-${{ github.repository }}}"
+        REPO_NAME="${REPO##*/}"
+
+        CHECKOUT_PATH="${{ inputs.checkout-path }}"
+        if [ -z "$CHECKOUT_PATH" ]; then
+          CHECKOUT_PATH="${REPO_NAME}-src"
+        fi
+
+        BUILD_PATH="${{ inputs.build-path }}"
+        if [ -z "$BUILD_PATH" ]; then
+          BUILD_PATH="${REPO_NAME}-build"
+        fi
 
         echo "ref=$REF" >> "$GITHUB_OUTPUT"
         echo "repo=$REPO" >> "$GITHUB_OUTPUT"
         echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
         echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+        echo "checkout_path=$CHECKOUT_PATH" >> "$GITHUB_OUTPUT"
+        echo "build_path=$BUILD_PATH" >> "$GITHUB_OUTPUT"
