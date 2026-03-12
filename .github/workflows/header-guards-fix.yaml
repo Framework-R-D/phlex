@@ -53,9 +53,6 @@ permissions:
   pull-requests: write
   contents: write
 
-env:
-  local_checkout_path: ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest

@@ -53,9 +53,6 @@ permissions:
   pull-requests: write
   contents: write
 
-env:
-  local_checkout_path: ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -106,7 +103,7 @@ jobs:
       - name: Apply Jsonnet formatting
         id: lint
         env:
-          CHECKOUT_PATH: ${{ env.local_checkout_path }}
+          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         # yamllint disable rule:line-length
         run: |
           docker run --rm -v "${{ github.workspace }}:/work" -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
