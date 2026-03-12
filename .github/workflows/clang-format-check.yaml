@@ -35,7 +35,7 @@ jobs:
   clang-format-check:
     needs: setup
     if: >
-      always() && needs.setup.outputs.has_changes == 'true'
+      always() && (github.event_name == 'workflow_dispatch' || needs.setup.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read

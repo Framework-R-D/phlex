@@ -52,6 +52,7 @@ name: YAML Fix
 permissions:
   pull-requests: write
   contents: write
+  issues: write
 
 jobs:
   setup:

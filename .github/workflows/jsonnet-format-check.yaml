@@ -58,11 +58,16 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
           file-type: jsonnet
+          head-ref: ${{ inputs.pr-head-sha }}
 
   jsonnet-format-check:
     needs: setup
     if: >
-      always() && needs.setup.outputs.has_changes == 'true'
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
+      )
     runs-on: ubuntu-latest
     container:
       image: public.ecr.aws/bitnami/jsonnet:latest
