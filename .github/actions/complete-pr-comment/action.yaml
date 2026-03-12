@@ -1,6 +1,6 @@
 name: "Complete PR Comment"
 description:
-  "Removes the 'eyes' reaction and adds a completion reaction ('rocket' for success, 'confused' for failure) to the
+  "Removes the 'eyes' reaction and adds a completion reaction ('rocket' for success, 'confused' for 'failure', 'cancelled', or 'skipped') to the
   triggering comment."
 inputs:
   status:
