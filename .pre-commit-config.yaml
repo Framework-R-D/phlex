@@ -26,3 +26,12 @@ repos:
   rev: 0.26.0
   hooks:
     - id: gersemi
+- repo: https://github.com/google/go-jsonnet
+  rev: v0.21.0
+  hooks:
+    - id: jsonnet-format
+    - id: jsonnet-lint
+- repo: https://github.com/google/yamlfmt
+  rev: v0.19.0
+  hooks:
+    - id: yamlfmt
