@@ -26,7 +26,7 @@ runs:
     - name: Get PR Info
       if: github.event_name == 'issue_comment' && (inputs.ref == '' || inputs.repo == '')
       id: get_pr
-      uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+      uses: Framework-R-D/phlex/.github/actions/get-pr-info@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
 
     - name: Resolve outputs
       id: resolve

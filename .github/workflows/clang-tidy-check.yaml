@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           file-type: |
             cpp
@@ -61,12 +61,12 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Setup build environment
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
       - name: Configure CMake (Debug)
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           build-type: Debug
           source-path: ${{ needs.setup.outputs.checkout_path }}
@@ -112,7 +112,7 @@ jobs:
       issues: write
     steps:
       - name: Post Clang-Tidy results
-        uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@main
+        uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}

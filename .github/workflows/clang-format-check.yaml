@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           file-type: cpp
 

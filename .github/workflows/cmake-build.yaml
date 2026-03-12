@@ -101,7 +101,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -120,7 +120,7 @@ jobs:
       matrix: ${{ steps.generate.outputs.matrix }}
     steps:
       - id: generate
-        uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
+        uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           user-input:
             ${{ (github.event_name == 'workflow_call' && inputs.build-combinations) ||
@@ -148,7 +148,7 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
 
       - name: Setup build environment
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        uses: Framework-R-D/phlex/.github/actions/setup-build-env@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -163,7 +163,7 @@ jobs:
 
       - name: Configure CMake
         id: configure
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
@@ -175,7 +175,7 @@ jobs:
 
       - name: Build
         id: build
-        uses: Framework-R-D/phlex/.github/actions/build-cmake@main
+        uses: Framework-R-D/phlex/.github/actions/build-cmake@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -222,7 +222,7 @@ jobs:
 
     steps:
       - name: Comment on build completion
-        uses: Framework-R-D/phlex/.github/actions/pr-comment@main
+        uses: Framework-R-D/phlex/.github/actions/pr-comment@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           # yamllint disable rule:line-length
           message: |

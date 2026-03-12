@@ -74,7 +74,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           mode: fix
           ref: ${{ inputs.ref }}
@@ -109,7 +109,7 @@ jobs:
 
       - name: Handle fix commit
         id: handle_commit
-        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
+        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           tool: clang-format
           working-directory: ${{ needs.setup.outputs.checkout_path }}
@@ -120,6 +120,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
         with:
           status: ${{ job.status }}

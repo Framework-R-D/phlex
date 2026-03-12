@@ -47,7 +47,7 @@ runs:
 
     - name: Detect relevant changes
       id: filter
-      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
+      uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@jules-maintenance-fix-pr-comment-reactions-18132869807280577001
       with:
         repo-path: ${{ inputs.checkout-path }}
         base-ref: ${{ inputs.base-ref }}
