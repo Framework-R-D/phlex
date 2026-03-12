@@ -63,6 +63,10 @@ jobs:
             .github/actions/**/*.yml
             .github/actions/**/*.yaml
           head-ref: ${{ inputs.pr-head-sha }}
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          pr-base-sha: ${{ inputs.pr-base-sha }}
+          checkout-path: ${{ inputs.checkout-path }}
 
   actionlint-check:
     needs: setup

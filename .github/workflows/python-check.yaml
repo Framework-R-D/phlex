@@ -59,6 +59,10 @@ jobs:
         with:
           file-type: python
           head-ref: ${{ inputs.pr-head-sha }}
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          pr-base-sha: ${{ inputs.pr-base-sha }}
+          checkout-path: ${{ inputs.checkout-path }}
 
   python-check:
     needs: setup
