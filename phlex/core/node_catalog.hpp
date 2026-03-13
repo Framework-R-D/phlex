@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_NODE_CATALOG_HPP
 #define PHLEX_CORE_NODE_CATALOG_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_observer.hpp"
 #include "phlex/core/declared_output.hpp"
@@ -17,7 +19,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  struct node_catalog {
+  struct phlex_core_EXPORT node_catalog {
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)
     {

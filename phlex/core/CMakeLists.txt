@@ -81,6 +81,8 @@ install(
   DESTINATION include/phlex/core/detail
 )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
+phlex_apply_symbol_visibility(phlex_core)
+phlex_apply_optimizations(phlex_core)
 
 # AppleClang 15.0 still treats std::views::join as experimental
 if(
@@ -89,6 +91,14 @@ if(
 )
   target_compile_options(phlex_core PRIVATE "-fexperimental-library")
 endif()
+
+phlex_make_internal_library(
+  phlex_core
+  LIBRARIES
+  PUBLIC TBB::tbb phlex::metaprogramming phlex_model_internal phlex_utilities_internal
+  PRIVATE Boost::json spdlog::spdlog
+)
+add_library(phlex::core_internal ALIAS phlex_core_internal)
 
 # Interface library
 cet_make_library(
