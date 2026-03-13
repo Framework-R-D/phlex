@@ -21,7 +21,6 @@ cet_make_library(
   filter.cpp
   framework_graph.cpp
   glue.cpp
-  input_arguments.cpp
   message.cpp
   node_catalog.cpp
   index_router.cpp
