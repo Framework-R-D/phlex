@@ -30,8 +30,8 @@ name: YAML Fix
       skip-comment:
         description: "Skip posting PR comments"
         required: false
-        type: string
-        default: "false"
+        type: boolean
+        default: false
     outputs:
       changes:
         description: "Whether any fixes were applied"
@@ -122,10 +122,10 @@ jobs:
           token: ${{ secrets.WORKFLOW_PAT }}
           pr-info-ref: ${{ needs.setup.outputs.ref }}
           pr-info-repo: ${{ needs.setup.outputs.repo }}
-          skip-comment: ${{ inputs.skip-comment || 'false' }}
+          skip-comment: ${{ inputs.skip-comment }}
 
       - name: Update PR comment reactions
-        if: always() && github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
+        if: always() && github.event_name == 'issue_comment' && !inputs.skip-comment
         uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
         with:
           status: ${{ job.status }}

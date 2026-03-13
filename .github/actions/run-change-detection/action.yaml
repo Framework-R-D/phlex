@@ -44,6 +44,7 @@ runs:
         path: ${{ inputs.checkout-path }}
         ref: ${{ inputs.ref }}
         repository: ${{ inputs.repo }}
+        persist-credentials: false
 
     - name: Detect relevant changes
       id: filter
@@ -58,11 +59,15 @@ runs:
 
     - name: Report detection outcome
       shell: bash
+      env:
+        FILTER_MATCHED: ${{ steps.filter.outputs.matched }}
+        FILTER_MATCHED_FILES: ${{ steps.filter.outputs.matched_files }}
+        INPUT_FILE_TYPE: ${{ inputs.file-type }}
       run: |
-        if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-          echo "::notice::No relevant changes detected for ${{ inputs.file-type || 'custom globs' }}; job will be skipped."
+        if [ "${FILTER_MATCHED}" != "true" ]; then
+          echo "::notice::No relevant changes detected for ${INPUT_FILE_TYPE:-custom globs}; job will be skipped."
         else
           echo "::group::Relevant files detected"
-          printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
+          printf '%s\n' "${FILTER_MATCHED_FILES}"
           echo "::endgroup::"
         fi

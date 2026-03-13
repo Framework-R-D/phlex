@@ -34,7 +34,7 @@ jobs:
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
-      skip-comment: "true"
+      skip-comment: true
     secrets: inherit
 
   cmake-format:
@@ -43,7 +43,7 @@ jobs:
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
-      skip-comment: "true"
+      skip-comment: true
     secrets: inherit
 
   header-guards:
@@ -52,7 +52,7 @@ jobs:
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
-      skip-comment: "true"
+      skip-comment: true
     secrets: inherit
 
   jsonnet-format:
@@ -61,7 +61,7 @@ jobs:
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
-      skip-comment: "true"
+      skip-comment: true
     secrets: inherit
 
   markdown:
@@ -70,7 +70,7 @@ jobs:
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
-      skip-comment: "true"
+      skip-comment: true
     secrets: inherit
 
   python:
@@ -79,7 +79,7 @@ jobs:
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
-      skip-comment: "true"
+      skip-comment: true
     secrets: inherit
 
   yaml:
@@ -88,7 +88,7 @@ jobs:
     with:
       ref: ${{ needs.setup.outputs.ref }}
       repo: ${{ needs.setup.outputs.repo }}
-      skip-comment: "true"
+      skip-comment: true
     secrets: inherit
 
   combine-results:

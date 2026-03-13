@@ -19,18 +19,12 @@ runs:
     - name: Aggregate results
       id: collect
       shell: bash
+      env:
+        RESULTS_JSON: ${{ inputs.results-json }}
       run: |
-        echo "results<<EOF" >> $GITHUB_ENV
-        echo '${{ inputs.results-json }}' >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-
-        # In a real script we would parse the JSON, but for a composite action
-        # we can pass pre-formatted data. To keep it simple and robust,
-        # let's assume the caller provides a bash-friendly format or we use python.
-
         python3 -c "
         import json, os
-        data = json.loads(os.environ['results'])
+        data = json.loads(os.environ['RESULTS_JSON'])
         messages = []
         has_failures = False
         for name, res in data.items():

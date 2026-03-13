@@ -14,6 +14,14 @@ run-name: "${{ github.actor }} running code coverage"
         description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
         required: false
         type: string
+      repo:
+        description: "The repository to checkout. Defaults to the current repository."
+        required: false
+        type: string
+      pr-base-sha:
+        description: "The base SHA for diffing (PR base). Defaults to event-provided value."
+        required: false
+        type: string
       phlex-coverage-compiler:
         description: "Compiler to use for coverage build (gcc or clang)"
         required: false
