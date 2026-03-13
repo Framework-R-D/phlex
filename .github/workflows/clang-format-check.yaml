@@ -15,66 +15,27 @@ permissions:
         type: string
 
 jobs:
-  pre-check:
+  setup:
     runs-on: ubuntu-latest
     outputs:
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref: ${{ (github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || github.ref)) || github.sha }}
-      repo: ${{ github.repository }}
-      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+      is_act: ${{ steps.setup.outputs.is_act }}
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+      base_sha: ${{ steps.setup.outputs.base_sha }}
+      pr_number: ${{ steps.setup.outputs.pr_number }}
+      checkout_path: ${{ steps.setup.outputs.checkout_path }}
+      has_changes: ${{ steps.setup.outputs.has_changes }}
     steps:
-      - name: Detect act environment
-        id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
-
-  detect-changes:
-    needs: pre-check
-    if: >
-      github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    outputs:
-      has_changes: ${{ steps.filter.outputs.matched }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
-          fetch-depth: 0
-          path: phlex-src
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
-
-      - name: Detect relevant changes
-        id: filter
-        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-        with:
-          repo-path: phlex-src
-          base-ref: ${{ needs.pre-check.outputs.base_sha }}
-          head-ref: ${{ needs.pre-check.outputs.ref }}
           file-type: cpp
 
-      - name: Report detection outcome
-        run: |
-          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-            echo "::notice::No clang-format related changes detected; job will be skipped."
-          else
-            echo "::group::Clang-format relevant files"
-            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-            echo "::endgroup::"
-          fi
-
   clang-format-check:
-    needs: [pre-check, detect-changes]
+    needs: setup
     if: >
-      always() && (
-        needs.detect-changes.result == 'skipped' ||
-        (
-          needs.detect-changes.result == 'success' &&
-          needs.detect-changes.outputs.has_changes == 'true'
-        )
-      )
+      always() && (github.event_name == 'workflow_dispatch' || needs.setup.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -83,9 +44,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.pre-check.outputs.ref }}
-          path: phlex-src
-          repository: ${{ needs.pre-check.outputs.repo }}
+          ref: ${{ needs.setup.outputs.ref }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          repository: ${{ needs.setup.outputs.repo }}
 
       - name: Announce clang-format check
         run: echo "➡️ Running clang-format check..."
@@ -94,7 +55,7 @@ jobs:
         id: lint
         uses: DoozyX/clang-format-lint-action@bcb4eb2cb0d707ee4f3e5cc3b456eb075f12cf73 # v0.20
         with:
-          source: "./phlex-src"
+          source: "./${{ needs.setup.outputs.checkout_path }}"
           clangFormatVersion: 20
           extensions: cpp,hpp,cpp.in,hpp.in
         continue-on-error: true
@@ -109,16 +70,3 @@ jobs:
             echo "::error::Comment '@${{ github.event.repository.name }}bot format' on the PR to attempt auto-fix."
             exit 1
           fi
-
-  clang-format-check-skipped:
-    needs: [pre-check, detect-changes]
-    if: >
-      github.event_name != 'workflow_dispatch' && needs.pre-check.outputs.is_act != 'true' &&
-      needs.detect-changes.result == 'success' && needs.detect-changes.outputs.has_changes != 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: No relevant C++ changes detected
-        run: echo "::notice::No clang-format relevant changes detected; check skipped."

@@ -1,0 +1,66 @@
+name: "Prepare Fix Outputs"
+description: "Determines the target ref and repository for fix workflows triggered by various events."
+inputs:
+  ref:
+    description: "Manual ref override"
+    required: false
+  repo:
+    description: "Manual repo override"
+    required: false
+  checkout-path:
+    description: "Manual checkout path override"
+    required: false
+outputs:
+  ref:
+    description: "The resolved ref"
+    value: ${{ steps.resolve.outputs.ref }}
+  repo:
+    description: "The resolved repository"
+    value: ${{ steps.resolve.outputs.repo }}
+  checkout_path:
+    description: "The resolved checkout path"
+    value: ${{ steps.resolve.outputs.checkout_path }}
+runs:
+  using: "composite"
+  steps:
+    - name: Get PR Info
+      if: github.event_name == 'issue_comment' && (inputs.ref == '' || inputs.repo == '')
+      id: get_pr
+      uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+    - name: Resolve outputs
+      id: resolve
+      shell: bash
+      run: |
+        REF="${{ inputs.ref }}"
+        REPO="${{ inputs.repo }}"
+
+        if [ -z "$REF" ]; then
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            REF="${{ github.event.inputs.ref || github.ref_name }}"
+          elif [ "${{ github.event_name }}" == "issue_comment" ]; then
+            REF="${{ steps.get_pr.outputs.ref }}"
+          else
+            REF="${{ github.ref_name }}"
+          fi
+        fi
+
+        if [ -z "$REPO" ]; then
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            REPO="${{ github.repository }}"
+          elif [ "${{ github.event_name }}" == "issue_comment" ]; then
+            REPO="${{ steps.get_pr.outputs.repo }}"
+          else
+            REPO="${{ github.repository }}"
+          fi
+        fi
+
+        REPO_NAME="${REPO##*/}"
+        CHECKOUT_PATH="${{ inputs.checkout-path }}"
+        if [ -z "$CHECKOUT_PATH" ]; then
+          CHECKOUT_PATH="${REPO_NAME}-src"
+        fi
+
+        echo "ref=$REF" >> "$GITHUB_OUTPUT"
+        echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+        echo "checkout_path=$CHECKOUT_PATH" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,57 @@
+name: "Complete PR Comment"
+description: >-
+  Removes the 'eyes' reaction and adds a completion reaction ('rocket' for success, 'confused' for 'failure',
+  'cancelled', or 'skipped') to the triggering comment. Requires `issues: write` permission in the calling workflow to
+  update comment reactions via the GitHub Reactions API.
+inputs:
+  status:
+    description:
+      "The status of the workflow. If 'success', a 'rocket' reaction is added. For any non-success status (including
+      'failure', 'cancelled', or 'skipped'), a 'confused' reaction is added. Defaults to 'success'."
+    required: false
+    default: "success"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update PR Comment Reactions
+      if: github.event_name == 'issue_comment'
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      with:
+        script: |
+          const status = '${{ inputs.status }}';
+          const completionReaction = (status === 'success') ? 'rocket' : 'confused';
+
+          // 1. Remove "eyes" reaction
+          try {
+            const { data: reactions } = await github.rest.reactions.listForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id
+            });
+            const eyesReaction = reactions.find(
+              (r) => r.content === 'eyes' && r.user && r.user.login === 'github-actions[bot]'
+            );
+            if (eyesReaction) {
+              await github.rest.reactions.deleteForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                reaction_id: eyesReaction.id
+              });
+            }
+          } catch (e) {
+            core.warning(`Failed to remove "eyes" reaction: ${e.message}`);
+          }
+
+          // 2. Add completion reaction
+          try {
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: completionReaction
+            });
+          } catch (e) {
+            core.warning(`Failed to add "${completionReaction}" reaction: ${e.message}`);
+          }

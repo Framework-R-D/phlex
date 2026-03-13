@@ -41,78 +41,36 @@ permissions:
         required: false
         type: string
 
-env:
-  local_checkout_path:
-    ${{ (github.event_name == 'workflow_call' && inputs.checkout-path) || format('{0}-src',
-    github.event.repository.name) }}
-
 jobs:
-  pre-check:
+  setup:
     runs-on: ubuntu-latest
     outputs:
-      is_act: ${{ steps.detect_act.outputs.is_act }}
-      ref:
-        ${{ (github.event_name == 'workflow_call' && inputs.ref) || (github.event_name == 'workflow_dispatch' &&
-        (github.event.inputs.ref || github.ref)) || github.sha }}
-      repo: ${{ (github.event_name == 'workflow_call' && inputs.repo) || github.repository }}
-      base_sha:
-        ${{ (github.event_name == 'workflow_call' && inputs.pr-base-sha) || github.event.pull_request.base.sha ||
-        github.event.before }}
+      is_act: ${{ steps.setup.outputs.is_act }}
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+      base_sha: ${{ steps.setup.outputs.base_sha }}
+      pr_number: ${{ steps.setup.outputs.pr_number }}
+      checkout_path: ${{ steps.setup.outputs.checkout_path }}
+      has_changes: ${{ steps.setup.outputs.has_changes }}
     steps:
-      - name: Detect act environment
-        id: detect_act
-        uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
-
-  detect-changes:
-    needs: pre-check
-    if: >
-      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && (
-        github.event_name != 'workflow_call' ||
-        (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
-      ) && needs.pre-check.outputs.is_act != 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    outputs:
-      has_changes: ${{ steps.filter.outputs.matched }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
-          fetch-depth: 0
-          path: ${{ env.local_checkout_path }}
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
-
-      - name: Detect relevant changes
-        id: filter
-        uses: Framework-R-D/phlex/.github/actions/detect-relevant-changes@main
-        with:
-          repo-path: ${{ env.local_checkout_path }}
-          base-ref: ${{ needs.pre-check.outputs.base_sha }}
-          head-ref: ${{ (github.event_name == 'workflow_call' && inputs.pr-head-sha) || needs.pre-check.outputs.ref }}
           file-type: md
-
-      - name: Report detection outcome
-        run: |
-          if [ "${{ steps.filter.outputs.matched }}" != "true" ]; then
-            echo "::notice::No Markdown-related changes detected; formatting check will be skipped."
-          else
-            echo "::group::Markdown-related files"
-            printf '%s\n' "${{ steps.filter.outputs.matched_files }}"
-            echo "::endgroup::"
-          fi
+          head-ref: ${{ inputs.pr-head-sha }}
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          pr-base-sha: ${{ inputs.pr-base-sha }}
+          checkout-path: ${{ inputs.checkout-path }}
 
   markdown-check:
-    needs: [pre-check, detect-changes]
+    needs: setup
     if: >
       always() && (
-        needs.detect-changes.result == 'skipped' ||
-        (
-          needs.detect-changes.result == 'success' &&
-          needs.detect-changes.outputs.has_changes == 'true'
-        )
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
       )
     runs-on: ubuntu-latest
     permissions:
@@ -122,9 +80,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.pre-check.outputs.ref }}
-          path: ${{ env.local_checkout_path }}
-          repository: ${{ needs.pre-check.outputs.repo }}
+          ref: ${{ needs.setup.outputs.ref }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          repository: ${{ needs.setup.outputs.repo }}
 
       - name: Add problem matcher
         uses: xt0rted/markdownlint-problem-matcher@1a5fabfb577370cfdf5af944d418e4be3ea06f27 # v3.0.0
@@ -134,8 +92,8 @@ jobs:
         uses: DavidAnson/markdownlint-cli2-action@07035fd053f7be764496c0f8d8f9f41f98305101 # v22.0.0
         with:
           globs: |
-            ${{ env.local_checkout_path }}/**/*.md
-            !${{ env.local_checkout_path }}/**/CHANGELOG.md
+            ${{ needs.setup.outputs.checkout_path }}/**/*.md
+            !${{ needs.setup.outputs.checkout_path }}/**/CHANGELOG.md
         continue-on-error: true
 
       - name: Evaluate markdownlint result
@@ -150,19 +108,3 @@ jobs:
             exit 1
           fi
           # yamllint enable
-
-  markdown-check-skipped:
-    needs: [pre-check, detect-changes]
-    if: >
-      needs.pre-check.result == 'success' && github.event_name != 'workflow_dispatch' && (
-        github.event_name != 'workflow_call' ||
-        (inputs.skip-relevance-check != 'true' && github.event.inputs == null && github.event.comment == null)
-      ) && needs.pre-check.outputs.is_act != 'true' && (needs.detect-changes.result == 'success' &&
-      needs.detect-changes.outputs.has_changes != 'true')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: No relevant Markdown changes detected
-        run: echo "::notice::No Markdown-related changes detected; markdown-check skipped."

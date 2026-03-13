@@ -8,7 +8,9 @@ run-name: "${{ github.actor }} fixing Jsonnet format"
   workflow_dispatch:
     inputs:
       ref:
-        description: "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the repository's default branch."
+        description:
+          "The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the
+          repository's default branch."
         required: false
         type: string
   workflow_call:
@@ -50,43 +52,38 @@ run-name: "${{ github.actor }} fixing Jsonnet format"
 permissions:
   pull-requests: write
   contents: write
-
-env:
-  local_checkout_path:
-    ${{ inputs.checkout-path || format('{0}-src', github.event.repository.name) }}
+  issues: write
 
 jobs:
-  pre-check:
+  setup:
     runs-on: ubuntu-latest
     name: Parse command
     if: >
-      github.event_name == 'workflow_dispatch' || inputs.ref != '' || (
+      inputs.ref != '' || github.event_name == 'workflow_dispatch' || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
         contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
         startsWith(github.event.comment.body, format('@{0}bot jsonnet-fix', github.event.repository.name))
       )
-    # Authorization: Only OWNER, COLLABORATOR, or MEMBER can trigger via comments.
-    # This covers repo owners, invited collaborators, and all org members.
     outputs:
-      ref:
-        ${{ inputs.ref || (github.event_name == 'workflow_dispatch' &&
-        (github.event.inputs.ref || github.ref_name)) || steps.get_pr.outputs.ref }}
-      repo:
-        ${{ inputs.repo || (github.event_name == 'workflow_dispatch' &&
-        github.repository) || steps.get_pr.outputs.repo }}
-
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+      checkout_path: ${{ steps.setup.outputs.checkout_path }}
     steps:
-      - name: Get PR Info
-        if: github.event_name == 'issue_comment' && inputs.ref == ''
-        id: get_pr
-        uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        with:
+          mode: fix
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          checkout-path: ${{ inputs.checkout-path }}
 
   apply_jsonnet_formatting:
     runs-on: ubuntu-latest
     name: Apply Jsonnet formatting
-    needs: pre-check
-    if: needs.pre-check.result == 'success'
+    needs: setup
+    if: needs.setup.result == 'success'
     outputs:
       changes: ${{ steps.handle_commit.outputs.changes }}
       pushed: ${{ steps.handle_commit.outputs.pushed }}
@@ -98,15 +95,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: ${{ env.local_checkout_path }}
-          ref: ${{ needs.pre-check.outputs.ref }}
-          repository: ${{ needs.pre-check.outputs.repo }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          ref: ${{ needs.setup.outputs.ref }}
+          repository: ${{ needs.setup.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Apply Jsonnet formatting
         id: lint
         env:
-          CHECKOUT_PATH: ${{ env.local_checkout_path }}
+          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         # yamllint disable rule:line-length
         run: |
           docker run --rm -v "${{ github.workspace }}:/work" -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
@@ -119,46 +116,14 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
         with:
           tool: jsonnetfmt
-          working-directory: ${{ env.local_checkout_path }}
+          working-directory: ${{ needs.setup.outputs.checkout_path }}
           token: ${{ secrets.WORKFLOW_PAT }}
-          pr-info-ref: ${{ needs.pre-check.outputs.ref }}
-          pr-info-repo: ${{ needs.pre-check.outputs.repo }}
+          pr-info-ref: ${{ needs.setup.outputs.ref }}
+          pr-info-repo: ${{ needs.setup.outputs.repo }}
           skip-comment: ${{ inputs.skip-comment || 'false' }}
 
-      - name: Remove eyes reaction
-        if: github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      - name: Update PR comment reactions
+        if: always() && github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
         with:
-          script: |
-            try {
-              const { data: reactions } = await github.rest.reactions.listForIssueComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: context.payload.comment.id
-              });
-              const eyesReaction = reactions.find(
-                (r) => r.content === 'eyes' && r.user && r.user.login === 'github-actions[bot]'
-              );
-              if (eyesReaction) {
-                await github.rest.reactions.deleteForIssueComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: context.payload.comment.id,
-                  reaction_id: eyesReaction.id
-                });
-              }
-            } catch (_) {
-              // Reaction cleanup is best-effort; do not fail the workflow.
-            }
-
-      - name: Add completion reaction
-        if: github.event_name == 'issue_comment' && inputs.skip-comment != 'true'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        with:
-          script: |
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket'
-            });
+          status: ${{ job.status }}
