@@ -31,6 +31,9 @@ repos:
     hooks:
       - id: jsonnet-format
       - id: jsonnet-lint
+        # The files in test/max-parallelism import files that are generated during the build.
+        # We therefore exclude them from linting, but still format them.
+        exclude: ^test/max-parallelism
   - repo: https://github.com/google/yamlfmt
     rev: v0.19.0
     hooks:
