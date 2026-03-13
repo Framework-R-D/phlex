@@ -13,8 +13,9 @@
 #include <iostream>
 
 namespace phlex::experimental {
-  framework_graph::framework_graph(data_cell_index_ptr index, int const max_parallelism) :
-    framework_graph{[index](framework_driver& driver) { driver.yield(index); }, max_parallelism}
+  framework_graph::framework_graph(int const max_parallelism) :
+    framework_graph{[](framework_driver& driver) { driver.yield(data_cell_index::base_ptr()); },
+                    max_parallelism}
   {
   }
 

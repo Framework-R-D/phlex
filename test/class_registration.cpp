@@ -65,7 +65,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
     product_query{.creator = "input", .layer = "job", .suffix = "name"}};
   std::array const product_suffixes{"onumber"s, "otemperature"s, "oname"s};
 
-  experimental::framework_graph g{data_cell_index::base_ptr()};
+  experimental::framework_graph g;
 
   // Register providers for the input products
   g.provide("provide_number", provide_number, concurrency::unlimited)

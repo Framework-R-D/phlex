@@ -28,28 +28,17 @@
 
 using namespace phlex;
 
-namespace {
-  class generate_layers {
-  public:
-    generate_layers(configuration const& config)
-    {
-      auto const layers = config.get<configuration>("layers", {});
-      for (auto const& key : layers.keys()) {
-        auto const layer_config = layers.get<configuration>(key);
-        auto const parent = layer_config.get<std::string>("parent", "job");
-        auto const total_number = layer_config.get<unsigned int>("total");
-        auto const starting_number = layer_config.get<unsigned int>("starting_number", 0);
-        gen_.add_layer(key, {parent, total_number, starting_number});
-      }
+PHLEX_EXPERIMENTAL_REGISTER_DRIVER(d, config)
+{
+  auto gen = std::make_shared<experimental::layer_generator>();
+  auto const layers = config.get<configuration>("layers", {});
+  for (auto const& key : layers.keys()) {
+    auto const layer_config = layers.get<configuration>(key);
+    auto const parent = layer_config.get<std::string>("parent", "job");
+    auto const total_number = layer_config.get<unsigned int>("total");
+    auto const starting_number = layer_config.get<unsigned int>("starting_number", 0);
+    gen->add_layer(key, {parent, total_number, starting_number});
+  }
 
-      // FIXME: Print out statement?
-    }
-
-    void next(framework_driver& driver) { gen_(driver); }
-
-  private:
-    experimental::layer_generator gen_;
-  };
+  d.driver(gen->hierarchy(), [gen](framework_driver& driver) { (*gen)(driver); });
 }
-
-PHLEX_EXPERIMENTAL_REGISTER_DRIVER(generate_layers)

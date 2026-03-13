@@ -5,70 +5,98 @@
 
 #include "phlex/configuration.hpp"
 #include "phlex/core/fwd.hpp"
+#include "phlex/detail/plugin_macros.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/async_driver.hpp"
+#include "phlex/utilities/hashing.hpp"
 
-#include <concepts>
-#include <memory>
+#include "fmt/format.h"
+
+#include <cassert>
+#include <cstddef>
+#include <functional>
+#include <ranges>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace phlex {
   using framework_driver = experimental::async_driver<data_cell_index_ptr>;
 }
 
-namespace phlex::experimental::detail {
-
-  // See note below.
-  template <typename T>
-  auto make(configuration const& config)
-  {
-    if constexpr (requires { T{config}; }) {
-      return std::make_shared<T>(config);
-    } else {
-      return std::make_shared<T>();
-    }
-  }
-
-  template <typename T>
-  concept next_function_with_driver = requires(T t, framework_driver& driver) {
-    { t.next(driver) } -> std::same_as<void>;
-  };
-
-  template <typename T>
-  concept next_function_without_driver = requires(T t) {
-    { t.next() } -> std::same_as<void>;
-  };
-
-  // Workaround for static_assert(false) until P2593R1 is adopted
-  //   https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p2593r1.html
-  // static_assert(false) is supported in GCC 13 and newer
-  template <typename T>
-  constexpr bool always_false{false};
-
-  template <typename T>
-  std::function<void(framework_driver&)> create_next(configuration const& config = {})
-  {
-    // N.B. Because we are initializing an std::function object with a lambda, the lambda
-    //      (and therefore its captured values) must be copy-constructible.  This means
-    //      that make<T>(config) must return a copy-constructible object.  Because we do not
-    //      know if a user's provided driver class is copyable, we create the object on
-    //      the heap, and capture a shared pointer to the object.  This also ensures that
-    //      the driver object is created only once, thus avoiding potential errors in the
-    //      implementations of the driver class' copy/move constructors (e.g. if the
-    //      source is caching an iterator).
-    if constexpr (next_function_with_driver<T>) {
-      return [t = make<T>(config)](framework_driver& driver) { t->next(driver); };
-    } else if constexpr (next_function_without_driver<T>) {
-      return [t = make<T>(config)](framework_driver&) { t->next(); };
-    } else {
-      static_assert(always_false<T>, "Must have a 'next()' function that returns 'void'");
-    }
-  }
-
-  using next_index_t = std::function<void(framework_driver&)>;
-  using driver_creator_t = next_index_t(configuration const&);
+namespace phlex::experimental {
+  class driver_proxy;
 }
 
-#define PHLEX_EXPERIMENTAL_REGISTER_DRIVER(driver)                                                 \
-  BOOST_DLL_ALIAS(phlex::experimental::detail::create_next<driver>, create_driver)
+namespace phlex::experimental::detail {
+  using next_index_t = std::function<void(framework_driver&)>;
+  using driver_creator_t = void(driver_proxy&, configuration const&);
+}
+
+namespace phlex::experimental {
+  class fixed_hierarchy {
+  public:
+    fixed_hierarchy() = default;
+
+    template <std::ranges::input_range R>
+      requires std::same_as<std::ranges::range_value_t<R>, std::vector<std::string>>
+    explicit fixed_hierarchy(R&& r)
+    {
+      identifier const job{"job"};
+      std::set<std::size_t> hashes{job.hash()};
+      for (std::vector<std::string> const& path : r) {
+        bool const has_job_prefix = !path.empty() && path[0] == "job";
+        std::size_t cumulative_hash = job.hash();
+        std::size_t i_start = 0;
+        if (has_job_prefix) {
+          i_start = 1;
+        }
+        for (std::size_t i = i_start; i != path.size(); ++i) {
+          identifier const layer{path[i]};
+          cumulative_hash = hash(cumulative_hash, layer.hash());
+          hashes.insert(cumulative_hash);
+        }
+      }
+      layer_hashes_.assign(hashes.begin(), hashes.end());
+    }
+
+    void validate(data_cell_index const& index) const
+    {
+      if (std::ranges::binary_search(layer_hashes_, index.layer_hash())) {
+        return;
+      }
+      throw std::runtime_error(
+        fmt::format("Layer hash {} is not part of the fixed hierarchy.", index.layer_hash()));
+    }
+
+  private:
+    std::vector<std::size_t> layer_hashes_;
+  };
+
+  class driver_proxy {
+  public:
+    void driver(fixed_hierarchy hierarchy, detail::next_index_t f)
+    {
+      hierarchy_ = std::move(hierarchy);
+      driver_ = std::move(f);
+    }
+
+    detail::next_index_t release()
+    {
+      assert(driver_ && "No driver has been registered via driver()");
+      return std::move(driver_);
+    }
+
+  private:
+    fixed_hierarchy hierarchy_;
+    detail::next_index_t driver_;
+  };
+}
+
+#define PHLEX_EXPERIMENTAL_REGISTER_DRIVER(...)                                                    \
+  PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(create, create_driver, __VA_ARGS__)
 
 #endif // PHLEX_DRIVER_HPP

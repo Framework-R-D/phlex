@@ -45,11 +45,9 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
 
   auto gen = [](auto& driver) {
     std::vector<int> numbers{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    auto job_index = data_cell_index::base_ptr();
-    driver.yield(job_index);
+    auto job_index = driver.yield(data_cell_index::base_ptr());
     for (int i : numbers) {
-      auto event_index = job_index->make_child("event", unsigned(i));
-      driver.yield(event_index);
+      driver.yield(job_index->make_child("event", unsigned(i)));
     }
   };
 

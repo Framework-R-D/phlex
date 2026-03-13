@@ -17,12 +17,10 @@ namespace {
 
     void operator()(framework_driver& driver)
     {
-      auto job_index = data_cell_index::base_ptr();
-      driver.yield(job_index);
+      auto job_index = driver.yield(data_cell_index::base_ptr());
 
       for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        auto index = job_index->make_child("event", i);
-        driver.yield(index);
+        driver.yield(job_index->make_child("event", i));
       }
     }
 

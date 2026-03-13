@@ -53,6 +53,7 @@ namespace phlex::experimental {
 
     void operator()(framework_driver& driver) { execute(driver, data_cell_index::base_ptr()); }
 
+    fixed_hierarchy hierarchy() const;
     std::size_t emitted_cell_count(std::string layer_path = {}) const;
 
   private:

@@ -115,6 +115,8 @@ namespace phlex::experimental {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
     create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
-    return create_driver(config);
+    driver_proxy proxy;
+    create_driver(proxy, config);
+    return proxy.release();
   }
 }

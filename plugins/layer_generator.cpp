@@ -16,6 +16,17 @@ namespace phlex::experimental {
     emitted_cells_["/job"] = 0ull;
   }
 
+  fixed_hierarchy layer_generator::hierarchy() const
+  {
+    return fixed_hierarchy{layer_paths_ | std::views::transform([](auto const& path) {
+                             return path | std::views::split('/') |
+                                    std::views::filter([](auto t) { return !t.empty(); }) |
+                                    std::views::transform(
+                                      [](auto t) { return std::string(t.begin(), t.end()); }) |
+                                    std::ranges::to<std::vector<std::string>>();
+                           })};
+  }
+
   std::size_t layer_generator::emitted_cell_count(std::string layer_path) const
   {
     // Check if the count of all emitted cells is requested
