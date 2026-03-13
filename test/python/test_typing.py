@@ -66,7 +66,7 @@ class TestTYPING:
             (np.float32, "float"),
             (np.float64, "double"),
         ):
-            assert normalize_type(npt.NDArray[t]) == "ndarray["+s+"]"
+            assert normalize_type(npt.NDArray[t]) == "ndarray[" + s + "]"
 
     def test_special_cases(self):
         """Special cases."""
@@ -74,8 +74,8 @@ class TestTYPING:
         assert normalize_type(None) == "None"
 
         # use of namespaces for evaluation
-        assert("foo") == "foo"
-        global foo # lgtm[py/unused-global-variable]
+        assert ("foo") == "foo"
+        global foo  # lgtm[py/unused-global-variable]
         foo = np.int64
         assert normalize_type("foo", globals()) == "int64_t"
         bar = np.int32

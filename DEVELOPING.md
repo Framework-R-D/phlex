@@ -131,7 +131,7 @@ To set up this tool locally, first install `pre-commit` (or `prek`, a faster re-
 
 So set up the hooks in the Phlex repository, run the `pre-commit install` command once in the repository. The hooks now should run automatically prior to each commit.
 
-To skip a check temporarily, run `SKIP=ruff-format git commit -m "...". To skip all hooks, you can use the `--no-verify` flag to `git commit`.
+To skip a check temporarily, run `SKIP=ruff-format git commit -m "..."`. To skip all hooks, you can use the `--no-verify` flag to `git commit`.
 
 To manually run hooks over all files, run `pre-commit run --all-files`.
 
