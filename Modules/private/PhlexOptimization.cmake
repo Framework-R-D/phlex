@@ -75,17 +75,13 @@
 #   When OFF: all symbols visible; _internal targets become thin INTERFACE
 #   aliases of their public counterparts.
 
-
 include_guard()
 
 include(CheckCXXCompilerFlag)
 
 # Probe flag availability once at module-load time (results are cached in the
 # CMake cache and reused across reconfigures).
-check_cxx_compiler_flag(
-  "-fno-semantic-interposition"
-  PHLEX_CXX_HAVE_NO_SEMANTIC_INTERPOSITION
-)
+check_cxx_compiler_flag("-fno-semantic-interposition" PHLEX_CXX_HAVE_NO_SEMANTIC_INTERPOSITION)
 
 if(NOT APPLE)
   check_cxx_compiler_flag("-fno-plt" PHLEX_CXX_HAVE_NO_PLT)
@@ -139,11 +135,7 @@ useful for comparing LTO performance with and without symbol hiding.]=]
 # Activate LTO (if enabled and supported)
 # ---------------------------------------------------------------------------
 if(PHLEX_ENABLE_IPO)
-  check_ipo_supported(
-    RESULT _phlex_ipo_supported
-    OUTPUT _phlex_ipo_output
-    LANGUAGES CXX
-  )
+  check_ipo_supported(RESULT _phlex_ipo_supported OUTPUT _phlex_ipo_output LANGUAGES CXX)
   if(_phlex_ipo_supported)
     # Set defaults for all targets created in this scope and below.  The
     # *_RELEASE and *_RELWITHDEBINFO variants leave Debug/Coverage/sanitizer
@@ -152,10 +144,7 @@ if(PHLEX_ENABLE_IPO)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
     message(STATUS "Phlex: LTO enabled for Release and RelWithDebInfo builds")
   else()
-    message(
-      WARNING
-      "Phlex: PHLEX_ENABLE_IPO=ON but LTO is not supported: ${_phlex_ipo_output}"
-    )
+    message(WARNING "Phlex: PHLEX_ENABLE_IPO=ON but LTO is not supported: ${_phlex_ipo_output}")
   endif()
 endif()
 
