@@ -31,32 +31,37 @@ runs:
     - name: Resolve outputs
       id: resolve
       shell: bash
+      env:
+        INPUT_REF: ${{ inputs.ref }}
+        INPUT_REPO: ${{ inputs.repo }}
+        INPUT_CHECKOUT_PATH: ${{ inputs.checkout-path }}
+        GET_PR_REF: ${{ steps.get_pr.outputs.ref }}
+        GET_PR_REPO: ${{ steps.get_pr.outputs.repo }}
       run: |
-        REF="${{ inputs.ref }}"
-        REPO="${{ inputs.repo }}"
+        REF="${INPUT_REF}"
+        REPO="${INPUT_REPO}"
 
         if [ -z "$REF" ]; then
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            REF="${{ github.event.inputs.ref || github.ref_name }}"
-          elif [ "${{ github.event_name }}" == "issue_comment" ]; then
-            REF="${{ steps.get_pr.outputs.ref }}"
+          if [ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]; then
+            REF="$(jq -r '.inputs.ref // empty' "${GITHUB_EVENT_PATH}")"
+            REF="${REF:-${GITHUB_REF_NAME}}"
+          elif [ "${GITHUB_EVENT_NAME}" == "issue_comment" ]; then
+            REF="${GET_PR_REF}"
           else
-            REF="${{ github.ref_name }}"
+            REF="${GITHUB_REF_NAME}"
           fi
         fi
 
         if [ -z "$REPO" ]; then
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            REPO="${{ github.repository }}"
-          elif [ "${{ github.event_name }}" == "issue_comment" ]; then
-            REPO="${{ steps.get_pr.outputs.repo }}"
+          if [ "${GITHUB_EVENT_NAME}" == "issue_comment" ]; then
+            REPO="${GET_PR_REPO}"
           else
-            REPO="${{ github.repository }}"
+            REPO="${GITHUB_REPOSITORY}"
           fi
         fi
 
         REPO_NAME="${REPO##*/}"
-        CHECKOUT_PATH="${{ inputs.checkout-path }}"
+        CHECKOUT_PATH="${INPUT_CHECKOUT_PATH}"
         if [ -z "$CHECKOUT_PATH" ]; then
           CHECKOUT_PATH="${REPO_NAME}-src"
         fi

@@ -85,25 +85,37 @@ runs:
     - name: Standardize outputs
       id: prepare
       shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_BUILD_PATH: ${{ inputs.build-path }}
+        CHECK_IS_ACT: ${{ steps.prepare_check.outputs.is_act }}
+        CHECK_REF: ${{ steps.prepare_check.outputs.ref }}
+        CHECK_REPO: ${{ steps.prepare_check.outputs.repo }}
+        CHECK_BASE_SHA: ${{ steps.prepare_check.outputs.base_sha }}
+        CHECK_PR_NUMBER: ${{ steps.prepare_check.outputs.pr_number }}
+        CHECK_CHECKOUT_PATH: ${{ steps.prepare_check.outputs.checkout_path }}
+        CHECK_BUILD_PATH: ${{ steps.prepare_check.outputs.build_path }}
+        FIX_REF: ${{ steps.prepare_fix.outputs.ref }}
+        FIX_REPO: ${{ steps.prepare_fix.outputs.repo }}
+        FIX_CHECKOUT_PATH: ${{ steps.prepare_fix.outputs.checkout_path }}
       run: |
-        if [ "${{ inputs.mode }}" == "check" ]; then
-          echo "is_act=${{ steps.prepare_check.outputs.is_act }}" >> "$GITHUB_OUTPUT"
-          echo "ref=${{ steps.prepare_check.outputs.ref }}" >> "$GITHUB_OUTPUT"
-          echo "repo=${{ steps.prepare_check.outputs.repo }}" >> "$GITHUB_OUTPUT"
-          echo "base_sha=${{ steps.prepare_check.outputs.base_sha }}" >> "$GITHUB_OUTPUT"
-          echo "pr_number=${{ steps.prepare_check.outputs.pr_number }}" >> "$GITHUB_OUTPUT"
-          echo "checkout_path=${{ steps.prepare_check.outputs.checkout_path }}" >> "$GITHUB_OUTPUT"
-          echo "build_path=${{ steps.prepare_check.outputs.build_path }}" >> "$GITHUB_OUTPUT"
+        if [ "${INPUT_MODE}" == "check" ]; then
+          echo "is_act=${CHECK_IS_ACT}" >> "$GITHUB_OUTPUT"
+          echo "ref=${CHECK_REF}" >> "$GITHUB_OUTPUT"
+          echo "repo=${CHECK_REPO}" >> "$GITHUB_OUTPUT"
+          echo "base_sha=${CHECK_BASE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "pr_number=${CHECK_PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "checkout_path=${CHECK_CHECKOUT_PATH}" >> "$GITHUB_OUTPUT"
+          echo "build_path=${CHECK_BUILD_PATH}" >> "$GITHUB_OUTPUT"
         else
           echo "is_act=false" >> "$GITHUB_OUTPUT"
-          echo "ref=${{ steps.prepare_fix.outputs.ref }}" >> "$GITHUB_OUTPUT"
-          echo "repo=${{ steps.prepare_fix.outputs.repo }}" >> "$GITHUB_OUTPUT"
+          echo "ref=${FIX_REF}" >> "$GITHUB_OUTPUT"
+          echo "repo=${FIX_REPO}" >> "$GITHUB_OUTPUT"
           echo "base_sha=" >> "$GITHUB_OUTPUT"
-          echo "pr_number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
-          echo "checkout_path=${{ steps.prepare_fix.outputs.checkout_path }}" >> "$GITHUB_OUTPUT"
-          CHECKOUT_PATH="${{ steps.prepare_fix.outputs.checkout_path }}"
-          REPO_NAME="${CHECKOUT_PATH%-src}"
-          BUILD_PATH="${{ inputs.build-path }}"
+          echo "pr_number=$(jq -r '.issue.number // empty' "${GITHUB_EVENT_PATH}")" >> "$GITHUB_OUTPUT"
+          echo "checkout_path=${FIX_CHECKOUT_PATH}" >> "$GITHUB_OUTPUT"
+          REPO_NAME="${FIX_CHECKOUT_PATH%-src}"
+          BUILD_PATH="${INPUT_BUILD_PATH}"
           if [ -z "$BUILD_PATH" ]; then
             BUILD_PATH="${REPO_NAME}-build"
           fi
@@ -127,10 +139,15 @@ runs:
     - name: Set has_changes output
       id: changes
       shell: bash
+      env:
+        IS_ACT: ${{ steps.prepare.outputs.is_act }}
+        INPUT_FILE_TYPE: ${{ inputs.file-type }}
+        INPUT_INCLUDE_GLOBS: ${{ inputs.include-globs }}
+        DETECT_HAS_CHANGES: ${{ steps.detect.outputs.has_changes }}
       run: |
-        if [ "${{ steps.prepare.outputs.is_act }}" = "true" ] && \
-           ([ "${{ inputs.file-type }}" != "" ] || [ "${{ inputs.include-globs }}" != "" ]); then
+        if [ "${IS_ACT}" = "true" ] && \
+           ([ "${INPUT_FILE_TYPE}" != "" ] || [ "${INPUT_INCLUDE_GLOBS}" != "" ]); then
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
         else
-          echo "has_changes=${{ steps.detect.outputs.has_changes }}" >> "$GITHUB_OUTPUT"
+          echo "has_changes=${DETECT_HAS_CHANGES}" >> "$GITHUB_OUTPUT"
         fi
