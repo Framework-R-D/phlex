@@ -41,6 +41,7 @@ jobs:
       repo: ${{ steps.setup.outputs.repo }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
       build_path: ${{ steps.setup.outputs.build_path }}
+      pr_number: ${{ steps.setup.outputs.pr_number }}
       tidy_checks:
         ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tidy-checks ||
         steps.parse_comment.outputs.tidy_checks }}
