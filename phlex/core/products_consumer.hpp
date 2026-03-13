@@ -37,7 +37,7 @@ namespace phlex::experimental {
     template <typename InputParameterTuple>
     auto input_arguments()
     {
-      return form_input_arguments<InputParameterTuple>(full_name(), input_products_);
+      return form_input_arguments<InputParameterTuple>(input_products_);
     }
 
   private:

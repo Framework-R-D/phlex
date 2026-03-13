@@ -55,21 +55,15 @@ namespace phlex::experimental {
     return std::make_tuple(retriever<std::tuple_element_t<Is, InputTypes>>{args[Is]}...);
   }
 
-  namespace detail {
-    void verify_no_duplicate_input_products(std::string const& algorithm_name,
-                                            product_queries to_sort);
-  }
-
   template <typename InputTypes>
-  auto form_input_arguments(std::string const& algorithm_name, product_queries const& args)
+  auto form_input_arguments(product_queries const& args)
   {
     constexpr auto num_inputs = std::tuple_size_v<InputTypes>;
-    detail::verify_no_duplicate_input_products(algorithm_name, args);
     return form_input_arguments_impl<InputTypes>(args, std::make_index_sequence<num_inputs>{});
   }
 
   template <typename InputTypes>
-  using input_retriever_types = decltype(form_input_arguments<InputTypes>({}, {}));
+  using input_retriever_types = decltype(form_input_arguments<InputTypes>({}));
 }
 
 #endif // PHLEX_CORE_INPUT_ARGUMENTS_HPP
