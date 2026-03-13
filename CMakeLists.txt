@@ -39,6 +39,27 @@ FetchContent_Declare(
   FIND_PACKAGE_ARGS
 )
 
+# ##############################################################################
+# Initial compilation flags for build types we care about
+if(NOT CMAKE_CXX_FLAGS_DEBUG)
+  set(CMAKE_CXX_FLAGS_DEBUG "-Og -g" CACHE STRING "" FORCE)
+endif()
+
+if(NOT CMAKE_CXX_FLAGS_RELEASE)
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG" CACHE STRING "" FORCE)
+endif()
+
+if(NOT CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+  set(
+    CMAKE_CXX_FLAGS_RELWITHDEBINFO
+    "-O3 -fno-omit-frame-pointer -g -DNDEBUG"
+    CACHE STRING
+    ""
+    FORCE
+  )
+endif()
+# ##############################################################################
+
 # Make cetmodules available
 FetchContent_MakeAvailable(cetmodules)
 find_package(cetmodules 4.01.01 REQUIRED)
