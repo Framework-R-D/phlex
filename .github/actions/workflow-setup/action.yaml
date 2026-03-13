@@ -148,6 +148,12 @@ runs:
         if [ "${IS_ACT}" = "true" ] && \
            ([ "${INPUT_FILE_TYPE}" != "" ] || [ "${INPUT_INCLUDE_GLOBS}" != "" ]); then
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        elif [ "${INPUT_FILE_TYPE}" = "" ] && [ "${INPUT_INCLUDE_GLOBS}" = "" ]; then
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
         else
-          echo "has_changes=${DETECT_HAS_CHANGES}" >> "$GITHUB_OUTPUT"
+          if [ -z "${DETECT_HAS_CHANGES}" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=${DETECT_HAS_CHANGES}" >> "$GITHUB_OUTPUT"
+          fi
         fi
