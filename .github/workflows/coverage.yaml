@@ -90,14 +90,13 @@ jobs:
         id: coverage_options
         shell: bash
         # yamllint disable rule:line-length
+        env:
+          REQUESTED_COMPILER: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-coverage-compiler'] || '' }}
+          REQUESTED_FORM: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form'] || '' }}
         run: |
           set -euo pipefail
-          requested_compiler="${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-coverage-compiler'] || '' }}"
-          default_compiler="clang"
-          requested_form="${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form'] || '' }}"
-          default_form="ON"
-          compiler="${requested_compiler:-$default_compiler}"
-          form="${requested_form:-$default_form}"
+          compiler="${REQUESTED_COMPILER:-clang}"
+          form="${REQUESTED_FORM:-ON}"
           echo "compiler=$compiler" >> "$GITHUB_OUTPUT"
           echo "enable_form=$form" >> "$GITHUB_OUTPUT"
         # yamllint enable
@@ -108,6 +107,7 @@ jobs:
           ref: ${{ needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
           repository: ${{ needs.setup.outputs.repo }}
+          persist-credentials: false
 
       - name: Setup build environment
         uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
@@ -144,8 +144,10 @@ jobs:
       - name: Unknown Compiler Error
         if:
           ${{ steps.coverage_options.outputs.compiler != 'gcc' && steps.coverage_options.outputs.compiler != 'clang' }}
+        env:
+          COMPILER: ${{ steps.coverage_options.outputs.compiler }}
         run: |
-          echo "ERROR: Unknown compiler '${{ steps.coverage_options.outputs.compiler }}'. Must be 'gcc' or 'clang'."
+          echo "ERROR: Unknown compiler '${COMPILER}'. Must be 'gcc' or 'clang'."
           exit 1
 
       - name: Announce build
@@ -158,12 +160,14 @@ jobs:
           build-path: ${{ needs.setup.outputs.build_path }}
 
       - name: Run tests with coverage
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running tests with coverage..."
-          PROFILE_ROOT="$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}/test/profraw"
+          PROFILE_ROOT="$GITHUB_WORKSPACE/${BUILD_PATH}/test/profraw"
           echo "Cleaning LLVM profile directory: $PROFILE_ROOT"
           rm -rf "$PROFILE_ROOT"
           mkdir -p "$PROFILE_ROOT"
@@ -183,9 +187,11 @@ jobs:
         id: report_gcc
         if: ${{ steps.coverage_options.outputs.compiler == 'gcc' }}
         shell: bash
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Generating coverage reports for GCC..."
           echo "::group::Running coverage-gcov target"
@@ -202,9 +208,11 @@ jobs:
         id: report_clang
         if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
         shell: bash
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Generating coverage reports for Clang..."
           echo "::group::Running coverage-llvm target"
@@ -221,9 +229,11 @@ jobs:
         id: report_python
         if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
         shell: bash
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Generating Python coverage report..."
           echo "::group::Running coverage-python target"
@@ -246,8 +256,10 @@ jobs:
         id: coverage_outputs
         if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
         shell: bash
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           if [ -f coverage.xml ]; then
             echo "has_coverage_xml=true" >> "$GITHUB_OUTPUT"
           else
@@ -278,12 +290,14 @@ jobs:
       - name: Prepare coverage artifact bundle
         if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
         shell: bash
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           set -euo pipefail
           ARTIFACT_DIR="$GITHUB_WORKSPACE/coverage-artifacts"
           rm -rf "$ARTIFACT_DIR"
           mkdir -p "$ARTIFACT_DIR"
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           for file in \
             coverage-llvm.txt \
             coverage-llvm.info \

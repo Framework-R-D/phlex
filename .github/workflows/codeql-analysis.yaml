@@ -93,12 +93,15 @@ jobs:
 
       - name: Determine if detection should be skipped
         id: should_skip
+        env:
+          IS_ACT: ${{ steps.setup.outputs.is_act }}
+          LANGUAGE_MATRIX: ${{ inputs.language-matrix }}
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ] || \
-             [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
-             [ "${{ github.event_name }}" = "push" ] || \
-             { [ "${{ github.event_name }}" = "workflow_call" ] && [ -n "${{ inputs.language-matrix }}" ]; } || \
-             [ "${{ steps.setup.outputs.is_act }}" = "true" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "schedule" ] || \
+             [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] || \
+             [ "${GITHUB_EVENT_NAME}" = "push" ] || \
+             { [ "${GITHUB_EVENT_NAME}" = "workflow_call" ] && [ -n "${LANGUAGE_MATRIX}" ]; } || \
+             [ "${IS_ACT}" = "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -157,16 +160,20 @@ jobs:
         id: build_matrix
         env:
           LANGUAGE_MATRIX: ${{ inputs.language-matrix }}
+          SKIP_DETECTION: ${{ needs.setup.outputs.skip_detection }}
+          HAS_CHANGES_CPP: ${{ needs.setup.outputs.has_changes_cpp }}
+          HAS_CHANGES_PYTHON: ${{ needs.setup.outputs.has_changes_python }}
+          HAS_CHANGES_ACTIONS: ${{ needs.setup.outputs.has_changes_actions }}
         run: |
           # If detection was skipped, use all languages or the provided language-matrix
-          if [ "${{ needs.setup.outputs.skip_detection }}" = "true" ]; then
-            if [ "${{ github.event_name }}" = "workflow_call" ] && [ -n "$LANGUAGE_MATRIX" ]; then
+          if [ "${SKIP_DETECTION}" = "true" ]; then
+            if [ "${GITHUB_EVENT_NAME}" = "workflow_call" ] && [ -n "${LANGUAGE_MATRIX}" ]; then
               # Validate that language-matrix is valid JSON
-              if ! echo "$LANGUAGE_MATRIX" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
+              if ! echo "${LANGUAGE_MATRIX}" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
                 echo "::error::Invalid language-matrix input: must be valid JSON array"
                 exit 1
               fi
-              echo "languages=$LANGUAGE_MATRIX" >> "$GITHUB_OUTPUT"
+              echo "languages=${LANGUAGE_MATRIX}" >> "$GITHUB_OUTPUT"
             else
               echo 'languages=["cpp", "python", "actions"]' >> "$GITHUB_OUTPUT"
             fi
@@ -175,13 +182,13 @@ jobs:
 
           # Build array based on detection results
           langs=()
-          if [ "${{ needs.setup.outputs.has_changes_cpp }}" = "true" ]; then
+          if [ "${HAS_CHANGES_CPP}" = "true" ]; then
             langs+=("cpp")
           fi
-          if [ "${{ needs.setup.outputs.has_changes_python }}" = "true" ]; then
+          if [ "${HAS_CHANGES_PYTHON}" = "true" ]; then
             langs+=("python")
           fi
-          if [ "${{ needs.setup.outputs.has_changes_actions }}" = "true" ]; then
+          if [ "${HAS_CHANGES_ACTIONS}" = "true" ]; then
             langs+=("actions")
           fi
 
@@ -310,18 +317,21 @@ jobs:
 
       - name: Check CodeQL SARIF for new or resolved alerts
         id: check_codeql
+        env:
+          LOG_PATH: ${{ steps.set_log_path.outputs.path }}
+          INPUT_PR_NUMBER: ${{ inputs.pr-number }}
         run: |
           set -eu
           ARGS=(
             --sarif "$GITHUB_WORKSPACE/sarif"
             --min-level "${CODEQL_MIN_LEVEL}"
-            --log-path "${{ steps.set_log_path.outputs.path }}"
+            --log-path "${LOG_PATH}"
           )
           PR_NUMBER=""
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-          elif [ "${{ github.event_name }}" = "workflow_call" ]; then
-            PR_NUMBER="${{ inputs.pr-number }}"
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            PR_NUMBER="$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}")"
+          elif [ "${GITHUB_EVENT_NAME}" = "workflow_call" ]; then
+            PR_NUMBER="${INPUT_PR_NUMBER}"
           fi
 
           if [ -n "$PR_NUMBER" ]; then
@@ -329,7 +339,7 @@ jobs:
           fi
 
           script_path="scripts/check_codeql_alerts.py"
-          if [ "${{ github.event_name }}" = "workflow_call" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_call" ]; then
             script_path="phlex/$script_path"
           fi
           python3 "$script_path" "${ARGS[@]}"
@@ -345,10 +355,12 @@ jobs:
       - name: Prepare PR comment data
         if: >-
           github.event_name == 'pull_request' && steps.check_codeql.outputs.comment_path != ''
+        env:
+          COMMENT_PATH: ${{ steps.check_codeql.outputs.comment_path }}
         run: |
           mkdir -p pr_comment_data
-          echo "${{ github.event.pull_request.number }}" > pr_comment_data/pr_number.txt
-          cp "${{ steps.check_codeql.outputs.comment_path }}" pr_comment_data/comment_body.md
+          jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}" > pr_comment_data/pr_number.txt
+          cp "${COMMENT_PATH}" pr_comment_data/comment_body.md
 
       - name: Upload PR comment data
         if: >-

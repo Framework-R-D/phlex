@@ -52,7 +52,8 @@ jobs:
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          bot_name="${{ github.event.repository.name }}bot"
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          bot_name="${REPO_NAME}bot"
           checks_line=$(echo "$COMMENT_BODY" |
             sed -nE "s/^@${bot_name}[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p" | tr -d '\r')
           if [ -n "$checks_line" ]; then
@@ -110,12 +111,20 @@ jobs:
         if:
           needs.setup.outputs.tidy_checks == '' && (steps.download_fixes_check.outcome == 'success' ||
           steps.download_fixes_fix.outcome == 'success')
+        env:
+          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         run: |
-          if [ -f fixes/clang-tidy-fixes.yaml ]; then
+          # The artifact preserves the build directory prefix in its path structure.
+          FIXES_FILE=""
+          if [ -d fixes ]; then
+            FIXES_FILE=$(find fixes -name "clang-tidy-fixes.yaml" | head -1)
+          fi
+          if [ -n "$FIXES_FILE" ]; then
             echo "Applying fixes from existing artifact..."
             . /entrypoint.sh
-            cd "${{ needs.setup.outputs.checkout_path }}"
-            clang-apply-replacements ../fixes || true
+            FIXES_DIR="$(realpath "${FIXES_FILE%/*}")"
+            cd "${CHECKOUT_PATH}"
+            clang-apply-replacements "${FIXES_DIR}" || true
             echo "applied=true" >> "$GITHUB_OUTPUT"
           else
             echo "applied=false" >> "$GITHUB_OUTPUT"
@@ -156,16 +165,20 @@ jobs:
 
       - name: Generate clang-tidy fixes using CMake build
         if: steps.apply_from_artifact.outputs.applied != 'true'
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           cmake --build . -j "$(nproc)" || true
 
       - name: Apply clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           if [ -f clang-tidy-fixes.yaml ]; then
             clang-apply-replacements . || true
           fi
@@ -195,6 +208,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      issues: write
     steps:
       - name: Post Clang-Tidy results
         uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@main

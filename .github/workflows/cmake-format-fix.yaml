@@ -108,9 +108,10 @@ jobs:
         run: pip install gersemi
 
       - name: Apply CMake formatting
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
           echo "Applying CMake formatting..."
-          gersemi -i ${{ needs.setup.outputs.checkout_path }}
+          gersemi -i .
 
       - name: Handle fix commit
         id: handle_commit

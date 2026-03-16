@@ -45,6 +45,10 @@ runs:
         ref: ${{ inputs.ref }}
         repository: ${{ inputs.repo }}
         persist-credentials: false
+        # Use empty sparse checkout so no PR files are materialized in the working
+        # tree — only git objects are needed for diff and ls-tree operations.
+        sparse-checkout-cone-mode: false
+        sparse-checkout: ""
 
     - name: Detect relevant changes
       id: filter

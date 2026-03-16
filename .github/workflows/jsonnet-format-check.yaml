@@ -83,6 +83,7 @@ jobs:
           ref: ${{ needs.setup.outputs.ref }}
           repository: ${{ needs.setup.outputs.repo }}
           path: ${{ needs.setup.outputs.checkout_path }}
+          persist-credentials: false
 
       - name: Check Jsonnet formatting
         id: lint
@@ -94,13 +95,16 @@ jobs:
 
       - name: Evaluate Jsonnet formatting result
         if: always() && steps.lint.outcome != 'skipped'
+        env:
+          REPO: ${{ needs.setup.outputs.repo }}
         # yamllint disable rule:line-length
         run: |
+          REPO_NAME="${REPO##*/}"
           if [ "${{ steps.lint.outcome }}" = 'success' ]; then
             echo "✅ Jsonnet formatting check passed."
           else
             echo "::error::Jsonnet formatting issues found. Please review the output above for details."
-            echo "::error::Run 'jsonnetfmt -i <file>' locally or comment '@${{ github.event.repository.name }}bot format' on the PR to auto-fix."
+            echo "::error::Run 'jsonnetfmt -i <file>' locally or comment '@${REPO_NAME}bot format' on the PR to auto-fix."
             exit 1
           fi
         # yamllint enable
