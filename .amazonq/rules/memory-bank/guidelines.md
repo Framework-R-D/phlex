@@ -366,12 +366,12 @@
       coverage_root: Path | None = None,
   ) -> tuple[list[str], list[str]]:
       """Normalize filenames within a Cobertura XML report.
-      
+
       Args:
           report_path: Path to the Cobertura XML.
           repo_root: Root of the repository.
           coverage_root: Directory gcovr treated as root.
-      
+
       Returns:
           A tuple containing missing files and external files.
       """

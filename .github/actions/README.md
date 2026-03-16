@@ -92,24 +92,24 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         path: phlex-src
-    
+
     - name: Setup build environment
       uses: ./phlex-src/.github/actions/setup-build-env
-    
+
     - name: Configure CMake
       uses: ./phlex-src/.github/actions/configure-cmake
       with:
         build-type: Release
-    
+
     - name: Build
       uses: ./phlex-src/.github/actions/build-cmake
-    
+
     - name: Run tests
       run: |
         . /entrypoint.sh
