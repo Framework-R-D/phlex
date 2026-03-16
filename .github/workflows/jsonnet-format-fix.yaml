@@ -106,7 +106,7 @@ jobs:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         # yamllint disable rule:line-length
         run: |
-          docker run --rm -v "${{ github.workspace }}:/work" -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
             sh -c "find \"$CHECKOUT_PATH\" \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i"
         # yamllint enable
         continue-on-error: true

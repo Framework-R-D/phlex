@@ -83,6 +83,7 @@ jobs:
           ref: ${{ needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
           repository: ${{ needs.setup.outputs.repo }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
@@ -98,7 +99,9 @@ jobs:
 
       - name: Report results
         if: always() && steps.check.outputs.has_issues == 'true'
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           echo "::error::Header guard check failed."
-          echo "::error::Comment '@${{ github.event.repository.name }}bot header-guards-fix' on the PR to auto-fix."
+          echo "::error::Comment '@${REPO_NAME}bot header-guards-fix' on the PR to auto-fix."
           exit 1

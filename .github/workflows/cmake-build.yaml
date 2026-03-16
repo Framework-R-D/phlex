@@ -143,6 +143,7 @@ jobs:
           path: ${{ needs.setup.outputs.checkout_path }}
           ref: ${{ needs.setup.outputs.ref }}
           repository: ${{ needs.setup.outputs.repo }}
+          persist-credentials: false
 
       - name: Setup build environment
         uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
@@ -178,9 +179,11 @@ jobs:
 
       - name: Run tests
         if: matrix.sanitizer != 'valgrind'
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running tests..."
           echo "::group::Running ctest"
@@ -195,9 +198,11 @@ jobs:
 
       - name: Run Valgrind tests
         if: matrix.sanitizer == 'valgrind'
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running Valgrind tests..."
           echo "::group::Running ctest -T memcheck"

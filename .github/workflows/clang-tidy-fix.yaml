@@ -51,8 +51,9 @@ jobs:
         if: github.event_name == 'issue_comment'
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          bot_name="${{ github.event.repository.name }}bot"
+          bot_name="${REPO_NAME}bot"
           checks_line=$(echo "$COMMENT_BODY" |
             sed -nE "s/^@${bot_name}[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p" | tr -d '\r')
           if [ -n "$checks_line" ]; then
@@ -114,7 +115,10 @@ jobs:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         run: |
           # The artifact preserves the build directory prefix in its path structure.
-          FIXES_FILE=$(find fixes -name "clang-tidy-fixes.yaml" 2>/dev/null | head -1)
+          FIXES_FILE=""
+          if [ -d fixes ]; then
+            FIXES_FILE=$(find fixes -name "clang-tidy-fixes.yaml" | head -1)
+          fi
           if [ -n "$FIXES_FILE" ]; then
             echo "Applying fixes from existing artifact..."
             . /entrypoint.sh
@@ -161,16 +165,20 @@ jobs:
 
       - name: Generate clang-tidy fixes using CMake build
         if: steps.apply_from_artifact.outputs.applied != 'true'
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           cmake --build . -j "$(nproc)" || true
 
       - name: Apply clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           if [ -f clang-tidy-fixes.yaml ]; then
             clang-apply-replacements . || true
           fi

@@ -87,15 +87,18 @@ jobs:
           ref: ${{ needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
           repository: ${{ needs.setup.outputs.repo }}
+          persist-credentials: false
 
       - name: Announce actionlint check
         run: echo "➡️ Running actionlint check..."
 
       - name: Run actionlint
         id: lint
+        env:
+          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         run: |
           docker run --rm \
-            -v "${{ github.workspace }}/${{ needs.setup.outputs.checkout_path }}:/work" \
+            -v "$GITHUB_WORKSPACE/${CHECKOUT_PATH}:/work" \
             -w /work \
             rhysd/actionlint:latest \
             -config-file .github/actionlint.yaml
@@ -103,8 +106,10 @@ jobs:
 
       - name: Evaluate actionlint result
         if: always() && steps.lint.outcome != 'skipped'
+        env:
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
         run: |
-          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
+          if [ "${LINT_OUTCOME}" = 'success' ]; then
             echo "✅ actionlint check passed."
           else
             echo "::error::actionlint check failed. Please review the output above for details."

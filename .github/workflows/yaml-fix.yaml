@@ -109,8 +109,8 @@ jobs:
         run: npm install -g prettier
 
       - name: Apply YAML formatting
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
-          cd ${{ needs.setup.outputs.checkout_path }}
           prettier --write '**/*.{yaml,yml}'
 
       - name: Handle fix commit

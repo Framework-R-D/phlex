@@ -29,13 +29,13 @@ jobs:
       - name: Get PR details
         id: pr
         run: |
-          if [ "${{ github.event_name }}" = "check_suite" ]; then
-            PR_NUMBER="${{ github.event.check_suite.pull_requests[0].number }}"
+          if [ "${GITHUB_EVENT_NAME}" = "check_suite" ]; then
+            PR_NUMBER="$(jq -r '.check_suite.pull_requests[0].number // empty' "${GITHUB_EVENT_PATH}")"
             if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ] || ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
               echo "No valid PR number found in check_suite event (got: $PR_NUMBER)"
               exit 1
             fi
-            PR_JSON=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json author,baseRefName)
+            PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json author,baseRefName)
             AUTHOR=$(echo "$PR_JSON" | jq -r '.author.login')
             BASE_REF=$(echo "$PR_JSON" | jq -r '.baseRefName')
 
@@ -47,9 +47,9 @@ jobs:
           else
             # For pull_request_target and pull_request_review, use event data
             {
-              echo "author=${{ github.event.pull_request.user.login }}"
-              echo "base_ref=${{ github.event.pull_request.base.ref }}"
-              echo "number=${{ github.event.pull_request.number }}"
+              echo "author=$(jq -r '.pull_request.user.login // empty' "${GITHUB_EVENT_PATH}")"
+              echo "base_ref=$(jq -r '.pull_request.base.ref // empty' "${GITHUB_EVENT_PATH}")"
+              echo "number=$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}")"
             } >> "$GITHUB_OUTPUT"
           fi
         env:
@@ -58,10 +58,13 @@ jobs:
       - name: Enable auto-merge for Dependabot PRs
         if: steps.pr.outputs.author == 'dependabot[bot]' && steps.pr.outputs.base_ref == 'main'
         shell: bash
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
         # yamllint disable rule:line-length
         run: |
           set -o pipefail
-          if ! gh pr merge --auto --rebase "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" 2>&1 | tee /tmp/gh-output.txt; then
+          if ! gh pr merge --auto --rebase "${PR_NUMBER}" --repo "$GITHUB_REPOSITORY" 2>&1 | tee /tmp/gh-output.txt; then
             if grep -qE "auto-merge is already enabled|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
               echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
               exit 0
@@ -72,5 +75,3 @@ jobs:
             fi
           fi
         # yamllint enable
-        env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
