@@ -11,11 +11,13 @@ namespace phlex::experimental {
   {
     // TODO: Update later with correct querying
     if (producers_.empty()) {
-      spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.", query.to_string());
+      spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",
+                    query.to_string());
       return nullptr;
     }
     // Now the only way b == e is if we have a suffix and nothing creates matching products
-    auto [b, e] = query.suffix.has_value() ? producers_.equal_range(*query.suffix) : std::pair{producers_.begin(), producers_.end()};
+    auto [b, e] = query.suffix.has_value() ? producers_.equal_range(*query.suffix)
+                                           : std::pair{producers_.begin(), producers_.end()};
     if (b == e) {
       spdlog::debug(
         "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
@@ -56,7 +58,9 @@ namespace phlex::experimental {
     }
 
     if (candidates.empty()) {
-      spdlog::debug("Cannot identify product matching the query {}. Assuming it comes from a provider.", query.to_string());
+      spdlog::debug(
+        "Cannot identify product matching the query {}. Assuming it comes from a provider.",
+        query.to_string());
       return nullptr;
     }
 
