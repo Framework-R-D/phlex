@@ -81,10 +81,11 @@ jobs:
         shell: bash
         env:
           BUILD_PATH: ${{ needs.setup.outputs.build_path }}
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO: ${{ needs.setup.outputs.repo }}
         run: |
           . /entrypoint.sh
           cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
+          REPO_NAME="${REPO##*/}"
 
           echo "➡️ Running clang-tidy checks..."
           cmake_status=0

@@ -115,12 +115,11 @@ jobs:
       - name: Evaluate Python checks result
         if: always() && (steps.ruff.outcome != 'skipped' || steps.mypy.outcome != 'skipped')
         env:
-          RUFF_OUTCOME: ${{ steps.ruff.outcome }}
-          MYPY_OUTCOME: ${{ steps.mypy.outcome }}
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO: ${{ needs.setup.outputs.repo }}
         # yamllint disable rule:line-length
         run: |
-          if [ "${RUFF_OUTCOME}" = 'success' ] && [ "${MYPY_OUTCOME}" = 'success' ]; then
+          REPO_NAME="${REPO##*/}"
+          if [ "${{ steps.ruff.outcome }}" = 'success' ] && [ "${{ steps.mypy.outcome }}" = 'success' ]; then
             echo "✅ Python checks passed."
           else
             echo "::error::Python checks failed. Comment '@${REPO_NAME}bot python-fix' on the PR to attempt auto-fix."

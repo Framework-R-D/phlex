@@ -96,11 +96,11 @@ jobs:
       - name: Evaluate Jsonnet formatting result
         if: always() && steps.lint.outcome != 'skipped'
         env:
-          LINT_OUTCOME: ${{ steps.lint.outcome }}
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO: ${{ needs.setup.outputs.repo }}
         # yamllint disable rule:line-length
         run: |
-          if [ "${LINT_OUTCOME}" = 'success' ]; then
+          REPO_NAME="${REPO##*/}"
+          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
             echo "✅ Jsonnet formatting check passed."
           else
             echo "::error::Jsonnet formatting issues found. Please review the output above for details."

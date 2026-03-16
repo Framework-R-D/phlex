@@ -102,11 +102,11 @@ jobs:
       - name: Evaluate CMake formatting result
         if: always() && steps.lint.outcome != 'skipped'
         env:
-          LINT_OUTCOME: ${{ steps.lint.outcome }}
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO: ${{ needs.setup.outputs.repo }}
         # yamllint disable rule:line-length
         run: |
-          if [ "${LINT_OUTCOME}" = 'success' ]; then
+          REPO_NAME="${REPO##*/}"
+          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
             echo "✅ All CMake files are properly formatted."
           else
             echo "::error::Found files with formatting issues."

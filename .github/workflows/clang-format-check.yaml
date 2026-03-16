@@ -64,10 +64,10 @@ jobs:
       - name: Evaluate clang-format result
         if: always() && steps.lint.outcome != 'skipped'
         env:
-          LINT_OUTCOME: ${{ steps.lint.outcome }}
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO: ${{ needs.setup.outputs.repo }}
         run: |
-          if [ "${LINT_OUTCOME}" = 'success' ]; then
+          REPO_NAME="${REPO##*/}"
+          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
             echo "✅ clang-format check passed."
           else
             echo "::error::clang-format check failed. Please review the output above for details."

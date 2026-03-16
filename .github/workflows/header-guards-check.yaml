@@ -100,8 +100,9 @@ jobs:
       - name: Report results
         if: always() && steps.check.outputs.has_issues == 'true'
         env:
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO: ${{ needs.setup.outputs.repo }}
         run: |
+          REPO_NAME="${REPO##*/}"
           echo "::error::Header guard check failed."
           echo "::error::Comment '@${REPO_NAME}bot header-guards-fix' on the PR to auto-fix."
           exit 1

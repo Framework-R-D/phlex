@@ -62,10 +62,10 @@ jobs:
       - name: Evaluate yamllint result
         if: always() && steps.lint.outcome != 'skipped'
         env:
-          LINT_OUTCOME: ${{ steps.lint.outcome }}
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO: ${{ needs.setup.outputs.repo }}
         run: |
-          if [ "${LINT_OUTCOME}" = "success" ]; then
+          REPO_NAME="${REPO##*/}"
+          if [ "${{ steps.lint.outcome }}" = "success" ]; then
             echo "✅ YAML check passed."
           else
             echo "::error::YAML check failed."

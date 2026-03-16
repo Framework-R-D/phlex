@@ -51,8 +51,8 @@ jobs:
         if: github.event_name == 'issue_comment'
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
-          REPO_NAME: ${{ github.event.repository.name }}
         run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
           bot_name="${REPO_NAME}bot"
           checks_line=$(echo "$COMMENT_BODY" |
             sed -nE "s/^@${bot_name}[[:space:]]+tidy-fix[[:space:]]+(.*)/\1/p" | tr -d '\r')
