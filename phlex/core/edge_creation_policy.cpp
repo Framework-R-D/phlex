@@ -9,7 +9,6 @@ namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
     product_query const& query) const
   {
-    // TODO: Update later with correct querying
     if (producers_.empty()) {
       spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",
                     query.to_string());

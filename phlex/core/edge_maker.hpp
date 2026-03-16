@@ -76,6 +76,7 @@ namespace phlex::experimental {
           result[node_name].push_back({query, receiver_port});
           continue;
         }
+
         make_edge(*producer->output_port, *receiver_port);
       }
     }
