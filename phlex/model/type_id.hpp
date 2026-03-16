@@ -2,7 +2,6 @@
 #define PHLEX_MODEL_TYPE_ID_HPP
 
 #include "phlex/metaprogramming/type_deduction.hpp"
-#include "phlex/model/handle.hpp"
 
 #include "boost/container_hash/hash.hpp"
 #include "boost/core/demangle.hpp"
@@ -15,6 +14,12 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+
+// Forward declare handles
+namespace phlex {
+  template <typename T>
+  class handle;
+}
 
 // This is a type_id class to store the "product concept"
 // Using our own class means we can treat, for example, all "List"s the same

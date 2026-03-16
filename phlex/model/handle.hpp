@@ -2,6 +2,7 @@
 #define PHLEX_MODEL_HANDLE_HPP
 
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/product_specification.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -53,8 +54,14 @@ namespace phlex {
     using const_pointer = value_type const*;
 
     // The 'product' parameter is not 'const_reference' to avoid avoid implicit type conversions.
-    explicit handle(std::same_as<T> auto const& product, data_cell_index const& id) :
-      product_{&product}, id_{&id}
+    explicit handle(std::same_as<T> auto const& product,
+                    data_cell_index const& id,
+                    experimental::product_specification const& key) :
+      product_{&product},
+      id_{&id},
+      creator_plugin_{key.plugin()},
+      creator_algorithm_{key.algorithm()},
+      suffix_(key.name())
     {
     }
 
@@ -76,6 +83,22 @@ namespace phlex {
 
     auto const& data_cell_index() const noexcept { return *id_; }
 
+    // Product specification information
+    experimental::identifier const& plugin() const noexcept { return creator_plugin_; }
+    experimental::identifier const& algorithm() const noexcept { return creator_algorithm_; }
+    experimental::identifier const& creator() const noexcept
+    {
+      if (creator_plugin_.empty()) {
+        return creator_algorithm_;
+      }
+      // Covers empty algorithm, plugin == algorithm, and plugin != algorithm (prioritizing plugin)
+      return creator_plugin_;
+    }
+    experimental::identifier const& suffix() const noexcept { return suffix_; }
+    experimental::identifier const& layer() const noexcept { return id_->layer_name(); }
+    std::string layer_path() const noexcept { return id_->layer_path(); }
+    experimental::type_id type() const noexcept { return type_; }
+
     template <typename U>
     friend class handle;
 
@@ -87,10 +110,14 @@ namespace phlex {
   private:
     const_pointer product_;           // Non-null, by construction
     class data_cell_index const* id_; // Non-null, by construction
+    experimental::identifier creator_plugin_;
+    experimental::identifier creator_algorithm_;
+    experimental::identifier suffix_;
+    experimental::type_id type_;
   };
 
   template <typename T>
-  handle(T const&, data_cell_index const&) -> handle<T>;
+  handle(T const&, data_cell_index const&, experimental::product_specification const&) -> handle<T>;
 }
 
 #endif // PHLEX_MODEL_HANDLE_HPP
