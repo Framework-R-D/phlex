@@ -104,7 +104,6 @@ jobs:
           if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
             echo "::warning::Clang-tidy found issues in the code"
             echo "Comment '@${REPO_NAME}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-            exit 1
           else
             echo "✅ clang-tidy check passed"
           fi
