@@ -90,14 +90,13 @@ jobs:
         id: coverage_options
         shell: bash
         # yamllint disable rule:line-length
+        env:
+          REQUESTED_COMPILER: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-coverage-compiler'] || '' }}
+          REQUESTED_FORM: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form'] || '' }}
         run: |
           set -euo pipefail
-          requested_compiler="${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-coverage-compiler'] || '' }}"
-          default_compiler="clang"
-          requested_form="${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form'] || '' }}"
-          default_form="ON"
-          compiler="${requested_compiler:-$default_compiler}"
-          form="${requested_form:-$default_form}"
+          compiler="${REQUESTED_COMPILER:-clang}"
+          form="${REQUESTED_FORM:-ON}"
           echo "compiler=$compiler" >> "$GITHUB_OUTPUT"
           echo "enable_form=$form" >> "$GITHUB_OUTPUT"
         # yamllint enable
@@ -144,8 +143,10 @@ jobs:
       - name: Unknown Compiler Error
         if:
           ${{ steps.coverage_options.outputs.compiler != 'gcc' && steps.coverage_options.outputs.compiler != 'clang' }}
+        env:
+          COMPILER: ${{ steps.coverage_options.outputs.compiler }}
         run: |
-          echo "ERROR: Unknown compiler '${{ steps.coverage_options.outputs.compiler }}'. Must be 'gcc' or 'clang'."
+          echo "ERROR: Unknown compiler '${COMPILER}'. Must be 'gcc' or 'clang'."
           exit 1
 
       - name: Announce build

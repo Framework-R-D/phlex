@@ -110,12 +110,17 @@ jobs:
         if:
           needs.setup.outputs.tidy_checks == '' && (steps.download_fixes_check.outcome == 'success' ||
           steps.download_fixes_fix.outcome == 'success')
+        env:
+          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
         run: |
-          if [ -f fixes/clang-tidy-fixes.yaml ]; then
+          # The artifact preserves the build directory prefix in its path structure.
+          FIXES_FILE=$(find fixes -name "clang-tidy-fixes.yaml" 2>/dev/null | head -1)
+          if [ -n "$FIXES_FILE" ]; then
             echo "Applying fixes from existing artifact..."
             . /entrypoint.sh
-            cd "${{ needs.setup.outputs.checkout_path }}"
-            clang-apply-replacements ../fixes || true
+            FIXES_DIR="$(realpath "${FIXES_FILE%/*}")"
+            cd "${CHECKOUT_PATH}"
+            clang-apply-replacements "${FIXES_DIR}" || true
             echo "applied=true" >> "$GITHUB_OUTPUT"
           else
             echo "applied=false" >> "$GITHUB_OUTPUT"
@@ -195,6 +200,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      issues: write
     steps:
       - name: Post Clang-Tidy results
         uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@main

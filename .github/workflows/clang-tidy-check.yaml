@@ -78,9 +78,12 @@ jobs:
       - name: Run clang-tidy using CMake
         id: tidy
         shell: bash
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${{ needs.setup.outputs.build_path }}"
+          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running clang-tidy checks..."
           cmake_status=0
@@ -99,7 +102,7 @@ jobs:
 
           if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
             echo "::warning::Clang-tidy found issues in the code"
-            echo "Comment '@${{ github.event.repository.name }}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
+            echo "Comment '@${REPO_NAME}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
           else
             echo "✅ clang-tidy check passed"
           fi
