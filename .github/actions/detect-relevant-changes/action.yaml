@@ -20,6 +20,10 @@ inputs:
     description: "Optional glob filters (comma or newline separated)"
     required: false
     default: ""
+  exclude-globs:
+    description: "Optional glob filters to exclude (comma or newline separated)"
+    required: false
+    default: ""
   type-pattern-add:
     description: >-
       Additional type-to-glob mappings (comma or newline separated, e.g. cpp:*.cc). '.in' variants are added
@@ -45,6 +49,7 @@ runs:
         HEAD_REF: ${{ inputs.head-ref }}
         FILE_TYPE: ${{ inputs.file-type }}
         INCLUDE_GLOBS: ${{ inputs.include-globs }}
+        EXCLUDE_GLOBS: ${{ inputs.exclude-globs }}
         TYPE_PATTERN_ADD: ${{ inputs.type-pattern-add }}
       # yamllint disable rule:line-length
       run: |
@@ -90,6 +95,7 @@ runs:
 
         mapfile -t REQUESTED_TYPES < <(parse_list "$FILE_TYPE")
         mapfile -t INCLUDE_PATTERNS < <(parse_list "$INCLUDE_GLOBS")
+        mapfile -t EXCLUDE_PATTERNS < <(parse_list "$EXCLUDE_GLOBS")
 
         if [ -z "$HEAD_REF" ]; then
           HEAD_REF=$(git rev-parse HEAD)
@@ -194,10 +200,18 @@ runs:
           return 1
         }
 
+        filter_by_exclude() {
+          local file="$1"
+          for exclude_pattern in "${EXCLUDE_PATTERNS[@]}"; do
+            [[ "$file" == $exclude_pattern ]] && return 1
+          done
+          return 0
+        }
+
         : > "$RUNNER_TEMP/matched-files.txt"
         while IFS= read -r matched_file; do
           [ -z "$matched_file" ] && continue
-          if filter_by_include "$matched_file"; then
+          if filter_by_include "$matched_file" && filter_by_exclude "$matched_file"; then
             echo "$matched_file" >> "$RUNNER_TEMP/matched-files.txt"
           fi
         done < "$RUNNER_TEMP/initial-matched.txt"
