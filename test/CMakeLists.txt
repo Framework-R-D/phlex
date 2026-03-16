@@ -198,7 +198,17 @@ cet_test(
   phlex::utilities
   spdlog::spdlog
 )
-
+cet_test(
+  product_querying
+  USE_CATCH2_MAIN
+  SOURCE
+  product_querying.cpp
+  LIBRARIES
+  phlex::core
+  layer_generator
+  Boost::json
+  fmt::fmt
+)
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
          phlex::core
 )
