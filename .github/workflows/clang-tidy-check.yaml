@@ -91,15 +91,12 @@ jobs:
           cmake_status=0
           cmake --build . -j "$(nproc)" > clang-tidy.log 2>&1 || cmake_status=$?
 
-          # Distinguish tooling failures from issue detection by checking log content
           if [ "$cmake_status" -ne 0 ]; then
-            if ! grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
-              echo "::error::clang-tidy failed without producing diagnostic output (exit code $cmake_status)"
-              echo "::group::clang-tidy log output"
-              cat clang-tidy.log
-              echo "::endgroup::"
-              exit "$cmake_status"
-            fi
+            echo "::error::clang-tidy CMake build failed (exit code $cmake_status)"
+            echo "::group::clang-tidy log output"
+            cat clang-tidy.log
+            echo "::endgroup::"
+            exit "$cmake_status"
           fi
 
           if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
