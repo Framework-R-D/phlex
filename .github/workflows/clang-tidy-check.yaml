@@ -79,12 +79,11 @@ jobs:
       - name: Run clang-tidy using CMake
         id: tidy
         shell: bash
+        working-directory: ${{ needs.setup.outputs.build_path }}
         env:
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
           REPO: ${{ needs.setup.outputs.repo }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           REPO_NAME="${REPO##*/}"
 
           echo "➡️ Running clang-tidy checks..."
