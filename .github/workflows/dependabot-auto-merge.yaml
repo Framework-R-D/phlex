@@ -28,6 +28,9 @@ jobs:
     steps:
       - name: Get PR details
         id: pr
+        # jq's // empty alternative operator returns an empty string instead of
+        # the literal "null" when a key is absent or null in the event payload.
+        # This ensures the downstream empty/null/numeric checks work correctly.
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "check_suite" ]; then
             PR_NUMBER="$(jq -r '.check_suite.pull_requests[0].number // empty' "${GITHUB_EVENT_PATH}")"
