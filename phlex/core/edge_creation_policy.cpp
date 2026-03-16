@@ -10,11 +10,16 @@ namespace phlex::experimental {
     product_query const& query) const
   {
     // TODO: Update later with correct querying
-    auto [b, e] = producers_.equal_range(query.suffix.value_or(""_id));
+    if (producers_.empty()) {
+      spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.", query.to_string());
+      return nullptr;
+    }
+    // Now the only way b == e is if we have a suffix and nothing creates matching products
+    auto [b, e] = query.suffix.has_value() ? producers_.equal_range(*query.suffix) : std::pair{producers_.begin(), producers_.end()};
     if (b == e) {
       spdlog::debug(
         "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
-        query.suffix.value_or("\"\""_id));
+        query.suffix.value_or("*"_id));
       return nullptr;
     }
     std::map<std::string, named_output_port const*> candidates;
@@ -45,13 +50,14 @@ namespace phlex::experimental {
           candidates.emplace(producer.node.full(), &producer);
         }
       } else {
-        spdlog::error(
+        spdlog::debug(
           "Creator name mismatch between ({}) and {}", query.to_string(), producer.node.full());
       }
     }
 
     if (candidates.empty()) {
-      throw std::runtime_error("Cannot identify product matching the query " + query.to_string());
+      spdlog::debug("Cannot identify product matching the query {}. Assuming it comes from a provider.", query.to_string());
+      return nullptr;
     }
 
     if (candidates.size() > 1ull) {
