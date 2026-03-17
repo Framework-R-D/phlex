@@ -17,6 +17,9 @@ namespace phlex::experimental {
 namespace phlex {
   class data_cell_index;
   using data_cell_index_ptr = std::shared_ptr<data_cell_index const>;
+
+  template <typename T>
+  class handle;
 }
 
 #endif // PHLEX_MODEL_FWD_HPP

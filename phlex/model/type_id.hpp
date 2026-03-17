@@ -2,7 +2,7 @@
 #define PHLEX_MODEL_TYPE_ID_HPP
 
 #include "phlex/metaprogramming/type_deduction.hpp"
-#include "phlex/model/handle.hpp"
+#include "phlex/model/fwd.hpp"
 
 #include "boost/container_hash/hash.hpp"
 #include "boost/core/demangle.hpp"

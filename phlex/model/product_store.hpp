@@ -97,7 +97,7 @@ namespace phlex::experimental {
   template <typename T>
   [[nodiscard]] handle<T> product_store::get_handle(product_specification const& key) const
   {
-    return handle<T>{products_.get<T>(key), *id_};
+    return handle<T>{products_.get<T>(key), *id_, key};
   }
 
   template <typename T>
