@@ -1,6 +1,7 @@
 #ifndef PHLEX_MODEL_HANDLE_HPP
 #define PHLEX_MODEL_HANDLE_HPP
 
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_specification.hpp"
 
@@ -9,9 +10,6 @@
 #include <variant>
 
 namespace phlex {
-  template <typename T>
-  class handle;
-
   namespace experimental::detail {
     template <typename T>
     struct handle_value_type_impl {
@@ -95,7 +93,7 @@ namespace phlex {
     }
     std::string_view suffix() const noexcept { return std::string_view(suffix_); }
     std::string_view layer() const noexcept { return std::string_view(id_->layer_name()); }
-    std::string layer_path() const noexcept { return id_->layer_path(); }
+    std::string layer_path() const { return id_->layer_path(); }
 
     template <typename U>
     friend class handle;
