@@ -41,20 +41,23 @@ _PY2CPP: dict[type, str] = {
 }
 
 # ctypes types that don't map cleanly to intN_t / uintN_t
-_CTYPES_SPECIAL: dict[type, str] = {
-    ctypes.c_bool: "bool",
-    ctypes.c_char: "char",  # signedness is implementation-defined in C
-    ctypes.c_wchar: "wchar_t",
-    ctypes.c_float: "float",  # always IEEE 754 32-bit
-    ctypes.c_double: "double",  # always IEEE 754 64-bit
-    ctypes.c_longdouble: "long double",  # platform-dependent width, no stdint.h alias
-    # the following types are aliased in ctypes, so ignore here
-    # ctypes.c_size_t:    "size_t",
-    # ctypes.c_ssize_t:   "ssize_t",
-    ctypes.c_void_p: "void*",
-    ctypes.c_char_p: "const char*",
-    ctypes.c_wchar_p: "const wchar_t*",
-}
+_CTYPES_SPECIAL: dict[type, str] = {}
+for _attr, _cpp in [
+    ("c_bool", "bool"),
+    ("c_char", "char"),  # signedness is implementation-defined in C
+    ("c_wchar", "wchar_t"),
+    ("c_float", "float"),  # always IEEE 754 32-bit
+    ("c_double", "double"),  # always IEEE 754 64-bit
+    ("c_longdouble", "long double"),  # platform-dependent width, no stdint.h alias
+    ("c_size_t", "size_t"),
+    ("c_ssize_t", "ssize_t"),
+    ("c_void_p", "void*"),
+    ("c_char_p", "const char*"),
+    ("c_wchar_p", "const wchar_t*"),
+]:
+    _tp = getattr(ctypes, _attr)
+    if _tp.__name__ == _attr:  # skip if this ctypes name is just an alias
+        _CTYPES_SPECIAL[_tp] = _cpp
 
 _CTYPES_INTEGER: list[type] = [
     ctypes.c_byte,
