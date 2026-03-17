@@ -118,7 +118,7 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
   spec_t spec{"creator/three"};
 
   handle const h{number, data_cell_index::base(), spec};
-  CHECK(h.creator() == "creator"_idq);
-  CHECK(h.suffix() == "three"_idq);
-  CHECK(h.layer() == "job"_idq);
+  CHECK(h.creator().algorithm == "creator");
+  CHECK(h.suffix() == "three");
+  CHECK(h.layer() == "job");
 }

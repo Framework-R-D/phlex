@@ -53,6 +53,11 @@ namespace phlex {
     using const_reference = value_type const&;
     using const_pointer = value_type const*;
 
+    struct algorithm_name_view {
+      std::string_view plugin;
+      std::string_view algorithm;
+    };
+
     // The 'product' parameter is not 'const_reference' to avoid avoid implicit type conversions.
     explicit handle(std::same_as<T> auto const& product,
                     data_cell_index const& id,
@@ -84,20 +89,15 @@ namespace phlex {
     auto const& data_cell_index() const noexcept { return *id_; }
 
     // Product specification information
-    experimental::identifier const& plugin() const noexcept { return creator_plugin_; }
-    experimental::identifier const& algorithm() const noexcept { return creator_algorithm_; }
-    experimental::identifier const& creator() const noexcept
+    std::string_view plugin() const noexcept { return std::string_view(creator_plugin_); }
+    std::string_view algorithm() const noexcept { return std::string_view(creator_algorithm_); }
+    algorithm_name_view creator() const noexcept
     {
-      if (creator_plugin_.empty()) {
-        return creator_algorithm_;
-      }
-      // Covers empty algorithm, plugin == algorithm, and plugin != algorithm (prioritizing plugin)
-      return creator_plugin_;
+      return {std::string_view(creator_plugin_), std::string_view(creator_algorithm_)};
     }
-    experimental::identifier const& suffix() const noexcept { return suffix_; }
-    experimental::identifier const& layer() const noexcept { return id_->layer_name(); }
+    std::string_view suffix() const noexcept { return std::string_view(suffix_); }
+    std::string_view layer() const noexcept { return std::string_view(id_->layer_name()); }
     std::string layer_path() const noexcept { return id_->layer_path(); }
-    experimental::type_id type() const noexcept { return type_; }
 
     template <typename U>
     friend class handle;
