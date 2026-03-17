@@ -91,8 +91,10 @@ jobs:
         shell: bash
         # yamllint disable rule:line-length
         env:
-          REQUESTED_COMPILER: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-coverage-compiler'] || '' }}
-          REQUESTED_FORM: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form'] || '' }}
+          REQUESTED_COMPILER:
+            ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-coverage-compiler'] || '' }}
+          REQUESTED_FORM:
+            ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form'] || '' }}
         run: |
           set -euo pipefail
           compiler="${REQUESTED_COMPILER:-clang}"
