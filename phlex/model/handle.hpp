@@ -1,8 +1,8 @@
 #ifndef PHLEX_MODEL_HANDLE_HPP
 #define PHLEX_MODEL_HANDLE_HPP
 
-#include "phlex/model/fwd.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fwd.hpp"
 #include "phlex/model/product_specification.hpp"
 
 #include <type_traits>

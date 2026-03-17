@@ -1,8 +1,8 @@
 #ifndef PHLEX_MODEL_TYPE_ID_HPP
 #define PHLEX_MODEL_TYPE_ID_HPP
 
-#include "phlex/model/fwd.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
+#include "phlex/model/fwd.hpp"
 
 #include "boost/container_hash/hash.hpp"
 #include "boost/core/demangle.hpp"
