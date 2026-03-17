@@ -89,8 +89,6 @@ namespace phlex {
     auto const& data_cell_index() const noexcept { return *id_; }
 
     // Product specification information
-    std::string_view plugin() const noexcept { return std::string_view(creator_plugin_); }
-    std::string_view algorithm() const noexcept { return std::string_view(creator_algorithm_); }
     algorithm_name_view creator() const noexcept
     {
       return {std::string_view(creator_plugin_), std::string_view(creator_algorithm_)};
