@@ -13,7 +13,7 @@ from phlex import normalize_type
 
 
 class TestTYPING:
-    """Tests for phlex-specific typinh."""
+    """Tests for phlex-specific typing."""
 
     def test_list_normalization(self):
         """Normalization of various forms of list annotations."""
