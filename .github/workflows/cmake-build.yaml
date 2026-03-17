@@ -179,11 +179,9 @@ jobs:
 
       - name: Run tests
         if: matrix.sanitizer != 'valgrind'
-        env:
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        working-directory: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running tests..."
           echo "::group::Running ctest"
@@ -198,11 +196,9 @@ jobs:
 
       - name: Run Valgrind tests
         if: matrix.sanitizer == 'valgrind'
-        env:
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        working-directory: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running Valgrind tests..."
           echo "::group::Running ctest -T memcheck"
