@@ -87,7 +87,7 @@ jobs:
       - name: Try to download existing fixes from check workflow
         id: download_fixes_check
         if: needs.setup.outputs.tidy_checks == ''
-        uses: dawidd6/action-download-artifact@1f8785ff7a5130826f848e7f72725c85d241860f # v18
+        uses: dawidd6/action-download-artifact@8a338493df3d275e4a7a63bcff3b8fe97e51a927 # v19
         with:
           workflow: clang-tidy-check.yaml
           name: clang-tidy-check
@@ -98,7 +98,7 @@ jobs:
       - name: Try to download existing fixes from previous fix workflow
         id: download_fixes_fix
         if: steps.download_fixes_check.outcome != 'success' && needs.setup.outputs.tidy_checks == ''
-        uses: dawidd6/action-download-artifact@1f8785ff7a5130826f848e7f72725c85d241860f # v18
+        uses: dawidd6/action-download-artifact@8a338493df3d275e4a7a63bcff3b8fe97e51a927 # v19
         with:
           workflow: clang-tidy-fix.yaml
           name: clang-tidy-fix
