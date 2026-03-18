@@ -10,7 +10,7 @@ FetchContent_Declare(
   GIT_SHALLOW ON
   EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS 4.01.01
-  )
+)
 # ... and the Catch2 unit testing framework
 FetchContent_Declare(
   Catch2
@@ -19,7 +19,7 @@ FetchContent_Declare(
   GIT_SHALLOW ON
   EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS
-  )
+)
 # ... and Microsoft's C++ Guideline Support Library
 FetchContent_Declare(
   GSL
@@ -28,7 +28,7 @@ FetchContent_Declare(
   GIT_SHALLOW ON
   EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS NAMES Microsoft.GSL
-  )
+)
 # ... and the Mimic C++ mocking framework
 FetchContent_Declare(
   mimicpp
@@ -37,7 +37,7 @@ FetchContent_Declare(
   GIT_SHALLOW ON
   EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS
-  )
+)
 
 # ##############################################################################
 # Initial compilation flags for build types we care about. Setting these in the
@@ -45,25 +45,30 @@ FetchContent_Declare(
 # them; using DEFINED CACHE{} respects any value the user has already placed in
 # the cache (e.g. via -D on the command line).
 if(NOT DEFINED CACHE{CMAKE_CXX_FLAGS_DEBUG})
-  set(CMAKE_CXX_FLAGS_DEBUG
-      "-Og -g"
-      CACHE STRING "Flags used by the CXX compiler during DEBUG builds."
-      )
+  set(
+    CMAKE_CXX_FLAGS_DEBUG
+    "-Og -g"
+    CACHE STRING
+    "Flags used by the CXX compiler during DEBUG builds."
+  )
 endif()
 
 if(NOT DEFINED CACHE{CMAKE_CXX_FLAGS_RELEASE})
-  set(CMAKE_CXX_FLAGS_RELEASE
-      "-O3 -g0 -DNDEBUG"
-      CACHE STRING "Flags used by the CXX compiler during RELEASE builds."
-      )
+  set(
+    CMAKE_CXX_FLAGS_RELEASE
+    "-O3 -g0 -DNDEBUG"
+    CACHE STRING
+    "Flags used by the CXX compiler during RELEASE builds."
+  )
 endif()
 
 if(NOT DEFINED CACHE{CMAKE_CXX_FLAGS_RELWITHDEBINFO})
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO
-      "-O3 -fno-omit-frame-pointer -g -DNDEBUG"
-      CACHE STRING
-            "Flags used by the CXX compiler during RELWITHDEBINFO builds."
-      )
+  set(
+    CMAKE_CXX_FLAGS_RELWITHDEBINFO
+    "-O3 -fno-omit-frame-pointer -g -DNDEBUG"
+    CACHE STRING
+    "Flags used by the CXX compiler during RELWITHDEBINFO builds."
+  )
 endif()
 # ##############################################################################
 
@@ -73,24 +78,14 @@ find_package(cetmodules 4.01.01 REQUIRED)
 
 # ##############################################################################
 # Main project declaration
-project(
-  phlex
-  VERSION 0.1.0
-  LANGUAGES CXX
-  )
+project(phlex VERSION 0.1.0 LANGUAGES CXX)
 cet_cmake_env()
 # ##############################################################################
 
 # Set CI/test timeouts to a conservative value to avoid long stalls in CI. Use
 # cache variables so generated CTest/Dart files pick this up when configured.
-set(DART_TESTING_TIMEOUT
-    90
-    CACHE STRING "Timeout (s) for Dart/CTest runs"
-    )
-set(CTEST_TEST_TIMEOUT
-    90
-    CACHE STRING "Per-test timeout (s) for CTest"
-    )
+set(DART_TESTING_TIMEOUT 90 CACHE STRING "Timeout (s) for Dart/CTest runs")
+set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
@@ -102,7 +97,13 @@ option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 
-add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
+add_compile_options(
+  -Wall
+  -Werror
+  -Wunused
+  -Wunused-parameter
+  -pedantic
+)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1")
@@ -131,10 +132,11 @@ find_package(spdlog REQUIRED)
 # Apply ThreadSanitizer flags if enabled
 if(ENABLE_TSAN)
   # Check if the compiler supports ThreadSanitizer
-  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-     OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
-     OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
-     )
+  if(
+    CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+  )
     message(STATUS "Enabling ThreadSanitizer")
     # Add the sanitizer flag
     add_compile_options(
@@ -144,22 +146,20 @@ if(ENABLE_TSAN)
       # Ensure no optimizations interfere with TSan
       "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer>"
       "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-optimize-sibling-calls>"
-      )
+    )
     add_link_options(-fsanitize=thread)
   else()
-    message(
-      FATAL_ERROR
-        "ThreadSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}"
-      )
+    message(FATAL_ERROR "ThreadSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}")
   endif()
 endif()
 
 if(ENABLE_ASAN)
   # Check if the compiler supports AddressSanitizer
-  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-     OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
-     OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
-     )
+  if(
+    CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+  )
     message(STATUS "Enabling AddressSanitizer")
     # Add the sanitizer flag
     add_compile_options(
@@ -169,44 +169,34 @@ if(ENABLE_ASAN)
       # Ensure no optimizations interfere with ASan
       "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-omit-frame-pointer>"
       "$<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-optimize-sibling-calls>"
-      )
+    )
     add_link_options(-fsanitize=address)
   else()
-    message(
-      FATAL_ERROR
-        "AddressSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}"
-      )
+    message(FATAL_ERROR "AddressSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}")
   endif()
 endif()
 
 # Configure code coverage if enabled
 if(ENABLE_COVERAGE)
   # Check if the compiler supports code coverage
-  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU"
-     OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-     OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
-     )
+  if(
+    CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"
+  )
     message(STATUS "Enabling code coverage instrumentation")
 
     # Set the build type to Coverage if not specified
     if(NOT CMAKE_BUILD_TYPE)
-      set(CMAKE_BUILD_TYPE
-          Coverage
-          CACHE STRING "Build type" FORCE
-          )
+      set(CMAKE_BUILD_TYPE Coverage CACHE STRING "Build type" FORCE)
     endif()
   else()
-    message(
-      FATAL_ERROR "Code coverage is not supported with ${CMAKE_CXX_COMPILER_ID}"
-      )
+    message(FATAL_ERROR "Code coverage is not supported with ${CMAKE_CXX_COMPILER_ID}")
   endif()
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE
-      RelWithDebInfo
-      CACHE STRING "Build type" FORCE
-      )
+  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
 
 add_subdirectory(phlex)
