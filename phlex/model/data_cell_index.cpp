@@ -36,18 +36,15 @@ namespace {
 
 namespace phlex {
 
-  data_cell_index::data_cell_index() :
-    layer_name_{"job"}, layer_hash_{phlex::experimental::hash(layer_name_)}
-  {
-  }
+  data_cell_index::data_cell_index() : layer_name_{"job"}, layer_hash_{layer_name_.hash()} {}
 
   data_cell_index::data_cell_index(data_cell_index_ptr parent,
                                    std::size_t i,
-                                   std::string layer_name) :
+                                   experimental::identifier layer_name) :
     parent_{std::move(parent)},
     number_{i},
     layer_name_{std::move(layer_name)},
-    layer_hash_{phlex::experimental::hash(parent_->layer_hash_, layer_name_)},
+    layer_hash_{phlex::experimental::hash(parent_->layer_hash_, layer_name_.hash())},
     depth_{parent_->depth_ + 1},
     hash_{phlex::experimental::hash(parent_->hash_, number_, layer_hash_)}
   {
@@ -61,14 +58,17 @@ namespace phlex {
     return base_id;
   }
 
-  std::string const& data_cell_index::layer_name() const noexcept { return layer_name_; }
+  experimental::identifier const& data_cell_index::layer_name() const noexcept
+  {
+    return layer_name_;
+  }
 
   std::string data_cell_index::layer_path() const
   {
-    std::vector layers_in_reverse{layer_name_};
+    std::vector layers_in_reverse{std::string_view(layer_name_)};
     auto next_parent = parent();
     while (next_parent) {
-      layers_in_reverse.push_back(next_parent->layer_name());
+      layers_in_reverse.push_back(std::string_view(next_parent->layer_name()));
       next_parent = next_parent->parent();
     }
     return fmt::format("/{}", fmt::join(std::views::reverse(layers_in_reverse), "/"));
@@ -79,8 +79,8 @@ namespace phlex {
   data_cell_index_ptr data_cell_index::make_child(std::size_t const data_cell_number,
                                                   std::string child_layer_name) const
   {
-    return data_cell_index_ptr{
-      new data_cell_index{shared_from_this(), data_cell_number, std::move(child_layer_name)}};
+    return data_cell_index_ptr{new data_cell_index{
+      shared_from_this(), data_cell_number, experimental::identifier{std::move(child_layer_name)}}};
   }
 
   bool data_cell_index::has_parent() const noexcept { return static_cast<bool>(parent_); }
@@ -110,7 +110,7 @@ namespace phlex {
 
   data_cell_index_ptr data_cell_index::parent() const noexcept { return parent_; }
 
-  data_cell_index_ptr data_cell_index::parent(std::string_view layer_name) const
+  data_cell_index_ptr data_cell_index::parent(experimental::identifier const& layer_name) const
   {
     data_cell_index_ptr parent = parent_;
     while (parent) {
@@ -142,10 +142,10 @@ namespace phlex {
 
   std::string data_cell_index::to_string_this_layer() const
   {
-    if (empty(layer_name_)) {
+    if (layer_name_.empty()) {
       return std::to_string(number_);
     }
-    return layer_name_ + ":" + std::to_string(number_);
+    return fmt::format("{}:{}", layer_name_, number_);
   }
 
   std::ostream& operator<<(std::ostream& os, data_cell_index const& id)

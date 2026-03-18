@@ -89,8 +89,7 @@ namespace phlex::experimental {
   void detail::multilayer_slot::put_message(data_cell_index_ptr const& index,
                                             std::size_t message_id)
   {
-    auto const layer = static_cast<std::string_view>(layer_);
-    if (layer == index->layer_name()) {
+    if (layer_ == index->layer_name()) {
       broadcaster_.try_put({.index = index, .msg_id = message_id, .cache = false});
       return;
     }
@@ -98,7 +97,7 @@ namespace phlex::experimental {
     // Flush values are only used for indices that are *not* the "lowest" in the branch
     // of the hierarchy.
     ++counter_;
-    broadcaster_.try_put({.index = index->parent(layer), .msg_id = message_id});
+    broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
   }
 
   void detail::multilayer_slot::put_end_token(data_cell_index_ptr const& index)
@@ -119,7 +118,7 @@ namespace phlex::experimental {
 
   bool detail::multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
   {
-    return index->parent(static_cast<std::string_view>(layer_)) != nullptr;
+    return index->parent(layer_) != nullptr;
   }
 
   //========================================================================================
@@ -197,7 +196,8 @@ namespace phlex::experimental {
       return;
     }
 
-    auto broadcaster = index_node_for(index->layer_name());
+    std::string const layerish_path{static_cast<std::string_view>(index->layer_name())};
+    auto broadcaster = index_node_for(layerish_path);
     if (broadcaster) {
       broadcaster->try_put({.index = index, .msg_id = message_id});
     }

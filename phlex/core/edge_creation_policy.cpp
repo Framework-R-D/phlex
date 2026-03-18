@@ -9,19 +9,25 @@ namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
     product_query const& query) const
   {
-    // TODO: Update later with correct querying
-    auto [b, e] = producers_.equal_range(query.suffix.value_or(""_id).trans_get_string());
+    if (producers_.empty()) {
+      spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",
+                    query.to_string());
+      return nullptr;
+    }
+    // Now the only way b == e is if we have a suffix and nothing creates matching products
+    auto [b, e] = query.suffix.has_value() ? producers_.equal_range(*query.suffix)
+                                           : std::pair{producers_.begin(), producers_.end()};
     if (b == e) {
       spdlog::debug(
         "Failed to find an algorithm that creates {} products. Assuming it comes from a provider",
-        query.suffix.value_or("\"\""_id));
+        query.suffix.value_or("*"_id));
       return nullptr;
     }
     std::map<std::string, named_output_port const*> candidates;
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
-      // TODO: Definitely not right yet
-      if (producer.node.plugin() == std::string_view(identifier(query.creator)) ||
-          producer.node.algorithm() == std::string_view(identifier(query.creator))) {
+      // TODO: Getting there -- this whole thing needs to be replaced with something
+      //       that indexes all the fields from the beginning.
+      if (producer.node.plugin() == query.creator || producer.node.algorithm() == query.creator) {
         if (query.type != producer.type) {
           spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
                         "from candidate list.",
@@ -45,13 +51,16 @@ namespace phlex::experimental {
           candidates.emplace(producer.node.full(), &producer);
         }
       } else {
-        spdlog::error(
+        spdlog::debug(
           "Creator name mismatch between ({}) and {}", query.to_string(), producer.node.full());
       }
     }
 
     if (candidates.empty()) {
-      throw std::runtime_error("Cannot identify product matching the query " + query.to_string());
+      spdlog::debug(
+        "Cannot identify product matching the query {}. Assuming it comes from a provider.",
+        query.to_string());
+      return nullptr;
     }
 
     if (candidates.size() > 1ull) {

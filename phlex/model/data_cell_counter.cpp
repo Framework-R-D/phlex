@@ -1,9 +1,11 @@
 #include "phlex/model/data_cell_counter.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include <cassert>
 
 namespace phlex::experimental {
+  using namespace phlex::experimental::literals;
 
   flush_counts::flush_counts() = default;
 
@@ -12,10 +14,11 @@ namespace phlex::experimental {
   {
   }
 
-  data_cell_counter::data_cell_counter() : data_cell_counter{nullptr, "job"} {}
+  data_cell_counter::data_cell_counter() : data_cell_counter{nullptr, "job"_id} {}
 
-  data_cell_counter::data_cell_counter(data_cell_counter* parent, std::string const& layer_name) :
-    parent_{parent}, layer_hash_{parent_ ? hash(parent->layer_hash_, layer_name) : hash(layer_name)}
+  data_cell_counter::data_cell_counter(data_cell_counter* parent, identifier const& layer_name) :
+    parent_{parent},
+    layer_hash_{parent_ ? hash(parent->layer_hash_, layer_name.hash()) : layer_name.hash()}
   {
   }
 
@@ -26,7 +29,7 @@ namespace phlex::experimental {
     }
   }
 
-  data_cell_counter data_cell_counter::make_child(std::string const& layer_name)
+  data_cell_counter data_cell_counter::make_child(identifier const& layer_name)
   {
     return {this, layer_name};
   }

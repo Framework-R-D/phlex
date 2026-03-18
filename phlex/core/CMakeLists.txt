@@ -21,7 +21,6 @@ cet_make_library(
   filter.cpp
   framework_graph.cpp
   glue.cpp
-  input_arguments.cpp
   message.cpp
   node_catalog.cpp
   index_router.cpp
@@ -37,7 +36,6 @@ cet_make_library(
   phlex::model
   phlex::utilities
   PRIVATE
-  phlex::graph
   Boost::json
   spdlog::spdlog
 )
@@ -61,6 +59,7 @@ install(
     graph_proxy.hpp
     input_arguments.hpp
     message.hpp
+    multilayer_join_node.hpp
     index_router.hpp
     node_catalog.hpp
     product_query.hpp
@@ -101,7 +100,6 @@ cet_make_library(
   LIBRARIES
   phlex_core
   phlex::metaprogramming
-  phlex::graph
   phlex::model
   phlex::utilities
   Boost::json

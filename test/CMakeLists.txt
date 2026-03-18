@@ -199,15 +199,15 @@ cet_test(
   spdlog::spdlog
 )
 cet_test(
-  serializer
+  product_querying
   USE_CATCH2_MAIN
   SOURCE
-  serializer.cpp
+  product_querying.cpp
   LIBRARIES
   phlex::core
-  TBB::tbb
-  phlex::graph
-  spdlog::spdlog
+  layer_generator
+  Boost::json
+  fmt::fmt
 )
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
          phlex::core
@@ -255,7 +255,8 @@ add_subdirectory(plugins)
 add_subdirectory(utilities)
 add_subdirectory(mock-workflow)
 add_subdirectory(demo-giantdata)
-# add_subdirectory(python)
+add_subdirectory(python)
+add_subdirectory(tbb-preview)
 
 if(PHLEX_USE_FORM)
   add_subdirectory(form)

@@ -1,9 +1,11 @@
 #ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
 #define PHLEX_MODEL_PRODUCT_STORE_HPP
 
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/products.hpp"
 
 #include <cstddef>
@@ -16,41 +18,44 @@ namespace phlex::experimental {
   class product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
-                           std::string source = "Source",
+                           algorithm_name source = default_source(),
                            products new_products = {});
     ~product_store();
-    static product_store_ptr base(std::string base_name = "Source");
+    static product_store_ptr base(algorithm_name base_name = default_source());
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
     auto size() const noexcept { return products_.size(); }
     bool empty() const noexcept { return products_.empty(); }
 
-    std::string const& layer_name() const noexcept;
-    std::string const& source() const noexcept;
+    identifier const& layer_name() const noexcept;
+    algorithm_name const& source() const noexcept;
     data_cell_index_ptr const& index() const noexcept;
 
     // Product interface
-    bool contains_product(std::string const& key) const;
+    bool contains_product(product_specification const& key) const;
 
     template <typename T>
-    T const& get_product(std::string const& key) const;
+    T const& get_product(product_specification const& key) const;
 
     template <typename T>
-    handle<T> get_handle(std::string const& key) const;
+    handle<T> get_handle(product_specification const& key) const;
 
     // Thread-unsafe operations
     template <typename T>
-    void add_product(std::string const& key, T&& t);
+    void add_product(product_specification const& key, T&& t);
 
     template <typename T>
-    void add_product(std::string const& key, std::unique_ptr<product<T>>&& t);
+    void add_product(product_specification const& key, std::unique_ptr<product<T>>&& t);
+
+    // default Source identifier
+    static algorithm_name default_source();
 
   private:
     products products_{};
     data_cell_index_ptr id_;
-    std::string
-      source_; // FIXME: Should not have to copy the string (the source should outlive the product store)
+    algorithm_name
+      source_; // FIXME: Should not have to copy (the source should outlive the product store)
   };
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
@@ -62,8 +67,8 @@ namespace phlex::experimental {
   template <std::size_t I, typename Tuple>
   auto const& get_most_derived(Tuple const& tup, std::tuple_element_t<I - 1, Tuple> const& element)
   {
-    constexpr auto N = std::tuple_size_v<Tuple>;
-    if constexpr (I == N - 1) {
+    constexpr auto num_inputs = std::tuple_size_v<Tuple>;
+    if constexpr (I == num_inputs - 1) {
       return more_derived(element, std::get<I>(tup));
     } else {
       return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
@@ -78,25 +83,25 @@ namespace phlex::experimental {
 
   // Implementation details
   template <typename T>
-  void product_store::add_product(std::string const& key, T&& t)
+  void product_store::add_product(product_specification const& key, T&& t)
   {
     add_product(key, std::make_unique<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
   }
 
   template <typename T>
-  void product_store::add_product(std::string const& key, std::unique_ptr<product<T>>&& t)
+  void product_store::add_product(product_specification const& key, std::unique_ptr<product<T>>&& t)
   {
     products_.add(key, std::move(t));
   }
 
   template <typename T>
-  [[nodiscard]] handle<T> product_store::get_handle(std::string const& key) const
+  [[nodiscard]] handle<T> product_store::get_handle(product_specification const& key) const
   {
-    return handle<T>{products_.get<T>(key), *id_};
+    return handle<T>{products_.get<T>(key), *id_, key};
   }
 
   template <typename T>
-  [[nodiscard]] T const& product_store::get_product(std::string const& key) const
+  [[nodiscard]] T const& product_store::get_product(product_specification const& key) const
   {
     return *get_handle<T>(key);
   }

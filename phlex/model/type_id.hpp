@@ -2,14 +2,15 @@
 #define PHLEX_MODEL_TYPE_ID_HPP
 
 #include "phlex/metaprogramming/type_deduction.hpp"
-#include "phlex/model/handle.hpp"
+#include "phlex/model/fwd.hpp"
+
+#include "boost/container_hash/hash.hpp"
+#include "boost/core/demangle.hpp"
+#include "boost/hash2/hash_append.hpp"
+#include "boost/pfr/core.hpp"
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
-#include <boost/core/demangle.hpp>
-#include <boost/hash2/hash_append_fwd.hpp>
-#include <boost/pfr/core.hpp>
-#include <boost/pfr/traits.hpp>
 
 #include <string>
 #include <type_traits>
@@ -81,7 +82,9 @@ namespace phlex::experimental {
 
     template <typename T>
     friend constexpr type_id make_type_id();
+    friend std::size_t hash_value(type_id const& id);
     friend struct fmt::formatter<type_id>;
+    friend struct std::hash<type_id>;
 
   private:
     unsigned char id_ = 0xFF;
@@ -109,23 +112,23 @@ namespace phlex::experimental {
       } else {
         id = 0x0;
       }
-      using SignedT = std::make_signed_t<T>;
+      using signed_t = std::make_signed_t<T>;
 
-      if constexpr (std::is_same_v<signed char, SignedT>) {
+      if constexpr (std::is_same_v<signed char, signed_t>) {
         // We're choosing to treat signed char and char identically
         return id | static_cast<unsigned char>(type_id::builtin::char_v);
-      } else if constexpr (std::is_same_v<int, SignedT>) {
+      } else if constexpr (std::is_same_v<int, signed_t>) {
         // ints are generally either long or long long, depending on implementation
         // Treating them separately here to reduce confusion
         id |= static_cast<unsigned char>(type_id::builtin::int_v);
         return id;
-      } else if constexpr (std::is_same_v<short, SignedT>) {
+      } else if constexpr (std::is_same_v<short, signed_t>) {
         id |= static_cast<unsigned char>(type_id::builtin::short_v);
         return id;
-      } else if constexpr (std::is_same_v<long, SignedT>) {
+      } else if constexpr (std::is_same_v<long, signed_t>) {
         id |= static_cast<unsigned char>(type_id::builtin::long_v);
         return id;
-      } else if constexpr (std::is_same_v<long long, SignedT>) {
+      } else if constexpr (std::is_same_v<long long, signed_t>) {
         id |= static_cast<unsigned char>(type_id::builtin::long_long_v);
         return id;
       } else {
@@ -271,6 +274,14 @@ namespace phlex::experimental {
     return make_type_ids<return_type<F>>();
   }
 
+  inline std::size_t hash_value(type_id const& id)
+  {
+    std::size_t hash = std::hash<unsigned char>{}(id.id_);
+    if (id.has_children()) {
+      boost::hash_combine(hash, id.children_);
+    }
+    return hash;
+  }
 }
 
 template <>
@@ -334,4 +345,5 @@ struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
     return fmt::formatter<std::string>::format(out, ctx);
   }
 };
+
 #endif // PHLEX_MODEL_TYPE_ID_HPP

@@ -5,6 +5,8 @@
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_vector.h"
 
+#include "spdlog/spdlog.h"
+
 using namespace phlex;
 using namespace oneapi::tbb;
 
@@ -33,8 +35,16 @@ namespace {
 
   unsigned int give_me_other_nums(data_cell_index const& id) { return 100 + id.number() - 1; }
 
-  constexpr bool evens_only(unsigned int const value) { return value % 2u == 0u; }
-  constexpr bool odds_only(unsigned int const value) { return not evens_only(value); }
+  constexpr bool evens_only(unsigned int const value)
+  {
+    spdlog::debug("evens_only: {} is {}", value, value % 2 == 0 ? "even" : "odd");
+    return value % 2u == 0u;
+  }
+  constexpr bool odds_only(unsigned int const value)
+  {
+    spdlog::debug("odds_only: {} is {}", value, value % 2 == 0 ? "even" : "odd");
+    return not evens_only(value);
+  }
 
   // Hacky!
   struct sum_numbers {
@@ -61,12 +71,17 @@ namespace {
 
   // Hacky!
   struct check_multiple_numbers {
-    check_multiple_numbers(int const n) : total{n} {}
+    check_multiple_numbers(int const n) : total{n}
+    {
+      spdlog::debug("construct check_multiple_numbers with n = {}", n);
+    }
     ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total)); }
     void add_difference(unsigned int const a, unsigned int const b)
     {
       // The difference is calculated to test that add(a, b) yields a different result
       // than add(b, a).
+      spdlog::debug(
+        "check_multiple_numbers(n = {}): run add_difference. a = {}, b = {}", total, a, b);
       sum += static_cast<int>(b) - static_cast<int>(a);
     }
     std::atomic<int> sum;
@@ -90,18 +105,18 @@ TEST_CASE("Two predicates", "[filtering]")
 {
   experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.make<sum_numbers>(20u)
     .observe("add_evens", &sum_numbers::add, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id})
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when("evens_only");
   g.make<sum_numbers>(25u)
     .observe("add_odds", &sum_numbers::add, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id})
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when("odds_only");
 
   g.execute();
@@ -114,15 +129,15 @@ TEST_CASE("Two predicates in series", "[filtering]")
 {
   experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id})
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when("evens_only");
   g.make<sum_numbers>(0u)
     .observe("add", &sum_numbers::add, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id})
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when("odds_only");
 
   g.execute();
@@ -134,14 +149,14 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.make<sum_numbers>(0u)
     .observe("add", &sum_numbers::add, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id})
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when("odds_only", "evens_only");
 
   g.execute();
@@ -162,11 +177,11 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 
   experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
       .predicate(name, &not_in_range::eval, concurrency::unlimited)
-      .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   }
 
   std::vector<std::string> const predicate_names{
@@ -174,7 +189,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
   auto const expected_numbers = {4u, 5u, 7u};
   g.make<collect_numbers>(expected_numbers)
     .observe("collect", &collect_numbers::collect, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id})
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when(predicate_names);
 
   g.execute();
@@ -186,30 +201,43 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
 {
   experimental::framework_graph g{source{10u}};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)
-    .output_product(
-      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "other_num"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "other_num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id});
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.make<check_multiple_numbers>(5 * 100)
     .observe("check_evens", &check_multiple_numbers::add_difference, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id},
-                  product_query{.creator = "input"_id,
-                                .layer = "event"_id,
-                                .suffix = "other_num"_id}) // <= Note input order
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"},
+                  product_query{.creator = "input",
+                                .layer = "event",
+                                .suffix = "other_num"}) // <= Note input order
     .experimental_when("evens_only");
 
   g.make<check_multiple_numbers>(-5 * 100)
     .observe("check_odds", &check_multiple_numbers::add_difference, concurrency::unlimited)
     .input_family(
-      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "other_num"_id},
-      product_query{
-        .creator = "input"_id, .layer = "event"_id, .suffix = "num"_id}) // <= Note input order
+      product_query{.creator = "input", .layer = "event", .suffix = "other_num"},
+      product_query{.creator = "input", .layer = "event", .suffix = "num"}) // <= Note input order
     .experimental_when("odds_only");
-
+  g.observe(
+     "print_evens",
+     [](unsigned int i, unsigned int j) { spdlog::debug("{} is EVEN, j is {}", i, j); },
+     concurrency::unlimited)
+    .input_family(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id},
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "other_num"_id})
+    .experimental_when("evens_only");
+  g.observe(
+     "print_odds",
+     [](unsigned int i, unsigned int j) { spdlog::debug("{} is ODD. j is {}", i, j); },
+     concurrency::unlimited)
+    .input_family(
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "num"_id},
+      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "other_num"_id})
+    .experimental_when("odds_only");
   g.execute();
 
   CHECK(g.execution_count("check_odds") == 5);

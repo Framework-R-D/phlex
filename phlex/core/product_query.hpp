@@ -5,6 +5,7 @@
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/type_id.hpp"
 
+#include <concepts>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -15,16 +16,17 @@ using namespace phlex::experimental::literals;
 
 namespace phlex {
   namespace detail {
-    template <typename T>
-      requires std::is_same_v<experimental::identifier,
-                              T> // has to be a template for static_assert(false)
+    // The required_creator_name has to be a template for static_assert(false)
+    template <std::same_as<experimental::identifier> T>
     class required_creator_name {
     public:
       required_creator_name()
       {
         static_assert(false, "The creator name has not been set in this product_query.");
       }
-      required_creator_name(T&& rhs) : content_(std::move(rhs))
+      template <typename U>
+        requires std::constructible_from<T, U>
+      required_creator_name(U&& rhs) : content_(std::forward_like<T>(rhs))
       {
         if (content_.empty()) {
           throw std::runtime_error("Cannot specify product with empty creator name.");
@@ -37,16 +39,17 @@ namespace phlex {
       experimental::identifier content_;
     };
 
-    template <typename T>
-      requires std::is_same_v<experimental::identifier,
-                              T> // has to be a template for static_assert(false)
+    // The required_layer_name has to be a template for static_assert(false)
+    template <std::same_as<experimental::identifier> T>
     class required_layer_name {
     public:
       required_layer_name()
       {
         static_assert(false, "The layer name has not been set in this product_query.");
       }
-      required_layer_name(T&& rhs) : content_(std::move(rhs))
+      template <typename U>
+        requires std::constructible_from<T, U>
+      required_layer_name(U&& rhs) : content_(std::forward_like<T>(rhs))
       {
         if (content_.empty()) {
           throw std::runtime_error("Cannot specify the empty string as a data layer.");
@@ -82,6 +85,7 @@ namespace phlex {
     experimental::product_specification spec() const;
   };
 
+  inline std::string format_as(product_query const& q) { return q.to_string(); }
   using product_queries = std::vector<product_query>;
   namespace detail {
     // C is a container of product_queries

@@ -1,9 +1,13 @@
 #include "phlex/module.hpp"
 #include "wrap.hpp"
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
+#include <algorithm>
 #include <functional>
 #include <memory>
-#include <sstream>
+#include <ranges>
 #include <stdexcept>
 #include <vector>
 
@@ -11,13 +15,27 @@
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
 #include <numpy/arrayobject.h>
 
+// Python algorithms are supported by inserting nodes from C++ -> Python,
+// followed by the intended call, and another from Python -> C++.
+//
+// Since product_query inputs, list the creator name, the suffix can remain
+// the same through out the chain (as does the layer), distinguishing the
+// stage with the creator name (and thus the node names) only.
+//
+// The chain is as follows (last step not added for observers):
+//  C++ -> Python:   creator: <creator>
+//                   name:    <name>_arg<N>_py
+//                   output:  py_<suffix>
+//  Python algoritm: creator: <name>_arg<N>>_py (xN)
+//                   name:    py_<name>
+//                   output:  <output>_py
+//  Python -> C++:   creator: py_<name>
+//                   name:    <name>
+//                   output:  <output>
+
 using namespace phlex::experimental;
 using phlex::concurrency;
 using phlex::product_query;
-
-// TODO: the layer is currently hard-wired and should come from the product
-// specification instead, but that doesn't exist in Python yet.
-static std::string const LAYER = "event";
 
 // Simple phlex module wrapper
 // clang-format off
@@ -27,32 +45,29 @@ struct phlex::experimental::py_phlex_module {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_module(phlex_module_t* module_)
+PyObject* phlex::experimental::wrap_module(phlex_module_t& module_)
 {
-  if (!module_) {
-    PyErr_SetString(PyExc_ValueError, "provided module is null");
-    return nullptr;
-  }
-
   py_phlex_module* pymod = PyObject_New(py_phlex_module, &PhlexModule_Type);
-  pymod->ph_module = module_;
+  pymod->ph_module = &module_;
 
   return (PyObject*)pymod;
 }
 
 namespace {
 
-  // TODO: wishing for std::views::join_with() in C++23, but until then:
-  static std::string stringify(std::vector<std::string>& v)
+  static inline std::string stringify(std::vector<std::string>& v)
   {
-    std::ostringstream oss;
-    if (!v.empty()) {
-      oss << v.front();
-      for (std::size_t i = 1; i < v.size(); ++i) {
-        oss << ", " << v[i];
-      }
-    }
-    return oss.str();
+    return fmt::format("{:n}", v);
+  }
+
+  static inline std::string stringify(std::vector<product_query>& v)
+  {
+    return fmt::format("{:n}", std::ranges::views::transform(v, &product_query::to_string));
+  }
+
+  static inline std::string input_converter_name(std::string const& algname, size_t arg)
+  {
+    return fmt::format("{}_arg{}_py", algname, arg);
   }
 
   static inline PyObject* lifeline_transform(intptr_t arg)
@@ -186,15 +201,70 @@ namespace {
     void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
   };
 
-  static std::vector<std::string> cseq(PyObject* coll)
+  static std::vector<product_query> validate_input(PyObject* input)
   {
-    if (!coll) {
-      return std::vector<std::string>{};
+    std::vector<product_query> cargs;
+    if (!input)
+      return cargs;
+
+    PyObject* coll = PySequence_Fast(input, "input_family must be a sequence");
+    if (!coll)
+      return cargs;
+
+    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
+    cargs.reserve(static_cast<size_t>(len));
+
+    PyObject** items = PySequence_Fast_ITEMS(coll);
+    for (Py_ssize_t i = 0; i < len; ++i) {
+      PyObject* item = items[i]; // borrowed reference
+
+      if (!PyDict_Check(item)) {
+        PyErr_Format(PyExc_TypeError, "input item %d should be a product specifications", (int)i);
+        break;
+      }
+
+      PyObject* pyc = PyDict_GetItemString(item, "creator");
+      if (!pyc || !PyUnicode_Check(pyc)) {
+        PyErr_Format(PyExc_ValueError, "missing \"creator\" for input specification");
+        break;
+      }
+      char const* c = PyUnicode_AsUTF8(pyc);
+
+      PyObject* pyl = PyDict_GetItemString(item, "layer");
+      if (!pyl || !PyUnicode_Check(pyl)) {
+        PyErr_Format(PyExc_ValueError, "missing \"layer\" for input specification");
+        break;
+      }
+      char const* l = PyUnicode_AsUTF8(pyl);
+
+      PyObject* pys = PyDict_GetItemString(item, "suffix");
+      if (!pys || !PyUnicode_Check(pys)) {
+        PyErr_Format(PyExc_ValueError, "missing \"suffix\" for input specification");
+        break;
+      }
+      char const* s = PyUnicode_AsUTF8(pys);
+
+      cargs.push_back(
+        product_query{.creator = identifier(c), .layer = identifier(l), .suffix = identifier(s)});
     }
 
-    // coll is guaranteed to be a list or tuple (from PySequence_Fast)
-    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
+    if (PyErr_Occurred())
+      cargs.clear(); // error handled through Python
+
+    return cargs;
+  }
+
+  static std::vector<std::string> validate_output(PyObject* output)
+  {
     std::vector<std::string> cargs;
+    if (!output)
+      return cargs;
+
+    PyObject* coll = PySequence_Fast(output, "output_products must be a sequence");
+    if (!coll)
+      return cargs;
+
+    Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
     cargs.reserve(static_cast<size_t>(len));
 
     PyObject** items = PySequence_Fast_ITEMS(coll);
@@ -202,17 +272,22 @@ namespace {
       PyObject* item = items[i]; // borrowed reference
       if (!PyUnicode_Check(item)) {
         PyErr_Format(PyExc_TypeError, "item %d must be a string", (int)i);
-        return std::vector<std::string>{}; // Error set
+        break;
       }
 
       char const* p = PyUnicode_AsUTF8(item);
       if (!p) {
-        return std::vector<std::string>{}; // Error already set
+        break;
       }
 
       Py_ssize_t sz = PyUnicode_GetLength(item);
       cargs.emplace_back(p, static_cast<std::string::size_type>(sz));
     }
+
+    Py_DECREF(coll);
+
+    if (PyErr_Occurred())
+      cargs.clear(); // error handled through Python
 
     return cargs;
   }
@@ -223,54 +298,30 @@ namespace {
 
   static std::string annotation_as_text(PyObject* pyobj)
   {
-    std::string ann;
-    if (!PyUnicode_Check(pyobj)) {
-      PyObject* pystr = PyObject_GetAttrString(pyobj, "__name__"); // eg. for classes
-
-      // generics like Union have a __name__ that is not useful for our purposes
-      if (pystr) {
-        char const* cstr = PyUnicode_AsUTF8(pystr);
-        if (cstr && (strcmp(cstr, "Union") == 0 || strcmp(cstr, "Optional") == 0)) {
-          Py_DECREF(pystr);
-          pystr = nullptr;
-        }
+    static PyObject* normalizer = nullptr;
+    if (!normalizer) {
+      PyObject* phlexmod = PyImport_ImportModule("phlex");
+      if (phlexmod) {
+        normalizer = PyObject_GetAttrString(phlexmod, "normalize_type");
+        Py_DECREF(phlexmod);
       }
 
-      if (!pystr) {
-        PyErr_Clear();
-        pystr = PyObject_Str(pyobj);
+      if (!normalizer) {
+        std::string msg;
+        if (msg_from_py_error(msg, false))
+          throw std::runtime_error("unable to retrieve the phlex type normalizer: " + msg);
       }
-
-      if (pystr) {
-        char const* cstr = PyUnicode_AsUTF8(pystr);
-        if (cstr)
-          ann = cstr;
-        Py_DECREF(pystr);
-      }
-
-      // for numpy typing, there's no useful way of figuring out the type from the
-      // name of the type, only from its string representation, so fall through and
-      // let this method return str()
-      if (ann != "ndarray" && ann != "list")
-        return ann;
-
-      // start over for numpy type using result from str()
-      pystr = PyObject_Str(pyobj);
-      if (pystr) {
-        char const* cstr = PyUnicode_AsUTF8(pystr);
-        if (cstr) // if failed, ann will remain "ndarray"
-          ann = cstr;
-        Py_DECREF(pystr);
-      }
-      return ann;
     }
 
-    // unicode object, i.e. string name of the type
-    char const* cstr = PyUnicode_AsUTF8(pyobj);
-    if (cstr)
-      ann = cstr;
-    else
-      PyErr_Clear();
+    PyObject* norm = PyObject_CallOneArg(normalizer, pyobj);
+    if (!norm) {
+      std::string msg;
+      if (msg_from_py_error(msg, false))
+        throw std::runtime_error("normalization error: " + msg);
+    }
+
+    std::string ann = PyUnicode_AsUTF8(norm);
+    Py_DECREF(norm);
 
     return ann;
   }
@@ -294,11 +345,22 @@ namespace {
   static long pylong_as_strictlong(PyObject* pyobject)
   {
     // convert <pybject> to C++ long, don't allow truncation
-    if (!PyLong_Check(pyobject)) {
-      PyErr_SetString(PyExc_TypeError, "int/long conversion expects an integer object");
-      return (long)-1;
+    if (PyLong_Check(pyobject)) { // native Python integer
+      return PyLong_AsLong(pyobject);
     }
-    return (long)PyLong_AsLong(pyobject); // already does long range check
+
+    // accept numpy signed integer scalars (int8, int16, int32, int64)
+    if (PyArray_IsScalar(pyobject, SignedInteger)) {
+      // convert to Python int first, then to C long, that way we get a Python
+      // OverflowError if out-of-range
+      PyObject* pylong = PyNumber_Long(pyobject); // doesn't fail b/c of type check
+      long result = PyLong_AsLong(pylong);
+      Py_DECREF(pylong);
+      return result;
+    }
+
+    PyErr_SetString(PyExc_TypeError, "int/long conversion expects a signed integer object");
+    return (long)-1;
   }
 
   static unsigned long pylong_or_int_as_ulong(PyObject* pyobject)
@@ -307,6 +369,16 @@ namespace {
     if (PyFloat_Check(pyobject)) {
       PyErr_SetString(PyExc_TypeError, "can\'t convert float to unsigned long");
       return (unsigned long)-1;
+    }
+
+    // accept numpy unsigned integer scalars (uint8, uint16, uint32, uint64)
+    if (PyArray_IsScalar(pyobject, UnsignedInteger)) {
+      // convert to Python int first, then to C unsigned long, that way we get a
+      // Python OverflowError if out-of-range
+      PyObject* pylong = PyNumber_Long(pyobject); // doesn't fail b/c of type check
+      unsigned long result = PyLong_AsUnsignedLong(pylong);
+      Py_DECREF(pylong);
+      return result;
     }
 
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
@@ -345,10 +417,10 @@ namespace {
   }
 
   BASIC_CONVERTER(bool, bool, PyBool_FromLong, pylong_as_bool)
-  BASIC_CONVERTER(int, int, PyLong_FromLong, PyLong_AsLong)
-  BASIC_CONVERTER(uint, unsigned int, PyLong_FromLong, pylong_or_int_as_ulong)
-  BASIC_CONVERTER(long, long, PyLong_FromLong, pylong_as_strictlong)
-  BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
+  BASIC_CONVERTER(int, std::int32_t, PyLong_FromLong, PyLong_AsLong)
+  BASIC_CONVERTER(uint, std::uint32_t, PyLong_FromLong, pylong_or_int_as_ulong)
+  BASIC_CONVERTER(long, std::int64_t, PyLong_FromLong, pylong_as_strictlong)
+  BASIC_CONVERTER(ulong, std::uint64_t, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
@@ -391,10 +463,10 @@ namespace {
     return (intptr_t)pyll;                                                                         \
   }
 
-  VECTOR_CONVERTER(vint, int, NPY_INT)
-  VECTOR_CONVERTER(vuint, unsigned int, NPY_UINT)
-  VECTOR_CONVERTER(vlong, long, NPY_LONG)
-  VECTOR_CONVERTER(vulong, unsigned long, NPY_ULONG)
+  VECTOR_CONVERTER(vint, std::int32_t, NPY_INT32)
+  VECTOR_CONVERTER(vuint, std::uint32_t, NPY_UINT32)
+  VECTOR_CONVERTER(vlong, std::int64_t, NPY_INT64)
+  VECTOR_CONVERTER(vulong, std::uint64_t, NPY_UINT64)
   VECTOR_CONVERTER(vfloat, float, NPY_FLOAT)
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
@@ -442,29 +514,32 @@ namespace {
     return vec;                                                                                    \
   }
 
-  NUMPY_ARRAY_CONVERTER(vint, int, NPY_INT, PyLong_AsLong)
-  NUMPY_ARRAY_CONVERTER(vuint, unsigned int, NPY_UINT, pylong_or_int_as_ulong)
-  NUMPY_ARRAY_CONVERTER(vlong, long, NPY_LONG, pylong_as_strictlong)
-  NUMPY_ARRAY_CONVERTER(vulong, unsigned long, NPY_ULONG, pylong_or_int_as_ulong)
+  NUMPY_ARRAY_CONVERTER(vint, std::int32_t, NPY_INT32, PyLong_AsLong)
+  NUMPY_ARRAY_CONVERTER(vuint, std::uint32_t, NPY_UINT32, pylong_or_int_as_ulong)
+  NUMPY_ARRAY_CONVERTER(vlong, std::int64_t, NPY_INT64, pylong_as_strictlong)
+  NUMPY_ARRAY_CONVERTER(vulong, std::uint64_t, NPY_UINT64, pylong_or_int_as_ulong)
   NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT, PyFloat_AsDouble)
   NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE, PyFloat_AsDouble)
 
+  // helpers for inserting converter nodes
+  template <typename R, typename... Args>
+  void insert_converter(py_phlex_module* mod,
+                        std::string const& name,
+                        R (*converter)(Args...),
+                        product_query pq_in,
+                        std::string const& output)
+  {
+    mod->ph_module->transform(name, converter, concurrency::serial)
+      .input_family(pq_in)
+      .output_products(output);
+  }
+
 } // unnamed namespace
-
-#define INSERT_INPUT_CONVERTER(name, alg, inp)                                                     \
-  mod->ph_module->transform("py" #name "_" + inp + "_" + alg, name##_to_py, concurrency::serial)   \
-    .input_family(product_query{product_specification::create(inp), LAYER})                        \
-    .output_products(alg + "_" + inp + "py")
-
-#define INSERT_OUTPUT_CONVERTER(name, alg, outp)                                                   \
-  mod->ph_module->transform(#name "py_" + outp + "_" + alg, py_to_##name, concurrency::serial)     \
-    .input_family(product_query{product_specification::create("py" + outp + "_" + alg), LAYER})    \
-    .output_products(outp)
 
 static PyObject* parse_args(PyObject* args,
                             PyObject* kwds,
                             std::string& functor_name,
-                            std::vector<std::string>& input_labels,
+                            std::vector<product_query>& input_queries,
                             std::vector<std::string>& input_types,
                             std::vector<std::string>& output_labels,
                             std::vector<std::string>& output_types)
@@ -511,36 +586,26 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
-  // Accept any sequence type (list, tuple, custom sequences)
-  PyObject* input_fast = PySequence_Fast(input, "input_family must be a sequence");
-  if (!input_fast) {
-    return nullptr; // TypeError already set by PySequence_Fast
-  }
-
-  PyObject* output_fast = nullptr;
-  if (output) {
-    output_fast = PySequence_Fast(output, "output_products must be a sequence");
-    if (!output_fast) {
-      Py_DECREF(input_fast);
-      return nullptr;
+  // convert input declarations, to be able to pass them to Phlex
+  input_queries = validate_input(input);
+  if (input_queries.empty()) {
+    if (!PyErr_Occurred()) {
+      PyErr_Format(PyExc_ValueError,
+                   "no input provided for %s; node can not be scheduled",
+                   functor_name.c_str());
     }
+    return nullptr;
   }
 
-  // convert input and output declarations, to be able to pass them to Phlex
-  input_labels = cseq(input_fast);
-  output_labels = cseq(output_fast);
-
-  // Clean up fast sequences
-  Py_DECREF(input_fast);
-  Py_XDECREF(output_fast);
-
+  // convert output declarations, to be able to pass them to Phlex
+  output_labels = validate_output(output);
   if (output_labels.size() > 1) {
     PyErr_SetString(PyExc_TypeError, "only a single output supported");
     return nullptr;
   }
 
   // retrieve C++ (matching) types from annotations
-  input_types.reserve(input_labels.size());
+  input_types.reserve(input_queries.size());
 
   PyObject* sann = PyUnicode_FromString("__annotations__");
   PyObject* annot = PyObject_GetAttr(callable, sann);
@@ -577,11 +642,11 @@ static PyObject* parse_args(PyObject* args,
 
   // if annotations were correct (and correctly parsed), there should be as many
   // input types as input labels
-  if (input_types.size() != input_labels.size()) {
+  if (input_types.size() != input_queries.size()) {
     PyErr_Format(PyExc_TypeError,
                  "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
-                 input_labels.size(),
-                 stringify(input_labels).c_str(),
+                 input_queries.size(),
+                 stringify(input_queries).c_str(),
                  input_types.size(),
                  stringify(input_types).c_str());
     return nullptr;
@@ -604,106 +669,54 @@ static PyObject* parse_args(PyObject* args,
 
 static bool insert_input_converters(py_phlex_module* mod,
                                     std::string const& cname, // TODO: shared_ptr<PyObject>
-                                    std::vector<std::string> const& input_labels,
+                                    std::vector<product_query> const& input_queries,
                                     std::vector<std::string> const& input_types)
 {
   // insert input converter nodes into the graph
-  for (size_t i = 0; i < (size_t)input_labels.size(); ++i) {
+  for (size_t i = 0; i < (size_t)input_queries.size(); ++i) {
     // TODO: this seems overly verbose and inefficient, but the function needs
     // to be properly types, so every option is made explicit
-    auto const& inp = input_labels[i];
+    auto const& inp_pq = input_queries[i];
     auto const& inp_type = input_types[i];
 
+    std::string const& pyname = input_converter_name(cname, i);
+    std::string output = "py_" + std::string{static_cast<std::string_view>(*inp_pq.suffix)};
+
     if (inp_type == "bool")
-      INSERT_INPUT_CONVERTER(bool, cname, inp);
-    else if (inp_type == "int")
-      INSERT_INPUT_CONVERTER(int, cname, inp);
-    else if (inp_type == "unsigned int")
-      INSERT_INPUT_CONVERTER(uint, cname, inp);
-    else if (inp_type == "long")
-      INSERT_INPUT_CONVERTER(long, cname, inp);
-    else if (inp_type == "unsigned long")
-      INSERT_INPUT_CONVERTER(ulong, cname, inp);
+      insert_converter(mod, pyname, bool_to_py, inp_pq, output);
+    else if (inp_type == "int32_t")
+      insert_converter(mod, pyname, int_to_py, inp_pq, output);
+    else if (inp_type == "uint32_t")
+      insert_converter(mod, pyname, uint_to_py, inp_pq, output);
+    else if (inp_type == "int64_t")
+      insert_converter(mod, pyname, long_to_py, inp_pq, output);
+    else if (inp_type == "uint64_t")
+      insert_converter(mod, pyname, ulong_to_py, inp_pq, output);
     else if (inp_type == "float")
-      INSERT_INPUT_CONVERTER(float, cname, inp);
+      insert_converter(mod, pyname, float_to_py, inp_pq, output);
     else if (inp_type == "double")
-      INSERT_INPUT_CONVERTER(double, cname, inp);
-    else if (inp_type.compare(0, 13, "numpy.ndarray") == 0) {
+      insert_converter(mod, pyname, double_to_py, inp_pq, output);
+    else if (inp_type.compare(0, 7, "ndarray") == 0 || inp_type.compare(0, 4, "list") == 0) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
       // until we have an IDL
-      auto pos = inp_type.rfind("numpy.dtype");
-      if (pos == std::string::npos) {
-        PyErr_Format(
-          PyExc_TypeError, "could not determine dtype of input type \"%s\"", inp_type.c_str());
-        return false;
-      }
-
-      pos += 18;
-      std::string py_out = cname + "_" + inp + "py";
-
-      if (inp_type.compare(pos, 8, "uint32]]") == 0) {
-        mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
-      } else if (inp_type.compare(pos, 7, "int32]]") == 0) {
-        mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
-      } else if (inp_type.compare(pos, 8, "uint64]]") == 0) { // id.
-        mod->ph_module
-          ->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
-      } else if (inp_type.compare(pos, 7, "int64]]") == 0) { // need not be true
-        mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
-      } else if (inp_type.compare(pos, 9, "float32]]") == 0) {
-        mod->ph_module
-          ->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
-      } else if (inp_type.compare(pos, 9, "float64]]") == 0) {
-        mod->ph_module
-          ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
-          .input_family(product_query{product_specification::create(inp), LAYER})
-          .output_products(py_out);
+      std::string_view dtype{inp_type.begin() + inp_type.rfind('['), inp_type.end()};
+      if (dtype == "[int32_t]") {
+        insert_converter(mod, pyname, vint_to_py, inp_pq, output);
+      } else if (dtype == "[uint32_t]") {
+        insert_converter(mod, pyname, vuint_to_py, inp_pq, output);
+      } else if (dtype == "[int64_t]") {
+        insert_converter(mod, pyname, vlong_to_py, inp_pq, output);
+      } else if (dtype == "[uint64_t]") {
+        insert_converter(mod, pyname, vulong_to_py, inp_pq, output);
+      } else if (dtype == "[float]") {
+        insert_converter(mod, pyname, vfloat_to_py, inp_pq, output);
+      } else if (dtype == "[double]") {
+        insert_converter(mod, pyname, vdouble_to_py, inp_pq, output);
       } else {
-        PyErr_Format(PyExc_TypeError, "unsupported array input type \"%s\"", inp_type.c_str());
+        PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
         return false;
       }
-    } else if (inp_type == "list[int]") {
-      std::string py_out = cname + "_" + inp + "py";
-      mod->ph_module->transform("pyvint_" + inp + "_" + cname, vint_to_py, concurrency::serial)
-        .input_family(product_query{product_specification::create(inp), LAYER})
-        .output_products(py_out);
-    } else if (inp_type == "list[unsigned int]" || inp_type == "list['unsigned int']") {
-      std::string py_out = cname + "_" + inp + "py";
-      mod->ph_module->transform("pyvuint_" + inp + "_" + cname, vuint_to_py, concurrency::serial)
-        .input_family(product_query{product_specification::create(inp), LAYER})
-        .output_products(py_out);
-    } else if (inp_type == "list[long]" || inp_type == "list['long']") {
-      std::string py_out = cname + "_" + inp + "py";
-      mod->ph_module->transform("pyvlong_" + inp + "_" + cname, vlong_to_py, concurrency::serial)
-        .input_family(product_query{product_specification::create(inp), LAYER})
-        .output_products(py_out);
-    } else if (inp_type == "list[unsigned long]" || inp_type == "list['unsigned long']") {
-      std::string py_out = cname + "_" + inp + "py";
-      mod->ph_module->transform("pyvulong_" + inp + "_" + cname, vulong_to_py, concurrency::serial)
-        .input_family(product_query{product_specification::create(inp), LAYER})
-        .output_products(py_out);
-    } else if (inp_type == "list[float]") {
-      std::string py_out = cname + "_" + inp + "py";
-      mod->ph_module->transform("pyvfloat_" + inp + "_" + cname, vfloat_to_py, concurrency::serial)
-        .input_family(product_query{product_specification::create(inp), LAYER})
-        .output_products(py_out);
-    } else if (inp_type == "list[double]" || inp_type == "list['double']") {
-      std::string py_out = cname + "_" + inp + "py";
-      mod->ph_module
-        ->transform("pyvdouble_" + inp + "_" + cname, vdouble_to_py, concurrency::serial)
-        .input_family(product_query{product_specification::create(inp), LAYER})
-        .output_products(py_out);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
       return false;
@@ -719,154 +732,136 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // nodes going from C++ to PyObject* and back.
 
   std::string cname;
-  std::vector<std::string> input_labels, input_types, output_labels, output_types;
+  std::vector<product_query> input_queries;
+  std::vector<std::string> input_types, output_labels, output_types;
   PyObject* callable =
-    parse_args(args, kwds, cname, input_labels, input_types, output_labels, output_types);
+    parse_args(args, kwds, cname, input_queries, input_types, output_labels, output_types);
   if (!callable)
     return nullptr; // error already set
 
   if (output_types.empty()) {
-    PyErr_Format(PyExc_TypeError, "a transform should have an output type");
+    PyErr_Format(PyExc_TypeError, "transform %s should have an output type", cname.c_str());
     Py_DECREF(callable);
     return nullptr;
   }
 
-  // TODO: only support single output type for now, as there has to be a mapping
-  // onto a std::tuple otherwise, which is a typed object, thus complicating the
-  // template instantiation
-  std::string output = output_labels[0];
-  std::string output_type = output_types[0];
+  // TODO: it's not clear what the output layer will be if the input layers are not
+  // all the same, so for now, simply raise an error if their is any ambiguity
+  auto output_layer = static_cast<identifier>(input_queries[0].layer);
+  if (1 < input_queries.size()) {
+    for (std::vector<product_query>::size_type iq = 1; iq < input_queries.size(); ++iq) {
+      if (static_cast<identifier>(input_queries[iq].layer) != output_layer) {
+        PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", cname.c_str());
+        Py_DECREF(callable);
+        return nullptr;
+      }
+    }
+  }
 
-  if (!insert_input_converters(mod, cname, input_labels, input_types)) {
+  if (!insert_input_converters(mod, cname, input_queries, input_types)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
 
   // register Python transform
-  std::string py_out = "py" + output + "_" + cname;
-  if (input_labels.size() == 1) {
+
+  // TODO: only support single output type for now, as there has to be a mapping
+  // onto a std::tuple otherwise, which is a typed object, thus complicating the
+  // template instantiation
+  std::string pyname = "py_" + cname;
+  std::string pyoutput = output_labels[0] + "_py";
+
+  auto pq0 = input_queries[0];
+  std::string c0 = input_converter_name(cname, 0);
+  std::string suff0 = "py_" + std::string{static_cast<std::string_view>(*pq0.suffix)};
+
+  switch (input_queries.size()) {
+  case 1: {
     auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
-    mod->ph_module->transform(cname, *pyc, concurrency::serial)
+    mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER})
-      .output_products(py_out);
-    Py_DECREF(callable);
-  } else if (input_labels.size() == 2) {
+        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
+      .output_products(pyoutput);
+    break;
+  }
+  case 2: {
     auto* pyc = new py_callback_2{callable};
-    mod->ph_module->transform(cname, *pyc, concurrency::serial)
+    auto pq1 = input_queries[1];
+    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
+
+    std::string c1 = input_converter_name(cname, 1);
+    mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER})
-      .output_products(py_out);
-    Py_DECREF(callable);
-  } else if (input_labels.size() == 3) {
+        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
+        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)})
+      .output_products(pyoutput);
+    break;
+  }
+  case 3: {
     auto* pyc = new py_callback_3{callable};
-    mod->ph_module->transform(cname, *pyc, concurrency::serial)
+    auto pq1 = input_queries[1];
+    std::string c1 = input_converter_name(cname, 1);
+    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
+    auto pq2 = input_queries[2];
+    std::string c2 = input_converter_name(cname, 2);
+    std::string suff2 = "py_" + std::string{static_cast<std::string_view>(*pq2.suffix)};
+    mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER},
-        product_query{product_specification::create(cname + "_" + input_labels[2] + "py"), LAYER})
-      .output_products(py_out);
-    Py_DECREF(callable);
-  } else {
+        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
+        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
+        product_query{.creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)})
+      .output_products(pyoutput);
+    break;
+  }
+  default: {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
   }
+  }
 
-  // insert output converter node into the graph (TODO: same as above; these
-  // are explicit b/c of the templates only)
-  if (output_type == "bool")
-    INSERT_OUTPUT_CONVERTER(bool, cname, output);
-  else if (output_type == "int")
-    INSERT_OUTPUT_CONVERTER(int, cname, output);
-  else if (output_type == "unsigned int")
-    INSERT_OUTPUT_CONVERTER(uint, cname, output);
-  else if (output_type == "long")
-    INSERT_OUTPUT_CONVERTER(long, cname, output);
-  else if (output_type == "unsigned long")
-    INSERT_OUTPUT_CONVERTER(ulong, cname, output);
-  else if (output_type == "float")
-    INSERT_OUTPUT_CONVERTER(float, cname, output);
-  else if (output_type == "double")
-    INSERT_OUTPUT_CONVERTER(double, cname, output);
-  else if (output_type.compare(0, 13, "numpy.ndarray") == 0) {
+  // insert output converter node into the graph
+  auto out_pq = product_query{.creator = identifier(pyname),
+                              .layer = identifier(output_layer),
+                              .suffix = identifier(pyoutput)};
+  std::string out_type = output_types[0];
+  std::string output = output_labels[0];
+  if (out_type == "bool")
+    insert_converter(mod, cname, py_to_bool, out_pq, output);
+  else if (out_type == "int32_t")
+    insert_converter(mod, cname, py_to_int, out_pq, output);
+  else if (out_type == "uint32_t")
+    insert_converter(mod, cname, py_to_uint, out_pq, output);
+  else if (out_type == "int64_t")
+    insert_converter(mod, cname, py_to_long, out_pq, output);
+  else if (out_type == "uint64_t")
+    insert_converter(mod, cname, py_to_ulong, out_pq, output);
+  else if (out_type == "float")
+    insert_converter(mod, cname, py_to_float, out_pq, output);
+  else if (out_type == "double")
+    insert_converter(mod, cname, py_to_double, out_pq, output);
+  else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
-    auto pos = output_type.rfind("numpy.dtype");
-    if (pos == std::string::npos) {
-      PyErr_Format(
-        PyExc_TypeError, "could not determine dtype of input type \"%s\"", output_type.c_str());
-      return nullptr;
-    }
-
-    pos += 18;
-
-    auto py_in = "py" + output + "_" + cname;
-    if (output_type.compare(pos, 7, "int32]]") == 0) {
-      mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in), LAYER})
-        .output_products(output);
-    } else if (output_type.compare(pos, 8, "uint32]]") == 0) {
-      mod->ph_module->transform("pyvuint_" + output + "_" + cname, py_to_vuint, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in), LAYER})
-        .output_products(output);
-    } else if (output_type.compare(pos, 7, "int64]]") == 0) { // need not be true
-      mod->ph_module->transform("pyvlong_" + output + "_" + cname, py_to_vlong, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in), LAYER})
-        .output_products(output);
-    } else if (output_type.compare(pos, 8, "uint64]]") == 0) { // id.
-      mod->ph_module
-        ->transform("pyvulong_" + output + "_" + cname, py_to_vulong, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in), LAYER})
-        .output_products(output);
-    } else if (output_type.compare(pos, 9, "float32]]") == 0) {
-      mod->ph_module
-        ->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in), LAYER})
-        .output_products(output);
-    } else if (output_type.compare(pos, 9, "float64]]") == 0) {
-      mod->ph_module
-        ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
-        .input_family(product_query{product_specification::create(py_in), LAYER})
-        .output_products(output);
+    std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
+    if (dtype == "[int32_t]") {
+      insert_converter(mod, cname, py_to_vint, out_pq, output);
+    } else if (dtype == "[uint32_t]") {
+      insert_converter(mod, cname, py_to_vuint, out_pq, output);
+    } else if (dtype == "[int64_t]") {
+      insert_converter(mod, cname, py_to_vlong, out_pq, output);
+    } else if (dtype == "[uint64_t]") {
+      insert_converter(mod, cname, py_to_vulong, out_pq, output);
+    } else if (dtype == "[float]") {
+      insert_converter(mod, cname, py_to_vfloat, out_pq, output);
+    } else if (dtype == "[double]") {
+      insert_converter(mod, cname, py_to_vdouble, out_pq, output);
     } else {
-      PyErr_Format(PyExc_TypeError, "unsupported array output type \"%s\"", output_type.c_str());
+      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;
     }
-  } else if (output_type == "list[int]") {
-    auto py_in = "py" + output + "_" + cname;
-    mod->ph_module->transform("pyvint_" + output + "_" + cname, py_to_vint, concurrency::serial)
-      .input_family(product_query{product_specification::create(py_in), LAYER})
-      .output_products(output);
-  } else if (output_type == "list[unsigned int]" || output_type == "list['unsigned int']") {
-    auto py_in = "py" + output + "_" + cname;
-    mod->ph_module->transform("pyvuint_" + output + "_" + cname, py_to_vuint, concurrency::serial)
-      .input_family(product_query{product_specification::create(py_in), LAYER})
-      .output_products(output);
-  } else if (output_type == "list[long]" || output_type == "list['long']") {
-    auto py_in = "py" + output + "_" + cname;
-    mod->ph_module->transform("pyvlong_" + output + "_" + cname, py_to_vlong, concurrency::serial)
-      .input_family(product_query{product_specification::create(py_in), LAYER})
-      .output_products(output);
-  } else if (output_type == "list[unsigned long]" || output_type == "list['unsigned long']") {
-    auto py_in = "py" + output + "_" + cname;
-    mod->ph_module->transform("pyvulong_" + output + "_" + cname, py_to_vulong, concurrency::serial)
-      .input_family(product_query{product_specification::create(py_in), LAYER})
-      .output_products(output);
-  } else if (output_type == "list[float]") {
-    auto py_in = "py" + output + "_" + cname;
-    mod->ph_module->transform("pyvfloat_" + output + "_" + cname, py_to_vfloat, concurrency::serial)
-      .input_family(product_query{product_specification::create(py_in), LAYER})
-      .output_products(output);
-  } else if (output_type == "list[double]" || output_type == "list['double']") {
-    auto py_in = "py" + output + "_" + cname;
-    mod->ph_module
-      ->transform("pyvdouble_" + output + "_" + cname, py_to_vdouble, concurrency::serial)
-      .input_family(product_query{product_specification::create(py_in), LAYER})
-      .output_products(output);
   } else {
-    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", output_type.c_str());
+    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
     return nullptr;
   }
 
@@ -879,9 +874,10 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   // nodes going from C++ to PyObject* and back.
 
   std::string cname;
-  std::vector<std::string> input_labels, input_types, output_labels, output_types;
+  std::vector<product_query> input_queries;
+  std::vector<std::string> input_types, output_labels, output_types;
   PyObject* callable =
-    parse_args(args, kwds, cname, input_labels, input_types, output_labels, output_types);
+    parse_args(args, kwds, cname, input_queries, input_types, output_labels, output_types);
   if (!callable)
     return nullptr; // error already set
 
@@ -890,37 +886,55 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  if (!insert_input_converters(mod, cname, input_labels, input_types)) {
+  if (!insert_input_converters(mod, cname, input_queries, input_types)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
 
   // register Python observer
-  if (input_labels.size() == 1) {
-    auto* pyc = new py_callback_1v{callable}; // id.
+  auto pq0 = input_queries[0];
+  std::string c0 = input_converter_name(cname, 0);
+  std::string suff0 = "py_" + std::string{static_cast<std::string_view>(*pq0.suffix)};
+
+  switch (input_queries.size()) {
+  case 1: {
+    auto* pyc = new py_callback_1v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER});
-    Py_DECREF(callable);
-  } else if (input_labels.size() == 2) {
+        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)});
+    break;
+  }
+  case 2: {
     auto* pyc = new py_callback_2v{callable};
+    auto pq1 = input_queries[1];
+    std::string c1 = input_converter_name(cname, 1);
+    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER});
-    Py_DECREF(callable);
-  } else if (input_labels.size() == 3) {
+        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
+        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)});
+    break;
+  }
+  case 3: {
     auto* pyc = new py_callback_3v{callable};
+    auto pq1 = input_queries[1];
+    std::string c1 = input_converter_name(cname, 1);
+    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
+    auto pq2 = input_queries[2];
+    std::string c2 = input_converter_name(cname, 2);
+    std::string suff2 = "py_" + std::string{static_cast<std::string_view>(*pq2.suffix)};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
-        product_query{product_specification::create(cname + "_" + input_labels[0] + "py"), LAYER},
-        product_query{product_specification::create(cname + "_" + input_labels[1] + "py"), LAYER},
-        product_query{product_specification::create(cname + "_" + input_labels[2] + "py"), LAYER});
-    Py_DECREF(callable);
-  } else {
+        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
+        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
+        product_query{.creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)});
+    break;
+  }
+  default: {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
+  }
   }
 
   Py_RETURN_NONE;

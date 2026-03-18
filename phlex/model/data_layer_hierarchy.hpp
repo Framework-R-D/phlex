@@ -31,12 +31,12 @@ namespace phlex::experimental {
                                std::string indent = {}) const;
 
     struct layer_entry {
-      layer_entry(std::string n, std::string path, std::size_t par_hash) :
+      layer_entry(identifier n, std::string path, std::size_t par_hash) :
         name{std::move(n)}, layer_path{std::move(path)}, parent_hash{par_hash}
       {
       }
 
-      std::string name;
+      identifier name;
       std::string layer_path;
       std::size_t parent_hash;
       std::atomic<std::size_t> count{};

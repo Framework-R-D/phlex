@@ -24,8 +24,8 @@ namespace {
 
     void record(experimental::product_store const& store)
     {
-      for (auto const& product_name : store | std::views::keys) {
-        products_->insert(product_name);
+      for (auto const& spec : store | std::views::keys) {
+        products_->insert(spec.full());
       }
     }
 
@@ -42,15 +42,15 @@ TEST_CASE("Output data products", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const&) -> int { return 17; })
-    .output_product(product_query{
-      .creator = "input"_id, .layer = "spill"_id, .suffix = "number_from_provider"_id});
+    .output_product(
+      product_query{.creator = "input", .layer = "spill", .suffix = "number_from_provider"});
 
   g.transform(
      "square_number",
      [](int const number) -> int { return number * number; },
      concurrency::unlimited)
-    .input_family(product_query{
-      .creator = "input"_id, .layer = "spill"_id, .suffix = "number_from_provider"_id})
+    .input_family(
+      product_query{.creator = "input", .layer = "spill", .suffix = "number_from_provider"})
     .output_products("squared_number");
 
   std::set<std::string> products_from_nodes;
@@ -65,5 +65,6 @@ TEST_CASE("Output data products", "[graph]")
   // store from the "provide_number" provider, and once to receive the data store from the
   // "square_number" transform.
   CHECK(g.execution_count("record_numbers") == 2u);
-  CHECK(products_from_nodes == std::set<std::string>{"number_from_provider", "squared_number"});
+  CHECK(products_from_nodes == std::set<std::string>{"input:input/number_from_provider",
+                                                     "square_number:square_number/squared_number"});
 }

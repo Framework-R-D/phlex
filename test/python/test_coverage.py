@@ -42,10 +42,15 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register algorithms."""
     # We need to transform scalar inputs to lists first
     # i, f1, d1 come from cppsource4py
-    m.transform(collect_int, input_family=["i"], output_products=["l_int"])
-    m.transform(collect_float, input_family=["f1"], output_products=["l_float"])
-    m.transform(collect_double, input_family=["d1"], output_products=["l_double"])
+    tfs = (
+        (collect_int, "input", "i", "l_int"),
+        (collect_float, "input", "f1", "l_float"),
+        (collect_double, "input", "d1", "l_double"),
+        (list_int_func, collect_int.__name__, "l_int", "sum_int"),
+        (list_float_func, collect_float.__name__, "l_float", "sum_float"),
+        (list_double_func, collect_double.__name__, "l_double", "sum_double"),
+    )
 
-    m.transform(list_int_func, input_family=["l_int"], output_products=["sum_int"])
-    m.transform(list_float_func, input_family=["l_float"], output_products=["sum_float"])
-    m.transform(list_double_func, input_family=["l_double"], output_products=["sum_double"])
+    for func, creator, suffix, output in tfs:
+        input_family = [{"creator": creator, "layer": "event", "suffix": suffix}]
+        m.transform(func, input_family=input_family, output_products=[output])

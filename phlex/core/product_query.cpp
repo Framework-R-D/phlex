@@ -29,15 +29,15 @@ namespace phlex {
   // Check if a product_specification satisfies this query
   bool product_query::match(experimental::product_specification const& spec) const
   {
-    // string comparisons for now for a gradual transition
-    if (std::string_view(experimental::identifier(creator)) != spec.algorithm()) {
+    experimental::identifier tmp_creator{this->creator};
+    if (tmp_creator != spec.algorithm() && tmp_creator != spec.plugin()) {
       return false;
     }
     if (type != spec.type()) {
       return false;
     }
     if (suffix) {
-      if (std::string_view(*suffix) != spec.name()) {
+      if (*suffix != spec.name()) {
         return false;
       }
     }
@@ -58,8 +58,12 @@ namespace phlex {
       throw std::logic_error("Product suffixes are (temporarily) mandatory");
     }
     // Not efficient, but this should be temporary
-    return experimental::product_specification::create(suffix->trans_get_string());
+    using namespace phlex::experimental;
+    auto const& creator_identifier = static_cast<experimental::identifier const&>(creator);
+    return product_specification{
+      algorithm_name::create(static_cast<std::string_view>(creator_identifier)), *suffix, type};
   }
+
   bool product_query::operator==(product_query const& rhs) const
   {
     using experimental::identifier;

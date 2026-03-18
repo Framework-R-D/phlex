@@ -3,6 +3,7 @@
 
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 
@@ -36,10 +37,10 @@ namespace phlex::experimental {
   class data_cell_counter {
   public:
     data_cell_counter();
-    data_cell_counter(data_cell_counter* parent, std::string const& layer_name);
+    data_cell_counter(data_cell_counter* parent, identifier const& layer_name);
     ~data_cell_counter();
 
-    data_cell_counter make_child(std::string const& layer_name);
+    data_cell_counter make_child(identifier const& layer_name);
     flush_counts result() const
     {
       if (empty(child_counts_)) {

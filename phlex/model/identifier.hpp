@@ -21,10 +21,20 @@ namespace phlex::experimental {
   class identifier {
   public:
     static std::uint64_t hash_string(std::string_view str);
+    // The default constructor is necessary so other classes containing identifiers
+    // can have default constructors.
+    identifier() = default;
     identifier(identifier const& other) = default;
     identifier(identifier&& other) noexcept = default;
 
     explicit identifier(std::string_view str);
+
+    // This is here to allow the node API which heretofore stored names as strings to be easily transitioned
+    // over to identifiers
+    explicit identifier(std::string&& str);
+
+    // char const* calls string_view
+    identifier(char const* lit) : identifier(std::string_view(lit)) {}
 
     identifier& operator=(identifier const& rhs) = default;
     identifier& operator=(identifier&& rhs) noexcept = default;
@@ -39,6 +49,8 @@ namespace phlex::experimental {
 
     // check if empty
     bool empty() const noexcept { return content_.empty(); }
+    // get hash
+    std::size_t hash() const noexcept { return hash_; }
 
     // transitional access to contained string
     std::string const& trans_get_string() const noexcept { return content_; }
@@ -50,7 +62,7 @@ namespace phlex::experimental {
 
   private:
     std::string content_;
-    std::uint64_t hash_;
+    std::uint64_t hash_{hash_string("")};
   };
 
   // Identifier UDL

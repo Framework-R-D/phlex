@@ -47,15 +47,15 @@ TEST_CASE("Filter data map", "[filtering]")
 {
   using phlex::product_query;
   std::vector const data_products_to_cache{
-    product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "a"_id},
-    product_query{.creator = "input"_id, .layer = "spill"_id, .suffix = "b"_id}};
+    product_query{.creator = "input", .layer = "spill", .suffix = "a"},
+    product_query{.creator = "input", .layer = "spill", .suffix = "b"}};
   data_map data{data_products_to_cache};
 
   // Stores with the data products "a" and "b"
-  auto store_with_a = product_store::base("provide_a");
-  store_with_a->add_product("a", 1);
-  auto store_with_b = product_store::base("provide_b");
-  store_with_b->add_product("b", 2);
+  auto store_with_a = product_store::base(algorithm_name::create("input"));
+  store_with_a->add_product("input/a", 1);
+  auto store_with_b = product_store::base(algorithm_name::create("input"));
+  store_with_b->add_product("input/b", 2);
 
   std::size_t const msg_id{1};
   CHECK(not data.is_complete(msg_id));

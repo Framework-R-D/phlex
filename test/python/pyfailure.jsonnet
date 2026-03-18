@@ -13,7 +13,7 @@
   modules: {
     pyadd: {
       py: 'adder',
-      //input: ['i', 'j'],   # commented out to cause a failure
+      //input: [...],   # commented out to cause a failure
       output: ['sum'],
     },
   },

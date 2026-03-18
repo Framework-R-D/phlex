@@ -22,12 +22,13 @@
 #include "test/products_for_output.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+#include "fmt/chrono.h"
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
 #include <atomic>
+#include <chrono>
 #include <cmath>
-#include <ctime>
 #include <string>
 
 using namespace phlex;
@@ -64,19 +65,14 @@ namespace {
     return std::sqrt(static_cast<double>(data.total) / data.number);
   }
 
-  std::string strtime(std::time_t tm)
+  std::string strtime(std::chrono::system_clock::time_point tp)
   {
-    char buffer[32];
-    std::strncpy(buffer, std::ctime(&tm), 26);
-    return buffer;
+    return fmt::format("{:%a %b %d %H:%M:%S %Y}", tp);
   }
 
   void print_result(handle<double> result, std::string const& stringized_time)
   {
-    spdlog::debug("{}: {} @ {}",
-                  result.data_cell_index().to_string(),
-                  *result,
-                  stringized_time.substr(0, stringized_time.find('\n')));
+    spdlog::debug("{}: {} @ {}", result.data_cell_index().to_string(), *result, stringized_time);
   }
 }
 
@@ -89,11 +85,11 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_time",
-            [](data_cell_index const& index) -> std::time_t {
+            [](data_cell_index const& index) {
               spdlog::info("Providing time for {}", index.to_string());
-              return std::time(nullptr);
+              return std::chrono::system_clock::now();
             })
-    .output_product(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "time"_id});
+    .output_product(product_query{.creator = "input", .layer = "run", .suffix = "time"});
 
   g.provide("provide_number",
             [](data_cell_index const& index) -> unsigned int {
@@ -101,30 +97,27 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               auto const run_number = index.parent()->number();
               return event_number + run_number;
             })
-    .output_product(
-      product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id});
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "run"_id, .suffix = "time"_id})
+    .input_family(product_query{.creator = "input", .layer = "run", .suffix = "time"})
     .experimental_when()
     .output_products("strtime");
   g.transform("square", square, concurrency::unlimited)
-    .input_family(product_query{.creator = "input"_id, .layer = "event"_id, .suffix = "number"_id})
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
     .output_products("squared_number");
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
-    .input_family(
-      product_query{.creator = "square"_id, .layer = "event"_id, .suffix = "squared_number"_id})
+    .input_family(product_query{.creator = "square", .layer = "event", .suffix = "squared_number"})
     .experimental_when()
     .output_products("added_data");
 
   g.transform("scale", scale, concurrency::unlimited)
-    .input_family(product_query{.creator = "add"_id, .layer = "run"_id, .suffix = "added_data"_id})
+    .input_family(product_query{.creator = "add", .layer = "run", .suffix = "added_data"})
     .output_products("result");
   g.observe("print_result", print_result, concurrency::unlimited)
-    .input_family(
-      product_query{.creator = "scale"_id, .layer = "run"_id, .suffix = "result"_id},
-      product_query{.creator = "get_the_time"_id, .layer = "run"_id, .suffix = "strtime"_id});
+    .input_family(product_query{.creator = "scale", .layer = "run", .suffix = "result"},
+                  product_query{.creator = "get_the_time", .layer = "run", .suffix = "strtime"});
 
   g.make<experimental::test::products_for_output>()
     .output("save", &experimental::test::products_for_output::save)

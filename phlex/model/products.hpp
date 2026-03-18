@@ -33,30 +33,29 @@ namespace phlex::experimental {
   };
 
   class products {
-    using collection_t = std::unordered_map<std::string, std::unique_ptr<product_base>>;
+    using collection_t = std::unordered_map<product_specification, std::unique_ptr<product_base>>;
 
   public:
     using const_iterator = collection_t::const_iterator;
     using size_type = collection_t::size_type;
 
     template <typename T>
-    void add(std::string const& product_name, T t)
+    void add(product_specification const& spec, T t)
     {
-      products_.emplace(product_name,
-                        std::make_unique<product<std::remove_cvref_t<T>>>(std::move(t)));
+      products_.emplace(spec, std::make_unique<product<std::remove_cvref_t<T>>>(std::move(t)));
     }
 
     template <typename T>
-    void add(std::string const& product_name, std::unique_ptr<product<T>> t)
+    void add(product_specification const& spec, std::unique_ptr<product<T>> t)
     {
-      products_.emplace(product_name, std::move(t));
+      products_.emplace(spec, std::move(t));
     }
 
     template <typename Ts>
     void add_all(product_specifications const& names, Ts ts)
     {
       assert(names.size() == 1ull);
-      add(names[0].name(), std::move(ts));
+      add(names[0], std::move(ts));
     }
 
     template <typename... Ts>
@@ -64,16 +63,16 @@ namespace phlex::experimental {
     {
       assert(names.size() == sizeof...(Ts));
       [this, &names]<std::size_t... Is>(auto tuple, std::index_sequence<Is...>) {
-        (this->add(names[Is].name(), std::move(std::get<Is>(tuple))), ...);
+        (this->add(names[Is], std::move(std::get<Is>(tuple))), ...);
       }(std::move(ts), std::index_sequence_for<Ts...>{});
     }
 
     template <typename T>
-    T const& get(std::string const& product_name) const
+    T const& get(product_specification const& spec) const
     {
-      auto it = products_.find(product_name);
+      auto it = products_.find(spec);
       if (it == cend(products_)) {
-        throw std::runtime_error("No product exists with the name '" + product_name + "'.");
+        throw std::runtime_error(fmt::format("No product exists with the name '{}'.", spec.full()));
       }
 
       auto const* available_product = it->second.get();
@@ -82,17 +81,17 @@ namespace phlex::experimental {
         return desired_product->obj;
       }
 
-      throw_mismatched_type(product_name, typeid(T).name(), available_product->type().name());
+      throw_mismatched_type(spec, typeid(T).name(), available_product->type().name());
     }
 
-    bool contains(std::string const& product_name) const;
+    bool contains(product_specification const& spec) const;
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
     size_type size() const noexcept;
     bool empty() const noexcept;
 
   private:
-    static void throw_mismatched_type [[noreturn]] (std::string const& product_name,
+    static void throw_mismatched_type [[noreturn]] (product_specification const& spec,
                                                     char const* requested_type,
                                                     char const* available_type);
 

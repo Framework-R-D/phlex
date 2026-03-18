@@ -1,0 +1,159 @@
+name: "Workflow Setup"
+description: "Handles ref resolution, environment detection, and change detection in a single step."
+inputs:
+  mode:
+    description: "Workflow mode ('check' or 'fix')"
+    required: false
+    default: "check"
+  ref:
+    description: "Manual ref override"
+    required: false
+  repo:
+    description: "Manual repo override"
+    required: false
+  pr-base-sha:
+    description: "Manual base SHA override (check mode only)"
+    required: false
+  checkout-path:
+    description: "Manual checkout path override"
+    required: false
+  build-path:
+    description: "Manual build path override"
+    required: false
+  file-type:
+    description: "File type for change detection (e.g., cpp, python)"
+    required: false
+  include-globs:
+    description: "Include globs for change detection"
+    required: false
+  exclude-globs:
+    description: "Exclude globs for change detection"
+    required: false
+  head-ref:
+    description: "Explicit head ref for change detection (overrides the resolved ref)"
+    required: false
+
+outputs:
+  is_act:
+    description: "Whether running in act"
+    value: ${{ steps.prepare.outputs.is_act }}
+  ref:
+    description: "Resolved ref"
+    value: ${{ steps.prepare.outputs.ref }}
+  repo:
+    description: "Resolved repository"
+    value: ${{ steps.prepare.outputs.repo }}
+  base_sha:
+    description: "Resolved base SHA"
+    value: ${{ steps.prepare.outputs.base_sha }}
+  pr_number:
+    description: "PR number"
+    value: ${{ steps.prepare.outputs.pr_number }}
+  checkout_path:
+    description: "Resolved checkout path"
+    value: ${{ steps.prepare.outputs.checkout_path }}
+  build_path:
+    description: "Resolved build path"
+    value: ${{ steps.prepare.outputs.build_path }}
+  has_changes:
+    description: "Whether relevant changes were detected"
+    value: ${{ steps.changes.outputs.has_changes }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare basic outputs (check mode)
+      if: inputs.mode == 'check'
+      id: prepare_check
+      uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@main
+      with:
+        ref: ${{ inputs.ref }}
+        repo: ${{ inputs.repo }}
+        pr-base-sha: ${{ inputs.pr-base-sha }}
+        checkout-path: ${{ inputs.checkout-path }}
+        build-path: ${{ inputs.build-path }}
+
+    - name: Prepare basic outputs (fix mode)
+      if: inputs.mode == 'fix'
+      id: prepare_fix
+      uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@main
+      with:
+        ref: ${{ inputs.ref }}
+        repo: ${{ inputs.repo }}
+        checkout-path: ${{ inputs.checkout-path }}
+
+    - name: Standardize outputs
+      id: prepare
+      shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_BUILD_PATH: ${{ inputs.build-path }}
+        CHECK_IS_ACT: ${{ steps.prepare_check.outputs.is_act }}
+        CHECK_REF: ${{ steps.prepare_check.outputs.ref }}
+        CHECK_REPO: ${{ steps.prepare_check.outputs.repo }}
+        CHECK_BASE_SHA: ${{ steps.prepare_check.outputs.base_sha }}
+        CHECK_PR_NUMBER: ${{ steps.prepare_check.outputs.pr_number }}
+        CHECK_CHECKOUT_PATH: ${{ steps.prepare_check.outputs.checkout_path }}
+        CHECK_BUILD_PATH: ${{ steps.prepare_check.outputs.build_path }}
+        FIX_REF: ${{ steps.prepare_fix.outputs.ref }}
+        FIX_REPO: ${{ steps.prepare_fix.outputs.repo }}
+        FIX_CHECKOUT_PATH: ${{ steps.prepare_fix.outputs.checkout_path }}
+      run: |
+        if [ "${INPUT_MODE}" == "check" ]; then
+          echo "is_act=${CHECK_IS_ACT}" >> "$GITHUB_OUTPUT"
+          echo "ref=${CHECK_REF}" >> "$GITHUB_OUTPUT"
+          echo "repo=${CHECK_REPO}" >> "$GITHUB_OUTPUT"
+          echo "base_sha=${CHECK_BASE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "pr_number=${CHECK_PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "checkout_path=${CHECK_CHECKOUT_PATH}" >> "$GITHUB_OUTPUT"
+          echo "build_path=${CHECK_BUILD_PATH}" >> "$GITHUB_OUTPUT"
+        else
+          echo "is_act=false" >> "$GITHUB_OUTPUT"
+          echo "ref=${FIX_REF}" >> "$GITHUB_OUTPUT"
+          echo "repo=${FIX_REPO}" >> "$GITHUB_OUTPUT"
+          echo "base_sha=" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$(jq -r '.issue.number // empty' "${GITHUB_EVENT_PATH}")" >> "$GITHUB_OUTPUT"
+          echo "checkout_path=${FIX_CHECKOUT_PATH}" >> "$GITHUB_OUTPUT"
+          REPO_NAME="${FIX_CHECKOUT_PATH%-src}"
+          BUILD_PATH="${INPUT_BUILD_PATH}"
+          if [ -z "$BUILD_PATH" ]; then
+            BUILD_PATH="${REPO_NAME}-build"
+          fi
+          echo "build_path=$BUILD_PATH" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Run change detection
+      id: detect
+      if: (inputs.file-type != '' || inputs.include-globs != '') && steps.prepare.outputs.is_act != 'true'
+      uses: Framework-R-D/phlex/.github/actions/run-change-detection@main
+      with:
+        checkout-path: ${{ steps.prepare.outputs.checkout_path }}
+        ref: ${{ steps.prepare.outputs.ref }}
+        repo: ${{ steps.prepare.outputs.repo }}
+        base-ref: ${{ steps.prepare.outputs.base_sha }}
+        file-type: ${{ inputs.file-type }}
+        include-globs: ${{ inputs.include-globs }}
+        exclude-globs: ${{ inputs.exclude-globs }}
+        head-ref: ${{ inputs.head-ref }}
+
+    - name: Set has_changes output
+      id: changes
+      shell: bash
+      env:
+        IS_ACT: ${{ steps.prepare.outputs.is_act }}
+        INPUT_FILE_TYPE: ${{ inputs.file-type }}
+        INPUT_INCLUDE_GLOBS: ${{ inputs.include-globs }}
+        DETECT_HAS_CHANGES: ${{ steps.detect.outputs.has_changes }}
+      run: |
+        if [ "${IS_ACT}" = "true" ] && \
+           ([ "${INPUT_FILE_TYPE}" != "" ] || [ "${INPUT_INCLUDE_GLOBS}" != "" ]); then
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        elif [ "${INPUT_FILE_TYPE}" = "" ] && [ "${INPUT_INCLUDE_GLOBS}" = "" ]; then
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        else
+          if [ -z "${DETECT_HAS_CHANGES}" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=${DETECT_HAS_CHANGES}" >> "$GITHUB_OUTPUT"
+          fi
+        fi

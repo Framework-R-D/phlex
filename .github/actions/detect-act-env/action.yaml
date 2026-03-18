@@ -1,5 +1,5 @@
 name: Detect act environment
-description: 'Detects if the workflow is running in the act environment'
+description: "Detects if the workflow is running in the act environment"
 outputs:
   is_act:
     description: "True if running in act, false otherwise"

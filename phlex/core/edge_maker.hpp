@@ -23,7 +23,7 @@
 namespace phlex::experimental {
   using namespace std::string_literals;
 
-  using product_name_t = std::string;
+  using product_name_t = identifier;
 
   index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
                                                            declared_providers& providers);

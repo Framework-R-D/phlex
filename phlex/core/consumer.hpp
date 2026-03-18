@@ -12,8 +12,8 @@ namespace phlex::experimental {
     consumer(algorithm_name name, std::vector<std::string> predicates);
 
     std::string full_name() const;
-    std::string const& plugin() const noexcept;
-    std::string const& algorithm() const noexcept;
+    identifier const& plugin() const noexcept;
+    identifier const& algorithm() const noexcept;
     std::vector<std::string> const& when() const noexcept;
 
   private:

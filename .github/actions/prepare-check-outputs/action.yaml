@@ -1,0 +1,107 @@
+name: "Prepare Check Outputs"
+description: "Determines environment and target refs for check workflows."
+inputs:
+  ref:
+    description: "Manual ref override"
+    required: false
+  repo:
+    description: "Manual repo override"
+    required: false
+  pr-base-sha:
+    description: "Manual base SHA override"
+    required: false
+  checkout-path:
+    description: "Manual checkout path override"
+    required: false
+  build-path:
+    description: "Manual build path override"
+    required: false
+outputs:
+  is_act:
+    description: "Whether running in act"
+    value: ${{ steps.detect_act.outputs.is_act }}
+  ref:
+    description: "The resolved ref"
+    value: ${{ steps.resolve.outputs.ref }}
+  repo:
+    description: "The resolved repository"
+    value: ${{ steps.resolve.outputs.repo }}
+  base_sha:
+    description: "The resolved base SHA for diffing"
+    value: ${{ steps.resolve.outputs.base_sha }}
+  pr_number:
+    description: "The PR number if available"
+    value: ${{ steps.resolve.outputs.pr_number }}
+  checkout_path:
+    description: "The resolved checkout path"
+    value: ${{ steps.resolve.outputs.checkout_path }}
+  build_path:
+    description: "The resolved build path"
+    value: ${{ steps.resolve.outputs.build_path }}
+runs:
+  using: "composite"
+  steps:
+    - name: Get PR Info
+      if: github.event_name == 'issue_comment'
+      id: get_pr
+      uses: Framework-R-D/phlex/.github/actions/get-pr-info@main
+
+    - name: Detect act environment
+      id: detect_act
+      uses: Framework-R-D/phlex/.github/actions/detect-act-env@main
+
+    - name: Resolve outputs
+      id: resolve
+      shell: bash
+      env:
+        INPUT_REF: ${{ inputs.ref }}
+        INPUT_REPO: ${{ inputs.repo }}
+        INPUT_PR_BASE_SHA: ${{ inputs.pr-base-sha }}
+        INPUT_CHECKOUT_PATH: ${{ inputs.checkout-path }}
+        INPUT_BUILD_PATH: ${{ inputs.build-path }}
+        GET_PR_REF: ${{ steps.get_pr.outputs.ref }}
+        GET_PR_REPO: ${{ steps.get_pr.outputs.repo }}
+        GET_PR_BASE_SHA: ${{ steps.get_pr.outputs.base_sha }}
+      run: |
+        REF="${INPUT_REF}"
+        REPO="${INPUT_REPO}"
+        BASE_SHA="${INPUT_PR_BASE_SHA}"
+        PR_NUMBER=""
+
+        if [ "${GITHUB_EVENT_NAME}" == "pull_request" ]; then
+          REF="${REF:-${GITHUB_SHA}}"
+          BASE_SHA="${BASE_SHA:-$(jq -r '.pull_request.base.sha // empty' "${GITHUB_EVENT_PATH}")}"
+          PR_NUMBER="$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}")"
+        elif [ "${GITHUB_EVENT_NAME}" == "issue_comment" ]; then
+          REF="${REF:-${GET_PR_REF}}"
+          REPO="${REPO:-${GET_PR_REPO}}"
+          BASE_SHA="${BASE_SHA:-${GET_PR_BASE_SHA}}"
+          PR_NUMBER="$(jq -r '.issue.number // empty' "${GITHUB_EVENT_PATH}")"
+        elif [ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]; then
+          REF="${REF:-$(jq -r '.inputs.ref // empty' "${GITHUB_EVENT_PATH}")}"
+          REF="${REF:-${GITHUB_REF}}"
+          BASE_SHA="${BASE_SHA:-$(jq -r '.before // empty' "${GITHUB_EVENT_PATH}")}"
+        else
+          REF="${REF:-${GITHUB_SHA}}"
+          BASE_SHA="${BASE_SHA:-$(jq -r '.before // empty' "${GITHUB_EVENT_PATH}")}"
+        fi
+
+        REPO="${REPO:-${GITHUB_REPOSITORY}}"
+        REPO_NAME="${REPO##*/}"
+
+        CHECKOUT_PATH="${INPUT_CHECKOUT_PATH}"
+        if [ -z "$CHECKOUT_PATH" ]; then
+          CHECKOUT_PATH="${REPO_NAME}-src"
+        fi
+
+        BUILD_PATH="${INPUT_BUILD_PATH}"
+        if [ -z "$BUILD_PATH" ]; then
+          BUILD_PATH="${REPO_NAME}-build"
+        fi
+
+        echo "ref=$REF" >> "$GITHUB_OUTPUT"
+        echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+        echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+        echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+        echo "checkout_path=$CHECKOUT_PATH" >> "$GITHUB_OUTPUT"
+        echo "build_path=$BUILD_PATH" >> "$GITHUB_OUTPUT"
