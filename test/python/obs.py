@@ -37,12 +37,12 @@ def observe_three(i: int, j: int, k: int) -> None:
     assert j == 2
     assert k == 3
 
-def observe_four(i: int, j: int, k: int, l: int) -> None:
+def observe_four(i: int, j: int, k: int, ll: int) -> None:
     """Observe (i, j, k, l); expect (1, 2, 3, 4)."""
     assert i == 1
     assert j == 2
     assert k == 3
-    assert l == 4
+    assert ll == 4
 
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
@@ -106,7 +106,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
            {"creator": "constant_four", "layer": "event"},
            ])
         assert not "supposed to be here"
-    except TypeError as e:
+    except TypeError:
         pass # noqa
 
     # observers with suffix
