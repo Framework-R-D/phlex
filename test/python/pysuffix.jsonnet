@@ -11,8 +11,8 @@
     },
   },
   modules: {
-    pyobservers: {
-      py: 'obs',
+    pysuffix: {
+      py: 'suffix',
     },
   },
 }
