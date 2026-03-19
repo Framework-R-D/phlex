@@ -177,6 +177,9 @@ target_link_libraries(cppsource4py PRIVATE phlex::module)
 add_test(NAME py:add COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
 
+add_test(NAME py:suffix COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pysuffix.jsonnet)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:suffix)
+
 add_test(NAME py:config COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 
