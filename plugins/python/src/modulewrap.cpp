@@ -241,7 +241,7 @@ namespace {
       PyObject* pys = PyDict_GetItemString(item, "suffix");
       if (pys) {
         if (!PyUnicode_Check(pys)) {
-          PyErr_Format(PyExc_ValueError, "provided \"suffix\" is not a string");
+          PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
           break;
         }
         s = identifier(PyUnicode_AsUTF8(pys));
