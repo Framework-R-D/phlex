@@ -19,7 +19,7 @@
 // followed by the intended call, and another from Python -> C++.
 //
 // Since product_query inputs, list the creator name, the suffix can remain
-// the same through out the chain (as does the layer), distinguishing the
+// the same throughout the chain (as does the layer), distinguishing the
 // stage with the creator name (and thus the node names) only.
 //
 // The chain is as follows (last step not added for observers):
@@ -32,6 +32,10 @@
 //  Python -> C++:   creator: py_<name>
 //                   name:    <name>
 //                   output:  <output>
+//
+// For now, each input will have its own converter, even if multiple nodes
+// need that same input translated. This simplifies memory management, but
+// can cause a performance bottleneck (since all require the GIL).
 
 using namespace phlex::experimental;
 using phlex::concurrency;
@@ -225,14 +229,14 @@ namespace {
 
       PyObject* pyc = PyDict_GetItemString(item, "creator");
       if (!pyc || !PyUnicode_Check(pyc)) {
-        PyErr_Format(PyExc_ValueError, "missing \"creator\" for input specification");
+        PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
         break;
       }
       char const* c = PyUnicode_AsUTF8(pyc);
 
       PyObject* pyl = PyDict_GetItemString(item, "layer");
       if (!pyl || !PyUnicode_Check(pyl)) {
-        PyErr_Format(PyExc_ValueError, "missing \"layer\" for input specification");
+        PyErr_Format(PyExc_TypeError, "missing \"layer\" or not a string");
         break;
       }
       char const* l = PyUnicode_AsUTF8(pyl);

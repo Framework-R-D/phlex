@@ -58,6 +58,19 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
+    # tests for error handling of input specifications
+    for input_query in ({"creator": 42, "layer": "event", "suffix": "i"},
+                        {"creator": "input", "layer": 42, "suffix": "i"},
+                        {"layer": "event", "suffix": "i"},
+                        {"creator": "input", "suffix": "i"}):
+        try:
+            m.transform(constant_one, input_family=[input_query], output_products=["output_one"])
+            assert not "supposed to be here"
+        except TypeError as e:
+            # test for the one generic part in all these errors
+            assert "or not a string" in str(e)
+
+    # transforms with suffix to be used without suffix
     m.transform(constant_one, input_family=[
        {"creator": "input", "layer": "event", "suffix": "i"},
        ],
