@@ -1,0 +1,76 @@
+name: Run selected pre-commit hooks
+description: Run formatting, validation, or unit-test hooks from the shared configuration
+inputs:
+  category:
+    description: Hook category (formatting, validation, or tests)
+    required: true
+  from-ref:
+    description: Optional base revision for changed-file checks
+    default: ""
+  to-ref:
+    description: Optional head revision for changed-file checks
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Install pre-commit
+      shell: bash
+      run: python -m pip install pre-commit
+
+    - name: Select and run hooks
+      shell: bash
+      env:
+        HOOK_CATEGORY: ${{ inputs.category }}
+        FROM_REF: ${{ inputs.from-ref }}
+        TO_REF: ${{ inputs.to-ref }}
+      run: |
+        config=$(mktemp "$RUNNER_TEMP/pre-commit.XXXXXX.yaml")
+        trap 'rm -f "$config"' EXIT
+        python - "$config" <<'PY'
+        import os
+        import sys
+
+        import yaml
+
+        formatting = {
+            "trailing-whitespace", "end-of-file-fixer", "mixed-line-ending",
+            "clang-format", "gersemi", "fix-header-guards", "jsonnet-format",
+            "markdownlint-cli2", "ruff", "ruff-format", "prettier",
+        }
+        tests = {"scripts-unit-tests"}
+        category = os.environ["HOOK_CATEGORY"]
+        if category not in {"formatting", "validation", "tests"}:
+            raise SystemExit(f"Unknown hook category: {category}")
+        with open(".pre-commit-config.yaml") as source:
+            config = yaml.safe_load(source)
+        configured = {hook["id"] for repo in config["repos"] for hook in repo["hooks"]}
+        missing = (formatting | tests) - configured
+        if missing:
+            raise SystemExit(f"Missing configured hooks: {sorted(missing)}")
+        selected = {
+            "formatting": formatting,
+            "validation": configured - formatting - tests,
+            "tests": tests,
+        }[category]
+        repos = []
+        for repo in config["repos"]:
+            hooks = [hook for hook in repo["hooks"] if hook["id"] in selected]
+            for hook in hooks:
+                if hook["id"] == "mypy":
+                    hook["args"] = [*hook.get("args", []), "."]
+                    hook["pass_filenames"] = False
+                    hook["always_run"] = True
+            if hooks:
+                repos.append({**repo, "hooks": hooks})
+        config["repos"] = repos
+        with open(sys.argv[1], "w") as destination:
+            yaml.safe_dump(config, destination)
+        PY
+        args=(--all-files)
+        if [[ -n "$FROM_REF" && -n "$TO_REF" ]]; then
+          args=(--from-ref "$FROM_REF" --to-ref "$TO_REF")
+        elif [[ -n "$FROM_REF" || -n "$TO_REF" ]]; then
+          echo "::error::Both from-ref and to-ref are required for changed-file checks"
+          exit 1
+        fi
+        python -m pre_commit run --config "$config" "${args[@]}" --show-diff-on-failure
