@@ -35,6 +35,7 @@ namespace phlex::experimental {
   public:
     explicit framework_graph(int max_parallelism = oneapi::tbb::info::default_concurrency());
     explicit framework_graph(detail::next_index_t f,
+                             fixed_hierarchy hierarchy = {},
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
 
@@ -155,6 +156,8 @@ namespace phlex::experimental {
     std::map<std::string, filter> filters_{};
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
+    fixed_hierarchy hierarchy_constraint_{};
+    detail::validator_t validator_;
     framework_driver driver_;
     std::vector<std::string> registration_errors_{};
     tbb::flow::input_node<data_cell_index_ptr> src_;

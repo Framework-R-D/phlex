@@ -1,4 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/driver.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
@@ -27,6 +28,8 @@ namespace {
   private:
     unsigned const max_;
   };
+
+  experimental::fixed_hierarchy const flat_event_hierarchy{{{"event"}}};
 
   // Provider algorithms
   unsigned int give_me_nums(data_cell_index const& id) { return id.number() - 1; }
@@ -101,7 +104,7 @@ namespace {
 
 TEST_CASE("Two predicates", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}, flat_event_hierarchy};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -125,7 +128,7 @@ TEST_CASE("Two predicates", "[filtering]")
 
 TEST_CASE("Two predicates in series", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}, flat_event_hierarchy};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -145,7 +148,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
 
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}, flat_event_hierarchy};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -173,7 +176,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
                                         {.name = "exclude_6_to_7", .begin = 6, .end = 7},
                                         {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
-  experimental::framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}, flat_event_hierarchy};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   for (auto const& [name, b, e] : configs) {
@@ -197,7 +200,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::framework_graph g{source{10u}, flat_event_hierarchy};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)

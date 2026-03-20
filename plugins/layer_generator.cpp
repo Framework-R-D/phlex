@@ -18,13 +18,15 @@ namespace phlex::experimental {
 
   fixed_hierarchy layer_generator::hierarchy() const
   {
+    using layer_path_t = std::vector<std::string>;
     return fixed_hierarchy{layer_paths_ | std::views::transform([](auto const& path) {
                              return path | std::views::split('/') |
                                     std::views::filter([](auto t) { return !t.empty(); }) |
                                     std::views::transform(
                                       [](auto t) { return std::string(t.begin(), t.end()); }) |
-                                    std::ranges::to<std::vector<std::string>>();
-                           })};
+                                    std::ranges::to<layer_path_t>();
+                           }) |
+                           std::ranges::to<std::vector<layer_path_t>>()};
   }
 
   std::size_t layer_generator::emitted_cell_count(std::string layer_path) const

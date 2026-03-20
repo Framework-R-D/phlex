@@ -18,7 +18,8 @@ namespace phlex::experimental {
   void run(boost::json::object const& configurations, int const max_parallelism)
   {
     auto const driver_config = object_decorate_exception(configurations, "driver");
-    framework_graph g{load_driver(driver_config), max_parallelism};
+    auto [driver, hierarchy] = load_driver(driver_config);
+    framework_graph g{std::move(driver), std::move(hierarchy), max_parallelism};
 
     // It is allowed for users to not specify any modules
     boost::json::object module_configs;

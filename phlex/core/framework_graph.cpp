@@ -14,24 +14,29 @@
 
 namespace phlex::experimental {
   framework_graph::framework_graph(int const max_parallelism) :
-    framework_graph{[](framework_driver& driver) { driver.yield(data_cell_index::job()); },
-                    max_parallelism}
+    framework_graph{
+      [](framework_driver& driver) { driver.yield(data_cell_index::job()); }, {}, max_parallelism}
   {
   }
 
-  framework_graph::framework_graph(detail::next_index_t next_index, int const max_parallelism) :
+  framework_graph::framework_graph(detail::next_index_t f,
+                                   fixed_hierarchy hierarchy,
+                                   int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
-    driver_{std::move(next_index)},
+    hierarchy_constraint_{std::move(hierarchy)},
+    validator_{hierarchy_constraint_.validator()},
+    driver_{std::move(f)},
     src_{graph_,
          [this](tbb::flow_control& fc) mutable -> data_cell_index_ptr {
-           auto item = driver_();
-           if (not item) {
-             index_router_.drain();
-             fc.stop();
-             return {};
+           if (auto item = driver_()) {
+             if (validator_) {
+               validator_(**item);
+             }
+             return index_router_.route(*item);
            }
-
-           return index_router_.route(*item);
+           index_router_.drain();
+           fc.stop();
+           return {};
          }},
     index_router_{graph_},
     hierarchy_node_{graph_,
@@ -176,5 +181,4 @@ namespace phlex::experimental {
       make_edge(node->output_index_port(), hierarchy_node_);
     }
   }
-
 }

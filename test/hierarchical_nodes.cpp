@@ -82,7 +82,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   gen.add_layer("run", {"job", index_limit});
   gen.add_layer("event", {"run", number_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
 
   g.provide("provide_time",
             [](data_cell_index const& index) {

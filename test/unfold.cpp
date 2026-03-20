@@ -94,7 +94,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   experimental::layer_generator gen;
   gen.add_layer("event", {"job", index_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "max_number"});

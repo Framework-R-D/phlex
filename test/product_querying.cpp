@@ -30,7 +30,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
   constexpr int num_events = 25;
   experimental::layer_generator gen;
   gen.add_layer("event", {.parent_layer_name = "job", .total_per_parent_data_cell = num_events});
-  experimental::framework_graph g{driver_for_test(gen)};
+  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
 
   // Register providers
   g.provide("provide_number_in_job", provide_number, concurrency::unlimited)

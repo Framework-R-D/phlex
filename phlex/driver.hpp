@@ -33,6 +33,7 @@ namespace phlex::experimental {
 
 namespace phlex::experimental::detail {
   using next_index_t = std::function<void(framework_driver&)>;
+  using validator_t = std::function<void(data_cell_index const&)>;
   using driver_creator_t = void(driver_proxy&, configuration const&);
 }
 
@@ -41,13 +42,11 @@ namespace phlex::experimental {
   public:
     fixed_hierarchy() = default;
 
-    template <std::ranges::input_range R>
-      requires std::same_as<std::ranges::range_value_t<R>, std::vector<std::string>>
-    explicit fixed_hierarchy(R&& r)
+    explicit fixed_hierarchy(std::vector<std::vector<std::string>> layer_paths)
     {
       identifier const job{"job"};
       std::set<std::size_t> hashes{job.hash()};
-      for (std::vector<std::string> const& path : r) {
+      for (std::vector<std::string> const& path : layer_paths) {
         bool const has_job_prefix = !path.empty() && path[0] == "job";
         std::size_t cumulative_hash = job.hash();
         std::size_t i_start = 0;
@@ -63,8 +62,17 @@ namespace phlex::experimental {
       layer_hashes_.assign(hashes.begin(), hashes.end());
     }
 
+    auto validator() const
+    {
+      return [this](data_cell_index const& index) { validate(index); };
+    }
+
+  private:
     void validate(data_cell_index const& index) const
     {
+      if (layer_hashes_.empty()) {
+        return;
+      }
       if (std::ranges::binary_search(layer_hashes_, index.layer_hash())) {
         return;
       }
@@ -72,7 +80,6 @@ namespace phlex::experimental {
         fmt::format("Layer {} is not part of the fixed hierarchy.", index.to_string()));
     }
 
-  private:
     std::vector<std::size_t> layer_hashes_;
   };
 
@@ -84,6 +91,8 @@ namespace phlex::experimental {
       driver_ = std::move(f);
     }
 
+    fixed_hierarchy release_hierarchy() { return std::move(hierarchy_); }
+
     detail::next_index_t release()
     {
       assert(driver_ && "No driver has been registered via driver()");
@@ -93,6 +102,13 @@ namespace phlex::experimental {
   private:
     fixed_hierarchy hierarchy_;
     detail::next_index_t driver_;
+  };
+}
+
+namespace phlex::experimental::detail {
+  struct driver_with_validator {
+    next_index_t driver;
+    fixed_hierarchy hierarchy;
   };
 }
 

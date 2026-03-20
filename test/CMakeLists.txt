@@ -233,6 +233,7 @@ cet_test(
   LIBRARIES
   spdlog::spdlog
   phlex::core
+  layer_generator
 )
 cet_test(
   unfold
