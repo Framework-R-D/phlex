@@ -17,7 +17,7 @@ namespace {
 
     void operator()(framework_driver& driver)
     {
-      auto job_index = driver.yield(data_cell_index::base_ptr());
+      auto job_index = driver.yield(data_cell_index::job());
 
       for (unsigned int i : std::views::iota(1u, max_ + 1)) {
         driver.yield(job_index->make_child("event", i));

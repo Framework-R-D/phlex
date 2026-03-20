@@ -69,7 +69,7 @@ namespace phlex::experimental {
         return;
       }
       throw std::runtime_error(
-        fmt::format("Layer hash {} is not part of the fixed hierarchy.", index.layer_hash()));
+        fmt::format("Layer {} is not part of the fixed hierarchy.", index.to_string()));
     }
 
   private:

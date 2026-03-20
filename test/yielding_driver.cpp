@@ -16,7 +16,7 @@ void cells_to_process(experimental::async_driver<data_cell_index_ptr>& d)
   unsigned int const num_subruns = 2;
   unsigned int const num_spills = 3;
 
-  auto job_index = d.yield(data_cell_index::base_ptr());
+  auto job_index = d.yield(data_cell_index::job());
   for (unsigned int r : std::views::iota(0u, num_runs)) {
     auto run_index = d.yield(job_index->make_child("run", r));
     for (unsigned int sr : std::views::iota(0u, num_subruns)) {
