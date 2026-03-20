@@ -13,7 +13,7 @@ repos:
       - id: check-executables-have-shebangs
       - id: mixed-line-ending
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.6
+    rev: v0.15.7
     hooks:
       - id: ruff-format
         types_or: [python, pyi]
@@ -30,11 +30,11 @@ repos:
         language: system
         files: \.(h|hpp)$
   - repo: https://github.com/BlankSpruce/gersemi
-    rev: 0.26.0
+    rev: 0.26.1
     hooks:
       - id: gersemi
   - repo: https://github.com/google/go-jsonnet
-    rev: v0.21.0
+    rev: v0.22.0-rc1
     hooks:
       - id: jsonnet-format
       - id: jsonnet-lint
