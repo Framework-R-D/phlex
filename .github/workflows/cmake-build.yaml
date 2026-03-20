@@ -218,9 +218,8 @@ jobs:
   cmake-build-skipped:
     needs: [setup]
     if: >
-      needs.setup.result == 'success' && github.event_name != 'workflow_dispatch' &&
-      !inputs.skip-relevance-check && needs.setup.outputs.is_act != 'true' &&
-      needs.setup.outputs.has_changes != 'true'
+      needs.setup.result == 'success' && github.event_name != 'workflow_dispatch' && !inputs.skip-relevance-check &&
+      needs.setup.outputs.is_act != 'true' && needs.setup.outputs.has_changes != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
