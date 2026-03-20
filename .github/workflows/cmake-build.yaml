@@ -21,7 +21,7 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
           - `all` (run all combinations)
           - `all -clang/none -clang/valgrind` (run all except specified)
           - `+clang/none +clang/valgrind` (run default matrix plus specified)
-          Default (if empty): Run all except clang/none and clang/valgrind.
+          Default (if empty): Run `gcc/none`
         required: false
         default: ""
   workflow_call:
@@ -109,7 +109,12 @@ jobs:
 
   generate-matrix:
     needs: setup
-    if: needs.setup.result == 'success'
+    if: >
+      needs.setup.result == 'success' && (
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
+      )
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.generate.outputs.matrix }}
@@ -179,11 +184,9 @@ jobs:
 
       - name: Run tests
         if: matrix.sanitizer != 'valgrind'
-        env:
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        working-directory: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running tests..."
           echo "::group::Running ctest"
@@ -198,11 +201,9 @@ jobs:
 
       - name: Run Valgrind tests
         if: matrix.sanitizer == 'valgrind'
-        env:
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        working-directory: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
 
           echo "➡️ Running Valgrind tests..."
           echo "::group::Running ctest -T memcheck"
@@ -213,6 +214,20 @@ jobs:
             echo "::endgroup::"
             echo "⚠️ Valgrind tests failed, but the workflow will continue."
           fi
+
+  cmake-build-skipped:
+    needs: [setup]
+    if: >
+      needs.setup.result == 'success' && github.event_name != 'workflow_dispatch' &&
+      !inputs.skip-relevance-check && needs.setup.outputs.is_act != 'true' &&
+      needs.setup.outputs.has_changes != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: No relevant C++ or CMake changes detected
+        run: echo "::notice::No relevant C++ or CMake changes detected; build skipped."
 
   build-complete:
     needs: [setup, build]
@@ -233,7 +248,7 @@ jobs:
             **Result:** ${{ needs.build.result == 'success' && '✅ All builds and tests passed.'
               || needs.build.result == 'failure' && '❌ Some builds or tests failed.'
               || needs.build.result == 'cancelled' && '⚠️ Build was cancelled before completion.'
-              || needs.build.result == 'skipped' && 'ℹ️ Build job was skipped.'
+              || needs.build.result == 'skipped' && 'ℹ️ No relevant C++ or CMake changes detected; build skipped.'
               || format('ℹ️ Build job completed with status: {0}.', needs.build.result) }}
 
             See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.

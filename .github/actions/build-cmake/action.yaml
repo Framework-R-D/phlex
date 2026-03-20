@@ -23,10 +23,10 @@ runs:
   using: "composite"
   steps:
     - shell: bash
+      working-directory: ${{ inputs.build-path }}
       run: |
         # Source the container entrypoint script
         . /entrypoint.sh
-        cd "$GITHUB_WORKSPACE/$BUILD_PATH"
 
         # Determine parallel jobs
         if [ -n "$PARALLEL_JOBS" ]; then
@@ -47,8 +47,6 @@ runs:
         # Build
         cmake --build . $jobs_arg $target_arg
       env:
-        SOURCE_PATH: ${{ inputs.source-path }}
-        BUILD_PATH: ${{ inputs.build-path }}
         TARGET: ${{ inputs.target }}
         PARALLEL_JOBS: ${{ inputs.parallel-jobs }}
         CICOLOR_FORCE: 1

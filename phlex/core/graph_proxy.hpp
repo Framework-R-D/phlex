@@ -84,9 +84,11 @@ namespace phlex::experimental {
     auto unfold(std::string name,
                 is_predicate_like auto pred,
                 auto unf,
+                std::string destination_data_layer,
                 concurrency c = concurrency::serial)
     {
-      return create_glue(false).unfold(std::move(name), std::move(pred), std::move(unf), c);
+      return glue<Splitter>{graph_, nodes_, nullptr, errors_, config_}.unfold(
+        std::move(name), std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
     auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)

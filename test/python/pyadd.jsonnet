@@ -38,5 +38,15 @@
       ],
       sum_total: 1,
     },
+    pyverify_nosuff: {
+      py: 'verify',
+      input: [
+        {
+          creator: 'iadd',
+          layer: 'event',
+        },
+      ],
+      sum_total: 1,
+    },
   },
 }

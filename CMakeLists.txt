@@ -39,6 +39,39 @@ FetchContent_Declare(
   FIND_PACKAGE_ARGS
 )
 
+# ##############################################################################
+# Initial compilation flags for build types we care about. Setting these in the
+# cache before project() prevents CMake's per-compiler defaults from overwriting
+# them; using DEFINED CACHE{} respects any value the user has already placed in
+# the cache (e.g. via -D on the command line).
+if(NOT DEFINED CACHE{CMAKE_CXX_FLAGS_DEBUG})
+  set(
+    CMAKE_CXX_FLAGS_DEBUG
+    "-Og -g"
+    CACHE STRING
+    "Flags used by the CXX compiler during DEBUG builds."
+  )
+endif()
+
+if(NOT DEFINED CACHE{CMAKE_CXX_FLAGS_RELEASE})
+  set(
+    CMAKE_CXX_FLAGS_RELEASE
+    "-O3 -g0 -DNDEBUG"
+    CACHE STRING
+    "Flags used by the CXX compiler during RELEASE builds."
+  )
+endif()
+
+if(NOT DEFINED CACHE{CMAKE_CXX_FLAGS_RELWITHDEBINFO})
+  set(
+    CMAKE_CXX_FLAGS_RELWITHDEBINFO
+    "-O3 -fno-omit-frame-pointer -g -DNDEBUG"
+    CACHE STRING
+    "Flags used by the CXX compiler during RELWITHDEBINFO builds."
+  )
+endif()
+# ##############################################################################
+
 # Make cetmodules available
 FetchContent_MakeAvailable(cetmodules)
 find_package(cetmodules 4.01.01 REQUIRED)
@@ -49,8 +82,8 @@ project(phlex VERSION 0.1.0 LANGUAGES CXX)
 cet_cmake_env()
 # ##############################################################################
 
-# Set CI/test timeouts to a conservative value to avoid long stalls in CI.
-# Use cache variables so generated CTest/Dart files pick this up when configured.
+# Set CI/test timeouts to a conservative value to avoid long stalls in CI. Use
+# cache variables so generated CTest/Dart files pick this up when configured.
 set(DART_TESTING_TIMEOUT 90 CACHE STRING "Timeout (s) for Dart/CTest runs")
 set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
@@ -63,6 +96,26 @@ option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+option(ENABLE_BUILD_PROFILING "Enable monitoring of compile and link operations" OFF)
+
+# ##############################################################################
+# Enable collection of compile/link statistics.
+#
+# If lld is available but not default for the current toolset, then use
+# `-DCMAKE_LINKER_TYPE=LLD`
+if(ENABLE_BUILD_PROFILING)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CMAKE_COMMAND} -E time")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    add_compile_options("-ftime-trace")
+  endif()
+  if(CMAKE_CXX_COMPILER_LINKER_ID STREQUAL "LLD")
+    message(STATUS "LLD detected (Phlex build) - Enabling tracing")
+    add_link_options("-Wl,--time-trace")
+    add_link_options("-Wl,--print-archive-stats=-")
+  endif()
+endif()
+# ##############################################################################
 
 add_compile_options(
   -Wall

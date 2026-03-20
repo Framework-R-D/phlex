@@ -43,11 +43,11 @@ runs:
   using: "composite"
   steps:
     - shell: bash
+      working-directory: ${{ inputs.build-path }}
       run: |
         # Source the container entrypoint script
         . /entrypoint.sh
 
-        cd "$GITHUB_WORKSPACE/$BUILD_PATH"
         SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
         echo "Configuring with CMake preset: $PRESET"
 
@@ -80,7 +80,6 @@ runs:
         echo "C++ compiler: $CPP_COMPILER"
       env:
         SOURCE_PATH: ${{ inputs.source-path }}
-        BUILD_PATH: ${{ inputs.build-path }}
         EXTRA_OPTIONS: ${{ inputs.extra-options }}
         ENABLE_FORM: ${{ inputs.enable-form }}
         FORM_ROOT_STORAGE: ${{ inputs.form-root-storage }}

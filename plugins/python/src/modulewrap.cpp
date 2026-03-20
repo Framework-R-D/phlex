@@ -19,7 +19,7 @@
 // followed by the intended call, and another from Python -> C++.
 //
 // Since product_query inputs, list the creator name, the suffix can remain
-// the same through out the chain (as does the layer), distinguishing the
+// the same throughout the chain (as does the layer), distinguishing the
 // stage with the creator name (and thus the node names) only.
 //
 // The chain is as follows (last step not added for observers):
@@ -32,6 +32,10 @@
 //  Python -> C++:   creator: py_<name>
 //                   name:    <name>
 //                   output:  <output>
+//
+// For now, each input will have its own converter, even if multiple nodes
+// need that same input translated. This simplifies memory management, but
+// can cause a performance bottleneck (since all require the GIL).
 
 using namespace phlex::experimental;
 using phlex::concurrency;
@@ -225,27 +229,30 @@ namespace {
 
       PyObject* pyc = PyDict_GetItemString(item, "creator");
       if (!pyc || !PyUnicode_Check(pyc)) {
-        PyErr_Format(PyExc_ValueError, "missing \"creator\" for input specification");
+        PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
         break;
       }
       char const* c = PyUnicode_AsUTF8(pyc);
 
       PyObject* pyl = PyDict_GetItemString(item, "layer");
       if (!pyl || !PyUnicode_Check(pyl)) {
-        PyErr_Format(PyExc_ValueError, "missing \"layer\" for input specification");
+        PyErr_Format(PyExc_TypeError, "missing \"layer\" or not a string");
         break;
       }
       char const* l = PyUnicode_AsUTF8(pyl);
 
+      std::optional<identifier> s;
       PyObject* pys = PyDict_GetItemString(item, "suffix");
-      if (!pys || !PyUnicode_Check(pys)) {
-        PyErr_Format(PyExc_ValueError, "missing \"suffix\" for input specification");
-        break;
-      }
-      char const* s = PyUnicode_AsUTF8(pys);
+      if (pys) {
+        if (!PyUnicode_Check(pys)) {
+          PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
+          break;
+        }
+        s = identifier(PyUnicode_AsUTF8(pys));
+      } else
+        PyErr_Clear();
 
-      cargs.push_back(
-        product_query{.creator = identifier(c), .layer = identifier(l), .suffix = identifier(s)});
+      cargs.push_back(product_query{.creator = identifier(c), .layer = identifier(l), .suffix = s});
     }
 
     if (PyErr_Occurred())
@@ -680,7 +687,8 @@ static bool insert_input_converters(py_phlex_module* mod,
     auto const& inp_type = input_types[i];
 
     std::string const& pyname = input_converter_name(cname, i);
-    std::string output = "py_" + std::string{static_cast<std::string_view>(*inp_pq.suffix)};
+    std::string output =
+      "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
 
     if (inp_type == "bool")
       insert_converter(mod, pyname, bool_to_py, inp_pq, output);
@@ -773,7 +781,8 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   auto pq0 = input_queries[0];
   std::string c0 = input_converter_name(cname, 0);
-  std::string suff0 = "py_" + std::string{static_cast<std::string_view>(*pq0.suffix)};
+  std::string suff0 =
+    "py_" + (pq0.suffix ? std::string{static_cast<std::string_view>(*pq0.suffix)} : "");
 
   switch (input_queries.size()) {
   case 1: {
@@ -787,9 +796,9 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   case 2: {
     auto* pyc = new py_callback_2{callable};
     auto pq1 = input_queries[1];
-    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
-
     std::string c1 = input_converter_name(cname, 1);
+    std::string suff1 =
+      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
     mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
@@ -801,10 +810,12 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     auto* pyc = new py_callback_3{callable};
     auto pq1 = input_queries[1];
     std::string c1 = input_converter_name(cname, 1);
-    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
+    std::string suff1 =
+      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
     auto pq2 = input_queries[2];
     std::string c2 = input_converter_name(cname, 2);
-    std::string suff2 = "py_" + std::string{static_cast<std::string_view>(*pq2.suffix)};
+    std::string suff2 =
+      "py_" + (pq2.suffix ? std::string{static_cast<std::string_view>(*pq2.suffix)} : "");
     mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
@@ -894,7 +905,8 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   // register Python observer
   auto pq0 = input_queries[0];
   std::string c0 = input_converter_name(cname, 0);
-  std::string suff0 = "py_" + std::string{static_cast<std::string_view>(*pq0.suffix)};
+  std::string suff0 =
+    "py_" + (pq0.suffix ? std::string{static_cast<std::string_view>(*pq0.suffix)} : "");
 
   switch (input_queries.size()) {
   case 1: {
@@ -908,7 +920,8 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     auto* pyc = new py_callback_2v{callable};
     auto pq1 = input_queries[1];
     std::string c1 = input_converter_name(cname, 1);
-    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
+    std::string suff1 =
+      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
@@ -919,10 +932,12 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     auto* pyc = new py_callback_3v{callable};
     auto pq1 = input_queries[1];
     std::string c1 = input_converter_name(cname, 1);
-    std::string suff1 = "py_" + std::string{static_cast<std::string_view>(*pq1.suffix)};
+    std::string suff1 =
+      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
     auto pq2 = input_queries[2];
     std::string c2 = input_converter_name(cname, 2);
-    std::string suff2 = "py_" + std::string{static_cast<std::string_view>(*pq2.suffix)};
+    std::string suff2 =
+      "py_" + (pq2.suffix ? std::string{static_cast<std::string_view>(*pq2.suffix)} : "");
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
