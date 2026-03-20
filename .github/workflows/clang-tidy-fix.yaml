@@ -111,19 +111,17 @@ jobs:
         if:
           needs.setup.outputs.tidy_checks == '' && (steps.download_fixes_check.outcome == 'success' ||
           steps.download_fixes_fix.outcome == 'success')
-        env:
-          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
           # The artifact preserves the build directory prefix in its path structure.
           FIXES_FILE=""
-          if [ -d fixes ]; then
-            FIXES_FILE=$(find fixes -name "clang-tidy-fixes.yaml" | head -1)
+          if [ -d "$GITHUB_WORKSPACE/fixes" ]; then
+            FIXES_FILE=$(find "$GITHUB_WORKSPACE/fixes" -name "clang-tidy-fixes.yaml" | head -1)
           fi
           if [ -n "$FIXES_FILE" ]; then
             echo "Applying fixes from existing artifact..."
             . /entrypoint.sh
             FIXES_DIR="$(realpath "${FIXES_FILE%/*}")"
-            cd "${CHECKOUT_PATH}"
             clang-apply-replacements "${FIXES_DIR}" || true
             echo "applied=true" >> "$GITHUB_OUTPUT"
           else
@@ -143,7 +141,6 @@ jobs:
           TIDY_CHECKS: ${{ needs.setup.outputs.tidy_checks }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE"
 
           CLANG_TIDY_OPTS="clang-tidy;--export-fixes=clang-tidy-fixes.yaml"
           if [ -n "$TIDY_CHECKS" ]; then
@@ -165,20 +162,16 @@ jobs:
 
       - name: Generate clang-tidy fixes using CMake build
         if: steps.apply_from_artifact.outputs.applied != 'true'
-        env:
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        working-directory: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           cmake --build . -j "$(nproc)" || true
 
       - name: Apply clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'
-        env:
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        working-directory: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cd "$GITHUB_WORKSPACE/${BUILD_PATH}"
           if [ -f clang-tidy-fixes.yaml ]; then
             clang-apply-replacements . || true
           fi

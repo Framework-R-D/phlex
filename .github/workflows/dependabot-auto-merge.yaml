@@ -67,14 +67,53 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           set -o pipefail
-          if ! gh pr merge --auto --rebase "${PR_NUMBER}" --repo "$GITHUB_REPOSITORY" 2>&1 | tee /tmp/gh-output.txt; then
-            if grep -qE "auto-merge is already enabled|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
-              echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
-              exit 0
-            else
-              echo "Unexpected error enabling auto-merge:"
+
+          attempt_merge() {
+            gh pr merge --auto --rebase "${PR_NUMBER}" --repo "$GITHUB_REPOSITORY" 2>&1 | tee /tmp/gh-output.txt
+          }
+
+          if attempt_merge; then
+            exit 0
+          fi
+
+          # Not a real failure: requirements not yet met, or auto-merge already enabled.
+          if grep -qE "auto-merge is already enabled|[Rr]equired.*status.*check|[Rr]equired approving review|[Rr]equired.*review" /tmp/gh-output.txt; then
+            echo "Auto-merge not enabled yet - this is expected when requirements are not met or already enabled"
+            exit 0
+          fi
+
+          # The repository-level "Allow auto-merge" setting is off. Re-enable it and retry once.
+          # This can happen if the setting is accidentally toggled in the repository admin UI.
+          if grep -qF "Auto merge is not allowed for this repository" /tmp/gh-output.txt; then
+            echo "Repository Allow auto-merge is disabled; attempting to re-enable..."
+            if ! gh api "repos/${GITHUB_REPOSITORY}" --method PATCH --field allow_auto_merge=true > /dev/null; then
+              echo "Could not re-enable Allow auto-merge on the repository. Manual intervention required."
+              exit 1
+            fi
+            echo "Repository setting re-enabled; retrying..."
+            if ! attempt_merge; then
+              echo "Auto-merge still failed after re-enabling repository setting:"
               cat /tmp/gh-output.txt
               exit 1
             fi
+            exit 0
           fi
+
+          # Concurrent merge race: another PR merged while this one was being processed,
+          # moving the base branch. Request a Dependabot rebase to update this branch;
+          # this workflow re-triggers naturally via check_suite:completed when the rebased
+          # branch passes checks. With N concurrent Dependabot PRs, this converges in N-1
+          # rounds: each round merges one PR, and any PRs that fall behind again each get
+          # a fresh rebase request on the next trigger.
+          if grep -qF "Base branch was modified" /tmp/gh-output.txt; then
+            echo "Base branch was modified by a concurrent merge. Requesting Dependabot rebase..."
+            gh pr comment "${PR_NUMBER}" --repo "$GITHUB_REPOSITORY" --body "@dependabot rebase" || true
+            echo "Rebase requested; workflow will re-trigger when the rebased branch passes checks."
+            exit 0
+          fi
+
+          # Unexpected error.
+          echo "Unexpected error enabling auto-merge:"
+          cat /tmp/gh-output.txt
+          exit 1
         # yamllint enable
