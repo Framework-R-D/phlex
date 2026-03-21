@@ -21,11 +21,11 @@ find_package_handle_standard_args(Perfetto REQUIRED_VARS Perfetto_INCLUDE_DIR Pe
 
 if(Perfetto_FOUND AND NOT TARGET Perfetto::Perfetto)
   find_package(Threads REQUIRED)
-  add_library(perfetto_impl STATIC "${Perfetto_SOURCE}")
-  target_include_directories(perfetto_impl PUBLIC "${Perfetto_INCLUDE_DIR}")
-  target_compile_definitions(perfetto_impl PUBLIC PERFETTO_ENABLE_TRACING=1)
-  target_link_libraries(perfetto_impl PUBLIC Threads::Threads)
-  add_library(Perfetto::Perfetto ALIAS perfetto_impl)
+  add_library(Perfetto_impl STATIC "${Perfetto_SOURCE}")
+  target_include_directories(Perfetto_impl PUBLIC "${Perfetto_INCLUDE_DIR}")
+  target_compile_definitions(Perfetto_impl PUBLIC PERFETTO_ENABLE_TRACING=1)
+  target_link_libraries(Perfetto_impl PUBLIC Threads::Threads)
+  add_library(Perfetto::Perfetto ALIAS Perfetto_impl)
 endif()
 
 mark_as_advanced(Perfetto_INCLUDE_DIR Perfetto_SOURCE)

@@ -152,7 +152,7 @@ jobs:
 
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
-      options: --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
+      options: --cap-add=SYS_PTRACE
 
     steps:
       - name: Check out code
@@ -234,7 +234,7 @@ jobs:
         working-directory: ${{ needs.setup.outputs.build_path }}
         env:
           PERFETTO_HEAP_PROFILE: ${{ github.event.inputs.perfetto-heap-profile || 'false' }}
-          PERFETTO_CPU_PROFILE: ${{ github.event.inputs.perfetto-cpu-profile || 'true' }}
+          PERFETTO_CPU_PROFILE: ${{ github.event.inputs.perfetto-cpu-profile || true }}
         run: |
           . /entrypoint.sh
 
@@ -258,6 +258,7 @@ jobs:
           fi
 
           # Run tests with or without tracebox wrapper
+          TEST_RESULT=0
           if [ -n "$TRACEBOX_ARGS" ]; then
             echo "::group::Running ctest with tracebox"
               tracebox $TRACEBOX_ARGS -o "perfetto-trace.pftrace" -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
