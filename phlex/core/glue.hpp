@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_GLUE_HPP
 #define PHLEX_CORE_GLUE_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/registrar.hpp"
@@ -23,7 +25,7 @@ namespace phlex::experimental {
   struct node_catalog;
 
   namespace detail {
-    void verify_name(std::string const& name, configuration const* config);
+    phlex_core_EXPORT void verify_name(std::string const& name, configuration const* config);
   }
 
   // ==============================================================================
@@ -39,7 +41,7 @@ namespace phlex::experimental {
  *           This object is stored as a shared pointer and its methods are bound to the created nodes.
  */
   template <typename T>
-  class glue {
+  class phlex_core_EXPORT glue {
   public:
     glue(tbb::flow::graph& g,
          node_catalog& nodes,
