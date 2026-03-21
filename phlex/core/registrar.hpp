@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_REGISTRAR_HPP
 #define PHLEX_CORE_REGISTRAR_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 // =======================================================================================
 //
 // The registrar class completes the registration of a node at the end of a registration
@@ -58,7 +60,8 @@
 namespace phlex::experimental {
 
   namespace detail {
-    void add_to_error_messages(std::vector<std::string>& errors, std::string const& name);
+    phlex_core_EXPORT void add_to_error_messages(std::vector<std::string>& errors,
+                                                 std::string const& name);
   }
 
   template <typename Ptr>
