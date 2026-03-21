@@ -11,24 +11,24 @@ include(CetTest)
 
 cet_test_env(SPDLOG_LEVEL=debug)
 
-cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core)
+cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core_internal)
 cet_test(
   adjust_config
   USE_CATCH2_MAIN
   SOURCE
   adjust_config.cpp
   LIBRARIES
-  run_phlex
+  run_phlex_internal
   Boost::json
 )
 cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
          phlex::configuration
 )
-cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities)
+cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities_internal)
 cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
 )
-cet_test(type_id USE_CATCH2_MAIN SOURCE type_id.cpp LIBRARIES phlex::model fmt::fmt)
+cet_test(type_id USE_CATCH2_MAIN SOURCE type_id.cpp LIBRARIES phlex::model_internal fmt::fmt)
 cet_test(identifier USE_CATCH2_MAIN SOURCE identifier.cpp LIBRARIES phlex::model phlex::configuration Boost::json)
 cet_test(
   yielding_driver
@@ -36,7 +36,7 @@ cet_test(
   SOURCE
   yielding_driver.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   TBB::tbb
 )
 
@@ -46,9 +46,9 @@ cet_test(
   SOURCE
   allowed_families.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   Boost::json
-  layer_generator
+  layer_generator_internal
 )
 cet_test(
   vector_of_abstract_types
@@ -56,8 +56,8 @@ cet_test(
   SOURCE
   vector_of_abstract_types.cpp
   LIBRARIES
-  phlex::core
-  layer_generator
+  phlex::core_internal
+  layer_generator_internal
 )
 cet_test(
   cached_execution
@@ -65,9 +65,9 @@ cet_test(
   SOURCE
   cached_execution.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   Boost::json
-  layer_generator
+  layer_generator_internal
 )
 cet_test(
   class_registration
@@ -75,7 +75,7 @@ cet_test(
   SOURCE
   class_registration.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   Boost::json
 )
 cet_test(
@@ -84,12 +84,12 @@ cet_test(
   SOURCE
   different_hierarchies.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   spdlog::spdlog
-  layer_generator
+  layer_generator_internal
 )
 cet_test(filter_impl USE_CATCH2_MAIN SOURCE filter_impl.cpp LIBRARIES
-         phlex::core
+         phlex::core_internal
 )
 cet_test(
   filter
@@ -97,7 +97,7 @@ cet_test(
   SOURCE
   filter.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   Boost::json
   layer_generator
 )
@@ -107,9 +107,9 @@ cet_test(
   SOURCE
   framework_graph.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   Boost::json
-  layer_generator
+  layer_generator_internal
 )
 cet_test(
   function_registration
@@ -117,7 +117,7 @@ cet_test(
   SOURCE
   function_registration.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   Boost::json
 )
 cet_test(
@@ -128,9 +128,9 @@ cet_test(
   LIBRARIES
   Boost::json
   TBB::tbb
-  phlex::core
+  phlex::core_internal
   spdlog::spdlog
-  layer_generator
+  layer_generator_internal
 )
 cet_test(
   layer_generator_test
@@ -138,8 +138,8 @@ cet_test(
   SOURCE
   layer_generator.cpp
   LIBRARIES
-  phlex::core
-  layer_generator
+  phlex::core_internal
+  layer_generator_internal
 )
 cet_test(
   multiple_function_registration
@@ -148,13 +148,13 @@ cet_test(
   multiple_function_registration.cpp
   LIBRARIES
   Boost::json
-  phlex::core
+  phlex::core_internal
 )
 cet_test(
   output_products
   USE_CATCH2_MAIN
   SOURCE output_products.cpp
-  LIBRARIES layer_generator phlex::core spdlog::spdlog
+  LIBRARIES layer_generator_internal phlex::core_internal spdlog::spdlog
 )
 cet_test(
   data_cell_counting
@@ -162,23 +162,23 @@ cet_test(
   SOURCE
   data_cell_counting.cpp
   LIBRARIES
-  phlex::model
-  phlex::utilities
+  phlex::model_internal
+  phlex::utilities_internal
 )
 cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
-         phlex::model
+         phlex::model_internal
 )
 cet_test(fixed_hierarchy_test USE_CATCH2_MAIN SOURCE fixed_hierarchy_test.cpp LIBRARIES
          phlex::model
 )
 cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
-         phlex::core
+         phlex::core_internal
 )
 cet_test(product_matcher USE_CATCH2_MAIN SOURCE product_matcher.cpp LIBRARIES
-         phlex::model
+         phlex::model_internal
 )
 cet_test(product_store USE_CATCH2_MAIN SOURCE product_store.cpp LIBRARIES
-         phlex::core
+         phlex::core_internal
 )
 cet_test(
   fold
@@ -186,9 +186,9 @@ cet_test(
   SOURCE
   fold.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
   spdlog::spdlog
-  layer_generator
+  layer_generator_internal
 )
 cet_test(
   repeater_node
@@ -196,7 +196,7 @@ cet_test(
   SOURCE
   repeater_node_test.cpp
   LIBRARIES
-  phlex::core
+  phlex::core_internal
 )
 cet_test(
   replicated
@@ -205,7 +205,7 @@ cet_test(
   replicated.cpp
   LIBRARIES
   TBB::tbb
-  phlex::utilities
+  phlex::utilities_internal
   spdlog::spdlog
 )
 cet_test(
@@ -220,10 +220,10 @@ cet_test(
   fmt::fmt
 )
 cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
-         phlex::core
+         phlex::core_internal
 )
 cet_test(core_misc_test USE_CATCH2_MAIN SOURCE core_misc_test.cpp LIBRARIES
-         phlex::core
+         phlex::core_internal
          Boost::json
 )
 cet_test(
@@ -232,8 +232,8 @@ cet_test(
   SOURCE
   provider_test.cpp
   LIBRARIES
-  phlex::core
-  layer_generator
+  phlex::core_internal
+  layer_generator_internal
 )
 cet_test(
   type_distinction
@@ -242,8 +242,8 @@ cet_test(
   type_distinction.cpp
   LIBRARIES
   spdlog::spdlog
-  phlex::core
-  layer_generator
+  phlex::core_internal
+  layer_generator_internal
 )
 cet_test(
   unfold
@@ -252,10 +252,10 @@ cet_test(
   unfold.cpp
   LIBRARIES
   Boost::json
-  phlex::core
+  phlex::core_internal
   TBB::tbb
   spdlog::spdlog
-  layer_generator
+  layer_generator_internal
 )
 
 add_subdirectory(benchmarks)
