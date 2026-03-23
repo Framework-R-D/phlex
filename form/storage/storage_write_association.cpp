@@ -20,4 +20,7 @@ Storage_Write_Association::Storage_Write_Association(std::string const& name) :
 {
 }
 
-void Storage_Write_Association::setAttribute(std::string const& /*key*/, std::string const& /*value*/) {}
+void Storage_Write_Association::setAttribute(std::string const& /*key*/,
+                                             std::string const& /*value*/)
+{
+}

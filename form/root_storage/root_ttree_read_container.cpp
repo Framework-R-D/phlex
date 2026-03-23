@@ -32,7 +32,9 @@ void ROOT_TTree_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
   return;
 }
 
-bool ROOT_TTree_Read_ContainerImp::read(int /* id*/, void const** /* data*/, std::type_info const& /* type*/)
+bool ROOT_TTree_Read_ContainerImp::read(int /* id*/,
+                                        void const** /* data*/,
+                                        std::type_info const& /* type*/)
 {
   throw std::runtime_error("ROOT_TTree_Read_ContainerImp::read not implemented");
 }

@@ -12,13 +12,17 @@
 
 using namespace form::detail::experimental;
 
-namespace form::detail::experimental
-{
-  std::unique_ptr<IPersistenceReader> createPersistenceReader() { return std::make_unique<PersistenceReader>(); }
+namespace form::detail::experimental {
+  std::unique_ptr<IPersistenceReader> createPersistenceReader()
+  {
+    return std::make_unique<PersistenceReader>();
+  }
 }
 
 PersistenceReader::PersistenceReader() :
-  m_store(createStorageReader()), m_output_items(), m_tech_settings() // constructor takes form config
+  m_store(createStorageReader()),
+  m_output_items(),
+  m_tech_settings() // constructor takes form config
 {
 }
 
@@ -35,10 +39,10 @@ void PersistenceReader::configureOutputItems(
 }
 
 void PersistenceReader::read(std::string const& creator,
-                       std::string const& label,
-                       std::string const& id,
-                       void const** data,
-                       std::type_info const& type)
+                             std::string const& label,
+                             std::string const& id,
+                             void const** data,
+                             std::type_info const& type)
 {
   std::unique_ptr<Token> token = getToken(creator, label, id);
   m_store->readContainer(*token, data, type, m_tech_settings);
@@ -46,8 +50,8 @@ void PersistenceReader::read(std::string const& creator,
 }
 
 std::unique_ptr<Token> PersistenceReader::getToken(std::string const& creator,
-                                             std::string const& label,
-                                             std::string const& id)
+                                                   std::string const& label,
+                                                   std::string const& id)
 {
   auto const config_item = findConfigItem(m_output_items, label);
 

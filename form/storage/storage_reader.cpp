@@ -1,9 +1,9 @@
 // Copyright (C) 2025 ...
 
 #include "storage_reader.hpp"
-#include "storage_read_association.hpp"
 #include "storage_associative_read_container.hpp"
 #include "storage_file.hpp"
+#include "storage_read_association.hpp"
 
 #include "util/factories.hpp"
 
@@ -11,12 +11,15 @@ using namespace form::detail::experimental;
 
 // Factory function implementation
 namespace form::detail::experimental {
-  std::unique_ptr<IStorageReader> createStorageReader() { return std::unique_ptr<IStorageReader>(new StorageReader()); }
+  std::unique_ptr<IStorageReader> createStorageReader()
+  {
+    return std::unique_ptr<IStorageReader>(new StorageReader());
+  }
 }
 
 int StorageReader::getIndex(Token const& token,
-                      std::string const& id,
-                      form::experimental::config::tech_setting_config const& settings)
+                            std::string const& id,
+                            form::experimental::config::tech_setting_config const& settings)
 {
   if (m_indexMaps[token.containerName()].empty()) {
     auto key = std::make_pair(token.fileName(), token.containerName());
@@ -29,7 +32,8 @@ int StorageReader::getIndex(Token const& token,
         for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
           file->second->setAttribute(key, value);
       }
-      m_read_containers.insert({key, createReadContainer(token.technology(), token.containerName())});
+      m_read_containers.insert(
+        {key, createReadContainer(token.technology(), token.containerName())});
       cont = m_read_containers.find(key);
       for (auto const& [key, value] :
            settings.getContainerTable(token.technology(), token.containerName()))
@@ -52,9 +56,9 @@ int StorageReader::getIndex(Token const& token,
 }
 
 void StorageReader::readContainer(Token const& token,
-                            void const** data,
-                            std::type_info const& type,
-                            form::experimental::config::tech_setting_config const& settings)
+                                  void const** data,
+                                  std::type_info const& type,
+                                  form::experimental::config::tech_setting_config const& settings)
 {
   auto key = std::make_pair(token.fileName(), token.containerName());
   auto cont = m_read_containers.find(key);

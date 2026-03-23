@@ -6,11 +6,11 @@
 #include "form/technology.hpp"
 
 #include "storage/istorage.hpp"
-#include "storage/storage_read_association.hpp"
-#include "storage/storage_write_association.hpp"
-#include "storage/storage_read_container.hpp"
-#include "storage/storage_write_container.hpp"
 #include "storage/storage_file.hpp"
+#include "storage/storage_read_association.hpp"
+#include "storage/storage_read_container.hpp"
+#include "storage/storage_write_association.hpp"
+#include "storage/storage_write_container.hpp"
 
 #ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tbranch_read_container.hpp"
@@ -38,7 +38,8 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_File>(name, mode);
   }
 
-  inline std::shared_ptr<IStorage_Read_Container> createReadAssociation(int tech, std::string const& name)
+  inline std::shared_ptr<IStorage_Read_Container> createReadAssociation(int tech,
+                                                                        std::string const& name)
   {
     if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
       if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
@@ -61,7 +62,8 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_Read_Association>(name);
   }
 
-  inline std::shared_ptr<IStorage_Write_Container> createWriteAssociation(int tech, std::string const& name)
+  inline std::shared_ptr<IStorage_Write_Container> createWriteAssociation(int tech,
+                                                                          std::string const& name)
   {
     if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
       if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
@@ -84,7 +86,8 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_Write_Association>(name);
   }
 
-  inline std::shared_ptr<IStorage_Read_Container> createReadContainer(int tech, std::string const& name)
+  inline std::shared_ptr<IStorage_Read_Container> createReadContainer(int tech,
+                                                                      std::string const& name)
   {
     // Use the helper functions from Technology namespace for consistency
     if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
@@ -108,7 +111,8 @@ namespace form::detail::experimental {
     return std::make_shared<Storage_Read_Container>(name);
   }
 
-  inline std::shared_ptr<IStorage_Write_Container> createWriteContainer(int tech, std::string const& name)
+  inline std::shared_ptr<IStorage_Write_Container> createWriteContainer(int tech,
+                                                                        std::string const& name)
   {
     // Use the helper functions from Technology namespace for consistency
     if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {

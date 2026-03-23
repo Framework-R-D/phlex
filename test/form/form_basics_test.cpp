@@ -3,13 +3,13 @@
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
 #include "storage/istorage.hpp"
-#include "storage/storage_read_association.hpp"
-#include "storage/storage_write_association.hpp"
 #include "storage/storage_associative_read_container.hpp"
 #include "storage/storage_associative_write_container.hpp"
-#include "storage/storage_read_container.hpp"
-#include "storage/storage_write_container.hpp"
 #include "storage/storage_file.hpp"
+#include "storage/storage_read_association.hpp"
+#include "storage/storage_read_container.hpp"
+#include "storage/storage_write_association.hpp"
+#include "storage/storage_write_container.hpp"
 #include "util/factories.hpp"
 #include <catch2/catch_test_macros.hpp>
 

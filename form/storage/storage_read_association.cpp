@@ -20,4 +20,7 @@ Storage_Read_Association::Storage_Read_Association(std::string const& name) :
 {
 }
 
-void Storage_Read_Association::setAttribute(std::string const& /*key*/, std::string const& /*value*/) {}
+void Storage_Read_Association::setAttribute(std::string const& /*key*/,
+                                            std::string const& /*value*/)
+{
+}

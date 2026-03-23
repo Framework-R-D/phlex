@@ -81,7 +81,6 @@ namespace form::detail::experimental {
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
   };
 
-
   std::unique_ptr<IStorageReader> createStorageReader();
   std::unique_ptr<IStorageWriter> createStorageWriter();
 

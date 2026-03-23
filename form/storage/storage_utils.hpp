@@ -3,8 +3,7 @@
 #ifndef FORM_STORAGE_STORAGE_UTILS_HPP
 #define FORM_STORAGE_STORAGE_UTILS_HPP
 
-namespace form::detail::experimental
-{
+namespace form::detail::experimental {
   // Hash function for std::pair
   struct pair_hash {
     template <typename T1, typename T2>

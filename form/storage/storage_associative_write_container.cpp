@@ -23,7 +23,8 @@ std::string const& Storage_Associative_Write_Container::top_name() { return m_tN
 
 std::string const& Storage_Associative_Write_Container::col_name() { return m_cName; }
 
-void Storage_Associative_Write_Container::setParent(std::shared_ptr<IStorage_Write_Container> parent)
+void Storage_Associative_Write_Container::setParent(
+  std::shared_ptr<IStorage_Write_Container> parent)
 {
   m_parent = parent;
 }
