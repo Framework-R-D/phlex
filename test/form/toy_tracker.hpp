@@ -1,6 +1,6 @@
 //A toy PHLEX algorithm that takes a maximum number of TrackStarts to generate and generates random points for them.
-#ifndef __TOY_TRACKER_H__
-#define __TOY_TRACKER_H__
+#ifndef TEST_FORM_TOY_TRACKER_HPP
+#define TEST_FORM_TOY_TRACKER_HPP
 #include <cstdint>
 #include <vector>
 
@@ -19,4 +19,4 @@ private:
   int32_t random_max = 32768 * 32768;
 };
 
-#endif
+#endif // TEST_FORM_TOY_TRACKER_HPP
