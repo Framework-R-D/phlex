@@ -15,10 +15,6 @@ ROOT_TTree_Read_ContainerImp::ROOT_TTree_Read_ContainerImp(std::string const& na
 
 ROOT_TTree_Read_ContainerImp::~ROOT_TTree_Read_ContainerImp()
 {
-  if (m_tree != nullptr) {
-    m_tree->Write();
-    delete m_tree;
-  }
 }
 
 void ROOT_TTree_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
