@@ -351,6 +351,27 @@ print('Python SSL OK:', ssl.OPENSSL_VERSION)
 VERIFY_PYTHON_SSL
 
 ########################################################################
+# Verify Python was built with SSL support
+
+RUN <<'VERIFY_PYTHON_SSL'
+set -euo pipefail
+
+# Confirm that the Spack-built Python provides a working ssl module,
+# which requires that Python was compiled against the expected SSL library.
+. /entrypoint.sh
+
+python -c "
+import ssl
+ctx = ssl.create_default_context()
+print('Python SSL OK:', ssl.OPENSSL_VERSION)
+" || {
+  echo "ERROR: Spack Python does not provide a working ssl module." >&2
+  echo "Check that Python was built with OpenSSL support (openssl~shared is a common culprit)." >&2
+  exit 1
+}
+VERIFY_PYTHON_SSL
+
+########################################################################
 # Publish buildcache artifacts if a cache volume is mounted
 
 RUN <<'WRITE_BUILDCACHE'
