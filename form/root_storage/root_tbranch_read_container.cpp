@@ -19,16 +19,6 @@ ROOT_TBranch_Read_ContainerImp::ROOT_TBranch_Read_ContainerImp(std::string const
 {
 }
 
-void ROOT_TBranch_Read_ContainerImp::setAttribute(std::string const& key, std::string const& value)
-{
-  if (key == "auto_flush") {
-    m_tree->SetAutoFlush(std::stol(value));
-  } else {
-    throw std::runtime_error("ROOT_TTree_Read_ContainerImp accepts some attributes, but not " +
-                             key);
-  }
-}
-
 void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
   this->Storage_Associative_Read_Container::setFile(file);

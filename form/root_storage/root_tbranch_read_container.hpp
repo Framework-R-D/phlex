@@ -19,8 +19,6 @@ namespace form::detail::experimental {
     ROOT_TBranch_Read_ContainerImp(std::string const& name);
     ~ROOT_TBranch_Read_ContainerImp() = default;
 
-    void setAttribute(std::string const& key, std::string const& value) override;
-
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setParent(std::shared_ptr<IStorage_Read_Container> parent) override;
 
