@@ -13,9 +13,7 @@ ROOT_TTree_Read_ContainerImp::ROOT_TTree_Read_ContainerImp(std::string const& na
 {
 }
 
-ROOT_TTree_Read_ContainerImp::~ROOT_TTree_Read_ContainerImp()
-{
-}
+ROOT_TTree_Read_ContainerImp::~ROOT_TTree_Read_ContainerImp() {}
 
 void ROOT_TTree_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
