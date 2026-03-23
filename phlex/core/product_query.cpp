@@ -52,18 +52,6 @@ namespace phlex {
     return fmt::format("{} ϵ {}", creator, layer);
   }
 
-  experimental::product_specification product_query::spec() const
-  {
-    if (!suffix) {
-      throw std::logic_error("Product suffixes are (temporarily) mandatory");
-    }
-    // Not efficient, but this should be temporary
-    using namespace phlex::experimental;
-    auto const& creator_identifier = static_cast<experimental::identifier const&>(creator);
-    return product_specification{
-      algorithm_name::create(static_cast<std::string_view>(creator_identifier)), *suffix, type};
-  }
-
   bool product_query::operator==(product_query const& rhs) const
   {
     using experimental::identifier;
@@ -83,5 +71,16 @@ namespace phlex {
                                         static_cast<identifier const&>(rhs.layer),
                                         rhs.suffix,
                                         rhs.stage);
+  }
+
+  experimental::product_specification const* resolve_in_store(
+    product_query const& query, experimental::product_store const& store)
+  {
+    for (auto const& [spec, _] : store) {
+      if (query.match(spec)) {
+        return &spec;
+      }
+    }
+    return nullptr;
   }
 }
