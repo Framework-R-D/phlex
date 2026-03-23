@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-#ifndef TRACKSTART_HPP
-#define TRACKSTART_HPP
+#ifndef TEST_FORM_DATA_PRODUCTS_EXTRA_MEMBER_TRACK_START_HPP
+#define TEST_FORM_DATA_PRODUCTS_EXTRA_MEMBER_TRACK_START_HPP
 
 class TrackStart {
 public:
@@ -36,4 +36,4 @@ private:
 
 std::ostream& operator<<(std::ostream& os, TrackStart const& track);
 
-#endif //TRACKSTART_HPP
+#endif // TEST_FORM_DATA_PRODUCTS_EXTRA_MEMBER_TRACK_START_HPP
