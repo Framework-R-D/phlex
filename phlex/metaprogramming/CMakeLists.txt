@@ -14,12 +14,12 @@ install(FILES delegate.hpp type_deduction.hpp DESTINATION include/phlex/metaprog
 
 install(
   FILES
-    detail/basic_concepts.hpp
+    # detail/basic_concepts.hpp
     detail/ctor_reflect_types.hpp
-    detail/number_output_objects.hpp
-    detail/number_parameters.hpp
-    detail/parameter_types.hpp
-    detail/return_type.hpp
+    # detail/number_output_objects.hpp
+    # detail/number_parameters.hpp
+    # detail/parameter_types.hpp
+    # detail/return_type.hpp
   DESTINATION include/phlex/metaprogramming/detail
 )
 

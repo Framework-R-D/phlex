@@ -18,6 +18,9 @@ namespace phlex::experimental {
   template <typename T>
   using return_type = ct::return_type_t<T>;
 
+  // A simple mp_if doesn't work because both branches always need to be valid.
+  // With eval_if and eval_if_not the false branch doesn't need to be valid, but
+  // does need to be expressed in this F, Args... format.
   template <typename T>
   using function_parameter_types =
     mp11::mp_eval_if_not<std::is_member_pointer<T>, ct::args_t<T>, mp11::mp_rest, ct::args_t<T>>;
