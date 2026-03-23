@@ -1,9 +1,9 @@
 // Copyright (C) 2025 ...
 
 #include "root_tbranch_write_container.hpp"
+#include "demangle_name.hpp"
 #include "root_tfile.hpp"
 #include "root_ttree_write_container.hpp"
-#include "demangle_name.hpp"
 
 #include "TBranch.h"
 #include "TFile.h"
@@ -38,7 +38,8 @@ void ROOT_TBranch_Write_ContainerImp::setAttribute(std::string const& key, std::
   if (key == "auto_flush") {
     m_tree->SetAutoFlush(std::stol(value));
   } else {
-    throw std::runtime_error("ROOT_TTree_Write_ContainerImp accepts some attributes, but not " + key);
+    throw std::runtime_error("ROOT_TTree_Write_ContainerImp accepts some attributes, but not " +
+                             key);
   }
 }
 
@@ -47,7 +48,8 @@ void ROOT_TBranch_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> fil
   this->Storage_Associative_Write_Container::setFile(file);
   ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setFile can't attach to non-ROOT file");
+    throw std::runtime_error(
+      "ROOT_TBranch_Write_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = root_tfile_imp->getTFile();
   return;
@@ -56,7 +58,8 @@ void ROOT_TBranch_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> fil
 void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_Container> parent)
 {
   this->Storage_Associative_Write_Container::setParent(parent);
-  ROOT_TTree_Write_ContainerImp* root_ttree_imp = dynamic_cast<ROOT_TTree_Write_ContainerImp*>(parent.get());
+  ROOT_TTree_Write_ContainerImp* root_ttree_imp =
+    dynamic_cast<ROOT_TTree_Write_ContainerImp*>(parent.get());
   if (root_ttree_imp == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setParent");
   }
@@ -73,7 +76,8 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
   auto dictInfo = TDictionary::GetDictionary(type);
   if (m_branch == nullptr) {
     if (!dictInfo) {
-      throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite unsupported type: " + DemangleName(type));
+      throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite unsupported type: " +
+                               DemangleName(type));
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),

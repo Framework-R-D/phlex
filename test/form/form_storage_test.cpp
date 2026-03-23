@@ -17,7 +17,8 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
   form::test::write(technology, primes);
 
   auto file = createFile(technology, form::test::testFileName, 'i');
-  auto container = createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
+  auto container =
+    createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
   container->setFile(file);
   void const* dataPtr;
   CHECK_THROWS_AS(container->read(0, &dataPtr, typeid(double)), std::runtime_error);

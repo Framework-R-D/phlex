@@ -1,9 +1,9 @@
 // Copyright (C) 2025 ...
 
 #include "storage_writer.hpp"
-#include "storage_write_association.hpp"
 #include "storage_associative_write_container.hpp"
 #include "storage_file.hpp"
+#include "storage_write_association.hpp"
 
 #include "util/factories.hpp"
 
@@ -11,11 +11,15 @@ using namespace form::detail::experimental;
 
 // Factory function implementation
 namespace form::detail::experimental {
-  std::unique_ptr<IStorageWriter> createStorageWriter() { return std::unique_ptr<IStorageWriter>(new StorageWriter()); }
+  std::unique_ptr<IStorageWriter> createStorageWriter()
+  {
+    return std::unique_ptr<IStorageWriter>(new StorageWriter());
+  }
 }
 
-void StorageWriter::createContainers(std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
-                               form::experimental::config::tech_setting_config const& settings)
+void StorageWriter::createContainers(
+  std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
+  form::experimental::config::tech_setting_config const& settings)
 {
   for (auto const& [plcmnt, type] : containers) {
     // Use file+container as composite key
@@ -36,7 +40,8 @@ void StorageWriter::createContainers(std::map<std::unique_ptr<Placement>, std::t
       auto container = createWriteContainer(plcmnt->technology(), plcmnt->containerName());
       m_write_containers.insert({key, container});
       // For associative container, create association layer
-      auto associative_container = dynamic_pointer_cast<Storage_Associative_Write_Container>(container);
+      auto associative_container =
+        dynamic_pointer_cast<Storage_Associative_Write_Container>(container);
       if (associative_container) {
         auto parent_key = std::make_pair(plcmnt->fileName(), associative_container->top_name());
         auto parent = m_write_containers.find(parent_key);
@@ -62,7 +67,9 @@ void StorageWriter::createContainers(std::map<std::unique_ptr<Placement>, std::t
   return;
 }
 
-void StorageWriter::fillContainer(Placement const& plcmnt, void const* data, std::type_info const& /* type*/)
+void StorageWriter::fillContainer(Placement const& plcmnt,
+                                  void const* data,
+                                  std::type_info const& /* type*/)
 {
   // Use file+container as composite key
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());

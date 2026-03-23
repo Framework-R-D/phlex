@@ -18,7 +18,7 @@ namespace form::experimental {
   class form_reader_interface {
   public:
     form_reader_interface(config::output_item_config const& output_config,
-                   config::tech_setting_config const& tech_config);
+                          config::tech_setting_config const& tech_config);
     ~form_reader_interface() = default;
 
     void read(std::string const& creator,

@@ -4,8 +4,7 @@
 #include <string>
 #include <typeinfo>
 
-namespace form::experimental
-{
+namespace form::experimental {
   struct product_with_name {
     std::string label;
     void const* data;

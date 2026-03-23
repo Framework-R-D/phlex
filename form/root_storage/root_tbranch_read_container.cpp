@@ -1,9 +1,9 @@
 // Copyright (C) 2025 ...
 
 #include "root_tbranch_read_container.hpp"
+#include "demangle_name.hpp"
 #include "root_tfile.hpp"
 #include "root_ttree_read_container.hpp"
-#include "demangle_name.hpp"
 
 #include "TBranch.h"
 #include "TFile.h"
@@ -24,7 +24,8 @@ void ROOT_TBranch_Read_ContainerImp::setAttribute(std::string const& key, std::s
   if (key == "auto_flush") {
     m_tree->SetAutoFlush(std::stol(value));
   } else {
-    throw std::runtime_error("ROOT_TTree_Read_ContainerImp accepts some attributes, but not " + key);
+    throw std::runtime_error("ROOT_TTree_Read_ContainerImp accepts some attributes, but not " +
+                             key);
   }
 }
 
@@ -33,7 +34,8 @@ void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file
   this->Storage_Associative_Read_Container::setFile(file);
   ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::setFile can't attach to non-ROOT file");
+    throw std::runtime_error(
+      "ROOT_TBranch_Read_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = root_tfile_imp->getTFile();
   return;
@@ -42,7 +44,8 @@ void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file
 void ROOT_TBranch_Read_ContainerImp::setParent(std::shared_ptr<IStorage_Read_Container> parent)
 {
   this->Storage_Associative_Read_Container::setParent(parent);
-  ROOT_TTree_Read_ContainerImp* root_ttree_imp = dynamic_cast<ROOT_TTree_Read_ContainerImp*>(parent.get());
+  ROOT_TTree_Read_ContainerImp* root_ttree_imp =
+    dynamic_cast<ROOT_TTree_Read_ContainerImp*>(parent.get());
   if (root_ttree_imp == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::setParent");
   }
@@ -79,7 +82,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
                              DemangleName(type));
   }
 
-  if(dictInfo->Property() & EProperty::kIsFundamental) {
+  if (dictInfo->Property() & EProperty::kIsFundamental) {
     //Assume this is a fundamental type like int or double
     auto fundInfo = static_cast<TDataType*>(TDictionary::GetDictionary(type));
     branchBuffer = new char[fundInfo->Size()];

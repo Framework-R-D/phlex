@@ -5,20 +5,17 @@
 
 #include <optional>
 
-namespace form
-{
-  namespace experimental::config
-  {
+namespace form {
+  namespace experimental::config {
     class output_config;
   }
 
-  namespace detail::experimental
-  {
+  namespace detail::experimental {
     //findConfigItem() is here and not a member of output_config because of the way it handles the label "index".  Different hypothetical Persistence implementations may want to handle "index" different ways.
-    std::optional<form::experimental::config::PersistenceItem const> findConfigItem(form::experimental::config::output_item_config const& config,
-    std::string const& label);
+    std::optional<form::experimental::config::PersistenceItem const> findConfigItem(
+      form::experimental::config::output_item_config const& config, std::string const& label);
 
-    std::string buildFullLabel(std::string_view creator, std::string_view label); 
+    std::string buildFullLabel(std::string_view creator, std::string_view label);
   }
 }
 

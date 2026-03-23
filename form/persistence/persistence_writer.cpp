@@ -12,13 +12,17 @@
 
 using namespace form::detail::experimental;
 
-namespace form::detail::experimental
-{
-  std::unique_ptr<IPersistenceWriter> createPersistenceWriter() { return std::make_unique<PersistenceWriter>(); }
+namespace form::detail::experimental {
+  std::unique_ptr<IPersistenceWriter> createPersistenceWriter()
+  {
+    return std::make_unique<PersistenceWriter>();
+  }
 }
 
 PersistenceWriter::PersistenceWriter() :
-  m_store(createStorageWriter()), m_output_items(), m_tech_settings() // constructor takes form config
+  m_store(createStorageWriter()),
+  m_output_items(),
+  m_tech_settings() // constructor takes form config
 {
 }
 
@@ -34,8 +38,8 @@ void PersistenceWriter::configureOutputItems(
   m_output_items = output_items;
 }
 
-void PersistenceWriter::createContainers(std::string const& creator,
-                                   std::map<std::string, std::type_info const*> const& products)
+void PersistenceWriter::createContainers(
+  std::string const& creator, std::map<std::string, std::type_info const*> const& products)
 {
   std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
   for (auto const& [label, type] : products) {
@@ -65,7 +69,7 @@ void PersistenceWriter::commitOutput(std::string const& creator, std::string con
 }
 
 std::unique_ptr<Placement> PersistenceWriter::getPlacement(std::string const& creator,
-                                                     std::string const& label)
+                                                           std::string const& label)
 {
   auto const config_item = findConfigItem(m_output_items, label);
 
