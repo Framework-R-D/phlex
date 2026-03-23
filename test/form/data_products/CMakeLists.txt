@@ -1,6 +1,11 @@
 set(FORM_DATA_PROD_LIB_NAME "form_test_data_products")
 add_library(${FORM_DATA_PROD_LIB_NAME} SHARED track_start.cpp)
 
+set_target_properties(
+  ${FORM_DATA_PROD_LIB_NAME}
+  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 if(FORM_USE_ROOT_STORAGE)
   find_package(ROOT REQUIRED COMPONENTS RIO)
   include_directories(${ROOT_INCLUDE_DIRS})
