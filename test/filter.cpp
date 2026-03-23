@@ -29,7 +29,7 @@ namespace {
     unsigned const max_;
   };
 
-  experimental::fixed_hierarchy const flat_event_hierarchy{{{"event"}}};
+  experimental::fixed_hierarchy const flat_event_hierarchy{{"event"}};
 
   // Provider algorithms
   unsigned int give_me_nums(data_cell_index const& id) { return id.number() - 1; }

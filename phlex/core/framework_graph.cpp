@@ -30,7 +30,7 @@ namespace phlex::experimental {
          [this](tbb::flow_control& fc) mutable -> data_cell_index_ptr {
            if (auto item = driver_()) {
              if (validator_) {
-               validator_(**item);
+               validator_(*item);
              }
              return index_router_.route(*item);
            }
