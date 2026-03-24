@@ -76,8 +76,9 @@ namespace phlex::experimental {
 
     // Fill slots in the order of the input arguments to the downstream node.
     for (std::size_t i = 0; i != nargs_; ++i) {
-      if (elem[i] or not store->contains_product((*product_names_)[i].spec()))
+      if (elem[i] or not resolve_in_store((*product_names_)[i], *store)) {
         continue;
+      }
       elem[i] = store;
     }
   }

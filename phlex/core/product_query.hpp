@@ -3,6 +3,7 @@
 
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "phlex/model/product_store.hpp"
 #include "phlex/model/type_id.hpp"
 
 #include <concepts>
@@ -80,9 +81,6 @@ namespace phlex {
 
     bool operator==(product_query const& rhs) const;
     std::strong_ordering operator<=>(product_query const& rhs) const;
-
-    // temporary additional members for transition
-    experimental::product_specification spec() const;
   };
 
   inline std::string format_as(product_query const& q) { return q.to_string(); }
@@ -122,6 +120,11 @@ namespace phlex {
     detail::product_queries_type_setter<decltype(container), Tup> populate_types{};
     populate_types(container);
   }
+
+  // This lives here rather than as a member-function of product_store because product_store is in model
+  // and product_query in core, with core depending on model.
+  experimental::product_specification const* resolve_in_store(
+    product_query const& query, experimental::product_store const& store);
 }
 
 #endif // PHLEX_CORE_PRODUCT_QUERY_HPP
