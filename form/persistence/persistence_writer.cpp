@@ -21,7 +21,7 @@ namespace form::detail::experimental {
 
 PersistenceWriter::PersistenceWriter() :
   m_store_writer(createStorageWriter()),
-  m_output_items(),
+  m_config_items(),
   m_tech_settings() // constructor takes form config
 {
 }
@@ -33,9 +33,9 @@ void PersistenceWriter::configureTechSettings(
 }
 
 void PersistenceWriter::configureOutputItems(
-  form::experimental::config::ItemConfig const& output_items)
+  form::experimental::config::ItemConfig const& config_items)
 {
-  m_output_items = output_items;
+  m_config_items = config_items;
 }
 
 void PersistenceWriter::createContainers(
@@ -71,7 +71,7 @@ void PersistenceWriter::commitOutput(std::string const& creator, std::string con
 std::unique_ptr<Placement> PersistenceWriter::getPlacement(std::string const& creator,
                                                            std::string const& label)
 {
-  auto const config_item = findConfigItem(m_output_items, label);
+  auto const config_item = findConfigItem(m_config_items, label);
 
   if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +

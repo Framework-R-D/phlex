@@ -28,7 +28,7 @@ namespace form::detail::experimental {
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 
     void configureOutputItems(
-      form::experimental::config::ItemConfig const& output_items) override;
+      form::experimental::config::ItemConfig const& config_items) override;
 
     void createContainers(std::string const& creator,
                           std::map<std::string, std::type_info const*> const& products) override;
@@ -43,7 +43,7 @@ namespace form::detail::experimental {
 
   private:
     std::unique_ptr<IStorageWriter> m_store_writer;
-    form::experimental::config::ItemConfig m_output_items;
+    form::experimental::config::ItemConfig m_config_items;
     form::experimental::config::tech_setting_config m_tech_settings;
   };
 

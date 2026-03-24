@@ -7,11 +7,11 @@
 
 namespace form {
   namespace experimental::config {
-    class output_config;
+    class ItemConfig;
   }
 
   namespace detail::experimental {
-    //findConfigItem() is here and not a member of output_config because of the way it handles the label "index".  Different hypothetical Persistence implementations may want to handle "index" different ways.
+    //findConfigItem() is here and not a member of ItemConfig because of the way it handles the label "index".  Different hypothetical Persistence implementations may want to handle "index" different ways.
     std::optional<form::experimental::config::PersistenceItem const> findConfigItem(
       form::experimental::config::ItemConfig const& config, std::string const& label);
 

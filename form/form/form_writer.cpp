@@ -7,18 +7,18 @@
 
 namespace form::experimental {
 
-  form_writer_interface::form_writer_interface(config::ItemConfig const& output_config,
+  form_writer_interface::form_writer_interface(config::ItemConfig const& config_item,
                                                config::tech_setting_config const& tech_config) :
     m_pers_writer(nullptr)
   {
-    for (auto const& item : output_config.getItems()) {
+    for (auto const& item : config_item.getItems()) {
       m_product_to_config.emplace(item.product_name,
                                   form::experimental::config::PersistenceItem(
                                     item.product_name, item.file_name, item.technology));
     }
 
     m_pers_writer = form::detail::experimental::createPersistenceWriter();
-    m_pers_writer->configureOutputItems(output_config);
+    m_pers_writer->configureOutputItems(config_item);
     m_pers_writer->configureTechSettings(tech_config);
   }
 

@@ -28,7 +28,7 @@ namespace form::detail::experimental {
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 
     void configureOutputItems(
-      form::experimental::config::ItemConfig const& output_items) override;
+      form::experimental::config::ItemConfig const& config_items) override;
 
     void read(std::string const& creator,
               std::string const& label,
@@ -43,7 +43,7 @@ namespace form::detail::experimental {
 
   private:
     std::unique_ptr<IStorageReader> m_store_reader;
-    form::experimental::config::ItemConfig m_output_items;
+    form::experimental::config::ItemConfig m_config_items;
     form::experimental::config::tech_setting_config m_tech_settings;
   };
 

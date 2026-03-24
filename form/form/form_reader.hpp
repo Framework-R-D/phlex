@@ -17,7 +17,7 @@ namespace form::experimental {
 
   class form_reader_interface {
   public:
-    form_reader_interface(config::ItemConfig const& output_config,
+    form_reader_interface(config::ItemConfig const& config_item,
                           config::tech_setting_config const& tech_config);
     ~form_reader_interface() = default;
 

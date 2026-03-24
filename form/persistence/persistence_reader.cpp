@@ -21,7 +21,7 @@ namespace form::detail::experimental {
 
 PersistenceReader::PersistenceReader() :
   m_store_reader(createStorageReader()),
-  m_output_items(),
+  m_config_items(),
   m_tech_settings() // constructor takes form config
 {
 }
@@ -33,9 +33,9 @@ void PersistenceReader::configureTechSettings(
 }
 
 void PersistenceReader::configureOutputItems(
-  form::experimental::config::ItemConfig const& output_items)
+  form::experimental::config::ItemConfig const& config_items)
 {
-  m_output_items = output_items;
+  m_config_items = config_items;
 }
 
 void PersistenceReader::read(std::string const& creator,
@@ -53,7 +53,7 @@ std::unique_ptr<Token> PersistenceReader::getToken(std::string const& creator,
                                                    std::string const& label,
                                                    std::string const& id)
 {
-  auto const config_item = findConfigItem(m_output_items, label);
+  auto const config_item = findConfigItem(m_config_items, label);
 
   if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +

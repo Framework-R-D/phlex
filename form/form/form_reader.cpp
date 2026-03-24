@@ -7,18 +7,18 @@
 
 namespace form::experimental {
 
-  form_reader_interface::form_reader_interface(config::ItemConfig const& output_config,
+  form_reader_interface::form_reader_interface(config::ItemConfig const& config_item,
                                                config::tech_setting_config const& tech_config) :
     m_pers_reader(nullptr)
   {
-    for (auto const& item : output_config.getItems()) {
+    for (auto const& item : config_item.getItems()) {
       m_product_to_config.emplace(item.product_name,
                                   form::experimental::config::PersistenceItem(
                                     item.product_name, item.file_name, item.technology));
     }
 
     m_pers_reader = form::detail::experimental::createPersistenceReader();
-    m_pers_reader->configureOutputItems(output_config);
+    m_pers_reader->configureOutputItems(config_item);
     m_pers_reader->configureTechSettings(tech_config);
   }
 

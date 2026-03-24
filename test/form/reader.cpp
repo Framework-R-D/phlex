@@ -65,15 +65,15 @@ int main(int argc, char** argv)
   checksum_file.close();
 
   // TODO: Read configuration from config file instead of hardcoding
-  form::experimental::config::ItemConfig output_config;
-  output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
-  output_config.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
+  form::experimental::config::ItemConfig config_items;
+  config_items.addItem("trackStart", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
 
   form::experimental::config::tech_setting_config tech_config;
 
-  form::experimental::form_reader_interface form(output_config, tech_config);
+  form::experimental::form_reader_interface form(config_items, tech_config);
 
   bool all_passed = true;
 
