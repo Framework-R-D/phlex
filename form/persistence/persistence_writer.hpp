@@ -27,8 +27,7 @@ namespace form::detail::experimental {
     void configureTechSettings(
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 
-    void configure(
-      form::experimental::config::ItemConfig const& config_items) override;
+    void configure(form::experimental::config::ItemConfig const& config_items) override;
 
     void createContainers(std::string const& creator,
                           std::map<std::string, std::type_info const*> const& products) override;

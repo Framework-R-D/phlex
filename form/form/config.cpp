@@ -14,8 +14,8 @@ namespace {
 namespace form::experimental::config {
 
   void ItemConfig::addItem(std::string const& product_name,
-                                   std::string const& file_name,
-                                   int technology)
+                           std::string const& file_name,
+                           int technology)
   {
     m_items.emplace_back(product_name, file_name, technology);
   }
