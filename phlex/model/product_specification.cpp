@@ -2,6 +2,8 @@
 #include "phlex/model/algorithm_name.hpp"
 
 #include <cassert>
+#include <ranges>
+#include <stdexcept>
 #include <utility>
 
 namespace phlex::experimental {
@@ -48,19 +50,29 @@ namespace phlex::experimental {
     return {algorithm_name::create(""), identifier(s), type_id{}};
   }
 
-  product_specifications to_product_specifications(std::string_view const name,
+  product_specifications to_product_specifications(std::string_view const algorithm_specification,
                                                    std::vector<std::string> output_suffixes,
                                                    std::vector<type_id> output_types)
   {
-    assert(output_suffixes.size() == output_types.size());
-    product_specifications outputs;
-    outputs.reserve(output_suffixes.size());
-
-    // zip view isn't available until C++23 so we have to use a loop over the index
-    for (std::size_t i = 0; i < output_suffixes.size(); ++i) {
-      outputs.emplace_back(
-        algorithm_name::create(name), identifier(output_suffixes[i]), output_types[i]);
+    if (output_suffixes.empty()) {
+      output_suffixes.assign(output_types.size(), default_suffix);
+    } else if (output_suffixes.size() != output_types.size()) {
+      throw std::runtime_error{fmt::format(
+        "Number of output product suffixes ({}) does not match number of output product types ({})",
+        output_suffixes.size(),
+        output_types.size())};
     }
-    return outputs;
+
+    // The following lambda expression generates a closure object that accepts a pair of output
+    // suffix and type as emitted by a zip.
+    auto const algo_name = algorithm_name::create(algorithm_specification);
+    auto to_product_specification = [name = std::move(algo_name)](auto const& p) {
+      auto const& [suffix, type] = p;
+      return product_specification{name, identifier(suffix), type};
+    };
+
+    return std::views::zip(output_suffixes, output_types) |
+           std::views::transform(to_product_specification) |
+           std::ranges::to<product_specifications>();
   }
 }
