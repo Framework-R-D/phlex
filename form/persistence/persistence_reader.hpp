@@ -42,7 +42,7 @@ namespace form::detail::experimental {
                                     std::string const& id);
 
   private:
-    std::unique_ptr<IStorageReader> m_store;
+    std::unique_ptr<IStorageReader> m_store_reader;
     form::experimental::config::output_item_config m_output_items;
     form::experimental::config::tech_setting_config m_tech_settings;
   };

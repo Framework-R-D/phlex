@@ -20,7 +20,7 @@ namespace form::detail::experimental {
 }
 
 PersistenceReader::PersistenceReader() :
-  m_store(createStorageReader()),
+  m_store_reader(createStorageReader()),
   m_output_items(),
   m_tech_settings() // constructor takes form config
 {
@@ -45,7 +45,7 @@ void PersistenceReader::read(std::string const& creator,
                              std::type_info const& type)
 {
   std::unique_ptr<Token> token = getToken(creator, label, id);
-  m_store->readContainer(*token, data, type, m_tech_settings);
+  m_store_reader->readContainer(*token, data, type, m_tech_settings);
   return;
 }
 
@@ -63,7 +63,7 @@ std::unique_ptr<Token> PersistenceReader::getToken(std::string const& creator,
   std::string const full_label = buildFullLabel(creator, label);
   std::string const index_label = buildFullLabel(creator, "index");
 
-  int const rowId = m_store->getIndex(
+  int const rowId = m_store_reader->getIndex(
     Token{config_item->file_name, index_label, config_item->technology}, id, m_tech_settings);
   return std::make_unique<Token>(
     config_item->file_name, full_label, config_item->technology, rowId);

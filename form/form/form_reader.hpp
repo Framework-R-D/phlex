@@ -26,7 +26,7 @@ namespace form::experimental {
               product_with_name& product);
 
   private:
-    std::unique_ptr<form::detail::experimental::IPersistenceReader> m_pers;
+    std::unique_ptr<form::detail::experimental::IPersistenceReader> m_pers_reader;
     std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
   };
 }

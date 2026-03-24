@@ -20,7 +20,7 @@ namespace form::detail::experimental {
 }
 
 PersistenceWriter::PersistenceWriter() :
-  m_store(createStorageWriter()),
+  m_store_writer(createStorageWriter()),
   m_output_items(),
   m_tech_settings() // constructor takes form config
 {
@@ -46,7 +46,7 @@ void PersistenceWriter::createContainers(
     containers.insert(std::make_pair(getPlacement(creator, label), type));
   }
   containers.insert(std::make_pair(getPlacement(creator, "index"), &typeid(std::string)));
-  m_store->createContainers(containers, m_tech_settings);
+  m_store_writer->createContainers(containers, m_tech_settings);
   return;
 }
 
@@ -56,15 +56,15 @@ void PersistenceWriter::registerWrite(std::string const& creator,
                                       std::type_info const& type)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
-  m_store->fillContainer(*plcmnt, data, type);
+  m_store_writer->fillContainer(*plcmnt, data, type);
   return;
 }
 
 void PersistenceWriter::commitOutput(std::string const& creator, std::string const& id)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, "index");
-  m_store->fillContainer(*plcmnt, &id, typeid(std::string));
-  m_store->commitContainers(*plcmnt);
+  m_store_writer->fillContainer(*plcmnt, &id, typeid(std::string));
+  m_store_writer->commitContainers(*plcmnt);
   return;
 }
 

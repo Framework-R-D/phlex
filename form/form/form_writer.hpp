@@ -29,7 +29,7 @@ namespace form::experimental {
                std::vector<product_with_name> const& products);
 
   private:
-    std::unique_ptr<form::detail::experimental::IPersistenceWriter> m_pers;
+    std::unique_ptr<form::detail::experimental::IPersistenceWriter> m_pers_writer;
     std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
   };
 }

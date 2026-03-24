@@ -9,7 +9,7 @@ namespace form::experimental {
 
   form_writer_interface::form_writer_interface(config::output_item_config const& output_config,
                                                config::tech_setting_config const& tech_config) :
-    m_pers(nullptr)
+    m_pers_writer(nullptr)
   {
     for (auto const& item : output_config.getItems()) {
       m_product_to_config.emplace(item.product_name,
@@ -17,9 +17,9 @@ namespace form::experimental {
                                     item.product_name, item.file_name, item.technology));
     }
 
-    m_pers = form::detail::experimental::createPersistenceWriter();
-    m_pers->configureOutputItems(output_config);
-    m_pers->configureTechSettings(tech_config);
+    m_pers_writer = form::detail::experimental::createPersistenceWriter();
+    m_pers_writer->configureOutputItems(output_config);
+    m_pers_writer->configureTechSettings(tech_config);
   }
 
   void form_writer_interface::write(std::string const& creator,
@@ -33,11 +33,11 @@ namespace form::experimental {
     }
 
     std::map<std::string, std::type_info const*> products = {{pb.label, pb.type}};
-    m_pers->createContainers(creator, products);
+    m_pers_writer->createContainers(creator, products);
 
-    m_pers->registerWrite(creator, pb.label, pb.data, *pb.type);
+    m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type);
 
-    m_pers->commitOutput(creator, segment_id);
+    m_pers_writer->commitOutput(creator, segment_id);
   }
 
   void form_writer_interface::write(std::string const& creator,
@@ -59,14 +59,14 @@ namespace form::experimental {
       product_types.insert(std::make_pair(pb.label, pb.type));
     }
 
-    m_pers->createContainers(creator, product_types);
+    m_pers_writer->createContainers(creator, product_types);
 
     for (auto const& pb : products) {
       // FIXME: We could consider checking id to be identical for all product bases here
-      m_pers->registerWrite(creator, pb.label, pb.data, *pb.type);
+      m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type);
     }
 
-    m_pers->commitOutput(creator, segment_id);
+    m_pers_writer->commitOutput(creator, segment_id);
   }
 
 }
