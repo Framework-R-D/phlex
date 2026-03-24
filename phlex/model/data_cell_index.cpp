@@ -76,8 +76,8 @@ namespace phlex {
 
   std::size_t data_cell_index::depth() const noexcept { return depth_; }
 
-  data_cell_index_ptr data_cell_index::make_child(std::size_t const data_cell_number,
-                                                  std::string child_layer_name) const
+  data_cell_index_ptr data_cell_index::make_child(std::string child_layer_name,
+                                                  std::size_t const data_cell_number) const
   {
     return data_cell_index_ptr{new data_cell_index{
       shared_from_this(), data_cell_number, experimental::identifier{std::move(child_layer_name)}}};

@@ -54,7 +54,7 @@ TEST_CASE("Handle copies and moves", "[data model]")
   spec_t four_spec{"four"};
 
   auto job_data_cell = data_cell_index::base_ptr();
-  auto subrun_6_data_cell = job_data_cell->make_child(6, "subrun");
+  auto subrun_6_data_cell = job_data_cell->make_child("subrun", 6);
 
   handle h2{two, *job_data_cell, two_spec};
   handle h4{four, *subrun_6_data_cell, four_spec};
@@ -87,7 +87,7 @@ TEST_CASE("Handle comparisons", "[data model]")
   CHECK(h17 == h17);
   CHECK(h17 != h18);
 
-  auto subrun_6_data_cell = data_cell_index::base_ptr()->make_child(6, "subrun");
+  auto subrun_6_data_cell = data_cell_index::base_ptr()->make_child("subrun", 6);
   handle const h17sr{seventeen, *subrun_6_data_cell, seventeen_spec};
   CHECK(*h17 == *h17sr);                                   // Products are the same
   CHECK(h17.data_cell_index() != h17sr.data_cell_index()); // Data cells are not the same
