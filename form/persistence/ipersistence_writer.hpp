@@ -9,7 +9,7 @@
 #include <typeinfo>
 
 namespace form::experimental::config {
-  class output_item_config;
+  class ItemConfig;
   struct tech_setting_config;
 }
 
@@ -24,7 +24,7 @@ namespace form::detail::experimental {
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
     virtual void configureOutputItems(
-      form::experimental::config::output_item_config const& outputItems) = 0;
+      form::experimental::config::ItemConfig const& outputItems) = 0;
 
     virtual void createContainers(std::string const& creator,
                                   std::map<std::string, std::type_info const*> const& products) = 0;

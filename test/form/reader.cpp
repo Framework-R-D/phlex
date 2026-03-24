@@ -65,7 +65,7 @@ int main(int argc, char** argv)
   checksum_file.close();
 
   // TODO: Read configuration from config file instead of hardcoding
-  form::experimental::config::output_item_config output_config;
+  form::experimental::config::ItemConfig output_config;
   output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
   output_config.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
   output_config.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);

@@ -7,7 +7,7 @@
 
 namespace form::experimental {
 
-  form_writer_interface::form_writer_interface(config::output_item_config const& output_config,
+  form_writer_interface::form_writer_interface(config::ItemConfig const& output_config,
                                                config::tech_setting_config const& tech_config) :
     m_pers_writer(nullptr)
   {

@@ -16,7 +16,7 @@ namespace form::experimental {
 
   class form_writer_interface {
   public:
-    form_writer_interface(config::output_item_config const& output_config,
+    form_writer_interface(config::ItemConfig const& output_config,
                           config::tech_setting_config const& tech_config);
     ~form_writer_interface() = default;
 

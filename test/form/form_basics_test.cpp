@@ -179,7 +179,7 @@ TEST_CASE("PersistenceReader basic operations", "[form]")
   REQUIRE(p != nullptr);
 
   using namespace form::experimental::config;
-  output_item_config out_cfg;
+  ItemConfig out_cfg;
   out_cfg.addItem("prod", "file.root", 0);
   out_cfg.addItem("parent/child", "file.root", 0);
   p->configureOutputItems(out_cfg);
@@ -201,7 +201,7 @@ TEST_CASE("PersistenceWriter basic operations", "[form]")
   REQUIRE(p != nullptr);
 
   using namespace form::experimental::config;
-  output_item_config out_cfg;
+  ItemConfig out_cfg;
   out_cfg.addItem("prod", "file.root", 0);
   out_cfg.addItem("parent/child", "file.root", 0);
   p->configureOutputItems(out_cfg);
@@ -221,9 +221,9 @@ TEST_CASE("form::experimental::config tests", "[form]")
 {
   using namespace form::experimental::config;
 
-  SECTION("output_item_config")
+  SECTION("ItemConfig")
   {
-    output_item_config cfg;
+    ItemConfig cfg;
     cfg.addItem("prod1", "file1.root", 1);
 
     auto item = cfg.findItem("prod1");

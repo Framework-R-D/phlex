@@ -33,7 +33,7 @@ void PersistenceWriter::configureTechSettings(
 }
 
 void PersistenceWriter::configureOutputItems(
-  form::experimental::config::output_item_config const& output_items)
+  form::experimental::config::ItemConfig const& output_items)
 {
   m_output_items = output_items;
 }

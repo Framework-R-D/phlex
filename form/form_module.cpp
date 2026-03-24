@@ -29,7 +29,7 @@ namespace {
       std::cout << "  Technology: " << m_technology << "\n";
 
       // Build FORM configuration
-      form::experimental::config::output_item_config output_cfg;
+      form::experimental::config::ItemConfig output_cfg;
       form::experimental::config::tech_setting_config tech_cfg;
 
       // FIXME: Temporary solution to accommodate Phlex limitation.

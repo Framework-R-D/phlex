@@ -7,7 +7,7 @@
 
 namespace form::experimental {
 
-  form_reader_interface::form_reader_interface(config::output_item_config const& output_config,
+  form_reader_interface::form_reader_interface(config::ItemConfig const& output_config,
                                                config::tech_setting_config const& tech_config) :
     m_pers_reader(nullptr)
   {

@@ -3,7 +3,7 @@
 
 namespace form::detail::experimental {
   std::optional<form::experimental::config::PersistenceItem const> findConfigItem(
-    form::experimental::config::output_item_config const& config, std::string const& label)
+    form::experimental::config::ItemConfig const& config, std::string const& label)
   {
     auto const& items = config.getItems();
     if (label == "index")
