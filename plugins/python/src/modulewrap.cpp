@@ -267,7 +267,7 @@ namespace {
     if (!output)
       return cargs;
 
-    PyObject* coll = PySequence_Fast(output, "output_products must be a sequence");
+    PyObject* coll = PySequence_Fast(output, "output_product_suffixes must be a sequence");
     if (!coll)
       return cargs;
 
@@ -538,7 +538,7 @@ namespace {
   {
     mod->ph_module->transform(name, converter, concurrency::serial)
       .input_family(pq_in)
-      .output_products(output);
+      .output_product_suffixes(output);
   }
 
 } // unnamed namespace
@@ -556,7 +556,7 @@ static PyObject* parse_args(PyObject* args,
   // retrieved, not ignored, to issue an error message if an output is provided.)
 
   static char const* kwnames[] = {
-    "callable", "input_family", "output_products", "concurrency", "name", nullptr};
+    "callable", "input_family", "output_product_suffixes", "concurrency", "name", nullptr};
   PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0, *pyname = 0;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|OOO", (char**)kwnames, &callable, &input, &output, &concurrency, &pyname)) {
@@ -790,7 +790,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
-      .output_products(pyoutput);
+      .output_product_suffixes(pyoutput);
     break;
   }
   case 2: {
@@ -803,7 +803,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
         product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)})
-      .output_products(pyoutput);
+      .output_product_suffixes(pyoutput);
     break;
   }
   case 3: {
@@ -821,7 +821,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
         product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
         product_query{.creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)})
-      .output_products(pyoutput);
+      .output_product_suffixes(pyoutput);
     break;
   }
   default: {

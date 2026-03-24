@@ -13,5 +13,5 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     m.transform(
         mismatch_func,
         input_family=[{"creator": "input", "layer": "event", "suffix": "a"}],
-        output_products=["sum"],
+        output_product_suffixes=["sum"],
     )

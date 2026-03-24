@@ -10,8 +10,8 @@
 //     .transform("name", &MyTransform::transform, concurrency{n})
 //     .input_family(...)
 //     .when(...)
-//     .output_products(...);
-//                          ^ Registration occurs at the completion of the full statement.
+//     .output_product_suffixes(...);
+//                                  ^ Registration occurs at the completion of the full statement.
 //
 // This is achieved by creating a registrar class object (internally during any of the
 // declare* calls), which is then passed along through each successive function call
@@ -86,9 +86,9 @@ namespace phlex::experimental {
       predicates_ = std::move(predicates);
     }
 
-    void set_output_products(std::vector<std::string> output_products)
+    void set_output_product_suffixes(std::vector<std::string> output_product_suffixes)
     {
-      create_node(std::move(output_products));
+      create_node(std::move(output_product_suffixes));
       creator_ = nullptr;
     }
 

@@ -75,7 +75,7 @@ namespace phlex::experimental::test {
                                  c.get<unsigned>("duration_usec"))
       .transform("execute", &algorithm_t::execute, j)
       .input_family(c.get<typename algorithm_t::inputs>("inputs"))
-      .output_products(c.get<typename algorithm_t::outputs>("outputs"));
+      .output_product_suffixes(c.get<typename algorithm_t::outputs>("outputs"));
   }
 }
 

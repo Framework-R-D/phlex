@@ -44,7 +44,7 @@ TEST_CASE("provider_test")
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "happy_vertices"})
-    .output_products("vertex_data");
+    .output_product_suffixes("vertex_data");
 
   g.execute();
   CHECK(g.execution_count("passer") == max_events);

@@ -59,11 +59,11 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{
+  std::array const input_products{
     product_query{.creator = "input", .layer = "job", .suffix = "number"},
     product_query{.creator = "input", .layer = "job", .suffix = "temperature"},
     product_query{.creator = "input", .layer = "job", .suffix = "name"}};
-  std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
+  std::array const product_suffixes{"onumber"s, "otemperature"s, "oname"s};
 
   experimental::framework_graph g{data_cell_index::base_ptr()};
 
@@ -79,36 +79,36 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   SECTION("No framework")
   {
     glueball.transform("no_framework", &A::no_framework, concurrency::unlimited)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("No framework, all references")
   {
     glueball.transform("no_framework_all_refs", &A::no_framework_all_refs, concurrency::unlimited)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("No framework, all pointers")
   {
     glueball.transform("no_framework_all_ptrs", &A::no_framework_all_ptrs, concurrency::unlimited)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("One framework argument")
   {
     glueball.transform("one_framework_arg", &A::one_framework_arg, concurrency::unlimited)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("All framework arguments")
   {
     glueball.transform("all_framework_args", &A::all_framework_args, concurrency::unlimited)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
 
   // The following is invoked for *each* section above
-  g.observe("verify_results", verify_results, concurrency::unlimited).input_family(product_names);
+  g.observe("verify_results", verify_results).input_family(input_products);
 
   g.execute();
 }

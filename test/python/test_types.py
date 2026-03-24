@@ -103,25 +103,35 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         None
     """
     m.transform(
-        add_float, input_family=config["input_float"], output_products=config["output_float"]
+        add_float,
+        input_family=config["input_float"],
+        output_product_suffixes=config["output_float"],
     )
 
     m.transform(
-        add_double, input_family=config["input_double"], output_products=config["output_double"]
+        add_double,
+        input_family=config["input_double"],
+        output_product_suffixes=config["output_double"],
     )
 
     m.transform(
-        add_unsigned, input_family=config["input_uint"], output_products=config["output_uint"]
+        add_unsigned,
+        input_family=config["input_uint"],
+        output_product_suffixes=config["output_uint"],
     )
 
-    m.transform(and_bool, input_family=config["input_bool"], output_products=config["output_bool"])
+    m.transform(
+        and_bool, input_family=config["input_bool"], output_product_suffixes=config["output_bool"]
+    )
 
     m.transform(
-        collect_float, input_family=config["input_float"], output_products=config["output_vfloat"]
+        collect_float,
+        input_family=config["input_float"],
+        output_product_suffixes=config["output_vfloat"],
     )
 
     m.transform(
         collect_double,
         input_family=config["input_double"],
-        output_products=config["output_vdouble"],
+        output_product_suffixes=config["output_vdouble"],
     )

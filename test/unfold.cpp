@@ -103,10 +103,10 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
-    .output_products("new_number");
+    .output_product_suffixes("new_number");
   g.fold("add", add, concurrency::unlimited, "event")
     .input_family(product_query{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
-    .output_products("sum1");
+    .output_product_suffixes("sum1");
   g.observe("check_sum", check_sum, concurrency::unlimited)
     .input_family(product_query{.creator = "add", .layer = "event", .suffix = "sum1"});
 
@@ -116,11 +116,11 @@ TEST_CASE("Splitting the processing", "[graph]")
                             concurrency::unlimited,
                             "lower2")
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "ten_numbers"})
-    .output_products("each_number");
+    .output_product_suffixes("each_number");
   g.fold("add_numbers", add_numbers, concurrency::unlimited, "event")
     .input_family(
       product_query{.creator = "iterate_through", .layer = "lower2", .suffix = "each_number"})
-    .output_products("sum2");
+    .output_product_suffixes("sum2");
   g.observe("check_sum_same", check_sum_same, concurrency::unlimited)
     .input_family(product_query{.creator = "add_numbers", .layer = "event", .suffix = "sum2"});
 

@@ -11,5 +11,5 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   m.transform("last_index", last_index, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "id"})
-    .output_products(config.get<std::string>("produces", "a"));
+    .output_product_suffixes(config.get<std::string>("produces", "a"));
 }

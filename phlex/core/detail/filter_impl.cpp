@@ -51,8 +51,8 @@ namespace phlex::experimental {
 
   void decision_map::erase(accessor& a) { results_.erase(a); }
 
-  data_map::data_map(product_queries const& product_names) :
-    product_names_{&product_names}, nargs_{product_names.size()}
+  data_map::data_map(product_queries const& input_products) :
+    input_products_{&input_products}, nargs_{input_products.size()}
   {
     assert(nargs_ > 0);
   }
@@ -76,7 +76,7 @@ namespace phlex::experimental {
 
     // Fill slots in the order of the input arguments to the downstream node.
     for (std::size_t i = 0; i != nargs_; ++i) {
-      if (elem[i] or not resolve_in_store((*product_names_)[i], *store)) {
+      if (elem[i] or not resolve_in_store((*input_products_)[i], *store)) {
         continue;
       }
       elem[i] = store;
