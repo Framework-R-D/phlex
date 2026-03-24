@@ -27,6 +27,13 @@ namespace {
   }
 }
 
+TEST_CASE("Ill-formed paths result in an exception", "[fixed_hierarchy]")
+{
+  CHECK_THROWS_WITH(fixed_hierarchy{{}}, ContainsSubstring("Layer paths cannot be empty"));
+  CHECK_THROWS_WITH((fixed_hierarchy{{"job", "run", "job"}}),
+                    ContainsSubstring("Layer paths may only contain 'job' as the first element"));
+}
+
 TEST_CASE("Default-constructed fixed_hierarchy accepts any index", "[fixed_hierarchy]")
 {
   fixed_hierarchy const h;

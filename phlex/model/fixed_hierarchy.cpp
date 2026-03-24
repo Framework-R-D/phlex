@@ -9,18 +9,44 @@
 #include <algorithm>
 #include <ranges>
 #include <set>
+#include <span>
 #include <stdexcept>
 
 namespace {
+  // Each path must be non-empty and may only contain "job" as the first element.
+  std::span<std::string const> validated_path(std::vector<std::string> const& path)
+  {
+    if (path.empty()) {
+      throw std::runtime_error("Layer paths cannot be empty.");
+    }
+    auto const rest = std::span{path}.subspan(path[0] == "job" ? 1 : 0);
+    if (std::ranges::contains(rest, "job")) {
+      throw std::runtime_error("Layer paths may only contain 'job' as the first element.");
+    }
+    return rest;
+  }
+
+  // Builds the set of cumulative layer hashes that define the fixed hierarchy.
+  // For example, if the layer paths are ["job", "run", "subrun"] and ["job", "spill"],
+  // the hashes included will correspond to:
+  //   From the first path:
+  //   - "job"
+  //   - "job/run"
+  //   - "job/run/subrun"
+  //
+  //   From the second path:
+  //   - "job"        (already included from the first path)
+  //   - "job/spill"
+  //
+  // Each path must be non-empty and may only contain "job" as the first element.
   std::set<std::size_t> build_hashes(std::vector<std::vector<std::string>> const& layer_paths)
   {
     using namespace phlex::experimental;
     identifier const job{"job"};
     std::set<std::size_t> hashes{job.hash()};
     for (std::vector<std::string> const& path : layer_paths) {
-      bool const has_job_prefix = !path.empty() && path[0] == "job";
       std::size_t cumulative_hash = job.hash();
-      for (auto const& name : path | std::views::drop(has_job_prefix ? 1 : 0)) {
+      for (auto const& name : validated_path(path)) {
         cumulative_hash = hash(cumulative_hash, identifier{name}.hash());
         hashes.insert(cumulative_hash);
       }
