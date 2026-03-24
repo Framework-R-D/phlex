@@ -23,8 +23,8 @@ namespace form::detail::experimental {
     virtual void configureTechSettings(
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
-    virtual void configureOutputItems(
-      form::experimental::config::ItemConfig const& outputItems) = 0;
+    virtual void configure(
+      form::experimental::config::ItemConfig const& configItems) = 0;
 
     virtual void read(std::string const& creator,
                       std::string const& label,

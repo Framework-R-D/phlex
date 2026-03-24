@@ -18,7 +18,7 @@ namespace form::experimental {
     }
 
     m_pers_writer = form::detail::experimental::createPersistenceWriter();
-    m_pers_writer->configureOutputItems(config_item);
+    m_pers_writer->configure(config_item);
     m_pers_writer->configureTechSettings(tech_config);
   }
 

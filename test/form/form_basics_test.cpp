@@ -182,7 +182,7 @@ TEST_CASE("PersistenceReader basic operations", "[form]")
   ItemConfig out_cfg;
   out_cfg.addItem("prod", "file.root", 0);
   out_cfg.addItem("parent/child", "file.root", 0);
-  p->configureOutputItems(out_cfg);
+  p->configure(out_cfg);
 
   tech_setting_config tech_cfg;
   p->configureTechSettings(tech_cfg);
@@ -204,7 +204,7 @@ TEST_CASE("PersistenceWriter basic operations", "[form]")
   ItemConfig out_cfg;
   out_cfg.addItem("prod", "file.root", 0);
   out_cfg.addItem("parent/child", "file.root", 0);
-  p->configureOutputItems(out_cfg);
+  p->configure(out_cfg);
 
   tech_setting_config tech_cfg;
   p->configureTechSettings(tech_cfg);

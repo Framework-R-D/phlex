@@ -18,7 +18,7 @@ namespace form::experimental {
     }
 
     m_pers_reader = form::detail::experimental::createPersistenceReader();
-    m_pers_reader->configureOutputItems(config_item);
+    m_pers_reader->configure(config_item);
     m_pers_reader->configureTechSettings(tech_config);
   }
 
