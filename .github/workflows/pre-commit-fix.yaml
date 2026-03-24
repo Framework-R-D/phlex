@@ -1,0 +1,77 @@
+name: Pre-Commit Fix
+run-name: "${{ github.actor }} fixing pre-commit issues"
+
+"on":
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: >
+          The branch name to checkout and push fixes to (must be a branch, not a commit SHA). Defaults to the
+          repository's default branch.
+        required: false
+        type: string
+
+permissions:
+  pull-requests: write
+  contents: write
+  issues: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    name: Parse command
+    if: >
+      inputs.ref != '' || github.event_name == 'workflow_dispatch' || (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
+        (
+          startsWith(github.event.comment.body, format('@{0}bot pre-commit-fix', github.event.repository.name)) ||
+          startsWith(github.event.comment.body, format('@{0}bot format', github.event.repository.name))
+        )
+      )
+    outputs:
+      ref: ${{ steps.setup.outputs.ref }}
+      repo: ${{ steps.setup.outputs.repo }}
+    steps:
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        with:
+          mode: fix
+          ref: ${{ inputs.ref }}
+
+  apply_fixes:
+    runs-on: ubuntu-latest
+    name: Apply fixes
+    needs: setup
+    if: needs.setup.result == 'success'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.setup.outputs.ref }}
+          repository: ${{ needs.setup.outputs.repo }}
+          token: ${{ secrets.WORKFLOW_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.x"
+
+      - name: Run pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files || true
+
+      - name: Commit and push fixes
+        uses: pre-commit-ci/lite-action@5d6cc0eb514c891a40562a58a8e71576c5c7fb43 # v1.1.0
+
+      - name: Update PR comment reactions
+        if: always() && github.event_name == 'issue_comment'
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        with:
+          status: ${{ job.status }}

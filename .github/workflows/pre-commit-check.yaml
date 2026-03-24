@@ -1,0 +1,41 @@
+name: Pre-Commit Check
+run-name: "${{ github.actor }} running pre-commit checks"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+"on":
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.x"
+
+      - name: Compute pre-commit arguments
+        id: pc-args
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "extra_args=--from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "extra_args=--all-files" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run pre-commit
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+        with:
+          extra_args: ${{ steps.pc-args.outputs.extra_args }}
