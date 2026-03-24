@@ -548,7 +548,7 @@ static PyObject* parse_args(PyObject* args,
                             std::string& functor_name,
                             std::vector<product_query>& input_queries,
                             std::vector<std::string>& input_types,
-                            std::vector<std::string>& output_labels,
+                            std::vector<std::string>& output_suffixes,
                             std::vector<std::string>& output_types)
 {
   // Helper function to extract the common names and identifiers needed to insert
@@ -605,8 +605,8 @@ static PyObject* parse_args(PyObject* args,
   }
 
   // convert output declarations, to be able to pass them to Phlex
-  output_labels = validate_output(output);
-  if (output_labels.size() > 1) {
+  output_suffixes = validate_output(output);
+  if (output_suffixes.size() > 1) {
     PyErr_SetString(PyExc_TypeError, "only a single output supported");
     return nullptr;
   }
@@ -648,7 +648,7 @@ static PyObject* parse_args(PyObject* args,
     output_types.clear();
 
   // if annotations were correct (and correctly parsed), there should be as many
-  // input types as input labels
+  // input types as input product queries
   if (input_types.size() != input_queries.size()) {
     PyErr_Format(PyExc_TypeError,
                  "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
@@ -741,9 +741,9 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   std::string cname;
   std::vector<product_query> input_queries;
-  std::vector<std::string> input_types, output_labels, output_types;
+  std::vector<std::string> input_types, output_suffixes, output_types;
   PyObject* callable =
-    parse_args(args, kwds, cname, input_queries, input_types, output_labels, output_types);
+    parse_args(args, kwds, cname, input_queries, input_types, output_suffixes, output_types);
   if (!callable)
     return nullptr; // error already set
 
@@ -777,7 +777,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // onto a std::tuple otherwise, which is a typed object, thus complicating the
   // template instantiation
   std::string pyname = "py_" + cname;
-  std::string pyoutput = output_labels[0] + "_py";
+  std::string pyoutput = output_suffixes[0] + "_py";
 
   auto pq0 = input_queries[0];
   std::string c0 = input_converter_name(cname, 0);
@@ -836,7 +836,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
                               .layer = identifier(output_layer),
                               .suffix = identifier(pyoutput)};
   std::string out_type = output_types[0];
-  std::string output = output_labels[0];
+  std::string output = output_suffixes[0];
   if (out_type == "bool")
     insert_converter(mod, cname, py_to_bool, out_pq, output);
   else if (out_type == "int32_t")
@@ -886,9 +886,9 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
   std::string cname;
   std::vector<product_query> input_queries;
-  std::vector<std::string> input_types, output_labels, output_types;
+  std::vector<std::string> input_types, output_suffixes, output_types;
   PyObject* callable =
-    parse_args(args, kwds, cname, input_queries, input_types, output_labels, output_types);
+    parse_args(args, kwds, cname, input_queries, input_types, output_suffixes, output_types);
   if (!callable)
     return nullptr; // error already set
 

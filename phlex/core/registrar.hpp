@@ -95,7 +95,7 @@ namespace phlex::experimental {
     ~registrar() noexcept(false)
     {
       if (creator_) {
-        create_node(std::move(output_products_));
+        create_node(std::move(output_product_suffixes_));
       }
     }
 
@@ -105,10 +105,10 @@ namespace phlex::experimental {
       return std::move(predicates_).value_or(std::vector<std::string>{});
     }
 
-    void create_node(std::vector<std::string> output_product_labels)
+    void create_node(std::vector<std::string> output_product_suffixes)
     {
       assert(creator_);
-      auto ptr = creator_(release_predicates(), std::move(output_product_labels));
+      auto ptr = creator_(release_predicates(), std::move(output_product_suffixes));
       auto name = ptr->full_name();
       auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
       if (not inserted) {
@@ -120,7 +120,7 @@ namespace phlex::experimental {
     std::vector<std::string>* errors_;
     node_creator creator_{};
     std::optional<std::vector<std::string>> predicates_;
-    std::vector<std::string> output_products_{};
+    std::vector<std::string> output_product_suffixes_{};
   };
 }
 

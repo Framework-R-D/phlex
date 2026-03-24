@@ -91,12 +91,12 @@ namespace phlex::experimental {
                 tbb::flow::graph& g,
                 Predicate&& predicate,
                 Unfold&& unfold,
-                product_queries product_labels,
+                product_queries input_products,
                 std::vector<std::string> output_product_suffixes,
                 std::string child_layer_name) :
       declared_unfold{std::move(name),
                       std::move(predicates),
-                      std::move(product_labels),
+                      std::move(input_products),
                       std::move(child_layer_name)},
       output_{to_product_specifications(full_name(),
                                         std::move(output_product_suffixes),
@@ -125,9 +125,9 @@ namespace phlex::experimental {
     }
 
   private:
-    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
     {
-      return receiver_for<num_inputs>(join_, input(), product_label, unfold_);
+      return receiver_for<num_inputs>(join_, input(), input_product, unfold_);
     }
     std::vector<tbb::flow::receiver<message>*> ports() override
     {

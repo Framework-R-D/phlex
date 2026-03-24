@@ -187,15 +187,15 @@ namespace phlex::experimental {
       }(std::make_index_sequence<N>{});
     }
 
-    // Looks up the port index for the given product label, then returns a reference to
+    // Looks up the port index for the given input product query, then returns a reference to
     // the corresponding input port of the join node.  Only valid for N > 1.
     template <std::size_t N>
     tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                               product_queries const& product_labels,
-                                               product_query const& product_label)
+                                               product_queries const& input_products,
+                                               product_query const& input_product)
     {
       static_assert(N > 1ull, "receiver_for should not be called for N=1");
-      auto const index = port_index_for(product_labels, product_label);
+      auto const index = port_index_for(input_products, input_product);
       return receiver_for<0ull, N>(join, index);
     }
   }
@@ -212,19 +212,19 @@ namespace phlex::experimental {
     }
   }
 
-  // Returns the receiver for the input port that corresponds to the given product label.  For
-  // N == 1 there is only one port so the node itself is returned; for N > 1 the port is looked
-  // up by label within the join.
+  // Returns the receiver for the input port that corresponds to the given input product query.
+  // For N == 1 there is only one port so the node itself is returned; for N > 1 the port is
+  // looked up by query within the join.
   template <std::size_t N, typename Node>
   tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             product_queries const& product_labels,
-                                             product_query const& product_label,
+                                             product_queries const& input_products,
+                                             product_query const& input_product,
                                              Node& node)
   {
     if constexpr (N == 1ull) {
       return node;
     } else {
-      return detail::receiver_for<N>(join, product_labels, product_label);
+      return detail::receiver_for<N>(join, input_products, input_product);
     }
   }
 }

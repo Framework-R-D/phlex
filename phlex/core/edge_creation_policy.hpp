@@ -13,7 +13,7 @@
 #include <string>
 
 namespace phlex::experimental {
-  using product_name_t = identifier;
+  using product_suffix_t = identifier;
 
   class edge_creation_policy {
   public:
@@ -31,25 +31,25 @@ namespace phlex::experimental {
 
   private:
     template <typename T>
-    static std::multimap<product_name_t, named_output_port> producing_nodes(T& nodes);
+    static std::multimap<product_suffix_t, named_output_port> producing_nodes(T& nodes);
 
-    std::multimap<product_name_t, named_output_port> producers_;
+    std::multimap<product_suffix_t, named_output_port> producers_;
   };
 
   // =============================================================================
   // Implementation
   template <typename T>
-  std::multimap<product_name_t, edge_creation_policy::named_output_port>
+  std::multimap<product_suffix_t, edge_creation_policy::named_output_port>
   edge_creation_policy::producing_nodes(T& nodes)
   {
-    std::multimap<product_name_t, named_output_port> result;
+    std::multimap<product_suffix_t, named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
-      for (auto const& product_name : node->output()) {
-        if (product_name.name().empty())
+      for (auto const& product_spec : node->output()) {
+        if (product_spec.suffix().empty())
           continue;
 
-        result.emplace(product_name.name(),
-                       named_output_port{node_name, &node->output_port(), product_name.type()});
+        result.emplace(product_spec.suffix(),
+                       named_output_port{node_name, &node->output_port(), product_spec.type()});
       }
     }
     return result;

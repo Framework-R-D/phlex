@@ -37,7 +37,7 @@ namespace phlex {
       return false;
     }
     if (suffix) {
-      if (*suffix != spec.name()) {
+      if (*suffix != spec.suffix()) {
         return false;
       }
     }

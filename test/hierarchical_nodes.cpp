@@ -123,11 +123,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .output("save", &experimental::test::products_for_output::save)
     .experimental_when();
 
-  try {
-    g.execute();
-  } catch (std::exception const& e) {
-    spdlog::error(e.what());
-  }
+  g.execute();
 
   CHECK(g.execution_count("square") == index_limit * number_limit);
   CHECK(g.execution_count("add") == index_limit * number_limit);
