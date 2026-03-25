@@ -205,7 +205,8 @@ set -x
 
 # Install GitHub's act CLI
 download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
-  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.' | \
+  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.tar\.gz"' | \
+  head -n1 | \
   cut -d '"' -f 4)
 if [ -z "$download_url" ]; then
   echo "Failed to determine act download URL" >&2

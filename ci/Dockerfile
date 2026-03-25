@@ -389,6 +389,8 @@ WRITE_BUILDCACHE
 ########################################################################
 # Install Perfetto SDK for profiling
 
+ARG INSTALL_TRACEBOX=true
+
 RUN <<'INSTALL_PERFETTO'
 set -euo pipefail
 
@@ -406,14 +408,16 @@ wget -O perfetto.h https://raw.githubusercontent.com/google/perfetto/${PERFETTO_
 wget -O perfetto.cc https://raw.githubusercontent.com/google/perfetto/${PERFETTO_VERSION}/sdk/perfetto.cc
 chmod 644 perfetto.h perfetto.cc
 
-# Install tracebox for system-wide profiling.
-# Note: get.perfetto.dev/tracebox serves the latest binary with no versioned
-# or checksum-verifiable download currently offered by the Perfetto project.
-# Revisit when the project provides versioned tracebox releases with integrity
-# metadata.
-wget -O tracebox https://get.perfetto.dev/tracebox
-chmod +x tracebox
-mv tracebox /usr/local/bin/
+if [ "${INSTALL_TRACEBOX}" = "true" ]; then
+  # tracebox is downloaded from get.perfetto.dev/tracebox, which currently
+  # serves the latest binary with no versioned or checksum-verifiable download
+  # offered by the Perfetto project.  Opt out with --build-arg INSTALL_TRACEBOX=false
+  # if supply-chain policy requires a verifiable artifact.  Revisit when the
+  # project provides versioned tracebox releases with integrity metadata.
+  wget -O tracebox https://get.perfetto.dev/tracebox
+  chmod +x tracebox
+  mv tracebox /usr/local/bin/
+fi
 INSTALL_PERFETTO
 
 ########################################################################
