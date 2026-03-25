@@ -124,6 +124,7 @@ jobs:
     if: >
       needs.setup.result == 'success' && (
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'schedule' ||
         inputs.skip-relevance-check ||
         needs.setup.outputs.has_changes == 'true'
       )
@@ -142,6 +143,7 @@ jobs:
     if: >
       always() && needs.setup.result == 'success' && (
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'schedule' ||
         inputs.skip-relevance-check ||
         needs.setup.outputs.has_changes == 'true'
       )
@@ -171,12 +173,6 @@ jobs:
       - name: Announce CMake configuration
         run: echo "➡️ Configuring CMake..."
 
-      - name: Extract repository name
-        id: repo_name
-        env:
-          REPO_FULL_NAME: ${{ needs.setup.outputs.repo }}
-        run: echo "name=${REPO_FULL_NAME##*/}" >> "$GITHUB_OUTPUT"
-
       - name: Configure CMake
         id: configure
         uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
@@ -186,9 +182,9 @@ jobs:
           build-type: ${{ env.BUILD_TYPE }}
           cpp-compiler: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
           extra-options: |
-            ${{ matrix.sanitizer == 'asan' && format('-D{0}_ENABLE_ASAN=ON', steps.repo_name.outputs.name) || '' }}
-            ${{ matrix.sanitizer == 'tsan' && format('-D{0}_ENABLE_TSAN=ON', steps.repo_name.outputs.name) || '' }}
-            ${{ matrix.sanitizer == 'perfetto' && format('-D{0}_ENABLE_PERFETTO=ON', steps.repo_name.outputs.name) || '' }}
+            ${{ matrix.sanitizer == 'asan' && '-DENABLE_ASAN=ON' || '' }}
+            ${{ matrix.sanitizer == 'tsan' && '-DENABLE_TSAN=ON' || '' }}
+            ${{ matrix.sanitizer == 'perfetto' && '-DENABLE_PERFETTO=ON' || '' }}
 
       - name: Build
         id: build
