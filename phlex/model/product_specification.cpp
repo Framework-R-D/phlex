@@ -66,13 +66,12 @@ namespace phlex::experimental {
     // The following lambda expression generates a closure object that accepts a pair of output
     // suffix and type as emitted by a zip.
     auto const algo_name = algorithm_name::create(algorithm_specification);
-    auto to_product_specification = [name = std::move(algo_name)](auto const& p) {
-      auto const& [suffix, type] = p;
+    auto to_product_specification = [name = std::move(algo_name)](std::string const& suffix,
+                                                                  type_id const& type) {
       return product_specification{name, identifier(suffix), type};
     };
 
-    return std::views::zip(output_suffixes, output_types) |
-           std::views::transform(to_product_specification) |
+    return std::views::zip_transform(to_product_specification, output_suffixes, output_types) |
            std::ranges::to<product_specifications>();
   }
 }
