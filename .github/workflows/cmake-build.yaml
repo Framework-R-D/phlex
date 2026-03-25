@@ -247,21 +247,21 @@ jobs:
           fi
 
           # Configure profiling based on environment
-          TRACEBOX_ARGS=""
+          TRACEBOX_ARGS=()
           if [ "$PERFETTO_HEAP_PROFILE" = "true" ]; then
             echo "Enabling heap profiling"
-            TRACEBOX_ARGS="$TRACEBOX_ARGS --app '*' --heapprofd"
+            TRACEBOX_ARGS+=(--app "*" --heapprofd)
           fi
           if [ "$PERFETTO_CPU_PROFILE" = "true" ]; then
             echo "Enabling CPU profiling"
-            TRACEBOX_ARGS="$TRACEBOX_ARGS --cpu-freq --cpu-idle --cpu-sched"
+            TRACEBOX_ARGS+=(--cpu-freq --cpu-idle --cpu-sched)
           fi
 
           # Run tests with or without tracebox wrapper
           TEST_RESULT=0
-          if [ -n "$TRACEBOX_ARGS" ]; then
+          if [ "${#TRACEBOX_ARGS[@]}" -gt 0 ]; then
             echo "::group::Running ctest with tracebox"
-              tracebox $TRACEBOX_ARGS -o "perfetto-trace.pftrace" -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
+              tracebox "${TRACEBOX_ARGS[@]}" -o "perfetto-trace.pftrace" -- ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
           else
             echo "::group::Running ctest with Perfetto SDK tracing"
             ctest --progress --output-on-failure -j "$(nproc)" || TEST_RESULT=$?
