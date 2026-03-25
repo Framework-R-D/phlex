@@ -32,8 +32,7 @@ void PersistenceReader::configureTechSettings(
   m_tech_settings = tech_config_settings;
 }
 
-void PersistenceReader::configure(
-  form::experimental::config::ItemConfig const& config_items)
+void PersistenceReader::configure(form::experimental::config::ItemConfig const& config_items)
 {
   m_config_items = config_items;
 }
