@@ -8,9 +8,7 @@ add_library(
   storage_file.cpp
   storage_read_container.cpp
   storage_write_container.cpp
-  storage_read_association.cpp
   storage_write_association.cpp
-  storage_associative_read_container.cpp
   storage_associative_write_container.cpp
 )
 

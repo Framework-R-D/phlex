@@ -7,7 +7,6 @@
 
 #include "storage/istorage.hpp"
 #include "storage/storage_file.hpp"
-#include "storage/storage_read_association.hpp"
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
@@ -16,7 +15,6 @@
 #include "root_storage/root_tbranch_read_container.hpp"
 #include "root_storage/root_tbranch_write_container.hpp"
 #include "root_storage/root_tfile.hpp"
-#include "root_storage/root_ttree_read_container.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
 #endif
 
@@ -36,26 +34,6 @@ namespace form::detail::experimental {
       // return std::make_shared<HDF5_FileImp>(name, mode);
     }
     return std::make_shared<Storage_File>(name, mode);
-  }
-
-  inline std::shared_ptr<IStorage_Read_Container> createReadAssociation(int tech,
-                                                                        std::string const& name)
-  {
-    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
-      if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
-#ifdef USE_ROOT_STORAGE
-        return std::make_shared<ROOT_TTree_Read_ContainerImp>(name);
-#endif // USE_ROOT_STORAGE
-      }
-    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
-#ifdef USE_HDF5_STORAGE
-      // Add HDF5 implementation when available
-      // return std::make_shared<HDF5_Read_ContainerImp>(name);
-#endif // USE_HDF5_STORAGE
-    }
-
-    // Default fallback
-    return std::make_shared<Storage_Read_Association>(name);
   }
 
   inline std::shared_ptr<IStorage_Write_Container> createWriteAssociation(int tech,

@@ -17,6 +17,10 @@ namespace form::detail::experimental {
 
     std::string const& name() override;
 
+    std::string const& top_name();
+
+    std::string const& col_name();
+
     void setFile(std::shared_ptr<IStorage_File> file) override;
 
     bool read(int id, void const** data, std::type_info const& type) override;
@@ -25,6 +29,8 @@ namespace form::detail::experimental {
 
   private:
     std::string m_name;
+    std::string m_tName;
+    std::string m_cName;
     std::shared_ptr<IStorage_File> m_file;
   };
 } // namespace form::detail::experimental

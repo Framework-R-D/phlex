@@ -3,10 +3,8 @@
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
 #include "storage/istorage.hpp"
-#include "storage/storage_associative_read_container.hpp"
 #include "storage/storage_associative_write_container.hpp"
 #include "storage/storage_file.hpp"
-#include "storage/storage_read_association.hpp"
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
@@ -47,6 +45,19 @@ TEST_CASE("Storage_Read_Container basics", "[form]")
   CHECK_FALSE(c.read(1, &data, typeid(int)));
 
   CHECK_THROWS_AS(c.setAttribute("key", "value"), std::runtime_error);
+
+  SECTION("With slash")
+  {
+    Storage_Read_Container c("parent/child");
+    CHECK(c.top_name() == "parent");
+    CHECK(c.col_name() == "child");
+  }
+  SECTION("Without slash")
+  {
+    Storage_Read_Container c("no_slash");
+    CHECK(c.top_name() == "no_slash");
+    CHECK(c.col_name() == "Main");
+  }
 }
 
 TEST_CASE("Storage_Write_Container basics", "[form]")
@@ -65,40 +76,12 @@ TEST_CASE("Storage_Write_Container basics", "[form]")
   CHECK_THROWS_AS(c.setAttribute("key", "value"), std::runtime_error);
 }
 
-TEST_CASE("Storage_Read_Association basics", "[form]")
-{
-  Storage_Read_Association a("my_assoc/extra");
-  CHECK(a.name() == "my_assoc"); // maybe_remove_suffix should remove /extra
-
-  a.setAttribute("key", "value"); // Storage_Read_Association overrides setAttribute to do nothing
-}
-
 TEST_CASE("Storage_Write_Association basics", "[form]")
 {
   Storage_Write_Association a("my_assoc/extra");
   CHECK(a.name() == "my_assoc"); // maybe_remove_suffix should remove /extra
 
   a.setAttribute("key", "value"); // Storage_Write_Association overrides setAttribute to do nothing
-}
-
-TEST_CASE("Storage_Associative_Read_Container basics", "[form]")
-{
-  SECTION("With slash")
-  {
-    Storage_Associative_Read_Container c("parent/child");
-    CHECK(c.top_name() == "parent");
-    CHECK(c.col_name() == "child");
-  }
-  SECTION("Without slash")
-  {
-    Storage_Associative_Read_Container c("no_slash");
-    CHECK(c.top_name() == "no_slash");
-    CHECK(c.col_name() == "Main");
-  }
-
-  Storage_Associative_Read_Container c("p/c");
-  auto parent = std::make_shared<Storage_Read_Container>("p");
-  c.setParent(parent);
 }
 
 TEST_CASE("Storage_Associative_Write_Container basics", "[form]")
@@ -125,9 +108,6 @@ TEST_CASE("Factories fallback", "[form]")
 {
   auto f = createFile(0, "test.root", 'o');
   CHECK(dynamic_cast<Storage_File*>(f.get()) != nullptr);
-
-  auto ra = createReadAssociation(0, "assoc");
-  CHECK(dynamic_cast<Storage_Read_Association*>(ra.get()) != nullptr);
 
   auto rc = createReadContainer(0, "cont");
   CHECK(dynamic_cast<Storage_Read_Container*>(rc.get()) != nullptr);

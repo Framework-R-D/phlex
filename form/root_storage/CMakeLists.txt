@@ -7,7 +7,6 @@ find_package(ROOT REQUIRED COMPONENTS Core RIO Tree)
 add_library(
   root_storage
   root_tfile.cpp
-  root_ttree_read_container.cpp
   root_ttree_write_container.cpp
   root_tbranch_read_container.cpp
   root_tbranch_write_container.cpp

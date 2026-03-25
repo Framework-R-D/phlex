@@ -3,7 +3,6 @@
 #include "root_tbranch_read_container.hpp"
 #include "demangle_name.hpp"
 #include "root_tfile.hpp"
-#include "root_ttree_read_container.hpp"
 
 #include "TBranch.h"
 #include "TFile.h"
@@ -15,31 +14,18 @@
 using namespace form::detail::experimental;
 
 ROOT_TBranch_Read_ContainerImp::ROOT_TBranch_Read_ContainerImp(std::string const& name) :
-  Storage_Associative_Read_Container(name), m_tfile(nullptr), m_tree(nullptr), m_branch(nullptr)
+  Storage_Read_Container(name), m_tfile(nullptr), m_tree(nullptr), m_branch(nullptr)
 {
 }
 
 void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
-  this->Storage_Associative_Read_Container::setFile(file);
   ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
     throw std::runtime_error(
       "ROOT_TBranch_Read_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = root_tfile_imp->getTFile();
-  return;
-}
-
-void ROOT_TBranch_Read_ContainerImp::setParent(std::shared_ptr<IStorage_Read_Container> parent)
-{
-  this->Storage_Associative_Read_Container::setParent(parent);
-  ROOT_TTree_Read_ContainerImp* root_ttree_imp =
-    dynamic_cast<ROOT_TTree_Read_ContainerImp*>(parent.get());
-  if (root_ttree_imp == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::setParent");
-  }
-  m_tree = root_ttree_imp->getTTree();
   return;
 }
 

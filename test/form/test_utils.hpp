@@ -4,7 +4,7 @@
 #define TEST_FORM_TEST_UTILS_HPP
 
 #include "storage/istorage.hpp"
-#include "storage/storage_associative_read_container.hpp"
+#include "storage/storage_read_container.hpp"
 #include "storage/storage_associative_write_container.hpp"
 #include "util/factories.hpp"
 
@@ -78,14 +78,9 @@ namespace form::test {
 
   template <class PROD>
   inline std::unique_ptr<PROD const> doRead(std::shared_ptr<IStorage_File>& file,
-                                            int const technology,
-                                            std::shared_ptr<IStorage_Read_Container>& parent)
+                                            int const technology)
   {
     auto container = createReadContainer(technology, makeTestBranchName<PROD>());
-    auto assoc = dynamic_pointer_cast<Storage_Associative_Read_Container>(container);
-    if (assoc) {
-      assoc->setParent(parent);
-    }
     container->setFile(file);
     void const* dataPtr = new PROD();
     void const** dataPtrPtr = &dataPtr;
@@ -100,10 +95,8 @@ namespace form::test {
   inline std::tuple<std::unique_ptr<PRODS const>...> read(int const technology)
   {
     auto file = createFile(technology, testFileName, 'i');
-    auto parent = createReadAssociation(technology, testTreeName);
-    parent->setFile(file);
 
-    return std::make_tuple(doRead<PRODS>(file, technology, parent)...);
+    return std::make_tuple(doRead<PRODS>(file, technology)...);
   }
 
   inline int getTechnology(int const argc, char const** argv)
