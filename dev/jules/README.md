@@ -6,9 +6,9 @@ This directory contains the necessary tools to create a consistent and reproduci
 
 The primary goal of this setup is to provide a "clean slate" environment that mirrors the one Jules uses for development tasks. This allows Phlex developers to:
 
--   Reliably test and debug the environment preparation script (`prepare-environment.sh`).
--   Ensure that any changes to the environment setup will work as expected when provided to Jules.
--   Onboard new developers who may need to interact with or configure Jules's environment.
+- Reliably test and debug the environment preparation script (`prepare-environment.sh`).
+- Ensure that any changes to the environment setup will work as expected when provided to Jules.
+- Onboard new developers who may need to interact with or configure Jules's environment.
 
 ## Local Development and Testing Workflow
 
