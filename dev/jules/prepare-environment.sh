@@ -178,16 +178,20 @@ git clone https://github.com/spack/spack.git "$SPACK_ROOT"
   echo "--> Installing developer tools (ruff, gersemi, prek, jsonnet)..."
   set -x
 
-  curl -LsSf https://astral.sh/uv/install.sh | \
-    env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh
+  _uv_installer="$(mktemp)"
+  curl -LsSf https://astral.sh/uv/install.sh -o "${_uv_installer}"
+  sudo env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh "${_uv_installer}"
+  rm -f "${_uv_installer}"
 
-  export UV_TOOL_BIN_DIR=/usr/local/bin
-  export UV_TOOL_DIR=/usr/local/share/uv/tools
-  uv tool install ruff
-  uv tool install gersemi
-  uv tool install prek
-  uv tool install jsonnet
-  uv cache clean
+  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
+    /usr/local/bin/uv tool install ruff
+  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
+    /usr/local/bin/uv tool install gersemi
+  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
+    /usr/local/bin/uv tool install prek
+  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
+    /usr/local/bin/uv tool install jsonnet
+  sudo /usr/local/bin/uv cache clean
 
   # Clean all Spack caches
   { set +x; } >/dev/null 2>&1
