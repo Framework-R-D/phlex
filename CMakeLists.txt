@@ -136,6 +136,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
+# Catch2's TEST_CASE macro uses __COUNTER__, which Clang >= 22 flags as a C2y
+# extension under -pedantic.  Suppress the warning to avoid -Werror failures.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "22")
+    add_compile_options(-Wno-c2y-extensions)
+  endif()
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 
