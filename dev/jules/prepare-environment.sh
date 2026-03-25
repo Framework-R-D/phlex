@@ -1,0 +1,236 @@
+#!/bin/bash
+set -euo pipefail
+
+# This script prepares a development environment snapshot.
+# It uses sudo for privileged operations.
+
+{ set +x; } >/dev/null 2>&1
+echo "Starting environment snapshot preparation..."
+
+echo "--> Installing and configuring system-level dependencies..."
+set -x
+
+# Use sudo for all system-level package management
+
+sudo DEBIAN_FRONTEND=noninteractive apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    file \
+    git \
+    gnupg \
+    locales-all \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    lsb-release \
+    ninja-build \
+    software-properties-common \
+    sudo \
+    unzip
+
+sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+
+# Set locale
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+{ set +x; } >/dev/null 2>&1
+echo "--> Verifying execution environment..."
+echo "    Distributor ID: $(lsb_release -is)"
+echo "    Release:        $(lsb_release -rs)"
+echo "    Codename:       $(lsb_release -cs)"
+echo "    Architecture:   $(uname -m)"
+echo "--> System-level dependencies installed successfully."
+echo $'\n'
+
+echo "--> Installing and configuring Spack..."
+set -x
+
+# Create a user-owned directory for Spack to be installed into
+# We use /spack to match the CI image's location
+export SPACK_ROOT="/spack"
+sudo mkdir -p "$SPACK_ROOT"
+sudo chown -R "$(id -u):$(id -g)" "$SPACK_ROOT"
+
+# Clone Spack and pin to a specific commit
+git clone https://github.com/spack/spack.git "$SPACK_ROOT"
+(cd "$SPACK_ROOT" && git checkout f66589c1e844e919ee12d2d085f3131c39b4cfdc)
+
+# All Spack operations can now be run as the regular user
+
+( # Subshell to prevent unwanted leakage of Spack shell environment
+  export SNAPSHOT_SPACK_YAML=/app/ci/spack.yaml
+  set -euo pipefail
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Configuring Spack repositories and settings..."
+
+  # Set environment variables for Spack
+  export SPACK_USER_CONFIG_PATH=/dev/null
+  export SPACK_DISABLE_LOCAL_CONFIG=true
+
+  { set +x; } >/dev/null 2>&1
+  # shellcheck source=/dev/null
+  . "${SPACK_ROOT}/share/spack/setup-env.sh"
+  set -x
+
+  # Configure Spack repos
+  SPACK_REPO_ROOT="/opt/spack-repos"
+  sudo mkdir -p "$SPACK_REPO_ROOT"
+  sudo chown -R "$(id -u):$(id -g)" "$SPACK_REPO_ROOT"
+  git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
+  git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
+  # Pin to the commit that predates the spack-packages revert of the +binutils
+  # concretization fix (see ci/gcc-binutils-note.md for full context).
+  git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
+  (cd "$SPACK_REPO_ROOT/spack-packages" && git checkout bb6defac18230e7541407d45ddef2f3d4f1202cc)
+
+  { set +x; } >/dev/null 2>&1
+  spack repo add --scope site "$SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex"
+  spack repo add --scope site "$SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art"
+  spack repo add --scope site "$SPACK_REPO_ROOT/spack-packages/repos/spack_repo/builtin"
+  spack compiler find --scope site
+  spack compiler rm --scope site llvm || true
+  spack compilers
+  spack external find --exclude llvm --exclude python --exclude automake --exclude autoconf \
+        --exclude ccache --exclude gawk --exclude go --exclude libtool --exclude m4 --exclude npm \
+        --exclude pkgconf --exclude openssh --exclude rust
+
+  # Configure Spack directories to match CI locations
+  sudo mkdir -p /opt/spack-stage /opt/spack-cache/downloads /opt/spack-cache/misc
+  sudo chown -R "$(id -u):$(id -g)" /opt/spack-stage /opt/spack-cache
+
+  spack config --scope defaults add "config:build_stage:/opt/spack-stage"
+  spack config --scope defaults add "config:source_cache:/opt/spack-cache/downloads"
+  spack config --scope defaults add "config:misc_cache:/opt/spack-cache/misc"
+  spack config --scope defaults add "config:install_tree:padded_length:255"
+  spack config --scope defaults add "config:url_fetch_method:curl"
+
+  { set +x; } >/dev/null 2>&1
+  spack --timestamp gpg init
+  spack --timestamp mirror add --type binary phlex-ci-scisoft \
+        https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
+  spack --timestamp buildcache list -LNav
+  spack --timestamp buildcache keys -it
+  spack --timestamp buildcache check-index phlex-ci-scisoft
+  spack --timestamp gpg list
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Installing GCC 15.x ..."
+  set -x
+
+  # We must use the system compiler to build GCC 15, and we want to
+  # ensure that GCC 15's dependencies are also built with the system
+  # compiler to avoid a concretization loop where GCC 15 would be
+  # required to build itself or its dependencies.
+  system_compiler=$( { spack config get compilers | grep -oEe 'gcc@[0-9.]+' | head -n1; } || true)
+  spack --timestamp install --cache-only --fail-fast -j "$(nproc)" \
+        gcc@15.2 target=x86_64_v3 \
+        +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
+        build_type=Release \
+        languages=c,c++,fortran,lto \
+        %"${system_compiler:-gcc}"
+
+  # Register the newly installed GCC 15.2 as a compiler
+  spack compiler find --scope site "$(spack location -i gcc@15.2)"
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Concretizing Phlex Spack environment ..."
+  set -x
+
+  # Create, activate, and concretize the Spack environment
+  # We use /opt/spack-environments/phlex-ci to match the CI image
+  PHLEX_SPACK_ENV="/opt/spack-environments/phlex-ci"
+  sudo mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
+  sudo chown -R "$(id -u):$(id -g)" "$(dirname "$PHLEX_SPACK_ENV")"
+  rm -rf "$PHLEX_SPACK_ENV"
+
+  spack env create -d "$PHLEX_SPACK_ENV" "$SNAPSHOT_SPACK_YAML"
+  spack env activate -d "$PHLEX_SPACK_ENV"
+  spack concretize
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Installing all environment roots except Phlex ..."
+  set -x
+
+  spack --timestamp install --cache-only --fail-fast -j $(nproc) -p 1 \
+        --no-add --only-concrete --no-check-signature \
+        $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Installing Phlex dependencies ..."
+  set -x
+
+  spack --timestamp install --cache-only --fail-fast -j $(nproc) -p 1 \
+        --no-add --only-concrete --only dependencies --no-check-signature \
+        phlex
+
+  { set +x; } >/dev/null 2>&1
+  echo "--> Spack packages installed."
+  set -x
+
+  # Install ruff, gersemi, prek, and jsonnet via uv
+  { set +x; } >/dev/null 2>&1
+  echo "--> Installing developer tools (ruff, gersemi, prek, jsonnet)..."
+  set -x
+
+  curl -LsSf https://astral.sh/uv/install.sh | \
+    env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh
+
+  export UV_TOOL_BIN_DIR=/usr/local/bin
+  export UV_TOOL_DIR=/usr/local/share/uv/tools
+  uv tool install ruff
+  uv tool install gersemi
+  uv tool install prek
+  uv tool install jsonnet
+  uv cache clean
+
+  # Clean all Spack caches
+  { set +x; } >/dev/null 2>&1
+  echo "--> Cleaning Spack caches..."
+  set -x
+
+  spack clean -dfs
+)
+
+{ set +x; } >/dev/null 2>&1
+echo "--> Spack and Python tools setup complete."
+
+echo "--> Installing additional developer tools (act, gh)..."
+set -x
+
+# Install GitHub's act CLI
+download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
+  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.' | \
+  cut -d '"' -f 4)
+if [ -z "$download_url" ]; then
+  echo "Failed to determine act download URL" >&2
+  exit 1
+fi
+curl -sfSL "$download_url" | sudo tar -C /usr/local/bin -zx act
+sudo chmod +x /usr/local/bin/act
+
+# Install GitHub CLI (gh)
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends gh
+
+{ set +x; } >/dev/null 2>&1
+echo "--> Additional developer tools installed successfully."
+
+echo "--> Performing final cleanup..."
+set -x
+
+# Clean apt caches
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+
+{ set +x; } >/dev/null 2>&1
+echo "--> Cleanup complete."
+echo "Environment snapshot preparation is finished."

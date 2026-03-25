@@ -1,8 +1,19 @@
-# act configuration for local workflow testing on the host
+# act configuration for local workflow testing
 # See: https://nektosact.com/usage/index.html
 #
-# NOTE: act cannot run inside the devcontainer due to nested container limitations.
-# Use this configuration when running act on the host machine.
+# This configuration works both on the host and inside the phlex-dev
+# devcontainer, provided the Podman socket is reachable.
+#
+# Host prerequisite (rootless Podman):
+#   Ensure the Podman API socket is active:
+#     $ systemctl --user enable --now podman.socket
+#   Then set DOCKER_HOST so act (and the Docker SDK it uses) can find it:
+#     $ export DOCKER_HOST=unix://${XDG_RUNTIME_DIR}/podman/podman.sock
+#   Add the export to your shell profile to make it permanent.
+#
+# Inside the devcontainer:
+#   DOCKER_HOST is set automatically via devcontainer.json; no extra
+#   steps are required.
 
 # Default image for jobs without explicit container
 # Medium = Ubuntu with common build tools
