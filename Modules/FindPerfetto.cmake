@@ -13,6 +13,7 @@ find_path(
 find_file(
   Perfetto_SOURCE
   NAMES perfetto.cc
+  HINTS "${Perfetto_INCLUDE_DIR}"
   PATHS /opt/perfetto /usr/local/include /usr/include
   DOC "Perfetto SDK implementation file"
 )
