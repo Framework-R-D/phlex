@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Check and fix header guards to enforce naming convention."""
 
+from __future__ import annotations
+
 import argparse
 import re
 import sys
