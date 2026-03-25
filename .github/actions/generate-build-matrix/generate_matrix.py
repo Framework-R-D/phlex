@@ -15,6 +15,8 @@ def get_default_combinations(event_name, all_combinations):
         "workflow_dispatch",
     ):
         return ["gcc/none"]
+    elif event_name == "schedule":
+        return ["gcc/perfetto"]
     else:
         # Default to a minimal safe configuration for unknown events
         return ["gcc/none"]
