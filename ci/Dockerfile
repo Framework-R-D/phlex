@@ -394,18 +394,24 @@ ARG INSTALL_TRACEBOX=true
 RUN <<'INSTALL_PERFETTO'
 set -euo pipefail
 
-# Install Perfetto SDK and tools
-apt-get update
-apt-get install -y --no-install-recommends \
-  wget
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-
 mkdir -p /opt/perfetto
 cd /opt/perfetto
-PERFETTO_VERSION=v51.0
-wget -O perfetto.h https://raw.githubusercontent.com/google/perfetto/${PERFETTO_VERSION}/sdk/perfetto.h
-wget -O perfetto.cc https://raw.githubusercontent.com/google/perfetto/${PERFETTO_VERSION}/sdk/perfetto.cc
+
+# Use the immutable commit SHA for v51.0 rather than the movable tag so the
+# downloaded content is reproducible.  Update both the commit and the
+# checksums below when upgrading the Perfetto SDK version.
+PERFETTO_COMMIT=398922bc7f9a7f401820406e5a4faee7436ec052
+PERFETTO_H_SHA256=f85a537e2dabba0f022a4ce2f2ac6f0cf0849d192786f61269c91a146cfe3165
+PERFETTO_CC_SHA256=4f3c38158a7b84a25066ac4bd9e10adff90edc79137475036cd7ac38e0445a87
+
+curl -fsSL -o perfetto.h \
+  "https://raw.githubusercontent.com/google/perfetto/${PERFETTO_COMMIT}/sdk/perfetto.h"
+curl -fsSL -o perfetto.cc \
+  "https://raw.githubusercontent.com/google/perfetto/${PERFETTO_COMMIT}/sdk/perfetto.cc"
+
+echo "${PERFETTO_H_SHA256}  perfetto.h"   | sha256sum -c -
+echo "${PERFETTO_CC_SHA256}  perfetto.cc" | sha256sum -c -
+
 chmod 644 perfetto.h perfetto.cc
 
 if [ "${INSTALL_TRACEBOX}" = "true" ]; then
@@ -414,7 +420,7 @@ if [ "${INSTALL_TRACEBOX}" = "true" ]; then
   # offered by the Perfetto project.  Opt out with --build-arg INSTALL_TRACEBOX=false
   # if supply-chain policy requires a verifiable artifact.  Revisit when the
   # project provides versioned tracebox releases with integrity metadata.
-  wget -O tracebox https://get.perfetto.dev/tracebox
+  curl -fsSL -o tracebox https://get.perfetto.dev/tracebox
   chmod +x tracebox
   mv tracebox /usr/local/bin/
 fi
