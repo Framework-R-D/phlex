@@ -9,12 +9,20 @@
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "vscode",
     "containerEnv": {
-        "GH_CONFIG_DIR": "/home/vscode/.config/gh"
+        "GH_CONFIG_DIR": "/home/vscode/.config/gh",
+        "DOCKER_HOST": "unix:///run/podman/podman.sock"
     },
     "mounts": [
-        "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
+        "source=${localWorkspaceFolder}/../phlex-design,target=/workspaces/phlex-design,type=bind",
+        "source=${localWorkspaceFolder}/../phlex-examples,target=/workspaces/phlex-examples,type=bind",
+        "source=${localWorkspaceFolder}/../phlex-coding-guidelines,target=/workspaces/phlex-coding-guidelines,type=bind",
+        "source=${localWorkspaceFolder}/../phlex-spack-recipes,target=/workspaces/phlex-spack-recipes,type=bind",
+        "source=${localEnv:XDG_RUNTIME_DIR}/podman,target=/run/podman,type=bind",
+        "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
     ],
+    "initializeCommand": "bash .devcontainer/ensure-repos.sh",
     "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
+    "postCreateCommand": "bash -lc 'if command -v prek >/dev/null 2>&1; then prek install || true; elif command -v pre-commit >/dev/null 2>&1; then pre-commit install || true; fi'",
     "customizations": {
         "vscode": {
             "settings": {
@@ -59,7 +67,6 @@
                 "github.vscode-github-actions",
                 "github.vscode-pull-request-github",
                 "jebbs.plantuml",
-                "lextudio.iis",
                 "lextudio.restructuredtext",
                 "lextudio.restructuredtext-pack",
                 "lfs.vscode-emacs-friendly",

@@ -4,19 +4,51 @@
 
 # Podman instructions for building tagged images with this file:
 #
-#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target ci   --tag phlex-ci:<tag>  .
-#   $ podman build --format docker [-v <local-spack-cache>:/build-cache] --target dev  --tag phlex-dev:<tag> .
+#   $ podman build --format docker \
+#       [-v <local-spack-cache>:/build-cache] \
+#       [-v ~/.gnupg:/run/gpg] \
+#       --target ci   --tag phlex-ci:<tag>  .
+#   $ podman build --format docker \
+#       [-v <local-spack-cache>:/build-cache] \
+#       [-v ~/.gnupg:/run/gpg] \
+#       --target dev  --tag phlex-dev:<tag> .
 #   $ podman login ghcr.io --username <username> -p <token>
 #   $ podman push phlex-ci:<tag>  ghcr.io/framework-r-d/phlex-ci:<tag>
 #   $ podman push phlex-dev:<tag> ghcr.io/framework-r-d/phlex-dev:<tag>
 # ... and optionally push either image as "latest".
-
+#
 # where <tag> is the date (e.g. "2025-08-12").
+#
+# Binary package signing (optional):
+#   When -v <local-spack-cache>:/build-cache is supplied, newly built
+#   packages are pushed to that cache.  They are signed when a GPG
+#   private key is available; otherwise they are written unsigned.
+#   The signing key is selected in this order:
+#     1. The GPG_KEY_ID build argument (--build-arg GPG_KEY_ID=<key-id>).
+#     2. The first private key found in GNUPGHOME (/run/gpg), which is
+#        populated by mounting a GPG home directory:
+#          -v ~/.gnupg:/run/gpg
+#   If neither source yields a key the packages are written unsigned.
+#
+#   The local cache mirror is registered with --unsigned so that packages
+#   built in earlier layers can be read back without requiring a signature.
+#
+# Running act inside a phlex-dev container:
+#   act uses the Docker SDK to communicate with a container daemon; it
+#   does not require a Docker/Podman CLI inside the image.  Mount the
+#   host's rootless Podman socket and advertise it via DOCKER_HOST:
+#
+#     $ podman run --rm -it \
+#         -v ${XDG_RUNTIME_DIR}/podman/podman.sock:/run/podman/podman.sock \
+#         -e DOCKER_HOST=unix:///run/podman/podman.sock \
+#         phlex-dev:<tag>
+#
+#   The devcontainer.json already configures both the mount and the env
+#   var automatically when using VS Code / GitHub Codespaces.
+#   Host prerequisite: systemctl --user enable --now podman.socket
 
-ARG parallelism=18
-
+ARG GPG_KEY_ID
 FROM ubuntu:24.04 AS base
-ARG parallelism
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -33,40 +65,28 @@ SHELL ["/bin/bash", "-c"]
 RUN <<'INSTALL_ESSENTIALS'
 set -euo pipefail
 
+# Install locale support required by tooling and Spack
 apt-get update
+apt-get upgrade -y --no-install-recommends
 apt-get install -y --no-install-recommends \
-  build-essential \
-  ca-certificates \
-  curl \
-  file \
-  git \
-  gnupg2 \
-  libcurl4-openssl-dev \
-  libssl-dev \
-  locales-all \
-  python3 \
-  python3-dev \
-  python3-pip \
-  unzip
+    build-essential \
+    ca-certificates \
+    curl \
+    file \
+    git \
+    gnupg \
+    locales-all \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    lsb-release \
+    ninja-build \
+    software-properties-common \
+    sudo \
+    unzip
+apt autoremove -y
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-
-# Make python3 available as 'python'
-update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 INSTALL_ESSENTIALS
-
-########################################################################
-# Install locale support required by tooling and Spack
-
-RUN <<'INSTALL_LOCALES'
-set -euo pipefail
-
-# Install locale support required by tooling and Spack
-apt-get update
-apt-get install -y --no-install-recommends locales-all
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-INSTALL_LOCALES
 
 ########################################################################
 # Clone Spack checkout used by both CI and dev images
@@ -75,7 +95,7 @@ RUN <<'CLONE_SPACK'
 set -euo pipefail
 
 # Clone Spack checkout used by both CI and dev images
-git clone --depth=2 https://github.com/spack/spack.git /spack
+git clone https://github.com/spack/spack.git /spack
 CLONE_SPACK
 
 ########################################################################
@@ -93,22 +113,17 @@ find /spack /opt/spack-stage /opt/spack-cache /opt/spack-environments -type d -e
 PREP_SPACK_GROUP
 
 ########################################################################
-# Stage initial configuration files
-
-COPY spack.yaml /tmp/spack.yaml
-COPY entrypoint.sh /entrypoint.sh
-
-########################################################################
 # Configure Spack: add repos, compilers, externals, and cache locations
 
-RUN <<'CONFIGURE_SPACK_DEFAULTS'
+RUN <<'SPACK_CONFIGURE_DEFAULTS'
 set -euo pipefail
 
 SPACK_REPO_ROOT=/opt/spack-repos
-rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes"
+rm -rf "$SPACK_REPO_ROOT/fnal_art" "$SPACK_REPO_ROOT/phlex-spack-recipes" "$SPACK_REPO_ROOT/spack-packages"
 mkdir -p "$SPACK_REPO_ROOT"
 git clone --depth=1 https://github.com/FNALssi/fnal_art.git "$SPACK_REPO_ROOT/fnal_art"
 git clone --depth=1 https://github.com/Framework-R-D/phlex-spack-recipes.git "$SPACK_REPO_ROOT/phlex-spack-recipes"
+git clone https://github.com/spack/spack-packages.git "$SPACK_REPO_ROOT/spack-packages"
 chgrp -R spack "$SPACK_REPO_ROOT"
 chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
@@ -117,9 +132,8 @@ find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
 spack --timestamp repo add --scope site $SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex
 spack --timestamp repo add --scope site $SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art
-spack --timestamp repo set --scope site --destination $SPACK_REPO_ROOT builtin
+spack --timestamp repo add --scope site $SPACK_REPO_ROOT/spack-packages/repos/spack_repo/builtin
 spack --timestamp compiler find
-
 
 # Discover externals
 #
@@ -128,52 +142,77 @@ spack --timestamp compiler find
 #   Spack to build Python.
 spack --timestamp external find --exclude python
 
-spack config --scope defaults rm config:build_stage || true
 spack config --scope defaults add config:build_stage:/opt/spack-stage
-spack config --scope defaults rm config:source_cache || true
 spack config --scope defaults add config:source_cache:/opt/spack-cache/downloads
-spack config --scope defaults rm config:misc_cache || true
 spack config --scope defaults add config:misc_cache:/opt/spack-cache/misc
-CONFIGURE_SPACK_DEFAULTS
+spack config --scope defaults add "config:install_tree:padded_length:255"
+SPACK_CONFIGURE_DEFAULTS
+
+ENV GNUPGHOME=/run/gpg
+ENV SPACK_GNUPGHOME=/run/gpg
 
 ########################################################################
 # Configure binary mirrors used during installs
 
-RUN <<'CONFIGURE_SPACK_MIRRORS'
+RUN <<'SPACK_CONFIGURE_MIRRORS'
 set -euo pipefail
 
-# Register binary caches for Spack installs and optional local cache volume
+# Register binary caches for Spack installs and optional local cache volume.
+# The local cache is added with --unsigned so that packages built in earlier
+# layers (which may be unsigned) can be consumed without signature checks.
+# buildcache keys installs the public verification keys advertised by all
+# configured mirrors so that signed packages from those mirrors can be
+# verified during subsequent installs.
 . /spack/share/spack/setup-env.sh
 
 spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
-  spack --timestamp mirror add --type binary phlex-ci-local /build-cache
+  spack --timestamp mirror add --type binary --unsigned phlex-dev-local /build-cache
 fi
-CONFIGURE_SPACK_MIRRORS
+
+spack buildcache keys -it
+SPACK_CONFIGURE_MIRRORS
 
 ########################################################################
-# Install GCC 15.2
+# Use Spack to install the GCC we want to use
 
-RUN <<'INSTALL_GCC'
+RUN <<'SPACK_INSTALL_GCC'
 set -euo pipefail
 
-# Install GCC in its own layer to improve cache reuse
+# Install GCC outside the Phlex development environment.
 . /spack/share/spack/setup-env.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
-  --no-check-signature gcc@15.2 target=x86_64_v3 %c,cxx=gcc@13
+spack --timestamp install --fail-fast -j "$(nproc)" -p 1 \
+      --no-check-signature \
+      gcc@15.2 target=x86_64_v3 \
+      +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
+      build_type=Release \
+      languages=c,c++,fortran,lto
+
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
 
 # Make GCC external to simplify concretization
 spack compiler find $(spack location -i gcc@15.2)
 
 spack clean -dfs
-INSTALL_GCC
+SPACK_INSTALL_GCC
 
 ########################################################################
 # Create, activate, and concretize the phlex-ci Spack environment
 
-RUN <<'CONCRETIZE_ENV'
+COPY spack.yaml /tmp/spack.yaml
+RUN <<'SPACK_CONCRETIZE_ENV'
 set -euo pipefail
 
 # Build the phlex-ci environment lockfile with consistent permissions
@@ -181,17 +220,18 @@ set -euo pipefail
 
 mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
 rm -rf "$PHLEX_SPACK_ENV"
-spack versions -s llvm | grep -qEe '^[[:space:]]+21\.1\.4$' || spack checksum -ab llvm 21.1.4
 spack --timestamp env create -d "$PHLEX_SPACK_ENV" /tmp/spack.yaml
 spack --timestamp env activate -d "$PHLEX_SPACK_ENV"
 spack --timestamp concretize
 chgrp -R spack "$PHLEX_SPACK_ENV"
 chmod -R g+rwX "$PHLEX_SPACK_ENV"
 find "$PHLEX_SPACK_ENV" -type d -exec chmod g+s {} +
-CONCRETIZE_ENV
+SPACK_CONCRETIZE_ENV
 
 ########################################################################
 # Install common tooling layer (CMake, Ninja, coverage tools, etc.)
+
+COPY entrypoint.sh /entrypoint.sh
 
 RUN <<'INSTALL_TOOLING_CORE'
 set -euo pipefail
@@ -199,9 +239,21 @@ set -euo pipefail
 # Install core build utilities through Spack for both images
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
-  cmake lcov ninja py-gcovr py-pip
+  cmake lcov ninja py-gcovr
+
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
 
 spack clean -dfs
 INSTALL_TOOLING_CORE
@@ -209,76 +261,170 @@ INSTALL_TOOLING_CORE
 ########################################################################
 # Install LLVM toolchain separately for caching efficiency
 
-RUN <<'INSTALL_LLVM'
+RUN <<'SPACK_INSTALL_LLVM'
 set -euo pipefail
 
 # Install LLVM in its own layer to improve cache reuse
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature llvm
 
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
+
 spack clean -dfs
-INSTALL_LLVM
+SPACK_INSTALL_LLVM
 
 ########################################################################
 # Install remaining tools (excluding phlex itself) in one layer
 
-RUN <<'INSTALL_REMAINING_PACKAGES'
+RUN <<'SPACK_INSTALL_REMAINING_PACKAGES'
 set -euo pipefail
 
 # Install all concretized packages except phlex to share cache
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
   $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
 
+if [ -d "/build-cache" ]; then
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+fi
+
 spack clean -dfs
-INSTALL_REMAINING_PACKAGES
+SPACK_INSTALL_REMAINING_PACKAGES
 
 ########################################################################
 # Install Phlex dependencies (but not Phlex itself) for CI builds
 
-RUN <<'INSTALL_PHLEX_DEPENDENCIES'
+RUN <<'SPACK_INSTALL_PHLEX_DEPENDENCIES'
 set -euo pipefail
 
 # Materialize dependencies needed for CI builds without installing Phlex
 . /entrypoint.sh
 
-spack --timestamp install --fail-fast -j $parallelism -p 1 \
+spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --only dependencies --no-check-signature \
   phlex
 
 spack clean -dfs
-INSTALL_PHLEX_DEPENDENCIES
+SPACK_INSTALL_PHLEX_DEPENDENCIES
+
+########################################################################
+# Verify Python was built with SSL support
+
+RUN <<'VERIFY_PYTHON_SSL'
+set -euo pipefail
+
+# Confirm that the Spack-built Python provides a working ssl module,
+# which requires that Python was compiled against the expected SSL library.
+. /entrypoint.sh
+
+python -c "
+import ssl
+ctx = ssl.create_default_context()
+print('Python SSL OK:', ssl.OPENSSL_VERSION)
+" || {
+  echo "ERROR: Spack Python does not provide a working ssl module." >&2
+  echo "Check that Python was built with OpenSSL support (openssl~shared is a common culprit)." >&2
+  exit 1
+}
+VERIFY_PYTHON_SSL
 
 ########################################################################
 # Publish buildcache artifacts if a cache volume is mounted
 
-RUN <<'EXPORT_BUILDCACHE'
+RUN <<'WRITE_BUILDCACHE'
 set -euo pipefail
 
-# Export buildcache entries when /build-cache is provided as a volume
+# Export buildcache entries when /build-cache is provided as a volume.
+# Signs packages using the key identified by GPG_KEY_ID or the first
+# private key found in GNUPGHOME (/run/gpg); writes unsigned if neither
+# is available.
 . /entrypoint.sh
 
 if [ -d "/build-cache" ]; then
-  spack --timestamp buildcache create -u --rebuild-index \
-    /build-cache $(spack find --no-groups -LI | \
-      sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
-  spack mirror rm phlex-ci-local >/dev/null 2>&1 || true
+  key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
+  if [ -n "$key_id" ]; then
+    key_args=(--key "${key_id}")
+  else
+    key_args=(-u)
+  fi
+  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+        /build-cache $(spack find --no-groups -LI | \
+        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
-EXPORT_BUILDCACHE
 
-########################################################################
-# Remove transient files used during build
+spack mirror rm phlex-dev-local >/dev/null 2>&1 || true
 
-RUN <<'CLEAN_TEMP_FILES'
-set -euo pipefail
+spack clean -dfs
 
 # Drop the temporary Spack environment descriptor
 rm -f /tmp/spack.yaml
-CLEAN_TEMP_FILES
+
+WRITE_BUILDCACHE
+
+########################################################################
+# Verify Python was built with SSL support
+# (Performed earlier in the Dockerfile; no need to repeat here.)
+########################################################################
+# Install Perfetto SDK for profiling
+
+ARG INSTALL_TRACEBOX=true
+
+RUN <<'INSTALL_PERFETTO'
+set -euo pipefail
+
+mkdir -p /opt/perfetto
+cd /opt/perfetto
+
+# Use the immutable commit SHA for v51.0 rather than the movable tag so the
+# downloaded content is reproducible.  Update both the commit and the
+# checksums below when upgrading the Perfetto SDK version.
+PERFETTO_COMMIT=398922bc7f9a7f401820406e5a4faee7436ec052
+PERFETTO_H_SHA256=f85a537e2dabba0f022a4ce2f2ac6f0cf0849d192786f61269c91a146cfe3165
+PERFETTO_CC_SHA256=4f3c38158a7b84a25066ac4bd9e10adff90edc79137475036cd7ac38e0445a87
+
+curl -fsSL -o perfetto.h \
+  "https://raw.githubusercontent.com/google/perfetto/${PERFETTO_COMMIT}/sdk/perfetto.h"
+curl -fsSL -o perfetto.cc \
+  "https://raw.githubusercontent.com/google/perfetto/${PERFETTO_COMMIT}/sdk/perfetto.cc"
+
+echo "${PERFETTO_H_SHA256}  perfetto.h"   | sha256sum -c -
+echo "${PERFETTO_CC_SHA256}  perfetto.cc" | sha256sum -c -
+
+chmod 644 perfetto.h perfetto.cc
+
+if [ "${INSTALL_TRACEBOX}" = "true" ]; then
+  # tracebox is downloaded from get.perfetto.dev/tracebox, which currently
+  # serves the latest binary with no versioned or checksum-verifiable download
+  # offered by the Perfetto project.  Opt out with --build-arg INSTALL_TRACEBOX=false
+  # if supply-chain policy requires a verifiable artifact.  Revisit when the
+  # project provides versioned tracebox releases with integrity metadata.
+  curl -fsSL -o tracebox https://get.perfetto.dev/tracebox
+  chmod +x tracebox
+  mv tracebox /usr/local/bin/
+fi
+INSTALL_PERFETTO
 
 ########################################################################
 # Finalize CI image stage
@@ -291,11 +437,10 @@ USER root
 # Dev image additions (tooling and dev user configuration)
 
 FROM base AS dev
-ARG parallelism
 ENV SPACK_GROUP=spack
 
 ########################################################################
-# Install developer tooling (gersemi, ruff)
+# Install developer tooling (gersemi, prek, ruff)
 
 RUN <<'INSTALL_DEV_TOOLING'
 set -euo pipefail
@@ -303,34 +448,20 @@ set -euo pipefail
 # Install developer tooling not needed for CI
 . /entrypoint.sh
 
-# Install ruff and gersemi via pip
-PYTHONDONTWRITEBYTECODE=1 \
-  pip --isolated --no-input --disable-pip-version-check --no-cache-dir install \
-  --prefix /usr/local ruff gersemi
+# Install uv for Python tooling management
+curl -LsSf https://astral.sh/uv/install.sh | \
+  env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh
+
+# Install ruff, gersemi, and prek as isolated tools via uv
+export UV_TOOL_BIN_DIR=/usr/local/bin
+export UV_TOOL_DIR=/usr/local/share/uv/tools
+uv tool install ruff
+uv tool install gersemi
+uv tool install prek
+
+uv cache clean
 rm -rf ~/.spack
 INSTALL_DEV_TOOLING
-
-########################################################################
-# Install additional system packages needed for developer tooling
-
-RUN <<'INSTALL_DEV_PACKAGES'
-set -euo pipefail
-
-# Install additional system packages needed for developer tooling
-apt-get update
-apt-get install -y --no-install-recommends \
-  ca-certificates \
-  curl \
-  gnupg \
-  sudo
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-INSTALL_DEV_PACKAGES
-
-########################################################################
-# Create developer user and grant access to the shared spack group
-
-# User creation moved to .devcontainer/Dockerfile to support flexible runtime environments
 
 ########################################################################
 # Prepare workspace directory writable by the developer group
