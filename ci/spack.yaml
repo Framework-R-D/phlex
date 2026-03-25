@@ -1,3 +1,9 @@
+# ######################################################################
+# In this environment, we specify that some packages be built with the
+# native compiler (currently GCC 13 on Ubuntu 24.04), and others with
+# the compiler required to build Phlex (currently GCC 15).
+# ######################################################################
+
 spack:
   specs:
     - phlex
