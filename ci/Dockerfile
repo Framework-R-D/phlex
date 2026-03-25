@@ -168,7 +168,7 @@ set -euo pipefail
 spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
-  spack --timestamp mirror add --unsigned phlex-dev-local /build-cache
+  spack --timestamp mirror add --type binary --unsigned phlex-dev-local /build-cache
 fi
 
 spack buildcache keys -it
@@ -385,25 +385,7 @@ WRITE_BUILDCACHE
 
 ########################################################################
 # Verify Python was built with SSL support
-
-RUN <<'VERIFY_PYTHON_SSL'
-set -euo pipefail
-
-# Confirm that the Spack-built Python provides a working ssl module,
-# which requires that Python was compiled against the expected SSL library.
-. /entrypoint.sh
-
-python -c "
-import ssl
-ctx = ssl.create_default_context()
-print('Python SSL OK:', ssl.OPENSSL_VERSION)
-" || {
-  echo "ERROR: Spack Python does not provide a working ssl module." >&2
-  echo "Check that Python was built with OpenSSL support (openssl~shared is a common culprit)." >&2
-  exit 1
-}
-VERIFY_PYTHON_SSL
-
+# (Performed earlier in the Dockerfile; no need to repeat here.)
 ########################################################################
 # Install Perfetto SDK for profiling
 

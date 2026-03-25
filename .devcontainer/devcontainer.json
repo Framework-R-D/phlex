@@ -22,7 +22,7 @@
     ],
     "initializeCommand": "bash .devcontainer/ensure-repos.sh",
     "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
-    "postCreateCommand": "prek install",
+    "postCreateCommand": "bash -lc 'if command -v prek >/dev/null 2>&1; then prek install || true; elif command -v pre-commit >/dev/null 2>&1; then pre-commit install || true; fi'",
     "customizations": {
         "vscode": {
             "settings": {
