@@ -43,6 +43,10 @@ clone_if_absent() {
       echo "WARNING: unable to clone ${repo} to ${dest}; an empty directory was created" >&2
       return 0
     fi
+    # Remove any partial clone before retrying; recreate the empty directory
+    # so the bind mount source remains valid.
+    rm -rf "${dest}"
+    mkdir -p "${dest}"
     sleep 5
   done
 }
@@ -51,3 +55,18 @@ clone_if_absent phlex-design
 clone_if_absent phlex-examples
 clone_if_absent phlex-coding-guidelines
 clone_if_absent phlex-spack-recipes
+
+# Ensure the Podman runtime directory exists so the devcontainer bind mount
+# has a valid source even when the Podman socket is not yet active.  The
+# socket itself is created by Podman at runtime; we only need the parent
+# directory to exist for the mount to succeed.
+PODMAN_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman"
+if mkdir -p "${PODMAN_RUNTIME_DIR}" 2>/dev/null; then
+  if [ ! -S "${PODMAN_RUNTIME_DIR}/podman.sock" ]; then
+    echo "NOTE: Podman socket not found at ${PODMAN_RUNTIME_DIR}/podman.sock" >&2
+    echo "  To use 'act' inside the devcontainer, enable the Podman socket:" >&2
+    echo "    systemctl --user enable --now podman.socket" >&2
+  fi
+else
+  echo "WARNING: unable to create ${PODMAN_RUNTIME_DIR}; 'act' will not work inside the container without the Podman socket" >&2
+fi
