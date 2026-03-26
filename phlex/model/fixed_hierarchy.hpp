@@ -9,6 +9,32 @@
 #include <vector>
 
 namespace phlex::experimental {
+  template <typename RT>
+  class async_driver;
+}
+
+namespace phlex::experimental {
+
+  class fixed_hierarchy;
+
+  class data_cell {
+  public:
+    // Validates that the child layer is part of the fixed hierarchy and yields the child
+    // data-cell index to the underlying driver, returning a data_cell for the child.
+    data_cell yield_child(std::string const& layer_name, std::size_t number) const;
+
+    std::string layer_path() const;
+
+  private:
+    friend class fixed_hierarchy;
+    data_cell(data_cell_index_ptr index,
+              fixed_hierarchy const& h,
+              async_driver<data_cell_index_ptr>& d);
+
+    data_cell_index_ptr index_;
+    fixed_hierarchy const& hierarchy_;
+    async_driver<data_cell_index_ptr>& driver_;
+  };
 
   class fixed_hierarchy {
   public:
@@ -17,12 +43,12 @@ namespace phlex::experimental {
     explicit fixed_hierarchy(std::initializer_list<std::vector<std::string>> layer_paths);
     explicit fixed_hierarchy(std::vector<std::vector<std::string>> layer_paths);
 
-    auto validator() const
-    {
-      return [this](data_cell_index_ptr const& index) { validate(index); };
-    }
-
     void validate(data_cell_index_ptr const& index) const;
+
+    // Yields the job-level data-cell index to the provided driver and returns a
+    // data_cell for the job.  Must only be called from a function registered
+    // via driver_proxy::drive().
+    data_cell yield_job(async_driver<data_cell_index_ptr>& d) const;
 
   private:
     std::vector<std::size_t> layer_hashes_;

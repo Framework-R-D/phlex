@@ -50,7 +50,7 @@ TEST_CASE("Different data layers of fold", "[graph]")
   gen.add_layer("run", {"job", index_limit});
   gen.add_layer("event", {"run", number_limit});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});

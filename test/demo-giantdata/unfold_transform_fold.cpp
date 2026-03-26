@@ -50,7 +50,7 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   gen.add_layer("subrun", {"run", n_subruns});
   gen.add_layer("spill", {"subrun", n_spills});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_wgen",
             [](data_cell_index const& spill_index) {

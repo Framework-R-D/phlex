@@ -47,7 +47,7 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
   experimental::layer_generator gen;
   gen.add_layer("event", {"job", 10, 1});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   // Register providers
   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)

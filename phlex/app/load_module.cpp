@@ -117,6 +117,6 @@ namespace phlex::experimental {
     create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
     driver_proxy proxy;
     create_driver(proxy, config);
-    return {.driver = proxy.release(), .hierarchy = proxy.release_hierarchy()};
+    return {.driver = proxy.release()};
   }
 }

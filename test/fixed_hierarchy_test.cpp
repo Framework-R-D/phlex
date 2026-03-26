@@ -91,15 +91,3 @@ TEST_CASE("Paths with and without 'job' prefix produce the same hierarchy", "[fi
                       ContainsSubstring("Layer /job/unknown is not part of the fixed hierarchy"));
   }
 }
-
-TEST_CASE("validator() callable behaves identically to validate()", "[fixed_hierarchy]")
-{
-  auto const h = make_hierarchy();
-  auto const validate = h.validator();
-
-  auto const job = data_cell_index::job();
-  CHECK_NOTHROW(validate(job));
-  CHECK_NOTHROW(validate(job->make_child("run", 0)));
-  CHECK_THROWS_WITH(validate(job->make_child("unknown", 0)),
-                    ContainsSubstring("Layer /job/unknown is not part of the fixed hierarchy"));
-}

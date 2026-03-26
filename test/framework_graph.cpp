@@ -25,7 +25,7 @@ TEST_CASE("Make progress with one thread", "[graph]")
   experimental::layer_generator gen;
   gen.add_layer("spill", {"job", 1000});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy(), 1};
+  experimental::framework_graph g{driver_for_test(gen), 1};
   g.provide(
      "provide_number",
      [](data_cell_index const& index) -> unsigned int { return index.number(); },
@@ -46,7 +46,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
   experimental::layer_generator gen;
   gen.add_layer("spill", {"job", 1000});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide(
      "throw_exception",
      [](data_cell_index const&) -> unsigned int {

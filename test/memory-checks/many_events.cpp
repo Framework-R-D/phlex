@@ -16,7 +16,7 @@ int main()
   experimental::layer_generator gen;
   gen.add_layer("event", {"job", max_events, 1u});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});

@@ -40,5 +40,5 @@ PHLEX_EXPERIMENTAL_REGISTER_DRIVER(d, config)
     gen->add_layer(key, {parent, total_number, starting_number});
   }
 
-  d.driver(gen->hierarchy(), [gen](framework_driver& driver) { (*gen)(driver); });
+  d.drive(gen->hierarchy(), [gen](data_cell const& job) { (*gen)(job); });
 }

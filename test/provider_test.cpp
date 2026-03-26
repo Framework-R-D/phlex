@@ -36,7 +36,7 @@ TEST_CASE("provider_test")
   experimental::layer_generator gen;
   gen.add_layer("spill", {"job", max_events, 1u});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
     .output_product(

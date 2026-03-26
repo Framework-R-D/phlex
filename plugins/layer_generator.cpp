@@ -122,27 +122,27 @@ namespace phlex::experimental {
     layer_paths_.push_back(full_path);
   }
 
-  void layer_generator::execute(framework_driver& driver, data_cell_index_ptr index, bool recurse)
+  void layer_generator::operator()(data_cell const& job)
   {
-    auto cell_it = emitted_cells_.find(index->layer_path());
-    assert(cell_it != emitted_cells_.cend());
-    ++cell_it->second;
+    ++emitted_cells_.at("/job");
+    execute(job);
+  }
 
-    driver.yield(index);
-
-    if (not recurse) {
-      return;
-    }
-
-    auto it = parent_to_children_.find(index->layer_path());
+  void layer_generator::execute(data_cell const& cell)
+  {
+    auto it = parent_to_children_.find(cell.layer_path());
     assert(it != parent_to_children_.cend());
 
     for (auto const& child : it->second) {
-      auto const full_child_path = index->layer_path() + "/" + child;
-      bool const recurse = parent_to_children_.contains(full_child_path);
+      auto const full_child_path = cell.layer_path() + "/" + child;
       auto const& [_, total_per_parent, starting_value] = layers_.at(full_child_path);
+      bool const has_children = parent_to_children_.contains(full_child_path);
       for (unsigned int i : std::views::iota(starting_value, total_per_parent + starting_value)) {
-        execute(driver, index->make_child(child, i), recurse);
+        ++emitted_cells_.at(full_child_path);
+        auto const child_cell = cell.yield_child(child, i);
+        if (has_children) {
+          execute(child_cell);
+        }
       }
     }
   }

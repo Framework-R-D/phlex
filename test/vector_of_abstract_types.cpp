@@ -42,7 +42,7 @@ TEST_CASE("Test vector of abstract types")
   experimental::layer_generator gen;
   gen.add_layer("event", {"job", 1u, 1u});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
     .output_product(product_query{.creator = "dummy", .layer = "event", .suffix = "thing"});
   g.transform("read_thing", read_abstract)

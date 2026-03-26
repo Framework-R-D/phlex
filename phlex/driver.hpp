@@ -12,10 +12,14 @@
 #include "phlex/utilities/async_driver.hpp"
 
 #include <cassert>
+#include <concepts>
 #include <functional>
+#include <utility>
 
 namespace phlex {
   using framework_driver = experimental::async_driver<data_cell_index_ptr>;
+  using fixed_hierarchy = experimental::fixed_hierarchy;
+  using data_cell = experimental::data_cell;
 }
 
 namespace phlex::experimental {
@@ -37,11 +41,20 @@ namespace phlex::experimental {
       driver_ = std::move(f);
     }
 
+    template <std::invocable<data_cell const&> F>
+    void drive(fixed_hierarchy hierarchy, F f)
+    {
+      hierarchy_ = hierarchy;
+      driver_ = [f_cap = std::move(f), h_cap = std::move(hierarchy)](framework_driver& d) mutable {
+        f_cap(h_cap.yield_job(d));
+      };
+    }
+
     fixed_hierarchy release_hierarchy() { return std::move(hierarchy_); }
 
     detail::next_index_t release()
     {
-      assert(driver_ && "No driver has been registered via driver()");
+      assert(driver_ && "No driver has been registered");
       return std::move(driver_);
     }
 
@@ -54,7 +67,6 @@ namespace phlex::experimental {
 namespace phlex::experimental::detail {
   struct driver_with_validator {
     next_index_t driver;
-    fixed_hierarchy hierarchy;
   };
 }
 

@@ -39,7 +39,7 @@ TEST_CASE("Testing families", "[data model]")
   gen.add_layer("subrun", {"run", 1});
   gen.add_layer("event", {"subrun", 1});
 
-  experimental::framework_graph g{driver_for_test(gen), gen.hierarchy()};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   // Wire up providers for each level
   g.provide("run_id_provider", provide_index, concurrency::unlimited)
