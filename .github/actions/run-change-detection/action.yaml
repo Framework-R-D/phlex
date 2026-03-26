@@ -37,17 +37,18 @@ outputs:
 runs:
   using: "composite"
   steps:
+    # This action is never called from a pull_request_target workflow;
+    # all callers use pull_request, issue_comment, workflow_dispatch, or
+    # workflow_call triggers.  Even if it were called from
+    # pull_request_target, the empty sparse checkout below ensures no
+    # files from the ref are materialized on disk — only git objects are
+    # fetched — so no code from the PR is ever executed.
+    # codeql[actions/untrusted-checkout/medium]
     - name: Check out source code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: 0
         path: ${{ inputs.checkout-path }}
-        # This action is never called from a pull_request_target workflow; all callers
-        # use pull_request, issue_comment, workflow_dispatch, or workflow_call triggers.
-        # Even if it were called from pull_request_target, the empty sparse checkout
-        # below ensures no files from the ref are materialized on disk — only git
-        # objects are fetched — so no code from the PR is ever executed.
-        # codeql[actions/untrusted-checkout/medium]
         ref: ${{ inputs.ref }}
         repository: ${{ inputs.repo }}
         persist-credentials: false
