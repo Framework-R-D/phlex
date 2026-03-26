@@ -55,13 +55,15 @@ namespace phlex::experimental {
                                                    std::vector<type_id> output_types)
   {
     if (output_suffixes.empty()) {
+      // This happens whenever the user does not specify output_product_suffixes(...), so we
+      // assign the default suffix to all output data products.
       output_suffixes.assign(output_types.size(), default_suffix);
-    } else if (output_suffixes.size() != output_types.size()) {
-      throw std::runtime_error{fmt::format(
-        "Number of output product suffixes ({}) does not match number of output product types ({})",
-        output_suffixes.size(),
-        output_types.size())};
     }
+
+    // If output_suffixes and output_types are non-empty, the framework guarantees that they will
+    // have the same length. They will either have the same length due to the default-suffix
+    // assignment above, or because the call to output_product_suffixes(...) demands it.
+    assert(output_suffixes.size() == output_types.size());
 
     // We can use std::views::zip_transform once the AppleClang C++ STL supports it.
     auto const algo_name = algorithm_name::create(algorithm_specification);
