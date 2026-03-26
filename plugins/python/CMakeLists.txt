@@ -14,6 +14,7 @@ add_library(
   src/pymodule.cpp
   src/modulewrap.cpp
   src/configwrap.cpp
+  src/dciwrap.cpp
   src/lifelinewrap.cpp
   src/errorwrap.cpp
 )

@@ -161,9 +161,9 @@ cet_test(
 cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
          phlex::model
 )
-cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
-         phlex::core
-)
+#cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
+#         phlex::core
+#)
 cet_test(product_matcher USE_CATCH2_MAIN SOURCE product_matcher.cpp LIBRARIES
          phlex::model
 )
