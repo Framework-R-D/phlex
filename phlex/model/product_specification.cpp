@@ -63,15 +63,12 @@ namespace phlex::experimental {
         output_types.size())};
     }
 
-    // The following lambda expression generates a closure object that accepts a pair of output
-    // suffix and type as emitted by a zip.
+    // We can use std::views::zip_transform once the AppleClang C++ STL supports it.
     auto const algo_name = algorithm_name::create(algorithm_specification);
-    auto to_product_specification = [name = std::move(algo_name)](std::string const& suffix,
-                                                                  type_id const& type) {
-      return product_specification{name, identifier(suffix), type};
-    };
-
-    return std::views::zip_transform(to_product_specification, output_suffixes, output_types) |
+    return std::views::zip(output_suffixes, output_types) |
+           std::views::transform([&algo_name](auto const& p) {
+             return product_specification{algo_name, identifier(std::get<0>(p)), std::get<1>(p)};
+           }) |
            std::ranges::to<product_specifications>();
   }
 }
