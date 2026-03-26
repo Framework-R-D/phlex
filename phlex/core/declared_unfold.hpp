@@ -58,7 +58,8 @@ namespace phlex::experimental {
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
                     product_queries input_products,
-                    std::string child_layer);
+                    std::string child_layer,
+                    product_registry const& registry);
     virtual ~declared_unfold();
 
     virtual tbb::flow::sender<message>& output_port() = 0;
@@ -67,6 +68,8 @@ namespace phlex::experimental {
     virtual std::size_t product_count() const = 0;
     virtual flusher_t& flusher() = 0;
 
+    // Looks weird but this reduces the amount of special code in product registration
+    identifier layer() const noexcept { return identifier(child_layer_); }
     std::string const& child_layer() const noexcept { return child_layer_; }
 
   private:
@@ -93,11 +96,13 @@ namespace phlex::experimental {
                 Unfold&& unfold,
                 product_queries input_products,
                 std::vector<std::string> output_product_suffixes,
-                std::string child_layer_name) :
+                std::string child_layer_name,
+                product_registry const& registry) :
       declared_unfold{std::move(name),
                       std::move(predicates),
                       std::move(input_products),
-                      std::move(child_layer_name)},
+                      std::move(child_layer_name),
+                      registry},
       output_{to_product_specifications(full_name(),
                                         std::move(output_product_suffixes),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
@@ -129,10 +134,6 @@ namespace phlex::experimental {
     {
       return receiver_for<num_inputs>(join_, input(), input_product, unfold_);
     }
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<num_inputs>(join_, unfold_);
-    }
 
     tbb::flow::sender<message>& output_port() override
     {
@@ -144,6 +145,10 @@ namespace phlex::experimental {
     }
     product_specifications const& output() const override { return output_; }
     flusher_t& flusher() override { return flusher_; }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<num_inputs>(join_, unfold_);
+    }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,

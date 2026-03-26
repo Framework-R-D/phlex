@@ -7,10 +7,10 @@ namespace phlex {
   bool product_query::match(product_query const& other) const
   {
     using experimental::identifier;
-    if (identifier(creator) != identifier(other.creator)) {
+    if (creator && creator != other.creator) {
       return false;
     }
-    if (identifier(layer) != identifier(other.layer)) {
+    if (layer && layer != other.layer) {
       return false;
     }
     if (suffix && suffix != other.suffix) {
@@ -29,48 +29,37 @@ namespace phlex {
   // Check if a product_specification satisfies this query
   bool product_query::match(experimental::product_specification const& spec) const
   {
-    experimental::identifier tmp_creator{this->creator};
-    if (tmp_creator != spec.algorithm() && tmp_creator != spec.plugin()) {
+    if (creator && creator != spec.algorithm() && creator != spec.plugin()) {
       return false;
     }
     if (type != spec.type()) {
       return false;
     }
-    if (suffix) {
-      if (*suffix != spec.suffix()) {
-        return false;
-      }
+    if (suffix && suffix != spec.suffix()) {
+      return false;
     }
     return true;
   }
 
   std::string product_query::to_string() const
   {
-    if (suffix) {
-      return fmt::format("{}/{} ϵ {}", creator, *suffix, layer);
-    }
-    return fmt::format("{} ϵ {}", creator, layer);
+    std::string_view creator_sv = creator ? std::string_view(*creator) : "[ANY]";
+    std::string_view layer_sv = layer ? std::string_view(*layer) : "[ANY]";
+    std::string_view suffix_sv = suffix ? std::string_view(*suffix) : "[ANY]";
+    return fmt::format("{}/{} ϵ {}", creator_sv, suffix_sv, layer_sv);
   }
 
   bool product_query::operator==(product_query const& rhs) const
   {
     using experimental::identifier;
-    return (type == rhs.type) && (identifier(creator) == identifier(rhs.creator)) &&
-           (identifier(layer) == identifier(rhs.layer)) && (suffix == rhs.suffix) &&
-           (stage == rhs.stage);
+    return (type == rhs.type) && (creator == rhs.creator) && (layer == rhs.layer) &&
+           (suffix == rhs.suffix) && (stage == rhs.stage);
   }
   std::strong_ordering product_query::operator<=>(product_query const& rhs) const
   {
     using experimental::identifier;
-    return std::tie(type,
-                    static_cast<identifier const&>(creator),
-                    static_cast<identifier const&>(layer),
-                    suffix,
-                    stage) <=> std::tie(rhs.type,
-                                        static_cast<identifier const&>(rhs.creator),
-                                        static_cast<identifier const&>(rhs.layer),
-                                        rhs.suffix,
-                                        rhs.stage);
+    return std::tie(type, creator, layer, suffix, stage) <=>
+           std::tie(rhs.type, rhs.creator, rhs.layer, rhs.suffix, rhs.stage);
   }
 
   experimental::product_specification const* resolve_in_store(

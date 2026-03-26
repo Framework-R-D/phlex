@@ -34,7 +34,8 @@ namespace phlex::experimental {
   public:
     declared_observer(algorithm_name name,
                       std::vector<std::string> predicates,
-                      product_queries input_products);
+                      product_queries input_products,
+                      product_registry const& registry);
     virtual ~declared_observer();
   };
 
@@ -58,8 +59,10 @@ namespace phlex::experimental {
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
-                  product_queries input_products) :
-      declared_observer{std::move(name), std::move(predicates), std::move(input_products)},
+                  product_queries input_products,
+                  product_registry const& registry) :
+      declared_observer{
+        std::move(name), std::move(predicates), std::move(input_products), registry},
       join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
       observer_{g,
                 concurrency,

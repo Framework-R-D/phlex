@@ -17,57 +17,9 @@
 using namespace phlex::experimental::literals;
 
 namespace phlex {
-  namespace detail {
-    // The required_creator_name has to be a template for static_assert(false)
-    template <std::same_as<experimental::identifier> T>
-    class required_creator_name {
-    public:
-      required_creator_name()
-      {
-        static_assert(false, "The creator name has not been set in this product_query.");
-      }
-      template <typename U>
-        requires std::constructible_from<T, U>
-      required_creator_name(U&& rhs) : content_(std::forward_like<T>(rhs))
-      {
-        if (content_.empty()) {
-          throw std::runtime_error("Cannot specify product with empty creator name.");
-        }
-      }
-
-      operator T const&() const noexcept { return content_; }
-
-    private:
-      experimental::identifier content_;
-    };
-
-    // The required_layer_name has to be a template for static_assert(false)
-    template <std::same_as<experimental::identifier> T>
-    class required_layer_name {
-    public:
-      required_layer_name()
-      {
-        static_assert(false, "The layer name has not been set in this product_query.");
-      }
-      template <typename U>
-        requires std::constructible_from<T, U>
-      required_layer_name(U&& rhs) : content_(std::forward_like<T>(rhs))
-      {
-        if (content_.empty()) {
-          throw std::runtime_error("Cannot specify the empty string as a data layer.");
-        }
-      }
-
-      operator T const&() const noexcept { return content_; }
-
-    private:
-      experimental::identifier content_;
-    };
-  }
-
   struct product_query {
-    detail::required_creator_name<experimental::identifier> creator;
-    detail::required_layer_name<experimental::identifier> layer;
+    std::optional<experimental::identifier> creator;
+    std::optional<experimental::identifier> layer;
     std::optional<experimental::identifier> suffix;
     std::optional<experimental::identifier> stage;
     experimental::type_id type;

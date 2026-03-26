@@ -8,6 +8,7 @@
 #include "phlex/core/declared_provider.hpp"
 #include "phlex/core/declared_transform.hpp"
 #include "phlex/core/declared_unfold.hpp"
+#include "phlex/core/product_registry.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
@@ -21,7 +22,7 @@ namespace phlex::experimental {
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)
     {
-      return registrar{boost::pfr::get<simple_ptr_map<Ptr>>(*this), errors};
+      return registrar{boost::pfr::get<simple_ptr_map<Ptr>>(*this), errors, registry};
     }
 
     std::size_t execution_count(std::string const& node_name) const;
@@ -33,6 +34,8 @@ namespace phlex::experimental {
     simple_ptr_map<declared_unfold_ptr> unfolds{};
     simple_ptr_map<declared_transform_ptr> transforms{};
     simple_ptr_map<declared_provider_ptr> providers{};
+
+    product_registry registry{};
   };
 }
 

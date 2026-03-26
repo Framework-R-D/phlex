@@ -19,7 +19,8 @@ namespace phlex::experimental {
   public:
     products_consumer(algorithm_name name,
                       std::vector<std::string> predicates,
-                      product_queries input_products);
+                      product_queries input_products,
+                      product_registry const& registry);
 
     virtual ~products_consumer();
 
@@ -44,7 +45,8 @@ namespace phlex::experimental {
     virtual tbb::flow::receiver<message>& port_for(product_query const& input_product) = 0;
 
     product_queries input_products_;
-    std::vector<identifier> layers_;
+    mutable std::vector<identifier> layers_;
+    product_registry const* registry_;
   };
 }
 

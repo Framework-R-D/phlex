@@ -47,6 +47,7 @@
 //
 // =======================================================================================
 
+#include "phlex/core/product_registry.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include <cassert>
@@ -64,18 +65,21 @@ namespace phlex::experimental {
   template <typename Ptr>
   class registrar {
     using nodes = simple_ptr_map<Ptr>;
-    using node_creator = std::function<Ptr(std::vector<std::string>, std::vector<std::string>)>;
+    using node_creator = std::function<Ptr(
+      product_registry const&, std::vector<std::string>, std::vector<std::string>)>;
 
   public:
-    explicit registrar(nodes& node_map, std::vector<std::string>& errors) :
-      nodes_{&node_map}, errors_{&errors}
+    explicit registrar(nodes& node_map,
+                       std::vector<std::string>& errors,
+                       product_registry& registry) :
+      nodes_{&node_map}, errors_{&errors}, registry_{&registry}
     {
     }
 
     registrar(registrar const&) = delete;
-    registrar& operator=(registrar const&) = delete;
 
     registrar(registrar&&) = default;
+    registrar& operator=(registrar const&) = delete;
     registrar& operator=(registrar&&) = default;
 
     bool has_predicates() const { return predicates_.has_value(); }
@@ -107,9 +111,47 @@ namespace phlex::experimental {
 
     void create_node(std::vector<std::string> output_product_suffixes)
     {
+      using namespace phlex::experimental::literals;
       assert(creator_);
-      auto ptr = creator_(release_predicates(), std::move(output_product_suffixes));
+      auto ptr = creator_(*registry_, release_predicates(), std::move(output_product_suffixes));
       auto name = ptr->full_name();
+      //
+      // Register output products
+      // Providers have a different interface
+      if constexpr (requires {
+                      { ptr->output_product() } -> std::same_as<product_query const&>;
+                    }) {
+        auto const& prod = ptr->output_product();
+        // The product had better have it's creator and layer defined
+        assert(prod.creator && prod.layer);
+        registry_->add_product(
+          product_specification(algorithm_name::create(std::string_view(*prod.creator)),
+                                prod.suffix.value_or(""_id),
+                                prod.type),
+          ptr->layer(),
+          prod.stage.value_or(""_id));
+      }
+      // Now deal with everything else that produces outputs
+      else if constexpr (requires {
+                           { ptr->output() } -> std::same_as<product_specification const&>;
+                         }) {
+        auto spec = ptr->output();
+        // FIXME: Once we implement stage names this should be replaced with the current stage name
+        identifier stage = "current"_id;
+        identifier layer{};
+        if constexpr (requires { ptr->layer(); }) {
+          layer = ptr->layer();
+        } else {
+          std::set<identifier> layer_set{ptr->layers()};
+          if (layer_set.size() != 1) {
+            throw std::runtime_error(
+              "Transforms with inputs from more than one layer are unsupported!!");
+          }
+          layer = *layer_set.begin();
+        }
+
+        registry_->add_product(spec, layer, stage);
+      }
       auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
       if (not inserted) {
         detail::add_to_error_messages(*errors_, name);
@@ -121,6 +163,7 @@ namespace phlex::experimental {
     node_creator creator_{};
     std::optional<std::vector<std::string>> predicates_;
     std::vector<std::string> output_product_suffixes_{};
+    product_registry* registry_;
   };
 }
 
