@@ -659,7 +659,7 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
-  // retrieve function name and argument types
+  // retrieve function name
   if (!pyname) {
     pyname = PyObject_GetAttrString(callable, "__name__");
     if (!pyname) {
@@ -1126,7 +1126,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  // retrieve function name and argument types
+  // retrieve function name
   if (!pyname) {
     pyname = PyObject_GetAttrString(callable, "__name__");
     if (!pyname) {
@@ -1139,11 +1139,6 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
 
   std::string functor_name = PyUnicode_AsUTF8(pyname);
   Py_DECREF(pyname);
-
-  if (!output) {
-    PyErr_SetString(PyExc_TypeError, "a provider requires an output");
-    return nullptr;
-  }
 
   // retrieve C++ (matching) types from annotations
   std::vector<std::string> input_types;
@@ -1159,6 +1154,21 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // provider needs to have an output
   if (output_types.size() != 1 || output_types[0] == "None") {
     PyErr_SetString(PyExc_TypeError, "a provider must have an output");
+    return nullptr;
+  }
+
+  // special case of Phlex Variant wrapper
+  PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
+  if (wrapped_callable) {
+    callable = wrapped_callable;
+    Py_DECREF(wrapped_callable);  // safe, b/c callable holds a reference
+  } else {
+    // no wrapper, use the original callable
+    PyErr_Clear();
+  }
+
+  if (!output) {
+    PyErr_SetString(PyExc_TypeError, "a provider requires an output");
     return nullptr;
   }
 

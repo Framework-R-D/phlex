@@ -7,12 +7,12 @@
   },
   sources: {
     provider: {
-      py: 'pysource4py',
+      py: 'pyprovide',
     },
   },
   modules: {
-    pyadd: {
-      py: 'adder',
+    algorithms: {
+      py: 'pyprovide',
       input: [
         {
           creator: 'input',
@@ -26,17 +26,6 @@
         },
       ],
       output: ['sum'],
-    },
-    pyverify: {
-      py: 'verify',
-      input: [
-        {
-          creator: 'iadd',
-          layer: 'event',
-          suffix: 'sum',
-        },
-      ],
-      sum_total: 1,
     },
   },
 }
