@@ -22,9 +22,9 @@
 #include <string>
 
 #include "phlex/configuration.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
-#include "phlex/model/data_cell_index.hpp"
 
 namespace phlex::experimental {
 
