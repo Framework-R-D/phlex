@@ -5,11 +5,11 @@ product can be injected into the execution graph and used by subsequent
 algorithms.
 """
 
-def provide_i(di: "data_cell_index") -> int:     # noqa: F821
+def provide_i(di: "data_cell_index") -> int:     # type: ignore # noqa: F821
     """Dummy 'i' source."""
     return di.number() % 2
 
-def provide_j(di: "data_cell_index") -> int:     # noqa: F821
+def provide_j(di: "data_cell_index") -> int:     # type: ignore # noqa: F821
     """Dummmy 'j' source."""
     return 1 - di.number() % 2
 
