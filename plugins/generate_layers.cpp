@@ -19,26 +19,22 @@
 #include "phlex/driver.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "phlex/core/framework_graph.hpp"
-
-#include "fmt/ranges.h"
-#include "spdlog/spdlog.h"
-
 #include <string>
-
-using namespace phlex;
 
 PHLEX_EXPERIMENTAL_REGISTER_DRIVER(d, config)
 {
+  using namespace phlex;
+
   auto gen = std::make_shared<experimental::layer_generator>();
+
   auto const layers = config.get<configuration>("layers", {});
   for (auto const& key : layers.keys()) {
     auto const layer_config = layers.get<configuration>(key);
-    auto const parent = layer_config.get<std::string>("parent", "job");
-    auto const total_number = layer_config.get<unsigned int>("total");
-    auto const starting_number = layer_config.get<unsigned int>("starting_number", 0);
-    gen->add_layer(key, {parent, total_number, starting_number});
+    gen->add_layer(key,
+                   {.parent_layer_name = layer_config.get<std::string>("parent", "job"),
+                    .total_per_parent_data_cell = layer_config.get<unsigned int>("total"),
+                    .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
   }
 
-  d.drive(gen->hierarchy(), [gen](data_cell const& job) { (*gen)(job); });
+  return d.driver(gen->hierarchy(), [gen](experimental::data_cell const& job) { (*gen)(job); });
 }

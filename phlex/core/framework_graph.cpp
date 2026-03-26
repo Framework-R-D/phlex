@@ -19,9 +19,15 @@ namespace phlex::experimental {
   {
   }
 
-  framework_graph::framework_graph(detail::next_index_t f, int const max_parallelism) :
+  framework_graph::framework_graph(detail::next_index_t next_index, int const max_parallelism) :
+    framework_graph{driver_bundle{std::move(next_index), {}}, max_parallelism}
+  {
+  }
+
+  framework_graph::framework_graph(driver_bundle bundle, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
-    driver_{std::move(f)},
+    fixed_hierarchy_{std::move(bundle.hierarchy)},
+    driver_{std::move(bundle.driver)},
     src_{graph_,
          [this](tbb::flow_control& fc) mutable -> data_cell_index_ptr {
            if (auto item = driver_()) {

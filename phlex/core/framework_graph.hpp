@@ -34,7 +34,9 @@ namespace phlex::experimental {
   class framework_graph {
   public:
     explicit framework_graph(int max_parallelism = oneapi::tbb::info::default_concurrency());
-    explicit framework_graph(detail::next_index_t f,
+    explicit framework_graph(detail::next_index_t next_index,
+                             int max_parallelism = oneapi::tbb::info::default_concurrency());
+    explicit framework_graph(driver_bundle bundle,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
 
@@ -150,6 +152,7 @@ namespace phlex::experimental {
 
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;
+    fixed_hierarchy fixed_hierarchy_;
     data_layer_hierarchy hierarchy_{};
     node_catalog nodes_{};
     std::map<std::string, filter> filters_{};

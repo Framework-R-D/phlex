@@ -11,62 +11,41 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/async_driver.hpp"
 
-#include <cassert>
 #include <concepts>
 #include <functional>
 #include <utility>
 
-namespace phlex {
-  using framework_driver = experimental::async_driver<data_cell_index_ptr>;
-  using fixed_hierarchy = experimental::fixed_hierarchy;
-  using data_cell = experimental::data_cell;
-}
-
 namespace phlex::experimental {
   class driver_proxy;
-}
+  struct driver_bundle;
 
-namespace phlex::experimental::detail {
-  using next_index_t = std::function<void(framework_driver&)>;
-  using validator_t = std::function<void(data_cell_index_ptr const&)>;
-  using driver_creator_t = void(driver_proxy&, configuration const&);
-}
+  using framework_driver = experimental::async_driver<data_cell_index_ptr>;
 
-namespace phlex::experimental {
-  class driver_proxy {
-  public:
-    void driver(fixed_hierarchy hierarchy, detail::next_index_t f)
-    {
-      hierarchy_ = std::move(hierarchy);
-      driver_ = std::move(f);
-    }
+  namespace detail {
+    using next_index_t = std::function<void(framework_driver&)>;
+    using driver_creator_t = driver_bundle(driver_proxy const&, configuration const&);
+  };
 
-    template <std::invocable<data_cell const&> F>
-    void drive(fixed_hierarchy hierarchy, F f)
-    {
-      hierarchy_ = hierarchy;
-      driver_ = [f_cap = std::move(f), h_cap = std::move(hierarchy)](framework_driver& d) mutable {
-        f_cap(h_cap.yield_job(d));
-      };
-    }
-
-    fixed_hierarchy release_hierarchy() { return std::move(hierarchy_); }
-
-    detail::next_index_t release()
-    {
-      assert(driver_ && "No driver has been registered");
-      return std::move(driver_);
-    }
-
-  private:
-    fixed_hierarchy hierarchy_;
-    detail::next_index_t driver_;
+  struct driver_bundle {
+    detail::next_index_t driver;
+    fixed_hierarchy hierarchy;
   };
 }
 
-namespace phlex::experimental::detail {
-  struct driver_with_validator {
-    next_index_t driver;
+namespace phlex::experimental {
+  template <typename F>
+  concept is_driver_like = std::invocable<F, data_cell const&>;
+
+  class driver_proxy {
+  public:
+    driver_bundle driver(fixed_hierarchy hierarchy, is_driver_like auto driver_function) const
+    {
+      auto h = hierarchy;
+      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
+                f(h.yield_job(d));
+              },
+              std::move(hierarchy)};
+    }
   };
 }
 

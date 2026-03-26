@@ -75,12 +75,11 @@ namespace phlex::experimental {
   };
 
   // N.B. The layer_generator object must outlive whatever uses it.
-  inline std::function<void(framework_driver&)> driver_for_test(layer_generator& generator)
+  inline driver_bundle driver_for_test(layer_generator& generator)
   {
-    return [&generator](framework_driver& driver) mutable {
-      auto h = generator.hierarchy();
-      generator(h.yield_job(driver));
-    };
+    driver_proxy const proxy{};
+    return proxy.driver(generator.hierarchy(),
+                        [&generator](data_cell const& job) { generator(job); });
   }
 }
 

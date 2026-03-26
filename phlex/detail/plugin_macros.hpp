@@ -23,10 +23,12 @@
   PHLEX_DETAIL_SELECT_SIGNATURE(token_type, func_name, __VA_ARGS__)
 
 #define PHLEX_DETAIL_CREATE_DRIVER_1ARG(func_name, d)                                              \
-  void func_name(phlex::experimental::driver_proxy& d, phlex::configuration const&)
+  phlex::experimental::driver_bundle func_name(phlex::experimental::driver_proxy const& d,         \
+                                               phlex::configuration const&)
 
 #define PHLEX_DETAIL_CREATE_DRIVER_2ARGS(func_name, d, config)                                     \
-  void func_name(phlex::experimental::driver_proxy& d, phlex::configuration const& config)
+  phlex::experimental::driver_bundle func_name(phlex::experimental::driver_proxy const& d,         \
+                                               phlex::configuration const& config)
 
 #define PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, ...)                                       \
   BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \

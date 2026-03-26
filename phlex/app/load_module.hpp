@@ -6,8 +6,6 @@
 
 #include "boost/json.hpp"
 
-#include <functional>
-
 namespace phlex::experimental {
   namespace detail {
     // Adjust_config adds the module_label as a parameter, and it checks if the 'py'
@@ -17,7 +15,7 @@ namespace phlex::experimental {
 
   void load_module(framework_graph& g, std::string const& label, boost::json::object config);
   void load_source(framework_graph& g, std::string const& label, boost::json::object config);
-  detail::driver_with_validator load_driver(boost::json::object const& config);
+  driver_bundle load_driver(boost::json::object const& config);
 }
 
 #endif // PHLEX_APP_LOAD_MODULE_HPP
