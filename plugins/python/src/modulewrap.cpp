@@ -426,8 +426,15 @@ namespace {
   BASIC_CONVERTER(bool, bool, PyBool_FromLong, pylong_as_bool)
   BASIC_CONVERTER(int, std::int32_t, PyLong_FromLong, PyLong_AsLong)
   BASIC_CONVERTER(uint, std::uint32_t, PyLong_FromLong, pylong_or_int_as_ulong)
+#if defined(__APPLE__) && defined(__MACH__)
+  // This is a temporary workaround until we have a solution for handling translation of types
+  // between C++ and Python.
+  BASIC_CONVERTER(long, long, PyLong_FromLong, pylong_as_strictlong)
+  BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
+#else
   BASIC_CONVERTER(long, std::int64_t, PyLong_FromLong, pylong_as_strictlong)
   BASIC_CONVERTER(ulong, std::uint64_t, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
+#endif
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
