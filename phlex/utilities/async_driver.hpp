@@ -57,17 +57,16 @@ namespace phlex::experimental {
       cv_.notify_one();
     }
 
-    RT yield(RT rt)
+    void yield(RT rt)
     {
       std::unique_lock lock{mutex_};
-      current_ = std::make_optional(rt);
+      current_ = std::make_optional(std::move(rt));
       cv_.notify_one();
       cv_.wait(lock);
       if (gear_ == states::park) {
         // Can only be in park at this point if the framework needs to prematurely shut down
         throw std::runtime_error("Framework shutdown");
       }
-      return rt;
     }
 
   private:
