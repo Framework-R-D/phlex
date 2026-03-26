@@ -72,7 +72,9 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         {"creator": "input", "suffix": "i"},
     ):
         try:
-            m.transform(constant_one, input_family=[input_query], output_products=["output_one"])
+            m.transform(
+                constant_one, input_family=[input_query], output_product_suffixes=["output_one"]
+            )
             assert not "supposed to be here"
         except TypeError as e:
             # test for the one generic part in all these errors
@@ -84,21 +86,21 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         input_family=[
             {"creator": "input", "layer": "event", "suffix": "i"},
         ],
-        output_products=["output_one"],
+        output_product_suffixes=["output_one"],
     )
     m.transform(
         constant_two,
         input_family=[
             {"creator": "input", "layer": "event", "suffix": "i"},
         ],
-        output_products=["output_two"],
+        output_product_suffixes=["output_two"],
     )
     m.transform(
         constant_three,
         input_family=[
             {"creator": "input", "layer": "event", "suffix": "i"},
         ],
-        output_products=["output_three"],
+        output_product_suffixes=["output_three"],
     )
 
     # observers without suffix

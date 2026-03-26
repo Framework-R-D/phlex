@@ -21,7 +21,7 @@ namespace {
       driver.yield(job_index);
 
       for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        auto index = job_index->make_child(i, "event");
+        auto index = job_index->make_child("event", i);
         driver.yield(index);
       }
     }

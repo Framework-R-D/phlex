@@ -22,6 +22,6 @@ int main()
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
   g.transform("pass_on", pass_on, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
-    .output_products("different");
+    .output_product_suffixes("different");
   g.execute();
 }

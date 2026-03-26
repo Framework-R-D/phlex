@@ -70,10 +70,10 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
-    .output_products("run_sum");
+    .output_product_suffixes("run_sum");
   g.fold("job_add", add, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
-    .output_products("job_sum");
+    .output_product_suffixes("job_sum");
 
   g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
     .input_family(product_query{.creator = "run_add", .layer = "run", .suffix = "run_sum"});

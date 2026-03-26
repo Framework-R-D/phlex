@@ -53,4 +53,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
 
     for func, creator, suffix, output in tfs:
         input_family = [{"creator": creator, "layer": "event", "suffix": suffix}]
-        m.transform(func, input_family=input_family, output_products=[output])
+        m.transform(func, input_family=input_family, output_product_suffixes=[output])

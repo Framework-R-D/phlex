@@ -218,7 +218,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         m.transform(
             list_collect if use_lists else arr_collect,
             input_family=config[in_key],
-            output_products=[arr_name],
+            output_product_suffixes=[arr_name],
         )
 
         sum_kwargs = {
@@ -229,7 +229,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
                     "suffix": arr_name,
                 }
             ],
-            "output_products": config[out_key],
+            "output_product_suffixes": config[out_key],
         }
         if sum_name:
             sum_kwargs["name"] = sum_name

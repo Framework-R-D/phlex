@@ -5,6 +5,8 @@
 
 #include <cassert>
 
+using namespace std::string_literals;
+
 namespace phlex::experimental {
   index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
                                                            declared_providers& providers)
@@ -19,14 +21,14 @@ namespace phlex::experimental {
         bool found_match = false;
         for (auto const& [_, p] : providers) {
           auto& provider = *p;
-          if (port.product_label.match(provider.output_product())) {
+          if (port.input_product.match(provider.output_product())) {
             if (!result.contains(provider.full_name())) {
-              result.try_emplace(provider.full_name(), port.product_label, provider.input_port());
+              result.try_emplace(provider.full_name(), port.input_product, provider.input_port());
             }
             spdlog::debug("Connecting provider {} to node {} (product: {})",
                           provider.full_name(),
                           node_name,
-                          port.product_label.to_string());
+                          port.input_product.to_string());
             make_edge(provider.output_port(), *(port.port));
             found_match = true;
             break;
@@ -34,7 +36,7 @@ namespace phlex::experimental {
         }
         if (!found_match) {
           throw std::runtime_error("No provider found for product: "s +
-                                   port.product_label.to_string());
+                                   port.input_product.to_string());
         }
       }
     }

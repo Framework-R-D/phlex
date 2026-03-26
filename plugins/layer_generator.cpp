@@ -129,7 +129,7 @@ namespace phlex::experimental {
       bool const recurse = parent_to_children_.contains(full_child_path);
       auto const& [_, total_per_parent, starting_value] = layers_.at(full_child_path);
       for (unsigned int i : std::views::iota(starting_value, total_per_parent + starting_value)) {
-        execute(driver, index->make_child(i, child), recurse);
+        execute(driver, index->make_child(child, i), recurse);
       }
     }
   }

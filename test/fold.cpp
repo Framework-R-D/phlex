@@ -57,14 +57,14 @@ TEST_CASE("Different data layers of fold", "[graph]")
 
   g.fold("run_add", add, concurrency::unlimited, "run")
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
-    .output_products("run_sum");
+    .output_product_suffixes("run_sum");
   g.fold("job_add", add, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
-    .output_products("job_sum");
+    .output_product_suffixes("job_sum");
 
   g.fold("two_layer_job_add", add, concurrency::unlimited)
     .input_family(product_query{.creator = "run_add", .layer = "run", .suffix = "run_sum"})
-    .output_products("two_layer_job_sum");
+    .output_product_suffixes("two_layer_job_sum");
 
   g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
     .input_family(product_query{.creator = "run_add", .layer = "run", .suffix = "run_sum"});

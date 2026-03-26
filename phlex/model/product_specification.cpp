@@ -18,18 +18,18 @@ namespace phlex::experimental {
   product_specification::product_specification(std::string_view name) { *this = create(name); }
 
   product_specification::product_specification(algorithm_name qualifier,
-                                               identifier name,
+                                               identifier suffix,
                                                type_id type) :
-    qualifier_{std::move(qualifier)}, name_{std::move(name)}, type_id_{std::move(type)}
+    qualifier_{std::move(qualifier)}, suffix_{std::move(suffix)}, type_id_{std::move(type)}
   {
   }
 
   std::string product_specification::full() const
   {
     if (qualifier_.plugin().empty() && qualifier_.algorithm().empty()) {
-      return fmt::format("{}", name_);
+      return fmt::format("{}", suffix_);
     }
-    return fmt::format("{}/{}", qualifier_.full(), name_);
+    return fmt::format("{}/{}", qualifier_.full(), suffix_);
   }
 
   product_specification product_specification::create(char const* c)
@@ -49,17 +49,17 @@ namespace phlex::experimental {
   }
 
   product_specifications to_product_specifications(std::string_view const name,
-                                                   std::vector<std::string> output_labels,
+                                                   std::vector<std::string> output_suffixes,
                                                    std::vector<type_id> output_types)
   {
-    assert(output_labels.size() == output_types.size());
+    assert(output_suffixes.size() == output_types.size());
     product_specifications outputs;
-    outputs.reserve(output_labels.size());
+    outputs.reserve(output_suffixes.size());
 
     // zip view isn't available until C++23 so we have to use a loop over the index
-    for (std::size_t i = 0; i < output_labels.size(); ++i) {
+    for (std::size_t i = 0; i < output_suffixes.size(); ++i) {
       outputs.emplace_back(
-        algorithm_name::create(name), identifier(output_labels[i]), output_types[i]);
+        algorithm_name::create(name), identifier(output_suffixes[i]), output_types[i]);
     }
     return outputs;
   }

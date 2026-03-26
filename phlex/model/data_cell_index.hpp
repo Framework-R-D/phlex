@@ -20,7 +20,7 @@ namespace phlex {
     static data_cell_index_ptr base_ptr();
 
     using hash_type = std::size_t;
-    data_cell_index_ptr make_child(std::size_t data_cell_number, std::string layer_name) const;
+    data_cell_index_ptr make_child(std::string layer_name, std::size_t data_cell_number) const;
     experimental::identifier const& layer_name() const noexcept;
     std::string layer_path() const;
     std::size_t depth() const noexcept;

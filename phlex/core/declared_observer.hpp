@@ -76,9 +76,9 @@ namespace phlex::experimental {
     }
 
   private:
-    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
     {
-      return receiver_for<num_inputs>(join_, input(), product_label, observer_);
+      return receiver_for<num_inputs>(join_, input(), input_product, observer_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override

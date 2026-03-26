@@ -76,15 +76,15 @@ namespace {
       products.reserve(store.size());
 
       // Iterate through all products in the store
-      for (auto const& [product_name, product_ptr] : store) {
-        // product_name: "tracks" (from the map key)
+      for (auto const& [product_spec, product_ptr] : store) {
+        // product_spec: "tracks" (from the map key)
         // product_ptr: pointer to the actual product data
         assert(product_ptr && "store should not contain null product_ptr");
 
-        std::cout << "  Product: " << product_name.full() << "\n";
+        std::cout << "  Product: " << product_spec.full() << "\n";
 
         // Create FORM product with metadata
-        products.emplace_back(product_name.name().trans_get_string(), // label, from map key
+        products.emplace_back(product_spec.suffix().trans_get_string(), // label, from map key
                               product_ptr->address(), // data,  from phlex product_base
                               &product_ptr->type()    // type, from phlex product_base
         );

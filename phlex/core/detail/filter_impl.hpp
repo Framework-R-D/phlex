@@ -64,7 +64,7 @@ namespace phlex::experimental {
 
   private:
     stores_t stores_;
-    std::vector<product_query> const* product_names_;
+    std::vector<product_query> const* input_products_;
     std::size_t nargs_;
   };
 }

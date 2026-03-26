@@ -69,10 +69,10 @@ namespace phlex::experimental {
               tbb::flow::graph& g,
               AlgorithmBits alg,
               InitTuple initializer,
-              product_queries product_labels,
+              product_queries input_products,
               std::vector<std::string> output,
               std::string partition) :
-      declared_fold{std::move(name), std::move(predicates), std::move(product_labels)},
+      declared_fold{std::move(name), std::move(predicates), std::move(input_products)},
       initializer_{std::move(initializer)},
       output_{
         to_product_specifications(full_name(), std::move(output), make_type_ids<result_type>())},
@@ -132,9 +132,9 @@ namespace phlex::experimental {
       }
     }
 
-    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
     {
-      return receiver_for<num_inputs>(join_, input(), product_label, fold_);
+      return receiver_for<num_inputs>(join_, input(), input_product, fold_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override

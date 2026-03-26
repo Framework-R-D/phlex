@@ -69,27 +69,27 @@ TEST_CASE("Cached function calls", "[data model]")
 
   g.transform("A1", call_one, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "run", .suffix = "number"})
-    .output_products("one");
+    .output_product_suffixes("one");
   g.transform("A2", call_one, concurrency::unlimited)
     .input_family(product_query{.creator = "A1", .layer = "run", .suffix = "one"})
-    .output_products("used_one");
+    .output_product_suffixes("used_one");
   g.transform("A3", call_one, concurrency::unlimited)
     .input_family(product_query{.creator = "A2", .layer = "run", .suffix = "used_one"})
-    .output_products("done_one");
+    .output_product_suffixes("done_one");
 
   g.transform("B1", call_two, concurrency::unlimited)
     .input_family(product_query{.creator = "A1", .layer = "run", .suffix = "one"},
                   product_query{.creator = "input", .layer = "subrun", .suffix = "another"})
-    .output_products("two");
+    .output_product_suffixes("two");
   g.transform("B2", call_two, concurrency::unlimited)
     .input_family(product_query{.creator = "A2", .layer = "run", .suffix = "used_one"},
                   product_query{.creator = "B1", .layer = "subrun", .suffix = "two"})
-    .output_products("used_two");
+    .output_product_suffixes("used_two");
 
   g.transform("C", call_two, concurrency::unlimited)
     .input_family(product_query{.creator = "B2", .layer = "subrun", .suffix = "used_two"},
                   product_query{.creator = "input", .layer = "event", .suffix = "still"})
-    .output_products("three");
+    .output_product_suffixes("three");
 
   g.execute();
 
