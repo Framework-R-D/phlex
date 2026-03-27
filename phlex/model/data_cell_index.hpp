@@ -16,8 +16,7 @@
 namespace phlex {
   class data_cell_index : public std::enable_shared_from_this<data_cell_index> {
   public:
-    static data_cell_index const& base();
-    static data_cell_index_ptr base_ptr();
+    static data_cell_index_ptr job();
 
     using hash_type = std::size_t;
     data_cell_index_ptr make_child(std::string layer_name, std::size_t data_cell_number) const;

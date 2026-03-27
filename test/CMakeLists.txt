@@ -93,6 +93,7 @@ cet_test(
   LIBRARIES
   phlex::core
   Boost::json
+  layer_generator
 )
 cet_test(
   framework_graph
@@ -159,6 +160,9 @@ cet_test(
   phlex::utilities
 )
 cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
+         phlex::model
+)
+cet_test(fixed_hierarchy_test USE_CATCH2_MAIN SOURCE fixed_hierarchy_test.cpp LIBRARIES
          phlex::model
 )
 cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
@@ -233,6 +237,7 @@ cet_test(
   LIBRARIES
   spdlog::spdlog
   phlex::core
+  layer_generator
 )
 cet_test(
   unfold

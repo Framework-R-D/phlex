@@ -110,11 +110,12 @@ namespace phlex::experimental {
     creator(g.source_proxy(config), config);
   }
 
-  detail::next_index_t load_driver(boost::json::object const& raw_config)
+  driver_bundle load_driver(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
     create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
-    return create_driver(config);
+    driver_proxy const proxy{};
+    return create_driver(proxy, config);
   }
 }

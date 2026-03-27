@@ -28,10 +28,13 @@
 //      more general DAGs, where a data layer may have more than one parent.
 // ==============================================================================================
 
-#include "phlex/core/framework_graph.hpp"
+#include "phlex/driver.hpp"
 #include "phlex/model/data_cell_index.hpp"
 
+#include <functional>
+#include <map>
 #include <string>
+#include <vector>
 
 namespace phlex::experimental {
   struct layer_spec {
@@ -51,12 +54,13 @@ namespace phlex::experimental {
 
     void add_layer(std::string layer_name, layer_spec lspec);
 
-    void operator()(framework_driver& driver) { execute(driver, data_cell_index::base_ptr()); }
+    void operator()(data_cell_cursor const& job);
 
+    fixed_hierarchy hierarchy() const;
     std::size_t emitted_cell_count(std::string layer_path = {}) const;
 
   private:
-    void execute(framework_driver& driver, data_cell_index_ptr index, bool recurse = true);
+    void execute(data_cell_cursor const& cell);
     std::string parent_path(std::string const& layer_name,
                             std::string const& parent_layer_spec) const;
     void maybe_rebase_layer_paths(std::string const& layer_name,
@@ -70,10 +74,12 @@ namespace phlex::experimental {
     reverse_map_t parent_to_children_;
   };
 
-  // N.B. The layer_generator object must outlive any whatever uses it.
-  std::function<void(framework_driver&)> driver_for_test(layer_generator& generator)
+  // N.B. The layer_generator object must outlive whatever uses it.
+  inline driver_bundle driver_for_test(layer_generator& generator)
   {
-    return [&generator](framework_driver& driver) mutable { generator(driver); };
+    driver_proxy const proxy{};
+    return proxy.driver(generator.hierarchy(),
+                        [&generator](data_cell_cursor const& job) { generator(job); });
   }
 }
 
