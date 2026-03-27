@@ -6,17 +6,23 @@ algorithms.
 """
 
 import numpy as np
+import numpy.typing as npt
 
 from phlex import Variant
 
-specs = ((False, bool, "ib"),
-         (-42, int, "ii32"),
-         (42, np.uint32, "iui32"),
-         (-27, np.int64, "ii64"),
-         (27, np.uint64, "iui64"),
-         (42., np.float32, "if32"),
-         (-42., np.float64, "if64"),
-        )
+_specs = ((-42, np.int32, "ii32"),
+          (42, np.uint32, "iui32"),
+          (-27, np.int64, "ii64"),
+          (27, np.uint64, "iui64"),
+          (42., np.float32, "if32"),
+          (-42., np.float64, "if64"),
+         )
+
+specs = [(False, np.bool_, "ib")]
+for x, t, sf in _specs:
+   specs.append((x, t, sf)) # type: ignore
+   specs.append((np.array([x], dtype=t), npt.NDArray[t], "v"+sf)) # type: ignore
+
 
 def PHLEX_REGISTER_PROVIDERS(s, config):
     """Register python providers for all supported types.
@@ -62,6 +68,6 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         return a
 
     for x, t, sf in specs:
-        f = Variant(new_a(x), {"y": t, "return": None}, "py"+t.__name__)
+        f = Variant(new_a(x), {"y": t, "return": None}, sf+t.__name__)
         m.observe(f, input_family=[{"creator": "input_"+sf, "layer": "event"}])
 

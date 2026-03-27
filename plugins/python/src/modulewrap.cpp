@@ -170,7 +170,8 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result = PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
+      PyObject* result =
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -604,7 +605,18 @@ namespace {
                                                                                                    \
     Py_DECREF((PyObject*)pyobj);                                                                   \
     return vec;                                                                                    \
-  }
+  }                                                                                                \
+                                                                                                   \
+  struct provider_cb_##name : public py_callback<1> {                                              \
+    std::shared_ptr<std::vector<cpptype>> operator()(data_cell_index const& id)                    \
+    {                                                                                              \
+      PyGILRAII gil;                                                                               \
+      PyObject* arg0 = wrap_dci(id);                                                               \
+      intptr_t pyres = call((intptr_t)arg0); /* decrefs arg0 */                                    \
+      auto cres = py_to_##name(pyres); /* decrefs pyres */                                         \
+      return cres;                                                                                 \
+    }                                                                                              \
+  };
 
   NUMPY_ARRAY_CONVERTER(vint, std::int32_t, NPY_INT32, PyLong_AsLong)
   NUMPY_ARRAY_CONVERTER(vuint, std::uint32_t, NPY_UINT32, pylong_or_int_as_ulong)
@@ -1209,27 +1221,33 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   } else if (out_type == "double") {
     auto* pyc = new provider_cb_double{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
-  } /* else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
+  } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
     std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
     if (dtype == "[int32_t]") {
-      insert_converter(mod, cname, py_to_vint, out_pq, output);
+      auto* pyc = new provider_cb_vint{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (dtype == "[uint32_t]") {
-      insert_converter(mod, cname, py_to_vuint, out_pq, output);
+      auto* pyc = new provider_cb_vuint{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (dtype == "[int64_t]") {
-      insert_converter(mod, cname, py_to_vlong, out_pq, output);
+      auto* pyc = new provider_cb_vlong{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (dtype == "[uint64_t]") {
-      insert_converter(mod, cname, py_to_vulong, out_pq, output);
+      auto* pyc = new provider_cb_vulong{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (dtype == "[float]") {
-      insert_converter(mod, cname, py_to_vfloat, out_pq, output);
+      auto* pyc = new provider_cb_vfloat{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (dtype == "[double]") {
-      insert_converter(mod, cname, py_to_vdouble, out_pq, output);
+      auto* pyc = new provider_cb_vdouble{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;
     }
-  } */
+  }
   else {
     PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
     return nullptr;
