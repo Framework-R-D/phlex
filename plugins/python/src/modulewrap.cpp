@@ -1134,7 +1134,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   }
 
   if (!callable || !PyCallable_Check(callable)) {
-    PyErr_SetString(PyExc_TypeError, "provided algorithm is not callable");
+    PyErr_SetString(PyExc_TypeError, "given provider is not callable");
     return nullptr;
   }
 

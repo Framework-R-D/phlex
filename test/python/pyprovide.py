@@ -48,6 +48,41 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
         f = Variant(new_p(x), {"di": "data_cell_index", "return": t}, "input_"+sf)
         s.provide(f, {"creator": "input_"+sf, "layer": "event", "suffix": sf })
 
+    # add a bunch of failures to check error reporting
+    try:
+        s.provide(None)
+        assert not "supposed to be here"
+    except TypeError as e:
+        assert "missing required argument" in str(e)
+
+    try:
+        class C:
+           def __call__(self, di):
+               pass
+        s.provide(C(), {"creator": "a", "layer": "b", "suffix": "c" })
+        assert not "supposed to be here"
+    except AttributeError as e:
+        assert "__name__" in str(e)
+
+    try:
+        s.provide(42, {"creator": "a", "layer": "b", "suffix": "c" })
+        assert not "supposed to be here"
+    except TypeError as e:
+        assert "given provider is not callable" in str(e)
+
+    try:
+        s.provide(lambda: 42, {"creator": "a", "layer": "b", "suffix": "c" })
+        assert not "supposed to be here"
+    except TypeError as e:
+        assert "data_cell_index" in str(e)
+
+    try:
+        f = Variant(lambda di: 42, {"di": "data_cell_index", "return": None}, "f")
+        s.provide(f, {"creator": "a", "layer": "b", "suffix": "c" })
+        assert not "supposed to be here"
+    except TypeError as e:
+        assert "provider must have an output" in str(e)
+
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register python consumers as observers to check providers' output.
