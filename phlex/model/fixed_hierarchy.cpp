@@ -58,22 +58,23 @@ namespace {
 
 namespace phlex::experimental {
 
-  data_cell::data_cell(data_cell_index_ptr index,
-                       fixed_hierarchy const& h,
-                       async_driver<data_cell_index_ptr>& d) :
+  data_cell_cursor::data_cell_cursor(data_cell_index_ptr index,
+                                     fixed_hierarchy const& h,
+                                     async_driver<data_cell_index_ptr>& d) :
     index_{std::move(index)}, hierarchy_{h}, driver_{d}
   {
   }
 
-  data_cell data_cell::yield_child(std::string const& layer_name, std::size_t number) const
+  data_cell_cursor data_cell_cursor::yield_child(std::string const& layer_name,
+                                                 std::size_t number) const
   {
     auto child = index_->make_child(layer_name, number);
     hierarchy_.validate(child);
     driver_.yield(child);
-    return data_cell{child, hierarchy_, driver_};
+    return data_cell_cursor{child, hierarchy_, driver_};
   }
 
-  std::string data_cell::layer_path() const { return index_->layer_path(); }
+  std::string data_cell_cursor::layer_path() const { return index_->layer_path(); }
 
   fixed_hierarchy::fixed_hierarchy(std::initializer_list<std::vector<std::string>> layer_paths) :
     fixed_hierarchy(std::vector<std::vector<std::string>>(layer_paths))
@@ -97,11 +98,11 @@ namespace phlex::experimental {
       fmt::format("Layer {} is not part of the fixed hierarchy.", index->layer_path()));
   }
 
-  data_cell fixed_hierarchy::yield_job(async_driver<data_cell_index_ptr>& d) const
+  data_cell_cursor fixed_hierarchy::yield_job(async_driver<data_cell_index_ptr>& d) const
   {
     auto job = data_cell_index::job();
     d.yield(job);
-    return data_cell{job, *this, d};
+    return data_cell_cursor{job, *this, d};
   }
 
 }

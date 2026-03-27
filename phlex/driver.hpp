@@ -34,7 +34,7 @@ namespace phlex::experimental {
 
 namespace phlex::experimental {
   template <typename F>
-  concept is_driver_like = std::invocable<F, data_cell const&>;
+  concept is_driver_like = std::invocable<F, data_cell_cursor const&>;
 
   class driver_proxy {
   public:

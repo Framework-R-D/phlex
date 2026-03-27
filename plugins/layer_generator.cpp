@@ -122,13 +122,13 @@ namespace phlex::experimental {
     layer_paths_.push_back(full_path);
   }
 
-  void layer_generator::operator()(data_cell const& job)
+  void layer_generator::operator()(data_cell_cursor const& job)
   {
     ++emitted_cells_.at("/job");
     execute(job);
   }
 
-  void layer_generator::execute(data_cell const& cell)
+  void layer_generator::execute(data_cell_cursor const& cell)
   {
     auto it = parent_to_children_.find(cell.layer_path());
     assert(it != parent_to_children_.cend());

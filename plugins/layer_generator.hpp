@@ -54,13 +54,13 @@ namespace phlex::experimental {
 
     void add_layer(std::string layer_name, layer_spec lspec);
 
-    void operator()(data_cell const& job);
+    void operator()(data_cell_cursor const& job);
 
     fixed_hierarchy hierarchy() const;
     std::size_t emitted_cell_count(std::string layer_path = {}) const;
 
   private:
-    void execute(data_cell const& cell);
+    void execute(data_cell_cursor const& cell);
     std::string parent_path(std::string const& layer_name,
                             std::string const& parent_layer_spec) const;
     void maybe_rebase_layer_paths(std::string const& layer_name,
@@ -79,7 +79,7 @@ namespace phlex::experimental {
   {
     driver_proxy const proxy{};
     return proxy.driver(generator.hierarchy(),
-                        [&generator](data_cell const& job) { generator(job); });
+                        [&generator](data_cell_cursor const& job) { generator(job); });
   }
 }
 

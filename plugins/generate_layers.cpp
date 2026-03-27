@@ -36,5 +36,6 @@ PHLEX_EXPERIMENTAL_REGISTER_DRIVER(d, config)
                     .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
   }
 
-  return d.driver(gen->hierarchy(), [gen](experimental::data_cell const& job) { (*gen)(job); });
+  return d.driver(gen->hierarchy(),
+                  [gen](experimental::data_cell_cursor const& job) { (*gen)(job); });
 }
