@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_PRODUCT_QUERY_HPP
 #define PHLEX_CORE_PRODUCT_QUERY_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
@@ -65,7 +67,7 @@ namespace phlex {
     };
   }
 
-  struct product_query {
+  struct phlex_core_EXPORT product_query {
     detail::required_creator_name<experimental::identifier> creator;
     detail::required_layer_name<experimental::identifier> layer;
     std::optional<experimental::identifier> suffix;
