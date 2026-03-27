@@ -92,6 +92,19 @@ cet_test(
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
 )
 
+cet_test(
+  job:form_module_rntuple
+  HANDBUILT
+  TEST_EXEC
+  phlex::phlex
+  TEST_ARGS
+  -c
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_test_rntuple.jsonnet
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
+)
+
 cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
          form
 )

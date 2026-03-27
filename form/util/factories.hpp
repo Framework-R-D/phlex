@@ -18,6 +18,12 @@
 #include "root_storage/root_ttree_write_container.hpp"
 #endif
 
+#ifdef USE_RNTUPLE_STORAGE
+#include "root_storage/root_rfield_read_container.hpp"
+#include "root_storage/root_rfield_write_container.hpp"
+#include "root_storage/root_rntuple_write_container.hpp"
+#endif
+
 #include <memory>
 #include <string>
 
