@@ -57,7 +57,7 @@ namespace phlex::experimental {
     if (output_suffixes.empty()) {
       // This happens whenever the user does not specify output_product_suffixes(...), so we
       // assign the default suffix to all output data products.
-      output_suffixes.assign(output_types.size(), default_suffix);
+      output_suffixes.assign(output_types.size(), default_product_suffix);
     }
 
     // If output_suffixes and output_types are non-empty, the framework guarantees that they will

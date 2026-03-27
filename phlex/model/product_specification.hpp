@@ -13,7 +13,7 @@
 
 namespace phlex::experimental {
 
-  inline std::string const default_suffix{"[default]"};
+  inline std::string const default_product_suffix{"[default]"};
 
   class product_specification {
   public:
@@ -41,7 +41,7 @@ namespace phlex::experimental {
 
   private:
     algorithm_name qualifier_;
-    identifier suffix_{default_suffix};
+    identifier suffix_{default_product_suffix};
     type_id type_id_{};
   };
 
