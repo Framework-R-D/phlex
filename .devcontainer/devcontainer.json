@@ -60,7 +60,8 @@
                 "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
                 "python.languageServer": "Pylance",
                 "python.analysis.typeCheckingMode": "basic",
-                "python.analysis.diagnosticMode": "workspace"
+                "python.analysis.diagnosticMode": "workspace",
+                "github.copilot-chat.usePreReleaseVersion": false
             },
             "extensions": [
                 "charliermarsh.ruff",
