@@ -11,7 +11,7 @@ using namespace form::test;
 
 int main(int const argc, char const** argv)
 {
-  int const technology = getTechnology(argc, argv);
+  int const technology = getTechnology((argc > 1) ? argv[1] : "ROOT_TTREE");
   if (technology < 0)
     return 1;
 
