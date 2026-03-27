@@ -83,6 +83,20 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
     except TypeError as e:
         assert "provider must have an output" in str(e)
 
+    try:
+        f = Variant(lambda di: 42, {"di": "data_cell_index", "return": "object"}, "f")
+        s.provide(f, {"creator": "a", "layer": "b", "suffix": "c" })
+        assert not "supposed to be here"
+    except TypeError as e:
+        assert "unsupported output type" in str(e)
+
+    try:
+        f = Variant(lambda di: 42, {"di": "data_cell_index", "return": npt.NDArray[np.bool_]}, "f")
+        s.provide(f, {"creator": "a", "layer": "b", "suffix": "c" })
+        assert not "supposed to be here"
+    except TypeError as e:
+        assert "unsupported collection output type" in str(e)
+
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register python consumers as observers to check providers' output.
