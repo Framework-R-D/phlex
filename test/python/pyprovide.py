@@ -40,6 +40,7 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
     """
     def new_p(x):
         def p(di):
+            assert 0 <= di.number()
             return x
         return p
 
