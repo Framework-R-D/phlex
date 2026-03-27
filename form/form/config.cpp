@@ -13,14 +13,14 @@ namespace {
 
 namespace form::experimental::config {
 
-  void output_item_config::addItem(std::string const& product_name,
-                                   std::string const& file_name,
-                                   int technology)
+  void ItemConfig::addItem(std::string const& product_name,
+                           std::string const& file_name,
+                           int technology)
   {
     m_items.emplace_back(product_name, file_name, technology);
   }
 
-  std::optional<PersistenceItem> output_item_config::findItem(std::string const& product_name) const
+  std::optional<PersistenceItem> ItemConfig::findItem(std::string const& product_name) const
   {
     for (auto const& item : m_items) {
       if (item.product_name == product_name) {

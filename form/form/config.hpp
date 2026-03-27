@@ -23,10 +23,10 @@ namespace form::experimental::config {
     }
   };
 
-  class output_item_config {
+  class ItemConfig {
   public:
-    output_item_config() = default;
-    ~output_item_config() = default;
+    ItemConfig() = default;
+    ~ItemConfig() = default;
 
     // Add a configuration item
     void addItem(std::string const& product_name, std::string const& file_name, int technology);
