@@ -17,3 +17,6 @@ if command -v prek >/dev/null 2>&1; then
 elif command -v pre-commit >/dev/null 2>&1; then
   pre-commit install || true
 fi
+
+# Install kiro-cli and set up shell integrations.
+curl -fsSL https://cli.kiro.dev/install | bash
