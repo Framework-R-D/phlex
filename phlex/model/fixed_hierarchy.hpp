@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_FIXED_HIERARCHY_HPP
 #define PHLEX_MODEL_FIXED_HIERARCHY_HPP
 
+#include "phlex/phlex_model_export.hpp"
+
 #include "phlex/model/fwd.hpp"
 
 #include <cstddef>
@@ -17,7 +19,7 @@ namespace phlex {
 
   class fixed_hierarchy;
 
-  class data_cell_cursor {
+  class phlex_model_EXPORT data_cell_cursor {
   public:
     // Validates that the child layer is part of the fixed hierarchy and yields the child
     // data-cell index to the underlying driver, returning a data_cell_cursor for the child.
@@ -36,7 +38,7 @@ namespace phlex {
     experimental::async_driver<data_cell_index_ptr>& driver_;
   };
 
-  class fixed_hierarchy {
+  class phlex_model_EXPORT fixed_hierarchy {
   public:
     fixed_hierarchy() = default;
     // Using an std::initializer_list removes one set of braces that the user must provide
