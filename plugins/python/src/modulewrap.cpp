@@ -613,7 +613,7 @@ namespace {
       PyGILRAII gil;                                                                               \
       PyObject* arg0 = wrap_dci(id);                                                               \
       intptr_t pyres = call((intptr_t)arg0); /* decrefs arg0 */                                    \
-      auto cres = py_to_##name(pyres); /* decrefs pyres */                                         \
+      auto cres = py_to_##name(pyres);       /* decrefs pyres */                                   \
       return cres;                                                                                 \
     }                                                                                              \
   };
@@ -1173,7 +1173,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
   if (wrapped_callable) {
     callable = wrapped_callable;
-    Py_DECREF(wrapped_callable);  // safe, b/c callable holds a reference
+    Py_DECREF(wrapped_callable); // safe, b/c callable holds a reference
   } else {
     // no wrapper, use the original callable
     PyErr_Clear();
@@ -1247,8 +1247,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;
     }
-  }
-  else {
+  } else {
     PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
     return nullptr;
   }
