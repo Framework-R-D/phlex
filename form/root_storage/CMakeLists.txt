@@ -10,6 +10,9 @@ add_library(
   root_ttree_write_container.cpp
   root_tbranch_read_container.cpp
   root_tbranch_write_container.cpp
+  root_rfield_read_container.cpp
+  root_rfield_write_container.cpp
+  root_rntuple_write_container.cpp
   demangle_name.cpp
 )
 target_compile_definitions(root_storage PUBLIC USE_ROOT_STORAGE)
