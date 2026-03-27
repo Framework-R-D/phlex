@@ -36,6 +36,7 @@ runs:
 
     - name: Post inline comments
       if: steps.check.outputs.has_fixes == 'true' && inputs.pr-number != ''
+      continue-on-error: true # platisd/clang-tidy-pr-comments exits non-zero when issues are found; that is informational, not a CI failure
       uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.8.0
       with:
         clang_tidy_fixes: ${{ inputs.build-path }}/clang-tidy-fixes.yaml
