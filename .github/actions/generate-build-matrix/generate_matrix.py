@@ -15,6 +15,8 @@ def get_default_combinations(event_name, all_combinations):
         "workflow_dispatch",
     ):
         return ["gcc/none"]
+    elif event_name == "schedule":
+        return ["gcc/perfetto"]
     else:
         # Default to a minimal safe configuration for unknown events
         return ["gcc/none"]
@@ -27,10 +29,12 @@ def main():
         "gcc/asan",
         "gcc/tsan",
         "gcc/valgrind",
+        "gcc/perfetto",
         "clang/none",
         "clang/asan",
         "clang/tsan",
         "clang/valgrind",
+        "clang/perfetto",
     ]
     user_input = os.getenv("USER_INPUT", "")
     comment_body = os.getenv("COMMENT_BODY", "")
