@@ -1179,11 +1179,6 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
     PyErr_Clear();
   }
 
-  if (!output) {
-    PyErr_SetString(PyExc_TypeError, "a provider requires an output");
-    return nullptr;
-  }
-
   // translate and validate the output query
   auto opq = validate_query(output);
   if (!opq.has_value()) {
