@@ -169,6 +169,7 @@ static bool initialize()
   if (!Py_IsInitialized())
     throw std::runtime_error("Python can not be initialized");
 
+  // LCOV_EXCL_START
   // add custom types
   if (PyType_Ready(&PhlexConfig_Type) < 0)
     return false;
@@ -180,6 +181,7 @@ static bool initialize()
     return false;
   if (PyType_Ready(&PhlexLifeline_Type) < 0)
     return false;
+  // LCOV_EXCL_STOP
 
   // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
   //        CMAKE_PREFIX_PATH. Add site-packages directories from CMAKE_PREFIX_PATH
