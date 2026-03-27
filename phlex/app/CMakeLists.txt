@@ -1,7 +1,11 @@
 configure_file(version.cpp.in version.cpp @ONLY)
+
+add_library(version_obj OBJECT version.cpp)
+
 # version.cpp is generated into the build directory; clang-tidy cannot find
 # .clang-tidy by walking the build-dir path, so disable linting for this file.
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/version.cpp PROPERTIES CXX_CLANG_TIDY "")
+set_target_properties(version_obj PROPERTIES CXX_CLANG_TIDY "" POSITION_INDEPENDENT_CODE TRUE)
+target_include_directories(version_obj PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/include)
 
 cet_make_library(
   LIBRARY_NAME
@@ -10,7 +14,6 @@ cet_make_library(
   SOURCE
   load_module.cpp
   run.cpp
-  version.cpp
   LIBRARIES
   PUBLIC
   # FIXME: We probably also need to add (and/or replace with) the future library
@@ -18,6 +21,8 @@ cet_make_library(
   phlex::core
   Boost::json
   Boost::boost
+  PRIVATE
+  version_obj
 )
 
 install(FILES load_module.hpp run.hpp version.hpp DESTINATION include/phlex/app)
