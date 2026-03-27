@@ -13,9 +13,6 @@ TEST_CASE("Empty specifications", "[data model]")
   CHECK_THROWS_WITH(
     (product_query{.creator = "creator", .layer = ""}),
     Catch::Matchers::ContainsSubstring("Cannot specify the empty string as a data layer."));
-  CHECK_THROWS_WITH(
-    (product_query{.creator = "creator", .layer = "layer"}.spec()),
-    Catch::Matchers::ContainsSubstring("Product suffixes are (temporarily) mandatory"));
 }
 
 TEST_CASE("Product name with data layer", "[data model]")

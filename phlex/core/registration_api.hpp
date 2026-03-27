@@ -55,25 +55,25 @@ namespace phlex::experimental {
       populate_types<input_parameter_types>(input_args);
 
       if constexpr (num_outputs == 0ull) {
-        registrar_.set_creator(
-          [this, inputs = std::move(input_args)](auto predicates, auto /* output_products */) {
-            return std::make_unique<hof_type>(std::move(name_),
-                                              concurrency_.value,
-                                              std::move(predicates),
-                                              graph_,
-                                              std::move(alg_),
-                                              std::vector(inputs.begin(), inputs.end()));
-          });
+        registrar_.set_creator([this, inputs = std::move(input_args)](
+                                 auto predicates, auto /* output_product_suffixes */) {
+          return std::make_unique<hof_type>(std::move(name_),
+                                            concurrency_.value,
+                                            std::move(predicates),
+                                            graph_,
+                                            std::move(alg_),
+                                            std::vector(inputs.begin(), inputs.end()));
+        });
       } else {
         registrar_.set_creator(
-          [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
+          [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
             return std::make_unique<hof_type>(std::move(name_),
                                               concurrency_.value,
                                               std::move(predicates),
                                               graph_,
                                               std::move(alg_),
                                               std::vector(inputs.begin(), inputs.end()),
-                                              std::move(output_products));
+                                              std::move(output_product_suffixes));
           });
       }
       return upstream_predicates<node_ptr, num_outputs>{std::move(registrar_), config_};
@@ -138,11 +138,11 @@ namespace phlex::experimental {
 
       output.type = make_type_id<return_type>();
 
-      registrar_.set_creator(
-        [this, output = std::move(output)](auto /* predicates */, auto /* output_products */) {
-          return std::make_unique<provider_type>(
-            std::move(name_), concurrency_.value, graph_, std::move(alg_), std::move(output));
-        });
+      registrar_.set_creator([this, output = std::move(output)](
+                               auto /* predicates */, auto /* output_product_suffixes */) {
+        return std::make_unique<provider_type>(
+          std::move(name_), concurrency_.value, graph_, std::move(alg_), std::move(output));
+      });
     }
 
   private:
@@ -191,7 +191,7 @@ namespace phlex::experimental {
       populate_types<input_parameter_types>(input_args);
 
       registrar_.set_creator(
-        [this, inputs = std::move(input_args)](auto predicates, auto output_products) {
+        [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
           return std::make_unique<fold_node<AlgorithmBits, init_tuple>>(
             std::move(name_),
             concurrency_.value,
@@ -200,7 +200,7 @@ namespace phlex::experimental {
             std::move(alg_),
             std::move(init_),
             std::vector(inputs.begin(), inputs.end()),
-            std::move(output_products),
+            std::move(output_product_suffixes),
             std::move(partition_));
         });
       return upstream_predicates<declared_fold_ptr, num_outputs>{std::move(registrar_), config_};
@@ -266,19 +266,19 @@ namespace phlex::experimental {
     {
       populate_types<input_parameter_types>(input_args);
 
-      registrar_.set_creator(
-        [this, inputs = std::move(input_args)](auto upstream_predicates, auto output_products) {
-          return std::make_unique<unfold_node<Object, Predicate, Unfold>>(
-            std::move(name_),
-            concurrency_,
-            std::move(upstream_predicates),
-            graph_,
-            std::move(predicate_),
-            std::move(unfold_),
-            std::vector(inputs.begin(), inputs.end()),
-            std::move(output_products),
-            std::move(destination_layer_));
-        });
+      registrar_.set_creator([this, inputs = std::move(input_args)](auto upstream_predicates,
+                                                                    auto output_product_suffixes) {
+        return std::make_unique<unfold_node<Object, Predicate, Unfold>>(
+          std::move(name_),
+          concurrency_,
+          std::move(upstream_predicates),
+          graph_,
+          std::move(predicate_),
+          std::move(unfold_),
+          std::vector(inputs.begin(), inputs.end()),
+          std::move(output_product_suffixes),
+          std::move(destination_layer_));
+      });
       return upstream_predicates<declared_unfold_ptr, num_outputs>{std::move(registrar_), config_};
     }
 

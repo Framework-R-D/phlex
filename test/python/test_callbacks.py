@@ -45,14 +45,26 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         mode = "three_args"
 
     if mode == "three_args":
-        m.transform(sum_three, input_family=config["input"], output_products=config["output"])
+        m.transform(
+            sum_three, input_family=config["input"], output_product_suffixes=config["output"]
+        )
     elif mode == "exception":
-        m.transform(raise_error, input_family=config["input"], output_products=config["output"])
+        m.transform(
+            raise_error, input_family=config["input"], output_product_suffixes=config["output"]
+        )
     elif mode == "bad_bool":
-        m.transform(bad_bool, input_family=config["input"], output_products=config["output"])
+        m.transform(
+            bad_bool, input_family=config["input"], output_product_suffixes=config["output"]
+        )
     elif mode == "bad_long":
-        m.transform(bad_long, input_family=config["input"], output_products=config["output"])
+        m.transform(
+            bad_long, input_family=config["input"], output_product_suffixes=config["output"]
+        )
     elif mode == "bad_uint":
-        m.transform(bad_uint, input_family=config["input"], output_products=config["output"])
+        m.transform(
+            bad_uint, input_family=config["input"], output_product_suffixes=config["output"]
+        )
     elif mode == "mismatch":
-        m.transform(two_args, input_family=config["input"], output_products=config["output"])
+        m.transform(
+            two_args, input_family=config["input"], output_product_suffixes=config["output"]
+        )

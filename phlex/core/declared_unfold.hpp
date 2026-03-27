@@ -91,15 +91,15 @@ namespace phlex::experimental {
                 tbb::flow::graph& g,
                 Predicate&& predicate,
                 Unfold&& unfold,
-                product_queries product_labels,
-                std::vector<std::string> output_products,
+                product_queries input_products,
+                std::vector<std::string> output_product_suffixes,
                 std::string child_layer_name) :
       declared_unfold{std::move(name),
                       std::move(predicates),
-                      std::move(product_labels),
+                      std::move(input_products),
                       std::move(child_layer_name)},
       output_{to_product_specifications(full_name(),
-                                        std::move(output_products),
+                                        std::move(output_product_suffixes),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
       join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
       unfold_{g,
@@ -125,9 +125,9 @@ namespace phlex::experimental {
     }
 
   private:
-    tbb::flow::receiver<message>& port_for(product_query const& product_label) override
+    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
     {
-      return receiver_for<num_inputs>(join_, input(), product_label, unfold_);
+      return receiver_for<num_inputs>(join_, input(), input_product, unfold_);
     }
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
@@ -165,7 +165,7 @@ namespace phlex::experimental {
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
         products new_products;
-        auto new_id = unfolded_id->make_child(counter, child_layer());
+        auto new_id = unfolded_id->make_child(child_layer(), counter);
         if constexpr (requires { std::invoke(unfold, obj, running_value, *new_id); }) {
           auto [next_value, prods] = std::invoke(unfold, obj, running_value, *new_id);
           new_products.add_all(output_, std::move(prods));

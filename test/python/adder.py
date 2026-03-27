@@ -55,4 +55,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         None
     """
     int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
-    m.transform(int_adder, input_family=config["input"], output_products=config["output"])
+    m.transform(int_adder, input_family=config["input"], output_product_suffixes=config["output"])

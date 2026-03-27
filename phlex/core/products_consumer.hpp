@@ -27,7 +27,7 @@ namespace phlex::experimental {
 
     product_queries const& input() const noexcept;
     std::vector<identifier> const& layers() const noexcept;
-    tbb::flow::receiver<message>& port(product_query const& product_label);
+    tbb::flow::receiver<message>& port(product_query const& input_product);
 
     virtual named_index_ports index_ports() = 0;
     virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
@@ -41,7 +41,7 @@ namespace phlex::experimental {
     }
 
   private:
-    virtual tbb::flow::receiver<message>& port_for(product_query const& product_label) = 0;
+    virtual tbb::flow::receiver<message>& port_for(product_query const& input_product) = 0;
 
     product_queries input_products_;
     std::vector<identifier> layers_;

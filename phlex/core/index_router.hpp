@@ -77,7 +77,7 @@ namespace phlex::experimental {
   class index_router {
   public:
     struct named_input_port {
-      product_query product_label;
+      product_query input_product;
       tbb::flow::receiver<message>* port;
     };
     using named_input_ports_t = std::vector<named_input_port>;
@@ -86,7 +86,7 @@ namespace phlex::experimental {
     using head_ports_t = std::map<std::string, named_input_ports_t>;
 
     struct provider_input_port_t {
-      product_query product_label;
+      product_query input_product;
       tbb::flow::receiver<index_message>* port;
     };
     using provider_input_ports_t = std::map<std::string, provider_input_port_t>;

@@ -64,7 +64,7 @@ namespace phlex {
       id_{&id},
       creator_plugin_{key.plugin()},
       creator_algorithm_{key.algorithm()},
-      suffix_(key.name())
+      suffix_(key.suffix())
     {
     }
 

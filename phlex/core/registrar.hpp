@@ -10,8 +10,8 @@
 //     .transform("name", &MyTransform::transform, concurrency{n})
 //     .input_family(...)
 //     .when(...)
-//     .output_products(...);
-//                          ^ Registration occurs at the completion of the full statement.
+//     .output_product_suffixes(...);
+//                                  ^ Registration occurs at the completion of the full statement.
 //
 // This is achieved by creating a registrar class object (internally during any of the
 // declare* calls), which is then passed along through each successive function call
@@ -86,16 +86,16 @@ namespace phlex::experimental {
       predicates_ = std::move(predicates);
     }
 
-    void set_output_products(std::vector<std::string> output_products)
+    void set_output_product_suffixes(std::vector<std::string> output_product_suffixes)
     {
-      create_node(std::move(output_products));
+      create_node(std::move(output_product_suffixes));
       creator_ = nullptr;
     }
 
     ~registrar() noexcept(false)
     {
       if (creator_) {
-        create_node(std::move(output_products_));
+        create_node(std::move(output_product_suffixes_));
       }
     }
 
@@ -105,10 +105,10 @@ namespace phlex::experimental {
       return std::move(predicates_).value_or(std::vector<std::string>{});
     }
 
-    void create_node(std::vector<std::string> output_product_labels)
+    void create_node(std::vector<std::string> output_product_suffixes)
     {
       assert(creator_);
-      auto ptr = creator_(release_predicates(), std::move(output_product_labels));
+      auto ptr = creator_(release_predicates(), std::move(output_product_suffixes));
       auto name = ptr->full_name();
       auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
       if (not inserted) {
@@ -120,7 +120,7 @@ namespace phlex::experimental {
     std::vector<std::string>* errors_;
     node_creator creator_{};
     std::optional<std::vector<std::string>> predicates_;
-    std::vector<std::string> output_products_{};
+    std::vector<std::string> output_product_suffixes_{};
   };
 }
 

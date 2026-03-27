@@ -38,19 +38,20 @@ namespace phlex::experimental {
 
     template <std::size_t M>
       requires(NumberOutputProducts > 0)
-    void output_products(std::array<std::string, M> outputs)
+    void output_product_suffixes(std::array<std::string, M> outputs)
     {
       static_assert(
         NumberOutputProducts == M,
         "The number of specified products is not the same as the number of returned output "
         "objects.");
-      registrar_.set_output_products(std::vector(outputs.begin(), outputs.end()));
+      registrar_.set_output_product_suffixes(std::vector(outputs.begin(), outputs.end()));
     }
 
-    void output_products(std::convertible_to<std::string> auto&&... ts)
+    void output_product_suffixes(std::convertible_to<std::string> auto&&... ts)
     {
       constexpr std::size_t num_products = sizeof...(ts);
-      output_products(std::array<std::string, num_products>{std::forward<decltype(ts)>(ts)...});
+      output_product_suffixes(
+        std::array<std::string, num_products>{std::forward<decltype(ts)>(ts)...});
     }
 
   private:

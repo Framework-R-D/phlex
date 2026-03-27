@@ -1,3 +1,9 @@
+# ######################################################################
+# In this environment, we specify that some packages be built with the
+# native compiler (currently GCC 13 on Ubuntu 24.04), and others with
+# the compiler required to build Phlex (currently GCC 15).
+# ######################################################################
+
 spack:
   specs:
     - phlex
@@ -6,15 +12,19 @@ spack:
     - lcov
     - ninja
     - py-gcovr
-    - py-pip # Needed temporarily for ruff installation
     - py-pytest-cov # Needed for Python coverage reports
     - |
-      llvm@21.1.4: +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
+      llvm@22.1.1 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
   view: true
 
   concretizer:
     unify: true
+    reuse:
+      from:
+        - type: external
+        - type: local
+        - type: buildcache
 
   packages:
     all:
@@ -23,6 +33,7 @@ spack:
 
     cmake:
       require:
+        - "%c,cxx=gcc@13"
         - "~qtgui"
         - "@4:"
 
@@ -44,7 +55,7 @@ spack:
         - "cflags='-std=c17'"
 
     # ROOT should be built with the same version of the C++ standard
-    # as will be used by Phlex (C++20 for now).
+    # as will be used by Phlex (C++23 for now).
     root:
       require:
         - "~x" # No graphics libraries required

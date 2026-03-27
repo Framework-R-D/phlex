@@ -53,35 +53,35 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
       .input_family(product_query{.creator = "input", .layer = "job", .suffix = "numbers"})
-      .output_products("squared_numbers");
+      .output_product_suffixes("squared_numbers");
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
       .input_family(
         product_query{.creator = "square_numbers", .layer = "job", .suffix = "squared_numbers"})
-      .output_products("summed_numbers");
+      .output_product_suffixes("summed_numbers");
     g.transform("sqrt_sum", sqrt_sum_numbers, concurrency::unlimited)
       .input_family(
         product_query{.creator = "sum_numbers", .layer = "job", .suffix = "summed_numbers"},
         product_query{.creator = "input", .layer = "job", .suffix = "offset"})
-      .output_products("result");
+      .output_product_suffixes("result");
   }
 
   SECTION("Transforms, one from a class")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
       .input_family(product_query{.creator = "input", .layer = "job", .suffix = "numbers"})
-      .output_products("squared_numbers");
+      .output_product_suffixes("squared_numbers");
 
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
       .input_family(
         product_query{.creator = "square_numbers", .layer = "job", .suffix = "squared_numbers"})
-      .output_products("summed_numbers");
+      .output_product_suffixes("summed_numbers");
 
     g.make<A>()
       .transform("sqrt_sum", &A::sqrt_sum, concurrency::unlimited)
       .input_family(
         product_query{.creator = "sum_numbers", .layer = "job", .suffix = "summed_numbers"},
         product_query{.creator = "input", .layer = "job", .suffix = "offset"})
-      .output_products("result");
+      .output_product_suffixes("result");
   }
 
   // The following is invoked for *each* section above

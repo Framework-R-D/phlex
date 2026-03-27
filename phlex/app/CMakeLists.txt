@@ -1,4 +1,7 @@
 configure_file(version.cpp.in version.cpp @ONLY)
+# version.cpp is generated into the build directory; clang-tidy cannot find
+# .clang-tidy by walking the build-dir path, so disable linting for this file.
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/version.cpp PROPERTIES CXX_CLANG_TIDY "")
 
 cet_make_library(
   LIBRARY_NAME

@@ -22,14 +22,14 @@ namespace phlex::experimental {
     return b;
   }
 
-  std::size_t port_index_for(product_queries const& product_labels,
-                             product_query const& product_label)
+  std::size_t port_index_for(product_queries const& input_products,
+                             product_query const& input_product)
   {
-    auto const [b, e] = std::tuple{cbegin(product_labels), cend(product_labels)};
-    auto it = std::find(b, e, product_label);
+    auto const [b, e] = std::tuple{cbegin(input_products), cend(input_products)};
+    auto it = std::find(b, e, input_product);
     if (it == e) {
       throw std::runtime_error(
-        fmt::format("Algorithm does not accept product '{}'.", product_label));
+        fmt::format("Algorithm does not accept product '{}'.", input_product));
     }
     return std::distance(b, it);
   }

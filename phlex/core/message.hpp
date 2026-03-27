@@ -67,8 +67,8 @@ namespace phlex::experimental {
   // Non-template overload for single message case
   inline message const& most_derived(message const& msg) { return msg; }
 
-  std::size_t port_index_for(product_queries const& product_labels,
-                             product_query const& product_label);
+  std::size_t port_index_for(product_queries const& input_products,
+                             product_query const& input_product);
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP

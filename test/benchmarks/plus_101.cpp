@@ -10,5 +10,5 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   m.transform("plus_101", plus_101, concurrency::unlimited)
     .input_family(config.get<product_query>("input"))
-    .output_products("c");
+    .output_product_suffixes("c");
 }

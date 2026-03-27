@@ -27,9 +27,9 @@ namespace phlex::experimental {
 
   std::size_t products_consumer::num_inputs() const { return input().size(); }
 
-  tbb::flow::receiver<message>& products_consumer::port(product_query const& product_label)
+  tbb::flow::receiver<message>& products_consumer::port(product_query const& input_product)
   {
-    return port_for(product_label);
+    return port_for(input_product);
   }
 
   product_queries const& products_consumer::input() const noexcept { return input_products_; }

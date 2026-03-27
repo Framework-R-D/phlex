@@ -47,7 +47,7 @@ TEST_CASE("Test vector of abstract types")
     .output_product(product_query{.creator = "dummy", .layer = "event", .suffix = "thing"});
   g.transform("read_thing", read_abstract)
     .input_family(product_query{.creator = "dummy", .layer = "event", .suffix = "thing"})
-    .output_products("sum");
+    .output_product_suffixes("sum");
   g.observe(
      "verify_sum", [](int sum) { CHECK(sum == 3); }, concurrency::serial)
     .input_family(product_query{.creator = "read_thing", .layer = "event", .suffix = "sum"});

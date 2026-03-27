@@ -51,7 +51,7 @@ TEST_CASE("Output data products", "[graph]")
      concurrency::unlimited)
     .input_family(
       product_query{.creator = "input", .layer = "spill", .suffix = "number_from_provider"})
-    .output_products("squared_number");
+    .output_product_suffixes("squared_number");
 
   std::set<std::string> products_from_nodes;
   g.make<product_recorder>(products_from_nodes)

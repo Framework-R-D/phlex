@@ -54,11 +54,11 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{
+  std::array const input_products{
     product_query{.creator = "input", .layer = "job", .suffix = "number"},
     product_query{.creator = "input", .layer = "job", .suffix = "temperature"},
     product_query{.creator = "input", .layer = "job", .suffix = "name"}};
-  std::array const oproduct_names = {"onumber"s, "otemperature"s, "oname"s};
+  std::array const product_suffixes = {"onumber"s, "otemperature"s, "oname"s};
   std::array const result{"result"s};
 
   experimental::framework_graph g{data_cell_index::base_ptr()};
@@ -74,36 +74,36 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   SECTION("No framework")
   {
     g.transform("no_framework", no_framework)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("No framework, all references")
   {
     g.transform("no_framework_all_refs", no_framework_all_refs)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("No framework, all pointers")
   {
     g.transform("no_framework_all_ptrs", no_framework_all_ptrs)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("One framework argument")
   {
     g.transform("one_framework_arg", one_framework_arg)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
   SECTION("All framework arguments")
   {
     g.transform("all_framework_args", all_framework_args)
-      .input_family(product_names)
-      .output_products(oproduct_names);
+      .input_family(input_products)
+      .output_product_suffixes(product_suffixes);
   }
 
   // The following is invoked for *each* section above
-  g.observe("verify_results", verify_results).input_family(product_names);
+  g.observe("verify_results", verify_results).input_family(input_products);
 
   g.execute();
 }

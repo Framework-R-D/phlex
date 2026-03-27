@@ -1,10 +1,5 @@
 FROM ghcr.io/framework-r-d/phlex-dev:latest
 
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=1000
-ARG SPACK_GID=2000
-
 # Validate Python site-packages symlink
 RUN <<'VALIDATE_PYTHON_SYMLINK'
 set -euo pipefail
@@ -61,12 +56,20 @@ fi
 echo "Python symlink validated: $python_link -> $(readlink "$python_link")"
 VALIDATE_PYTHON_SYMLINK
 
-# Create the user and add to spack group
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID --create-home $USERNAME \
-    && usermod -aG $SPACK_GID $USERNAME \
-    && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
-    && chmod 0440 /etc/sudoers.d/$USERNAME
+# Install podman client and socat inside the container to support nested
+# container communication and provide a 'docker' command alias.
+RUN <<'INSTALL_PODMAN_CLIENT'
+set -euo pipefail
+apt-get update
+apt-get install -y --no-install-recommends podman socat
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+INSTALL_PODMAN_CLIENT
 
-# Setup entrypoint usage in bashrc
-RUN echo '. /entrypoint.sh' >> /home/$USERNAME/.bashrc
+# Wire up the root user's .bashrc to source the Spack environment via
+# /entrypoint.sh on every interactive shell.
+RUN printf '. /entrypoint.sh\n' >> /root/.bashrc
+
+# Ensure /run/user/0 exists and is owned by root with 700 permissions to
+# allow GPG agent to function correctly when running as root.
+RUN mkdir -p /run/user/0 && chmod 700 /run/user/0 && chown root:root /run/user/0

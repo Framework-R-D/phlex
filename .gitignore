@@ -6,6 +6,7 @@
 /_deps/
 /build-*/
 /build/
+/out/
 /phlex-build/
 /phlex-src/
 CMakeFiles/

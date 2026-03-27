@@ -25,8 +25,16 @@ automatically alongside the primary repository:
 - `/workspaces/phlex-coding-guidelines` — coding guidelines for contributors
 - `/workspaces/phlex-spack-recipes` — Spack recipes for Phlex and dependencies
 
-Use the multi-root workspace file `.devcontainer/codespace.code-workspace` to
-open all repositories in a single VS Code window.
+Open `.devcontainer/codespace.code-workspace` to get a multi-root VS Code
+window with all repositories visible. In VS Code: **File → Open Workspace from
+File**, then select that file. From the terminal:
+
+```bash
+code /workspaces/phlex/.devcontainer/codespace.code-workspace
+```
+
+Git hooks are installed automatically when the devcontainer is first created
+(`postCreateCommand` runs `prek install`). No manual setup is required.
 
 ### Development Workflow
 
@@ -317,16 +325,94 @@ All Markdown files must strictly follow these markdownlint rules:
 ### Local GitHub Actions Testing (`act`)
 
 - **Tool**: Use `act` to run GitHub Actions workflows locally.
-- **Configuration**: Ensure `.actrc` exists in the workspace root with the following content to use a compatible runner image:
+- **Configuration**: `.actrc` at the repository root contains the full `act`
+  configuration — do not overwrite or replace it. It sets the runner image,
+  container architecture, and artifact server path.
+- **Daemon socket**:
+  - **Inside the devcontainer**: `DOCKER_HOST` is set automatically and the
+    Podman socket is mounted at `/run/podman/podman.sock`. No extra setup is
+    needed.
+  - **On the host**: The rootless Podman socket must be active and
+    `DOCKER_HOST` must point to it before invoking `act`:
 
-  ```text
-  -P ubuntu-latest=catthehacker/ubuntu:act-latest
-  ```
+    ```bash
+    systemctl --user enable --now podman.socket
+    export DOCKER_HOST=unix://${XDG_RUNTIME_DIR}/podman/podman.sock
+    ```
 
+    Add the `export` to your shell profile to make it permanent.
 - **Usage**:
   - List jobs: `act -l`
   - Run specific job: `act -j <job_name>` (e.g., `act -j python-check`)
   - Run specific event: `act pull_request`
 - **Troubleshooting**:
-  - **Docker Socket**: `act` requires access to the Docker socket. In dev containers, this may require specific mount configurations or permissions.
-  - **Artifacts**: `act` creates a `phlex-src` directory (or similar) for checkout. Ensure this is cleaned up or ignored by tools like `mypy`.
+  - **Artifacts**: `act` creates a `phlex-src` directory (or similar) for
+    checkout. Ensure this is cleaned up or ignored by tools like `mypy`.
+
+### Pre-commit Hooks (`prek` / `pre-commit`)
+
+The repository ships a `.pre-commit-config.yaml` that runs the full suite of
+formatters and linters used by CI: trailing-whitespace/EOF fixers, ruff
+(Python), clang-format (C++), gersemi (CMake), jsonnet-format/lint, prettier
+(YAML), and markdownlint. `prek` — a Rust-based drop-in replacement for
+`pre-commit` — is installed in `phlex-dev` and reads this config directly.
+Individual developers on the host may have `pre-commit` instead; the two tools
+are CLI-compatible for all commands used here.
+
+When invoking these tools, always detect which is available first:
+
+```bash
+PREKCOMMAND=$(command -v prek || command -v pre-commit || echo "")
+if [ -z "$PREKCOMMAND" ]; then
+  echo "Neither prek nor pre-commit found." >&2
+fi
+```
+
+Then substitute `$PREKCOMMAND` for the tool name in the commands below.
+
+- **Install git hooks** (run once per clone; done automatically in the
+  devcontainer via `postCreateCommand`):
+
+  ```bash
+  $PREKCOMMAND install
+  ```
+
+  After this, hooks fire automatically on `git commit`.
+
+- **Run all hooks against all files** (recommended before opening a PR):
+
+  ```bash
+  $PREKCOMMAND run --all-files
+  ```
+
+- **Run hooks against only changed files** (equivalent to what fires on commit):
+
+  ```bash
+  $PREKCOMMAND run
+  ```
+
+- **Run hooks against a specific file or directory**:
+
+  ```bash
+  $PREKCOMMAND run --files path/to/file
+  $PREKCOMMAND run --directory src/
+  ```
+
+- **Run hooks against the diff introduced by the last commit**:
+
+  ```bash
+  $PREKCOMMAND run --last-commit
+  ```
+
+- **Update hook revisions** to the latest upstream tags:
+
+  ```bash
+  $PREKCOMMAND auto-update
+  ```
+
+- **Availability**: `prek` is installed in `phlex-dev`. It is not installed in
+  `phlex-ci`. Host developers may have `pre-commit` instead; fall back to
+  invoking the individual formatters directly if neither is available.
+- **Relationship to CI**: The hooks in `.pre-commit-config.yaml` mirror the
+  checks run by CI workflows. Running `$PREKCOMMAND run --all-files` before
+  pushing is the most reliable way to avoid CI formatting failures.
