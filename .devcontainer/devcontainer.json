@@ -7,22 +7,27 @@
         ]
     },
     "workspaceFolder": "/workspaces/phlex",
-    "remoteUser": "vscode",
+    "remoteUser": "root",
+    "userEnvProbe": "none",
     "containerEnv": {
-        "GH_CONFIG_DIR": "/home/vscode/.config/gh",
-        "DOCKER_HOST": "unix:///run/podman/podman.sock"
+        "GH_CONFIG_DIR": "/root/.config/gh",
+        "DOCKER_HOST": "unix:///tmp/podman.sock",
+        "CONTAINER_HOST": "unix:///tmp/podman.sock",
+        "GNUPGHOME": "/root/.gnupg"
     },
     "mounts": [
         "source=${localWorkspaceFolder}/../phlex-design,target=/workspaces/phlex-design,type=bind",
         "source=${localWorkspaceFolder}/../phlex-examples,target=/workspaces/phlex-examples,type=bind",
         "source=${localWorkspaceFolder}/../phlex-coding-guidelines,target=/workspaces/phlex-coding-guidelines,type=bind",
         "source=${localWorkspaceFolder}/../phlex-spack-recipes,target=/workspaces/phlex-spack-recipes,type=bind",
-        "source=${localEnv:XDG_RUNTIME_DIR}/podman,target=/run/podman,type=bind",
-        "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly"
+        "source=${localEnv:HOME}/.podman-proxy/podman.sock,target=/tmp/podman.sock,type=bind",
+        "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind",
+        "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind,readonly",
+        "source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind"
     ],
     "initializeCommand": "bash .devcontainer/ensure-repos.sh",
     "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
-    "postCreateCommand": "bash -lc 'if command -v prek >/dev/null 2>&1; then prek install || true; elif command -v pre-commit >/dev/null 2>&1; then pre-commit install || true; fi'",
+    "postCreateCommand": "bash -lc 'bash .devcontainer/post-create.sh'",
     "customizations": {
         "vscode": {
             "settings": {
@@ -37,13 +42,14 @@
                     }
                 },
                 "terminal.integrated.shellIntegration.suggestEnablement": false,
+                "python.terminal.activateEnvironment": false,
                 "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
                 "python.analysis.extraPaths": [
                     "${workspaceFolder}/build",
                     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
                     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
                 ],
-                "cmake.cmakePath": "${workspaceFolder}/.devcontainer/cmake_wrapper.sh",
+                "cmake.defaultConfigurePreset": "default",
                 "cmake.ctestPath": "${workspaceFolder}/.devcontainer/ctest_wrapper.sh",
                 "cmake.generator": "Ninja",
                 "C_Cpp.default.cStandard": "c17",
@@ -58,7 +64,6 @@
                 "charliermarsh.ruff",
                 "cheshirekow.cmake-format",
                 "chrisjsewell.myst-tml-syntax",
-
                 "davidanson.vscode-markdownlint",
                 "donjayamanne.githistory",
                 "dotjoshjohnson.xml",
@@ -71,11 +76,9 @@
                 "lextudio.restructuredtext-pack",
                 "lfs.vscode-emacs-friendly",
                 "links-req-tracer.links-requirement-tracer",
-
                 "ms-python.debugpy",
                 "ms-python.mypy-type-checker",
                 "ms-python.pylint",
-
                 "ms-python.vscode-pylance",
                 "ms-python.vscode-python-envs",
                 "ms-vscode.cmake-tools",
@@ -87,11 +90,9 @@
                 "ms-vscode.makefile-tools",
                 "ms-vscode.vscode-websearchforcopilot",
                 "redhat.vscode-yaml",
-
                 "shd101wyy.markdown-preview-enhanced",
                 "swyddfa.esbonio",
                 "trond-snekvik.simple-rst",
-                "twxs.cmake",
                 "vadimcn.vscode-lldb",
                 "wequick.coverage-gutters",
                 "xaver.clang-format"

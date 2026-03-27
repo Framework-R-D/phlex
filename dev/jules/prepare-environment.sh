@@ -183,14 +183,10 @@ git clone https://github.com/spack/spack.git "$SPACK_ROOT"
   sudo env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh "${_uv_installer}"
   rm -f "${_uv_installer}"
 
-  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
-    /usr/local/bin/uv tool install ruff
-  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
-    /usr/local/bin/uv tool install gersemi
-  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
-    /usr/local/bin/uv tool install prek
-  sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
-    /usr/local/bin/uv tool install jsonnet
+  for tool in ruff gersemi prek; do
+    sudo env UV_TOOL_BIN_DIR=/usr/local/bin UV_TOOL_DIR=/usr/local/share/uv/tools \
+      /usr/local/bin/uv tool install "$tool"
+  done
   sudo /usr/local/bin/uv cache clean
 
   # Clean all Spack caches
@@ -204,13 +200,11 @@ git clone https://github.com/spack/spack.git "$SPACK_ROOT"
 { set +x; } >/dev/null 2>&1
 echo "--> Spack and Python tools setup complete."
 
-echo "--> Installing additional developer tools (act, gh)..."
+echo "--> Installing act..."
 set -x
 
-# Install GitHub's act CLI
 download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
-  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.tar\.gz"' | \
-  head -n1 | \
+  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.' | \
   cut -d '"' -f 4)
 if [ -z "$download_url" ]; then
   echo "Failed to determine act download URL" >&2
@@ -219,15 +213,17 @@ fi
 curl -sfSL "$download_url" | sudo tar -C /usr/local/bin -zx act
 sudo chmod +x /usr/local/bin/act
 
-# Install GitHub CLI (gh)
-curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+{ set +x; } >/dev/null 2>&1
+echo "--> Installing gh..."
+set -x
+
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+  sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
 sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+  sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends gh
-
-{ set +x; } >/dev/null 2>&1
-echo "--> Additional developer tools installed successfully."
 
 echo "--> Performing final cleanup..."
 set -x
