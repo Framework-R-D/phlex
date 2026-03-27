@@ -180,6 +180,9 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:add)
 add_test(NAME py:suffix COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pysuffix.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:suffix)
 
+add_test(NAME py:provide COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyprovide.jsonnet)
+list(APPEND ACTIVE_PY_CPHLEX_TESTS py:provide)
+
 add_test(NAME py:config COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:config)
 

@@ -22,26 +22,32 @@
 #include <string>
 
 #include "phlex/configuration.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/module.hpp"
+#include "phlex/source.hpp"
 
 namespace phlex::experimental {
 
   // Create dict-like access to the configuration from Python.
-  // Returns a new reference.
-  PyObject* wrap_configuration(configuration const& config);
-
-  // Python wrapper for Phlex configuration
+  PyObject* wrap_configuration(configuration const& config); // returns new reference
   extern PyTypeObject PhlexConfig_Type;
   struct py_config_map;
 
-  // Phlex' Module wrapper to register algorithms
+  // Phlex' module wrapper to register algorithms
   typedef module_graph_proxy<void_tag> phlex_module_t;
-  // Returns a new reference.
-  PyObject* wrap_module(phlex_module_t& mod);
-
-  // Python wrapper for Phlex modules
+  PyObject* wrap_module(phlex_module_t& mod); // returns new reference
   extern PyTypeObject PhlexModule_Type;
   struct py_phlex_module;
+
+  // Phlex' source wrapper to register providers
+  typedef source_graph_proxy<void_tag> phlex_source_t;
+  PyObject* wrap_source(phlex_source_t& src); // returns new reference
+  extern PyTypeObject PhlexSource_Type;
+  struct py_phlex_source;
+
+  // Python wrapper for data cell indices (returns a new reference)
+  PyObject* wrap_dci(data_cell_index const& dci);
+  extern PyTypeObject PhlexDataCellIndex_Type;
 
   // Python wrapper for Phlex handles
   extern PyTypeObject PhlexLifeline_Type;

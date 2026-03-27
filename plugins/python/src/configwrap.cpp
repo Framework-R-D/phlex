@@ -25,7 +25,6 @@ PyObject* phlex::experimental::wrap_configuration(configuration const& config)
   return (PyObject*)pyconfig;
 }
 
-//= CPyCppyy low level view construction/destruction =========================
 static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
 {
   py_config_map* pcm = (py_config_map*)subtype->tp_alloc(subtype, 0);
