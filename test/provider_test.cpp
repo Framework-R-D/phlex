@@ -43,10 +43,10 @@ TEST_CASE("provider_test")
       product_query{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
 
   g.transform("passer", pass_on, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "happy_vertices"})
-    .output_product_suffixes("vertex_data");
+    .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
 
   g.execute();
+
   CHECK(g.execution_count("passer") == max_events);
   CHECK(g.execution_count("my_name_here") == max_events);
 }

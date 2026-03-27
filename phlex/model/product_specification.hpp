@@ -38,7 +38,7 @@ namespace phlex::experimental {
 
   private:
     algorithm_name qualifier_;
-    identifier suffix_;
+    identifier suffix_; // Default suffix is empty string
     type_id type_id_{};
   };
 
