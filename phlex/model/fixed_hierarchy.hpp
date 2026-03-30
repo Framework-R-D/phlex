@@ -13,7 +13,7 @@ namespace phlex::experimental {
   class async_driver;
 }
 
-namespace phlex::experimental {
+namespace phlex {
 
   class fixed_hierarchy;
 
@@ -29,11 +29,11 @@ namespace phlex::experimental {
     friend class fixed_hierarchy;
     data_cell_cursor(data_cell_index_ptr index,
                      fixed_hierarchy const& h,
-                     async_driver<data_cell_index_ptr>& d);
+                     experimental::async_driver<data_cell_index_ptr>& d);
 
     data_cell_index_ptr index_;
     fixed_hierarchy const& hierarchy_;
-    async_driver<data_cell_index_ptr>& driver_;
+    experimental::async_driver<data_cell_index_ptr>& driver_;
   };
 
   class fixed_hierarchy {
@@ -48,7 +48,7 @@ namespace phlex::experimental {
     // Yields the job-level data-cell index to the provided driver and returns a
     // data_cell_cursor for the job.  Must only be called from a function registered
     // via driver_proxy::drive().
-    data_cell_cursor yield_job(async_driver<data_cell_index_ptr>& d) const;
+    data_cell_cursor yield_job(experimental::async_driver<data_cell_index_ptr>& d) const;
 
   private:
     std::vector<std::size_t> layer_hashes_;

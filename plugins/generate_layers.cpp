@@ -21,7 +21,7 @@
 
 #include <string>
 
-PHLEX_EXPERIMENTAL_REGISTER_DRIVER(d, config)
+PHLEX_REGISTER_DRIVER(d, config)
 {
   using namespace phlex;
 
@@ -36,6 +36,5 @@ PHLEX_EXPERIMENTAL_REGISTER_DRIVER(d, config)
                     .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
   }
 
-  return d.driver(gen->hierarchy(),
-                  [gen](experimental::data_cell_cursor const& job) { (*gen)(job); });
+  return d.driver(gen->hierarchy(), [gen](data_cell_cursor const& job) { (*gen)(job); });
 }

@@ -49,7 +49,7 @@ namespace phlex::experimental {
   };
 }
 
-#define PHLEX_EXPERIMENTAL_REGISTER_DRIVER(...)                                                    \
+#define PHLEX_REGISTER_DRIVER(...)                                                                 \
   PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(create, create_driver, __VA_ARGS__)
 
 #endif // PHLEX_DRIVER_HPP
