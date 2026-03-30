@@ -6,6 +6,8 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include <iostream> //TODO: Remove for the real PR!
+
 using namespace form::detail::experimental;
 
 ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& name) :
@@ -16,8 +18,18 @@ ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& 
 ROOT_TTree_Write_ContainerImp::~ROOT_TTree_Write_ContainerImp()
 {
   if (m_tree != nullptr) {
-    m_tree->Write();
+    //TODO: Remove cout for the real PR!
+    std::cout << "Writing tree " << m_tree->GetName() << " to a TFile named " << m_tfile->GetName() << std::endl;
+    std::cout << "Tree thinks it belongs to a file named " << m_tree->GetDirectory()->GetName() << std::endl;
+    std::cout << "Global TFile is named " << gDirectory->GetName() << std::endl;
+    m_tree->GetDirectory()->WriteTObject(m_tree);
+    //m_tree->Write() is not good enough because that writes to the _current_ gDirectory.
+    //Sometimes gDirectory is getting reset even while m_tfile is still open!  We think
+    //it may have to do with multithreading.
+    //I'm pretty sure we had a reason why the TFile destructor isn't good enough,
+    //but I don't remember what it is right now.  Maybe recovering partial jobs?
     delete m_tree;
+    std::cout << "Done with TTree container destructor" << std::endl;
   }
 }
 
@@ -42,8 +54,8 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
     m_tree = m_tfile->Get<TTree>(name().c_str());
   }
   if (m_tree == nullptr) {
-    TDirectory::TContext context(m_tfile.get());
     m_tree = new TTree(name().c_str(), name().c_str());
+    m_tree->SetDirectory(m_tfile.get()); //I think this is necessary so other FORM containers for this tree can discover it.  But shouldn't Storage take care of that?
   }
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no tree created");
