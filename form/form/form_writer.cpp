@@ -2,6 +2,7 @@
 
 #include "form_writer.hpp"
 
+#include <iostream>
 #include <stdexcept>
 #include <typeinfo>
 
@@ -29,7 +30,8 @@ namespace form::experimental {
 
     auto it = m_product_to_config.find(pb.label);
     if (it == m_product_to_config.end()) {
-      throw std::runtime_error("No configuration found for product: " + pb.label);
+      std::cerr << "No configuration found for product: " << pb.label << '\n';
+      return;
     }
 
     std::map<std::string, std::type_info const*> products = {{pb.label, pb.type}};
@@ -50,7 +52,8 @@ namespace form::experimental {
 
     auto it = m_product_to_config.find(products[0].label);
     if (it == m_product_to_config.end()) {
-      throw std::runtime_error("No configuration found for product: " + products[0].label);
+      std::cerr << "No configuration found for product: " << products[0].label << '\n';
+      return;
     }
 
     // FIXME: Really only needed on first call
