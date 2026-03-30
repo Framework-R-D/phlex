@@ -45,9 +45,6 @@ namespace phlex::experimental {
     std::multimap<product_suffix_t, named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
       for (auto const& product_spec : node->output()) {
-        if (product_spec.suffix().empty())
-          continue;
-
         result.emplace(product_spec.suffix(),
                        named_output_port{node_name, &node->output_port(), product_spec.type()});
       }
