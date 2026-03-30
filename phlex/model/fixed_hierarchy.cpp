@@ -56,11 +56,11 @@ namespace {
   }
 }
 
-namespace phlex::experimental {
+namespace phlex {
 
   data_cell_cursor::data_cell_cursor(data_cell_index_ptr index,
                                      fixed_hierarchy const& h,
-                                     async_driver<data_cell_index_ptr>& d) :
+                                     experimental::async_driver<data_cell_index_ptr>& d) :
     index_{std::move(index)}, hierarchy_{h}, driver_{d}
   {
   }
@@ -98,7 +98,8 @@ namespace phlex::experimental {
       fmt::format("Layer {} is not part of the fixed hierarchy.", index->layer_path()));
   }
 
-  data_cell_cursor fixed_hierarchy::yield_job(async_driver<data_cell_index_ptr>& d) const
+  data_cell_cursor fixed_hierarchy::yield_job(
+    experimental::async_driver<data_cell_index_ptr>& d) const
   {
     auto job = data_cell_index::job();
     d.yield(job);
