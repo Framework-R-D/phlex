@@ -71,16 +71,16 @@ config:
 ## Ensuring a sufficient compiler
 
 Step 6: ensure that spack has access to a new enough GCC.
-Currently this means GCC 14.
+Currently this means GCC 15.
 
 Run `spack compilers` to see what compilers Spack knows about.
 It may tell you to run `spack compiler find` to autodetect compilers.
 If so, follow the instructions and afterward re-run `spack compilers`.
 
-If you don't have GCC 14 or newer, then install GCC 14:
+If you don't have GCC 15 or newer, then install GCC 15:
 
 ```bash
-spack install -j 12 gcc@14  # choose a suitable number of jobs for your machine
+spack install -j 12 gcc@15  # choose a suitable number of jobs for your machine
 ```
 
 Building GCC may take a while (30 minutes or so on a 12 core machine).
@@ -103,7 +103,7 @@ To guide the creation of the environment, download the environment configuration
 ```bash
 spack env create my-phlex-environment
 spack env activate my-phlex-environment
-spack add phlex %gcc@14
+spack add phlex %gcc@15
 spack concretize
 ```
 
