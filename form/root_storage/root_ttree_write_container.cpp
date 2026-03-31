@@ -17,11 +17,6 @@ ROOT_TTree_Write_ContainerImp::~ROOT_TTree_Write_ContainerImp()
 {
   if (m_tree != nullptr) {
     m_tree->GetDirectory()->WriteTObject(m_tree);
-    //m_tree->Write() is not good enough because that writes to the _current_ gDirectory.
-    //Sometimes gDirectory is getting reset even while m_tfile is still open!  We think
-    //it may have to do with multithreading.
-    //I'm pretty sure we had a reason why the TFile destructor isn't good enough,
-    //but I don't remember what it is right now.  Maybe recovering partial jobs?
     delete m_tree;
   }
 }
@@ -48,7 +43,7 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
   }
   if (m_tree == nullptr) {
     m_tree = new TTree(name().c_str(), name().c_str());
-    m_tree->SetDirectory(m_tfile.get()); //I think this is necessary so other FORM containers for this tree can discover it.  But shouldn't Storage take care of that?
+    m_tree->SetDirectory(m_tfile.get());
   }
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no tree created");
