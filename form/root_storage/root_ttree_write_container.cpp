@@ -16,7 +16,7 @@ ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& 
 ROOT_TTree_Write_ContainerImp::~ROOT_TTree_Write_ContainerImp()
 {
   if (m_tree != nullptr) {
-    m_tree->Write();
+    m_tree->GetDirectory()->WriteTObject(m_tree);
     delete m_tree;
   }
 }
@@ -42,8 +42,8 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
     m_tree = m_tfile->Get<TTree>(name().c_str());
   }
   if (m_tree == nullptr) {
-    TDirectory::TContext context(m_tfile.get());
     m_tree = new TTree(name().c_str(), name().c_str());
+    m_tree->SetDirectory(m_tfile.get());
   }
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no tree created");
