@@ -6,8 +6,6 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include <iostream> //TODO: Remove for the real PR!
-
 using namespace form::detail::experimental;
 
 ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& name) :
@@ -18,10 +16,6 @@ ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& 
 ROOT_TTree_Write_ContainerImp::~ROOT_TTree_Write_ContainerImp()
 {
   if (m_tree != nullptr) {
-    //TODO: Remove cout for the real PR!
-    std::cout << "Writing tree " << m_tree->GetName() << " to a TFile named " << m_tfile->GetName() << std::endl;
-    std::cout << "Tree thinks it belongs to a file named " << m_tree->GetDirectory()->GetName() << std::endl;
-    std::cout << "Global TFile is named " << gDirectory->GetName() << std::endl;
     m_tree->GetDirectory()->WriteTObject(m_tree);
     //m_tree->Write() is not good enough because that writes to the _current_ gDirectory.
     //Sometimes gDirectory is getting reset even while m_tfile is still open!  We think
@@ -29,7 +23,6 @@ ROOT_TTree_Write_ContainerImp::~ROOT_TTree_Write_ContainerImp()
     //I'm pretty sure we had a reason why the TFile destructor isn't good enough,
     //but I don't remember what it is right now.  Maybe recovering partial jobs?
     delete m_tree;
-    std::cout << "Done with TTree container destructor" << std::endl;
   }
 }
 
