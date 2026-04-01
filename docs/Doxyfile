@@ -26,4 +26,5 @@ FILE_PATTERNS     = *.hpp *.cpp
 EXCLUDE_PATTERNS  = */detail/*
 # Help Doxygen with some of the more complex macros
 PREDEFINED        = "BOOST_DLL_ALIAS(a,b)=" \
-                    "PHLEX_DETAIL_REGISTER_PLUGIN(...)="
+                    "PHLEX_DETAIL_REGISTER_PLUGIN(...)=" \
+                    "PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(...)="

@@ -7,6 +7,7 @@ Welcome to Phlex's documentation!
 
    api/module_graph_proxy
    api/source_graph_proxy
+   api/driver_proxy
    api/graph_proxy
    api/framework_graph
    api/registrar
@@ -26,5 +27,6 @@ Welcome to Phlex's documentation!
    api/configuration
    api/handle
    api/concurrency
+   api/fixed_hierarchy
    api/product_store
    api/products

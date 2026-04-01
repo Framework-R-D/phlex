@@ -6,7 +6,7 @@
 project = "Phlex"
 copyright = "2025-2026, The Phlex Developers"
 author = "The Phlex Developers"
-release = "0.1.0"
+release = "0.2.0"
 
 # -- General configuration ---------------------------------------------------
 
