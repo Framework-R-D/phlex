@@ -89,8 +89,11 @@ set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
-# Avoid use of __COUNTER__ to prevent -pedantic warnings in Catch2's TEST_CASE macro
-set(CATCH_CONFIG_COUNTER OFF)
+
+# Suppress Catch2's use of __COUNTER__ (a compiler extension, not standard C++)
+# by propagating CATCH_CONFIG_NO_COUNTER to all consumers of Catch2::Catch2,
+# regardless of whether Catch2 was resolved via find_package or FetchContent.
+target_compile_definitions(Catch2::Catch2 INTERFACE CATCH_CONFIG_NO_COUNTER)
 
 include(Modules/private/CreateCoverageTargets.cmake)
 
