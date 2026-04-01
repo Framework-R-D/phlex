@@ -126,7 +126,7 @@ namespace phlex {
 
   // This lives here rather than as a member-function of product_store because product_store is in model
   // and product_query in core, with core depending on model.
-  experimental::product_specification const* resolve_in_store(
+  phlex_core_EXPORT experimental::product_specification const* resolve_in_store(
     product_query const& query, experimental::product_store const& store);
 }
 
