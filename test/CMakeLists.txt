@@ -99,7 +99,7 @@ cet_test(
   LIBRARIES
   phlex::core_internal
   Boost::json
-  layer_generator
+  layer_generator_internal
 )
 cet_test(
   framework_graph

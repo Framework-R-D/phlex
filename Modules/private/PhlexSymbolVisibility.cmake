@@ -107,6 +107,14 @@ function(phlex_make_internal_library target)
 
   get_target_property(opts ${target} COMPILE_OPTIONS)
   if(opts)
-    target_compile_options(${internal} PRIVATE ${opts})
+    # The _internal library is built with default (interposable) visibility, so
+    # -fno-semantic-interposition must not be propagated: that flag is only safe
+    # when -fvisibility=hidden bounds the exported-symbol set (PHLEX_HIDE_SYMBOLS=ON
+    # on the *public* target), and applying it to fully-visible code violates the
+    # safety assumption and would make internal/public benchmarks inaccurate.
+    list(FILTER opts EXCLUDE REGEX "^-fno-semantic-interposition$")
+    if(opts)
+      target_compile_options(${internal} PRIVATE ${opts})
+    endif()
   endif()
 endfunction()
