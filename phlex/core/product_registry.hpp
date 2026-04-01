@@ -17,7 +17,7 @@ namespace phlex::experimental {
 
       identifier const& plugin() const { return spec.plugin(); }
       identifier const& algorithm() const { return spec.algorithm(); }
-      identifier const& suffix() const { return spec.name(); }
+      identifier const& suffix() const { return spec.suffix(); }
       type_id type() const { return spec.type(); }
     };
   }
