@@ -22,8 +22,8 @@ namespace phlex::experimental {
   // With eval_if and eval_if_not the false branch doesn't need to be valid, but
   // does need to be expressed in this F, Args... format.
   template <typename T>
-  using function_parameter_types =
-    mp11::mp_eval_if_not<std::is_member_pointer<T>, ct::args_t<T>, mp11::mp_rest, ct::args_t<T>>;
+  using function_parameter_types = mp11::
+    mp_eval_if_not<std::is_member_function_pointer<T>, ct::args_t<T>, mp11::mp_rest, ct::args_t<T>>;
 
   template <std::size_t I, typename T>
   using function_parameter_type = std::tuple_element_t<I, function_parameter_types<T>>;
@@ -40,12 +40,11 @@ namespace phlex::experimental {
   template <typename T>
   constexpr std::size_t number_types = mp11::mp_size<mp11::mp_flatten<std::tuple<T>>>::value;
 
-  // Like the above on return_type<T> except we drop voids after wrapping in a tuple.
-  // This means a plain void return type will return 0, not 1
   template <typename T>
-  constexpr std::size_t number_output_objects = mp11::mp_size<
-    mp11::mp_flatten<mp11::mp_remove_if<std::tuple<return_type<T>>, std::is_void>>>::value;
+  constexpr std::size_t number_output_objects =
+    std::same_as<void, return_type<T>> ? 0 : number_types<return_type<T>>;
 
+  // mp_apply<std::tuple, ..> converts other wrapper types (e.g. std::pair) to tuple
   template <typename Tuple>
   using skip_first_type = mp11::mp_rest<mp11::mp_apply<std::tuple, Tuple>>;
 
