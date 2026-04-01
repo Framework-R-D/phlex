@@ -41,7 +41,7 @@ namespace phlex::experimental {
  *           This object is stored as a shared pointer and its methods are bound to the created nodes.
  */
   template <typename T>
-  class phlex_core_EXPORT glue {
+  class glue {
   public:
     glue(tbb::flow::graph& g,
          node_catalog& nodes,

@@ -125,9 +125,11 @@ option(
   [=[Hide non-exported symbols in shared libraries (ON = curated API with
 hidden-by-default visibility; OFF = all symbols visible).  Defaults to ON for
 Release/RelWithDebInfo builds.
-Combined with PHLEX_ENABLE_IPO=ON: -fno-semantic-interposition is also applied
-for maximum optimization.  Setting OFF while PHLEX_ENABLE_IPO=ON is valid and
-useful for comparing LTO performance with and without symbol hiding.]=]
+When ON, -fno-semantic-interposition is also applied (when supported) because
+the exported-symbol surface is explicitly bounded by export macros.  This flag
+is independent of PHLEX_ENABLE_IPO; either option may be set without the other.
+Setting OFF while PHLEX_ENABLE_IPO=ON is valid and useful for comparing LTO
+performance with and without symbol hiding.]=]
   "${_phlex_hide_default}"
 )
 
