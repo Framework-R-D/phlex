@@ -9,8 +9,6 @@ Welcome to Phlex's documentation!
    api/source_graph_proxy
    api/driver_proxy
    api/graph_proxy
-   api/framework_graph
-   api/registrar
 
 .. toctree::
    :maxdepth: 2
@@ -28,5 +26,3 @@ Welcome to Phlex's documentation!
    api/handle
    api/concurrency
    api/fixed_hierarchy
-   api/product_store
-   api/products
