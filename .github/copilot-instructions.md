@@ -217,7 +217,7 @@ last line content
 
 #### Verifying File Endings
 
-When reviewing or responding to claims about trailing blank lines, always verify using `od -a <file> | tail -3` before taking action. A file is correctly terminated if the last character shown is `nl` with no preceding `nl` on the same address line. The automated code reviewer has a known tendency to false-positive on trailing blank lines in `.rst`, `Doxyfile`, and similar non-Python/non-C++ files; verify independently before acting on such claims.
+When reviewing or responding to claims about trailing blank lines, always verify using `tail -c 2 <file> | od -c` before taking action. This reads exactly the last two bytes, so it is unambiguous regardless of `od` address-line boundaries. A file is correctly terminated if the output shows a single `\n` as the last character (e.g. `c  \n`). If both of the last two bytes are `\n` (e.g. `\n  \n`), the file has a trailing blank line. Do **not** use `od -a <file> | tail -3` for this check: if the two consecutive newlines straddle an address-line boundary, that approach produces a false "OK". The automated code reviewer has a known tendency to false-positive on trailing blank lines in `.rst`, `Doxyfile`, and similar non-Python/non-C++ files; verify independently before acting on such claims.
 
 #### No Trailing Whitespace on Any Line
 
