@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_PRODUCTS_CONSUMER_HPP
 #define PHLEX_CORE_PRODUCTS_CONSUMER_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/consumer.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -15,7 +17,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  class products_consumer : public consumer {
+  class phlex_core_EXPORT products_consumer : public consumer {
   public:
     products_consumer(algorithm_name name,
                       std::vector<std::string> predicates,

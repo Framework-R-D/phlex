@@ -89,8 +89,12 @@ set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
+# Avoid use of __COUNTER__ to prevent -pedantic warnings in Catch2's TEST_CASE macro
+set(CATCH_CONFIG_COUNTER OFF)
 
 include(Modules/private/CreateCoverageTargets.cmake)
+include(Modules/private/PhlexSymbolVisibility.cmake)
+include(Modules/private/PhlexOptimization.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
