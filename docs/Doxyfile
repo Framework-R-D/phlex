@@ -27,4 +27,9 @@ EXCLUDE_PATTERNS  = */detail/*
 # Help Doxygen with some of the more complex macros
 PREDEFINED        = "BOOST_DLL_ALIAS(a,b)=" \
                     "PHLEX_DETAIL_REGISTER_PLUGIN(...)=" \
-                    "PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(...)="
+                    "PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(...)=" \
+                    "PHLEX_EXPORT=" \
+                    "PHLEX_CORE_EXPORT=" \
+                    "PHLEX_MODEL_EXPORT=" \
+                    "PHLEX_CONFIGURATION_INTERNAL_EXPORT=" \
+                    "PHLEX_UTILITIES_EXPORT="
