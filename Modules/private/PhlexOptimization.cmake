@@ -81,10 +81,13 @@ include(CheckCXXCompilerFlag)
 
 # Probe flag availability once at module-load time (results are cached in the
 # CMake cache and reused across reconfigures).
-check_cxx_compiler_flag("-fno-semantic-interposition" PHLEX_CXX_HAVE_NO_SEMANTIC_INTERPOSITION)
 
 if(NOT APPLE)
   check_cxx_compiler_flag("-fno-plt" PHLEX_CXX_HAVE_NO_PLT)
+
+  # Apple/Clang accepts -fno-semantic-interposition but the Apple toolchain
+  # driver treats it as unused for Mach-O builds.
+  check_cxx_compiler_flag("-fno-semantic-interposition" PHLEX_CXX_HAVE_NO_SEMANTIC_INTERPOSITION)
 endif()
 
 # ---------------------------------------------------------------------------
