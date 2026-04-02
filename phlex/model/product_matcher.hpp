@@ -17,7 +17,7 @@
 #include <string>
 
 namespace phlex::experimental {
-  class phlex_model_EXPORT product_matcher {
+  class PHLEX_MODEL_EXPORT product_matcher {
   public:
     explicit product_matcher(std::string matcher_spec);
     bool matches(product_store_const_ptr const& store) const;

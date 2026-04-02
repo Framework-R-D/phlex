@@ -33,7 +33,7 @@ namespace phlex {
 }
 
 namespace phlex::experimental {
-  class phlex_core_EXPORT framework_graph {
+  class PHLEX_CORE_EXPORT framework_graph {
   public:
     explicit framework_graph(int max_parallelism = oneapi::tbb::info::default_concurrency());
     explicit framework_graph(detail::next_index_t next_index,

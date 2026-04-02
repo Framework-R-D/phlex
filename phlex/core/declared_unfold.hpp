@@ -34,7 +34,7 @@
 
 namespace phlex::experimental {
 
-  class phlex_core_EXPORT generator {
+  class PHLEX_CORE_EXPORT generator {
   public:
     explicit generator(product_store_const_ptr const& parent,
                        algorithm_name node_name,
@@ -55,7 +55,7 @@ namespace phlex::experimental {
     std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };
 
-  class phlex_core_EXPORT declared_unfold : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_unfold : public products_consumer {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,

@@ -14,7 +14,7 @@
 
 namespace phlex::experimental {
 
-  struct phlex_model_EXPORT product_base {
+  struct PHLEX_MODEL_EXPORT product_base {
     virtual ~product_base() = default;
     virtual void const* address() const = 0;
     virtual std::type_info const& type() const = 0;
@@ -34,7 +34,7 @@ namespace phlex::experimental {
     std::remove_cvref_t<T> obj;
   };
 
-  class phlex_model_EXPORT products {
+  class PHLEX_MODEL_EXPORT products {
     using collection_t = std::unordered_map<product_specification, std::unique_ptr<product_base>>;
 
   public:

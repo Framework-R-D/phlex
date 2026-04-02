@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  class phlex_model_EXPORT product_specification {
+  class PHLEX_MODEL_EXPORT product_specification {
   public:
     product_specification();
     product_specification(char const* name);
@@ -46,7 +46,7 @@ namespace phlex::experimental {
 
   using product_specifications = std::vector<product_specification>;
 
-  phlex_model_EXPORT product_specifications
+  PHLEX_MODEL_EXPORT product_specifications
   to_product_specifications(std::string_view name,
                             std::vector<std::string> output_suffixes,
                             std::vector<type_id> output_types);

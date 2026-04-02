@@ -6,9 +6,9 @@
 #include <cstddef>
 
 namespace phlex {
-  struct phlex_core_EXPORT concurrency {
-    static phlex_core_EXPORT concurrency const unlimited;
-    static phlex_core_EXPORT concurrency const serial;
+  struct PHLEX_CORE_EXPORT concurrency {
+    static PHLEX_CORE_EXPORT concurrency const unlimited;
+    static PHLEX_CORE_EXPORT concurrency const serial;
 
     std::size_t value;
   };

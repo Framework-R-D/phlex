@@ -15,7 +15,7 @@
 
 namespace phlex::experimental {
 
-  class phlex_model_EXPORT data_layer_hierarchy {
+  class PHLEX_MODEL_EXPORT data_layer_hierarchy {
   public:
     ~data_layer_hierarchy();
     void increment_count(data_cell_index_ptr const& id);

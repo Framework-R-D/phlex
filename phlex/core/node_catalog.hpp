@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  struct phlex_core_EXPORT node_catalog {
+  struct PHLEX_CORE_EXPORT node_catalog {
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)
     {

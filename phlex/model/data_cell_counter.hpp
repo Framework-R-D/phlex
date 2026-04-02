@@ -14,7 +14,7 @@
 #include <optional>
 
 namespace phlex::experimental {
-  class phlex_model_EXPORT flush_counts {
+  class PHLEX_MODEL_EXPORT flush_counts {
   public:
     flush_counts();
     explicit flush_counts(std::map<data_cell_index::hash_type, std::size_t> child_counts);
@@ -36,7 +36,7 @@ namespace phlex::experimental {
     std::map<data_cell_index::hash_type, std::size_t> child_counts_{};
   };
 
-  class phlex_model_EXPORT data_cell_counter {
+  class PHLEX_MODEL_EXPORT data_cell_counter {
   public:
     data_cell_counter();
     data_cell_counter(data_cell_counter* parent, identifier const& layer_name);
@@ -59,7 +59,7 @@ namespace phlex::experimental {
     std::map<data_cell_index::hash_type, std::size_t> child_counts_{};
   };
 
-  class phlex_model_EXPORT flush_counters {
+  class PHLEX_MODEL_EXPORT flush_counters {
   public:
     void update(data_cell_index_ptr const id);
     flush_counts extract(data_cell_index_ptr const id);

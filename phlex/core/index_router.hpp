@@ -32,7 +32,7 @@ namespace phlex::experimental {
     // join operation.  It:
     //   (a) routes index messages to either the matching layer or its data-layer parent, and
     //   (b) emits flush tokens to the repeater to evict a cached data product from memory.
-    class phlex_core_EXPORT multilayer_slot {
+    class PHLEX_CORE_EXPORT multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
                       identifier layer,
@@ -57,7 +57,7 @@ namespace phlex::experimental {
     // A layer_scope object is an RAII object that manages layer-scoped operations during
     // data-cell-index routing. It updates flush counters on construction and ensures cleanup
     // (flushing end tokens and releasing fold results) on destruction.
-    class phlex_core_EXPORT layer_scope {
+    class PHLEX_CORE_EXPORT layer_scope {
     public:
       layer_scope(flush_counters& counters,
                   flusher_t& flusher,
@@ -76,7 +76,7 @@ namespace phlex::experimental {
     };
   }
 
-  class phlex_core_EXPORT index_router {
+  class PHLEX_CORE_EXPORT index_router {
   public:
     struct named_input_port {
       product_query input_product;

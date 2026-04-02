@@ -6,7 +6,7 @@
 #include "phlex/model/identifier.hpp"
 
 namespace phlex::experimental {
-  class phlex_model_EXPORT algorithm_name {
+  class PHLEX_MODEL_EXPORT algorithm_name {
     enum class specified_fields { neither, either, both };
 
   public:

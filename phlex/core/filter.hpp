@@ -14,7 +14,7 @@ namespace phlex::experimental {
     oneapi::tbb::flow::composite_node<std::tuple<message, predicate_result>,
                                       std::tuple<oneapi::tbb::flow::continue_msg>>;
 
-  class phlex_core_EXPORT filter : public filter_base {
+  class PHLEX_CORE_EXPORT filter : public filter_base {
     using indexer_t = oneapi::tbb::flow::indexer_node<message, predicate_result>;
     using tag_t = indexer_t::output_type;
 

@@ -31,7 +31,7 @@ namespace phlex::experimental {
     return value == true_value;
   }
 
-  class phlex_core_EXPORT decision_map {
+  class PHLEX_CORE_EXPORT decision_map {
     using decisions_t = oneapi::tbb::concurrent_hash_map<std::size_t, unsigned int>;
 
   public:
@@ -49,7 +49,7 @@ namespace phlex::experimental {
     decisions_t results_;
   };
 
-  class phlex_core_EXPORT data_map {
+  class PHLEX_CORE_EXPORT data_map {
     using stores_t =
       oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_const_ptr>>;
 

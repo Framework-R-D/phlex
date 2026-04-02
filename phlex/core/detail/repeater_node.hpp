@@ -17,7 +17,7 @@ namespace phlex::experimental::detail {
 
   using repeater_node_input = std::tuple<message, indexed_end_token, index_message>;
 
-  class phlex_core_EXPORT repeater_node :
+  class PHLEX_CORE_EXPORT repeater_node :
     public tbb::flow::composite_node<repeater_node_input, message_tuple<1>> {
   public:
     repeater_node(tbb::flow::graph& g, std::string node_name, identifier layer_name);

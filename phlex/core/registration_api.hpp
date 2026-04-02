@@ -306,7 +306,7 @@ namespace phlex::experimental {
   // ====================================================================================
   // Output API
 
-  class phlex_core_EXPORT output_api {
+  class PHLEX_CORE_EXPORT output_api {
   public:
     output_api(registrar<declared_output_ptr> reg,
                configuration const* config,

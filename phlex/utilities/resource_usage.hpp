@@ -11,7 +11,7 @@
 #include <chrono>
 
 namespace phlex::experimental {
-  class phlex_utilities_EXPORT resource_usage {
+  class PHLEX_UTILITIES_EXPORT resource_usage {
   public:
     resource_usage() noexcept;
     ~resource_usage();

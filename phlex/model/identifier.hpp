@@ -22,7 +22,7 @@ namespace phlex::experimental {
 
   /// Carries around the string itself (as a shared_ptr to string to make copies lighter)
   /// along with a precomputed hash used for all comparisons
-  class phlex_model_EXPORT identifier {
+  class PHLEX_MODEL_EXPORT identifier {
   public:
     static std::uint64_t hash_string(std::string_view str);
     // The default constructor is necessary so other classes containing identifiers
@@ -60,8 +60,8 @@ namespace phlex::experimental {
     std::string const& trans_get_string() const noexcept { return content_; }
 
     // Comparison operators with _id queries
-    friend phlex_model_EXPORT bool operator==(identifier const& lhs, identifier_query rhs);
-    friend phlex_model_EXPORT std::strong_ordering operator<=>(identifier const& lhs,
+    friend PHLEX_MODEL_EXPORT bool operator==(identifier const& lhs, identifier_query rhs);
+    friend PHLEX_MODEL_EXPORT std::strong_ordering operator<=>(identifier const& lhs,
                                                                identifier_query rhs);
     friend std::hash<identifier>;
 
@@ -72,8 +72,8 @@ namespace phlex::experimental {
 
   // Identifier UDL
   namespace literals {
-    phlex_model_EXPORT identifier operator""_id(char const* lit, std::size_t len);
-    phlex_model_EXPORT identifier_query operator""_idq(char const* lit, std::size_t len);
+    PHLEX_MODEL_EXPORT identifier operator""_id(char const* lit, std::size_t len);
+    PHLEX_MODEL_EXPORT identifier_query operator""_idq(char const* lit, std::size_t len);
   }
 
   // Really trying to avoid the extra function call here
