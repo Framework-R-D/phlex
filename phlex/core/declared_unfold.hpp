@@ -34,7 +34,6 @@
 
 namespace phlex::experimental {
 
-  /// @brief Passed to user unfold functions to emit child data cells.
   class PHLEX_CORE_EXPORT generator {
   public:
     explicit generator(product_store_const_ptr const& parent,
@@ -42,10 +41,6 @@ namespace phlex::experimental {
                        std::string const& child_layer_name);
     flush_counts_ptr flush_result() const;
 
-    /// @brief Creates a child data cell and associates products with it.
-    /// @param data_cell_number Sequential index of the child cell (0-based).
-    /// @param new_products Products to store in the child cell.
-    /// @return A const pointer to the newly created child product store.
     product_store_const_ptr make_child_for(std::size_t const data_cell_number,
                                            products new_products)
     {

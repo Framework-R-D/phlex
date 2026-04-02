@@ -12,14 +12,6 @@ Welcome to Phlex's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Algorithm nodes:
-
-   api/declared_transform
-   api/declared_fold
-   api/declared_unfold
-
-.. toctree::
-   :maxdepth: 2
    :caption: Data model:
 
    api/configuration
