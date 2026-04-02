@@ -215,6 +215,10 @@ last line content
 - File ending with `t \n` (trailing space before final newline)
 - File ending with no newline (file must end with exactly one `\n`)
 
+#### Verifying File Endings
+
+When reviewing or responding to claims about trailing blank lines, always verify using `od -a <file> | tail -3` before taking action. A file is correctly terminated if the last character shown is `nl` with no preceding `nl` on the same address line. The automated code reviewer has a known tendency to false-positive on trailing blank lines in `.rst`, `Doxyfile`, and similar non-Python/non-C++ files; verify independently before acting on such claims.
+
 #### No Trailing Whitespace on Any Line
 
 No line in the file should have trailing spaces or tabs:
