@@ -32,7 +32,7 @@
 
 namespace phlex::experimental {
 
-  class phlex_core_EXPORT declared_observer : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_observer : public products_consumer {
   public:
     declared_observer(algorithm_name name,
                       std::vector<std::string> predicates,

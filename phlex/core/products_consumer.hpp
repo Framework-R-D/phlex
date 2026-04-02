@@ -17,7 +17,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  class phlex_core_EXPORT products_consumer : public consumer {
+  class PHLEX_CORE_EXPORT products_consumer : public consumer {
   public:
     products_consumer(algorithm_name name,
                       std::vector<std::string> predicates,

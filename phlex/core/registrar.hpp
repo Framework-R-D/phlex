@@ -60,7 +60,7 @@
 namespace phlex::experimental {
 
   namespace detail {
-    phlex_core_EXPORT void add_to_error_messages(std::vector<std::string>& errors,
+    PHLEX_CORE_EXPORT void add_to_error_messages(std::vector<std::string>& errors,
                                                  std::string const& name);
   }
 

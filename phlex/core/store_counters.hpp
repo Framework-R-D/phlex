@@ -16,7 +16,7 @@
 #include <version>
 
 namespace phlex::experimental {
-  class phlex_core_EXPORT store_counter {
+  class PHLEX_CORE_EXPORT store_counter {
   public:
     void set_flush_value(flush_counts_ptr counts, std::size_t original_message_id);
     void increment(data_cell_index::hash_type layer_hash);
@@ -37,7 +37,7 @@ namespace phlex::experimental {
     std::atomic<bool> ready_to_flush_{true};
   };
 
-  class phlex_core_EXPORT count_stores {
+  class PHLEX_CORE_EXPORT count_stores {
   protected:
     store_counter& counter_for(data_cell_index::hash_type hash);
     std::unique_ptr<store_counter> done_with(data_cell_index::hash_type hash);

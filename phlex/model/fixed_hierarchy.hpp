@@ -19,7 +19,7 @@ namespace phlex {
 
   class fixed_hierarchy;
 
-  class phlex_model_EXPORT data_cell_cursor {
+  class PHLEX_MODEL_EXPORT data_cell_cursor {
   public:
     // Validates that the child layer is part of the fixed hierarchy and yields the child
     // data-cell index to the underlying driver, returning a data_cell_cursor for the child.
@@ -38,7 +38,7 @@ namespace phlex {
     experimental::async_driver<data_cell_index_ptr>& driver_;
   };
 
-  class phlex_model_EXPORT fixed_hierarchy {
+  class PHLEX_MODEL_EXPORT fixed_hierarchy {
   public:
     fixed_hierarchy() = default;
     // Using an std::initializer_list removes one set of braces that the user must provide

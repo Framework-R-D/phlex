@@ -24,7 +24,7 @@
 
 namespace phlex::experimental {
 
-  class phlex_core_EXPORT declared_provider {
+  class PHLEX_CORE_EXPORT declared_provider {
   public:
     declared_provider(algorithm_name name, product_query output_product);
     virtual ~declared_provider();

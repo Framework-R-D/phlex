@@ -8,10 +8,10 @@
 #include <string>
 
 namespace phlex::experimental {
-  phlex_utilities_EXPORT std::size_t hash(std::string const& str);
-  phlex_utilities_EXPORT std::size_t hash(std::size_t i) noexcept;
-  phlex_utilities_EXPORT std::size_t hash(std::size_t i, std::size_t j);
-  phlex_utilities_EXPORT std::size_t hash(std::size_t i, std::string const& str);
+  PHLEX_UTILITIES_EXPORT std::size_t hash(std::string const& str);
+  PHLEX_UTILITIES_EXPORT std::size_t hash(std::size_t i) noexcept;
+  PHLEX_UTILITIES_EXPORT std::size_t hash(std::size_t i, std::size_t j);
+  PHLEX_UTILITIES_EXPORT std::size_t hash(std::size_t i, std::string const& str);
   template <typename... Ts>
   std::size_t hash(std::size_t i, std::size_t j, Ts... ks)
   {

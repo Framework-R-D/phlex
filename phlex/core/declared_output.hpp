@@ -22,7 +22,7 @@ namespace phlex::experimental {
   namespace detail {
     using output_function_t = std::function<void(product_store const&)>;
   }
-  class phlex_core_EXPORT declared_output : public consumer {
+  class PHLEX_CORE_EXPORT declared_output : public consumer {
   public:
     declared_output(algorithm_name name,
                     std::size_t concurrency,

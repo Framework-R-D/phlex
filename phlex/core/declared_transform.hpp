@@ -38,7 +38,7 @@
 
 namespace phlex::experimental {
 
-  class phlex_core_EXPORT declared_transform : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_transform : public products_consumer {
   public:
     declared_transform(algorithm_name name,
                        std::vector<std::string> predicates,

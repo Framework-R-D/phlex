@@ -24,7 +24,7 @@ namespace phlex {
     }
 
     // Used later for product_query
-    phlex_configuration_internal_EXPORT std::optional<phlex::experimental::identifier>
+    PHLEX_CONFIGURATION_INTERNAL_EXPORT std::optional<phlex::experimental::identifier>
     value_if_exists(boost::json::object const& obj, std::string_view parameter);
 
     // helper for unpacking json array
@@ -36,7 +36,7 @@ namespace phlex {
     }
   }
 
-  class phlex_configuration_internal_EXPORT configuration {
+  class PHLEX_CONFIGURATION_INTERNAL_EXPORT configuration {
   public:
     configuration() = default;
     explicit configuration(boost::json::object const& config) : config_{config} {}
@@ -91,14 +91,14 @@ namespace phlex {
   // To enable direct conversions from Boost JSON types to our own types, we implement
   // tag_invoke(...) function overloads, which are the customization points Boost JSON
   // provides.
-  phlex_configuration_internal_EXPORT configuration
+  PHLEX_CONFIGURATION_INTERNAL_EXPORT configuration
   tag_invoke(boost::json::value_to_tag<configuration> const&, boost::json::value const& jv);
 
-  phlex_configuration_internal_EXPORT product_query
+  PHLEX_CONFIGURATION_INTERNAL_EXPORT product_query
   tag_invoke(boost::json::value_to_tag<product_query> const&, boost::json::value const& jv);
 
   namespace experimental {
-    phlex_configuration_internal_EXPORT identifier
+    PHLEX_CONFIGURATION_INTERNAL_EXPORT identifier
     tag_invoke(boost::json::value_to_tag<identifier> const&, boost::json::value const& jv);
   }
 

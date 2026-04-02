@@ -9,7 +9,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  class phlex_core_EXPORT consumer {
+  class PHLEX_CORE_EXPORT consumer {
   public:
     consumer(algorithm_name name, std::vector<std::string> predicates);
 

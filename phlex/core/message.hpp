@@ -46,7 +46,7 @@ namespace phlex::experimental {
     std::size_t id;
   };
 
-  struct phlex_core_EXPORT message_matcher {
+  struct PHLEX_CORE_EXPORT message_matcher {
     std::size_t operator()(message const& msg) const noexcept;
   };
 
@@ -64,12 +64,12 @@ namespace phlex::experimental {
   using named_index_ports = std::vector<named_index_port>;
 
   // Overload for use with most_derived
-  phlex_core_EXPORT message const& more_derived(message const& a, message const& b);
+  PHLEX_CORE_EXPORT message const& more_derived(message const& a, message const& b);
 
   // Non-template overload for single message case
   inline message const& most_derived(message const& msg) { return msg; }
 
-  phlex_core_EXPORT std::size_t port_index_for(product_queries const& input_products,
+  PHLEX_CORE_EXPORT std::size_t port_index_for(product_queries const& input_products,
                                                product_query const& input_product);
 }
 

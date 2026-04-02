@@ -67,7 +67,7 @@ namespace phlex {
     };
   }
 
-  struct phlex_core_EXPORT product_query {
+  struct PHLEX_CORE_EXPORT product_query {
     detail::required_creator_name<experimental::identifier> creator;
     detail::required_layer_name<experimental::identifier> layer;
     std::optional<experimental::identifier> suffix;
@@ -126,7 +126,7 @@ namespace phlex {
 
   // This lives here rather than as a member-function of product_store because product_store is in model
   // and product_query in core, with core depending on model.
-  phlex_core_EXPORT experimental::product_specification const* resolve_in_store(
+  PHLEX_CORE_EXPORT experimental::product_specification const* resolve_in_store(
     product_query const& query, experimental::product_store const& store);
 }
 

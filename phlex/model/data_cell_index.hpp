@@ -16,7 +16,7 @@
 #include <vector>
 
 namespace phlex {
-  class phlex_model_EXPORT data_cell_index : public std::enable_shared_from_this<data_cell_index> {
+  class PHLEX_MODEL_EXPORT data_cell_index : public std::enable_shared_from_this<data_cell_index> {
   public:
     static data_cell_index_ptr job();
 
@@ -52,7 +52,7 @@ namespace phlex {
     hash_type hash_{0};
   };
 
-  phlex_model_EXPORT std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
+  PHLEX_MODEL_EXPORT std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
 }
 
 namespace std {

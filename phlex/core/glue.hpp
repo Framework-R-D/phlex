@@ -25,7 +25,7 @@ namespace phlex::experimental {
   struct node_catalog;
 
   namespace detail {
-    phlex_core_EXPORT void verify_name(std::string const& name, configuration const* config);
+    PHLEX_CORE_EXPORT void verify_name(std::string const& name, configuration const* config);
   }
 
   // ==============================================================================

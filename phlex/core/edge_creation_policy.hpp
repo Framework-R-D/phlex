@@ -17,7 +17,7 @@
 namespace phlex::experimental {
   using product_suffix_t = identifier;
 
-  class phlex_core_EXPORT edge_creation_policy {
+  class PHLEX_CORE_EXPORT edge_creation_policy {
   public:
     template <typename... Args>
     edge_creation_policy(Args&... producers);
