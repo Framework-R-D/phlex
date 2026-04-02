@@ -26,9 +26,10 @@ namespace phlex::experimental {
     using driver_creator_t = driver_bundle(driver_proxy const&, configuration const&);
   };
 
+  /// @brief Bundles the driver function and data hierarchy for the framework.
   struct driver_bundle {
-    detail::next_index_t driver;
-    fixed_hierarchy hierarchy;
+    detail::next_index_t driver; ///< Driver function that advances data cells.
+    fixed_hierarchy hierarchy;   ///< Data hierarchy traversed by the driver.
   };
 }
 
@@ -36,8 +37,17 @@ namespace phlex::experimental {
   template <typename F>
   concept is_driver_like = std::invocable<F, data_cell_cursor const&>;
 
+  /// @brief Proxy for constructing a driver bundle from a user-supplied driver function.
+  ///
+  /// Passed to @c PHLEX_REGISTER_DRIVER plugin entry points. Users never
+  /// construct this type directly.
   class driver_proxy {
   public:
+    /// @brief Creates a driver_bundle from a hierarchy and a user-supplied driver function.
+    ///
+    /// @param hierarchy  The data hierarchy the driver will traverse.
+    /// @param driver_function  A callable receiving a @c data_cell_cursor const& that
+    ///                         emits data cells to the framework.
     driver_bundle driver(fixed_hierarchy hierarchy, is_driver_like auto driver_function) const
     {
       auto h = hierarchy;

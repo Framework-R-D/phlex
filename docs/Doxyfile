@@ -1,0 +1,35 @@
+# Doxyfile
+
+# -- Project settings --------------------------------------------------------
+PROJECT_NAME      = "Phlex"
+PROJECT_BRIEF     = "A framework for parallel, hierarchical, and layered execution of data-processing algorithms"
+QUIET             = YES
+
+# -- Input and output directories --------------------------------------------
+# Paths are relative to the repository root; invoke as: doxygen docs/Doxyfile
+INPUT             = phlex form
+OUTPUT_DIRECTORY  = docs/doxygen
+RECURSIVE         = YES
+
+# -- Output formats ----------------------------------------------------------
+GENERATE_HTML     = NO
+GENERATE_LATEX    = NO
+GENERATE_XML      = YES
+XML_OUTPUT        = xml
+
+# -- Source code parsing -----------------------------------------------------
+EXTRACT_ALL       = YES
+WARN_IF_UNDOCUMENTED = NO
+ENABLE_PREPROCESSING = YES
+MACRO_EXPANSION  = YES
+FILE_PATTERNS     = *.hpp *.cpp
+EXCLUDE_PATTERNS  = */detail/*
+# Help Doxygen with some of the more complex macros
+PREDEFINED        = "BOOST_DLL_ALIAS(a,b)=" \
+                    "PHLEX_DETAIL_REGISTER_PLUGIN(...)=" \
+                    "PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(...)=" \
+                    "PHLEX_EXPORT=" \
+                    "PHLEX_CORE_EXPORT=" \
+                    "PHLEX_MODEL_EXPORT=" \
+                    "PHLEX_CONFIGURATION_INTERNAL_EXPORT=" \
+                    "PHLEX_UTILITIES_EXPORT="
