@@ -5,9 +5,13 @@
 #include <string>
 
 namespace {
-  phlex::product_query const output_dummy = phlex::product_query{
-    .creator = "for_output_only"_id, .layer = "dummy_layer"_id, .suffix = "for_output_only"_id};
-  phlex::product_queries const for_output_only{output_dummy};
+  phlex::product_queries const for_output_only()
+  {
+    static phlex::product_query const output_dummy = phlex::product_query{
+      .creator = "for_output_only"_id, .layer = "dummy_layer"_id, .suffix = "for_output_only"_id};
+    static phlex::product_queries const for_output_only_queries{output_dummy};
+    return for_output_only_queries;
+  }
 }
 
 namespace phlex::experimental {
@@ -57,7 +61,7 @@ namespace phlex::experimental {
     assert(nargs_ > 0);
   }
 
-  data_map::data_map(for_output_t) : data_map{for_output_only} {}
+  data_map::data_map(for_output_t) : data_map{for_output_only()} {}
 
   void data_map::update(std::size_t const msg_id, product_store_const_ptr const& store)
   {

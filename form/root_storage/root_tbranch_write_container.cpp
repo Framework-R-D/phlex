@@ -12,20 +12,6 @@
 
 #include <unordered_map>
 
-namespace {
-  //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
-  //An empty leaf list defaults to Float_t
-  std::unordered_map<std::string, std::string> typeNameToLeafList = {{"int", "/I"},
-                                                                     {"unsigned int", "/i"},
-                                                                     {"float", "/F"},
-                                                                     {"double", "/D"},
-                                                                     {"short int", "/S"},
-                                                                     {"unsigned short", "/s"},
-                                                                     {"long int", "/L"},
-                                                                     {"unsigned long int", "/l"},
-                                                                     {"bool", "/O"}};
-}
-
 using namespace form::detail::experimental;
 
 ROOT_TBranch_Write_ContainerImp::ROOT_TBranch_Write_ContainerImp(std::string const& name) :
@@ -69,6 +55,19 @@ void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_C
 
 void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
 {
+  //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
+  //An empty leaf list defaults to Float_t
+  static std::unordered_map<std::string, std::string> typeNameToLeafList = {
+    {"int", "/I"},
+    {"unsigned int", "/i"},
+    {"float", "/F"},
+    {"double", "/D"},
+    {"short int", "/S"},
+    {"unsigned short", "/s"},
+    {"long int", "/L"},
+    {"unsigned long int", "/l"},
+    {"bool", "/O"}};
+
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no tree found");
   }
