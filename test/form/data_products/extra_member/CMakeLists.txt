@@ -14,5 +14,4 @@ if(FORM_USE_ROOT_STORAGE)
       ${FORM_EXTRA_DATA_PROD_LIB_NAME} dict.h SELECTION classes_def.xml
   )
   target_link_libraries(${FORM_EXTRA_DATA_PROD_LIB_NAME} PRIVATE ROOT::RIO)
-  set_target_properties(${FORM_EXTRA_DATA_PROD_LIB_NAME} PROPERTIES CXX_CLANG_TIDY "")
 endif()

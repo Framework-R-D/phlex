@@ -50,7 +50,7 @@ jobs:
       always() && (github.event_name == 'workflow_dispatch' || needs.setup.outputs.has_changes == 'true')
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:latest
+      image: ghcr.io/framework-r-d/phlex-ci:2026-04-06
 
     steps:
       - name: Checkout code
@@ -72,35 +72,65 @@ jobs:
           build-type: Debug
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
-          extra-options:
-            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
-            -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml'"
+          extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
 
-      - name: Run clang-tidy using CMake
+      - name: Run clang-tidy
         id: tidy
         shell: bash
         working-directory: ${{ needs.setup.outputs.build_path }}
         env:
           REPO: ${{ needs.setup.outputs.repo }}
+          SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
           REPO_NAME="${REPO##*/}"
+          SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
+          BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
 
-          echo "➡️ Running clang-tidy checks..."
-          cmake_status=0
-          cmake --build . -j "$(nproc)" > clang-tidy.log 2>&1 || cmake_status=$?
-
-          if [ "$cmake_status" -ne 0 ]; then
-            echo "::error::clang-tidy CMake build failed (exit code $cmake_status)"
-            echo "::group::clang-tidy log output"
-            cat clang-tidy.log
-            echo "::endgroup::"
-            exit "$cmake_status"
+          # run-clang-tidy runs clang-tidy on every translation unit in
+          # compile_commands.json in parallel and merges the per-TU fix YAML files
+          # into a single comprehensive clang-tidy-fixes.yaml.  The alternative
+          # (setting CMAKE_CXX_CLANG_TIDY=clang-tidy;--export-fixes=... and
+          # building with -j) suffers from a race condition: every parallel
+          # clang-tidy invocation independently overwrites the same output file, so
+          # only the fixes from whichever translation unit finishes last are
+          # retained.
+          #
+          # Path arguments are substring-matched against file paths in
+          # compile_commands.json; restricting to the source directory automatically
+          # excludes generated files (e.g. version.cpp, ROOT dictionaries) that live
+          # in the build directory and lack access to the .clang-tidy config.
+          #
+          # run-clang-tidy validates the check list by calling clang-tidy from its
+          # working directory; run from the source root so that clang-tidy discovers
+          # the .clang-tidy config file there, preventing a spurious "No checks
+          # enabled." error.
+          if ! command -v run-clang-tidy >/dev/null 2>&1; then
+            echo "::error::run-clang-tidy not found in PATH; cannot run clang-tidy checks"
+            exit 1
           fi
+          echo "➡️ Running clang-tidy checks..."
+          cd "$SOURCE_DIR"
+          run-clang-tidy \
+            -p "$BUILD_DIR" \
+            -export-fixes "$BUILD_DIR/clang-tidy-fixes.yaml" \
+            -j "$(nproc)" \
+            phlex \
+            form \
+            plugins \
+            test \
+            > "$BUILD_DIR/clang-tidy.log" 2>&1 || true
 
-          if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
+          if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' "$BUILD_DIR/clang-tidy.log"; then
             echo "::warning::Clang-tidy found issues in the code"
             echo "Comment '@${REPO_NAME}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
+          elif grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
+            echo "::error::run-clang-tidy failed (see log below)"
+            echo "::group::clang-tidy.log (error)"
+            cat "$BUILD_DIR/clang-tidy.log"
+            echo "::endgroup::"
+            exit 1
           else
             echo "✅ clang-tidy check passed"
           fi

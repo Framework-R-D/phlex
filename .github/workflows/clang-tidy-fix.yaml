@@ -73,7 +73,7 @@ jobs:
     if: ${{ needs.setup.result == 'success' }}
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:latest
+      image: ghcr.io/framework-r-d/phlex-ci:2026-04-06
 
     steps:
       - name: Checkout code
@@ -134,20 +134,17 @@ jobs:
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
-      - name: Prepare CMake configuration options
+      - name: Prepare clang-tidy options
         if: steps.apply_from_artifact.outputs.applied != 'true'
         id: prep_tidy_opts
         env:
           TIDY_CHECKS: ${{ needs.setup.outputs.tidy_checks }}
         run: |
           . /entrypoint.sh
-
-          CLANG_TIDY_OPTS="clang-tidy;--export-fixes=clang-tidy-fixes.yaml"
           if [ -n "$TIDY_CHECKS" ]; then
             CHECKS_NORMALIZED=$(echo "$TIDY_CHECKS" | tr ' ' ',')
-            CLANG_TIDY_OPTS="${CLANG_TIDY_OPTS};--checks=-*,${CHECKS_NORMALIZED}"
+            echo "clang_tidy_checks=-*,${CHECKS_NORMALIZED}" >> "$GITHUB_OUTPUT"
           fi
-          echo "clang_tidy_opts=${CLANG_TIDY_OPTS}" >> "$GITHUB_OUTPUT"
 
       - name: Configure CMake (Debug)
         if: steps.apply_from_artifact.outputs.applied != 'true'
@@ -156,16 +153,51 @@ jobs:
           build-type: Debug
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
-          extra-options:
-            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF -DCMAKE_CXX_CLANG_TIDY='${{
-            steps.prep_tidy_opts.outputs.clang_tidy_opts }}'"
+          extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
 
-      - name: Generate clang-tidy fixes using CMake build
+      - name: Generate clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'
         working-directory: ${{ needs.setup.outputs.build_path }}
+        env:
+          TIDY_CHECKS: ${{ steps.prep_tidy_opts.outputs.clang_tidy_checks }}
+          SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
           . /entrypoint.sh
-          cmake --build . -j "$(nproc)" || true
+          SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
+          BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
+
+          # run-clang-tidy merges per-TU fix YAML files into one comprehensive
+          # clang-tidy-fixes.yaml.  Using CMAKE_CXX_CLANG_TIDY=..;--export-fixes=
+          # in a parallel build is unsound: every clang-tidy invocation races to
+          # overwrite the same output file, so only the last TU's fixes survive.
+          # Path arguments restrict analysis to source files in the checkout,
+          # automatically excluding build-directory generated files.
+          #
+          # run-clang-tidy validates the check list by calling clang-tidy from its
+          # working directory; run from the source root so that clang-tidy discovers
+          # the .clang-tidy config file there.
+          if ! command -v run-clang-tidy >/dev/null 2>&1; then
+            echo "::error::run-clang-tidy not found in PATH; cannot generate fixes"
+            exit 1
+          fi
+
+          TIDY_ARGS=()
+          if [ -n "$TIDY_CHECKS" ]; then
+            TIDY_ARGS+=("-checks=$TIDY_CHECKS")
+          fi
+
+          cd "$SOURCE_DIR"
+          run-clang-tidy \
+            -p "$BUILD_DIR" \
+            -export-fixes "$BUILD_DIR/clang-tidy-fixes.yaml" \
+            -j "$(nproc)" \
+            ${TIDY_ARGS[@]+"${TIDY_ARGS[@]}"} \
+            phlex \
+            form \
+            plugins \
+            test \
+            || true
 
       - name: Apply clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'

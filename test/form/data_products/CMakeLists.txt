@@ -16,7 +16,6 @@ if(FORM_USE_ROOT_STORAGE)
       ${FORM_DATA_PROD_LIB_NAME} dict.h SELECTION classes_def.xml
   )
   target_link_libraries(${FORM_DATA_PROD_LIB_NAME} PRIVATE ROOT::RIO)
-  set_target_properties(${FORM_DATA_PROD_LIB_NAME} PROPERTIES CXX_CLANG_TIDY "")
 
   add_subdirectory(extra_member)
 endif()

@@ -13,6 +13,7 @@ spack:
     - ninja
     - py-gcovr
     - py-pytest-cov # Needed for Python coverage reports
+    - py-pyyaml # Needed by run-clang-tidy --export-fixes to merge per-TU fix files
     - |
       llvm@22.1.1 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
