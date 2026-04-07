@@ -5,7 +5,7 @@
 #include <string>
 
 namespace {
-  phlex::product_queries const for_output_only()
+  phlex::product_queries const& for_output_only()
   {
     static phlex::product_query const output_dummy = phlex::product_query{
       .creator = "for_output_only"_id, .layer = "dummy_layer"_id, .suffix = "for_output_only"_id};
