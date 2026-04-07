@@ -3,12 +3,14 @@
 
 using namespace phlex;
 
+#include <iostream>
+
 namespace {
   unsigned pass_on(unsigned number) { return number; }
 }
 
 int main()
-{
+try {
   // spdlog::flush_on(spdlog::level::trace);
 
   constexpr auto max_events{100'000u};
@@ -24,4 +26,10 @@ int main()
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
     .output_product_suffixes("different");
   g.execute();
+} catch (std::exception const& e) {
+  std::cerr << "Exception caught in main: " << e.what() << '\n';
+  return 1;
+} catch (...) {
+  std::cerr << "Unknown exception caught in main.\n";
+  return 1;
 }
