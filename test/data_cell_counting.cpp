@@ -13,7 +13,7 @@ namespace {
   struct job_hash_fixture {
     std::size_t job_hash_value() const
     {
-      static std::size_t cached_hash = "job"_idq.hash;
+      static std::size_t const cached_hash = "job"_idq.hash;
       return cached_hash;
     }
   };
