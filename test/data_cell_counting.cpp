@@ -62,6 +62,17 @@ TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
   CHECK(h.count_for("/job/run/spill") == 2);
 }
 
+TEST_CASE("Data layer hierarchy with unnamed layer", "[data model]")
+{
+  // Exercises the maybe_name() fallback to "(unnamed)" for layers with empty names.
+  // graph_layout() is called from the destructor, which traverses the hierarchy
+  // and invokes maybe_name("") for the unnamed child.
+  data_layer_hierarchy h;
+  auto job_index = data_cell_index::job();
+  h.increment_count(job_index);
+  h.increment_count(job_index->make_child("", 0));
+}
+
 TEST_CASE_METHOD(job_hash_fixture, "Counter multiple layers deep", "[data model]")
 {
   constexpr std::size_t nruns{2ull};
