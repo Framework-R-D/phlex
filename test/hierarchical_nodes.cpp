@@ -101,23 +101,19 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "run", .suffix = "time"})
-    .experimental_when()
-    .output_product_suffixes("strtime");
+    .experimental_when();
   g.transform("square", square, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
-    .output_product_suffixes("squared_number");
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"});
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
-    .input_family(product_query{.creator = "square", .layer = "event", .suffix = "squared_number"})
-    .experimental_when()
-    .output_product_suffixes("added_data");
+    .input_family(product_query{.creator = "square", .layer = "event"})
+    .experimental_when();
 
   g.transform("scale", scale, concurrency::unlimited)
-    .input_family(product_query{.creator = "add", .layer = "run", .suffix = "added_data"})
-    .output_product_suffixes("result");
+    .input_family(product_query{.creator = "add", .layer = "run"});
   g.observe("print_result", print_result, concurrency::unlimited)
-    .input_family(product_query{.creator = "scale", .layer = "run", .suffix = "result"},
-                  product_query{.creator = "get_the_time", .layer = "run", .suffix = "strtime"});
+    .input_family(product_query{.creator = "scale", .layer = "run"},
+                  product_query{.creator = "get_the_time", .layer = "run"});
 
   g.make<experimental::test::products_for_output>()
     .output("save", &experimental::test::products_for_output::save)

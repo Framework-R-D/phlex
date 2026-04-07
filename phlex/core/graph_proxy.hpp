@@ -24,6 +24,11 @@ namespace phlex::experimental {
   // ==============================================================================
   // Registering user functions
 
+  /// @brief Proxy for registering algorithm nodes in a processing graph.
+  ///
+  /// Passed to user plugin entry points by the framework. Use the registration
+  /// methods to attach user algorithms to the graph. Users never construct
+  /// this type directly.
   template <typename T>
   class graph_proxy {
   public:
@@ -39,6 +44,11 @@ namespace phlex::experimental {
     {
     }
 
+    /// @brief Binds a user algorithm object of type @p U to this proxy.
+    ///
+    /// Constructs an instance of @p U forwarding @p args to its constructor.
+    /// Returns a new proxy through which member functions of that object may
+    /// be registered as algorithm nodes.
     template <typename U, typename... Args>
     graph_proxy<U> make(Args&&... args)
     {
@@ -46,6 +56,7 @@ namespace phlex::experimental {
         config_, graph_, nodes_, std::make_shared<U>(std::forward<Args>(args)...), errors_};
     }
 
+    /// @brief Registers a fold algorithm node.
     template <typename... InitArgs>
     auto fold(std::string name,
               is_fold_like auto f,
@@ -60,26 +71,31 @@ namespace phlex::experimental {
                                 std::forward<InitArgs>(init_args)...);
     }
 
+    /// @brief Registers an observer node.
     auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
     {
       return create_glue().observe(std::move(name), std::move(f), c);
     }
 
+    /// @brief Registers a predicate node.
     auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
     {
       return create_glue().predicate(std::move(name), std::move(f), c);
     }
 
+    /// @brief Registers a provider node.
     auto provide(std::string name, is_provider_like auto f, concurrency c = concurrency::serial)
     {
       return create_glue().provide(std::move(name), std::move(f), c);
     }
 
+    /// @brief Registers a transform node.
     auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial)
     {
       return create_glue().transform(std::move(name), std::move(f), c);
     }
 
+    /// @brief Registers an unfold node.
     template <typename Splitter>
     auto unfold(std::string name,
                 is_predicate_like auto pred,
@@ -91,6 +107,7 @@ namespace phlex::experimental {
         std::move(name), std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
+    /// @brief Registers an output node.
     auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
       return create_glue().output(std::move(name), std::move(f), c);

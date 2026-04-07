@@ -15,7 +15,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG v3.10.0
+  GIT_TAG v3.13.0
   GIT_SHALLOW ON
   EXCLUDE_FROM_ALL # Do not install
   FIND_PACKAGE_ARGS
@@ -78,7 +78,7 @@ find_package(cetmodules 4.01.01 REQUIRED)
 
 # ##############################################################################
 # Main project declaration
-project(phlex VERSION 0.1.0 LANGUAGES CXX)
+project(phlex VERSION 0.2.0 LANGUAGES CXX)
 cet_cmake_env()
 # ##############################################################################
 
@@ -89,11 +89,23 @@ set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
 # Make tools available
 FetchContent_MakeAvailable(Catch2 GSL mimicpp)
+# Avoid use of __COUNTER__ to prevent -pedantic warnings in Catch2's TEST_CASE macro
+set(CATCH_CONFIG_COUNTER OFF)
 
 include(Modules/private/CreateCoverageTargets.cmake)
+include(Modules/private/PhlexSymbolVisibility.cmake)
+include(Modules/private/PhlexOptimization.cmake)
 
 option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
+include(CMakeDependentOption)
+cmake_dependent_option(
+  ENABLE_PERFETTO
+  "Enable Perfetto profiling"
+  OFF
+  "CMAKE_SYSTEM_NAME STREQUAL Linux"
+  OFF
+)
 option(PHLEX_USE_FORM "Enable experimental integration with FORM" OFF)
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(ENABLE_BUILD_PROFILING "Enable monitoring of compile and link operations" OFF)
@@ -133,14 +145,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16")
       add_compile_options(-Wno-array-bounds)
     endif()
-  endif()
-endif()
-
-# Catch2's TEST_CASE macro uses __COUNTER__, which Clang >= 22 flags as a C2y
-# extension under -pedantic.  Suppress the warning to avoid -Werror failures.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "22")
-    add_compile_options(-Wno-c2y-extensions)
   endif()
 endif()
 
@@ -202,6 +206,12 @@ if(ENABLE_ASAN)
   else()
     message(FATAL_ERROR "AddressSanitizer is not supported with ${CMAKE_CXX_COMPILER_ID}")
   endif()
+endif()
+
+# Configure Perfetto profiling if enabled
+if(ENABLE_PERFETTO)
+  message(STATUS "Enabling Perfetto profiling")
+  find_package(Perfetto REQUIRED)
 endif()
 
 # Configure code coverage if enabled

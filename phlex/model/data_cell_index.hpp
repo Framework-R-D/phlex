@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_DATA_CELL_INDEX_HPP
 #define PHLEX_MODEL_DATA_CELL_INDEX_HPP
 
+#include "phlex/phlex_model_export.hpp"
+
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
 
@@ -14,10 +16,9 @@
 #include <vector>
 
 namespace phlex {
-  class data_cell_index : public std::enable_shared_from_this<data_cell_index> {
+  class PHLEX_MODEL_EXPORT data_cell_index : public std::enable_shared_from_this<data_cell_index> {
   public:
-    static data_cell_index const& base();
-    static data_cell_index_ptr base_ptr();
+    static data_cell_index_ptr job();
 
     using hash_type = std::size_t;
     data_cell_index_ptr make_child(std::string layer_name, std::size_t data_cell_number) const;
@@ -51,7 +52,7 @@ namespace phlex {
     hash_type hash_{0};
   };
 
-  std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
+  PHLEX_MODEL_EXPORT std::ostream& operator<<(std::ostream& os, data_cell_index const& id);
 }
 
 namespace std {

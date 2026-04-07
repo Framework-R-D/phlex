@@ -56,17 +56,64 @@ clone_if_absent phlex-examples
 clone_if_absent phlex-coding-guidelines
 clone_if_absent phlex-spack-recipes
 
-# Ensure the Podman runtime directory exists so the devcontainer bind mount
-# has a valid source even when the Podman socket is not yet active.  The
-# socket itself is created by Podman at runtime; we only need the parent
-# directory to exist for the mount to succeed.
-PODMAN_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman"
-if mkdir -p "${PODMAN_RUNTIME_DIR}" 2>/dev/null; then
-  if [ ! -S "${PODMAN_RUNTIME_DIR}/podman.sock" ]; then
-    echo "NOTE: Podman socket not found at ${PODMAN_RUNTIME_DIR}/podman.sock" >&2
-    echo "  To use 'act' inside the devcontainer, enable the Podman socket:" >&2
-    echo "    systemctl --user enable --now podman.socket" >&2
+# --- Podman Socket Proxy for Nested Containers (act) ---
+#
+# Rootless Podman nested volume mounts (like act's Docker SDK mounting the
+# Podman socket) require that the source and target paths match across the
+# host/container boundary. We use 'socat' on the host to provide a proxy socket
+# at a stable, matching path in the user's home directory.
+
+USER_ID=$(id -u)
+PODMAN_REAL_SOCKET="${XDG_RUNTIME_DIR:-/run/user/${USER_ID}}/podman/podman.sock"
+PROXY_DIR="${HOME}/.podman-proxy"
+PROXY_SOCKET="${PROXY_DIR}/podman.sock"
+
+# Kill any existing socat proxy for this socket
+pkill -f "socat UNIX-LISTEN:${PROXY_SOCKET}" || true
+# Wait for old process to die and socket to be removed
+sleep 0.2
+mkdir -p "${PROXY_DIR}"
+chmod 700 "${PROXY_DIR}"
+
+mkdir -p "${PROXY_DIR}"
+chmod 700 "${PROXY_DIR}"
+
+if [ -S "${PODMAN_REAL_SOCKET}" ]; then
+  if command -v socat >/dev/null 2>&1; then
+    echo "Proxying Podman socket ${PODMAN_REAL_SOCKET} -> ${PROXY_SOCKET} ..."
+    # Use a background socat to proxy the real socket to the proxy socket.
+    # This socket will be bind-mounted at the SAME PATH in the container.
+    nohup setsid socat "UNIX-LISTEN:${PROXY_SOCKET},fork,reuseaddr,unlink-early" "UNIX-CONNECT:${PODMAN_REAL_SOCKET}" > /tmp/socat-podman.log 2>&1 &
+    # Wait for socket to be created
+    i=0
+    while [ $i -lt 20 ] && [ ! -S "${PROXY_SOCKET}" ]; do
+      sleep 0.1
+      i=$((i + 1))
+    done
+    if [ ! -S "${PROXY_SOCKET}" ]; then
+      echo "WARNING: Socket creation timed out; creating placeholder" >&2
+      socat "UNIX-LISTEN:${PROXY_SOCKET},fork,reuseaddr" "UNIX-CONNECT:${PODMAN_REAL_SOCKET}" &
+    fi
+  else
+    echo "WARNING: socat not found on host; act will not work inside the container" >&2
   fi
 else
-  echo "WARNING: unable to create ${PODMAN_RUNTIME_DIR}; 'act' will not work inside the container without the Podman socket" >&2
+  echo "WARNING: Podman socket not found at ${PODMAN_REAL_SOCKET}" >&2
+  echo "  To use 'act' inside the devcontainer, enable the Podman socket:" >&2
+  echo "    systemctl --user enable --now podman.socket" >&2
 fi
+
+# Ensure the bind-mount source always exists so 'podman run' never fails with
+# "no such file or directory", even when socat is unavailable or the real
+# Podman socket is absent.
+if [ ! -S "${PROXY_SOCKET}" ]; then
+  # Create a dummy socket so the mount source is valid.  The container will
+  # start successfully; nested container support (act) simply won't work.
+  python3 -c "
+import socket, os
+s = socket.socket(socket.AF_UNIX)
+s.bind('${PROXY_SOCKET}')
+" 2>/dev/null || touch "${PROXY_SOCKET}"
+fi
+
+echo "SUCCESS: .devcontainer/ensure-repos.sh completed successfully"

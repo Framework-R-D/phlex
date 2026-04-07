@@ -10,41 +10,91 @@
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
 #include <numpy/arrayobject.h>
 
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/source.hpp"
+#include <cstdint>
+#include <iostream>
+
 using namespace phlex::experimental;
+using namespace phlex;
 
 static bool initialize();
 
-PHLEX_REGISTER_ALGORITHMS(m, config)
-{
-  initialize();
+// the expansion of registration macros within the same file would lead to
+// symbol duplication, hence the use of separate namespaces here
+namespace pymodule_register_providers {
+  PHLEX_REGISTER_PROVIDERS(m, config)
+  {
+    initialize();
 
-  PyGILRAII g;
+    PyGILRAII g;
 
-  std::string modname = config.get<std::string>("py");
-  PyObject* mod = PyImport_ImportModule(modname.c_str());
-  if (mod) {
-    PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_REGISTER_ALGORITHMS");
-    if (reg) {
-      PyObject* pym = wrap_module(m);
-      PyObject* pyconfig = wrap_configuration(config);
-      if (pym && pyconfig) {
-        PyObject* res = PyObject_CallFunctionObjArgs(reg, pym, pyconfig, nullptr);
-        Py_XDECREF(res);
+    std::string modname = config.get<std::string>("py");
+    PyObject* mod = PyImport_ImportModule(modname.c_str());
+    if (mod) {
+      // register providers using conventional callback
+      PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_REGISTER_PROVIDERS");
+      if (reg) {
+        PyObject* pys = wrap_source(m);
+        PyObject* pyconfig = wrap_configuration(config);
+        if (pys && pyconfig) {
+          PyObject* res = PyObject_CallFunctionObjArgs(reg, pys, pyconfig, nullptr);
+          Py_XDECREF(res);
+        }
+        Py_XDECREF(pyconfig);
+        Py_XDECREF(pys);
+        Py_DECREF(reg);
       }
-      Py_XDECREF(pyconfig);
-      Py_XDECREF(pym);
-      Py_DECREF(reg);
-    }
-    Py_DECREF(mod);
-  }
 
-  if (PyErr_Occurred()) {
-    std::string error_msg;
-    if (!msg_from_py_error(error_msg))
-      error_msg = "Unknown python error";
-    throw std::runtime_error(error_msg.c_str());
+      Py_DECREF(mod);
+    }
+
+    if (PyErr_Occurred()) {
+      std::string error_msg;
+      if (!msg_from_py_error(error_msg))
+        error_msg = "Unknown python error";
+      throw std::runtime_error(error_msg.c_str());
+    }
+
+    //m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number() % 2; })
+    //.output_product(product_query{.creator = "input", .layer = "event", .suffix = "i"});
   }
-}
+} // namespace pymodule_register_providers
+
+namespace pymodule_register_algorithms {
+  PHLEX_REGISTER_ALGORITHMS(m, config)
+  {
+    initialize();
+
+    PyGILRAII g;
+
+    std::string modname = config.get<std::string>("py");
+    PyObject* mod = PyImport_ImportModule(modname.c_str());
+    if (mod) {
+      // register algorithms using conventional callback
+      PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_REGISTER_ALGORITHMS");
+      if (reg) {
+        PyObject* pym = wrap_module(m);
+        PyObject* pyconfig = wrap_configuration(config);
+        if (pym && pyconfig) {
+          PyObject* res = PyObject_CallFunctionObjArgs(reg, pym, pyconfig, nullptr);
+          Py_XDECREF(res);
+        }
+        Py_XDECREF(pyconfig);
+        Py_XDECREF(pym);
+        Py_DECREF(reg);
+      }
+      Py_DECREF(mod);
+    }
+
+    if (PyErr_Occurred()) {
+      std::string error_msg;
+      if (!msg_from_py_error(error_msg))
+        error_msg = "Unknown python error";
+      throw std::runtime_error(error_msg.c_str());
+    }
+  }
+} // namespace pymodule_register_algorithms
 
 static void import_numpy(bool control_interpreter)
 {
@@ -119,13 +169,19 @@ static bool initialize()
   if (!Py_IsInitialized())
     throw std::runtime_error("Python can not be initialized");
 
+  // LCOV_EXCL_START
   // add custom types
   if (PyType_Ready(&PhlexConfig_Type) < 0)
     return false;
   if (PyType_Ready(&PhlexModule_Type) < 0)
     return false;
+  if (PyType_Ready(&PhlexSource_Type) < 0)
+    return false;
+  if (PyType_Ready(&PhlexDataCellIndex_Type) < 0)
+    return false;
   if (PyType_Ready(&PhlexLifeline_Type) < 0)
     return false;
+  // LCOV_EXCL_STOP
 
   // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
   //        CMAKE_PREFIX_PATH. Add site-packages directories from CMAKE_PREFIX_PATH

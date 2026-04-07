@@ -53,7 +53,7 @@ TEST_CASE("Handle copies and moves", "[data model]")
   spec_t two_spec{"two"};
   spec_t four_spec{"four"};
 
-  auto job_data_cell = data_cell_index::base_ptr();
+  auto job_data_cell = data_cell_index::job();
   auto subrun_6_data_cell = job_data_cell->make_child("subrun", 6);
 
   handle h2{two, *job_data_cell, two_spec};
@@ -82,12 +82,12 @@ TEST_CASE("Handle comparisons", "[data model]")
   int const eighteen{18};
   spec_t seventeen_spec{"seventeen"};
   spec_t eighteen_spec{"eighteen"};
-  handle const h17{seventeen, data_cell_index::base(), seventeen_spec};
-  handle const h18{eighteen, data_cell_index::base(), eighteen_spec};
+  handle const h17{seventeen, *data_cell_index::job(), seventeen_spec};
+  handle const h18{eighteen, *data_cell_index::job(), eighteen_spec};
   CHECK(h17 == h17);
   CHECK(h17 != h18);
 
-  auto subrun_6_data_cell = data_cell_index::base_ptr()->make_child("subrun", 6);
+  auto subrun_6_data_cell = data_cell_index::job()->make_child("subrun", 6);
   handle const h17sr{seventeen, *subrun_6_data_cell, seventeen_spec};
   CHECK(*h17 == *h17sr);                                   // Products are the same
   CHECK(h17.data_cell_index() != h17sr.data_cell_index()); // Data cells are not the same
@@ -98,8 +98,8 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
 {
   int const number{3};
   spec_t spec{"number"};
-  handle const h{number, data_cell_index::base(), spec};
-  CHECK(h.data_cell_index() == data_cell_index::base());
+  handle const h{number, *data_cell_index::job(), spec};
+  CHECK(h.data_cell_index() == *data_cell_index::job());
 
   int const& num_ref = h;
   int const* num_ptr = h;
@@ -109,7 +109,7 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
 
   Composer const composer{"Elgar"};
   spec_t composer_spec{"composer"};
-  CHECK(handle{composer, data_cell_index::base(), composer_spec}->name == "Elgar");
+  CHECK(handle{composer, *data_cell_index::job(), composer_spec}->name == "Elgar");
 }
 
 TEST_CASE("Retrieve product specification from handle", "[data model]")
@@ -117,7 +117,7 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
   int const number{3};
   spec_t spec{"creator/three"};
 
-  handle const h{number, data_cell_index::base(), spec};
+  handle const h{number, *data_cell_index::job(), spec};
   CHECK(h.creator().algorithm == "creator");
   CHECK(h.suffix() == "three");
   CHECK(h.layer() == "job");

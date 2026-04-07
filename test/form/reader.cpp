@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ...
 
 #include "data_products/track_start.hpp"
-#include "form/form.hpp"
+#include "form/form_reader.hpp"
 #include "form/technology.hpp"
 #include "test_helpers.hpp"
 
@@ -65,15 +65,15 @@ int main(int argc, char** argv)
   checksum_file.close();
 
   // TODO: Read configuration from config file instead of hardcoding
-  form::experimental::config::output_item_config output_config;
-  output_config.addItem("trackStart", filename, form::technology::ROOT_TTREE);
-  output_config.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
-  output_config.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
+  form::experimental::config::ItemConfig config_items;
+  config_items.addItem("trackStart", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
 
   form::experimental::config::tech_setting_config tech_config;
 
-  form::experimental::form_interface form(output_config, tech_config);
+  form::experimental::form_reader_interface form(config_items, tech_config);
 
   bool all_passed = true;
 

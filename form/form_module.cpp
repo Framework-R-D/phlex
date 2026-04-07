@@ -5,7 +5,7 @@
 // FORM headers - these need to be available via CMake configuration
 // need to set up the build system to find these headers
 #include "form/config.hpp"
-#include "form/form.hpp"
+#include "form/form_writer.hpp"
 #include "form/technology.hpp"
 
 #include <cassert>
@@ -29,7 +29,7 @@ namespace {
       std::cout << "  Technology: " << m_technology << "\n";
 
       // Build FORM configuration
-      form::experimental::config::output_item_config output_cfg;
+      form::experimental::config::ItemConfig output_cfg;
       form::experimental::config::tech_setting_config tech_cfg;
 
       // FIXME: Temporary solution to accommodate Phlex limitation.
@@ -43,7 +43,8 @@ namespace {
       }
 
       // Initialize FORM interface
-      m_form_interface = std::make_unique<form::experimental::form_interface>(output_cfg, tech_cfg);
+      m_form_interface =
+        std::make_unique<form::experimental::form_writer_interface>(output_cfg, tech_cfg);
     }
 
     // This method is called by Phlex - signature must be: void(product_store const&)
@@ -102,7 +103,7 @@ namespace {
   private:
     std::string const m_output_file;
     int const m_technology;
-    std::unique_ptr<form::experimental::form_interface> m_form_interface;
+    std::unique_ptr<form::experimental::form_writer_interface> m_form_interface;
   };
 
 }

@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_REGISTRATION_API_HPP
 #define PHLEX_CORE_REGISTRATION_API_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/declared_fold.hpp"
@@ -319,7 +321,7 @@ namespace phlex::experimental {
   // ====================================================================================
   // Output API
 
-  class output_api {
+  class PHLEX_CORE_EXPORT output_api {
   public:
     output_api(registrar<declared_output_ptr> reg,
                configuration const* config,

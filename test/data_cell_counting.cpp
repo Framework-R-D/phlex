@@ -35,7 +35,7 @@ TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
   CHECK_THROWS(h.count_for("/job"));
   CHECK(h.count_for("/job", true) == 0);
 
-  auto job_index = data_cell_index::base_ptr();
+  auto job_index = data_cell_index::job();
   h.increment_count(job_index);
   CHECK(h.count_for("/job") == 1);
 
@@ -82,7 +82,7 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
   auto const subrun_hash_value = hash(run_hash_value, "subrun"_idq.hash);
   auto const event_hash_value = hash(subrun_hash_value, "event"_idq.hash);
 
-  auto job_index = data_cell_index::base_ptr();
+  auto job_index = data_cell_index::job();
   counters.update(job_index);
   for (std::size_t i = 0; i != nruns; ++i) {
     auto run_index = job_index->make_child("run", i);

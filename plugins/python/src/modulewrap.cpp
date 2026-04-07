@@ -1,5 +1,6 @@
-#include "phlex/module.hpp"
 #include "wrap.hpp"
+
+#include "phlex/model/data_cell_index.hpp"
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -7,6 +8,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <vector>
@@ -38,6 +40,7 @@
 // can cause a performance bottleneck (since all require the GIL).
 
 using namespace phlex::experimental;
+using namespace phlex;
 using phlex::concurrency;
 using phlex::product_query;
 
@@ -55,6 +58,22 @@ PyObject* phlex::experimental::wrap_module(phlex_module_t& module_)
   pymod->ph_module = &module_;
 
   return (PyObject*)pymod;
+}
+
+// Simple phlex source wrapper
+// clang-format off
+struct phlex::experimental::py_phlex_source {
+  PyObject_HEAD
+  phlex_source_t* ph_source;
+};
+// clang-format on
+
+PyObject* phlex::experimental::wrap_source(phlex_source_t& source_)
+{
+  py_phlex_source* pysrc = PyObject_New(py_phlex_source, &PhlexSource_Type);
+  pysrc->ph_source = &source_;
+
+  return (PyObject*)pysrc;
 }
 
 namespace {
@@ -151,7 +170,8 @@ namespace {
 
       PyGILRAII gil;
 
-      PyObject* result = PyObject_CallFunctionObjArgs(m_callable, (PyObject*)args..., nullptr);
+      PyObject* result =
+        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
 
       std::string error_msg;
       if (!result) {
@@ -205,6 +225,42 @@ namespace {
     void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
   };
 
+  static inline std::optional<product_query> validate_query(PyObject* pyquery)
+  {
+    if (!PyDict_Check(pyquery)) {
+      PyErr_Format(PyExc_TypeError, "query should be a product specification");
+      return std::nullopt;
+    }
+
+    PyObject* pyc = PyDict_GetItemString(pyquery, "creator");
+    if (!pyc || !PyUnicode_Check(pyc)) {
+      PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
+      return std::nullopt;
+    }
+    char const* c = PyUnicode_AsUTF8(pyc);
+
+    PyObject* pyl = PyDict_GetItemString(pyquery, "layer");
+    if (!pyl || !PyUnicode_Check(pyl)) {
+      PyErr_Format(PyExc_TypeError, "missing \"layer\" or not a string");
+      return std::nullopt;
+    }
+    char const* l = PyUnicode_AsUTF8(pyl);
+
+    std::optional<identifier> s;
+    PyObject* pys = PyDict_GetItemString(pyquery, "suffix");
+    if (pys) {
+      if (!PyUnicode_Check(pys)) {
+        PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
+        return std::nullopt;
+      }
+      s = identifier(PyUnicode_AsUTF8(pys));
+    } else
+      PyErr_Clear();
+
+    return std::optional<product_query>{
+      product_query{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
+  }
+
   static std::vector<product_query> validate_input(PyObject* input)
   {
     std::vector<product_query> cargs;
@@ -222,37 +278,13 @@ namespace {
     for (Py_ssize_t i = 0; i < len; ++i) {
       PyObject* item = items[i]; // borrowed reference
 
-      if (!PyDict_Check(item)) {
-        PyErr_Format(PyExc_TypeError, "input item %d should be a product specifications", (int)i);
+      auto pq = validate_query(item);
+      if (pq.has_value()) {
+        cargs.push_back(pq.value());
+      } else {
+        // validate_query will have set a python exception
         break;
       }
-
-      PyObject* pyc = PyDict_GetItemString(item, "creator");
-      if (!pyc || !PyUnicode_Check(pyc)) {
-        PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
-        break;
-      }
-      char const* c = PyUnicode_AsUTF8(pyc);
-
-      PyObject* pyl = PyDict_GetItemString(item, "layer");
-      if (!pyl || !PyUnicode_Check(pyl)) {
-        PyErr_Format(PyExc_TypeError, "missing \"layer\" or not a string");
-        break;
-      }
-      char const* l = PyUnicode_AsUTF8(pyl);
-
-      std::optional<identifier> s;
-      PyObject* pys = PyDict_GetItemString(item, "suffix");
-      if (pys) {
-        if (!PyUnicode_Check(pys)) {
-          PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
-          break;
-        }
-        s = identifier(PyUnicode_AsUTF8(pys));
-      } else
-        PyErr_Clear();
-
-      cargs.push_back(product_query{.creator = identifier(c), .layer = identifier(l), .suffix = s});
     }
 
     if (PyErr_Occurred())
@@ -331,6 +363,41 @@ namespace {
     Py_DECREF(norm);
 
     return ann;
+  }
+
+  // retrieve C++ (matching) types from annotations
+  static void annotations_to_strings(PyObject* callable,
+                                     std::vector<std::string>& input_types,
+                                     std::vector<std::string>& output_types)
+  {
+    PyObject* sann = PyUnicode_FromString("__annotations__");
+    PyObject* annot = PyObject_GetAttr(callable, sann);
+    if (!annot) {
+      // the callable may be an instance with a __call__ method
+      PyErr_Clear();
+      PyObject* callm = PyObject_GetAttrString(callable, "__call__");
+      if (callm) {
+        annot = PyObject_GetAttr(callm, sann);
+        Py_DECREF(callm);
+      }
+    }
+    Py_DECREF(sann);
+
+    if (annot && PyDict_Check(annot)) {
+      // Variant guarantees OrderedDict with "return" last
+      PyObject *key, *value;
+      Py_ssize_t pos = 0;
+
+      while (PyDict_Next(annot, &pos, &key, &value)) {
+        char const* key_str = PyUnicode_AsUTF8(key);
+        if (strcmp(key_str, "return") == 0) {
+          output_types.push_back(annotation_as_text(value));
+        } else {
+          input_types.push_back(annotation_as_text(value));
+        }
+      }
+    }
+    Py_XDECREF(annot);
   }
 
   // converters of builtin types; TODO: this is a basic subset only, b/c either
@@ -421,7 +488,19 @@ namespace {
     }                                                                                              \
     Py_DECREF((PyObject*)pyobj);                                                                   \
     return i;                                                                                      \
-  }
+  }                                                                                                \
+                                                                                                   \
+  struct provider_cb_##name : public py_callback<1> {                                              \
+    cpptype operator()(data_cell_index const& id)                                                  \
+    {                                                                                              \
+      PyGILRAII gil;                                                                               \
+      PyObject* arg0 = wrap_dci(id);                                                               \
+      PyObject* pyres = (PyObject*)call((intptr_t)arg0); /* decrefs arg0 */                        \
+      cpptype cres = frompy(pyres);                                                                \
+      Py_DECREF(pyres);                                                                            \
+      return cres;                                                                                 \
+    }                                                                                              \
+  };
 
   BASIC_CONVERTER(bool, bool, PyBool_FromLong, pylong_as_bool)
   BASIC_CONVERTER(int, std::int32_t, PyLong_FromLong, PyLong_AsLong)
@@ -526,7 +605,18 @@ namespace {
                                                                                                    \
     Py_DECREF((PyObject*)pyobj);                                                                   \
     return vec;                                                                                    \
-  }
+  }                                                                                                \
+                                                                                                   \
+  struct provider_cb_##name : public py_callback<1> {                                              \
+    std::shared_ptr<std::vector<cpptype>> operator()(data_cell_index const& id)                    \
+    {                                                                                              \
+      PyGILRAII gil;                                                                               \
+      PyObject* arg0 = wrap_dci(id);                                                               \
+      intptr_t pyres = call((intptr_t)arg0); /* decrefs arg0 */                                    \
+      auto cres = py_to_##name(pyres);       /* decrefs pyres */                                   \
+      return cres;                                                                                 \
+    }                                                                                              \
+  };
 
   NUMPY_ARRAY_CONVERTER(vint, std::int32_t, NPY_INT32, PyLong_AsLong)
   NUMPY_ARRAY_CONVERTER(vuint, std::uint32_t, NPY_UINT32, pylong_or_int_as_ulong)
@@ -535,7 +625,7 @@ namespace {
   NUMPY_ARRAY_CONVERTER(vfloat, float, NPY_FLOAT, PyFloat_AsDouble)
   NUMPY_ARRAY_CONVERTER(vdouble, double, NPY_DOUBLE, PyFloat_AsDouble)
 
-  // helpers for inserting converter nodes
+  // helper for inserting converter nodes
   template <typename R, typename... Args>
   void insert_converter(py_phlex_module* mod,
                         std::string const& name,
@@ -581,7 +671,7 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
-  // retrieve function name and argument types
+  // retrieve function name
   if (!pyname) {
     pyname = PyObject_GetAttrString(callable, "__name__");
     if (!pyname) {
@@ -620,35 +710,7 @@ static PyObject* parse_args(PyObject* args,
 
   // retrieve C++ (matching) types from annotations
   input_types.reserve(input_queries.size());
-
-  PyObject* sann = PyUnicode_FromString("__annotations__");
-  PyObject* annot = PyObject_GetAttr(callable, sann);
-  if (!annot) {
-    // the callable may be an instance with a __call__ method
-    PyErr_Clear();
-    PyObject* callm = PyObject_GetAttrString(callable, "__call__");
-    if (callm) {
-      annot = PyObject_GetAttr(callm, sann);
-      Py_DECREF(callm);
-    }
-  }
-  Py_DECREF(sann);
-
-  if (annot && PyDict_Check(annot)) {
-    // Variant guarantees OrderedDict with "return" last
-    PyObject *key, *value;
-    Py_ssize_t pos = 0;
-
-    while (PyDict_Next(annot, &pos, &key, &value)) {
-      char const* key_str = PyUnicode_AsUTF8(key);
-      if (strcmp(key_str, "return") == 0) {
-        output_types.push_back(annotation_as_text(value));
-      } else {
-        input_types.push_back(annotation_as_text(value));
-      }
-    }
-  }
-  Py_XDECREF(annot);
+  annotations_to_strings(callable, input_types, output_types);
 
   // ignore None as Python's conventional "void" return, which is meaningless in C++
   if (output_types.size() == 1 && output_types[0] == "None")
@@ -736,6 +798,55 @@ static bool insert_input_converters(py_phlex_module* mod,
       PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
       return false;
     }
+  }
+
+  return true;
+}
+
+static bool insert_output_converter(py_phlex_module* mod,
+                                    std::string const& cname,
+                                    product_query const& out_pq,
+                                    std::string const& out_type,
+                                    std::string const& output)
+{
+  // insert output converter node into the graph
+  if (out_type == "bool")
+    insert_converter(mod, cname, py_to_bool, out_pq, output);
+  else if (out_type == "int32_t")
+    insert_converter(mod, cname, py_to_int, out_pq, output);
+  else if (out_type == "uint32_t")
+    insert_converter(mod, cname, py_to_uint, out_pq, output);
+  else if (out_type == "int64_t")
+    insert_converter(mod, cname, py_to_long, out_pq, output);
+  else if (out_type == "uint64_t")
+    insert_converter(mod, cname, py_to_ulong, out_pq, output);
+  else if (out_type == "float")
+    insert_converter(mod, cname, py_to_float, out_pq, output);
+  else if (out_type == "double")
+    insert_converter(mod, cname, py_to_double, out_pq, output);
+  else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
+    // TODO: just like for input types, these are hard-coded, but should be handled by
+    // an IDL instead.
+    std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
+    if (dtype == "[int32_t]") {
+      insert_converter(mod, cname, py_to_vint, out_pq, output);
+    } else if (dtype == "[uint32_t]") {
+      insert_converter(mod, cname, py_to_vuint, out_pq, output);
+    } else if (dtype == "[int64_t]") {
+      insert_converter(mod, cname, py_to_vlong, out_pq, output);
+    } else if (dtype == "[uint64_t]") {
+      insert_converter(mod, cname, py_to_vulong, out_pq, output);
+    } else if (dtype == "[float]") {
+      insert_converter(mod, cname, py_to_vfloat, out_pq, output);
+    } else if (dtype == "[double]") {
+      insert_converter(mod, cname, py_to_vdouble, out_pq, output);
+    } else {
+      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
+      return false;
+    }
+  } else {
+    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
+    return false;
   }
 
   return true;
@@ -843,45 +954,10 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   auto out_pq = product_query{.creator = identifier(pyname),
                               .layer = identifier(output_layer),
                               .suffix = identifier(pyoutput)};
-  std::string out_type = output_types[0];
-  std::string output = output_suffixes[0];
-  if (out_type == "bool")
-    insert_converter(mod, cname, py_to_bool, out_pq, output);
-  else if (out_type == "int32_t")
-    insert_converter(mod, cname, py_to_int, out_pq, output);
-  else if (out_type == "uint32_t")
-    insert_converter(mod, cname, py_to_uint, out_pq, output);
-  else if (out_type == "int64_t")
-    insert_converter(mod, cname, py_to_long, out_pq, output);
-  else if (out_type == "uint64_t")
-    insert_converter(mod, cname, py_to_ulong, out_pq, output);
-  else if (out_type == "float")
-    insert_converter(mod, cname, py_to_float, out_pq, output);
-  else if (out_type == "double")
-    insert_converter(mod, cname, py_to_double, out_pq, output);
-  else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
-    // TODO: just like for input types, these are hard-coded, but should be handled by
-    // an IDL instead.
-    std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
-    if (dtype == "[int32_t]") {
-      insert_converter(mod, cname, py_to_vint, out_pq, output);
-    } else if (dtype == "[uint32_t]") {
-      insert_converter(mod, cname, py_to_vuint, out_pq, output);
-    } else if (dtype == "[int64_t]") {
-      insert_converter(mod, cname, py_to_vlong, out_pq, output);
-    } else if (dtype == "[uint64_t]") {
-      insert_converter(mod, cname, py_to_vulong, out_pq, output);
-    } else if (dtype == "[float]") {
-      insert_converter(mod, cname, py_to_vfloat, out_pq, output);
-    } else if (dtype == "[double]") {
-      insert_converter(mod, cname, py_to_vdouble, out_pq, output);
-    } else {
-      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
-      return nullptr;
-    }
-  } else {
-    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
-    return nullptr;
+  std::string const& out_type = output_types[0];
+  std::string const& output = output_suffixes[0];
+  if (!insert_output_converter(mod, cname, out_pq, out_type, output)) {
+    return nullptr; // error already set
   }
 
   Py_RETURN_NONE;
@@ -1003,6 +1079,214 @@ PyTypeObject phlex::experimental::PhlexModule_Type = {
   0,                             // tp_iter
   0,                             // tp_iternext
   md_methods,                    // tp_methods
+  0,                             // tp_members
+  0,                             // tp_getset
+  0,                             // tp_base
+  0,                             // tp_dict
+  0,                             // tp_descr_get
+  0,                             // tp_descr_set
+  0,                             // tp_dictoffset
+  0,                             // tp_init
+  0,                             // tp_alloc
+  0,                             // tp_new
+  0,                             // tp_free
+  0,                             // tp_is_gc
+  0,                             // tp_bases
+  0,                             // tp_mro
+  0,                             // tp_cache
+  0,                             // tp_subclasses
+  0                              // tp_weaklist
+#if PY_VERSION_HEX >= 0x02030000
+  , 0                            // tp_del
+#endif
+#if PY_VERSION_HEX >= 0x02060000
+  , 0                            // tp_version_tag
+#endif
+#if PY_VERSION_HEX >= 0x03040000
+  , 0                            // tp_finalize
+#endif
+#if PY_VERSION_HEX >= 0x03080000
+  , 0                            // tp_vectorcall
+#endif
+#if PY_VERSION_HEX >= 0x030c0000
+  , 0                            // tp_watched
+#endif
+#if PY_VERSION_HEX >= 0x030d0000
+  , 0                            // tp_versions_used
+#endif
+};
+// clang-format on
+
+//
+// TODO: source wrapper lives here for now to re-use the converter functions;
+// this should all be refactored out into their own files
+//
+static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds)
+{
+  // Register a python algorithm by adding the necessary intermediate converter
+  // nodes going from C++ to PyObject* and back.
+
+  static char const* kwnames[] = {"callable", "output_product", "name", nullptr};
+  PyObject *callable = 0, *output = 0, *pyname = 0;
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwds, "OO|O", (char**)kwnames, &callable, &output, &pyname)) {
+    // error already set by argument parser
+    return nullptr;
+  }
+
+  if (!callable || !PyCallable_Check(callable)) {
+    PyErr_SetString(PyExc_TypeError, "given provider is not callable");
+    return nullptr;
+  }
+
+  // retrieve function name
+  if (!pyname) {
+    pyname = PyObject_GetAttrString(callable, "__name__");
+    if (!pyname) {
+      // AttributeError already set
+      return nullptr;
+    }
+  } else {
+    Py_INCREF(pyname);
+  }
+
+  std::string functor_name = PyUnicode_AsUTF8(pyname);
+  Py_DECREF(pyname);
+
+  // retrieve C++ (matching) types from annotations
+  std::vector<std::string> input_types;
+  std::vector<std::string> output_types;
+  annotations_to_strings(callable, input_types, output_types);
+
+  // provider needs to take a single "data_cell_input"
+  if (input_types.size() != 1 || input_types[0] != "data_cell_index") {
+    PyErr_SetString(PyExc_TypeError, "a provider takes a single \"data_cell_index\" as input");
+    return nullptr;
+  }
+
+  // provider needs to have an output
+  if (output_types.size() != 1 || output_types[0] == "None") {
+    PyErr_SetString(PyExc_TypeError, "a provider must have an output");
+    return nullptr;
+  }
+
+  // special case of Phlex Variant wrapper
+  PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
+  if (wrapped_callable) {
+    callable = wrapped_callable;
+    Py_DECREF(wrapped_callable); // safe, b/c callable holds a reference
+  } else {
+    // no wrapper, use the original callable
+    PyErr_Clear();
+  }
+
+  // translate and validate the output query
+  auto opq = validate_query(output);
+  if (!opq.has_value()) {
+    // validate_query will have set a python exception
+    std::string msg;
+    if (msg_from_py_error(msg, false)) {
+      throw std::runtime_error("output specification error: " + msg);
+    }
+  }
+
+  // insert provider node (TODO: as in transform and observe, we'll leak the
+  // callable for now, until there's a proper shutdown procedure)
+  // Note: can't use a translator node here, b/c we need a module to add a
+  // transform, but we only have a source. However, the interface of a provider
+  // is fixed, so there is no combinatorics problem.
+  std::string const& out_type = output_types[0];
+  if (out_type == "bool") {
+    auto* pyc = new provider_cb_bool{callable};
+    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+  } else if (out_type == "int32_t") {
+    auto* pyc = new provider_cb_int{callable};
+    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+  } else if (out_type == "uint32_t") {
+    auto* pyc = new provider_cb_uint{callable};
+    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+  } else if (out_type == "int64_t") {
+    auto* pyc = new provider_cb_long{callable};
+    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+  } else if (out_type == "uint64_t") {
+    auto* pyc = new provider_cb_ulong{callable};
+    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+  } else if (out_type == "float") {
+    auto* pyc = new provider_cb_float{callable};
+    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+  } else if (out_type == "double") {
+    auto* pyc = new provider_cb_double{callable};
+    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+  } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
+    // TODO: just like for input types, these are hard-coded, but should be handled by
+    // an IDL instead.
+    std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
+    if (dtype == "[int32_t]") {
+      auto* pyc = new provider_cb_vint{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    } else if (dtype == "[uint32_t]") {
+      auto* pyc = new provider_cb_vuint{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    } else if (dtype == "[int64_t]") {
+      auto* pyc = new provider_cb_vlong{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    } else if (dtype == "[uint64_t]") {
+      auto* pyc = new provider_cb_vulong{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    } else if (dtype == "[float]") {
+      auto* pyc = new provider_cb_vfloat{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    } else if (dtype == "[double]") {
+      auto* pyc = new provider_cb_vdouble{callable};
+      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    } else {
+      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
+      return nullptr;
+    }
+  } else {
+    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
+    return nullptr;
+  }
+
+  Py_RETURN_NONE;
+}
+
+static PyMethodDef sc_methods[] = {{(char*)"provide",
+                                    (PyCFunction)sc_provide,
+                                    METH_VARARGS | METH_KEYWORDS,
+                                    (char*)"register a Python provider"},
+                                   {(char*)nullptr, nullptr, 0, nullptr}};
+
+// clang-format off
+PyTypeObject phlex::experimental::PhlexSource_Type = {
+  PyVarObject_HEAD_INIT(&PyType_Type, 0)
+  (char*)"pyphlex.source",       // tp_name
+  sizeof(py_phlex_source),       // tp_basicsize
+  0,                             // tp_itemsize
+  0,                             // tp_dealloc
+  0,                             // tp_vectorcall_offset / tp_print
+  0,                             // tp_getattr
+  0,                             // tp_setattr
+  0,                             // tp_as_async / tp_compare
+  0,                             // tp_repr
+  0,                             // tp_as_number
+  0,                             // tp_as_sequence
+  0,                             // tp_as_mapping
+  0,                             // tp_hash
+  0,                             // tp_call
+  0,                             // tp_str
+  0,                             // tp_getattro
+  0,                             // tp_setattro
+  0,                             // tp_as_buffer
+  Py_TPFLAGS_DEFAULT,            // tp_flags
+  (char*)"phlex source wrapper", // tp_doc
+  0,                             // tp_traverse
+  0,                             // tp_clear
+  0,                             // tp_richcompare
+  0,                             // tp_weaklistoffset
+  0,                             // tp_iter
+  0,                             // tp_iternext
+  sc_methods,                    // tp_methods
   0,                             // tp_members
   0,                             // tp_getset
   0,                             // tp_base

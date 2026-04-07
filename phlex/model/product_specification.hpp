@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
 #define PHLEX_MODEL_PRODUCT_SPECIFICATION_HPP
 
+#include "phlex/phlex_model_export.hpp"
+
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/type_id.hpp"
@@ -12,7 +14,7 @@
 #include <vector>
 
 namespace phlex::experimental {
-  class product_specification {
+  class PHLEX_MODEL_EXPORT product_specification {
   public:
     product_specification();
     product_specification(char const* name);
@@ -38,15 +40,16 @@ namespace phlex::experimental {
 
   private:
     algorithm_name qualifier_;
-    identifier suffix_;
+    identifier suffix_; // Default suffix is empty string
     type_id type_id_{};
   };
 
   using product_specifications = std::vector<product_specification>;
 
-  product_specifications to_product_specifications(std::string_view name,
-                                                   std::vector<std::string> output_suffixes,
-                                                   std::vector<type_id> output_types);
+  PHLEX_MODEL_EXPORT product_specifications
+  to_product_specifications(std::string_view name,
+                            std::vector<std::string> output_suffixes,
+                            std::vector<type_id> output_types);
 }
 
 template <>

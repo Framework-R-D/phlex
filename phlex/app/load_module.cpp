@@ -95,24 +95,27 @@ namespace phlex::experimental {
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const& spec = value_to<std::string>(raw_config.at("cpp"));
+    auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
+
+    auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto& creator =
       create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
     //        (e.g. make_algorithm_name).
-    raw_config["module_label"] = label;
+    // adjusted_config["module_label"] = label;       // already set by adjust_config
 
-    configuration const config{raw_config};
+    configuration const config{adjusted_config};
     creator(g.source_proxy(config), config);
   }
 
-  detail::next_index_t load_driver(boost::json::object const& raw_config)
+  driver_bundle load_driver(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
     create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
-    return create_driver(config);
+    driver_proxy const proxy{};
+    return create_driver(proxy, config);
   }
 }

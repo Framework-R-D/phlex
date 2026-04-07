@@ -58,6 +58,7 @@
             "**/build/CMakeFiles/**": true
         },
         "python.languageServer": "Pylance",
+        "python.terminal.activateEnvironment": false,
         "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
         "python.analysis.typeCheckingMode": "basic",
         "python.analysis.diagnosticMode": "workspace",
@@ -97,10 +98,11 @@
             "ms-vscode.cpptools-extension-pack",
             "ms-vscode.hexeditor",
             "ms-vscode.vscode-json",
-            "redhat.vscode-yaml",
-            "twxs.cmake"
+            "redhat.vscode-yaml"
         ],
         "unwantedRecommendations": [
+            "amazonwebservices.amazon-q-vscode",
+            "amazonwebservices.aws-toolkit-vscode",
             "github.copilot",
             "ikuyadeu.r",
             "ms-python.flake8",
@@ -110,6 +112,7 @@
             "ms-vscode.r-debugger",
             "redhat.java",
             "reditorsupport.r",
+            "twxs.cmake",
             "vscjava.vscode-gradle",
             "vscjava.vscode-java-debug",
             "vscjava.vscode-java-pack",

@@ -51,11 +51,10 @@ namespace phlex {
     // FIXME: Should it be an error to create an ID with an empty name?
   }
 
-  data_cell_index const& data_cell_index::base() { return *base_ptr(); }
-  data_cell_index_ptr data_cell_index::base_ptr()
+  data_cell_index_ptr data_cell_index::job()
   {
-    static data_cell_index_ptr base_id{new data_cell_index};
-    return base_id;
+    static data_cell_index_ptr job_index{new data_cell_index};
+    return job_index;
   }
 
   experimental::identifier const& data_cell_index::layer_name() const noexcept
