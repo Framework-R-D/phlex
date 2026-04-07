@@ -106,18 +106,18 @@ The configuration enforces consistent naming:
 **Features:**
 
 - Runs on PR to main branch and manual trigger
-- Uses clang-tidy via `CMAKE_CXX_CLANG_TIDY` during build
-- Configures project with compile commands export
+- Configures project with compile commands export and disables C++ module scanning (`-DCMAKE_CXX_SCAN_FOR_MODULES=OFF`)
+- Runs `run-clang-tidy` over selected source trees (`phlex`, `form`, `plugins`, `test`)
 - Reports warnings and errors with detailed output
 - Uploads clang-tidy fixes YAML and log as artifacts
 - Posts inline PR comments for detected issues
 
 **How it works:**
 
-1. Configure the project with `CMAKE_EXPORT_COMPILE_COMMANDS=ON` and `CMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml'`
-2. Build the project - clang-tidy runs automatically on each source file during compilation
-3. Parse output and upload artifacts
-4. Post inline comments on PR with issue details
+1. Configure the project with `CMAKE_EXPORT_COMPILE_COMMANDS=ON` and `CMAKE_CXX_SCAN_FOR_MODULES=OFF`
+2. Run `run-clang-tidy -p <build-dir> -export-fixes <build-dir>/clang-tidy-fixes.yaml -j <N>` from the source root
+3. Restrict path arguments to source directories so generated build files are excluded
+4. Parse output, upload artifacts, and post inline PR comments
 
 **How to use:**
 
@@ -134,17 +134,17 @@ The configuration enforces consistent naming:
 - Triggered by `@phlexbot tidy-fix [<check>...]` comment on PRs
 - Optionally specify specific checks to fix
 - Attempts to reuse existing fixes from check workflow artifacts
-- Falls back to running clang-tidy with `CMAKE_CXX_CLANG_TIDY` if needed
+- Falls back to running `run-clang-tidy` if no prior fixes artifact is available
 - Applies fixes using `clang-apply-replacements`
 - Commits and pushes changes automatically
 - Posts inline PR comments with remaining issues
 
 **How it works:**
 
-1. Try to download existing `clang-tidy-fixes.yaml` from check workflow
-2. If not available, configure and build with clang-tidy to generate fixes
-3. Apply fixes using `clang-apply-replacements`
-4. Commit and push any changes
+1. Try to download existing `clang-tidy-fixes.yaml` from prior check/fix workflow runs
+2. If not available, configure with `CMAKE_EXPORT_COMPILE_COMMANDS=ON` and `CMAKE_CXX_SCAN_FOR_MODULES=OFF`
+3. Run `run-clang-tidy` (optionally with `-checks=-*,<requested-checks>`) to generate fixes
+4. Apply fixes using `clang-apply-replacements`, then commit and push any changes
 
 **Important notes:**
 
@@ -173,7 +173,10 @@ cmake --build build
 
 When enabled, clang-tidy runs automatically on every C++ file during compilation, providing immediate feedback.
 
-To export fixes for later application:
+For broad, parallel project scans that export fixes, prefer `run-clang-tidy` over `CMAKE_CXX_CLANG_TIDY='...;--export-fixes=...'`.
+When `--export-fixes` is attached to `CMAKE_CXX_CLANG_TIDY` in parallel builds, multiple compiler invocations can race to overwrite the same fixes file.
+
+To export fixes for later application via build-time clang-tidy (suitable for small or serial builds):
 
 ```bash
 cmake -DCMAKE_CXX_CLANG_TIDY='clang-tidy;--export-fixes=clang-tidy-fixes.yaml' -B build -S .
@@ -194,7 +197,7 @@ Both can be run independently or together as needed.
 
 ## Local Usage
 
-### Build-Time Checks (Recommended)
+### Build-Time Checks
 
 Enable clang-tidy to run on every file during compilation:
 
@@ -204,6 +207,27 @@ cmake --build build -j $(nproc)
 ```
 
 This provides immediate feedback as you build, catching issues early.
+
+### Targeted Checks with `run-clang-tidy` (Recommended for branch workflows)
+
+Use this path for a specific check across all project source files while matching CI/workflow behavior:
+
+```bash
+cmake --preset default -B build -GNinja -S . \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+
+run-clang-tidy -p build -j "$(nproc)" \
+  -checks='-*,bugprone-throwing-static-initialization' \
+  -fix -format \
+  -export-fixes build/bugprone-throwing-static-initialization.yaml
+```
+
+Notes:
+
+- The `run-clang-tidy` script in this environment uses single-dash long options (for example `-checks`, `-fix`, `-format`, `-export-fixes`).
+- `-DCMAKE_CXX_SCAN_FOR_MODULES=OFF` prevents compile command entries from depending on generated module map response files that may be absent during standalone clang-tidy runs.
+- If you only want diagnostics first, remove `-fix -format`.
 
 ### Generate and Apply Fixes
 
