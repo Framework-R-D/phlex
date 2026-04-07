@@ -112,20 +112,23 @@ jobs:
           fi
           echo "➡️ Running clang-tidy checks..."
           cd "$SOURCE_DIR"
+          set +e
           run-clang-tidy \
             -p "$BUILD_DIR" \
             -export-fixes "$BUILD_DIR/clang-tidy-fixes.yaml" \
             -j "$(nproc)" \
-            phlex \
-            form \
-            plugins \
-            test \
-            > "$BUILD_DIR/clang-tidy.log" 2>&1 || true
+            "$SOURCE_DIR/phlex" \
+            "$SOURCE_DIR/form" \
+            "$SOURCE_DIR/plugins" \
+            "$SOURCE_DIR/test" \
+            > "$BUILD_DIR/clang-tidy.log" 2>&1
+          TIDY_EXIT=$?
+          set -e
 
           if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' "$BUILD_DIR/clang-tidy.log"; then
             echo "::warning::Clang-tidy found issues in the code"
             echo "Comment '@${REPO_NAME}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-          elif grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
+          elif [ "$TIDY_EXIT" -ne 0 ] || grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
             echo "::error::run-clang-tidy failed (see log below)"
             echo "::group::clang-tidy.log (error)"
             cat "$BUILD_DIR/clang-tidy.log"

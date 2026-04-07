@@ -193,10 +193,10 @@ jobs:
             -export-fixes "$BUILD_DIR/clang-tidy-fixes.yaml" \
             -j "$(nproc)" \
             ${TIDY_ARGS[@]+"${TIDY_ARGS[@]}"} \
-            phlex \
-            form \
-            plugins \
-            test \
+            "$SOURCE_DIR/phlex" \
+            "$SOURCE_DIR/form" \
+            "$SOURCE_DIR/plugins" \
+            "$SOURCE_DIR/test" \
             || true
 
       - name: Apply clang-tidy fixes

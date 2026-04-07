@@ -128,13 +128,13 @@
             {
                 "label": "Generate clang-tidy Problems Log",
                 "type": "shell",
-                "command": "python3 /workspaces/phlex/scripts/clang_tidy_fixes_to_problems.py /workspaces/phlex/clang-tidy-fixes.yaml -o /workspaces/phlex/out/clang-tidy-problems.log --workspace-root /workspaces/phlex",
+                "command": "python3 ${workspaceFolder:Phlex}/scripts/clang_tidy_fixes_to_problems.py ${workspaceFolder:Phlex}/build/clang-tidy-fixes.yaml -o ${workspaceFolder:Phlex}/out/clang-tidy-problems.log --workspace-root ${workspaceFolder:Phlex}",
                 "problemMatcher": []
             },
             {
                 "label": "Load clang-tidy Problems",
                 "type": "shell",
-                "command": "python3 /workspaces/phlex/scripts/clang_tidy_fixes_to_problems.py /workspaces/phlex/clang-tidy-fixes.yaml -o /workspaces/phlex/out/clang-tidy-problems.log --workspace-root /workspaces/phlex && cat /workspaces/phlex/out/clang-tidy-problems.log",
+                "command": "python3 ${workspaceFolder:Phlex}/scripts/clang_tidy_fixes_to_problems.py ${workspaceFolder:Phlex}/build/clang-tidy-fixes.yaml -o ${workspaceFolder:Phlex}/out/clang-tidy-problems.log --workspace-root ${workspaceFolder:Phlex} && cat ${workspaceFolder:Phlex}/out/clang-tidy-problems.log",
                 "problemMatcher": [
                     {
                         "owner": "clang-tidy",

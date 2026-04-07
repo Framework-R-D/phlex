@@ -82,6 +82,12 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
             in_diag_message = False
             continue
 
+        if re.match(r"^\s*Replacements:\s*$", line):
+            # Replacements entries have their own FilePath keys; stop reading
+            # DiagnosticMessage fields here to avoid overwriting the primary location.
+            in_diag_message = False
+            continue
+
         kv = _parse_kv(line)
         if not kv:
             continue
@@ -157,13 +163,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Convert clang-tidy export-fixes YAML into compiler-style diagnostics."
     )
-    parser.add_argument("input", type=Path, help="Path to clang-tidy-fixes.yaml")
+    parser.add_argument(
+        "input",
+        type=Path,
+        nargs="?",
+        help="Path to clang-tidy-fixes.yaml (default: stdin)",
+    )
     parser.add_argument(
         "-o",
         "--output",
         type=Path,
-        required=True,
-        help="Output text file with compiler-style diagnostics",
+        help="Output text file with compiler-style diagnostics (default: stdout)",
     )
     parser.add_argument(
         "--workspace-root",
@@ -184,7 +194,10 @@ def main() -> int:
     """Parse arguments, process the fixes YAML, and write compiler-style diagnostics."""
     args = build_arg_parser().parse_args()
 
-    text = args.input.read_text(encoding="utf-8")
+    if args.input is not None:
+        text = args.input.read_text(encoding="utf-8")
+    else:
+        text = sys.stdin.read()
     main_source, diagnostics = parse_clang_tidy_fixes(text)
 
     default_mappings = [
@@ -212,13 +225,16 @@ def main() -> int:
         severity = diag.level if diag.level in {"error", "warning", "note"} else "warning"
         lines.append(f"{resolved}:{line}:{col}: {severity}: {message} [{check}]")
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
     output_text = "\n".join(lines)
     if output_text:
         output_text += "\n"
-    args.output.write_text(output_text, encoding="utf-8")
 
-    print(f"Wrote {len(lines)} diagnostics to {args.output}")
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(output_text, encoding="utf-8")
+        print(f"Wrote {len(lines)} diagnostics to {args.output}")
+    else:
+        sys.stdout.write(output_text)
     return 0
 
 
