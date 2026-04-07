@@ -56,8 +56,8 @@ void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_C
 void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
 {
   //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
-  //An empty leaf list defaults to Float_t
-  static std::unordered_map<std::string, std::string> const typeNameToLeafList = {
+  //An empty leaf list (i.e. for a type not in this map) defaults to Float_t; this is intentional.
+  static std::unordered_map<std::string, std::string> typeNameToLeafList = {
     {"int", "/I"},
     {"unsigned int", "/i"},
     {"float", "/F"},
@@ -81,7 +81,7 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
                                 static_cast<void**>(nullptr),
-                                (col_name() + typeNameToLeafList.at(dictInfo->GetName())).c_str(),
+                                (col_name() + typeNameToLeafList[dictInfo->GetName()]).c_str(),
                                 4096);
     } else {
       m_branch =
