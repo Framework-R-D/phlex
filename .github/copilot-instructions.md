@@ -137,11 +137,13 @@ When the developer provides HTTPS links in conversation:
 
 ## Workspace Environment Setup
 
-> **Note for AI Agents**: The following environment setup instructions apply primarily when working in CI containers (`phlex-ci`, `phlex-dev`) or devcontainers. Human developers may use different local setups (e.g., native macOS, Linux with system packages, or their own Spack configurations).
+> **Note for AI Agents**: The following environment setup instructions apply primarily when working outside the devcontainer (e.g., native macOS, Linux with system packages, or custom Spack configurations). In the devcontainer, `/entrypoint.sh` is sourced automatically by `/root/.bashrc`, so the full Spack environment (including `cmake`, `ninja`, `gcc`, etc.) is available in every terminal session without any additional setup.
 
 ### setup-env.sh Integration
 
-When working in CI/container environments, always source `setup-env.sh` before executing commands that depend on the build environment:
+**Devcontainer**: Do not source `setup-env.sh` or `/entrypoint.sh` in terminal commands — the environment is already configured. Run build tools directly (e.g., `cmake`, `ctest`, `ninja`).
+
+**Outside the devcontainer**, source the appropriate script before commands that depend on the build environment:
 
 - **Repository version**: `srcs/phlex/scripts/setup-env.sh` - Multi-mode environment setup for developers
   - Supports standalone repository, multi-project workspace, Spack, and system packages
@@ -151,13 +153,10 @@ When working in CI/container environments, always source `setup-env.sh` before e
   - May exist in multi-project workspace setups
   - Can supplement or override repository setup-env.sh
 
-Command execution guidelines:
+Command execution guidelines (non-devcontainer only):
 
 - Use `. ./setup-env.sh && <command>` for terminal commands in workspaces with root-level setup-env.sh
 - Use `. srcs/phlex/scripts/setup-env.sh && <command>` when working in standalone repository
-- Ensure VS Code tasks include appropriate `source` command in their definitions
-- Terminal sessions should source the setup script to access build tools (gcc, cmake, ninja, etc.)
-- VS Code settings should use absolute paths or `${workspaceFolder}/local` rather than environment variables for IntelliSense configuration
 - Always ensure that the terminal's current working directory is appropriate to the command being issued
 
 ### Source Directory Symbolic Links
@@ -174,20 +173,16 @@ If the workspace root contains a `srcs/` directory, it may contain symbolic link
 
 The project uses Spack for dependency management in CI and container development environments:
 
-- **Spack Environments**: The `scripts/setup-env.sh` script automatically activates Spack environments when available
-- **Loading Additional Packages**: If you need tools or libraries not loaded by default, use `spack load <package>` to bring them into the environment
-- **Common Use Cases**:
-  - `spack load cmake` - Load CMake if not in current environment
-  - `spack load gcc` - Load specific GCC compiler
-  - `spack load ninja` - Load Ninja build tool
-  - `spack load gcovr` - Load coverage reporting tools
+- **Devcontainer**: All Spack packages (cmake, gcc, ninja, gcovr, etc.) are pre-activated via `/entrypoint.sh`; no `spack load` commands are needed.
+- **Outside the devcontainer**: The `scripts/setup-env.sh` script automatically activates Spack environments when available
+- **Loading Additional Packages** (non-devcontainer): If you need tools or libraries not loaded by default, use `spack load <package>` to bring them into the environment
 - **Graceful Degradation**: The build system works with system-installed packages when Spack is unavailable
 - **Recipe Repository**: Changes to Spack recipes should be proposed to `Framework-R-D/phlex-spack-recipes`
 
 When suggesting installation of dependencies:
 
-- Prefer sourcing the environment setup script (`scripts/setup-env.sh` or workspace-level `setup-env.sh`) as it handles both Spack and system packages
-- For manual installations, provide both Spack (`spack install/load`) and system package manager options
+- In the devcontainer, all required tools are already available; no installation steps are needed
+- Outside the devcontainer, prefer sourcing the environment setup script (`scripts/setup-env.sh` or workspace-level `setup-env.sh`) as it handles both Spack and system packages
 - Consult `scripts/README.md` and `scripts/QUICK_REFERENCE.md` for common patterns
 
 ## Text Formatting Standards
@@ -290,7 +285,7 @@ All Markdown files must strictly follow these markdownlint rules:
 
 ### Build and Test
 
-- **Environment**: Always source `setup-env.sh` before building or testing. This applies to all environments (Dev Container, local machine, HPC).
+- **Environment**: Always source `setup-env.sh` before building or testing outside the devcontainer. In the devcontainer, the environment is already configured — run build tools directly.
 - **Configuration**:
   - **Presets**: Prefer `CMakePresets.json` workflows (e.g., `cmake --preset default`).
   - **Generator**: Prefer `Ninja` over `Makefiles` when available (`-G Ninja`).

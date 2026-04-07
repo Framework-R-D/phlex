@@ -2,9 +2,7 @@ configure_file(version.cpp.in version.cpp @ONLY)
 
 add_library(version_obj OBJECT version.cpp)
 
-# version.cpp is generated into the build directory; clang-tidy cannot find
-# .clang-tidy by walking the build-dir path, so disable linting for this file.
-set_target_properties(version_obj PROPERTIES CXX_CLANG_TIDY "" POSITION_INDEPENDENT_CODE TRUE)
+set_target_properties(version_obj PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 target_include_directories(version_obj PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR}/include)
 
 cet_make_library(

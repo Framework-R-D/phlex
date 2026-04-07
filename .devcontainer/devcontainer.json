@@ -8,8 +8,8 @@
     },
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "root",
-    "userEnvProbe": "none",
     "containerEnv": {
+        "CMAKE_GENERATOR": "Ninja",
         "GH_CONFIG_DIR": "/root/.config/gh",
         "DOCKER_HOST": "unix:///tmp/podman.sock",
         "CONTAINER_HOST": "unix:///tmp/podman.sock",
@@ -20,6 +20,8 @@
         "source=${localWorkspaceFolder}/../phlex-examples,target=/workspaces/phlex-examples,type=bind",
         "source=${localWorkspaceFolder}/../phlex-coding-guidelines,target=/workspaces/phlex-coding-guidelines,type=bind",
         "source=${localWorkspaceFolder}/../phlex-spack-recipes,target=/workspaces/phlex-spack-recipes,type=bind",
+        "source=${localEnv:HOME}/.vscode-remote-user-data,target=/root/.vscode-server-insiders/data/User,type=bind",
+        "source=${localEnv:HOME}/.vscode-remote-machine-data,target=/root/.vscode-server-insiders/data/Machine,type=bind",
         "source=${localEnv:HOME}/.podman-proxy/podman.sock,target=/tmp/podman.sock,type=bind",
         "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind",
         "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind,readonly",
@@ -51,8 +53,6 @@
                     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
                 ],
                 "cmake.defaultConfigurePreset": "default",
-                "cmake.cmakePath": "${workspaceFolder}/.devcontainer/cmake_wrapper.sh",
-                "cmake.ctestPath": "${workspaceFolder}/.devcontainer/ctest_wrapper.sh",
                 "cmake.generator": "Ninja",
                 "C_Cpp.default.cStandard": "c17",
                 "C_Cpp.default.cppStandard": "c++23",

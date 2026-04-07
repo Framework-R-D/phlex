@@ -60,6 +60,8 @@
         "python.languageServer": "Pylance",
         "python.terminal.activateEnvironment": false,
         "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+        "esbonio.server.pythonPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+        "esbonio.logging.level": "debug",
         "python.analysis.typeCheckingMode": "basic",
         "python.analysis.diagnosticMode": "workspace",
         "python.analysis.exclude": [
@@ -118,6 +120,36 @@
             "vscjava.vscode-java-pack",
             "vscjava.vscode-java-test",
             "vscjava.vscode-maven"
+        ]
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "Generate clang-tidy Problems Log",
+                "type": "shell",
+                "command": "python3 ${workspaceFolder:Phlex}/scripts/clang_tidy_fixes_to_problems.py ${workspaceFolder:Phlex}/build/clang-tidy-fixes.yaml -o ${workspaceFolder:Phlex}/out/clang-tidy-problems.log --workspace-root ${workspaceFolder:Phlex}",
+                "problemMatcher": []
+            },
+            {
+                "label": "Load clang-tidy Problems",
+                "type": "shell",
+                "command": "python3 ${workspaceFolder:Phlex}/scripts/clang_tidy_fixes_to_problems.py ${workspaceFolder:Phlex}/build/clang-tidy-fixes.yaml -o ${workspaceFolder:Phlex}/out/clang-tidy-problems.log --workspace-root ${workspaceFolder:Phlex} && cat ${workspaceFolder:Phlex}/out/clang-tidy-problems.log",
+                "problemMatcher": [
+                    {
+                        "owner": "clang-tidy",
+                        "fileLocation": "absolute",
+                        "pattern": {
+                            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error|note):\\s+(.*)$",
+                            "file": 1,
+                            "line": 2,
+                            "column": 3,
+                            "severity": 4,
+                            "message": 5
+                        }
+                    }
+                ]
+            }
         ]
     }
 }
