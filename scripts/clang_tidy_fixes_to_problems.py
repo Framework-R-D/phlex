@@ -52,6 +52,7 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
 
     current: Diagnostic | None = None
     in_diag_message = False
+    last_diag_message_key: str | None = None
 
     for raw_line in text.splitlines():
         line = raw_line.rstrip("\n")
@@ -62,12 +63,16 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
                 main_source_file = _strip_yaml_string(kv[1])
             continue
 
-        if re.match(r"^\s*-\s+DiagnosticName:\s+", line):
+        if re.match(r"^-\s+[^:]+:\s*", line):
             if current is not None:
                 diagnostics.append(current)
-            check_name = re.sub(r"^\s*-\s+DiagnosticName:\s+", "", line)
-            current = Diagnostic(check=_strip_yaml_string(check_name).strip())
+            current = Diagnostic()
             in_diag_message = False
+            last_diag_message_key = None
+
+            kv = _parse_kv(line[2:])
+            if kv and kv[0] == "DiagnosticName":
+                current.check = _strip_yaml_string(kv[1]).strip() or "clang-tidy"
             continue
 
         if current is None:
@@ -75,21 +80,36 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
 
         if re.match(r"^\s*DiagnosticMessage:\s*$", line):
             in_diag_message = True
+            last_diag_message_key = None
             continue
 
         if re.match(r"^\s*Notes:\s*$", line):
             # Notes are supplementary and do not define the primary location.
             in_diag_message = False
+            last_diag_message_key = None
             continue
 
         if re.match(r"^\s*Replacements:\s*$", line):
             # Replacements entries have their own FilePath keys; stop reading
             # DiagnosticMessage fields here to avoid overwriting the primary location.
             in_diag_message = False
+            last_diag_message_key = None
+            continue
+
+        if re.match(r"^\s*Ranges:\s*$", line):
+            # Range entries are nested structures within DiagnosticMessage and
+            # can include empty FilePath values that are not the diagnostic's
+            # primary location.
+            in_diag_message = False
+            last_diag_message_key = None
             continue
 
         kv = _parse_kv(line)
         if not kv:
+            if in_diag_message and last_diag_message_key == "Message":
+                continuation = line.strip()
+                if continuation:
+                    current.message = f"{current.message} {continuation}".strip()
             continue
 
         key, value = kv
@@ -97,13 +117,22 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
         if in_diag_message:
             if key == "Message":
                 current.message = _strip_yaml_string(value)
+                last_diag_message_key = key
             elif key == "FilePath":
                 current.file_path = _strip_yaml_string(value)
+                last_diag_message_key = key
             elif key == "FileOffset":
                 try:
                     current.file_offset = int(value.strip())
                 except ValueError:
                     current.file_offset = None
+                last_diag_message_key = key
+            continue
+
+        last_diag_message_key = None
+
+        if key == "DiagnosticName":
+            current.check = _strip_yaml_string(value).strip() or "clang-tidy"
             continue
 
         if key == "Level":
