@@ -152,7 +152,7 @@ jobs:
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2026-04-06
+      image: ghcr.io/framework-r-d/phlex-ci:latest
       options: --cap-add=SYS_PTRACE
 
     steps:

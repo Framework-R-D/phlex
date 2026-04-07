@@ -73,7 +73,7 @@ jobs:
     if: ${{ needs.setup.result == 'success' }}
 
     container:
-      image: ghcr.io/framework-r-d/phlex-ci:2026-04-06
+      image: ghcr.io/framework-r-d/phlex-ci:latest
 
     steps:
       - name: Checkout code
