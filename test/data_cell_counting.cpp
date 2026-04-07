@@ -11,10 +11,10 @@ using phlex::data_cell_index;
 
 namespace {
   struct job_hash_fixture {
-    std::size_t job_hash_value()
+    std::size_t job_hash_value() const
     {
-      static std::size_t job_hash_value = "job"_idq.hash;
-      return job_hash_value;
+      static std::size_t cached_hash = "job"_idq.hash;
+      return cached_hash;
     }
   };
 }
