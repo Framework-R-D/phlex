@@ -89,5 +89,10 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   Long64_t tentry = m_tree->LoadTree(id);
   m_branch->GetEntry(tentry);
   *data = branchBuffer;
+
+  // Reset the branch address to avoid unwanted ownership issues.
+  auto br = m_tree->GetBranch(col_name().c_str());
+  br->ResetAddress();
+
   return true;
 }
