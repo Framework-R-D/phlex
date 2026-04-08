@@ -10,7 +10,7 @@
 using namespace form::test;
 
 int main(int const argc, char const** argv)
-{
+try {
   int const technology = getTechnology(argc, argv);
   if (technology < 0)
     return 1;
@@ -21,4 +21,10 @@ int main(int const argc, char const** argv)
     outFile << prod << std::endl;
 
   return 0;
+} catch (std::exception const& e) {
+  std::cerr << "Exception caught in main: " << e.what() << '\n';
+  return 1;
+} catch (...) {
+  std::cerr << "Unknown exception caught in main.\n";
+  return 1;
 }
