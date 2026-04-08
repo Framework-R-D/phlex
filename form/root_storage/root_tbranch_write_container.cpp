@@ -80,12 +80,11 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
-                                static_cast<void**>(nullptr),
+                                (void*)nullptr,
                                 (col_name() + typeNameToLeafList[dictInfo->GetName()]).c_str(),
                                 4096);
     } else {
-      m_branch =
-        m_tree->Branch(col_name().c_str(), dictInfo->GetName(), static_cast<void**>(nullptr));
+      m_branch = m_tree->Branch(col_name().c_str(), dictInfo->GetName(), (void*)nullptr);
     }
   }
   if (m_branch == nullptr) {
@@ -102,9 +101,9 @@ void ROOT_TBranch_Write_ContainerImp::fill(void const* data)
   TLeaf* leaf = m_branch->GetLeaf(col_name().c_str());
   if (leaf != nullptr &&
       TDictionary::GetDictionary(leaf->GetTypeName())->Property() & EProperty::kIsFundamental) {
-    m_branch->SetAddress(const_cast<void*>(data)); //FIXME: const_cast?
+    m_branch->SetAddress(const_cast<void*>(data));
   } else {
-    m_branch->SetAddress(&data);
+    m_branch->SetAddress(reinterpret_cast<void*>(&data));
   }
   m_branch->Fill();
   m_branch->ResetAddress();
