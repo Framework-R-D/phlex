@@ -15,8 +15,8 @@ using namespace std::string_literals;
 using namespace boost;
 namespace bpo = boost::program_options;
 
-// NOLINTNEXTLINE(bugprone-exception-escape) -- primary application entry point; all
-// exception-throwing code is handled within the function
+// NOLINTNEXTLINE(bugprone-exception-escape) -- primary application entry point; exceptions
+// from potentially-throwing calls should be handled internally, not propagated from main
 int main(int argc, char* argv[])
 {
   std::ostringstream descstr;
