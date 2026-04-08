@@ -15,8 +15,10 @@ using namespace std::string_literals;
 using namespace boost;
 namespace bpo = boost::program_options;
 
+// NOLINTNEXTLINE(bugprone-exception-escape) -- primary application entry point; all
+// exception-throwing code is handled within the function
 int main(int argc, char* argv[])
-try {
+{
   std::ostringstream descstr;
   descstr << "\nUsage: " << std::filesystem::path(argv[0]).filename().native()
           << " -c <config-file> [other-options]\n\n"
@@ -101,10 +103,4 @@ try {
     std::cerr << "Unknown exception caught.\n";
     return 1;
   }
-} catch (std::exception const& e) {
-  std::cerr << "Exception caught in main: " << e.what() << '\n';
-  return 1;
-} catch (...) {
-  std::cerr << "Unknown exception caught in main.\n";
-  return 1;
 }
