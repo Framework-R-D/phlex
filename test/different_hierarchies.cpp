@@ -85,7 +85,7 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
 
   g.execute();
 
-  CHECK(g.execution_count("run_add") == index_limit * number_limit);
+  CHECK(g.execution_count("run_add") == std::size_t(index_limit * number_limit));
   CHECK(g.execution_count("job_add") == index_limit * number_limit + top_level_event_limit);
   CHECK(g.execution_count("verify_run_sum") == index_limit);
   CHECK(g.execution_count("verify_job_sum") == 1);
