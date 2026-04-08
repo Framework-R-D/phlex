@@ -38,9 +38,9 @@ using namespace phlex;
 
 namespace {
   // Provider functions
-  int provide_number(data_cell_index const& index) { return 2 * index.number(); }
-  int provide_another(data_cell_index const& index) { return 3 * index.number(); }
-  int provide_still(data_cell_index const& index) { return 4 * index.number(); }
+  int provide_number(data_cell_index const& index) { return 2 * (int)index.number(); }
+  int provide_another(data_cell_index const& index) { return 3 * (int)index.number(); }
+  int provide_still(data_cell_index const& index) { return 4 * (int)index.number(); }
 
   int call_one(int) noexcept { return 1; }
   int call_two(int, int) noexcept { return 2; }

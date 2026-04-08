@@ -119,7 +119,7 @@ int main(int argc, char** argv)
       for (float val : *track_start_x)
         check += val;
       for (int val : *track_n_hits)
-        check += val;
+        check += (float)val;
       TrackStart checkPoints;
       for (TrackStart val : *start_points)
         checkPoints += val;

@@ -6,7 +6,7 @@ using namespace phlex;
 
 PHLEX_REGISTER_PROVIDERS(s)
 {
-  s.provide("provide_i", [](data_cell_index const& id) -> int { return id.number() % 2; })
+  s.provide("provide_i", [](data_cell_index const& id) { return (int)(id.number() % 2); })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "i"});
   s.provide("provide_j",
             [](data_cell_index const& id) -> int { return 1 - (int)(id.number() % 2); })
@@ -14,21 +14,23 @@ PHLEX_REGISTER_PROVIDERS(s)
   s.provide("provide_k", [](data_cell_index const&) -> int { return 0; })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "k"});
 
-  s.provide("provide_f1",
-            [](data_cell_index const& id) -> float { return (float)((id.number() % 100) / 100.0); })
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "f1"});
   s.provide(
-     "provide_f2",
-     [](data_cell_index const& id) -> float { return 1.0f - (float)((id.number() % 100) / 100.0); })
+     "provide_f1",
+     [](data_cell_index const& id) -> float { return (float)(((int)id.number() % 100) / 100.0); })
+    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "f1"});
+  s.provide("provide_f2",
+            [](data_cell_index const& id) -> float {
+              return 1.0f - (float)(((int)id.number() % 100) / 100.0);
+            })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "f2"});
 
   s.provide(
      "provide_d1",
-     [](data_cell_index const& id) -> double { return (double)((id.number() % 100) / 100.0); })
+     [](data_cell_index const& id) -> double { return (double)(((int)id.number() % 100) / 100.0); })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "d1"});
   s.provide("provide_d2",
             [](data_cell_index const& id) -> double {
-              return 1.0 - (double)((id.number() % 100) / 100.0);
+              return 1.0 - (double)(((int)id.number() % 100) / 100.0);
             })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "d2"});
 
