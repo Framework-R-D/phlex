@@ -1182,16 +1182,13 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // translate and validate the output query
   auto opq = validate_query(output);
   if (!opq.has_value()) {
-    // validate_query will have set a python exception
+    // LCOV_EXCL_START
+    // validate_query _will_ have set a python exception with details about the
+    //  error, so just propagate it as a C++ exception
     std::string msg;
-    if (msg_from_py_error(msg, false)) {
-      throw std::runtime_error("output specification error: " + msg);
-    } else {
-      // LCOV_EXCL_START
-      // no error message? should never happen, but just in case
-      throw std::logic_error("output specification error: unknown query validation error");
-      // LCOV_EXCL_STOP
-    }
+    msg_from_py_error(msg, false);
+    throw std::runtime_error("output specification error: " + msg);
+    // LCOV_EXCL_STOP
   }
 
   // insert provider node (TODO: as in transform and observe, we'll leak the
