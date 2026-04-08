@@ -1,10 +1,9 @@
 #include "phlex/core/framework_graph.hpp"
 #include "plugins/layer_generator.hpp"
 
-using namespace phlex;
-
 #include <iostream>
 
+using namespace phlex;
 namespace {
   unsigned pass_on(unsigned number) { return number; }
 }
