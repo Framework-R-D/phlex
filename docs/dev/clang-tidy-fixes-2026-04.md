@@ -3,7 +3,7 @@
 1. `bugprone-*`
 
    - [x] [bugprone-exception-escape](https://github.com/Framework-R-D/phlex/pull/491) (3)
-   - [ ] bugprone-implicit-widening-of-multiplication-result (11)
+   - [x] bugprone-implicit-widening-of-multiplication-result (11)
    - [ ] bugprone-macro-parentheses (398)
    - [x] [bugprone-multi-level-implicit-pointer-conversion](https://github.com/Framework-R-D/phlex/pull/494) (4)
    - [ ] bugprone-narrowing-conversions (34)
