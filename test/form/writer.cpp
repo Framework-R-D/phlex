@@ -34,7 +34,7 @@ void generate(std::vector<float>& vrand, int size)
 int main(int argc, char** argv)
 {
   std::cout << "In main" << std::endl;
-  // Deliberately use C-style random number generation for simplicity and reproducibility across platforms
+  // Deliberately use C-style random number generation for simplicity in a test
   srand(time(0)); // NOLINT(bugprone-random-generator-seed)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
