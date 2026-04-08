@@ -80,11 +80,11 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
-                                (void*)nullptr,
+                                static_cast<void*>(nullptr), // Overload selection
                                 (col_name() + typeNameToLeafList[dictInfo->GetName()]).c_str(),
                                 4096);
     } else {
-      m_branch = m_tree->Branch(col_name().c_str(), dictInfo->GetName(), (void*)nullptr);
+      m_branch = m_tree->Branch(col_name().c_str(), dictInfo->GetName(), nullptr);
     }
   }
   if (m_branch == nullptr) {
