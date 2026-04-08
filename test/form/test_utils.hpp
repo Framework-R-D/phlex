@@ -17,8 +17,8 @@ using namespace form::detail::experimental;
 
 namespace form::test {
 
-  inline std::string const testTreeName = "FORMTestTree";
-  inline std::string const testFileName = "FORMTestFile.root";
+  inline constexpr char const* testTreeName = "FORMTestTree";
+  inline constexpr char const* testFileName = "FORMTestFile.root";
 
   template <class PROD>
   inline std::string getTypeName()
@@ -29,7 +29,7 @@ namespace form::test {
   template <class PROD>
   inline std::string makeTestBranchName()
   {
-    return testTreeName + "/" + getTypeName<PROD>();
+    return std::string(testTreeName) + "/" + getTypeName<PROD>();
   }
 
   inline std::vector<std::shared_ptr<IStorage_Write_Container>> doWrite(
@@ -66,8 +66,8 @@ namespace form::test {
   template <class... PRODS>
   inline void write(int const technology, PRODS&... prods)
   {
-    auto file = createFile(technology, testFileName.c_str(), 'o');
-    auto parent = createWriteAssociation(technology, testTreeName);
+    auto file = createFile(technology, std::string(testFileName), 'o');
+    auto parent = createWriteAssociation(technology, std::string(testTreeName));
     parent->setFile(file);
     parent->setupWrite();
 
@@ -94,7 +94,7 @@ namespace form::test {
   template <class... PRODS>
   inline std::tuple<std::unique_ptr<PRODS const>...> read(int const technology)
   {
-    auto file = createFile(technology, testFileName, 'i');
+    auto file = createFile(technology, std::string(testFileName), 'i');
 
     return std::make_tuple(doRead<PRODS>(file, technology)...);
   }

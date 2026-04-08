@@ -10,7 +10,13 @@ using namespace phlex::experimental::literals;
 using phlex::data_cell_index;
 
 namespace {
-  auto const job_hash_value = "job"_idq.hash;
+  struct job_hash_fixture {
+    std::size_t job_hash_value() const
+    {
+      static std::size_t const cached_hash = "job"_idq.hash;
+      return cached_hash;
+    }
+  };
 }
 
 TEST_CASE("Counter with nothing processed", "[data model]")
@@ -19,13 +25,13 @@ TEST_CASE("Counter with nothing processed", "[data model]")
   CHECK(job_counter.result().empty());
 }
 
-TEST_CASE("Counter one layer deep", "[data model]")
+TEST_CASE_METHOD(job_hash_fixture, "Counter one layer deep", "[data model]")
 {
   data_cell_counter job_counter{};
   for (std::size_t i = 0; i != 10; ++i) {
     job_counter.make_child("event"_id);
   }
-  auto const event_hash_value = hash(job_hash_value, "event"_idq.hash);
+  auto const event_hash_value = hash(job_hash_value(), "event"_idq.hash);
   CHECK(job_counter.result().count_for(event_hash_value) == 10);
 }
 
@@ -56,7 +62,19 @@ TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")
   CHECK(h.count_for("/job/run/spill") == 2);
 }
 
-TEST_CASE("Counter multiple layers deep", "[data model]")
+TEST_CASE("Data layer hierarchy with unnamed layer", "[data model]")
+{
+  // Exercises the maybe_name() fallback to "(unnamed)" for layers with empty names.
+  // Invoke print() explicitly so the test body, rather than teardown side effects,
+  // traverses the hierarchy and reaches maybe_name("") for the unnamed child.
+  data_layer_hierarchy h;
+  auto job_index = data_cell_index::job();
+  CHECK_NOTHROW(h.increment_count(job_index));
+  CHECK_NOTHROW(h.increment_count(job_index->make_child("", 0)));
+  CHECK_NOTHROW(h.print());
+}
+
+TEST_CASE_METHOD(job_hash_fixture, "Counter multiple layers deep", "[data model]")
 {
   constexpr std::size_t nruns{2ull};
   constexpr std::size_t nsubruns_per_run{3ull};
@@ -78,7 +96,7 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
     CHECK(h.count_for("event", true) == processed_events);
   };
 
-  auto const run_hash_value = hash(job_hash_value, "run"_idq.hash);
+  auto const run_hash_value = hash(job_hash_value(), "run"_idq.hash);
   auto const subrun_hash_value = hash(run_hash_value, "subrun"_idq.hash);
   auto const event_hash_value = hash(subrun_hash_value, "event"_idq.hash);
 

@@ -6,8 +6,11 @@
 #include "spdlog/spdlog.h"
 
 namespace {
-  std::string const unnamed{"(unnamed)"};
-  std::string const& maybe_name(std::string const& name) { return empty(name) ? unnamed : name; }
+  std::string const& maybe_name(std::string const& name)
+  {
+    static std::string const unnamed{"(unnamed)"};
+    return empty(name) ? unnamed : name;
+  }
 }
 
 namespace phlex::experimental {
