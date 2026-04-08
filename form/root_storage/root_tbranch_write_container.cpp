@@ -80,12 +80,11 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
       m_branch = m_tree->Branch(col_name().c_str(),
-                                static_cast<void**>(nullptr),
+                                static_cast<void*>(nullptr), // Overload selection
                                 (col_name() + typeNameToLeafList[dictInfo->GetName()]).c_str(),
                                 4096);
     } else {
-      m_branch =
-        m_tree->Branch(col_name().c_str(), dictInfo->GetName(), static_cast<void**>(nullptr));
+      m_branch = m_tree->Branch(col_name().c_str(), dictInfo->GetName(), nullptr);
     }
   }
   if (m_branch == nullptr) {
@@ -96,15 +95,21 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
 
 void ROOT_TBranch_Write_ContainerImp::fill(void const* data)
 {
+  // NOTE: incoming parameter `data` is `const` due to the constraints on how we
+  // expect users to interact with the data; however, ROOT's SetBranchAddress
+  // requires a non-const pointer, so we will need to cast away constness to call
+  // it. We will ensure that we do not modify the data through this pointer, and
+  // we will reset the branch address after reading to avoid any unintended
+  // consequences of casting away the `const`ness.
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::fill no branch found");
   }
   TLeaf* leaf = m_branch->GetLeaf(col_name().c_str());
   if (leaf != nullptr &&
       TDictionary::GetDictionary(leaf->GetTypeName())->Property() & EProperty::kIsFundamental) {
-    m_branch->SetAddress(const_cast<void*>(data)); //FIXME: const_cast?
+    m_branch->SetAddress(const_cast<void*>(data));
   } else {
-    m_branch->SetAddress(&data);
+    m_branch->SetAddress(reinterpret_cast<void*>(&data));
   }
   m_branch->Fill();
   m_branch->ResetAddress();
