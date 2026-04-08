@@ -1186,10 +1186,12 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
     std::string msg;
     if (msg_from_py_error(msg, false)) {
       throw std::runtime_error("output specification error: " + msg);
-    } else { // LCOV_EXCL_START
+    } else {
+      // LCOV_EXCL_START
       // no error message? should never happen, but just in case
       throw std::logic_error("output specification error: unknown query validation error");
-    } // LCOV_EXCL_STOP
+      // LCOV_EXCL_STOP
+    }
   }
 
   // insert provider node (TODO: as in transform and observe, we'll leak the
