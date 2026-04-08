@@ -7,6 +7,7 @@
 #include "toy_tracker.hpp"
 
 #include <cstdlib>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -34,7 +35,8 @@ void generate(std::vector<float>& vrand, int size)
 int main(int argc, char** argv)
 {
   std::cout << "In main" << std::endl;
-  srand(time(0));
+  // Deliberately use C-style random number generation for simplicity in a test
+  srand(time(nullptr)); // NOLINT(bugprone-random-generator-seed)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
