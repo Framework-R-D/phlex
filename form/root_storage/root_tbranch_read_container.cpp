@@ -31,12 +31,6 @@ void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file
 
 bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
 {
-  // NOTE: incoming parameter `data` is `const` due to the constraints on how we
-  // expect users to interact with the data; however, ROOT's SetBranchAddress
-  // requires a non-const pointer, so we will need to cast away constness to call
-  // it. We will ensure that we do not modify the data through this pointer, and
-  // we will reset the branch address after reading to avoid any unintended
-  // consequences of casting away the `const`ness.
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::read no file attached");
   }
