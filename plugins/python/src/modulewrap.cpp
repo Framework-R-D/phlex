@@ -834,9 +834,7 @@ static bool insert_output_converter(py_phlex_module* mod,
     // an IDL instead.
     auto const dtype_pos = out_type.rfind('[');
     if (dtype_pos == std::string::npos) {
-      PyErr_Format(PyExc_TypeError,
-                   "unsupported collection output type \"%s\"",
-                   out_type.c_str());
+      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return false;
     }
     std::string_view dtype{out_type};
