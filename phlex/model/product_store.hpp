@@ -66,8 +66,8 @@ namespace phlex::experimental {
   // Non-template overload for single product_store_ptr case
   inline product_store_ptr const& most_derived(product_store_ptr const& store)
   {
-    return store;
-  } // NOLINT(bugprone-return-const-ref-from-parameter)
+    return store; // NOLINT(bugprone-return-const-ref-from-parameter)
+  }
 
   // Generic most_derived for tuples
   template <std::size_t I, typename Tuple>
