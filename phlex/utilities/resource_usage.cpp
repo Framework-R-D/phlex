@@ -24,7 +24,7 @@ namespace {
     rusage used;
     getrusage(RUSAGE_SELF, &used);
     auto const [secs, microsecs] = used.ru_utime;
-    return {.elapsed_time = double(secs + microsecs / 1000000),
+    return {.elapsed_time = double(secs) + double(microsecs) / 1000000.0,
             .max_rss = double(used.ru_maxrss) / mem_denominator};
   }
 }
