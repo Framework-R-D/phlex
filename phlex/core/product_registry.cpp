@@ -61,6 +61,7 @@ namespace phlex::experimental {
   // Lookup a product query by checking each map and finding the intersection of the results
   detail::full_product_spec const& product_registry::lookup(product_query const& query) const
   {
+    spdlog::debug("Looking up product {}", query);
     std::forward_list<result_set_t> result_sets;
     if (query.type.valid()) {
       auto res = make_set(type_map_.equal_range(query.type));

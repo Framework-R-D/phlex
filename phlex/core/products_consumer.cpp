@@ -31,7 +31,6 @@ namespace phlex::experimental {
     input_products_{std::move(input_products)},
     registry_{&registry}
   {
-    spdlog::debug("Creating node for {}:{}", plugin(), algorithm());
   }
 
   products_consumer::~products_consumer() = default;

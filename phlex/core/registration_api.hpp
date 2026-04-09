@@ -55,11 +55,13 @@ namespace phlex::experimental {
     auto input_family(std::array<product_query, num_inputs> input_args)
     {
       populate_types<input_parameter_types>(input_args);
+      spdlog::debug("input_family: setting creator");
 
       if constexpr (num_outputs == 0ull) {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](
             product_registry const& registry, auto predicates, auto /* output_products */) {
+            spdlog::debug("In creator for {}", name_.full());
             return std::make_unique<hof_type>(std::move(name_),
                                               concurrency_.value,
                                               std::move(predicates),
@@ -72,6 +74,7 @@ namespace phlex::experimental {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](
             product_registry const& registry, auto predicates, auto output_product_suffixes) {
+            spdlog::debug("In creator for {}", name_.full());
             return std::make_unique<hof_type>(std::move(name_),
                                               concurrency_.value,
                                               std::move(predicates),

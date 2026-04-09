@@ -55,6 +55,7 @@
 #include <cassert>
 #include <functional>
 #include <optional>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
 
@@ -118,6 +119,7 @@ namespace phlex::experimental {
       assert(creator_);
       auto ptr = creator_(*registry_, release_predicates(), std::move(output_product_suffixes));
       auto name = ptr->full_name();
+      spdlog::debug("Creating node for {}", name);
       //
       // Register output products
       // Providers have a different interface
