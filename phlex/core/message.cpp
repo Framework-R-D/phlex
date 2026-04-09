@@ -17,9 +17,9 @@ namespace phlex::experimental {
     assert(a.store);
     assert(b.store);
     if (a.store->index()->depth() > b.store->index()->depth()) {
-      return a;
+      return a; // NOLINT(bugprone-return-const-ref-from-parameter)
     }
-    return b;
+    return b; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
 
   std::size_t port_index_for(product_queries const& input_products,

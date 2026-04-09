@@ -67,7 +67,10 @@ namespace phlex::experimental {
   PHLEX_CORE_EXPORT message const& more_derived(message const& a, message const& b);
 
   // Non-template overload for single message case
-  inline message const& most_derived(message const& msg) { return msg; }
+  inline message const& most_derived(message const& msg)
+  {
+    return msg; // NOLINT(bugprone-return-const-ref-from-parameter)
+  }
 
   PHLEX_CORE_EXPORT std::size_t port_index_for(product_queries const& input_products,
                                                product_query const& input_product);
