@@ -22,7 +22,7 @@ std::pair<std::size_t, demo::Waveforms> demo::WaveformGenerator::op(std::size_t 
 {
   // How many waveforms should go into this chunk?
   std::size_t const newsize = std::min(chunksize, maxsize_ - made_so_far);
-  auto result =
-    std::make_pair(made_so_far + newsize, Waveforms{newsize, (double)made_so_far, -1, -1, -1, -1});
+  auto result = std::make_pair(
+    made_so_far + newsize, Waveforms{newsize, static_cast<double>(made_so_far), -1, -1, -1, -1});
   return result;
 }
