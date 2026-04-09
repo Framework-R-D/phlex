@@ -3,6 +3,10 @@
 
 #include "boost/preprocessor.hpp"
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// `clang-tidy` 22 claims that parameters should be used parenthesized in macros—this is fine for
+// expressions, but causes havoc with C++ signatures. We need to ignore this warning by block due to
+// the use of continuations rendering per-line suppression impossible.
 #define PHLEX_DETAIL_NARGS(...) BOOST_PP_DEC(BOOST_PP_VARIADIC_SIZE(__VA_OPT__(, ) __VA_ARGS__))
 
 #define PHLEX_DETAIL_CREATE_1ARG(token_type, func_name, m)                                         \
@@ -40,5 +44,6 @@
   static PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, __VA_ARGS__);                             \
   BOOST_DLL_ALIAS(func_name, dll_alias)                                                            \
   PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, __VA_ARGS__)
+// NOLINTEND(bugprone-macro-parentheses)
 
 #endif // PHLEX_DETAIL_PLUGIN_MACROS_HPP
