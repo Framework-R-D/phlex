@@ -159,7 +159,11 @@ namespace phlex::experimental {
           std::set<flusher_t*> flushers;
           // For providers
           for (product_query const& pq : n->input()) {
-            if (auto it = unfold_flushers.find(pq.layer); it != unfold_flushers.end()) {
+            if (!pq.layer) {
+              spdlog::error("The input product query {} has no layer specified", pq);
+              continue;
+            }
+            if (auto it = unfold_flushers.find(*pq.layer); it != unfold_flushers.end()) {
               flushers.insert(it->second);
             } else {
               flushers.insert(&index_router_.flusher());

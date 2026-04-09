@@ -3,8 +3,9 @@
 namespace phlex::experimental {
   declared_fold::declared_fold(algorithm_name name,
                                std::vector<std::string> predicates,
-                               product_queries input_products) :
-    products_consumer{std::move(name), std::move(predicates), std::move(input_products)}
+                               product_queries input_products,
+                               product_registry const& registry) :
+    products_consumer{std::move(name), std::move(predicates), std::move(input_products), registry}
   {
   }
 

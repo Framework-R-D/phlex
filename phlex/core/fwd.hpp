@@ -14,6 +14,7 @@ namespace phlex::experimental {
   struct message;
   class index_router;
   class products_consumer;
+  class product_registry;
 
   using flusher_t = tbb::flow::broadcast_node<flush_message>;
 }
