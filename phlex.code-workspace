@@ -19,16 +19,19 @@
             "**/local/.*/**": true,
             "**/local/*/": true,
             "**/build/_deps/**": true,
-            "**/build/CMakeFiles/**": true
+            "**/build/CMakeFiles/**": true,
+            "**/.venv/**": true,
+            "**/py_virtual_env/**": true
         },
         "files.watcherExclude": {
             "**/local/.*/**": true,
             "**/local/*/": true,
             "**/build/_deps/**": true,
-            "**/build/CMakeFiles/**": true
+            "**/build/CMakeFiles/**": true,
+            "**/.venv/**": true,
+            "**/py_virtual_env/**": true
         },
         "cmake.sourceDirectory": "${workspaceFolder}",
-        "cmake.buildDirectory": "${workspaceFolder}/build",
         "cmake.useCMakePresets": "always",
         "cmake.generator": "Ninja",
         "C_Cpp.default.cStandard": "c17",
@@ -49,13 +52,17 @@
             "**/local/.*/**",
             "**/local/*/",
             "**/build/_deps/**",
-            "**/build/CMakeFiles/**"
+            "**/build/CMakeFiles/**",
+            "**/.venv/**",
+            "**/py_virtual_env/**"
         ],
         "python.analysis.ignore": [
             "**/local/.*/**",
             "**/local/*/",
             "**/build/_deps/**",
-            "**/build/CMakeFiles/**"
+            "**/build/CMakeFiles/**",
+            "**/.venv/**",
+            "**/py_virtual_env/**"
         ],
         "flake8.enabled": false,
         "[python]": {
