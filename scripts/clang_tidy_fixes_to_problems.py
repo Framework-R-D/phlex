@@ -31,7 +31,11 @@ class Diagnostic:
 
 def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
     """Parse a clang-tidy export-fixes YAML string into a list of diagnostics."""
-    data = yaml.safe_load(text)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        print(f"Failed to parse clang-tidy fixes YAML: {exc}", file=sys.stderr)
+        return None, []
     if not isinstance(data, dict):
         return None, []
 
@@ -51,13 +55,20 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
         check = str(entry.get("DiagnosticName") or "clang-tidy").strip() or "clang-tidy"
         level = str(entry.get("Level") or "warning").strip().lower() or "warning"
 
+        parsed_file_offset: int | None = None
+        if file_offset is not None:
+            try:
+                parsed_file_offset = int(file_offset)
+            except (TypeError, ValueError):
+                parsed_file_offset = None
+
         diagnostics.append(
             Diagnostic(
                 check=check,
                 message=message,
                 level=level,
                 file_path=file_path,
-                file_offset=int(file_offset) if file_offset is not None else None,
+                file_offset=parsed_file_offset,
             )
         )
 

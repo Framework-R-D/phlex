@@ -22,7 +22,11 @@ import yaml
 def _load_diagnostics(path: Path | None) -> list[dict]:
     """Load the Diagnostics list from a clang-tidy YAML file or stdin."""
     text = path.read_text(encoding="utf-8") if path is not None else sys.stdin.read()
-    data = yaml.safe_load(text)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        print(f"Failed to parse clang-tidy YAML: {exc}", file=sys.stderr)
+        return []
     if not isinstance(data, dict):
         return []
     diagnostics = data.get("Diagnostics")
@@ -45,10 +49,14 @@ def count_unique_diagnostics(diagnostics: list[dict]) -> dict[str, int]:
     counts: dict[str, int] = {}
 
     for entry in diagnostics:
-        name = entry.get("DiagnosticName") or "clang-tidy"
+        name = str(entry.get("DiagnosticName") or "clang-tidy")
         msg = entry.get("DiagnosticMessage") or {}
-        file_path = msg.get("FilePath") or ""
-        file_offset = msg.get("FileOffset")
+        file_path = str(msg.get("FilePath") or "")
+        raw_offset = msg.get("FileOffset")
+        try:
+            file_offset: int | None = int(raw_offset) if raw_offset is not None else None
+        except (TypeError, ValueError):
+            file_offset = None
 
         key = (name, file_path, file_offset)
         if key not in seen:
