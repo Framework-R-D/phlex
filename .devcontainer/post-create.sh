@@ -11,6 +11,12 @@ cat > ~/.actrc <<'EOF'
 --container-options --userns=keep-id
 EOF
 
+# Clear the VS Code extension-install marker so that VS Code always installs the
+# extensions listed in devcontainer.json on a fresh container. Without this, the
+# marker persists on the host via the Machine data bind-mount and VS Code skips
+# installation on every rebuild.
+rm -f /root/.vscode-server-insiders/data/Machine/.installExtensionsMarker
+
 # Install pre-commit hooks if available.
 if command -v prek >/dev/null 2>&1; then
   prek install || true

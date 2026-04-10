@@ -287,8 +287,8 @@ All Markdown files must strictly follow these markdownlint rules:
 
 - **Environment**: Always source `setup-env.sh` before building or testing outside the devcontainer. In the devcontainer, the environment is already configured — run build tools directly.
 - **Configuration**:
-  - **Presets**: Prefer `CMakePresets.json` workflows (e.g., `cmake --preset default`).
-  - **Generator**: Prefer `Ninja` over `Makefiles` when available (`-G Ninja`).
+  - **Presets**: Prefer `CMakePresets.json` workflows. `CMakePresets.json` does not specify `binaryDir`, so always supply `-B <build-dir>` explicitly on the command line (e.g., `cmake --preset default -B build`). In devcontainer environments, VS Code workspace settings set `cmake.buildDirectory` to `build/` so the CMake Tools extension does not require `-B`, but command-line invocations still do.
+  - **Generator**: In devcontainer environments, `CMAKE_GENERATOR=Ninja` is set in the container environment and `cmake.generator` is set in the VS Code workspace settings — Ninja is used automatically without `-G`. Outside devcontainer environments, pass `-G Ninja` explicitly when Ninja is available, or set `CMAKE_GENERATOR=Ninja` in the shell environment.
 - **Build**:
   - **Parallelism**: Always use multiple cores. Ninja does this by default. For `make`, use `cmake --build build -j $(nproc)`.
 - **Test**:

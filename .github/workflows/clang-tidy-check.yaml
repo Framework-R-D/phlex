@@ -66,13 +66,12 @@ jobs:
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
-      - name: Configure CMake (Debug)
+      - name: Configure CMake
         uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
         with:
-          build-type: Debug
+          preset: clang-tidy
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
-          extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
 
       - name: Run clang-tidy
         id: tidy

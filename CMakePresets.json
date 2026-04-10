@@ -38,6 +38,16 @@
                 "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_FLAGS_COVERAGE": "-g -O0 -fprofile-instr-generate -fcoverage-mapping"
             }
+        },
+        {
+            "name": "clang-tidy",
+            "inherits": "default",
+            "displayName": "clang-tidy",
+            "description": "Standard build with C++ module scanning disabled for clang-tidy compatibility.",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
+            }
         }
     ],
     "version": 3

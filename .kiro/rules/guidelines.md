@@ -108,8 +108,9 @@ environments (devcontainer, local, HPC, CI containers):
 ### Build
 
 ```bash
-# Preferred: use presets
-cmake --preset default -S . -B build
+# Preferred: use presets (CMakePresets.json does not specify binaryDir;
+# always pass -B explicitly; devcontainer convention uses build/)
+cmake --preset default -B build
 ninja -C build
 
 # Or manually
@@ -136,9 +137,9 @@ ctest --test-dir build -R "regex"
 # Step by step
 ./scripts/coverage.sh setup test html view
 
-# Via CMake targets (after coverage preset build)
-cmake --build build --target coverage-xml
-cmake --build build --target coverage-html
+# Via CMake targets (after coverage preset build, from source dir)
+cmake --build build-coverage-gcc --target coverage-xml
+cmake --build build-coverage-gcc --target coverage-html
 ```
 
 ### Pre-commit Hooks

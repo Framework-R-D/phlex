@@ -46,11 +46,16 @@ ENABLE_PERFETTO      # Perfetto profiling
 
 ## CMake Presets
 
-Defined in `CMakePresets.json`:
+Defined in `CMakePresets.json`. `binaryDir` is not specified in the presets file
+to give developers flexibility in choosing build locations. In devcontainer
+environments, `cmake.buildDirectory` is set to `build/` in the VS Code workspace
+settings, and `CMAKE_GENERATOR=Ninja` is set as a container environment variable.
+Pass `-B <dir>` explicitly on the command line.
 
 - `default` — standard build with FORM enabled, C++23, compile-commands export
 - `coverage-gcc` — GCC/gcov/lcov coverage build
 - `coverage-clang` — Clang/llvm-cov coverage build
+- `clang-tidy` — inherits `default`; sets `CMAKE_CXX_SCAN_FOR_MODULES=OFF` for clang-tidy compatibility
 
 ## Code Quality Tools
 
