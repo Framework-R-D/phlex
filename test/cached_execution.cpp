@@ -38,9 +38,9 @@ using namespace phlex;
 
 namespace {
   // Provider functions
-  std::size_t provide_number(data_cell_index const& index) { return 2uz * index.number(); }
-  std::size_t provide_another(data_cell_index const& index) { return 3uz * index.number(); }
-  std::size_t provide_still(data_cell_index const& index) { return 4uz * index.number(); }
+  int provide_number(data_cell_index const& index) { return 2 * index.number(); }
+  int provide_another(data_cell_index const& index) { return 3 * index.number(); }
+  int provide_still(data_cell_index const& index) { return 4 * index.number(); }
 
   int call_one(int) noexcept { return 1; }
   int call_two(int, int) noexcept { return 2; }
@@ -48,9 +48,9 @@ namespace {
 
 TEST_CASE("Cached function calls", "[data model]")
 {
-  constexpr std::size_t n_runs{1uz};
-  constexpr int n_subruns{2};
-  constexpr int n_events{5000};
+  constexpr unsigned int n_runs{1};
+  constexpr unsigned int n_subruns{2u};
+  constexpr unsigned int n_events{5000u};
 
   experimental::layer_generator gen;
   gen.add_layer("run", {"job", n_runs});
@@ -97,8 +97,8 @@ TEST_CASE("Cached function calls", "[data model]")
   CHECK(g.execution_count("A2") == n_runs);
   CHECK(g.execution_count("A3") == n_runs);
 
-  CHECK(g.execution_count("B1") == n_runs * n_subruns);
-  CHECK(g.execution_count("B2") == n_runs * n_subruns);
+  CHECK(g.execution_count("B1") == std::size_t{n_runs} * n_subruns);
+  CHECK(g.execution_count("B2") == std::size_t{n_runs} * n_subruns);
 
-  CHECK(g.execution_count("C") == n_runs * n_subruns * n_events);
+  CHECK(g.execution_count("C") == std::size_t{n_runs} * n_subruns * n_events);
 }
