@@ -37,6 +37,15 @@ Primary build system with modern CMake practices.
 - Custom targets for coverage, clang-tidy, formatting
 - Multi-configuration support (Debug, Release, RelWithDebInfo, Coverage)
 
+**CMake Presets** (defined in `CMakePresets.json`; `binaryDir` not specified —
+pass `-B <dir>` explicitly; devcontainer sets `cmake.buildDirectory=build/` and
+`CMAKE_GENERATOR=Ninja` as environment/workspace settings):
+
+- `default` — standard build (FORM, C++23, compile commands)
+- `coverage-gcc` — GCC/gcov/lcov coverage build
+- `coverage-clang` — Clang/llvm-cov coverage build
+- `clang-tidy` — inherits `default`; sets `CMAKE_CXX_SCAN_FOR_MODULES=OFF`
+
 **Build Options**:
 
 ```cmake
@@ -172,9 +181,9 @@ Fermilab's CMake modules for HEP software, providing:
 
 ```bash
 cmake --preset coverage-gcc  # or coverage-clang
-cmake --build . --target coverage-xml    # XML for CI
-cmake --build . --target coverage-html   # HTML for local
-cmake --build . --target coverage-clean  # Clean data
+cmake --build build-coverage-gcc --target coverage-xml    # XML for CI
+cmake --build build-coverage-gcc --target coverage-html   # HTML for local
+cmake --build build-coverage-gcc --target coverage-clean  # Clean data
 ```
 
 ### Integration
@@ -210,6 +219,11 @@ spack install
 ### Build
 
 ```bash
+# Via preset (always supply -B; devcontainer convention uses build/)
+cmake --preset default -B build
+cmake --build build -j $(nproc)
+
+# Or manually
 cmake -B build -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j $(nproc)
 ```

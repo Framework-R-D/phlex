@@ -53,7 +53,7 @@ runs:
 
         # Base CMake options
         CMAKE_ARGS=(
-          --preset="$PRESET" "$SOURCE_DIR"
+          --preset="$PRESET" -S "$SOURCE_DIR" -B .
           -G "$GENERATOR"
           -DCMAKE_COLOR_DIAGNOSTICS=ON
           -DCMAKE_CXX_COMPILER="$CPP_COMPILER"
