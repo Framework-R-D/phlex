@@ -24,13 +24,15 @@ namespace phlex::experimental {
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...))
   {
-    return std::function{[t = obj, f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
+    return std::function{
+      [t = std::move(obj), f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
   }
 
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...) const)
   {
-    return std::function{[t = obj, f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
+    return std::function{
+      [t = std::move(obj), f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
   }
 
   template <typename Bound, typename Algorithm>
