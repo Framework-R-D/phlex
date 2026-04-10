@@ -32,9 +32,9 @@ namespace phlex::experimental {
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
   {
     if (a->index()->depth() > b->index()->depth()) {
-      return a;
+      return a; // NOLINT(bugprone-return-const-ref-from-parameter)
     }
-    return b;
+    return b; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
 
   algorithm_name product_store::default_source()

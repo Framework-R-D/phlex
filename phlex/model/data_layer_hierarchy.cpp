@@ -9,7 +9,7 @@ namespace {
   std::string const& maybe_name(std::string const& name)
   {
     static std::string const unnamed{"(unnamed)"};
-    return empty(name) ? unnamed : name;
+    return empty(name) ? unnamed : name; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
 }
 
