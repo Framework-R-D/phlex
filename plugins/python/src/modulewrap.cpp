@@ -470,6 +470,10 @@ namespace {
     return ul;
   }
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// `clang-tidy` 22 claims that parameters should be used parenthesized in macros—this is fine for
+// expressions, but causes havoc with C++ signatures. We need to ignore this warning by block due to
+// the use of continuations rendering per-line suppression impossible.
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
   static intptr_t name##_to_py(cpptype a)                                                          \
   {                                                                                                \
@@ -617,6 +621,7 @@ namespace {
       return cres;                                                                                 \
     }                                                                                              \
   };
+  // NOLINTEND(bugprone-macro-parentheses)
 
   NUMPY_ARRAY_CONVERTER(vint, std::int32_t, NPY_INT32, PyLong_AsLong)
   NUMPY_ARRAY_CONVERTER(vuint, std::uint32_t, NPY_UINT32, pylong_or_int_as_ulong)
