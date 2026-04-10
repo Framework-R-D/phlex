@@ -146,14 +146,13 @@ jobs:
             echo "clang_tidy_checks=-*,${CHECKS_NORMALIZED}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Configure CMake (Debug)
+      - name: Configure CMake
         if: steps.apply_from_artifact.outputs.applied != 'true'
         uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
         with:
-          build-type: Debug
+          preset: clang-tidy
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
-          extra-options: "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
 
       - name: Generate clang-tidy fixes
         if: steps.apply_from_artifact.outputs.applied != 'true'
