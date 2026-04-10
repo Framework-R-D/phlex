@@ -60,7 +60,7 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
             try:
                 parsed_file_offset = int(file_offset)
             except (TypeError, ValueError):
-                parsed_file_offset = None
+                pass
 
         diagnostics.append(
             Diagnostic(

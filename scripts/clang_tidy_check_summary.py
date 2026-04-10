@@ -53,10 +53,12 @@ def count_unique_diagnostics(diagnostics: list[dict]) -> dict[str, int]:
         msg = entry.get("DiagnosticMessage") or {}
         file_path = str(msg.get("FilePath") or "")
         raw_offset = msg.get("FileOffset")
+        file_offset: int | None = None
         try:
-            file_offset: int | None = int(raw_offset) if raw_offset is not None else None
+            if raw_offset is not None:
+                file_offset = int(raw_offset)
         except (TypeError, ValueError):
-            file_offset = None
+            pass
 
         key = (name, file_path, file_offset)
         if key not in seen:
