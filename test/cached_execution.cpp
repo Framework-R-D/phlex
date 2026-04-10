@@ -97,8 +97,8 @@ TEST_CASE("Cached function calls", "[data model]")
   CHECK(g.execution_count("A2") == n_runs);
   CHECK(g.execution_count("A3") == n_runs);
 
-  CHECK(g.execution_count("B1") == n_runs * n_subruns);
-  CHECK(g.execution_count("B2") == n_runs * n_subruns);
+  CHECK(g.execution_count("B1") == std::size_t{n_runs} * n_subruns);
+  CHECK(g.execution_count("B2") == std::size_t{n_runs} * n_subruns);
 
-  CHECK(g.execution_count("C") == n_runs * n_subruns * n_events);
+  CHECK(g.execution_count("C") == std::size_t{n_runs} * n_subruns * n_events);
 }

@@ -9,7 +9,7 @@ namespace demo {
 
   struct Waveform {
     // We should be set to the number of samples on a wire.
-    std::array<double, 3 * 1024> samples;
+    std::array<double, 3uz * 1024> samples;
   };
 
   struct Waveforms {
