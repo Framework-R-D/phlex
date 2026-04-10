@@ -58,7 +58,8 @@ def count_unique_diagnostics(diagnostics: list[dict]) -> dict[str, int]:
             if raw_offset is not None:
                 file_offset = int(raw_offset)
         except (TypeError, ValueError):
-            pass
+            # Keep invalid/malformed offsets as None so processing remains robust.
+            file_offset = None
 
         key = (name, file_path, file_offset)
         if key not in seen:
