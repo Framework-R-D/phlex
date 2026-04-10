@@ -1,6 +1,7 @@
 #include "wrap.hpp"
 
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/full_product_spec.hpp"
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -1188,6 +1189,12 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
       throw std::runtime_error("output specification error: " + msg);
     }
   }
+  auto ops = full_product_spec(
+    product_specification(algorithm_name::create(std::string_view(identifier(opq->creator))),
+                          opq->suffix.value(),
+                          opq->type),
+    identifier(opq->layer),
+    opq->stage.value_or(""_id));
 
   // insert provider node (TODO: as in transform and observe, we'll leak the
   // callable for now, until there's a proper shutdown procedure)
@@ -1197,47 +1204,47 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   std::string const& out_type = output_types[0];
   if (out_type == "bool") {
     auto* pyc = new provider_cb_bool{callable};
-    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    src->ph_source->provide(functor_name, *pyc).output_product(ops);
   } else if (out_type == "int32_t") {
     auto* pyc = new provider_cb_int{callable};
-    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    src->ph_source->provide(functor_name, *pyc).output_product(ops);
   } else if (out_type == "uint32_t") {
     auto* pyc = new provider_cb_uint{callable};
-    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    src->ph_source->provide(functor_name, *pyc).output_product(ops);
   } else if (out_type == "int64_t") {
     auto* pyc = new provider_cb_long{callable};
-    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    src->ph_source->provide(functor_name, *pyc).output_product(ops);
   } else if (out_type == "uint64_t") {
     auto* pyc = new provider_cb_ulong{callable};
-    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    src->ph_source->provide(functor_name, *pyc).output_product(ops);
   } else if (out_type == "float") {
     auto* pyc = new provider_cb_float{callable};
-    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    src->ph_source->provide(functor_name, *pyc).output_product(ops);
   } else if (out_type == "double") {
     auto* pyc = new provider_cb_double{callable};
-    src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+    src->ph_source->provide(functor_name, *pyc).output_product(ops);
   } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
     std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
     if (dtype == "[int32_t]") {
       auto* pyc = new provider_cb_vint{callable};
-      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+      src->ph_source->provide(functor_name, *pyc).output_product(ops);
     } else if (dtype == "[uint32_t]") {
       auto* pyc = new provider_cb_vuint{callable};
-      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+      src->ph_source->provide(functor_name, *pyc).output_product(ops);
     } else if (dtype == "[int64_t]") {
       auto* pyc = new provider_cb_vlong{callable};
-      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+      src->ph_source->provide(functor_name, *pyc).output_product(ops);
     } else if (dtype == "[uint64_t]") {
       auto* pyc = new provider_cb_vulong{callable};
-      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+      src->ph_source->provide(functor_name, *pyc).output_product(ops);
     } else if (dtype == "[float]") {
       auto* pyc = new provider_cb_vfloat{callable};
-      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+      src->ph_source->provide(functor_name, *pyc).output_product(ops);
     } else if (dtype == "[double]") {
       auto* pyc = new provider_cb_vdouble{callable};
-      src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
+      src->ph_source->provide(functor_name, *pyc).output_product(ops);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;

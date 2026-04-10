@@ -3,6 +3,7 @@
 
 #include "phlex/phlex_core_export.hpp"
 
+#include "phlex/model/full_product_spec.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
@@ -80,10 +81,28 @@ namespace phlex {
     // Check if a product_specification satisfies this query
     bool match(experimental::product_specification const& spec) const;
 
+    // Check if a full_product_spec satisfies this query
+    bool match(experimental::full_product_spec const& spec) const;
+
     std::string to_string() const;
 
     bool operator==(product_query const& rhs) const;
     std::strong_ordering operator<=>(product_query const& rhs) const;
+
+    // Transitional automatic conversion operator so I don't have to rewrite all the tests
+    // The deprecated annotation is commented out because we have -Werror on
+    // [[deprecated(
+    //   "Generation of a full_product_spec from a product_query is only transitionally supported")]]
+    operator experimental::full_product_spec()
+    {
+      return experimental::full_product_spec{
+        experimental::product_specification{experimental::algorithm_name::create(std::string_view(
+                                              experimental::identifier(this->creator))),
+                                            this->suffix.value(),
+                                            this->type},
+        experimental::identifier(this->layer),
+        this->stage.value_or("")};
+    }
   };
 
   inline std::string format_as(product_query const& q) { return q.to_string(); }

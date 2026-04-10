@@ -8,6 +8,7 @@
 #include "phlex/core/message.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/full_product_spec.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -26,11 +27,11 @@ namespace phlex::experimental {
 
   class PHLEX_CORE_EXPORT declared_provider {
   public:
-    declared_provider(algorithm_name name, product_query output_product);
+    declared_provider(algorithm_name name, full_product_spec output_product);
     virtual ~declared_provider();
 
     std::string full_name() const;
-    product_query const& output_product() const noexcept;
+    full_product_spec const& output_product() const noexcept;
     identifier const& layer() const noexcept;
 
     virtual tbb::flow::receiver<index_message>* input_port() = 0;
@@ -39,7 +40,7 @@ namespace phlex::experimental {
 
   private:
     algorithm_name name_;
-    product_query output_product_;
+    full_product_spec output_product_;
   };
 
   using declared_provider_ptr = std::unique_ptr<declared_provider>;
@@ -56,11 +57,9 @@ namespace phlex::experimental {
                   std::size_t concurrency,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
-                  product_query output) :
+                  full_product_spec output) :
       declared_provider{std::move(name), output},
-      output_{algorithm_name::create(std::string_view(identifier(output.creator))),
-              output.suffix.value_or(identifier("")),
-              output.type},
+      output_{output.spec()},
       provider_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](index_message const& index_msg, auto& output) {

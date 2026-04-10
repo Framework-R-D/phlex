@@ -44,6 +44,22 @@ namespace phlex {
     return true;
   }
 
+  // Check if a full_product_spec satisfies this query
+  bool product_query::match(experimental::full_product_spec const& spec) const
+  {
+    using experimental::identifier;
+    if (!match(spec.spec())) {
+      return false;
+    }
+    if (identifier(layer) != spec.layer()) {
+      return false;
+    }
+    if (stage && stage != spec.stage()) {
+      return false;
+    }
+    return true;
+  }
+
   std::string product_query::to_string() const
   {
     if (suffix) {
