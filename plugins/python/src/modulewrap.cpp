@@ -777,7 +777,12 @@ static bool insert_input_converters(py_phlex_module* mod,
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
       // until we have an IDL
-      std::string_view dtype{inp_type.begin() + inp_type.rfind('['), inp_type.end()};
+      auto const dtype_pos = inp_type.rfind('[');
+      if (dtype_pos == std::string::npos) {
+        PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
+        return false;
+      }
+      std::string_view dtype = std::string_view{inp_type}.substr(dtype_pos);
       if (dtype == "[int32_t]") {
         insert_converter(mod, pyname, vint_to_py, inp_pq, output);
       } else if (dtype == "[uint32_t]") {
@@ -827,7 +832,13 @@ static bool insert_output_converter(py_phlex_module* mod,
   else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
-    std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
+    auto const dtype_pos = out_type.rfind('[');
+    if (dtype_pos == std::string::npos) {
+      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
+      return false;
+    }
+    std::string_view dtype{out_type};
+    dtype = dtype.substr(dtype_pos);
     if (dtype == "[int32_t]") {
       insert_converter(mod, cname, py_to_vint, out_pq, output);
     } else if (dtype == "[uint32_t]") {
@@ -1219,7 +1230,13 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
-    std::string_view dtype{out_type.begin() + out_type.rfind('['), out_type.end()};
+    auto const bracket_pos = out_type.rfind('[');
+    if (bracket_pos == std::string::npos) {
+      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
+      return nullptr;
+    }
+    std::string_view dtype{out_type};
+    dtype.remove_prefix(bracket_pos);
     if (dtype == "[int32_t]") {
       auto* pyc = new provider_cb_vint{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
