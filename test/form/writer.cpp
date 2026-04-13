@@ -27,7 +27,7 @@ void generate(std::vector<float>& vrand, int size)
   for (int nelement = 0; nelement < npx; ++nelement) {
     int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
     int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
-    float random = float(rand1 * 32768 + rand2) / (32768 * 32768);
+    float random = static_cast<float>(rand1 * 32768 + rand2) / (32768.0f * 32768);
     vrand.push_back(random);
   }
 }
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
         track_n_hits.push_back(i);
       }
       for (int val : track_n_hits)
-        check += val;
+        check += static_cast<float>(val);
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << std::endl;
 

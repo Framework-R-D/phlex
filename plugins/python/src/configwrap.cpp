@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "phlex/configuration.hpp"
@@ -42,6 +43,17 @@ static void pcm_dealloc(py_config_map* pcm)
   Py_TYPE(pcm)->tp_free((PyObject*)pcm);
 }
 
+// Returns the array size as Py_ssize_t, or std::nullopt (and sets a Python
+// OverflowError) if the size exceeds PY_SSIZE_T_MAX.
+static std::optional<Py_ssize_t> checked_tuple_size(std::size_t n)
+{
+  if (n > static_cast<std::size_t>(PY_SSIZE_T_MAX)) {
+    PyErr_Format(PyExc_OverflowError, "array is too large to convert to a Python tuple");
+    return std::nullopt;
+  }
+  return static_cast<Py_ssize_t>(n);
+}
+
 static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
 {
   // Retrieve a named configuration setting.
@@ -77,48 +89,69 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
     if (k.second /* is array */) {
       if (k.first == boost::json::kind::bool_) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<bool>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyLong_FromLong((long)cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::int64) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::int64_t>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromInt64
           PyObject* item = PyLong_FromLongLong(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::uint64) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::uint64_t>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromUInt64
           PyObject* item = PyLong_FromUnsignedLongLong(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::double_) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<double>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyFloat_FromDouble(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::string) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-          PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(), cvalue[i].size());
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
+          PyObject* item =
+            PyUnicode_FromStringAndSize(cvalue[i].c_str(), (Py_ssize_t)cvalue[i].size());
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::object) {
-        auto cvalue = pycmap->ph_config->get<std::vector<std::map<std::string, std::string>>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const& cvalue =
+          pycmap->ph_config->get<std::vector<std::map<std::string, std::string>>>(ckey);
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyDict_New();
           for (auto const& kv : cvalue[i]) {
-            PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(), kv.second.size());
+            PyObject* val =
+              PyUnicode_FromStringAndSize(kv.second.c_str(), (Py_ssize_t)kv.second.size());
             PyDict_SetItemString(item, kv.first.c_str(), val);
             Py_DECREF(val);
           }
@@ -145,12 +178,13 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         pyvalue = PyFloat_FromDouble(cvalue);
       } else if (k.first == boost::json::kind::string) {
         auto const& cvalue = pycmap->ph_config->get<std::string>(ckey);
-        pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), cvalue.size());
+        pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), (Py_ssize_t)cvalue.size());
       } else if (k.first == boost::json::kind::object) {
         auto cvalue = pycmap->ph_config->get<std::map<std::string, std::string>>(ckey);
         pyvalue = PyDict_New();
         for (auto const& kv : cvalue) {
-          PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(), kv.second.size());
+          PyObject* val =
+            PyUnicode_FromStringAndSize(kv.second.c_str(), (Py_ssize_t)kv.second.size());
           PyDict_SetItemString(pyvalue, kv.first.c_str(), val);
           Py_DECREF(val);
         }

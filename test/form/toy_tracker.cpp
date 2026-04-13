@@ -10,9 +10,10 @@ std::vector<TrackStart> ToyTracker::operator()()
   int32_t const npx = generateRandom() % m_maxTracks;
   std::vector<TrackStart> points(npx);
   for (int nelement = 0; nelement < npx; ++nelement) {
-    points[nelement] = TrackStart(float(generateRandom()) / random_max,
-                                  float(generateRandom()) / random_max,
-                                  float(generateRandom()) / random_max);
+    points[nelement] =
+      TrackStart(static_cast<float>(generateRandom()) / static_cast<float>(random_max),
+                 static_cast<float>(generateRandom()) / static_cast<float>(random_max),
+                 static_cast<float>(generateRandom()) / static_cast<float>(random_max));
   }
 
   return points;
