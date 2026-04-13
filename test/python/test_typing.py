@@ -28,6 +28,7 @@ class TestTYPING:
             ["double", ctypes.c_double],
         ):
             # TODO: the use of _C2C here is a bit circular
+            assert isinstance(types[0], str)
             tn = _C2C.get(types[0], types[0])
 
             if 0 < tn.find("_"):
