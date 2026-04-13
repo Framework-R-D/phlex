@@ -25,7 +25,9 @@
 - [x] [cert-dcl50-cpp](https://clang.llvm.org/extra/clang-tidy/checks/cert/dcl50-cpp.html) (2)
   - _a.k.a._ [modernize-avoid-variadic-functions](https://clang.llvm.org/extra/clang-tidy/checks/modernize/avoid-variadic-functions.html)
   - [PR #529](https://github.com/Framework-R-D/phlex/pull/529)
-- [ ] [cert-err33-c](https://clang.llvm.org/extra/clang-tidy/checks/cert/err33-c.html) (4)
+- [x] [cert-err33-c](https://clang.llvm.org/extra/clang-tidy/checks/cert/err33-c.html) (4)
+  - [bugprone-unused-return-value](https://clang.llvm.org/extra/clang-tidy/checks/bugprone/unused-return-value.html) for specific functions
+  - [PR #528](https://github.com/Framework-R-D/phlex/pull/528)
 - [x] [cert-msc30-c](https://clang.llvm.org/extra/clang-tidy/checks/cert/msc30-c.html) (6)
   - _a.k.a_ [misc-predictable-rand](https://clang.llvm.org/extra/clang-tidy/checks/misc/predictable-rand.html)
   - _a.k.a_ [cert-msc50-cpp](https://clang.llvm.org/extra/clang-tidy/checks/cert/msc50-cpp.html)
