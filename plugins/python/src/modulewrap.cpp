@@ -470,6 +470,10 @@ namespace {
     return ul;
   }
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// `bugprone-macro-parentheses` expects macro parameters to be parenthesized. That is appropriate
+// for expressions, but causes havoc with C++ signatures. We suppress this warning for the block
+// because the use of continuations makes per-line suppression impossible.
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
   static intptr_t name##_to_py(cpptype a)                                                          \
   {                                                                                                \
@@ -617,6 +621,7 @@ namespace {
       return cres;                                                                                 \
     }                                                                                              \
   };
+  // NOLINTEND(bugprone-macro-parentheses)
 
   NUMPY_ARRAY_CONVERTER(vint, std::int32_t, NPY_INT32, PyLong_AsLong)
   NUMPY_ARRAY_CONVERTER(vuint, std::uint32_t, NPY_UINT32, pylong_or_int_as_ulong)

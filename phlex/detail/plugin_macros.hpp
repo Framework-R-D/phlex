@@ -3,6 +3,10 @@
 
 #include "boost/preprocessor.hpp"
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// `bugprone-macro-parentheses` is appropriate for expression-like macros, but these macros expand
+// to C++ signatures, where parenthesizing parameters breaks parsing. We suppress the check for this
+// block because line continuations make per-line suppression impractical.
 #define PHLEX_DETAIL_NARGS(...) BOOST_PP_DEC(BOOST_PP_VARIADIC_SIZE(__VA_OPT__(, ) __VA_ARGS__))
 
 #define PHLEX_DETAIL_CREATE_1ARG(token_type, func_name, m)                                         \
@@ -40,5 +44,6 @@
   static PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, __VA_ARGS__);                             \
   BOOST_DLL_ALIAS(func_name, dll_alias)                                                            \
   PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, __VA_ARGS__)
+// NOLINTEND(bugprone-macro-parentheses)
 
 #endif // PHLEX_DETAIL_PLUGIN_MACROS_HPP
