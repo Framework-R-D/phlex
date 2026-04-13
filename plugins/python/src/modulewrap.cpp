@@ -345,8 +345,13 @@ namespace {
         Py_DECREF(phlexmod);
       }
 
+      // LCOV_EXCL_START
+      // this would only fail if the phlex installation were broken and
+      // only exists to get a proper error message instead of a segfault
+      // in that rather unlikely case
       if (!normalizer)
         return "";
+      // LCOV_EXCL_STOP
     }
 
     PyObject* norm = PyObject_CallOneArg(normalizer, pyobj);
@@ -401,6 +406,8 @@ namespace {
       }
     } else {
       conversion_ok = false;
+      if (!PyErr_Occurred())
+        PyErr_SetString(PyExc_TypeError, "unknown annotation formatting");
     }
 
     Py_XDECREF(annot);
@@ -1215,10 +1222,8 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // translate and validate the output query
   auto opq = validate_query(output);
   if (!opq.has_value()) {
-    // LCOV_EXCL_START
     // validate_query has set a python exception with details about the error
     return nullptr;
-    // LCOV_EXCL_STOP
   }
 
   // insert provider node (TODO: as in transform and observe, we'll leak the
