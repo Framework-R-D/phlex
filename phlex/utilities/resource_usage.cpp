@@ -24,7 +24,7 @@ namespace {
     rusage used;
     getrusage(RUSAGE_SELF, &used);
     auto const [secs, microsecs] = used.ru_utime;
-    return {.elapsed_time = double(secs) + double(microsecs) / 1000000.0,
+    return {.elapsed_time = double(secs) + double(microsecs) / 1e6,
             .max_rss = double(used.ru_maxrss) / mem_denominator};
   }
 }
@@ -41,7 +41,7 @@ namespace phlex::experimental {
     auto const end_wall = steady_clock::now();
     auto const cpu_time = elapsed_time - begin_cpu_;
     auto const real_time =
-      double(duration_cast<nanoseconds>(end_wall - begin_wall_).count() / 1000000000);
+      static_cast<double>(duration_cast<nanoseconds>(end_wall - begin_wall_).count()) / 1e9;
     spdlog::info("CPU time: {:.5f}s  Real time: {:.5f}s  CPU efficiency: {:6.2f}%",
                  cpu_time,
                  real_time,

@@ -743,6 +743,17 @@ static PyObject* parse_args(PyObject* args,
   return callable;
 }
 
+// Returns the dtype suffix (e.g. "[float]") from a collection type string (e.g. "list[float]"),
+// or std::nullopt if the string contains no '[' character.
+static std::optional<std::string_view> collection_dtype(std::string const& type_name)
+{
+  auto const pos = type_name.rfind('[');
+  if (pos == std::string::npos) {
+    return std::nullopt;
+  }
+  return std::string_view{type_name}.substr(pos);
+}
+
 static bool insert_input_converters(py_phlex_module* mod,
                                     std::string const& cname, // TODO: shared_ptr<PyObject>
                                     std::vector<product_query> const& input_queries,
@@ -777,23 +788,22 @@ static bool insert_input_converters(py_phlex_module* mod,
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
       // until we have an IDL
-      auto const dtype_pos = inp_type.rfind('[');
-      if (dtype_pos == std::string::npos) {
+      auto const dtype = collection_dtype(inp_type);
+      if (!dtype) {
         PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
         return false;
       }
-      std::string_view dtype = std::string_view{inp_type}.substr(dtype_pos);
-      if (dtype == "[int32_t]") {
+      if (*dtype == "[int32_t]") {
         insert_converter(mod, pyname, vint_to_py, inp_pq, output);
-      } else if (dtype == "[uint32_t]") {
+      } else if (*dtype == "[uint32_t]") {
         insert_converter(mod, pyname, vuint_to_py, inp_pq, output);
-      } else if (dtype == "[int64_t]") {
+      } else if (*dtype == "[int64_t]") {
         insert_converter(mod, pyname, vlong_to_py, inp_pq, output);
-      } else if (dtype == "[uint64_t]") {
+      } else if (*dtype == "[uint64_t]") {
         insert_converter(mod, pyname, vulong_to_py, inp_pq, output);
-      } else if (dtype == "[float]") {
+      } else if (*dtype == "[float]") {
         insert_converter(mod, pyname, vfloat_to_py, inp_pq, output);
-      } else if (dtype == "[double]") {
+      } else if (*dtype == "[double]") {
         insert_converter(mod, pyname, vdouble_to_py, inp_pq, output);
       } else {
         PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
@@ -832,24 +842,22 @@ static bool insert_output_converter(py_phlex_module* mod,
   else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
-    auto const dtype_pos = out_type.rfind('[');
-    if (dtype_pos == std::string::npos) {
+    auto const dtype = collection_dtype(out_type);
+    if (!dtype) {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return false;
     }
-    std::string_view dtype{out_type};
-    dtype = dtype.substr(dtype_pos);
-    if (dtype == "[int32_t]") {
+    if (*dtype == "[int32_t]") {
       insert_converter(mod, cname, py_to_vint, out_pq, output);
-    } else if (dtype == "[uint32_t]") {
+    } else if (*dtype == "[uint32_t]") {
       insert_converter(mod, cname, py_to_vuint, out_pq, output);
-    } else if (dtype == "[int64_t]") {
+    } else if (*dtype == "[int64_t]") {
       insert_converter(mod, cname, py_to_vlong, out_pq, output);
-    } else if (dtype == "[uint64_t]") {
+    } else if (*dtype == "[uint64_t]") {
       insert_converter(mod, cname, py_to_vulong, out_pq, output);
-    } else if (dtype == "[float]") {
+    } else if (*dtype == "[float]") {
       insert_converter(mod, cname, py_to_vfloat, out_pq, output);
-    } else if (dtype == "[double]") {
+    } else if (*dtype == "[double]") {
       insert_converter(mod, cname, py_to_vdouble, out_pq, output);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
@@ -1230,29 +1238,27 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
-    auto const bracket_pos = out_type.rfind('[');
-    if (bracket_pos == std::string::npos) {
+    auto const dtype = collection_dtype(out_type);
+    if (!dtype) {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;
     }
-    std::string_view dtype{out_type};
-    dtype.remove_prefix(bracket_pos);
-    if (dtype == "[int32_t]") {
+    if (*dtype == "[int32_t]") {
       auto* pyc = new provider_cb_vint{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
-    } else if (dtype == "[uint32_t]") {
+    } else if (*dtype == "[uint32_t]") {
       auto* pyc = new provider_cb_vuint{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
-    } else if (dtype == "[int64_t]") {
+    } else if (*dtype == "[int64_t]") {
       auto* pyc = new provider_cb_vlong{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
-    } else if (dtype == "[uint64_t]") {
+    } else if (*dtype == "[uint64_t]") {
       auto* pyc = new provider_cb_vulong{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
-    } else if (dtype == "[float]") {
+    } else if (*dtype == "[float]") {
       auto* pyc = new provider_cb_vfloat{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
-    } else if (dtype == "[double]") {
+    } else if (*dtype == "[double]") {
       auto* pyc = new provider_cb_vdouble{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else {
