@@ -1185,7 +1185,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
     // LCOV_EXCL_START
     // validate_query _will_ have set a python exception with details about the
     //  error, so just propagate it as a C++ exception
-    std::string msg;
+    std::string msg{"(unknown)"};
     msg_from_py_error(msg, false);
     throw std::runtime_error("output specification error: " + msg);
     // LCOV_EXCL_STOP
