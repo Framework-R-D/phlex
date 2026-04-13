@@ -21,6 +21,8 @@ demo::WaveformGeneratorInput::WaveformGeneratorInput(WaveformGeneratorInput&& ot
 demo::WaveformGeneratorInput& demo::WaveformGeneratorInput::operator=(
   WaveformGeneratorInput const& other)
 {
+  if (this == &other)
+    return *this; // Handle self-assignment
   size = other.size;
   spill_id = other.spill_id;
   return *this;

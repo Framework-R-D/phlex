@@ -20,6 +20,8 @@ demo::Waveforms::Waveforms(Waveforms&& other) :
 
 demo::Waveforms& demo::Waveforms::operator=(Waveforms const& other)
 {
+  if (this == &other)
+    return *this; // Handle self-assignment
   waveforms = other.waveforms;
   spill_id = other.spill_id;
   apa_id = other.apa_id;
