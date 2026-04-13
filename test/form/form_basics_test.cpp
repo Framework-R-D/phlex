@@ -207,7 +207,8 @@ TEST_CASE("form::experimental::config tests", "[form]")
     cfg.addItem("prod1", "file1.root", 1);
 
     auto item = cfg.findItem("prod1");
-    REQUIRE(item.has_value());
+    REQUIRE(item);
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- `REQUIRE` protects against incorrect access
     CHECK(item->product_name == "prod1");
 
     CHECK_FALSE(cfg.findItem("nonexistent").has_value());
