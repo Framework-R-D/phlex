@@ -90,7 +90,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
       if (k.first == boost::json::kind::bool_) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<bool>>(ckey);
         auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) return nullptr;
+        if (!cvalue_size)
+          return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyLong_FromLong((long)cvalue[i]);
@@ -99,7 +100,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
       } else if (k.first == boost::json::kind::int64) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::int64_t>>(ckey);
         auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) return nullptr;
+        if (!cvalue_size)
+          return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromInt64
@@ -109,7 +111,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
       } else if (k.first == boost::json::kind::uint64) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::uint64_t>>(ckey);
         auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) return nullptr;
+        if (!cvalue_size)
+          return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromUInt64
@@ -119,7 +122,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
       } else if (k.first == boost::json::kind::double_) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<double>>(ckey);
         auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) return nullptr;
+        if (!cvalue_size)
+          return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyFloat_FromDouble(cvalue[i]);
@@ -128,7 +132,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
       } else if (k.first == boost::json::kind::string) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(ckey);
         auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) return nullptr;
+        if (!cvalue_size)
+          return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item =
@@ -139,7 +144,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         auto const& cvalue =
           pycmap->ph_config->get<std::vector<std::map<std::string, std::string>>>(ckey);
         auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) return nullptr;
+        if (!cvalue_size)
+          return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyDict_New();

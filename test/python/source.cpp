@@ -15,11 +15,10 @@ PHLEX_REGISTER_PROVIDERS(s)
   s.provide("provide_k", [](data_cell_index const&) -> int { return 0; })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "k"});
 
-  s.provide(
-     "provide_f1",
-     [](data_cell_index const& id) -> float {
-       return static_cast<float>(id.number() % 100u) / 100.0f;
-     })
+  s.provide("provide_f1",
+            [](data_cell_index const& id) -> float {
+              return static_cast<float>(id.number() % 100u) / 100.0f;
+            })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "f1"});
   s.provide("provide_f2",
             [](data_cell_index const& id) -> float {
@@ -27,11 +26,10 @@ PHLEX_REGISTER_PROVIDERS(s)
             })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "f2"});
 
-  s.provide(
-     "provide_d1",
-     [](data_cell_index const& id) -> double {
-       return static_cast<double>(id.number() % 100u) / 100.0;
-     })
+  s.provide("provide_d1",
+            [](data_cell_index const& id) -> double {
+              return static_cast<double>(id.number() % 100u) / 100.0;
+            })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "d1"});
   s.provide("provide_d2",
             [](data_cell_index const& id) -> double {
@@ -39,34 +37,29 @@ PHLEX_REGISTER_PROVIDERS(s)
             })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "d2"});
 
-  s.provide(
-     "provide_u1",
-     [](data_cell_index const& id) -> unsigned int {
-       return static_cast<unsigned int>(id.number() % 2);
-     })
+  s.provide("provide_u1",
+            [](data_cell_index const& id) -> unsigned int {
+              return static_cast<unsigned int>(id.number() % 2);
+            })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "u1"});
-  s.provide(
-     "provide_u2",
-     [](data_cell_index const& id) -> unsigned int {
-       return 1u - static_cast<unsigned int>(id.number() % 2);
-     })
+  s.provide("provide_u2",
+            [](data_cell_index const& id) -> unsigned int {
+              return 1u - static_cast<unsigned int>(id.number() % 2);
+            })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "u2"});
 
-  s.provide("provide_l1", [](data_cell_index const& id) -> long {
-    return static_cast<long>(id.number() % 2);
-  })
+  s.provide("provide_l1",
+            [](data_cell_index const& id) -> long { return static_cast<long>(id.number() % 2); })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "l1"});
-  s.provide("provide_l2",
-            [](data_cell_index const& id) -> long {
-              return 1L - static_cast<long>(id.number() % 2);
-            })
+  s.provide(
+     "provide_l2",
+     [](data_cell_index const& id) -> long { return 1L - static_cast<long>(id.number() % 2); })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "l2"});
 
-  s.provide(
-     "provide_ul1",
-     [](data_cell_index const& id) -> unsigned long {
-       return static_cast<unsigned long>(id.number() % 101);
-     })
+  s.provide("provide_ul1",
+            [](data_cell_index const& id) -> unsigned long {
+              return static_cast<unsigned long>(id.number() % 101);
+            })
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "ul1"});
   s.provide("provide_ul2",
             [](data_cell_index const& id) -> unsigned long {
