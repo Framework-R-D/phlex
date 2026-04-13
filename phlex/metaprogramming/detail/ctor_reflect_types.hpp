@@ -74,8 +74,12 @@ namespace refl {
   // Here we detect the data type field number. The byproduct is instantiations.  Uses
   // list initialization. Won't work for types with user-provided constructors.  In C++17
   // there is std::is_aggregate which can be added later.
+  // Fallback: called when the (int) overload below is excluded by SFINAE.
+  // Takes (long) rather than (...) to avoid a C-style variadic function; int→long
+  // is a lower-priority implicit conversion than the int→int exact match below,
+  // so this overload only wins when the SFINAE-constrained (int) overload fails.
   template <typename T, int... Ns>
-  constexpr int fields_number(...)
+  constexpr int fields_number(long)
   {
     return sizeof...(Ns) - 1;
   }
@@ -94,8 +98,9 @@ namespace refl {
     return sizeof...(Ns);
   }
 
+  // Fallback: same (long) vs (int) priority trick as fields_number above.
   template <typename T, int... Ns>
-  constexpr int fields_number_ctor(...)
+  constexpr int fields_number_ctor(long)
   {
     return fields_number_ctor<T, Ns..., sizeof...(Ns)>(0);
   }
