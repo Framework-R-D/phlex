@@ -68,27 +68,36 @@
         "esbonio.logging.level": "debug",
         "python.analysis.typeCheckingMode": "basic",
         "python.analysis.diagnosticMode": "workspace",
+        "python.analysis.include": [
+            "/workspaces/phlex"
+        ],
         "python.analysis.extraPaths": [
+            "/workspaces/phlex/plugins/python/python",
             "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
             "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
         ],
         "python.analysis.exclude": [
-            "**/local/.*/**",
-            "**/local/*/",
-            "**/build/_deps/**",
-            "**/build/CMakeFiles/**",
-            "**/.venv/**",
-            "**/py_virtual_env/**"
+            "/opt/spack-environments",
+            "/workspaces/phlex/local",
+            "/workspaces/phlex/build/_deps",
+            "/workspaces/phlex/build/CMakeFiles",
+            "/workspaces/phlex/**/.venv",
+            "/workspaces/phlex/**/py_virtual_env"
         ],
         "python.analysis.ignore": [
-            "**/local/.*/**",
-            "**/local/*/",
-            "**/build/_deps/**",
-            "**/build/CMakeFiles/**",
-            "**/.venv/**",
-            "**/py_virtual_env/**"
+            "/opt/spack-environments",
+            "/workspaces/phlex-design",
+            "/workspaces/phlex-examples",
+            "/workspaces/phlex-coding-guidelines",
+            "/workspaces/phlex-spack-recipes",
+            "/workspaces/phlex/local",
+            "/workspaces/phlex/build/_deps",
+            "/workspaces/phlex/build/CMakeFiles",
+            "/workspaces/phlex/**/.venv",
+            "/workspaces/phlex/**/py_virtual_env"
         ],
         "flake8.enabled": false,
+        "pylint.enabled": false,
         "[python]": {
             "editor.formatOnSave": true,
             "editor.defaultFormatter": "charliermarsh.ruff",
@@ -120,6 +129,7 @@
             "github.copilot",
             "ikuyadeu.r",
             "ms-python.flake8",
+            "ms-python.pylint",
             "ms-python.python",
             "ms-toolsai.jupyter",
             "ms-vscode.r",
