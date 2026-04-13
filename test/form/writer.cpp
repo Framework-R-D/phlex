@@ -21,12 +21,16 @@ static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
 
 void generate(std::vector<float>& vrand, int size)
 {
-  int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
-  int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
+  // NOLINTBEGIN(concurrency-mt-unsafe,  cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
+  int rand1 = rand() % 32768;
+  int rand2 = rand() % 32768;
+  // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
   int npx = (rand1 * 32768 + rand2) % size;
   for (int nelement = 0; nelement < npx; ++nelement) {
-    int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
-    int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
+    // NOLINTBEGIN(concurrency-mt-unsafe,  cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
+    int rand1 = rand() % 32768;
+    int rand2 = rand() % 32768;
+    // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
     float random = static_cast<float>(rand1 * 32768 + rand2) / (32768.0f * 32768);
     vrand.push_back(random);
   }
@@ -36,7 +40,8 @@ int main(int argc, char** argv)
 {
   std::cout << "In main" << std::endl;
   // Deliberately use C-style random number generation for simplicity in a test
-  srand(time(nullptr)); // NOLINT(bugprone-random-generator-seed)
+  // NOLINTNEXTLINE(bugprone-random-generator-seed, cert-msc32-c, cert-msc51-cpp)
+  srand(time(nullptr));
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
