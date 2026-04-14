@@ -11,6 +11,8 @@
 - [x] [bugprone-narrowing-conversions](https://clang.llvm.org/extra/clang-tidy/checks/bugprone/narrowing-conversions.html) (34)
   - [PR #497](https://github.com/Framework-R-D/phlex/pull/497)
 - [x] [bugprone-random-generator-seed](https://clang.llvm.org/extra/clang-tidy/checks/bugprone/random-generator-seed.html) (1)
+  - _a.k.a._ [cert-msc32-c](https://clang.llvm.org/extra/clang-tidy/checks/cert/msc32-c.html)
+  - _a.k.a._ [cert-msc51-cpp](https://clang.llvm.org/extra/clang-tidy/checks/cert/msc51-cpp.html)
   - [PR #490](https://github.com/Framework-R-D/phlex/pull/490)
 - [x] [bugprone-reserved-identifier](https://clang.llvm.org/extra/clang-tidy/checks/bugprone/reserved-identifier.html) (1)
   - [PR #489](https://github.com/Framework-R-D/phlex/pull/489)
