@@ -5,6 +5,8 @@ product can be injected into the execution graph and used by subsequent
 algorithms.
 """
 
+from typing import Dict, List
+
 import numpy as np
 import numpy.typing as npt
 
@@ -101,6 +103,24 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
         assert not "supposed to be here"
     except TypeError as e:
         assert "unsupported collection output type" in str(e)
+
+    # annotations with ambiguous (union) type fail annotation processing
+    try:
+        funky = List[int] | Dict[int, int]
+        f = Variant(lambda di: 42, {"di": "data_cell_index", "return": funky}, "f")
+        s.provide(f, {"creator": "a", "layer": "b", "suffix": "c"})
+        assert not "supposed to be here"
+    except TypeError as e:
+        assert "must be unambiguous" in str(e)
+
+    # annotations with a surrogate string fail UTF-8 conversion
+    try:
+        surrogate = b"\x80".decode("gbk", errors="surrogateescape")
+        f = Variant(lambda di: 42, {"di": "data_cell_index", "return": surrogate}, "f")
+        s.provide(f, {"creator": "a", "layer": "b", "suffix": "c"})
+        assert not "supposed to be here"
+    except UnicodeEncodeError as e:
+        assert "surrogates not allowed" in str(e)
 
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
