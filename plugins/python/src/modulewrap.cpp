@@ -345,28 +345,29 @@ namespace {
         Py_DECREF(phlexmod);
       }
 
-      if (!normalizer) {
-        std::string msg;
-        if (msg_from_py_error(msg, false))
-          throw std::runtime_error("unable to retrieve the phlex type normalizer: " + msg);
-      }
+      // LCOV_EXCL_START
+      // this would only fail if the phlex installation were broken and
+      // only exists to get a proper error message instead of a segfault
+      // in that rather unlikely case
+      if (!normalizer)
+        return "";
+      // LCOV_EXCL_STOP
     }
 
     PyObject* norm = PyObject_CallOneArg(normalizer, pyobj);
-    if (!norm) {
-      std::string msg;
-      if (msg_from_py_error(msg, false))
-        throw std::runtime_error("normalization error: " + msg);
-    }
+    if (!norm)
+      return "";
 
-    std::string ann = PyUnicode_AsUTF8(norm);
+    char const* ann = PyUnicode_AsUTF8(norm);
     Py_DECREF(norm);
+    if (!ann)
+      return "";
 
     return ann;
   }
 
   // retrieve C++ (matching) types from annotations
-  static void annotations_to_strings(PyObject* callable,
+  static bool annotations_to_strings(PyObject* callable,
                                      std::vector<std::string>& input_types,
                                      std::vector<std::string>& output_types)
   {
@@ -383,21 +384,34 @@ namespace {
     }
     Py_DECREF(sann);
 
+    bool conversion_ok = true;
     if (annot && PyDict_Check(annot)) {
       // Variant guarantees OrderedDict with "return" last
       PyObject *key, *value;
       Py_ssize_t pos = 0;
 
       while (PyDict_Next(annot, &pos, &key, &value)) {
+        std::string const& ann = annotation_as_text(value);
+        if (ann.empty() && PyErr_Occurred()) {
+          conversion_ok = false;
+          break;
+        }
+
         char const* key_str = PyUnicode_AsUTF8(key);
         if (strcmp(key_str, "return") == 0) {
-          output_types.push_back(annotation_as_text(value));
+          output_types.push_back(ann);
         } else {
-          input_types.push_back(annotation_as_text(value));
+          input_types.push_back(ann);
         }
       }
+    } else {
+      conversion_ok = false;
+      if (!PyErr_Occurred())
+        PyErr_SetString(PyExc_TypeError, "unknown annotation formatting");
     }
+
     Py_XDECREF(annot);
+    return conversion_ok;
   }
 
   // converters of builtin types; TODO: this is a basic subset only, b/c either
@@ -715,7 +729,8 @@ static PyObject* parse_args(PyObject* args,
 
   // retrieve C++ (matching) types from annotations
   input_types.reserve(input_queries.size());
-  annotations_to_strings(callable, input_types, output_types);
+  if (!annotations_to_strings(callable, input_types, output_types))
+    return nullptr; // Python error already set
 
   // ignore None as Python's conventional "void" return, which is meaningless in C++
   if (output_types.size() == 1 && output_types[0] == "None")
@@ -1179,7 +1194,8 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // retrieve C++ (matching) types from annotations
   std::vector<std::string> input_types;
   std::vector<std::string> output_types;
-  annotations_to_strings(callable, input_types, output_types);
+  if (!annotations_to_strings(callable, input_types, output_types))
+    return nullptr; // Python error already set
 
   // provider needs to take a single "data_cell_input"
   if (input_types.size() != 1 || input_types[0] != "data_cell_index") {
@@ -1206,13 +1222,8 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // translate and validate the output query
   auto opq = validate_query(output);
   if (!opq.has_value()) {
-    // LCOV_EXCL_START
-    // validate_query _will_ have set a python exception with details about the
-    //  error, so just propagate it as a C++ exception
-    std::string msg{"(unknown)"};
-    msg_from_py_error(msg, false);
-    throw std::runtime_error("output specification error: " + msg);
-    // LCOV_EXCL_STOP
+    // validate_query has set a python exception with details about the error
+    return nullptr;
   }
 
   // insert provider node (TODO: as in transform and observe, we'll leak the
