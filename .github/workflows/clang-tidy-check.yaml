@@ -7,6 +7,8 @@ permissions:
 
 "on":
   pull_request:
+  push:
+    branches: ["releases/*"]
   issue_comment:
     types: [created]
   workflow_dispatch:

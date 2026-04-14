@@ -6,7 +6,7 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
   issue_comment:
     types: [created]
   push:
-    branches: [main, develop]
+    branches: [main, "releases/*"]
   schedule:
     - cron: "7 18 * * 6"
   workflow_dispatch:
