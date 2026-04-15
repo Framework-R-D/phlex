@@ -7,7 +7,7 @@ permissions:
 "on":
   pull_request:
   push:
-    branches: ["releases/*"]
+    branches: ["release/*"]
   workflow_dispatch:
     inputs:
       ref:
