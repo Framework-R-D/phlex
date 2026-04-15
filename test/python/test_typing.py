@@ -2,6 +2,7 @@
 """Unit tests for phlex typing normalization."""
 
 import ctypes
+import typing
 from typing import Dict, List
 
 import numpy as np
@@ -68,6 +69,10 @@ class TestTYPING:
             (np.float64, "double"),
         ):
             assert normalize_type(npt.NDArray[t]) == "ndarray[" + s + "]"
+
+        # ndarray annotations without a concrete dtype must raise TypeError
+        raises(TypeError, normalize_type, np.ndarray[typing.Any])
+        raises(TypeError, normalize_type, np.ndarray[typing.Any, np.dtype])
 
     def test_special_cases(self):
         """Special cases."""

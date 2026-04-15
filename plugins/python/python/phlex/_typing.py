@@ -158,8 +158,11 @@ def normalize_type(tp: Any, globalns: Dict | None = None, localns: Dict | None =
 
         if origin is np.ndarray:  # numpy arrays
             dtype_args = typing.get_args(args[1]) if len(args) >= 2 else ()
-            dtype = dtype_args[0] if dtype_args else object
-            return "ndarray[" + normalize_type(dtype, globalns, localns) + "]"
+            if not dtype_args:
+                raise TypeError(
+                    "np.ndarray annotations must supply a dtype, e.g. npt.NDArray[np.float64]"
+                )
+            return "ndarray[" + normalize_type(dtype_args[0], globalns, localns) + "]"
 
         if isinstance(origin, type):  # regular python typing type
             name = origin.__name__
