@@ -63,7 +63,7 @@ namespace refl {
   template <typename T, int N>
   struct c_op {
     template <typename U, int M>
-    static auto ins(...) -> int;
+    static auto ins(long) -> int;
     template <typename U, int M, int = cloophole(tag<T, M>{})>
     static auto ins(int) -> char;
 
