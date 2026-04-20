@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <utility> // for std::ignore
 #include <vector>
 
 static int const NUMBER_EVENT = 4;

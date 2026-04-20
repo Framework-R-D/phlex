@@ -9,6 +9,7 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <utility> // for std::ignore
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
