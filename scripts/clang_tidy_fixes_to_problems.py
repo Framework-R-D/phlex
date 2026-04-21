@@ -171,9 +171,7 @@ def choose_workspace_note(
         note
         for note in notes
         if note.file_path
-        and is_within_workspace(
-            apply_path_map(note.file_path, effective_mappings), workspace_root
-        )
+        and is_within_workspace(apply_path_map(note.file_path, effective_mappings), workspace_root)
     ]
     if not workspace_notes:
         return None
