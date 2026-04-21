@@ -157,7 +157,7 @@ def normalize_type(tp: Any, globalns: Dict | None = None, localns: Dict | None =
         args = typing.get_args(tp)
 
         if origin is np.ndarray:  # numpy arrays
-            dtype_args = ()
+            dtype_args: tuple[Any, ...] = ()
             if len(args) >= 2:
                 dtype_args = typing.get_args(args[1])
             if not dtype_args:
