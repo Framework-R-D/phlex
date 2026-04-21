@@ -45,7 +45,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
 
     # annotations aren't a dictionary
     funky_func = Variant(mismatch_func, {"a": int, "b": int, "return": int}, "ff")
-    funky_func.__annotations__ = [int, int, int]
+    funky_func.__annotations__ = [int, int, int]  # type: ignore[assignment]
     try:
         m.transform(
             funky_func,

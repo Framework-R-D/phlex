@@ -33,15 +33,15 @@ class TestTYPING:
             tn = _C2C.get(types[0], types[0])
 
             if 0 < tn.find("_"):
-                npt = tn[: tn.find("_")]
+                np_type_name = tn[: tn.find("_")]
             elif tn == "float":
-                npt = "float32"
-            elif tn == "double":
-                npt = "float64"
-            npt = getattr(np, npt)
+                np_type_name = "float32"
+            else:
+                np_type_name = "float64"
+            np_type = getattr(np, np_type_name)
 
             norm = "list[" + tn + "]"
-            for t in types + [npt]:
+            for t in types + [np_type]:
                 assert normalize_type(norm) == norm
                 try:
                     assert normalize_type(List[t]) == norm
