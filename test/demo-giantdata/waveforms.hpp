@@ -22,14 +22,6 @@ namespace demo {
     std::size_t size() const;
 
     Waveforms(std::size_t n, double val, int run_id, int subrun_id, int spill_id, int apa_id);
-    Waveforms(Waveforms const& other);
-    Waveforms(Waveforms&& other);
-
-    // instrument copy assignment and move assignment
-    Waveforms& operator=(Waveforms const& other);
-    Waveforms& operator=(Waveforms&& other);
-
-    ~Waveforms();
   };
 
 } // namespace demo
