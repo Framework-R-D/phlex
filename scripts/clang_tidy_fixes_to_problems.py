@@ -161,13 +161,19 @@ def is_within_workspace(path: str, workspace_root: Path) -> bool:
 
 
 def choose_workspace_note(
-    notes: list[DiagnosticNote], workspace_root: Path
+    notes: list[DiagnosticNote],
+    workspace_root: Path,
+    mappings: list[tuple[str, str]] | None = None,
 ) -> DiagnosticNote | None:
     """Choose the most helpful in-workspace note for external diagnostics."""
+    effective_mappings = mappings or []
     workspace_notes = [
         note
         for note in notes
-        if note.file_path and is_within_workspace(note.file_path, workspace_root)
+        if note.file_path
+        and is_within_workspace(
+            apply_path_map(note.file_path, effective_mappings), workspace_root
+        )
     ]
     if not workspace_notes:
         return None
@@ -242,7 +248,7 @@ def main() -> int:
         chosen_note = None
         original_location: tuple[str, int, int] | None = None
         if not is_within_workspace(mapped, workspace_root):
-            chosen_note = choose_workspace_note(diag.notes or [], workspace_root)
+            chosen_note = choose_workspace_note(diag.notes or [], workspace_root, mappings)
             if chosen_note is not None:
                 chosen_note_path = chosen_note.file_path
                 if chosen_note_path is None:
