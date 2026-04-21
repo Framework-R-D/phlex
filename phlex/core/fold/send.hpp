@@ -20,6 +20,25 @@ namespace phlex::experimental {
   {
     return a.load();
   }
+
+  template <typename T>
+  struct sendable_type_impl {};
+
+  template <std::move_constructible T>
+  struct sendable_type_impl<T> {
+    using type = T;
+  };
+
+  template <typename T>
+    requires requires(T const& t) {
+      { send(t) } -> std::move_constructible;
+    }
+  struct sendable_type_impl<T> {
+    using type = decltype(send(std::declval<T>()));
+  };
+
+  template <typename T>
+  using sendable_type = typename sendable_type_impl<T>::type;
 }
 
 #endif // PHLEX_CORE_FOLD_SEND_HPP
