@@ -36,6 +36,7 @@
   - _a.k.a._ [bugprone-unhandled-self-assignment](https://clang.llvm.org/extra/clang-tidy/checks/bugprone/unhandled-self-assignment.html) with option `WarnOnlyIfThisHasSuspiciousField` set to `false`
   - [PR #526](https://github.com/Framework-R-D/phlex/pull/526)
 - [ ] [clang-analyzer-core.CallAndMessage](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/core.CallAndMessage.html) (1)
+  - [PR #525](https://github.com/Framework-R-D/phlex/pull/525)
 - [ ] [clang-analyzer-core.NullDereference](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/core.NullDereference.html) (1)
 - [ ] [clang-analyzer-cplusplus.NewDelete](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/cplusplus.NewDelete.html) (1)
 - [ ] [clang-analyzer-cplusplus.NewDeleteLeaks](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/cplusplus.NewDeleteLeaks.html) (4)
