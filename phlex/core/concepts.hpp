@@ -18,9 +18,7 @@ namespace phlex::detail {
   concept is_bound_object = not std::same_as<T, void_tag>;
 
   template <typename T>
-  concept sendable = std::move_constructible<T> || requires(T& t) {
-    { send(t) } -> std::move_constructible;
-  };
+  concept sendable = std::move_constructible<T> || requires(T const& t) { sendable_type<T>{t}; };
 
   template <typename T, std::size_t N>
   concept at_least_n_input_parameters = number_parameters<T> >= N;
