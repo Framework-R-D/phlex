@@ -3,7 +3,7 @@ name: "CodeQL Analysis"
 
 "on":
   push:
-    branches: [main, develop]
+    branches: [main, "release/*"]
   pull_request:
   schedule:
     - cron: "0 3 * * 0" # weekly (UTC) — adjust as needed
