@@ -9,6 +9,7 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <utility> // for std::ignore
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
@@ -86,7 +87,7 @@ int main(int argc, char** argv)
 
       std::vector<float> const* track_start_x = nullptr;
       char seg_id_text[64];
-      snprintf(seg_id_text, 64, seg_id, nevent, nseg);
+      std::ignore = snprintf(seg_id_text, 64, seg_id, nevent, nseg);
 
       std::string segment_id(seg_id_text);
 
@@ -159,7 +160,7 @@ int main(int argc, char** argv)
     std::cout << "PHLEX: Read Event segments done " << nevent << std::endl;
 
     char evt_id_text[64];
-    snprintf(evt_id_text, 64, evt_id, nevent);
+    std::ignore = snprintf(evt_id_text, 64, evt_id, nevent);
 
     std::string event_id(evt_id_text);
 
