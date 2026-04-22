@@ -17,7 +17,7 @@ namespace form::detail::experimental {
   class StorageWriter : public IStorageWriter {
   public:
     StorageWriter() = default;
-    ~StorageWriter() = default;
+    ~StorageWriter() override = default;
 
     using table_t = form::experimental::config::tech_setting_config::table_t;
     void createContainers(

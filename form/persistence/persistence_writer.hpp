@@ -23,7 +23,7 @@ namespace form::detail::experimental {
   class PersistenceWriter : public IPersistenceWriter {
   public:
     PersistenceWriter();
-    ~PersistenceWriter() = default;
+    ~PersistenceWriter() override = default;
     void configureTechSettings(
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 

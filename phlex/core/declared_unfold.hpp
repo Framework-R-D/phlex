@@ -61,7 +61,7 @@ namespace phlex::experimental {
                     std::vector<std::string> predicates,
                     product_queries input_products,
                     std::string child_layer);
-    virtual ~declared_unfold();
+    ~declared_unfold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::sender<data_cell_index_ptr>& output_index_port() = 0;
