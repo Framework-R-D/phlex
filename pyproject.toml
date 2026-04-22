@@ -8,7 +8,7 @@ warn_unreachable = true
 disable_error_code = "annotation-unchecked"
 
 [tool.pyright]
-extraPaths = ["plugins/python/python"]
+extraPaths = ["plugins/python/python", "scripts"]
 
 [tool.ruff]
 target-version = "py312"
