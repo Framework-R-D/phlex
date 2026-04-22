@@ -27,6 +27,16 @@ class Diagnostic:
     level: str = "warning"
     file_path: str | None = None
     file_offset: int | None = None
+    notes: list["DiagnosticNote"] | None = None
+
+
+@dataclass
+class DiagnosticNote:
+    """Represents a single clang-tidy note attached to a diagnostic."""
+
+    file_path: str | None = None
+    file_offset: int | None = None
+    message: str = ""
 
 
 def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
@@ -63,6 +73,27 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
                 # Invalid or non-numeric offsets are treated as unavailable.
                 parsed_file_offset = None
 
+        notes: list[DiagnosticNote] = []
+        for raw_note in entry.get("Notes") or []:
+            if not isinstance(raw_note, dict):
+                continue
+
+            note_offset = raw_note.get("FileOffset")
+            parsed_note_offset: int | None = None
+            if note_offset is not None:
+                try:
+                    parsed_note_offset = int(note_offset)
+                except (TypeError, ValueError):
+                    parsed_note_offset = None
+
+            notes.append(
+                DiagnosticNote(
+                    file_path=raw_note.get("FilePath") or None,
+                    file_offset=parsed_note_offset,
+                    message=raw_note.get("Message") or "",
+                )
+            )
+
         diagnostics.append(
             Diagnostic(
                 check=check,
@@ -70,6 +101,7 @@ def parse_clang_tidy_fixes(text: str) -> tuple[str | None, list[Diagnostic]]:
                 level=level,
                 file_path=file_path,
                 file_offset=parsed_file_offset,
+                notes=notes,
             )
         )
 
@@ -115,6 +147,40 @@ def parse_path_map(items: list[str]) -> list[tuple[str, str]]:
         old, new = item.split("=", 1)
         mappings.append((old, new))
     return mappings
+
+
+def is_within_workspace(path: str, workspace_root: Path) -> bool:
+    """Return True when path resolves under workspace_root."""
+    try:
+        Path(path).resolve().relative_to(workspace_root.resolve())
+    except ValueError:
+        return False
+    except OSError:
+        return False
+    return True
+
+
+def choose_workspace_note(
+    notes: list[DiagnosticNote],
+    workspace_root: Path,
+    mappings: list[tuple[str, str]] | None = None,
+) -> DiagnosticNote | None:
+    """Choose the most helpful in-workspace note for external diagnostics."""
+    effective_mappings = mappings or []
+    workspace_notes = [
+        note
+        for note in notes
+        if note.file_path
+        and is_within_workspace(apply_path_map(note.file_path, effective_mappings), workspace_root)
+    ]
+    if not workspace_notes:
+        return None
+
+    for note in workspace_notes:
+        if note.message.startswith("Calling '"):
+            return note
+
+    return workspace_notes[0]
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -165,6 +231,7 @@ def main() -> int:
     ]
     extra_mappings = parse_path_map(args.path_map)
     mappings = extra_mappings + default_mappings
+    workspace_root = args.workspace_root.resolve()
 
     lines: list[str] = []
     for diag in diagnostics:
@@ -174,12 +241,36 @@ def main() -> int:
             continue
 
         mapped = apply_path_map(file_path, mappings)
-        resolved = Path(mapped)
-
         offset = diag.file_offset if diag.file_offset is not None else 0
+
+        chosen_note = None
+        original_location: tuple[str, int, int] | None = None
+        if not is_within_workspace(mapped, workspace_root):
+            chosen_note = choose_workspace_note(diag.notes or [], workspace_root, mappings)
+            if chosen_note is not None:
+                chosen_note_path = chosen_note.file_path
+                if chosen_note_path is None:
+                    chosen_note = None
+                else:
+                    original_resolved = Path(mapped)
+                    original_location = (
+                        str(original_resolved),
+                        *offset_to_line_col(original_resolved, offset),
+                    )
+                    mapped = apply_path_map(chosen_note_path, mappings)
+                    offset = chosen_note.file_offset if chosen_note.file_offset is not None else 0
+
+        resolved = Path(mapped)
         line, col = offset_to_line_col(resolved, offset)
 
         message = diag.message or "clang-tidy diagnostic"
+        if original_location is not None and chosen_note is not None:
+            original_file, original_line, original_col = original_location
+            message = (
+                f"{message} (reported in external header at "
+                f"{original_file}:{original_line}:{original_col}; "
+                f"trace note: {chosen_note.message})"
+            )
         check = diag.check or "clang-tidy"
         severity = diag.level if diag.level in {"error", "warning", "note"} else "warning"
         lines.append(f"{resolved}:{line}:{col}: {severity}: {message} [{check}]")
