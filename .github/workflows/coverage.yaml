@@ -267,11 +267,11 @@ jobs:
 
           cd "$SOURCE_DIR"
           if python3 -m pytest \
-            scripts/tests/ \
+            scripts/test/ \
             --cov=scripts \
             --cov-report=xml:"$BUILD_DIR/coverage-scripts.xml" \
             --cov-report=term-missing \
-            --omit="scripts/tests/*" \
+            --omit="scripts/test/*" \
             -q; then
             echo "✅ Scripts coverage report generation succeeded."
           else
