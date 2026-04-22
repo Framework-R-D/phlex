@@ -45,7 +45,7 @@ comment:
 
 ignore:
   - "test/**/*" # Ignore test files
-  - "scripts/tests/**/*" # Ignore scripts test helpers
+  - "scripts/test/**/*" # Ignore scripts test helpers
   - "**/CMakeFiles/**" # Ignore CMake generated files
   - "build/**" # Ignore build directories (generic 1/3)
   - "build-*/**" # Ignore build directories (generic 2/3)

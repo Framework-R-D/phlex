@@ -249,6 +249,7 @@ endif()
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(test)
+  add_subdirectory(scripts/test)
 
   # Add coverage targets if coverage is enabled
   if(ENABLE_COVERAGE)
