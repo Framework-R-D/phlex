@@ -41,7 +41,7 @@ namespace phlex::experimental {
     declared_fold(algorithm_name name,
                   std::vector<std::string> predicates,
                   product_queries input_products);
-    virtual ~declared_fold();
+    ~declared_fold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::receiver<flush_message>& flush_port() = 0;

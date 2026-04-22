@@ -16,7 +16,7 @@ namespace form::detail::experimental {
   class ROOT_TTree_Write_ContainerImp : public Storage_Write_Association {
   public:
     ROOT_TTree_Write_ContainerImp(std::string const& name);
-    ~ROOT_TTree_Write_ContainerImp();
+    ~ROOT_TTree_Write_ContainerImp() override;
 
     ROOT_TTree_Write_ContainerImp(ROOT_TTree_Write_ContainerImp const& other) = delete;
     ROOT_TTree_Write_ContainerImp& operator=(ROOT_TTree_Write_ContainerImp& other) = delete;

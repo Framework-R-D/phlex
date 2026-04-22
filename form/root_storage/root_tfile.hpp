@@ -15,7 +15,7 @@ namespace form::detail::experimental {
   class ROOT_TFileImp : public Storage_File {
   public:
     ROOT_TFileImp(std::string const& name, char mode);
-    ~ROOT_TFileImp();
+    ~ROOT_TFileImp() override;
 
     void setAttribute(std::string const& key, std::string const& value) override;
 

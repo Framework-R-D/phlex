@@ -17,7 +17,7 @@ namespace form::detail::experimental {
   class StorageReader : public IStorageReader {
   public:
     StorageReader() = default;
-    ~StorageReader() = default;
+    ~StorageReader() override = default;
 
     using table_t = form::experimental::config::tech_setting_config::table_t;
 

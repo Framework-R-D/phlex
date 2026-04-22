@@ -37,7 +37,7 @@ namespace phlex::experimental {
     declared_observer(algorithm_name name,
                       std::vector<std::string> predicates,
                       product_queries input_products);
-    virtual ~declared_observer();
+    ~declared_observer() override;
   };
 
   using declared_observer_ptr = std::unique_ptr<declared_observer>;

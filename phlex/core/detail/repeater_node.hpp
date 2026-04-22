@@ -29,7 +29,7 @@ namespace phlex::experimental::detail {
     bool cache_is_empty() const;
     std::size_t cache_size() const;
 
-    ~repeater_node();
+    ~repeater_node() override;
 
   private:
     using base_t = tbb::flow::composite_node<repeater_node_input, message_tuple<1>>;

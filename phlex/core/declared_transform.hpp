@@ -43,7 +43,7 @@ namespace phlex::experimental {
     declared_transform(algorithm_name name,
                        std::vector<std::string> predicates,
                        product_queries input_products);
-    virtual ~declared_transform();
+    ~declared_transform() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual product_specifications const& output() const = 0;
