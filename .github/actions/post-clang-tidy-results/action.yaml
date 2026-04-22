@@ -53,9 +53,11 @@ runs:
         script: |
           const fs = require('fs');
           const fixesFile = `${process.env.INPUT_BUILD_PATH}/clang-tidy-fixes.yaml`;
+          const newIssuesFile = `${process.env.INPUT_BUILD_PATH}/clang-tidy-new-issues.txt`;
 
           let totalIssues = 0;
           const checkCounts = {};
+          let newIssueLines = [];
 
           if (fs.existsSync(fixesFile)) {
             try {
@@ -69,11 +71,37 @@ runs:
             } catch (e) { console.log(e); }
           }
 
-          if (totalIssues > 0) {
-            const sorted = Object.entries(checkCounts).sort((a, b) => b[1] - a[1]);
-            let body = `## Clang-Tidy Check Results\n\nFound ${totalIssues} issue(s).\n\n### Issues by check:\n\n`;
-            sorted.forEach(([check, count]) => { body += `- **${check}**: ${count}\n`; });
-            body += '\nSee inline comments for details. Comment `@phlexbot tidy-fix` to auto-fix.';
+          if (fs.existsSync(newIssuesFile)) {
+            try {
+              const content = fs.readFileSync(newIssuesFile, 'utf8').trim();
+              if (content) {
+                newIssueLines = content.split('\n').filter(l => l.trim());
+              }
+            } catch (e) { console.log(e); }
+          }
+
+          const hasNewIssues = newIssueLines.length > 0;
+
+          if (totalIssues > 0 || hasNewIssues) {
+            let body = '## Clang-Tidy Check Results\n\n';
+
+            if (hasNewIssues) {
+              body += `**${newIssueLines.length} new issue(s) introduced by this patch** (${totalIssues} total).\n\n`;
+              body += '### New issues on modified lines:\n\n';
+              newIssueLines.forEach(line => { body += `- \`${line}\`\n`; });
+              body += '\n';
+            } else {
+              body += `Found ${totalIssues} issue(s); none are newly introduced by this patch.\n\n`;
+            }
+
+            if (Object.keys(checkCounts).length > 0) {
+              const sorted = Object.entries(checkCounts).sort((a, b) => b[1] - a[1]);
+              body += '### All issues by check:\n\n';
+              sorted.forEach(([check, count]) => { body += `- **${check}**: ${count}\n`; });
+              body += '\n';
+            }
+
+            body += 'See inline comments for details. Comment `@phlexbot tidy-fix` to auto-fix.';
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,

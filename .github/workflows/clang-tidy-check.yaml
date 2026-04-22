@@ -140,6 +140,59 @@ jobs:
             echo "✅ clang-tidy check passed"
           fi
 
+      - name: Check for new clang-tidy issues
+        id: diff_check
+        if: steps.tidy.outcome == 'success' && needs.setup.outputs.base_sha != ''
+        shell: bash
+        env:
+          BASE_SHA: ${{ needs.setup.outputs.base_sha }}
+          SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        run: |
+          SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
+          BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
+
+          cd "$SOURCE_DIR"
+
+          # Fetch the base commit if it is not already in the shallow history.
+          # actions/checkout uses --depth 1, so BASE_SHA may be absent locally.
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "Fetching base commit ${BASE_SHA}..."
+            if ! git fetch --depth=1 origin "$BASE_SHA" 2>/dev/null; then
+              echo "::warning::Could not fetch base commit ${BASE_SHA}; skipping new-issue check"
+              exit 0
+            fi
+          fi
+
+          # Produce a no-context diff for C/C++ source files so hunk headers
+          # precisely identify the added and modified line ranges.
+          git diff --unified=0 "$BASE_SHA" HEAD -- \
+            '*.cpp' '*.hpp' '*.c' '*.h' '*.cxx' '*.cc' '*.hxx' '*.icc' \
+            > "$BUILD_DIR/patch.diff" 2>/dev/null || true
+
+          if [ ! -s "$BUILD_DIR/patch.diff" ]; then
+            echo "No C/C++ source changes detected in diff; skipping new-issue check"
+            exit 0
+          fi
+
+          python3 "$SOURCE_DIR/scripts/clang_tidy_diff_issues.py" \
+            --log "$BUILD_DIR/clang-tidy.log" \
+            --diff "$BUILD_DIR/patch.diff" \
+            --source-dir "$SOURCE_DIR" \
+            --output "$BUILD_DIR/clang-tidy-new-issues.txt"
+          DIFF_EXIT=$?
+
+          if [ "$DIFF_EXIT" -eq 1 ]; then
+            NEW_COUNT=$(grep -c '' "$BUILD_DIR/clang-tidy-new-issues.txt" 2>/dev/null || echo 0)
+            echo "::error::${NEW_COUNT} new clang-tidy issue(s) introduced by this patch:"
+            while IFS= read -r issue; do
+              [ -n "$issue" ] && echo "::error::${issue}"
+            done < "$BUILD_DIR/clang-tidy-new-issues.txt"
+            exit 1
+          fi
+
+          echo "✅ No new clang-tidy issues on modified lines"
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -148,6 +201,7 @@ jobs:
           path: |
             ${{ needs.setup.outputs.build_path }}/clang-tidy-fixes.yaml
             ${{ needs.setup.outputs.build_path }}/clang-tidy.log
+            ${{ needs.setup.outputs.build_path }}/clang-tidy-new-issues.txt
           retention-days: 7
           if-no-files-found: ignore
 
