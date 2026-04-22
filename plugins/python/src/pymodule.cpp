@@ -13,6 +13,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/source.hpp"
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 
 using namespace phlex::experimental;
