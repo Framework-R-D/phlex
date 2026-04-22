@@ -329,3 +329,28 @@ TEST_CASE("Test warning message if there are cached messages", "[multithreading]
     CHECK_THAT(warning, Catch::Matchers::ContainsSubstring("Product not yet received"));
   }
 }
+
+TEST_CASE("Test data-only with flush count zero", "[multithreading]")
+{
+  // This behavior is required for multilayer algorithms where the higher-layer data cell exists,
+  // but the lower-layer data cell does not exist (e.g. because the product was filtered out at the
+  // lower layer). We do not want the higher-layer data product to be sent to a multilayer join
+  // node, which would wait indefinitely for the lower-layer data product that will never arrive.
+  repeater_test_fixture fixture{"test_repeater_data_only_flush_zero"};
+  auto [run1, store1] = make_run_with_product(1, 42);
+
+  // Send data only (no index messages)
+  fixture.put_data_message({.store = store1, .id = 0});
+  fixture.wait_for_all();
+
+  // Consumer should not receive anything and cache should contain the product
+  CHECK(fixture.consumed_messages().empty());
+  CHECK(fixture.cache_size() == 1);
+
+  // Emit a flush token with count=0 — this should evict the cached product without emitting messages
+  fixture.put_flush_token({.index = run1, .count = 0});
+  fixture.wait_for_all();
+
+  CHECK(fixture.consumed_messages().empty());
+  CHECK(fixture.cache_is_empty());
+}
