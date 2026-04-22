@@ -246,6 +246,38 @@ jobs:
             echo "::notice::pytest-cov not available; skipping Python coverage report."
           fi
 
+      - name: Generate scripts coverage report
+        id: report_scripts
+        if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
+        shell: bash
+        env:
+          SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+        run: |
+          . /entrypoint.sh
+          SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
+          BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
+
+          echo "➡️ Generating scripts/ Python coverage report..."
+
+          if ! python3 -c "import pytest_cov" 2>/dev/null; then
+            echo "::notice::pytest-cov not available; skipping scripts coverage report."
+            exit 0
+          fi
+
+          cd "$SOURCE_DIR"
+          if python3 -m pytest \
+            scripts/tests/ \
+            --cov=scripts \
+            --cov-report=xml:"$BUILD_DIR/coverage-scripts.xml" \
+            --cov-report=term-missing \
+            --omit="scripts/tests/*" \
+            -q; then
+            echo "✅ Scripts coverage report generation succeeded."
+          else
+            echo "::warning::Scripts coverage report generation failed (non-fatal)."
+          fi
+
       - name: Capture coverage artifact availability
         id: coverage_outputs
         if: ${{ steps.report_gcc.outcome != 'skipped' || steps.report_clang.outcome != 'skipped' }}
@@ -295,7 +327,8 @@ jobs:
             coverage.xml \
             coverage.info \
             coverage.info.final \
-            coverage-python.xml; do
+            coverage-python.xml \
+            coverage-scripts.xml; do
             if [ -f "$file" ]; then
               cp "$file" "$ARTIFACT_DIR/"
             fi
@@ -396,6 +429,19 @@ jobs:
           flags: unittests
           name: phlex-coverage
           fail_ci_if_error: true
+          verbose: true
+          root_dir: .
+          token: ${{ env.CODECOV_TOKEN }}
+
+      - name: Upload scripts coverage to Codecov
+        if: ${{ hashFiles('coverage-artifacts/coverage-scripts.xml') != '' }}
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        with:
+          files: coverage-artifacts/coverage-scripts.xml
+          flags: scripts
+          name: phlex-scripts-coverage
+          # Non-fatal: scripts coverage is informational (no CI threshold yet).
+          fail_ci_if_error: false
           verbose: true
           root_dir: .
           token: ${{ env.CODECOV_TOKEN }}
