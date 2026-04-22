@@ -46,7 +46,8 @@
   - No longer found with current `clang-tidy` configuration.
 - [x] [concurrency-mt-unsafe](https://clang.llvm.org/extra/clang-tidy/checks/concurrency/mt-unsafe.html) (1)
   - [PR #542](https://github.com/Framework-R-D/phlex/pull/542)
-- [ ] [cppcoreguidelines-avoid-const-or-ref-data-members](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/avoid-const-or-ref-data-members.html) (26)
+- [x] [cppcoreguidelines-avoid-const-or-ref-data-members](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/avoid-const-or-ref-data-members.html) (26)
+  - [PR #543](https://github.com/Framework-R-D/phlex/pull/543)
 - [ ] [cppcoreguidelines-avoid-non-const-global-variables](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/avoid-non-const-global-variables.html) (47)
 - [ ] [cppcoreguidelines-explicit-virtual-functions](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/explicit-virtual-functions.html) (19)
 - [ ] [cppcoreguidelines-init-variables](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/init-variables.html) (9)

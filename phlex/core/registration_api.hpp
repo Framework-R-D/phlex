@@ -94,7 +94,8 @@ namespace phlex::experimental {
     algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
-    tbb::flow::graph& graph_;
+    // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     registrar<node_ptr> registrar_;
   };
 
@@ -152,7 +153,8 @@ namespace phlex::experimental {
     algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
-    tbb::flow::graph& graph_;
+    // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     registrar<declared_provider_ptr> registrar_;
   };
 
@@ -221,7 +223,8 @@ namespace phlex::experimental {
     algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
-    tbb::flow::graph& graph_;
+    // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string partition_;
     init_tuple init_;
     registrar<declared_fold_ptr> registrar_;
@@ -297,7 +300,8 @@ namespace phlex::experimental {
     registrar<declared_unfold_ptr> registrar_;
     algorithm_name name_;
     std::size_t concurrency_;
-    tbb::flow::graph& graph_;
+    // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     Predicate predicate_;
     Unfold unfold_;
     std::string destination_layer_;
@@ -324,7 +328,8 @@ namespace phlex::experimental {
 
   private:
     algorithm_name name_;
-    tbb::flow::graph& graph_;
+    // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     detail::output_function_t ft_;
     concurrency concurrency_;
     registrar<declared_output_ptr> reg_;

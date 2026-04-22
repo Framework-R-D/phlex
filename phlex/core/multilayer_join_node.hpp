@@ -118,8 +118,11 @@ namespace phlex::experimental {
   private:
     std::vector<std::unique_ptr<detail::repeater_node>> repeaters_;
     tbb::flow::join_node<args_t, tbb::flow::tag_matching> join_;
+    // Immutable after construction; tbb::flow::join_node is already non-movable.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const name_;
     std::vector<identifier> const layers_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   namespace detail {
