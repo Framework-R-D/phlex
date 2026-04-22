@@ -23,7 +23,7 @@ namespace form::detail::experimental {
   class PersistenceReader : public IPersistenceReader {
   public:
     PersistenceReader();
-    ~PersistenceReader() = default;
+    ~PersistenceReader() override = default;
     void configureTechSettings(
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 

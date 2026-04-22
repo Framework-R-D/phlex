@@ -17,7 +17,7 @@ namespace form::detail::experimental {
   class ROOT_TBranch_Write_ContainerImp : public Storage_Associative_Write_Container {
   public:
     ROOT_TBranch_Write_ContainerImp(std::string const& name);
-    ~ROOT_TBranch_Write_ContainerImp() = default;
+    ~ROOT_TBranch_Write_ContainerImp() override = default;
 
     void setAttribute(std::string const& key, std::string const& value) override;
 

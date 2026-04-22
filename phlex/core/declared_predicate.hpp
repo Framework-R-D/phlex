@@ -39,7 +39,7 @@ namespace phlex::experimental {
     declared_predicate(algorithm_name name,
                        std::vector<std::string> predicates,
                        product_queries input_products);
-    virtual ~declared_predicate();
+    ~declared_predicate() override;
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
   };
