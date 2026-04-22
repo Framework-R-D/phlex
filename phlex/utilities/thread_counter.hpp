@@ -22,7 +22,8 @@ namespace phlex::experimental {
     ~thread_counter() { --counter_; }
 
   private:
-    counter_type& counter_;
+    // Non-owning reference to externally-owned counter; thread_counter is an RAII guard.
+    counter_type& counter_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     value_type max_;
   };
 }

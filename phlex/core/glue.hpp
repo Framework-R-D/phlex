@@ -151,10 +151,11 @@ namespace phlex::experimental {
     }
 
   private:
-    tbb::flow::graph& graph_;
-    node_catalog& nodes_;
+    // Non-owning references to framework-owned resources; glue<T> is a short-lived builder.
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    node_catalog& nodes_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::shared_ptr<T> bound_obj_;
-    std::vector<std::string>& errors_;
+    std::vector<std::string>& errors_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     configuration const* config_;
   };
 }

@@ -48,6 +48,8 @@ namespace {
     }
     void collect(unsigned int const num) { actual.push_back(num); }
     tbb::concurrent_vector<unsigned int> actual;
+    // Immutable test expectation set at construction; intentionally prevents accidental mutation.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::vector<unsigned int> const expected;
   };
 
@@ -77,8 +79,11 @@ namespace {
 
   struct not_in_range {
     explicit not_in_range(unsigned int const b, unsigned int const e) : begin{b}, end{e} {}
+    // Immutable range bounds set at construction; intentionally prevents accidental mutation.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     unsigned int const begin;
     unsigned int const end;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     bool eval(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
   };
 }

@@ -101,8 +101,11 @@ namespace {
     }
 
   private:
+    // Algorithm configuration fixed at construction; intentionally immutable for object lifetime.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const m_output_file;
     int const m_technology;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::unique_ptr<form::experimental::form_writer_interface> m_form_interface;
   };
 
