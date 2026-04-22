@@ -117,6 +117,9 @@ namespace phlex::experimental {
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
+    // False positive: clang-analyzer cannot trace ownership through Boost's is_any_of<char>
+    // internal reference counting in classification.hpp.
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
     create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
     driver_proxy const proxy{};
     driver_bundle result;
