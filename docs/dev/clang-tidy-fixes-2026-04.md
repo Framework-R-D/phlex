@@ -40,8 +40,10 @@
   - [PR #538](https://github.com/Framework-R-D/phlex/pull/538)
 - [x] [clang-analyzer-core.NullDereference](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/core.NullDereference.html) (1)
   - [PR #538](https://github.com/Framework-R-D/phlex/pull/538)
-- [ ] [clang-analyzer-cplusplus.NewDelete](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/cplusplus.NewDelete.html) (1)
-- [ ] [clang-analyzer-cplusplus.NewDeleteLeaks](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/cplusplus.NewDeleteLeaks.html) (4)
+- [x] [clang-analyzer-cplusplus.NewDelete](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/cplusplus.NewDelete.html) (1)
+  - [PR #451](https://github.com/Framework-R-D/phlex/issues/451)
+- [x] [clang-analyzer-cplusplus.NewDeleteLeaks](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/cplusplus.NewDeleteLeaks.html) (4)
+  - [PR #451](https://github.com/Framework-R-D/phlex/issues/451)
 - [x] [clang-analyzer-security.ArrayBound](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/security.ArrayBound.html) (2)
   - No longer found with current `clang-tidy` configuration.
 - [x] [concurrency-mt-unsafe](https://clang.llvm.org/extra/clang-tidy/checks/concurrency/mt-unsafe.html) (1)
