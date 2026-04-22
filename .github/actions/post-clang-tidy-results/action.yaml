@@ -33,6 +33,12 @@ runs:
         else
           echo "has_fixes=false" >> "$GITHUB_OUTPUT"
         fi
+        if [ -f "${INPUT_BUILD_PATH}/clang-tidy-fixes.yaml" ] || \
+           [ -f "${INPUT_BUILD_PATH}/clang-tidy-new-issues.txt" ]; then
+          echo "has_summary_content=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_summary_content=false" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Post inline comments
       if: steps.check.outputs.has_fixes == 'true' && inputs.pr-number != ''
@@ -44,7 +50,7 @@ runs:
         pull_request_id: ${{ inputs.pr-number }}
 
     - name: Post summary comment
-      if: steps.check.outputs.has_fixes == 'true' && inputs.post-summary == 'true' && inputs.pr-number != ''
+      if: steps.check.outputs.has_summary_content == 'true' && inputs.post-summary == 'true' && inputs.pr-number != ''
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
         INPUT_BUILD_PATH: ${{ inputs.build-path }}
