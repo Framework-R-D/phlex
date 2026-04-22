@@ -51,6 +51,8 @@ namespace phlex::experimental {
     product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
     algorithm_name node_name_;
+    // References declared_unfold::child_layer_, which outlives this short-lived object.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
     std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };

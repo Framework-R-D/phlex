@@ -68,9 +68,12 @@ namespace phlex::experimental {
       std::size_t depth() const;
 
     private:
+      // Non-owning references to externally-owned state; layer_scope is an RAII guard.
+      // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
       flush_counters& counters_;
       flusher_t& flusher_;
       multilayer_slots const& slots_;
+      // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
       data_cell_index_ptr index_;
       std::size_t message_id_;
     };

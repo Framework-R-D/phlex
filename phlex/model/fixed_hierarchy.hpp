@@ -34,8 +34,12 @@ namespace phlex {
                      experimental::async_driver<data_cell_index_ptr>& d);
 
     data_cell_index_ptr index_;
+    // Non-owning references to the enclosing hierarchy and driver; data_cell_cursor is a
+    // short-lived view and does not manage their lifetimes.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     fixed_hierarchy const& hierarchy_;
     experimental::async_driver<data_cell_index_ptr>& driver_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   class PHLEX_MODEL_EXPORT fixed_hierarchy {

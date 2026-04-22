@@ -45,6 +45,8 @@ namespace phlex::experimental {
     bool claim(accessor& a, std::size_t msg_id);
 
   private:
+    // Fixed at construction; decision_map is already non-copyable via concurrent_hash_map.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     unsigned int const total_decisions_;
     decisions_t results_;
   };
