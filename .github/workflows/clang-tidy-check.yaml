@@ -189,6 +189,9 @@ jobs:
               [ -n "$issue" ] && echo "::error::${issue}"
             done < "$BUILD_DIR/clang-tidy-new-issues.txt"
             exit 1
+          elif [ "$DIFF_EXIT" -ne 0 ]; then
+            echo "::error::clang_tidy_diff_issues.py failed with exit code ${DIFF_EXIT}"
+            exit "$DIFF_EXIT"
           fi
 
           echo "✅ No new clang-tidy issues on modified lines"
