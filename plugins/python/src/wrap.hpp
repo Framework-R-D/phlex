@@ -30,26 +30,36 @@ namespace phlex::experimental {
 
   // Create dict-like access to the configuration from Python.
   PyObject* wrap_configuration(configuration const& config); // returns new reference
+  // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern PyTypeObject PhlexConfig_Type;
   struct py_config_map;
 
   // Phlex' module wrapper to register algorithms
   typedef module_graph_proxy<void_tag> phlex_module_t;
   PyObject* wrap_module(phlex_module_t& mod); // returns new reference
+  // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern PyTypeObject PhlexModule_Type;
   struct py_phlex_module;
 
   // Phlex' source wrapper to register providers
   typedef source_graph_proxy<void_tag> phlex_source_t;
   PyObject* wrap_source(phlex_source_t& src); // returns new reference
+  // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern PyTypeObject PhlexSource_Type;
   struct py_phlex_source;
 
   // Python wrapper for data cell indices (returns a new reference)
   PyObject* wrap_dci(data_cell_index const& dci);
+  // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern PyTypeObject PhlexDataCellIndex_Type;
 
   // Python wrapper for Phlex handles
+  // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern PyTypeObject PhlexLifeline_Type;
   // clang-format off
   struct py_lifeline {

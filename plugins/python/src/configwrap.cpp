@@ -204,9 +204,13 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
   return pyvalue;
 }
 
+// PyMappingMethods must be non-const; tp_as_mapping in PyTypeObject takes a non-const pointer.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static PyMappingMethods pcm_as_mapping = {nullptr, (binaryfunc)pcm_subscript, nullptr};
 
 // clang-format off
+// PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexConfig_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
   (char*) "pyphlex.configuration",                   // tp_name

@@ -43,6 +43,8 @@ static void ll_dealloc(py_lifeline_t* pyobj)
 }
 
 // clang-format off
+// PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
   (char*) "pyphlex.lifeline",                        // tp_name

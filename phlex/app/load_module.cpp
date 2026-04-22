@@ -23,8 +23,11 @@ namespace phlex::experimental {
 
     // If factory function goes out of scope, then the library is unloaded...and that's
     // bad.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::vector<std::function<detail::module_creator_t>> create_module;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::vector<std::function<detail::source_creator_t>> create_source;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::function<detail::driver_creator_t> create_driver;
 
     template <typename creator_t>

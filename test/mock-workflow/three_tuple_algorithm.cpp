@@ -6,6 +6,8 @@
 
 using namespace phlex::experimental::test;
 
+// BOOST_DLL_ALIAS creates a non-const exported function pointer; required by the dynamic linker.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   using inputs = phlex::data_cell_index;

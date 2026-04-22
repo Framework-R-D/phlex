@@ -2,6 +2,8 @@
 
 #include <string>
 
+// BOOST_DLL_ALIAS creates a non-const exported function pointer; required by the dynamic linker.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   using namespace phlex;

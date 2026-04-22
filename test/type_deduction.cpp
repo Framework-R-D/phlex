@@ -8,7 +8,7 @@ namespace {
   void only_void_param [[maybe_unused]] (void) {}
   std::tuple<> still_no_output [[maybe_unused]] () { return {}; }
   std::tuple<int, double> two_output_objects [[maybe_unused]] (int, double) { return {}; }
-  auto closure [[maybe_unused]] = [](int) -> double { return 2.; };
+  auto const closure [[maybe_unused]] = [](int) -> double { return 2.; };
 }
 
 int main()
