@@ -5,6 +5,8 @@
 #include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
 
+#include <cassert>
+
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
 
@@ -47,6 +49,7 @@ namespace phlex::experimental {
       msg_id = msg.id;
       data_.update(msg.id, msg.store);
     } else {
+      assert(t.is_a<predicate_result>()); // Hint to static analyzers
       auto const& result = t.cast_to<predicate_result>();
       decisions_.update(result);
       msg_id = result.msg_id;
