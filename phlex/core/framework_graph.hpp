@@ -184,8 +184,6 @@ namespace phlex::detail {
     void throw_if_registration_errors() const;
     void make_filter_edges();
     void make_bookkeeping_edges();
-    void finalize_router(index_router::provider_input_ports_t provider_input_ports,
-                         std::map<std::string, named_index_ports> multilayer_join_index_ports);
 
     enum class driver_mode { default_driver, deferred_driver };
     explicit framework_graph(driver_mode mode, int max_parallelism);

@@ -28,7 +28,7 @@ namespace phlex::experimental::detail {
     }
 
     template <typename FT, typename... Args>
-    void call(FT const& f, Args&&... args)
+    void call(FT const& f, Args const&... args)
     {
       std::invoke(f, *accumulator_, args...);
     }
@@ -51,7 +51,7 @@ namespace phlex::experimental::detail {
   struct accumulator_message {
     phlex::data_cell_index_ptr index;
     std::shared_ptr<accumulator<T>> partial_result;
-    std::size_t id;
+    std::size_t id{};
 
     accumulator_message propagate_with_id(std::size_t new_id) const
     {
@@ -93,6 +93,11 @@ namespace phlex::experimental::detail {
                      product_specifications output,
                      result_initializer_t initializer);
 
+    accumulator_node(accumulator_node const&) = delete;
+    accumulator_node(accumulator_node&&) = delete;
+    accumulator_node& operator=(accumulator_node const&) = delete;
+    accumulator_node& operator=(accumulator_node&&) = delete;
+
     tbb::flow::receiver<index_message>& partition_port();
     tbb::flow::receiver<indexed_end_token>& flush_port();
     tbb::flow::receiver<index_message>& index_port();
@@ -100,7 +105,7 @@ namespace phlex::experimental::detail {
     bool cache_is_empty() const;
     std::size_t cache_size() const;
 
-    ~accumulator_node();
+    ~accumulator_node() override;
 
   private:
     using accumulator_msg_t = accumulator_message<Result>;

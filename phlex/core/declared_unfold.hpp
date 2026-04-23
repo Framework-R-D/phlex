@@ -42,7 +42,7 @@ namespace phlex::detail {
                        std::string const& child_layer_name);
 
     std::size_t child_layer_hash() const { return child_layer_hash_; }
-    std::size_t child_count() const { return child_counts_; }
+    std::size_t child_count() const { return child_count_; }
     phlex::experimental::product_store_const_ptr make_child(std::size_t i, products new_products);
 
   private:
@@ -52,7 +52,7 @@ namespace phlex::detail {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
     std::size_t child_layer_hash_;
-    std::size_t child_counts_ = 0;
+    std::size_t child_count_ = 0;
   };
 
   class PHLEX_CORE_EXPORT declared_unfold : public products_consumer {
