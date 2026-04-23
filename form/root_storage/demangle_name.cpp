@@ -12,7 +12,8 @@ namespace form::detail::experimental {
       throw std::runtime_error("Failed to demangle type name");
     }
     std::string result(demangledName);
-    std::free(demangledName);
+    // TClassEdit::DemangleTypeIdName uses malloc internally
+    std::free(demangledName); // NOLINT(cppcoreguidelines-no-malloc)
     return result;
   }
 }
