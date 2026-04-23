@@ -39,9 +39,9 @@ int StorageReader::getIndex(Token const& token,
         cont->second->setAttribute(key, value);
       cont->second->setFile(file->second);
     }
-    void const* data;
     auto const& type = typeid(std::string);
     int entry = 1;
+    void const* data; // NOLINT(cppcoreguidelines-init-variables) - initialized by read()
     while (cont->second->read(entry, &data, type)) {
       m_indexMaps[token.containerName()].insert(
         std::make_pair(*(static_cast<std::string const*>(data)), entry));
