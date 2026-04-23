@@ -30,7 +30,8 @@ namespace phlex {
       }
       template <typename U>
         requires std::constructible_from<T, U>
-      required_creator_name(U&& rhs) : content_(std::forward_like<T>(rhs))
+      required_creator_name(U&& rhs) : // NOLINT(cppcoreguidelines-missing-std-forward)
+        content_(std::forward_like<T>(rhs))
       {
         if (content_.empty()) {
           throw std::runtime_error("Cannot specify product with empty creator name.");
@@ -53,7 +54,8 @@ namespace phlex {
       }
       template <typename U>
         requires std::constructible_from<T, U>
-      required_layer_name(U&& rhs) : content_(std::forward_like<T>(rhs))
+      required_layer_name(U&& rhs) : // NOLINT(cppcoreguidelines-missing-std-forward)
+        content_(std::forward_like<T>(rhs))
       {
         if (content_.empty()) {
           throw std::runtime_error("Cannot specify the empty string as a data layer.");
