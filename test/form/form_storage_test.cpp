@@ -20,7 +20,7 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
   auto container =
     createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
   container->setFile(file);
-  void const* dataPtr;
+  void const* dataPtr; // NOLINT(cppcoreguidelines-init-variables) - initialized by read()
   CHECK_THROWS_AS(container->read(0, &dataPtr, typeid(double)), std::runtime_error);
 }
 

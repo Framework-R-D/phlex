@@ -4,7 +4,7 @@ namespace form::detail::experimental {
   // Return the demangled type name
   std::string DemangleName(std::type_info const& type)
   {
-    int errorCode;
+    int errorCode; // NOLINT(cppcoreguidelines-init-variables) - always initialized below
     // The TClassEdit version works on both linux and Windows.
     char* demangledName = TClassEdit::DemangleTypeIdName(type, errorCode);
     if (errorCode != 0) {
