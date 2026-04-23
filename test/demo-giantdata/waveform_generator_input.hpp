@@ -11,13 +11,6 @@ namespace demo {
                                     std::size_t run_id = -1,
                                     std::size_t subrun_id = -1,
                                     std::size_t spill_id = -1);
-    WaveformGeneratorInput(WaveformGeneratorInput const& other);
-    WaveformGeneratorInput(WaveformGeneratorInput&& other);
-
-    WaveformGeneratorInput& operator=(WaveformGeneratorInput const& other);
-    WaveformGeneratorInput& operator=(WaveformGeneratorInput&& other);
-
-    ~WaveformGeneratorInput();
 
     std::size_t size;
     std::size_t run_id;
