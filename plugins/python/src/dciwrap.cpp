@@ -28,11 +28,15 @@ static PyObject* dci_number(py_data_cell_index* pydci)
   return PyLong_FromLong((long)pydci->ph_dci->number());
 }
 
+// PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static PyMethodDef dci_methods[] = {
   {(char*)"number", (PyCFunction)dci_number, METH_NOARGS, (char*)"index number"},
   {(char*)nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
+// PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexDataCellIndex_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
   (char*) "pyphlex.data_cell_index",                 // tp_name

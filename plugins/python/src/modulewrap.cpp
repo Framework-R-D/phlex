@@ -1077,6 +1077,8 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   Py_RETURN_NONE;
 }
 
+// PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static PyMethodDef md_methods[] = {{(char*)"transform",
                                     (PyCFunction)md_transform,
                                     METH_VARARGS | METH_KEYWORDS,
@@ -1088,6 +1090,8 @@ static PyMethodDef md_methods[] = {{(char*)"transform",
                                    {(char*)nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
+// PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexModule_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
   (char*)"pyphlex.module",       // tp_name
@@ -1291,6 +1295,8 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   Py_RETURN_NONE;
 }
 
+// PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static PyMethodDef sc_methods[] = {{(char*)"provide",
                                     (PyCFunction)sc_provide,
                                     METH_VARARGS | METH_KEYWORDS,
@@ -1298,6 +1304,8 @@ static PyMethodDef sc_methods[] = {{(char*)"provide",
                                    {(char*)nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
+// PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexSource_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
   (char*)"pyphlex.source",       // tp_name

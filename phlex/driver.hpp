@@ -1,8 +1,6 @@
 #ifndef PHLEX_DRIVER_HPP
 #define PHLEX_DRIVER_HPP
 
-#include "boost/dll/alias.hpp"
-
 #include "phlex/configuration.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/detail/plugin_macros.hpp"
@@ -24,6 +22,9 @@ namespace phlex::experimental {
   namespace detail {
     using next_index_t = std::function<void(framework_driver&)>;
     using driver_creator_t = driver_bundle(driver_proxy const&, configuration const&);
+    // Shim type for the extern "C" entry-point: out-parameter avoids returning a C++ type
+    // across a C-linkage boundary.
+    using driver_shim_t = void(driver_proxy const&, configuration const&, driver_bundle*);
   };
 
   /// @brief Bundles the driver function and data hierarchy for the framework.

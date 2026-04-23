@@ -1,7 +1,6 @@
 #ifndef PHLEX_MODULE_HPP
 #define PHLEX_MODULE_HPP
 
-#include "boost/dll/alias.hpp"
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/graph_proxy.hpp"
