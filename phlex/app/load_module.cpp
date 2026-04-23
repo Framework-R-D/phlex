@@ -28,7 +28,7 @@ namespace phlex::experimental {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::vector<std::function<detail::source_creator_t>> create_source;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::function<detail::driver_creator_t> create_driver;
+    std::function<detail::driver_shim_t> create_driver;
 
     template <typename creator_t>
     std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
@@ -52,7 +52,7 @@ namespace phlex::experimental {
           // (e.g., NumPy). Load all other plugins with rtld_local (default) to avoid symbol collisions.
           auto const load_mode =
             (spec == pymodule_name) ? dll::load_mode::rtld_global : dll::load_mode::default_mode;
-          return dll::import_alias<creator_t>(shared_library_path, symbol_name, load_mode);
+          return dll::import_symbol<creator_t>(shared_library_path, symbol_name, load_mode);
         }
       }
       throw std::runtime_error("Could not locate library with specification '"s + spec +
@@ -117,8 +117,10 @@ namespace phlex::experimental {
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
-    create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
+    create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
     driver_proxy const proxy{};
-    return create_driver(proxy, config);
+    driver_bundle result;
+    create_driver(proxy, config, &result);
+    return result;
   }
 }

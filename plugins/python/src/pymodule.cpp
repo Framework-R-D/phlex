@@ -24,8 +24,6 @@ static bool initialize();
 // the expansion of registration macros within the same file would lead to
 // symbol duplication, hence the use of separate namespaces here
 namespace pymodule_register_providers {
-  // BOOST_DLL_ALIAS creates a non-const exported function pointer; required by the dynamic linker.
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   PHLEX_REGISTER_PROVIDERS(m, config)
   {
     initialize();
@@ -65,8 +63,6 @@ namespace pymodule_register_providers {
 } // namespace pymodule_register_providers
 
 namespace pymodule_register_algorithms {
-  // BOOST_DLL_ALIAS creates a non-const exported function pointer; required by the dynamic linker.
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   PHLEX_REGISTER_ALGORITHMS(m, config)
   {
     initialize();

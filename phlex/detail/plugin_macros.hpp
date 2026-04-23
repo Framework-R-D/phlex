@@ -21,10 +21,11 @@
               PHLEX_DETAIL_CREATE_2ARGS)                                                           \
   (token_type, func_name, __VA_ARGS__)
 
+// Plugin entry-point functions are exported directly with C linkage so boost::dll::import_symbol
+// can find them by name without an intermediate alias variable. The func_name parameter is
+// retained for API compatibility but is unused in the expansion.
 #define PHLEX_DETAIL_REGISTER_PLUGIN(token_type, func_name, dll_alias, ...)                        \
-  static PHLEX_DETAIL_SELECT_SIGNATURE(token_type, func_name, __VA_ARGS__);                        \
-  BOOST_DLL_ALIAS(func_name, dll_alias)                                                            \
-  PHLEX_DETAIL_SELECT_SIGNATURE(token_type, func_name, __VA_ARGS__)
+  extern "C" PHLEX_DETAIL_SELECT_SIGNATURE(token_type, dll_alias, __VA_ARGS__)
 
 #define PHLEX_DETAIL_CREATE_DRIVER_1ARG(func_name, d)                                              \
   phlex::experimental::driver_bundle func_name(phlex::experimental::driver_proxy const& d,         \
@@ -40,9 +41,18 @@
               PHLEX_DETAIL_CREATE_DRIVER_2ARGS)                                                    \
   (func_name, __VA_ARGS__)
 
+// The driver entry-point cannot use extern "C" directly because driver_bundle is a C++ type.
+// Instead we forward-declare the user's C++ implementation, define a thin extern "C" shim that
+// writes the result through an out-parameter (which has a void return type, compatible with C
+// linkage), and then open the user's implementation definition for the body that follows.
 #define PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(func_name, dll_alias, ...)                             \
   static PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, __VA_ARGS__);                             \
-  BOOST_DLL_ALIAS(func_name, dll_alias)                                                            \
+  extern "C" void dll_alias(phlex::experimental::driver_proxy const& __phlex_proxy,                \
+                            phlex::configuration const& __phlex_config,                            \
+                            phlex::experimental::driver_bundle* __phlex_out)                       \
+  {                                                                                                \
+    *__phlex_out = func_name(__phlex_proxy, __phlex_config);                                       \
+  }                                                                                                \
   PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, __VA_ARGS__)
 // NOLINTEND(bugprone-macro-parentheses)
 
