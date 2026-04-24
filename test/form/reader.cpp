@@ -7,8 +7,8 @@
 
 #include <cmath>
 #include <fstream>
-#include <gsl/pointers>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <utility> // for std::ignore
 #include <vector>
@@ -82,11 +82,11 @@ int main(int argc, char** argv)
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Read Event No. " << nevent << std::endl;
 
-    gsl::owner<std::vector<float> const*> track_x = nullptr;
+    std::unique_ptr<std::vector<float> const> track_x;
 
     for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
 
-      gsl::owner<std::vector<float> const*> track_start_x = nullptr;
+      void const* rawPtr = nullptr;
       char seg_id_text[64];
       std::ignore = snprintf(seg_id_text, 64, seg_id, nevent, nseg);
 
@@ -95,27 +95,27 @@ int main(int argc, char** argv)
       std::string const creator = "Toy_Tracker";
 
       form::experimental::product_with_name pb = {
-        "trackStart", track_start_x, &typeid(std::vector<float>)};
+        "trackStart", rawPtr, &typeid(std::vector<float>)};
 
       form.read(creator, segment_id, pb);
-      track_start_x = static_cast<gsl::owner<std::vector<float> const*>>(
-        pb.data); //FIXME: Can this be done by FORM?
+      std::unique_ptr<std::vector<float> const> track_start_x(
+        static_cast<std::vector<float> const*>(pb.data));
 
-      gsl::owner<std::vector<int> const*> track_n_hits = nullptr;
-
+      rawPtr = nullptr;
       form::experimental::product_with_name pb_int = {
-        "trackNumberHits", track_n_hits, &typeid(std::vector<int>)};
+        "trackNumberHits", rawPtr, &typeid(std::vector<int>)};
 
       form.read(creator, segment_id, pb_int);
-      track_n_hits = static_cast<gsl::owner<std::vector<int> const*>>(pb_int.data);
+      std::unique_ptr<std::vector<int> const> track_n_hits(
+        static_cast<std::vector<int> const*>(pb_int.data));
 
-      gsl::owner<std::vector<TrackStart> const*> start_points = nullptr;
-
+      rawPtr = nullptr;
       form::experimental::product_with_name pb_points = {
-        "trackStartPoints", start_points, &typeid(std::vector<TrackStart>)};
+        "trackStartPoints", rawPtr, &typeid(std::vector<TrackStart>)};
 
       form.read(creator, segment_id, pb_points);
-      start_points = static_cast<gsl::owner<std::vector<TrackStart> const*>>(pb_points.data);
+      std::unique_ptr<std::vector<TrackStart> const> start_points(
+        static_cast<std::vector<TrackStart> const*>(pb_points.data));
 
       float check = 0.0;
       for (float val : *track_start_x)
@@ -153,10 +153,6 @@ int main(int argc, char** argv)
                   << std::endl;
         all_passed = false;
       }
-
-      delete track_start_x;
-      delete track_n_hits;
-      delete start_points;
     }
     std::cout << "PHLEX: Read Event segments done " << nevent << std::endl;
 
@@ -167,12 +163,12 @@ int main(int argc, char** argv)
 
     std::string const creator = "Toy_Tracker_Event";
 
+    void const* rawEvtPtr = nullptr;
     form::experimental::product_with_name pb = {
-      "trackStartX", track_x, &typeid(std::vector<float>)};
+      "trackStartX", rawEvtPtr, &typeid(std::vector<float>)};
 
     form.read(creator, event_id, pb);
-    track_x = static_cast<gsl::owner<std::vector<float> const*>>(
-      pb.data); //FIXME: Can this be done by FORM?
+    track_x.reset(static_cast<std::vector<float> const*>(pb.data));
 
     float check = 0.0;
     for (float val : *track_x)
@@ -195,8 +191,6 @@ int main(int argc, char** argv)
       std::cerr << "VERIFY FAIL: no expected checksum for event=" << nevent << std::endl;
       all_passed = false;
     }
-
-    delete track_x; //FIXME: PHLEX owns this memory!
 
     std::cout << "PHLEX: Read Event done " << nevent << std::endl;
   }

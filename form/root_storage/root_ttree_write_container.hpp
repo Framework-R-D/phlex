@@ -30,12 +30,15 @@ namespace form::detail::experimental {
   private:
     // Be absolutely explicit about the ownership semantics of TTree*,
     // since ROOT nominally manages the memory of TTree objects, but in
-    // practice we need to ensure objects are written to the TTree, and
-    //  the TTree itself is deleted at the right time.
+    // practice we need to ensure objects are written to the TTree—and
+    // the TTree itself is deleted—at the right time i.e. before its
+    //  containing TFile is deleted.
     struct TTreeDeleter {
       void operator()(TTree* t) const;
     };
 
+    // Ordering of members is critical here:
+    // the TTree must be deleted before the TFile.
     std::shared_ptr<TFile> m_tfile;
     std::unique_ptr<TTree, TTreeDeleter> m_tree;
   };
