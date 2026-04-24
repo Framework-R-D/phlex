@@ -61,7 +61,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   if (dictInfo->Property() & EProperty::kIsFundamental) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto fundInfo = static_cast<TDataType*>(dictInfo); // Already checked to be fundamental
-    branchBuffer = new char[fundInfo->Size()];
+    branchBuffer = nullptr;
     branchStatus = m_tree->SetBranchAddress(col_name().c_str(),
                                             reinterpret_cast<void*>(&branchBuffer),
                                             nullptr,
@@ -74,7 +74,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
                                " (col_name='" + col_name() + "', type='" + DemangleName(type) +
                                "')");
     }
-    branchBuffer = klass->New();
+    branchBuffer = nullptr;
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), reinterpret_cast<void*>(&branchBuffer), klass, EDataType::kOther_t, true);
   }
