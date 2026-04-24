@@ -21,7 +21,8 @@ void ROOT_TFileImp::setAttribute(std::string const& key, std::string const& valu
 {
   if (key == "compression") {
     using RComp = ROOT::RCompressionSetting::EAlgorithm;
-    RComp::EValues compression;
+    RComp::EValues
+      compression; // NOLINT(cppcoreguidelines-init-variables) - always initialized by if/else
     if (value == "kZLIB")
       compression = RComp::kZLIB;
     else if (value == "kLZMA")

@@ -387,9 +387,10 @@ namespace {
     bool conversion_ok = true;
     if (annot && PyDict_Check(annot)) {
       // Variant guarantees OrderedDict with "return" last
-      PyObject *key, *value;
       Py_ssize_t pos = 0;
 
+      // NOLINTNEXTLINE(cppcoreguidelines-init-variables) - always initialized before access
+      PyObject *key, *value;
       while (PyDict_Next(annot, &pos, &key, &value)) {
         std::string const& ann = annotation_as_text(value);
         if (ann.empty() && PyErr_Occurred()) {
