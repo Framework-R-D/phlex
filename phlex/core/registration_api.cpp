@@ -18,7 +18,7 @@ namespace phlex::experimental {
     if (config) {
       reg_.set_predicates(detail::maybe_predicates(config));
     }
-    reg_.set_creator([this](auto predicates, auto) {
+    reg_.set_creator([this](product_registry const& /* unused */, auto predicates, auto) {
       return std::make_unique<declared_output>(
         std::move(name_), concurrency_.value, std::move(predicates), graph_, std::move(ft_));
     });

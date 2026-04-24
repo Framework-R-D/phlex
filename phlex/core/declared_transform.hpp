@@ -42,7 +42,8 @@ namespace phlex::experimental {
   public:
     declared_transform(algorithm_name name,
                        std::vector<std::string> predicates,
-                       product_queries input_products);
+                       product_queries input_products,
+                       product_registry const& registry);
     virtual ~declared_transform();
 
     virtual tbb::flow::sender<message>& output_port() = 0;
@@ -73,8 +74,10 @@ namespace phlex::experimental {
                    tbb::flow::graph& g,
                    AlgorithmBits alg,
                    product_queries input_products,
-                   std::vector<std::string> output) :
-      declared_transform{std::move(name), std::move(predicates), std::move(input_products)},
+                   std::vector<std::string> output,
+                   product_registry const& registry) :
+      declared_transform{
+        std::move(name), std::move(predicates), std::move(input_products), registry},
       output_{to_product_specifications(
         full_name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
@@ -102,6 +105,8 @@ namespace phlex::experimental {
       }
     }
 
+    product_specifications const& output() const override { return output_; }
+
   private:
     tbb::flow::receiver<message>& port_for(product_query const& input_product) override
     {
@@ -117,7 +122,6 @@ namespace phlex::experimental {
     {
       return tbb::flow::output_port<0>(transform_);
     }
-    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     auto call(function_t const& ft,

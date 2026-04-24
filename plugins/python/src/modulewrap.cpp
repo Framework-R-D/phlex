@@ -912,10 +912,11 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   // TODO: it's not clear what the output layer will be if the input layers are not
   // all the same, so for now, simply raise an error if their is any ambiguity
-  auto output_layer = static_cast<identifier>(input_queries[0].layer);
+  // FIXME: Just assuming the layer is there
+  auto output_layer = static_cast<identifier>(*input_queries[0].layer);
   if (1 < input_queries.size()) {
     for (std::vector<product_query>::size_type iq = 1; iq < input_queries.size(); ++iq) {
-      if (static_cast<identifier>(input_queries[iq].layer) != output_layer) {
+      if (static_cast<identifier>(*input_queries[iq].layer) != output_layer) {
         PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", cname.c_str());
         Py_DECREF(callable);
         return nullptr;

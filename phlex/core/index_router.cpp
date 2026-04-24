@@ -136,8 +136,12 @@ namespace phlex::experimental {
 
     // Create the index-set broadcast nodes for providers
     for (auto& [pq, provider_port] : provider_input_ports_ | std::views::values) {
-      auto [it, _] = broadcasters_.try_emplace(static_cast<identifier const&>(pq.layer),
-                                               std::make_shared<detail::index_set_node>(g));
+      if (!pq.layer) {
+        spdlog::error("The input product query {} has not layer specified", pq);
+        continue;
+      }
+      auto [it, _] =
+        broadcasters_.try_emplace(*pq.layer, std::make_shared<detail::index_set_node>(g));
       make_edge(*it->second, *provider_port);
     }
 

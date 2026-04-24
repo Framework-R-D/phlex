@@ -40,12 +40,14 @@ namespace phlex::experimental {
   public:
     declared_fold(algorithm_name name,
                   std::vector<std::string> predicates,
-                  product_queries input_products);
+                  product_queries input_products,
+                  product_registry const& registry);
     virtual ~declared_fold();
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
     virtual product_specifications const& output() const = 0;
+    virtual identifier const& layer() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
@@ -73,8 +75,9 @@ namespace phlex::experimental {
               InitTuple initializer,
               product_queries input_products,
               std::vector<std::string> output,
-              std::string partition) :
-      declared_fold{std::move(name), std::move(predicates), std::move(input_products)},
+              std::string partition,
+              product_registry const& registry) :
+      declared_fold{std::move(name), std::move(predicates), std::move(input_products), registry},
       initializer_{std::move(initializer)},
       output_{
         to_product_specifications(full_name(), std::move(output), make_type_ids<result_type>())},
@@ -122,6 +125,17 @@ namespace phlex::experimental {
       }
     }
 
+    product_specifications const& output() const override { return output_; }
+    identifier const& layer() const override { return partition_; }
+
+    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
+    {
+      return receiver_for<num_inputs>(join_, input(), input_product, fold_);
+    }
+
+    tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
+    tbb::flow::sender<message>& output_port() override { return tbb::flow::output_port<0>(fold_); }
+
   private:
     void emit_and_evict_if_done(data_cell_index_ptr const& fold_index)
     {
@@ -134,19 +148,10 @@ namespace phlex::experimental {
       }
     }
 
-    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
-    {
-      return receiver_for<num_inputs>(join_, input(), input_product, fold_);
-    }
-
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
       return input_ports<num_inputs>(join_, fold_);
     }
-
-    tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
-    tbb::flow::sender<message>& output_port() override { return tbb::flow::output_port<0>(fold_); }
-    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(function_t const& ft,
