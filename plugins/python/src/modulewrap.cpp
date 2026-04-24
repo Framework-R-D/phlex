@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <gsl/pointers>
 
 #include <algorithm>
 #include <functional>
@@ -943,7 +944,8 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   switch (input_queries.size()) {
   case 1: {
-    auto* pyc = new py_callback_1{callable}; // TODO: leaks, but has program lifetime
+    gsl::owner<py_callback_1*> pyc =
+      new py_callback_1{callable}; // TODO: leaks, but has program lifetime
     mod->ph_module->transform(pyname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
@@ -951,7 +953,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     break;
   }
   case 2: {
-    auto* pyc = new py_callback_2{callable};
+    gsl::owner<py_callback_2*> pyc = new py_callback_2{callable};
     auto pq1 = input_queries[1];
     std::string c1 = input_converter_name(cname, 1);
     std::string suff1 =
@@ -964,7 +966,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     break;
   }
   case 3: {
-    auto* pyc = new py_callback_3{callable};
+    gsl::owner<py_callback_3*> pyc = new py_callback_3{callable};
     auto pq1 = input_queries[1];
     std::string c1 = input_converter_name(cname, 1);
     std::string suff1 =
@@ -1032,14 +1034,14 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
   switch (input_queries.size()) {
   case 1: {
-    auto* pyc = new py_callback_1v{callable};
+    gsl::owner<py_callback_1v*> pyc = new py_callback_1v{callable};
     mod->ph_module->observe(cname, *pyc, concurrency::serial)
       .input_family(
         product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)});
     break;
   }
   case 2: {
-    auto* pyc = new py_callback_2v{callable};
+    gsl::owner<py_callback_2v*> pyc = new py_callback_2v{callable};
     auto pq1 = input_queries[1];
     std::string c1 = input_converter_name(cname, 1);
     std::string suff1 =
@@ -1051,7 +1053,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     break;
   }
   case 3: {
-    auto* pyc = new py_callback_3v{callable};
+    gsl::owner<py_callback_3v*> pyc = new py_callback_3v{callable};
     auto pq1 = input_queries[1];
     std::string c1 = input_converter_name(cname, 1);
     std::string suff1 =
@@ -1237,25 +1239,25 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // is fixed, so there is no combinatorics problem.
   std::string const& out_type = output_types[0];
   if (out_type == "bool") {
-    auto* pyc = new provider_cb_bool{callable};
+    gsl::owner<provider_cb_bool*> pyc = new provider_cb_bool{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
   } else if (out_type == "int32_t") {
-    auto* pyc = new provider_cb_int{callable};
+    gsl::owner<provider_cb_int*> pyc = new provider_cb_int{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
   } else if (out_type == "uint32_t") {
-    auto* pyc = new provider_cb_uint{callable};
+    gsl::owner<provider_cb_uint*> pyc = new provider_cb_uint{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
   } else if (out_type == "int64_t") {
-    auto* pyc = new provider_cb_long{callable};
+    gsl::owner<provider_cb_long*> pyc = new provider_cb_long{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
   } else if (out_type == "uint64_t") {
-    auto* pyc = new provider_cb_ulong{callable};
+    gsl::owner<provider_cb_ulong*> pyc = new provider_cb_ulong{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
   } else if (out_type == "float") {
-    auto* pyc = new provider_cb_float{callable};
+    gsl::owner<provider_cb_float*> pyc = new provider_cb_float{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
   } else if (out_type == "double") {
-    auto* pyc = new provider_cb_double{callable};
+    gsl::owner<provider_cb_double*> pyc = new provider_cb_double{callable};
     src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
   } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
@@ -1266,22 +1268,22 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
       return nullptr;
     }
     if (*dtype == "[int32_t]") {
-      auto* pyc = new provider_cb_vint{callable};
+      gsl::owner<provider_cb_vint*> pyc = new provider_cb_vint{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (*dtype == "[uint32_t]") {
-      auto* pyc = new provider_cb_vuint{callable};
+      gsl::owner<provider_cb_vuint*> pyc = new provider_cb_vuint{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (*dtype == "[int64_t]") {
-      auto* pyc = new provider_cb_vlong{callable};
+      gsl::owner<provider_cb_vlong*> pyc = new provider_cb_vlong{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (*dtype == "[uint64_t]") {
-      auto* pyc = new provider_cb_vulong{callable};
+      gsl::owner<provider_cb_vulong*> pyc = new provider_cb_vulong{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (*dtype == "[float]") {
-      auto* pyc = new provider_cb_vfloat{callable};
+      gsl::owner<provider_cb_vfloat*> pyc = new provider_cb_vfloat{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else if (*dtype == "[double]") {
-      auto* pyc = new provider_cb_vdouble{callable};
+      gsl::owner<provider_cb_vdouble*> pyc = new provider_cb_vdouble{callable};
       src->ph_source->provide(functor_name, *pyc).output_product(opq.value());
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());

@@ -18,7 +18,10 @@ add_library(
   src/lifelinewrap.cpp
   src/errorwrap.cpp
 )
-target_link_libraries(pymodule PRIVATE phlex::module Python::Python Python::NumPy)
+target_link_libraries(
+  pymodule
+  PRIVATE phlex::module Python::Python Python::NumPy Microsoft.GSL::GSL
+)
 target_compile_definitions(pymodule PRIVATE NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION)
 
 install(TARGETS pymodule LIBRARY DESTINATION lib)
