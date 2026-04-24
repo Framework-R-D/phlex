@@ -21,7 +21,6 @@ if(FORM_USE_ROOT_STORAGE)
       SOURCE
       reader.cpp
       LIBRARIES
-      Microsoft.GSL::GSL
       form
       form_test_data_products
       TEST_ARGS
