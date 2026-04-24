@@ -24,7 +24,7 @@ namespace {
     }
 
     template <typename T>
-    T read(std::string const& creator,
+    T const& read(std::string const& creator,
            std::string const& product_name,
            phlex::data_cell_index const& id)
     {
