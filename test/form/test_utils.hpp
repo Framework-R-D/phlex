@@ -82,13 +82,12 @@ namespace form::test {
   {
     auto container = createReadContainer(technology, makeTestBranchName<PROD>());
     container->setFile(file);
-    void const* dataPtr = new PROD();
-    void const** dataPtrPtr = &dataPtr;
+    void const* rawPtr = nullptr;
 
-    if (!container->read(0, dataPtrPtr, typeid(PROD)))
+    if (!container->read(0, &rawPtr, typeid(PROD)))
       throw std::runtime_error("Failed to read a " + getTypeName<PROD>());
 
-    return std::unique_ptr<PROD const>(static_cast<PROD const*>(dataPtr));
+    return std::unique_ptr<PROD const>(static_cast<PROD const*>(rawPtr));
   }
 
   template <class... PRODS>
