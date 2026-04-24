@@ -8,6 +8,7 @@
 #include <cmath>
 #include <format>
 #include <fstream>
+#include <gsl/pointers>
 #include <map>
 #include <sstream>
 #include <utility>
@@ -80,11 +81,11 @@ int main(int argc, char** argv)
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Read Event No. " << nevent << '\n';
 
-    std::vector<float> const* track_x = nullptr;
+    gsl::owner<std::vector<float> const*> track_x = nullptr;
 
     for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
 
-      std::vector<float> const* track_start_x = nullptr;
+      gsl::owner<std::vector<float> const*> track_start_x = nullptr;
       std::string const seg_id_text = std::format("[EVENT={:08X};SEG={:08X}]", nevent, nseg);
 
       std::string const& segment_id = seg_id_text;
@@ -95,24 +96,24 @@ int main(int argc, char** argv)
         "trackStart", track_start_x, &typeid(std::vector<float>)};
 
       form.read(creator, segment_id, pb);
-      track_start_x =
-        static_cast<std::vector<float> const*>(pb.data); //FIXME: Can this be done by FORM?
+      track_start_x = static_cast<gsl::owner<std::vector<float> const*>>(
+        pb.data); //FIXME: Can this be done by FORM?
 
-      std::vector<int> const* track_n_hits = nullptr;
+      gsl::owner<std::vector<int> const*> track_n_hits = nullptr;
 
       form::experimental::product_with_name pb_int = {
         "trackNumberHits", track_n_hits, &typeid(std::vector<int>)};
 
       form.read(creator, segment_id, pb_int);
-      track_n_hits = static_cast<std::vector<int> const*>(pb_int.data);
+      track_n_hits = static_cast<gsl::owner<std::vector<int> const*>>(pb_int.data);
 
-      std::vector<TrackStart> const* start_points = nullptr;
+      gsl::owner<std::vector<TrackStart> const*> start_points = nullptr;
 
       form::experimental::product_with_name pb_points = {
         "trackStartPoints", start_points, &typeid(std::vector<TrackStart>)};
 
       form.read(creator, segment_id, pb_points);
-      start_points = static_cast<std::vector<TrackStart> const*>(pb_points.data);
+      start_points = static_cast<gsl::owner<std::vector<TrackStart> const*>>(pb_points.data);
 
       float check = 0.0;
       for (float val : *track_start_x)
@@ -167,7 +168,8 @@ int main(int argc, char** argv)
       "trackStartX", track_x, &typeid(std::vector<float>)};
 
     form.read(creator, event_id, pb);
-    track_x = static_cast<std::vector<float> const*>(pb.data); //FIXME: Can this be done by FORM?
+    track_x = static_cast<gsl::owner<std::vector<float> const*>>(
+      pb.data); //FIXME: Can this be done by FORM?
 
     float check = 0.0;
     for (float val : *track_x)
