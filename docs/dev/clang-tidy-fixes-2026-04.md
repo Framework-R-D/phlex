@@ -62,7 +62,8 @@
   - [PR #548](https://github.com/Framework-R-D/phlex/pull/548)
 - [x] [cppcoreguidelines-noexcept-move-operations](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/noexcept-move-operations.html) (8)
   - [PR #549](https://github.com/Framework-R-D/phlex/pull/549)
-- [ ] [cppcoreguidelines-owning-memory](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/owning-memory.html) (28)
+- [x] [cppcoreguidelines-owning-memory](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/owning-memory.html) (28)
+  - [PR #551](https://github.com/Framework-R-D/phlex/pull/551)
 - [x] [cppcoreguidelines-pro-bounds-avoid-unchecked-container-access](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-bounds-avoid-unchecked-container-access.html) (113)
   - [PR #553](https://github.com/Framework-R-D/phlex/pull/553) (partial)
   - Disable check going forward.
