@@ -63,43 +63,43 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
     auto fundInfo = static_cast<TDataType*>(TDictionary::GetDictionary(type));
     switch (fundInfo->GetType()) {
     case kChar_t:
-      branchBuffer = new char;
+      branchBuffer = new Char_t;
       break;
     case kUChar_t:
-      branchBuffer = new unsigned char;
+      branchBuffer = new UChar_t;
       break;
     case kShort_t:
-      branchBuffer = new short;
+      branchBuffer = new Short_t;
       break;
     case kUShort_t:
-      branchBuffer = new unsigned short;
+      branchBuffer = new UShort_t;
       break;
     case kInt_t:
-      branchBuffer = new int;
+      branchBuffer = new Int_t;
       break;
     case kUInt_t:
-      branchBuffer = new unsigned int;
+      branchBuffer = new UInt_t;
       break;
     case kLong_t:
-      branchBuffer = new long;
+      branchBuffer = new Long_t;
       break;
     case kULong_t:
-      branchBuffer = new unsigned long;
+      branchBuffer = new ULong_t;
       break;
     case kLong64_t:
-      branchBuffer = new int64_t;
+      branchBuffer = new Long64_t;
       break;
     case kULong64_t:
-      branchBuffer = new uint64_t;
+      branchBuffer = new ULong64_t;
       break;
     case kFloat_t:
-      branchBuffer = new float;
+      branchBuffer = new Float_t;
       break;
     case kDouble_t:
-      branchBuffer = new double;
+      branchBuffer = new Double_t;
       break;
     case kBool_t:
-      branchBuffer = new bool;
+      branchBuffer = new Bool_t;
       break;
     default:
       throw std::runtime_error(
