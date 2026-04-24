@@ -543,15 +543,17 @@ function(_create_coverage_targets_impl)
     COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.info*
     COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage.xml
     COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage-python.xml
+    COMMAND rm -f ${CMAKE_BINARY_DIR}/coverage-scripts.xml
     COMMAND rm -rf ${CMAKE_BINARY_DIR}/coverage-html
     COMMAND rm -rf ${CMAKE_BINARY_DIR}/coverage-python-html
     COMMAND rm -rf ${CMAKE_BINARY_DIR}/.coverage
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Cleaning coverage data files (C++ and Python)"
+    COMMENT "Cleaning coverage data files (C++, Python, and scripts)"
   )
 
   # Note: The coverage-python target is defined in test/python/CMakeLists.txt
-  # where it can use the proper test environment setup (PYTHONPATH, etc.)
+  # and coverage-scripts is defined in scripts/test/CMakeLists.txt, where each
+  # can use the appropriate test environment setup.
 
   message(
     STATUS

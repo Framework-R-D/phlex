@@ -9,7 +9,6 @@ omit =
     **/unit_test_*.py
     # Omit all files in test directories
     */test/*
-    */tests/*
 
 [report]
 # Exclude test files from coverage reports
@@ -20,4 +19,3 @@ omit =
     **/unit_test_*.py
     # Omit all files in test directories
     */test/*
-    */tests/*
