@@ -1,6 +1,7 @@
 #ifndef PHLEX_CORE_CONCEPTS_HPP
 #define PHLEX_CORE_CONCEPTS_HPP
 
+#include "phlex/core/fold/send.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/fwd.hpp"
@@ -14,9 +15,7 @@ namespace phlex::experimental {
   concept not_void = !std::same_as<T, void>;
 
   template <typename T>
-  concept sendable = std::move_constructible<T> || requires(T& t) {
-    { send(t) } -> std::move_constructible;
-  };
+  concept sendable = std::move_constructible<T> || requires(T const& t) { sendable_type<T>{t}; };
 
   template <typename T, std::size_t N>
   concept at_least_n_input_parameters = number_parameters<T> >= N;
