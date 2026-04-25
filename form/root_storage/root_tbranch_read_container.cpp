@@ -61,12 +61,56 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   if (dictInfo->Property() & EProperty::kIsFundamental) {
     //Assume this is a fundamental type like int or double
     auto fundInfo = static_cast<TDataType*>(TDictionary::GetDictionary(type));
-    branchBuffer = new char[fundInfo->Size()];
+    switch (fundInfo->GetType()) {
+    case kChar_t:
+      branchBuffer = new Char_t;
+      break;
+    case kUChar_t:
+      branchBuffer = new UChar_t;
+      break;
+    case kShort_t:
+      branchBuffer = new Short_t;
+      break;
+    case kUShort_t:
+      branchBuffer = new UShort_t;
+      break;
+    case kInt_t:
+      branchBuffer = new Int_t;
+      break;
+    case kUInt_t:
+      branchBuffer = new UInt_t;
+      break;
+    case kLong_t:
+      branchBuffer = new Long_t;
+      break;
+    case kULong_t:
+      branchBuffer = new ULong_t;
+      break;
+    case kLong64_t:
+      branchBuffer = new Long64_t;
+      break;
+    case kULong64_t:
+      branchBuffer = new ULong64_t;
+      break;
+    case kFloat_t:
+      branchBuffer = new Float_t;
+      break;
+    case kDouble_t:
+      branchBuffer = new Double_t;
+      break;
+    case kBool_t:
+      branchBuffer = new Bool_t;
+      break;
+    default:
+      throw std::runtime_error(
+        std::string{"ROOT_TBranch_ContainerImp::read unsupported fundamental type: "} +
+        DemangleName(type));
+    };
     branchStatus = m_tree->SetBranchAddress(col_name().c_str(),
-                                            reinterpret_cast<void*>(&branchBuffer),
+                                            reinterpret_cast<void*>(branchBuffer),
                                             nullptr,
                                             EDataType(fundInfo->GetType()),
-                                            true);
+                                            false);
   } else {
     auto klass = TClass::GetClass(type);
     if (!klass) {

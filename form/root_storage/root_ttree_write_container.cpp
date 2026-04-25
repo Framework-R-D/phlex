@@ -6,19 +6,13 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include <gsl/pointers>
+
 using namespace form::detail::experimental;
 
 ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& name) :
   Storage_Write_Association(name), m_tfile(nullptr), m_tree(nullptr)
 {
-}
-
-ROOT_TTree_Write_ContainerImp::~ROOT_TTree_Write_ContainerImp()
-{
-  if (m_tree != nullptr) {
-    m_tree->GetDirectory()->WriteTObject(m_tree);
-    delete m_tree;
-  }
 }
 
 void ROOT_TTree_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
@@ -39,10 +33,10 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
     throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no file attached");
   }
   if (m_tree == nullptr) {
-    m_tree = m_tfile->Get<TTree>(name().c_str());
+    m_tree.reset(m_tfile->Get<TTree>(name().c_str()));
   }
   if (m_tree == nullptr) {
-    m_tree = new TTree(name().c_str(), name().c_str());
+    m_tree.reset(gsl::owner<TTree*>{new TTree(name().c_str(), name().c_str())});
     m_tree->SetDirectory(m_tfile.get());
   }
   if (m_tree == nullptr) {
@@ -61,4 +55,12 @@ void ROOT_TTree_Write_ContainerImp::commit()
   throw std::runtime_error("ROOT_TTree_Write_ContainerImp::commit not implemented");
 }
 
-TTree* ROOT_TTree_Write_ContainerImp::getTTree() { return m_tree; }
+TTree* ROOT_TTree_Write_ContainerImp::getTTree() { return m_tree.get(); }
+
+void ROOT_TTree_Write_ContainerImp::TTreeDeleter::operator()(gsl::owner<TTree*> t) const
+{
+  if (t) {
+    t->GetDirectory()->WriteTObject(t);
+    delete t;
+  }
+}

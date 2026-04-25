@@ -15,4 +15,8 @@ add_library(
 target_compile_definitions(root_storage PUBLIC USE_ROOT_STORAGE)
 
 # Link the ROOT libraries
-target_link_libraries(root_storage PUBLIC ROOT::Core ROOT::RIO ROOT::Tree storage)
+target_link_libraries(
+  root_storage
+  PUBLIC ROOT::Core ROOT::RIO ROOT::Tree storage
+  PRIVATE Microsoft.GSL::GSL
+)
