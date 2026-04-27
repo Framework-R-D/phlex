@@ -9,6 +9,8 @@
 #include "TLeaf.h"
 #include "TTree.h"
 
+#include <gsl/pointers>
+
 #include <unordered_map>
 
 using namespace form::detail::experimental;
@@ -49,7 +51,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   if (id > m_tree->GetEntries())
     return false;
 
-  void* branchBuffer = nullptr;
+  gsl::owner<void*> branchBuffer = nullptr;
   auto dictInfo = TDictionary::GetDictionary(type);
   int branchStatus = 0;
 
@@ -106,11 +108,8 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
         std::string{"ROOT_TBranch_ContainerImp::read unsupported fundamental type: "} +
         DemangleName(type));
     };
-    branchStatus = m_tree->SetBranchAddress(col_name().c_str(),
-                                            reinterpret_cast<void*>(branchBuffer),
-                                            nullptr,
-                                            EDataType(fundInfo->GetType()),
-                                            false);
+    branchStatus = m_tree->SetBranchAddress(
+      col_name().c_str(), branchBuffer, nullptr, EDataType(fundInfo->GetType()), false);
   } else {
     auto klass = TClass::GetClass(type);
     if (!klass) {
@@ -118,7 +117,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
                                " (col_name='" + col_name() + "', type='" + DemangleName(type) +
                                "')");
     }
-    branchBuffer = klass->New();
+    branchBuffer = gsl::owner<void*>(klass->New());
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), reinterpret_cast<void*>(&branchBuffer), klass, EDataType::kOther_t, true);
   }
