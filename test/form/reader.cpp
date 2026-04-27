@@ -53,12 +53,12 @@ int main(int argc, char** argv)
     iss >> type;
     if (type == "SEG") {
       SegChecksum cs;
-      int nevent, nseg; // NOLINT(cppcoreguidelines-init-variables) - always initialized by iss
+      int nevent{}, nseg{};
       iss >> nevent >> nseg >> cs.check >> cs.cpx >> cs.cpy >> cs.cpz;
       expected_seg[{nevent, nseg}] = cs;
     } else if (type == "EVT") {
       EvtChecksum cs;
-      int nevent; // NOLINT(cppcoreguidelines-init-variables) - always initialized by iss
+      int nevent{};
       iss >> nevent >> cs.check;
       expected_evt[nevent] = cs;
     }

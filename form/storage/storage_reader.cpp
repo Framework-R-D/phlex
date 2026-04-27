@@ -41,7 +41,7 @@ int StorageReader::getIndex(Token const& token,
     }
     auto const& type = typeid(std::string);
     int entry = 1;
-    void const* data; // NOLINT(cppcoreguidelines-init-variables) - initialized by read()
+    void const* data = nullptr;
     while (cont->second->read(entry, &data, type)) {
       m_indexMaps[token.containerName()].insert(
         std::make_pair(*(static_cast<std::string const*>(data)), entry));

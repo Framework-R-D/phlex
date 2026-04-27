@@ -389,8 +389,8 @@ namespace {
       // Variant guarantees OrderedDict with "return" last
       Py_ssize_t pos = 0;
 
-      // NOLINTNEXTLINE(cppcoreguidelines-init-variables) - always initialized before access
-      PyObject *key, *value;
+      PyObject* key = nullptr;
+      PyObject* value = nullptr;
       while (PyDict_Next(annot, &pos, &key, &value)) {
         std::string const& ann = annotation_as_text(value);
         if (ann.empty() && PyErr_Occurred()) {
