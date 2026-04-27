@@ -7,7 +7,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <cmath>
 #include <numeric>
 #include <vector>
 
@@ -37,11 +36,7 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
 
   auto [piResult, indexResult] = form::test::read<std::vector<float>, std::string>(technology);
 
-  float const originalSum = std::accumulate(piData.begin(), piData.end(), 0.f);
-  float const readSum = std::accumulate(piResult->begin(), piResult->end(), 0.f);
-  float const floatDiff = readSum - originalSum;
-
-  SECTION("float container sum") { CHECK(fabs(floatDiff) < std::numeric_limits<float>::epsilon()); }
+  SECTION("float container") { CHECK(*piResult == piData); }
 
   SECTION("index") { CHECK(*indexResult == indexData); }
 }
@@ -59,21 +54,9 @@ TEST_CASE("Storage_Container multiple containers in Association", "[form]")
   auto [piResult, magicResult, indexResult] =
     form::test::read<std::vector<float>, std::vector<int>, std::string>(technology);
 
-  SECTION("float container")
-  {
-    float const originalSum = std::accumulate(piData.begin(), piData.end(), 0.f);
-    float const readSum = std::accumulate(piResult->begin(), piResult->end(), 0.f);
-    float const floatDiff = readSum - originalSum;
-    CHECK(fabs(floatDiff) < std::numeric_limits<float>::epsilon());
-  }
+  SECTION("float container") { CHECK(*piResult == piData); }
 
-  SECTION("int container")
-  {
-    int const originalMagic = std::accumulate(magicData.begin(), magicData.end(), 0);
-    int const readMagic = std::accumulate(magicResult->begin(), magicResult->end(), 0);
-    int const magicDiff = readMagic - originalMagic;
-    CHECK(magicDiff == 0);
-  }
+  SECTION("int container") { CHECK(*magicResult == magicData); }
 
   SECTION("index data") { CHECK(*indexResult == indexData); }
 }
