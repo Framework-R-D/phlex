@@ -16,16 +16,6 @@ namespace {
 }
 
 namespace phlex::experimental {
-
-  // =========================================================================================
-  // data_cell_counts implementation
-  void data_cell_counts::emplace(std::size_t layer_hash, std::size_t value)
-  {
-    map_.emplace(layer_hash, value);
-  }
-
-  // =========================================================================================
-  // data_cell_tracker implementation
   data_cell_tracker::~data_cell_tracker()
   {
     if (pending_flushes_.empty()) {
@@ -40,7 +30,8 @@ namespace phlex::experimental {
     }
   }
 
-  index_flushes data_cell_tracker::closeout(data_cell_index_ptr const& received_index)
+  index_flushes data_cell_tracker::report_and_evict_ready_flushes(
+    data_cell_index_ptr const& received_index)
   {
     // Always update the cached index.  The logic below uses the previous cached index to
     // determine what flushes to emit.

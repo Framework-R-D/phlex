@@ -29,13 +29,14 @@ TEST_CASE("Test data-cell tracker", "[graph]")
   auto subspill2 = spill6->make_child("subspill", 2);
   auto run5 = job_index->make_child("run", 5);
 
-  CHECK(tracker.closeout(job_index).empty());
-  CHECK(tracker.closeout(run4).empty());
-  CHECK(tracker.closeout(spill5).empty());
-  CHECK(tracker.closeout(spill6).empty());
-  CHECK(tracker.closeout(subspill2).empty());
+  // Present data-cell indices in an order that reflects what a normal framework program would do.
+  CHECK(tracker.report_and_evict_ready_flushes(job_index).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(run4).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(spill5).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(spill6).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(subspill2).empty());
 
-  auto flushes = tracker.closeout(run5);
+  auto flushes = tracker.report_and_evict_ready_flushes(run5);
   REQUIRE(flushes.size() == 2);
 
   auto spill6_flush = flushes[0];
@@ -48,7 +49,7 @@ TEST_CASE("Test data-cell tracker", "[graph]")
   REQUIRE(run4_flush.counts->size() == 1);                    // Should only be "spill" layer
   CHECK(run4_flush.counts->count(spill5->layer_hash()) == 2); // spills 5 and 6
 
-  flushes = tracker.closeout(nullptr);
+  flushes = tracker.report_and_evict_ready_flushes(nullptr);
   REQUIRE(flushes.size() == 1); // only job should have a flush count
 
   auto job_flush = flushes[0];
@@ -66,12 +67,12 @@ TEST_CASE("Test data-cell tracker with multiple hierarchy branches", "[graph]")
   auto calib1 = job_index->make_child("calib", 1);
   auto run5 = job_index->make_child("run", 5);
 
-  CHECK(tracker.closeout(job_index).empty());
-  CHECK(tracker.closeout(run4).empty());
-  CHECK(tracker.closeout(calib1).empty());
-  CHECK(tracker.closeout(run5).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(job_index).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(run4).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(calib1).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(run5).empty());
 
-  auto flushes = tracker.closeout(nullptr);
+  auto flushes = tracker.report_and_evict_ready_flushes(nullptr);
   REQUIRE(flushes.size() == 1); // only job should have a flush count
   auto job_flush = flushes[0];
   CHECK(job_flush.index == job_index);
@@ -88,9 +89,9 @@ TEST_CASE("Test data-cell tracker with missing intermediate layers", "[graph]")
   auto run4 = job_index->make_child("run", 4);
   auto spill2 = run4->make_child("spill", 2);
 
-  CHECK(tracker.closeout(job_index).empty());
+  CHECK(tracker.report_and_evict_ready_flushes(job_index).empty());
 
-  CHECK_THROWS_WITH(tracker.closeout(spill2),
+  CHECK_THROWS_WITH(tracker.report_and_evict_ready_flushes(spill2),
                     "Received index [run:4, spill:2], which is not an immediate child of []");
 }
 
@@ -103,8 +104,8 @@ TEST_CASE("Cached flush counts at destruction generate warning message", "[graph
   auto job_index = data_cell_index::job();
   auto run4 = job_index->make_child("run", 4);
 
-  CHECK(tracker->closeout(job_index).empty());
-  CHECK(tracker->closeout(run4).empty());
+  CHECK(tracker->report_and_evict_ready_flushes(job_index).empty());
+  CHECK(tracker->report_and_evict_ready_flushes(run4).empty());
 
   tracker.reset(); // Invoke destructor to trigger warning message
   auto const warning = oss.str();

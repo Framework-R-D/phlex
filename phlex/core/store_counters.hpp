@@ -4,7 +4,6 @@
 #include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/fwd.hpp"
-#include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
@@ -18,20 +17,20 @@
 namespace phlex::experimental {
   class PHLEX_CORE_EXPORT store_counter {
   public:
-    void set_flush_value(flush_counts_ptr counts, std::size_t original_message_id);
+    void set_flush_value(data_cell_counts_const_ptr counts, std::size_t original_message_id);
     void increment(data_cell_index::hash_type layer_hash);
     bool is_complete();
     unsigned int original_message_id() const noexcept;
 
   private:
-    using counts_t2 =
+    using counts_t =
       tbb::concurrent_unordered_map<data_cell_index::hash_type, std::atomic<std::size_t>>;
 
-    counts_t2 counts_{};
+    counts_t counts_{};
 #ifdef __cpp_lib_atomic_shared_ptr
-    std::atomic<flush_counts_ptr> flush_counts_{nullptr};
+    std::atomic<data_cell_counts_const_ptr> flush_counts_{nullptr};
 #else
-    flush_counts_ptr flush_counts_{nullptr};
+    data_cell_counts_const_ptr flush_counts_{nullptr};
 #endif
     unsigned int original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
     std::atomic<bool> ready_to_flush_{true};

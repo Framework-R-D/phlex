@@ -1,6 +1,6 @@
 #include "phlex/core/store_counters.hpp"
 #include "phlex/core/message.hpp"
-#include "phlex/model/data_cell_counter.hpp"
+#include "phlex/model/data_cell_counts.hpp"
 
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
@@ -9,7 +9,7 @@
 
 namespace phlex::experimental {
 
-  void store_counter::set_flush_value(flush_counts_ptr counts,
+  void store_counter::set_flush_value(data_cell_counts_const_ptr counts,
                                       std::size_t const original_message_id)
   {
     if (not counts) {
@@ -46,13 +46,12 @@ namespace phlex::experimental {
 
     // The 'counts_' data member can be empty if the flush_counts member has been filled
     // but none of the children stores have been processed.
-    if (counts_.empty() and !flush_counts->empty()) {
+    if (counts_.empty() and flush_counts->size() > 0uz) {
       return false;
     }
 
     for (auto const& [layer_hash, count] : counts_) {
-      auto maybe_count = flush_counts->count_for(layer_hash);
-      if (!maybe_count or count != *maybe_count) {
+      if (count != flush_counts->count(layer_hash)) {
         return false;
       }
     }

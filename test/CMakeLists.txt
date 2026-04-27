@@ -162,10 +162,10 @@ cet_test(
   LIBRARIES layer_generator_internal phlex::core_internal spdlog::spdlog
 )
 cet_test(
-  data_cell_counting
+  data_layer_hierarchy
   USE_CATCH2_MAIN
   SOURCE
-  data_cell_counting.cpp
+  data_layer_hierarchy_test.cpp
   LIBRARIES
   phlex::model_internal
   phlex::utilities_internal
@@ -180,7 +180,7 @@ cet_test(data_cell_tracker USE_CATCH2_MAIN SOURCE data_cell_tracker_test.cpp LIB
          phlex::model
          TBB::tbb
 )
-cet_test(child_tracker USE_CATCH2_MAIN SOURCE child_tracker_test.cpp LIBRARIES
+cet_test(flush_gate USE_CATCH2_MAIN SOURCE flush_gate_test.cpp LIBRARIES
          phlex::model_internal
          TBB::tbb
 )
