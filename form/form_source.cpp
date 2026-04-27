@@ -25,8 +25,8 @@ namespace {
 
     template <typename T>
     T const& read(std::string const& creator,
-           std::string const& product_name,
-           phlex::data_cell_index const& id)
+                  std::string const& product_name,
+                  phlex::data_cell_index const& id)
     {
       std::string const index_str = id.to_string();
       form::experimental::product_with_name pb{product_name, nullptr, &typeid(T)};
