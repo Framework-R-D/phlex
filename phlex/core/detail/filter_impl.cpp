@@ -79,12 +79,11 @@ namespace phlex::experimental {
     }
 
     // Fill slots in the order of the input arguments to the downstream node.
-    for (auto ip_it = input_products_->cbegin(); auto& e : elem) {
-      auto const& ip = *ip_it++;
-      if (e or not resolve_in_store(ip, *store)) {
+    for (std::size_t i = 0; i != nargs_; ++i) {
+      if (elem[i] or not resolve_in_store((*input_products_)[i], *store)) {
         continue;
       }
-      e = store;
+      elem[i] = store;
     }
   }
 
