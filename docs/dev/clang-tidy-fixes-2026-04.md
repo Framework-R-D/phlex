@@ -61,7 +61,9 @@
 - [x] [cppcoreguidelines-noexcept-move-operations](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/noexcept-move-operations.html) (8)
   - [PR #549](https://github.com/Framework-R-D/phlex/pull/549)
 - [ ] [cppcoreguidelines-owning-memory](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/owning-memory.html) (28)
-- [ ] [cppcoreguidelines-pro-bounds-avoid-unchecked-container-access](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-bounds-avoid-unchecked-container-access.html) (113)
+- [x] [cppcoreguidelines-pro-bounds-avoid-unchecked-container-access](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-bounds-avoid-unchecked-container-access.html) (113)
+  - [PR #553](https://github.com/Framework-R-D/phlex/pull/553) (partial)
+  - Disable check going forward.
 - [ ] [cppcoreguidelines-pro-type-const-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-const-cast.html) (1)
 - [ ] [cppcoreguidelines-pro-type-cstyle-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-cstyle-cast.html) (62)
 - [ ] [cppcoreguidelines-pro-type-member-init](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-member-init.html) (15)
