@@ -1,0 +1,6 @@
+---
+
+InheritParentConfig: true
+
+Checks: >
+  -cppcoreguidelines-pro-type-vararg
