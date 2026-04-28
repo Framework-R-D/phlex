@@ -76,6 +76,7 @@ namespace phlex::experimental {
   {
     // First check if layer paths need to be rebased
     std::vector<size_t> indices_for_rebasing;
+    // We can use std::views::enumerate once the AppleClang C++ STL supports it.
     for (std::size_t i = 0ull, n = layer_paths_.size(); i != n; ++i) {
       auto const& layer = layer_paths_[i];
       if (layer.starts_with("/" + layer_name)) {

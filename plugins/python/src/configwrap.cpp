@@ -94,6 +94,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         if (!cvalue_size)
           return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyLong_FromLong((long)cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
@@ -104,6 +105,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         if (!cvalue_size)
           return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromInt64
           PyObject* item = PyLong_FromLongLong(cvalue[i]);
@@ -115,6 +117,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         if (!cvalue_size)
           return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromUInt64
           PyObject* item = PyLong_FromUnsignedLongLong(cvalue[i]);
@@ -126,6 +129,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         if (!cvalue_size)
           return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyFloat_FromDouble(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
@@ -136,6 +140,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         if (!cvalue_size)
           return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item =
             PyUnicode_FromStringAndSize(cvalue[i].c_str(), (Py_ssize_t)cvalue[i].size());
@@ -148,6 +153,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         if (!cvalue_size)
           return nullptr;
         pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyDict_New();
           for (auto const& kv : cvalue[i]) {
