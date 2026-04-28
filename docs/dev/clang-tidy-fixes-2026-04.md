@@ -68,7 +68,8 @@
   - Disable check going forward.
 - [ ] [cppcoreguidelines-pro-type-const-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-const-cast.html) (1)
 - [ ] [cppcoreguidelines-pro-type-cstyle-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-cstyle-cast.html) (62)
-- [ ] [cppcoreguidelines-pro-type-member-init](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-member-init.html) (15)
+- [x] [cppcoreguidelines-pro-type-member-init](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-member-init.html) (15)
+  - [PR #555](https://github.com/Framework-R-D/phlex/pull/554)
 - [ ] [cppcoreguidelines-pro-type-static-cast-downcast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-static-cast-downcast.html) (1)
 - [ ] [cppcoreguidelines-pro-type-union-access](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-union-access.html) (1)
 - [ ] [cppcoreguidelines-pro-type-vararg](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-vararg.html) (29)
