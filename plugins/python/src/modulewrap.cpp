@@ -780,11 +780,10 @@ static bool insert_input_converters(py_phlex_module* mod,
                                     std::vector<std::string> const& input_types)
 {
   // insert input converter nodes into the graph
-  for (size_t i = 0; i < (size_t)input_queries.size(); ++i) {
+  for (auto const [i, inp_pq, inp_type] :
+       std::views::zip(std::views::iota(size_t{}), input_queries, input_types)) {
     // TODO: this seems overly verbose and inefficient, but the function needs
     // to be properly types, so every option is made explicit
-    auto const& inp_pq = input_queries[i];
-    auto const& inp_type = input_types[i];
 
     std::string const& pyname = input_converter_name(cname, i);
     std::string output =
@@ -914,8 +913,8 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // all the same, so for now, simply raise an error if their is any ambiguity
   auto output_layer = static_cast<identifier>(input_queries[0].layer);
   if (1 < input_queries.size()) {
-    for (std::vector<product_query>::size_type iq = 1; iq < input_queries.size(); ++iq) {
-      if (static_cast<identifier>(input_queries[iq].layer) != output_layer) {
+    for (auto const& iq_pq : input_queries | std::views::drop(1)) {
+      if (static_cast<identifier>(iq_pq.layer) != output_layer) {
         PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", cname.c_str());
         Py_DECREF(callable);
         return nullptr;

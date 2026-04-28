@@ -25,8 +25,8 @@ namespace {
 
     auto const* current = &id;
     std::vector<std::size_t> result(id.depth());
-    for (std::size_t i = id.depth(); i > 0; --i) {
-      result[i - 1] = current->number();
+    for (auto& r : result | std::views::reverse) {
+      r = current->number();
       current = current->parent().get();
     }
     return result;

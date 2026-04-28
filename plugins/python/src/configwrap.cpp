@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <optional>
+#include <ranges>
 #include <string>
 
 #include "phlex/configuration.hpp"

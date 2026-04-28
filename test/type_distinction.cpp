@@ -8,6 +8,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 
+#include <ranges>
 #include <tuple>
 #include <vector>
 
@@ -30,11 +31,9 @@ namespace {
   auto add_vectors(std::vector<int> const& x, std::vector<int> const& y)
   {
     std::vector<int> res;
-    std::size_t const len = std::min(x.size(), y.size());
-
-    res.reserve(len);
-    for (std::size_t i = 0; i < len; ++i) {
-      res.push_back(x[i] + y[i]);
+    res.reserve(std::min(x.size(), y.size()));
+    for (auto const [xi, yi] : std::views::zip(x, y)) {
+      res.push_back(xi + yi);
     }
     return res;
   }

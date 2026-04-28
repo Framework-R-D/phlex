@@ -6,6 +6,7 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
+#include <ranges>
 
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
@@ -69,8 +70,8 @@ namespace phlex::experimental {
       if (empty(stores)) {
         return {};
       }
-      for (std::size_t i = 0ull; i != nargs_; ++i) {
-        downstream_ports_[i]->try_put({stores[i], msg_id});
+      for (auto const& [port, store] : std::views::zip(downstream_ports_, stores)) {
+        port->try_put({store, msg_id});
       }
       // Decision must be erased while access is claimed
       decisions_.erase(a);
