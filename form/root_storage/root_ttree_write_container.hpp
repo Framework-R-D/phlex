@@ -32,7 +32,7 @@ namespace form::detail::experimental {
 
   private:
     std::shared_ptr<TFile> m_tfile;
-    TTree* m_tree;
+    TTree* m_tree{nullptr};
   };
 
 } //namespace form::detail::experimental

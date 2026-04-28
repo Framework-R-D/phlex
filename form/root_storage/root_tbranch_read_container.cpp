@@ -14,7 +14,7 @@
 using namespace form::detail::experimental;
 
 ROOT_TBranch_Read_ContainerImp::ROOT_TBranch_Read_ContainerImp(std::string const& name) :
-  Storage_Read_Container(name), m_tfile(nullptr), m_tree(nullptr), m_branch(nullptr)
+  Storage_Read_Container(name), m_tfile(nullptr)
 {
 }
 

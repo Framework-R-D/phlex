@@ -25,8 +25,8 @@ namespace form::detail::experimental {
 
   private:
     std::shared_ptr<TFile> m_tfile;
-    TTree* m_tree;
-    TBranch* m_branch;
+    TTree* m_tree{nullptr};
+    TBranch* m_branch{nullptr};
   };
 
 } // namespace form::detail::experimental

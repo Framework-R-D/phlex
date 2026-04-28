@@ -15,7 +15,7 @@
 using namespace form::detail::experimental;
 
 ROOT_TBranch_Write_ContainerImp::ROOT_TBranch_Write_ContainerImp(std::string const& name) :
-  Storage_Associative_Write_Container(name), m_tfile(nullptr), m_tree(nullptr), m_branch(nullptr)
+  Storage_Associative_Write_Container(name), m_tfile(nullptr)
 {
 }
 
