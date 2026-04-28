@@ -66,11 +66,19 @@
 - [x] [cppcoreguidelines-pro-bounds-avoid-unchecked-container-access](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-bounds-avoid-unchecked-container-access.html) (113)
   - [PR #553](https://github.com/Framework-R-D/phlex/pull/553) (partial)
   - Disable check going forward.
-- [ ] [cppcoreguidelines-pro-type-const-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-const-cast.html) (1)
-- [ ] [cppcoreguidelines-pro-type-cstyle-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-cstyle-cast.html) (62)
+- [x] [cppcoreguidelines-pro-type-const-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-const-cast.html) (1)
+  - [PR #554](https://github.com/Framework-R-D/phlex/pull/554)
+  - Disabled in `form/root_storage/` and `plugins/python/src/` going forward.
+- [x] [cppcoreguidelines-pro-type-reinterpret-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-reinterpret-cast.html) (45)
+  - [PR #554](https://github.com/Framework-R-D/phlex/pull/554)
+  - Disabled in `form/root_storage/` and `plugins/python/src/` going forward.
+- [x] [cppcoreguidelines-pro-type-cstyle-cast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-cstyle-cast.html) (62)
+  - [PR #554](https://github.com/Framework-R-D/phlex/pull/554)
+  - Converted to `const_cast` or `reinterpret_cast` as appropriate.
 - [x] [cppcoreguidelines-pro-type-member-init](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-member-init.html) (15)
   - [PR #555](https://github.com/Framework-R-D/phlex/pull/554)
-- [ ] [cppcoreguidelines-pro-type-static-cast-downcast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-static-cast-downcast.html) (1)
+- [x] [cppcoreguidelines-pro-type-static-cast-downcast](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-static-cast-downcast.html) (1)
+  - [PR #554](https://github.com/Framework-R-D/phlex/pull/554)
 - [x] [cppcoreguidelines-pro-type-union-access](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-union-access.html) (1)
   - [PR #557](https://github.com/Framework-R-D/phlex/pull/557)
 - [x] [cppcoreguidelines-pro-type-vararg](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/pro-type-vararg.html) (29)
