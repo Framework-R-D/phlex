@@ -1,0 +1,7 @@
+---
+
+InheritParentConfig: true
+
+Checks: >
+  -cppcoreguidelines-pro-type-const-cast,
+  -cppcoreguidelines-pro-type-reinterpret-cast
