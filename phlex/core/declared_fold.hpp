@@ -180,8 +180,7 @@ namespace phlex::experimental {
     template <size_t... Is>
     auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
     {
-      return std::unique_ptr<result_type>{
-        new result_type{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
+      return std::make_unique<result_type>(std::get<Is>(std::move(tuple))...);
     }
 
     auto commit(product_store_ptr& store)
