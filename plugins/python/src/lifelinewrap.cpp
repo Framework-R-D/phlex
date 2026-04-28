@@ -7,7 +7,7 @@ using namespace phlex::experimental;
 
 static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 {
-  py_lifeline_t* pyobj = (py_lifeline_t*)pytype->tp_alloc(pytype, 0);
+  py_lifeline_t* pyobj = reinterpret_cast<py_lifeline_t*>(pytype->tp_alloc(pytype, 0));
   if (pyobj) {
     pyobj->m_view = nullptr;
     new (&pyobj->m_source) std::shared_ptr<void>{};
@@ -39,7 +39,7 @@ static void ll_dealloc(py_lifeline_t* pyobj)
   typedef std::shared_ptr<void> generic_shared_t;
   pyobj->m_source.~generic_shared_t();
   // Use tp_free to pair with tp_alloc for GC-tracked Python objects.
-  Py_TYPE(pyobj)->tp_free((PyObject*)pyobj);
+  Py_TYPE(pyobj)->tp_free(reinterpret_cast<PyObject*>(pyobj));
 }
 
 // clang-format off
@@ -47,10 +47,10 @@ static void ll_dealloc(py_lifeline_t* pyobj)
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  (char*) "pyphlex.lifeline",                        // tp_name
+  const_cast<char*>("pyphlex.lifeline"),             // tp_name
   sizeof(py_lifeline_t),                             // tp_basicsize
   0,                                                 // tp_itemsize
-  (destructor)ll_dealloc,                            // tp_dealloc
+  reinterpret_cast<destructor>(ll_dealloc),          // tp_dealloc
   0,                                                 // tp_vectorcall_offset / tp_print
   0,                                                 // tp_getattr
   0,                                                 // tp_setattr
@@ -66,9 +66,9 @@ PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   0,                                                 // tp_setattro
   0,                                                 // tp_as_buffer
   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,           // tp_flags
-  (char*)"internal",                                 // tp_doc
-  (traverseproc)ll_traverse,                         // tp_traverse
-  (inquiry)ll_clear,                                 // tp_clear
+  const_cast<char*>("internal"),                     // tp_doc
+  reinterpret_cast<traverseproc>(ll_traverse),       // tp_traverse
+  reinterpret_cast<inquiry>(ll_clear),               // tp_clear
   0,                                                 // tp_richcompare
   0,                                                 // tp_weaklistoffset
   0,                                                 // tp_iter
@@ -83,7 +83,7 @@ PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   0,                                                 // tp_dictoffset
   0,                                                 // tp_init
   0,                                                 // tp_alloc
-  (newfunc)ll_new,                                   // tp_new
+  reinterpret_cast<newfunc>(ll_new),                 // tp_new
   0,                                                 // tp_free
   0,                                                 // tp_is_gc
   0,                                                 // tp_bases

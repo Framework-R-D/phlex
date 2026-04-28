@@ -20,16 +20,16 @@ struct phlex::experimental::py_config_map {
 PyObject* phlex::experimental::wrap_configuration(configuration const& config)
 {
   py_config_map* pyconfig =
-    (py_config_map*)PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr);
+    reinterpret_cast<py_config_map*>(PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr));
 
   pyconfig->ph_config = &config;
 
-  return (PyObject*)pyconfig;
+  return reinterpret_cast<PyObject*>(pyconfig);
 }
 
 static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
 {
-  py_config_map* pcm = (py_config_map*)subtype->tp_alloc(subtype, 0);
+  py_config_map* pcm = reinterpret_cast<py_config_map*>(subtype->tp_alloc(subtype, 0));
   if (!pcm)
     return nullptr;
 
@@ -41,7 +41,7 @@ static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
 static void pcm_dealloc(py_config_map* pcm)
 {
   Py_DECREF(pcm->ph_config_cache);
-  Py_TYPE(pcm)->tp_free((PyObject*)pcm);
+  Py_TYPE(pcm)->tp_free(reinterpret_cast<PyObject*>(pcm));
 }
 
 // Returns the array size as Py_ssize_t, or std::nullopt (and sets a Python
@@ -213,17 +213,18 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
 
 // PyMappingMethods must be non-const; tp_as_mapping in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMappingMethods pcm_as_mapping = {nullptr, (binaryfunc)pcm_subscript, nullptr};
+static PyMappingMethods pcm_as_mapping = {
+  nullptr, reinterpret_cast<binaryfunc>(pcm_subscript), nullptr};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexConfig_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  (char*) "pyphlex.configuration",                   // tp_name
+  const_cast<char*>("pyphlex.configuration"),        // tp_name
   sizeof(py_config_map),                             // tp_basicsize
   0,                                                 // tp_itemsize
-  (destructor)pcm_dealloc,                           // tp_dealloc
+  reinterpret_cast<destructor>(pcm_dealloc),         // tp_dealloc
   0,                                                 // tp_vectorcall_offset / tp_print
   0,                                                 // tp_getattr
   0,                                                 // tp_setattr
@@ -239,7 +240,7 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   0,                                                 // tp_setattro
   0,                                                 // tp_as_buffer
   Py_TPFLAGS_DEFAULT,                                // tp_flags
-  (char*)"phlex configuration object-as-dictionary", // tp_doc
+  const_cast<char*>("phlex configuration object-as-dictionary"), // tp_doc
   0,                                                 // tp_traverse
   0,                                                 // tp_clear
   0,                                                 // tp_richcompare
@@ -256,7 +257,7 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   offsetof(py_config_map, ph_config_cache),          // tp_dictoffset
   0,                                                 // tp_init
   0,                                                 // tp_alloc
-  (newfunc)pcm_new,                                  // tp_new
+  reinterpret_cast<newfunc>(pcm_new),                // tp_new
   0,                                                 // tp_free
   0,                                                 // tp_is_gc
   0,                                                 // tp_bases

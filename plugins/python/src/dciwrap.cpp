@@ -19,7 +19,7 @@ PyObject* phlex::experimental::wrap_dci(data_cell_index const& dci)
   py_data_cell_index* pydci = PyObject_New(py_data_cell_index, &PhlexDataCellIndex_Type);
   pydci->ph_dci = &dci;
 
-  return (PyObject*)pydci;
+  return reinterpret_cast<PyObject*>(pydci);
 }
 
 // simple forwarding methods
@@ -30,16 +30,18 @@ static PyObject* dci_number(py_data_cell_index* pydci)
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef dci_methods[] = {
-  {(char*)"number", (PyCFunction)dci_number, METH_NOARGS, (char*)"index number"},
-  {(char*)nullptr, nullptr, 0, nullptr}};
+static PyMethodDef dci_methods[] = {{const_cast<char*>("number"),
+                                     reinterpret_cast<PyCFunction>(dci_number),
+                                     METH_NOARGS,
+                                     const_cast<char*>("index number")},
+                                    {(char*)nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexDataCellIndex_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  (char*) "pyphlex.data_cell_index",                 // tp_name
+  const_cast<char*>("pyphlex.data_cell_index"),      // tp_name
   sizeof(py_data_cell_index),                        // tp_basicsize
   0,                                                 // tp_itemsize
   0,                                                 // tp_dealloc
@@ -58,7 +60,7 @@ PyTypeObject phlex::experimental::PhlexDataCellIndex_Type = {
   0,                                                 // tp_setattro
   0,                                                 // tp_as_buffer
   Py_TPFLAGS_DEFAULT,                                // tp_flags
-  (char*)"phlex data_cell_index",                    // tp_doc
+  const_cast<char*>("phlex data_cell_index"),        // tp_doc
   0,                                                 // tp_traverse
   0,                                                 // tp_clear
   0,                                                 // tp_richcompare
