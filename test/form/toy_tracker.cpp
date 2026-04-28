@@ -1,6 +1,7 @@
 #include "toy_tracker.hpp"
 #include "data_products/track_start.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 
 ToyTracker::ToyTracker(int maxTracks) : m_maxTracks(maxTracks) {}
@@ -8,13 +9,13 @@ ToyTracker::ToyTracker(int maxTracks) : m_maxTracks(maxTracks) {}
 std::vector<TrackStart> ToyTracker::operator()()
 {
   int32_t const npx = generateRandom() % m_maxTracks;
-  std::vector<TrackStart> points(npx);
-  for (int nelement = 0; nelement < npx; ++nelement) {
-    points[nelement] =
-      TrackStart(static_cast<float>(generateRandom()) / static_cast<float>(random_max),
-                 static_cast<float>(generateRandom()) / static_cast<float>(random_max),
-                 static_cast<float>(generateRandom()) / static_cast<float>(random_max));
-  }
+  std::vector<TrackStart> points;
+  points.reserve(npx);
+  std::generate_n(std::back_inserter(points), npx, [this] {
+    return TrackStart(static_cast<float>(generateRandom()) / static_cast<float>(random_max),
+                      static_cast<float>(generateRandom()) / static_cast<float>(random_max),
+                      static_cast<float>(generateRandom()) / static_cast<float>(random_max));
+  });
 
   return points;
 }
