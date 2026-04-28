@@ -24,6 +24,9 @@ namespace {
     rusage used{};
     getrusage(RUSAGE_SELF, &used);
     auto const [secs, microsecs] = used.ru_utime;
+    // ru_maxrss is a POSIX field inside a GCC __extension__ union in <sys/resource.h>;
+    // no user-controlled alternative exists
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     return {.elapsed_time = double(secs) + double(microsecs) / 1e6,
             .max_rss = double(used.ru_maxrss) / mem_denominator};
   }
