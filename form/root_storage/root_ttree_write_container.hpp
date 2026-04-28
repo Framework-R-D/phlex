@@ -18,8 +18,10 @@ namespace form::detail::experimental {
     ROOT_TTree_Write_ContainerImp(std::string const& name);
     ~ROOT_TTree_Write_ContainerImp() override;
 
-    ROOT_TTree_Write_ContainerImp(ROOT_TTree_Write_ContainerImp const& other) = delete;
-    ROOT_TTree_Write_ContainerImp& operator=(ROOT_TTree_Write_ContainerImp& other) = delete;
+    ROOT_TTree_Write_ContainerImp(ROOT_TTree_Write_ContainerImp const&) = delete;
+    ROOT_TTree_Write_ContainerImp& operator=(ROOT_TTree_Write_ContainerImp const&) = delete;
+    ROOT_TTree_Write_ContainerImp(ROOT_TTree_Write_ContainerImp&&) = delete;
+    ROOT_TTree_Write_ContainerImp& operator=(ROOT_TTree_Write_ContainerImp&&) = delete;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setupWrite(std::type_info const& type) override;

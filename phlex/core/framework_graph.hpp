@@ -41,6 +41,10 @@ namespace phlex::experimental {
     explicit framework_graph(driver_bundle bundle,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
+    framework_graph(framework_graph const&) = delete;
+    framework_graph& operator=(framework_graph const&) = delete;
+    framework_graph(framework_graph&&) = delete;
+    framework_graph& operator=(framework_graph&&) = delete;
 
     void execute();
 

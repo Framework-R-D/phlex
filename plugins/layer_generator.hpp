@@ -46,6 +46,7 @@ namespace phlex::experimental {
   class layer_generator {
   public:
     layer_generator();
+    ~layer_generator() = default;
 
     layer_generator(layer_generator const&) = delete;
     layer_generator& operator=(layer_generator const&) = delete;

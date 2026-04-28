@@ -20,6 +20,10 @@ namespace phlex::experimental {
       }
     }
     ~thread_counter() { --counter_; }
+    thread_counter(thread_counter const&) = delete;
+    thread_counter& operator=(thread_counter const&) = delete;
+    thread_counter(thread_counter&&) = delete;
+    thread_counter& operator=(thread_counter&&) = delete;
 
   private:
     // Non-owning reference to externally-owned counter; thread_counter is an RAII guard.

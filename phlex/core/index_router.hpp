@@ -65,6 +65,10 @@ namespace phlex::experimental {
                   data_cell_index_ptr index,
                   std::size_t message_id);
       ~layer_scope();
+      layer_scope(layer_scope const&) = delete;
+      layer_scope& operator=(layer_scope const&) = delete;
+      layer_scope(layer_scope&&) = delete;
+      layer_scope& operator=(layer_scope&&) = delete;
       std::size_t depth() const;
 
     private:

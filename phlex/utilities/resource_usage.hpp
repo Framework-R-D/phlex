@@ -15,6 +15,10 @@ namespace phlex::experimental {
   public:
     resource_usage() noexcept;
     ~resource_usage();
+    resource_usage(resource_usage const&) = delete;
+    resource_usage& operator=(resource_usage const&) = delete;
+    resource_usage(resource_usage&&) = delete;
+    resource_usage& operator=(resource_usage&&) = delete;
 
   private:
     std::chrono::time_point<std::chrono::steady_clock> begin_wall_;

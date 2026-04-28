@@ -32,6 +32,10 @@ namespace {
   struct sum_numbers {
     sum_numbers(unsigned int const n) : total{n} {}
     ~sum_numbers() { CHECK(sum == total); }
+    sum_numbers(sum_numbers const&) = delete;
+    sum_numbers& operator=(sum_numbers const&) = delete;
+    sum_numbers(sum_numbers&&) = delete;
+    sum_numbers& operator=(sum_numbers&&) = delete;
     void add(unsigned int const num) { sum += num; }
     std::atomic<unsigned int> sum;
     unsigned int const total;
@@ -46,6 +50,10 @@ namespace {
       std::sort(begin(sorted_actual), end(sorted_actual));
       CHECK(expected == sorted_actual);
     }
+    collect_numbers(collect_numbers const&) = delete;
+    collect_numbers& operator=(collect_numbers const&) = delete;
+    collect_numbers(collect_numbers&&) = delete;
+    collect_numbers& operator=(collect_numbers&&) = delete;
     void collect(unsigned int const num) { actual.push_back(num); }
     tbb::concurrent_vector<unsigned int> actual;
     // Immutable test expectation set at construction; intentionally prevents accidental mutation.
@@ -60,6 +68,10 @@ namespace {
       spdlog::debug("construct check_multiple_numbers with n = {}", n);
     }
     ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total)); }
+    check_multiple_numbers(check_multiple_numbers const&) = delete;
+    check_multiple_numbers& operator=(check_multiple_numbers const&) = delete;
+    check_multiple_numbers(check_multiple_numbers&&) = delete;
+    check_multiple_numbers& operator=(check_multiple_numbers&&) = delete;
     void add_difference(unsigned int const a, unsigned int const b)
     {
       // The difference is calculated to test that add(a, b) yields a different result

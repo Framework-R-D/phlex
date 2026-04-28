@@ -41,6 +41,10 @@ namespace phlex::experimental {
     data_cell_counter();
     data_cell_counter(data_cell_counter* parent, identifier const& layer_name);
     ~data_cell_counter();
+    data_cell_counter(data_cell_counter const&) = delete;
+    data_cell_counter& operator=(data_cell_counter const&) = delete;
+    data_cell_counter(data_cell_counter&&) = delete;
+    data_cell_counter& operator=(data_cell_counter&&) = delete;
 
     data_cell_counter make_child(identifier const& layer_name);
     flush_counts result() const

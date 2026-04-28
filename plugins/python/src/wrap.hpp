@@ -80,6 +80,10 @@ namespace phlex::experimental {
   public:
     PyGILRAII() : m_GILState(PyGILState_Ensure()) {}
     ~PyGILRAII() { PyGILState_Release(m_GILState); }
+    PyGILRAII(PyGILRAII const&) = delete;
+    PyGILRAII& operator=(PyGILRAII const&) = delete;
+    PyGILRAII(PyGILRAII&&) = delete;
+    PyGILRAII& operator=(PyGILRAII&&) = delete;
   };
 
 } // namespace phlex::experimental

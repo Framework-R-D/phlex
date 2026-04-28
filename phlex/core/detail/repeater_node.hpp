@@ -30,6 +30,10 @@ namespace phlex::experimental::detail {
     std::size_t cache_size() const;
 
     ~repeater_node() override;
+    repeater_node(repeater_node const&) = delete;
+    repeater_node& operator=(repeater_node const&) = delete;
+    repeater_node(repeater_node&&) = delete;
+    repeater_node& operator=(repeater_node&&) = delete;
 
   private:
     using base_t = tbb::flow::composite_node<repeater_node_input, message_tuple<1>>;
