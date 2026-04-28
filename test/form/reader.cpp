@@ -6,17 +6,15 @@
 #include "test_helpers.hpp"
 
 #include <cmath>
+#include <format>
 #include <fstream>
 #include <map>
 #include <sstream>
-#include <utility> // for std::ignore
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;
 
-static char const* const evt_id = "[EVENT=%08X]";
-static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
 static float const TOLERANCE = 1e-3f;
 
 // Structs to hold expected checksums
@@ -86,10 +84,9 @@ int main(int argc, char** argv)
     for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
 
       std::vector<float> const* track_start_x = nullptr;
-      char seg_id_text[64];
-      std::ignore = snprintf(seg_id_text, 64, seg_id, nevent, nseg);
+      std::string const seg_id_text = std::format("[EVENT={:08X};SEG={:08X}]", nevent, nseg);
 
-      std::string segment_id(seg_id_text);
+      std::string const& segment_id = seg_id_text;
 
       std::string const creator = "Toy_Tracker";
 
@@ -159,10 +156,9 @@ int main(int argc, char** argv)
     }
     std::cout << "PHLEX: Read Event segments done " << nevent << '\n';
 
-    char evt_id_text[64];
-    std::ignore = snprintf(evt_id_text, 64, evt_id, nevent);
+    std::string const evt_id_text = std::format("[EVENT={:08X}]", nevent);
 
-    std::string event_id(evt_id_text);
+    std::string const& event_id = evt_id_text;
 
     std::string const creator = "Toy_Tracker_Event";
 
