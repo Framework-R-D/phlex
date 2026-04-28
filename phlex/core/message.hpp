@@ -24,7 +24,7 @@ namespace phlex::experimental {
 
   struct index_message {
     data_cell_index_ptr index;
-    std::size_t msg_id;
+    std::size_t msg_id{};
     bool cache{true};
   };
 
@@ -37,13 +37,13 @@ namespace phlex::experimental {
   struct flush_message {
     data_cell_index_ptr index;
     flush_counts_ptr counts;
-    std::size_t original_id; // FIXME: Used only by folds
+    std::size_t original_id{}; // FIXME: Used only by folds
   };
 
   struct message {
     // FIXME: Maybe consider adding an 'index' data member?
     product_store_const_ptr store;
-    std::size_t id;
+    std::size_t id{};
   };
 
   struct PHLEX_CORE_EXPORT message_matcher {

@@ -39,7 +39,7 @@
 namespace phlex::experimental {
   struct layer_spec {
     std::string parent_layer_name;
-    std::size_t total_per_parent_data_cell;
+    std::size_t total_per_parent_data_cell{};
     std::size_t starting_value = 0;
   };
 

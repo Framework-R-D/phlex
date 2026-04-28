@@ -13,7 +13,7 @@ namespace form::experimental::config {
   struct PersistenceItem {
     std::string product_name; // e.g. "trackStart", "trackNumberHits"
     std::string file_name;    // e.g. "toy.root", "output.hdf5"
-    int technology;           // Technology::ROOT_TTREE, Technology::ROOT_RNTUPLE, Technology::HDF5
+    int technology{};         // Technology::ROOT_TTREE, Technology::ROOT_RNTUPLE, Technology::HDF5
 
     PersistenceItem() = default;
 

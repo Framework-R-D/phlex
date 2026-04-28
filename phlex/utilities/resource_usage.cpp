@@ -21,7 +21,7 @@ namespace {
 
   metrics get_rusage() noexcept
   {
-    rusage used;
+    rusage used{};
     getrusage(RUSAGE_SELF, &used);
     auto const [secs, microsecs] = used.ru_utime;
     return {.elapsed_time = double(secs) + double(microsecs) / 1e6,

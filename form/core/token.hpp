@@ -32,13 +32,13 @@ namespace form::detail::experimental {
 
   private:
     /// Technology identifier
-    int m_technology;
+    int m_technology{};
     /// File name
     std::string m_fileName;
     /// Container name
     std::string m_containerName;
     /// Identifier/entry number
-    int m_id;
+    int m_id{};
   };
 } // namespace form::detail::experimental
 #endif // FORM_CORE_TOKEN_HPP
