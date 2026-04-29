@@ -31,7 +31,16 @@ from pathlib import Path
 # Notes are intentionally excluded.
 _ISSUE_RE = re.compile(
     r"^(/\S[^:]*\.(?:cpp|hpp|c|h|cxx|cc|hxx|icc)):(\d+):\d+:"
-    r" (warning|error): (.+?)(?:\s+\[[\w,.\-]+\])?\s*$"
+    r" (warning|error): (.+?)(?:\s+\[([\w,.\-]+)\])?\s*$"
+)
+
+# Check-name prefixes whose diagnostics are not treated as new issues.
+# These categories are advisory or style-related and are tracked separately.
+_IGNORED_PREFIXES: tuple[str, ...] = (
+    "modernize-",
+    "performance-",
+    "portability-",
+    "readability-",
 )
 
 
@@ -89,6 +98,9 @@ def parse_log(log_text: str) -> list[tuple[str, int, str, str]]:
     for line in log_text.splitlines():
         m = _ISSUE_RE.match(line)
         if not m:
+            continue
+        check_name = m.group(5) or ""
+        if any(check_name.startswith(prefix) for prefix in _IGNORED_PREFIXES):
             continue
         filepath = m.group(1)
         lineno = int(m.group(2))
