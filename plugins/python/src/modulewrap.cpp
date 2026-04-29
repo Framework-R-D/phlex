@@ -44,6 +44,8 @@ using namespace phlex;
 using phlex::concurrency;
 using phlex::product_query;
 
+// NOLINTBEGIN(performance-no-int-to-ptr) - necessary for Python interface
+
 // Simple phlex module wrapper
 // clang-format off
 struct phlex::experimental::py_phlex_module {
@@ -1370,3 +1372,5 @@ PyTypeObject phlex::experimental::PhlexSource_Type = {
 #endif
 };
 // clang-format on
+
+// NOLINTEND(performance-no-int-to-ptr)
