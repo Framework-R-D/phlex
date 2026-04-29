@@ -39,7 +39,7 @@ void generate(std::vector<float>& vrand, int size)
 
 int main(int argc, char** argv)
 {
-  std::cout << "In main" << std::endl;
+  std::cout << "In main" << '\n';
   // Deliberately use C-style random number generation for simplicity in a test
   // NOLINTNEXTLINE(bugprone-random-generator-seed, cert-msc32-c, cert-msc51-cpp)
   srand(time(nullptr));
@@ -69,12 +69,12 @@ int main(int argc, char** argv)
   // Open checksum file for writing
   std::ofstream checksum_file(checksum_filename);
   if (!checksum_file.is_open()) {
-    std::cerr << "ERROR: Could not open checksum file: " << checksum_filename << std::endl;
+    std::cerr << "ERROR: Could not open checksum file: " << checksum_filename << '\n';
     return 1;
   }
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
-    std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
+    std::cout << "PHLEX: Write Event No. " << nevent << '\n';
 
     std::vector<float> track_x;
 
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
       for (int val : track_n_hits)
         check += static_cast<float>(val);
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", check = " << check << std::endl;
+                << ", check = " << check << '\n';
 
       form::experimental::product_with_name pb_int = {
         "trackNumberHits", &track_n_hits, &typeid(std::vector<int>)};
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
       for (TrackStart const& point : start_points)
         checkPoints += point;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", checkPoints = " << checkPoints << std::endl;
+                << ", checkPoints = " << checkPoints << '\n';
 
       form::experimental::product_with_name pb_points = {
         "trackStartPoints", &start_points, &typeid(std::vector<TrackStart>)};
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
       track_x.insert(track_x.end(), track_start_x.begin(), track_start_x.end());
     }
 
-    std::cout << "PHLEX: Write Event segments done " << nevent << std::endl;
+    std::cout << "PHLEX: Write Event segments done " << nevent << '\n';
 
     float check = 0.0;
     for (float val : track_x)
@@ -147,16 +147,16 @@ int main(int argc, char** argv)
     form::experimental::product_with_name pb = {
       "trackStartX", &track_x, &typeid(std::vector<float>)};
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
-              << ", check = " << check << std::endl;
+              << ", check = " << check << '\n';
 
     form.write(creator, event_id, pb);
 
     // Save event checksum
     checksum_file << std::setprecision(10) << "EVT " << nevent << " " << check << "\n";
-    std::cout << "PHLEX: Write Event done " << nevent << std::endl;
+    std::cout << "PHLEX: Write Event done " << nevent << '\n';
   }
 
   checksum_file.close();
-  std::cout << "PHLEX: Write done. Checksums saved to " << checksum_filename << std::endl;
+  std::cout << "PHLEX: Write done. Checksums saved to " << checksum_filename << '\n';
   return 0;
 }

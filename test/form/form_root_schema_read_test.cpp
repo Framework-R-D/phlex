@@ -18,7 +18,7 @@ try {
   auto const& [prods] = read<std::vector<TrackStart>>(technology);
   std::ofstream outFile("form_root_schema_read_log.txt");
   for (auto const& prod : *prods)
-    outFile << prod << std::endl;
+    outFile << prod << '\n';
 
   return 0;
 } catch (std::exception const& e) {

@@ -21,7 +21,7 @@ int main(int const argc, char const** argv)
 
   std::ofstream outFile("form_root_schema_write_log.txt");
   for (auto const& prod : prods)
-    outFile << prod << std::endl;
+    outFile << prod << '\n';
 
   write(technology, prods);
 
