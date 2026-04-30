@@ -158,12 +158,11 @@ namespace phlex::experimental {
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_index->hash());
       if (it == results_.end()) {
-        it =
-          results_
-            .insert({parent_index->hash(),
-                     initialized_object(std::move(initializer_),
-                                        std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
-            .first;
+        it = results_
+               .insert({parent_index->hash(),
+                        initialized_object(
+                          initializer_, std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
+               .first;
       }
 
       if constexpr (num_inputs == 1ull) {
@@ -178,9 +177,9 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     template <size_t... Is>
-    auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
+    auto initialized_object(InitTuple const& init, std::index_sequence<Is...>) const
     {
-      return std::make_unique<result_type>(std::get<Is>(std::move(tuple))...);
+      return std::unique_ptr<result_type>(new result_type{std::get<Is>(init)...});
     }
 
     auto commit(product_store_ptr& store)
