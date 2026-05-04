@@ -11,10 +11,10 @@
 namespace form::detail::experimental {
   class Token {
   public:
-    /// Default Constructor
-    Token() = default;
+    /// Default constructor; delegates to the named constructor so the -1 sentinel for id is defined once
+    Token() : Token("", "", 0) {}
 
-    /// Constructor with initialization
+    /// Named constructor; id defaults to -1 as a "not set" sentinel
     Token(std::string const& fileName,
           std::string const& containerName,
           int technology,
@@ -32,13 +32,13 @@ namespace form::detail::experimental {
 
   private:
     /// Technology identifier
-    int m_technology{};
+    int m_technology;
     /// File name
     std::string m_fileName;
     /// Container name
     std::string m_containerName;
     /// Identifier/entry number
-    int m_id{};
+    int m_id;
   };
 } // namespace form::detail::experimental
 #endif // FORM_CORE_TOKEN_HPP
