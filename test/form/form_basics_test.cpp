@@ -16,6 +16,16 @@
 
 using namespace form::detail::experimental;
 
+TEST_CASE("Token default constructor", "[form]")
+{
+  Token t;
+  CHECK(t.fileName() == "");
+  CHECK(t.containerName() == "");
+  CHECK(t.technology() == 0);
+  // Default-constructed token must carry the -1 sentinel for id
+  CHECK(t.id() == -1);
+}
+
 TEST_CASE("Token basics", "[form]")
 {
   Token t("file.root", "container", form::technology::ROOT_TTREE, 42);
