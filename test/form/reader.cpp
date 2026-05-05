@@ -10,6 +10,7 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
