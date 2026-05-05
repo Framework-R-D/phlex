@@ -59,9 +59,8 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   }
 
   if (dictInfo->Property() & EProperty::kIsFundamental) {
-    // We can avoid a `dynamic_cast` to `TDataType` here after checking EProperty::kIsFundamental
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    auto fundInfo = static_cast<TDataType*>(TDictionary::GetDictionary(type));
+    auto fundInfo = static_cast<TDataType*>(dictInfo); // Already checked to be fundamental
     branchBuffer = new char[fundInfo->Size()];
     branchStatus = m_tree->SetBranchAddress(col_name().c_str(),
                                             reinterpret_cast<void*>(&branchBuffer),

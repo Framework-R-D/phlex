@@ -503,7 +503,7 @@ namespace {
   static cpptype py_to_##name(intptr_t pyobj)                                                      \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    cpptype i = (cpptype)frompy(reinterpret_cast<PyObject*>(pyobj));                               \
+    cpptype i = static_cast<cpptype>(frompy(reinterpret_cast<PyObject*>(pyobj)));                  \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
       Py_DECREF(reinterpret_cast<PyObject*>(pyobj));                                               \
@@ -553,10 +553,10 @@ namespace {
     /* is just a demonstrator; alternatives are still being considered) */                         \
     npy_intp dims[] = {static_cast<npy_intp>(v->size())};                                          \
                                                                                                    \
-    PyObject* np_view = PyArray_SimpleNewFromData(1,                 /* 1-D array */               \
-                                                  dims,              /* dimension sizes */         \
-                                                  nptype,            /* numpy C type */            \
-                                                  (void*)(v->data()) /* raw buffer */              \
+    PyObject* np_view = PyArray_SimpleNewFromData(1,          /* 1-D array */                      \
+                                                  dims,       /* dimension sizes */                \
+                                                  nptype,     /* numpy C type */                   \
+                                                  (v->data()) /* raw buffer */                     \
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
@@ -614,7 +614,7 @@ namespace {
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
         PyObject* item = PyList_GetItem(reinterpret_cast<PyObject*>(pyobj), i);                    \
-        vec->push_back((cpptype)frompy(item));                                                     \
+        vec->push_back(static_cast<cpptype>(frompy(item)));                                        \
         if (PyErr_Occurred()) {                                                                    \
           PyErr_Clear();                                                                           \
           break;                                                                                   \
@@ -677,18 +677,12 @@ static PyObject* parse_args(PyObject* args,
   // any node. (The observer does not require outputs, but they still need to be
   // retrieved, not ignored, to issue an error message if an output is provided.)
 
-  static char const* kwnames[] = {
-    "callable", "input_family", "output_product_suffixes", "concurrency", "name", nullptr};
+  static char kw0[] = "callable", kw1[] = "input_family", kw2[] = "output_product_suffixes",
+              kw3[] = "concurrency", kw4[] = "name";
+  static char const* kwnames[] = {kw0, kw1, kw2, kw3, kw4, nullptr};
   PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0, *pyname = 0;
-  if (!PyArg_ParseTupleAndKeywords(args,
-                                   kwds,
-                                   "OO|OOO",
-                                   const_cast<char**>(kwnames),
-                                   &callable,
-                                   &input,
-                                   &output,
-                                   &concurrency,
-                                   &pyname)) {
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwds, "OO|OOO", kwnames, &callable, &input, &output, &concurrency, &pyname)) {
     // error already set by argument parser
     return nullptr;
   }

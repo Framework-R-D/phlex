@@ -221,7 +221,7 @@ static PyMappingMethods pcm_as_mapping = {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexConfig_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  const_cast<char*>("pyphlex.configuration"),        // tp_name
+  "pyphlex.configuration",                           // tp_name
   sizeof(py_config_map),                             // tp_basicsize
   0,                                                 // tp_itemsize
   reinterpret_cast<destructor>(pcm_dealloc),         // tp_dealloc
@@ -240,7 +240,7 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   0,                                                 // tp_setattro
   0,                                                 // tp_as_buffer
   Py_TPFLAGS_DEFAULT,                                // tp_flags
-  const_cast<char*>("phlex configuration object-as-dictionary"), // tp_doc
+  "phlex configuration object-as-dictionary",        // tp_doc
   0,                                                 // tp_traverse
   0,                                                 // tp_clear
   0,                                                 // tp_richcompare
