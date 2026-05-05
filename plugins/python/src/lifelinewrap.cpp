@@ -47,7 +47,7 @@ static void ll_dealloc(py_lifeline_t* pyobj)
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  const_cast<char*>("pyphlex.lifeline"),             // tp_name
+  "pyphlex.lifeline",                                // tp_name
   sizeof(py_lifeline_t),                             // tp_basicsize
   0,                                                 // tp_itemsize
   reinterpret_cast<destructor>(ll_dealloc),          // tp_dealloc
@@ -66,7 +66,7 @@ PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   0,                                                 // tp_setattro
   0,                                                 // tp_as_buffer
   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,           // tp_flags
-  const_cast<char*>("internal"),                     // tp_doc
+  "internal",                                        // tp_doc
   reinterpret_cast<traverseproc>(ll_traverse),       // tp_traverse
   reinterpret_cast<inquiry>(ll_clear),               // tp_clear
   0,                                                 // tp_richcompare

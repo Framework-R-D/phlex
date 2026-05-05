@@ -1083,22 +1083,22 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef md_methods[] = {{const_cast<char*>("transform"),
+static PyMethodDef md_methods[] = {{"transform",
                                     reinterpret_cast<PyCFunction>(md_transform),
                                     METH_VARARGS | METH_KEYWORDS,
-                                    const_cast<char*>("register a Python transform")},
-                                   {const_cast<char*>("observe"),
+                                    "register a Python transform"},
+                                   {"observe",
                                     reinterpret_cast<PyCFunction>(md_observe),
                                     METH_VARARGS | METH_KEYWORDS,
-                                    const_cast<char*>("register a Python observer")},
-                                   {(char*)nullptr, nullptr, 0, nullptr}};
+                                    "register a Python observer"},
+                                   {nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexModule_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  const_cast<char*>("pyphlex.module"),       // tp_name
+  "pyphlex.module",              // tp_name
   sizeof(py_phlex_module),       // tp_basicsize
   0,                             // tp_itemsize
   0,                             // tp_dealloc
@@ -1117,7 +1117,7 @@ PyTypeObject phlex::experimental::PhlexModule_Type = {
   0,                             // tp_setattro
   0,                             // tp_as_buffer
   Py_TPFLAGS_DEFAULT,            // tp_flags
-  const_cast<char*>("phlex module wrapper"), // tp_doc
+  "phlex module wrapper",        // tp_doc
   0,                             // tp_traverse
   0,                             // tp_clear
   0,                             // tp_richcompare
@@ -1172,10 +1172,10 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // Register a python algorithm by adding the necessary intermediate converter
   // nodes going from C++ to PyObject* and back.
 
-  static char const* kwnames[] = {"callable", "output_product", "name", nullptr};
+  static char kw0[] = "callable", kw1[] = "output_product", kw2[] = "name";
+  static char const* kwnames[] = {kw0, kw1, kw2, nullptr};
   PyObject *callable = 0, *output = 0, *pyname = 0;
-  if (!PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO|O", const_cast<char**>(kwnames), &callable, &output, &pyname)) {
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O", kwnames, &callable, &output, &pyname)) {
     // error already set by argument parser
     return nullptr;
   }
@@ -1301,18 +1301,18 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef sc_methods[] = {{const_cast<char*>("provide"),
+static PyMethodDef sc_methods[] = {{"provide",
                                     reinterpret_cast<PyCFunction>(sc_provide),
                                     METH_VARARGS | METH_KEYWORDS,
-                                    const_cast<char*>("register a Python provider")},
-                                   {(char*)nullptr, nullptr, 0, nullptr}};
+                                    "register a Python provider"},
+                                   {nullptr, nullptr, 0, nullptr}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexSource_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  const_cast<char*>("pyphlex.source"),       // tp_name
+  "pyphlex.source",              // tp_name
   sizeof(py_phlex_source),       // tp_basicsize
   0,                             // tp_itemsize
   0,                             // tp_dealloc
@@ -1331,7 +1331,7 @@ PyTypeObject phlex::experimental::PhlexSource_Type = {
   0,                             // tp_setattro
   0,                             // tp_as_buffer
   Py_TPFLAGS_DEFAULT,            // tp_flags
-  const_cast<char*>("phlex source wrapper"), // tp_doc
+  "phlex source wrapper",        // tp_doc
   0,                             // tp_traverse
   0,                             // tp_clear
   0,                             // tp_richcompare
