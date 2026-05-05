@@ -9,7 +9,7 @@
 using namespace form::detail::experimental;
 
 ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& name) :
-  Storage_Write_Association(name), m_tfile(nullptr)
+  Storage_Write_Association(name)
 {
 }
 
