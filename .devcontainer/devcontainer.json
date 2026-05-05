@@ -8,6 +8,9 @@
     },
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "root",
+    "remoteEnv": {
+        "KILO_CONFIG_CONTENT": "${localEnv:KILO_CONFIG_CONTENT}"
+    },
     "containerEnv": {
         "CMAKE_GENERATOR": "Ninja",
         "GH_CONFIG_DIR": "/root/.config/gh",
@@ -24,6 +27,7 @@
         "source=${localEnv:HOME}/.podman-proxy/podman.sock,target=/tmp/podman.sock,type=bind",
         "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind",
         "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind,readonly",
+        "source=${localEnv:HOME}/.config/kilo,target=/root/.config/kilo,type=bind",
         "source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
         "source=${localEnv:HOME}/.kiro,target=/root/.kiro,type=bind"
     ],
@@ -91,6 +95,7 @@
                 "github.vscode-github-actions",
                 "github.vscode-pull-request-github",
                 "jebbs.plantuml",
+                "kilocode.kilo-code",
                 "lextudio.restructuredtext",
                 "lextudio.restructuredtext-pack",
                 "lfs.vscode-emacs-friendly",
