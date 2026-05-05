@@ -1,0 +1,737 @@
+#!/usr/bin/env python3
+"""git-ai-commit — commit staged changes with an AI-generated message.
+
+Analyses the Git index of the current repository and generates a detailed,
+informative commit message using a language model, then optionally commits.
+
+This tool automatically gathers context from:
+  - Staged changes (diff)
+  - Git status and recent commit history
+  - Repository-level guidance: AGENTS.md, AGENT.md, GEMINI.md, CLAUDE.md,
+    CONTEXT.md, INSTRUCTIONS.md, CONTRIBUTING.md, DEVELOPING.md, HACKING.md,
+    ARCHITECTURE.md, STYLEGUIDE.md, and CLANG_TIDY_CONFIGURATION.md.
+  - Tool-specific rules: .amazonq/rules/, .kiro/rules/, .kiro/steering/,
+    .gemini/rules/, .kilocode/, .cursorrules, .clinerules, .windsurfrules,
+    and q.rules.
+  - User-level guidance: ~/.config/git-ai-commit/instructions.md
+  - Git commit template: (from `git config commit.template`)
+
+Usage
+-----
+  git-ai-commit [OPTIONS]
+  git ai-commit [OPTIONS]
+  git ai-commit --amend
+  echo "context" | git ai-commit --yes
+
+Options
+-------
+  --amend              Amend the previous commit, including its message as context
+  --context TEXT       Supplemental context/prompt for the AI
+  --backend BACKEND    API backend: kilo (default), github-models, copilot
+  --model   MODEL      Model name (env: GIT_AI_COMMIT_MODEL)
+  --api     URL        API base URL override (env: GIT_AI_COMMIT_API)
+  --dry-run            Print generated message to stdout; do not commit
+  -y/--yes             Commit without interactive confirmation
+  -e/--edit            Open generated message in $EDITOR before committing
+  --no-verify          Pass --no-verify to git commit
+  --no-instructions    Skip all instruction/context files; use only the diff
+  -h/--help            Show this help and exit
+
+Backends
+--------
+  kilo          LiteLLM-compatible endpoint via kilo credentials.
+                Default URL/model/provider: FNAL values; override via
+                GIT_AI_COMMIT_KILO_API / _MODEL / _PROVIDER env vars.
+                Token: kilo auth.json → GIT_AI_COMMIT_TOKEN → GITHUB_TOKEN/GH_TOKEN.
+
+  github-models GitHub Models inference API (https://models.inference.ai.azure.com).
+                Default model: gpt-4o.
+                Token: GIT_AI_COMMIT_TOKEN → GITHUB_TOKEN/GH_TOKEN → gh auth token.
+                Falls back to the copilot backend on 401/403.
+
+  copilot       GitHub Copilot API (https://api.githubcopilot.com).
+                Default model: gpt-4o.
+                Token: exchanges a GitHub OAuth token for a short-lived Copilot token.
+
+Environment variables
+---------------------
+  GIT_AI_COMMIT_TOKEN         API token (overrides all other token sources)
+  GIT_AI_COMMIT_MODEL         Default model name
+  GIT_AI_COMMIT_API           API base URL override
+  GIT_AI_COMMIT_BACKEND       Default backend (kilo, github-models, or copilot)
+  GIT_AI_COMMIT_KILO_API      kilo backend base URL (default: https://litellm.fnal.gov/v1)
+  GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5)
+  GIT_AI_COMMIT_KILO_PROVIDER kilo auth.json provider key (default: fnal-litellm)
+
+Token resolution (kilo backend):
+  1. GIT_AI_COMMIT_TOKEN
+  2. ~/.local/share/kilo/auth.json  (fnal-litellm key)
+  3. GITHUB_TOKEN / GH_TOKEN
+  4. `gh auth token`
+  5. ~/.config/gh/hosts.yml
+
+Token resolution (github-models / copilot backends):
+  1. GIT_AI_COMMIT_TOKEN
+  2. GITHUB_TOKEN / GH_TOKEN
+  3. `gh auth token`
+  4. ~/.config/gh/hosts.yml
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import textwrap
+import typing
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+_GITHUB_MODELS_BASE = "https://models.inference.ai.azure.com"
+_COPILOT_API_BASE = "https://api.githubcopilot.com"
+_COPILOT_TOKEN_URL = "https://api.github.com/copilot_internal/v2/token"
+
+_KILO_AUTH_JSON = Path.home() / ".local" / "share" / "kilo" / "auth.json"
+
+# These defaults are appropriate for the FNAL kilo deployment.  Override via
+# environment variables to adapt to a different LiteLLM instance or model
+# naming convention.
+_DEFAULT_KILO_API = os.environ.get("GIT_AI_COMMIT_KILO_API", "https://litellm.fnal.gov/v1")
+_DEFAULT_MODEL_KILO = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "azure/claude-haiku-4-5")
+_DEFAULT_KILO_PROVIDER = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "fnal-litellm")
+_DEFAULT_MODEL_OTHER = "gpt-4o"
+
+_MAX_DIFF_CHARS = 60_000
+
+_SYSTEM = textwrap.dedent("""\
+    You are an expert software developer writing Git commit messages.
+
+    Rules:
+    - Subject line: imperative mood, ≤72 characters, no trailing period
+    - Separate subject from body with one blank line
+    - Body: explain *what* changed and *why*; use Markdown lists or inline
+      code spans where they genuinely aid clarity (not merely for decoration)
+    - Do NOT reproduce the diff verbatim or enumerate every changed file
+    - Respond with ONLY the commit message — no preamble, no sign-off
+      trailer, no markdown fence wrapping the entire message
+""")
+
+# ---------------------------------------------------------------------------
+# Errors
+# ---------------------------------------------------------------------------
+
+
+class _Error(Exception):
+    """Base error for git-ai-commit."""
+
+
+class _APIError(_Error):
+    """An error returned by a remote API."""
+
+    def __init__(self, msg: str, status: int = 0) -> None:
+        super().__init__(msg)
+        self.status = status
+
+
+# ---------------------------------------------------------------------------
+# Git helpers
+# ---------------------------------------------------------------------------
+
+
+def _git(*args: str) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise _Error(f"`git {' '.join(args)}` failed:\n{result.stderr.strip()}")
+    return result.stdout
+
+
+def _git_config(key: str) -> str:
+    try:
+        return _git("config", "--get", key).strip()
+    except _Error:
+        return ""
+
+
+def _git_root() -> Path:
+    return Path(_git("rev-parse", "--show-toplevel").strip())
+
+
+def _staged_diff(amend: bool = False) -> str:
+    if amend:
+        try:
+            # Diff the index against HEAD^, showing what the amended commit
+            # will contain relative to its grandparent.
+            return _git("diff", "--cached", "--stat", "-p", "HEAD^")
+        except _Error:
+            # Fallback: first commit in the repo has no HEAD^.
+            return _git("diff", "--cached", "--stat", "-p")
+    return _git("diff", "--cached", "--stat", "-p")
+
+
+def _status() -> str:
+    return _git("status", "--short")
+
+
+def _recent_log() -> str:
+    try:
+        return _git("log", "--oneline", "-10")
+    except _Error:
+        return "(no prior commits)"
+
+
+def _last_commit_message() -> str:
+    try:
+        return _git("log", "-1", "--pretty=%B").strip()
+    except _Error:
+        return ""
+
+
+def _read_dir_md(path: Path) -> str:
+    """Read all Markdown files in *path* and concatenate them."""
+    if not path.is_dir():
+        return ""
+    parts: list[str] = []
+    try:
+        for item in sorted(path.glob("*.md")):
+            if item.is_file():
+                content = item.read_text().strip()
+                if content:
+                    parts.append(f"#### {item.name}\n\n{content}")
+    except OSError:
+        pass
+    return "\n\n".join(parts)
+
+
+def _get_instructions(root: Path) -> str:
+    """Read user-level and repository-level instructions from various AI tools.
+
+    Only procedural/communications-oriented files are included — those that
+    tell the model *how* to write a commit message (conventions, style, PR
+    process).  Technical reference files such as DEVELOPING.md and
+    CLANG_TIDY_CONFIGURATION.md are intentionally excluded; any technical
+    context the model needs should come from the diff itself or be supplied
+    via --context.
+
+    When an AGENTS.md (or AGENT.md) file is present and non-empty it is
+    treated as the authoritative summary of all project instructions.  In
+    that case the tool-specific rule directories (.kiro/, .amazonq/,
+    .kilocode/, .gemini/) and .github/copilot-instructions.md are skipped to
+    avoid sending thousands of redundant tokens.
+    """
+    user_candidates = [
+        Path.home() / ".config" / "git-ai-commit" / "instructions.md",
+        Path.home() / ".config" / "copilot" / "instructions.md",
+    ]
+    # Repository-level file candidates.  Both AGENTS.md and AGENT.md are
+    # checked to support projects using either convention.
+    agents_files = [root / "AGENTS.md", root / "AGENT.md"]
+    # Procedural/communications files only — no technical reference docs.
+    # DEVELOPING.md and CLANG_TIDY_CONFIGURATION.md are excluded: any
+    # relevant technical context should come from the diff or --context.
+    repo_files_extra = [
+        root / "GEMINI.md",
+        root / "CLAUDE.md",
+        root / "CONTEXT.md",
+        root / "INSTRUCTIONS.md",
+        root / "CONTRIBUTING.md",
+        root / "HACKING.md",
+        root / "ARCHITECTURE.md",
+        root / "STYLEGUIDE.md",
+        root / ".cursorrules",
+        root / ".clinerules",
+        root / ".windsurfrules",
+        root / "q.rules",
+        root / ".kilocoderules",
+        root / ".gemini-rules",
+    ]
+    # Tool-specific instruction files/directories.  These are skipped when an
+    # AGENTS.md is present, since AGENTS.md is intended to synthesise them.
+    tool_files = [
+        root / ".github" / "copilot-instructions.md",
+    ]
+    # Both .kiro/rules/ (this project's layout) and .kiro/steering/ (used in
+    # some other projects) are checked.
+    tool_dirs = [
+        root / ".amazonq" / "rules",
+        root / ".amazonq" / "rules" / "memory-bank",
+        root / ".kiro" / "rules",
+        root / ".kiro" / "steering",
+        root / ".gemini" / "rules",
+        root / ".kilocode",
+    ]
+
+    # Determine whether an AGENTS.md / AGENT.md is present and non-empty.
+    # If so, skip the redundant tool-specific sources.
+    has_agents_file = any(p.is_file() and p.stat().st_size > 0 for p in agents_files)
+    repo_files = agents_files + repo_files_extra
+    if not has_agents_file:
+        repo_files = repo_files + tool_files
+    repo_dirs = [] if has_agents_file else tool_dirs
+
+    instructions: list[str] = []
+
+    for path in user_candidates:
+        if path.is_file():
+            try:
+                content = path.read_text().strip()
+                if content:
+                    instructions.append(f"### User-level instructions ({path})\n\n{content}")
+            except OSError:
+                pass
+
+    for path in repo_files:
+        if path.is_file():
+            try:
+                content = path.read_text().strip()
+                if content:
+                    instructions.append(f"### Repository instructions ({path.name})\n\n{content}")
+            except OSError:
+                pass
+
+    for path in repo_dirs:
+        if path.is_dir():
+            content = _read_dir_md(path)
+            if content:
+                rel = path.relative_to(root)
+                instructions.append(f"### Repository instructions (from {rel}/)\n\n{content}")
+
+    if template_path := _git_config("commit.template"):
+        try:
+            full_path = Path(os.path.expanduser(template_path))
+            if not full_path.is_absolute():
+                full_path = root / full_path
+            if full_path.is_file():
+                content = full_path.read_text().strip()
+                if content:
+                    instructions.append(f"### Git commit template ({template_path})\n\n{content}")
+        except OSError:
+            pass
+
+    return "\n\n".join(instructions)
+
+
+# ---------------------------------------------------------------------------
+# Token resolution
+# ---------------------------------------------------------------------------
+
+
+def _kilo_auth_token() -> str | None:
+    """Read the kilo provider API key from kilo's auth.json, if present.
+
+    The provider name is taken from GIT_AI_COMMIT_KILO_PROVIDER (default:
+    "fnal-litellm"), matching the key used in ~/.config/kilo/kilo.jsonc.
+    """
+    if not _KILO_AUTH_JSON.exists():
+        return None
+    try:
+        data = json.loads(_KILO_AUTH_JSON.read_text())
+        key = data.get(_DEFAULT_KILO_PROVIDER, {}).get("key", "").strip()
+        return key or None
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+
+
+def _gh_config_token() -> str | None:
+    """Read the first oauth_token from ~/.config/gh/hosts.yml."""
+    hosts = Path.home() / ".config" / "gh" / "hosts.yml"
+    if not hosts.exists():
+        return None
+    try:
+        m = re.search(r"oauth_token:\s*(\S+)", hosts.read_text())
+        return m.group(1) if m else None
+    except OSError:
+        return None
+
+
+def _gh_cli_token() -> str | None:
+    """Obtain a token via `gh auth token`, if gh is installed and logged in."""
+    try:
+        r = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except FileNotFoundError:
+        pass
+    return None
+
+
+def _token(backend: str) -> str:
+    """Resolve the best available API token for the given backend."""
+    # GIT_AI_COMMIT_TOKEN always wins regardless of backend.
+    if val := os.environ.get("GIT_AI_COMMIT_TOKEN", "").strip():
+        return val
+
+    if backend == "kilo":
+        # Prefer the kilo-stored FNAL key; fall through to GH tokens so that
+        # the script still works if the kilo extension is not installed.
+        if tok := _kilo_auth_token():
+            return tok
+
+    for var in ("GITHUB_TOKEN", "GH_TOKEN"):
+        if val := os.environ.get(var, "").strip():
+            return val
+
+    if tok := _gh_cli_token():
+        return tok
+
+    # Last resort: parse the gh hosts file directly (works in read-only
+    # Codespace FS where `gh auth token` errors on write).
+    if tok := _gh_config_token():
+        return tok
+
+    if backend == "kilo":
+        raise _Error(
+            "No FNAL LiteLLM token found. "
+            "Ensure kilo is configured with the fnal-litellm provider, or "
+            "set GIT_AI_COMMIT_TOKEN."
+        )
+    raise _Error(
+        "No API token found. Set GIT_AI_COMMIT_TOKEN, GITHUB_TOKEN, or run 'gh auth login'."
+    )
+
+
+# ---------------------------------------------------------------------------
+# AI API
+# ---------------------------------------------------------------------------
+
+
+def _copilot_token(oauth: str) -> str:
+    """Exchange a GitHub OAuth token for a short-lived Copilot token."""
+    req = urllib.request.Request(
+        _COPILOT_TOKEN_URL,
+        headers={
+            "Authorization": f"token {oauth}",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read())["token"]
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode(errors="replace")
+        raise _APIError(f"Copilot token exchange failed (HTTP {exc.code}): {body[:300]}") from exc
+    except (urllib.error.URLError, KeyError, json.JSONDecodeError) as exc:
+        raise _APIError(f"Copilot token exchange failed: {exc}") from exc
+
+
+def _chat(
+    token: str,
+    api_base: str,
+    model: str,
+    messages: list[dict[str, str]],
+) -> str:
+    """Send *messages* to the chat completions endpoint and return the reply."""
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": 1024,
+        }
+    ).encode()
+    req = urllib.request.Request(
+        f"{api_base}/chat/completions",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read())
+            return data["choices"][0]["message"]["content"].strip()
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode(errors="replace")
+        raise _APIError(f"HTTP {exc.code}: {body[:500]}", exc.code) from exc
+    except urllib.error.URLError as exc:
+        raise _APIError(f"Network error: {exc}") from exc
+    except (KeyError, IndexError, json.JSONDecodeError) as exc:
+        raise _APIError(f"Unexpected API response: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Prompt construction
+# ---------------------------------------------------------------------------
+
+
+def _build_messages(
+    diff: str,
+    status: str,
+    log: str,
+    context: str,
+    root: Path,
+    last_msg: str = "",
+    instr: str = "",
+) -> list[dict[str, str]]:
+    """Build the system + user message list for the chat completion request."""
+    if len(diff) > _MAX_DIFF_CHARS:
+        diff = diff[:_MAX_DIFF_CHARS] + "\n\n[diff truncated — too large to show in full]"
+
+    parts: list[str] = [
+        f"Repository: {root}\n",
+        f"## Staged diff (git diff --cached)\n\n```diff\n{diff}\n```",
+        f"\n## Status (git status --short)\n\n```\n{status.strip()}\n```",
+        f"\n## Recent commits (git log --oneline -10)\n\n```\n{log.strip()}\n```",
+    ]
+    if last_msg:
+        parts.append(f"\n## Previous commit message\n\n```\n{last_msg}\n```")
+    if instr:
+        parts.append(f"\n## Agent instructions\n\n{instr}")
+    if context:
+        parts.append(f"\n## Supplemental context\n\n{context}")
+    parts.append("\n\nWrite a commit message for the staged changes above.")
+
+    return [
+        {"role": "system", "content": _SYSTEM},
+        {"role": "user", "content": "\n".join(parts)},
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Misc helpers
+# ---------------------------------------------------------------------------
+
+
+def _edit(text: str) -> str:
+    """Open *text* in $EDITOR and return the edited, comment-stripped result."""
+    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL") or "vi"
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", prefix="git-ai-commit-", delete=False
+    ) as fh:
+        fh.write(text)
+        fh.write(
+            "\n\n"
+            "# ─── Lines starting with '#' are ignored. ───────────────────────\n"
+            "# An empty message aborts the commit.\n"
+        )
+        tmp = Path(fh.name)
+    try:
+        subprocess.run([editor, str(tmp)], check=True)
+        lines = tmp.read_text().splitlines()
+        return "\n".join(line for line in lines if not line.startswith("#")).strip()
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def _confirm(prompt: str) -> bool:
+    """Prompt for y/N, opening /dev/tty if stdin is a pipe."""
+    try:
+        if sys.stdin.isatty():
+            source = sys.stdin
+        else:
+            source = open("/dev/tty")  # noqa: SIM115 — intentional, closed below
+        try:
+            print(f"{prompt} [y/N] ", end="", flush=True)
+            reply = source.readline().strip().lower()
+        finally:
+            if source is not sys.stdin:
+                source.close()
+        return reply in ("y", "yes")
+    except (EOFError, KeyboardInterrupt, OSError):
+        print()
+        return False
+
+
+def _print_rule(msg: str, *, file: typing.TextIO = sys.stderr) -> None:
+    print(f"\n{'─' * 72}\n{msg}\n{'─' * 72}\n", file=file)
+
+
+# ---------------------------------------------------------------------------
+# Backend resolution
+# ---------------------------------------------------------------------------
+
+_BACKENDS = ("kilo", "github-models", "copilot")
+
+
+def _resolve_backend_and_api(backend: str, api_override: str) -> tuple[str, str]:
+    """Return (backend, api_base) after applying any --api override."""
+    if api_override:
+        return backend, api_override
+    if backend == "kilo":
+        return backend, _DEFAULT_KILO_API
+    if backend == "copilot":
+        return backend, _COPILOT_API_BASE
+    return backend, _GITHUB_MODELS_BASE
+
+
+def _default_model(backend: str) -> str:
+    return _DEFAULT_MODEL_KILO if backend == "kilo" else _DEFAULT_MODEL_OTHER
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+
+def main() -> None:
+    """Parse arguments, generate a commit message, and optionally commit."""
+    default_backend = os.environ.get("GIT_AI_COMMIT_BACKEND", "kilo")
+    if default_backend not in _BACKENDS:
+        default_backend = "kilo"
+
+    ap = argparse.ArgumentParser(
+        prog="git-ai-commit",
+        description="Commit staged changes with an AI-generated commit message.",
+        epilog=(
+            "Supplemental context can be piped on stdin:\n"
+            "  echo 'Fixes #42' | git-ai-commit --yes\n\n"
+            "Can also be invoked as a Git subcommand:\n"
+            "  git ai-commit [OPTIONS]"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--context", metavar="TEXT", help="Supplemental context for the AI")
+    ap.add_argument(
+        "--backend",
+        choices=_BACKENDS,
+        default=default_backend,
+        help=(
+            "API backend to use: kilo (FNAL LiteLLM, default), "
+            "github-models, or copilot "
+            "(env: GIT_AI_COMMIT_BACKEND)"
+        ),
+    )
+    ap.add_argument(
+        "--model",
+        default=os.environ.get("GIT_AI_COMMIT_MODEL", ""),
+        metavar="MODEL",
+        help=(
+            "Model name — defaults to azure/claude-haiku-4-5 for the kilo "
+            "backend and gpt-4o for others "
+            "(env: GIT_AI_COMMIT_MODEL)"
+        ),
+    )
+    ap.add_argument(
+        "--api",
+        default=os.environ.get("GIT_AI_COMMIT_API", ""),
+        metavar="URL",
+        help="Override the API base URL (env: GIT_AI_COMMIT_API)",
+    )
+    ap.add_argument("--dry-run", action="store_true", help="Print message; do not commit")
+    ap.add_argument("--amend", action="store_true", help="Amend the previous commit")
+    ap.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompt")
+    ap.add_argument("-e", "--edit", action="store_true", help="Open message in $EDITOR")
+    ap.add_argument("--no-verify", action="store_true", help="Pass --no-verify to git commit")
+    ap.add_argument(
+        "--no-instructions",
+        action="store_true",
+        help="Skip all instruction/context files; send only the diff, status, and log",
+    )
+    args = ap.parse_args()
+
+    backend, api_base = _resolve_backend_and_api(args.backend, args.api)
+    model = args.model or _default_model(backend)
+
+    # Collect supplemental context from --context and/or stdin.
+    ctx_parts: list[str] = []
+    if args.context:
+        ctx_parts.append(args.context)
+    if not sys.stdin.isatty():
+        data = sys.stdin.read().strip()
+        if data:
+            ctx_parts.append(data)
+    context = "\n\n".join(ctx_parts)
+
+    try:
+        root = _git_root()
+        diff = _staged_diff(args.amend)
+        if not diff.strip() and not args.amend:
+            print("Nothing staged. Use 'git add' first.", file=sys.stderr)
+            sys.exit(0)
+        status = _status()
+        log = _recent_log()
+        last_msg = _last_commit_message() if args.amend else ""
+        instr = "" if args.no_instructions else _get_instructions(root)
+        tok = _token(backend)
+    except _Error as exc:
+        print(f"git-ai-commit: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    msgs = _build_messages(diff, status, log, context, root, last_msg, instr)
+
+    print(f"Generating commit message using {model} via {backend}…", file=sys.stderr)
+
+    # For the copilot backend, exchange the OAuth token for a short-lived one.
+    if backend == "copilot":
+        try:
+            tok = _copilot_token(tok)
+        except _Error as exc:
+            print(f"git-ai-commit: {exc}", file=sys.stderr)
+            sys.exit(1)
+
+    try:
+        message = _chat(tok, api_base, model, msgs)
+    except _APIError as primary_err:
+        # If GitHub Models fails with an auth or connectivity error, retry via
+        # the Copilot API.  This fallback is specific to the github-models
+        # backend; kilo and copilot backends don't have a meaningful fallback.
+        if backend == "github-models" and primary_err.status in (0, 401, 403):
+            print(
+                f"GitHub Models API failed ({primary_err}); retrying via Copilot API…",
+                file=sys.stderr,
+            )
+            try:
+                copilot_tok = _copilot_token(tok)
+                message = _chat(copilot_tok, _COPILOT_API_BASE, model, msgs)
+            except _Error as exc:
+                print(f"git-ai-commit: {exc}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            print(f"git-ai-commit: {primary_err}", file=sys.stderr)
+            sys.exit(1)
+
+    _print_rule(message)
+
+    if args.dry_run:
+        # Write clean message to stdout so it can be captured by scripts.
+        print(message)
+        return
+
+    if args.edit:
+        message = _edit(message)
+        if not message.strip():
+            print("Empty message — aborting.", file=sys.stderr)
+            sys.exit(0)
+        _print_rule(message)
+
+    if not args.yes and not _confirm("Commit with this message?"):
+        print("Aborted.", file=sys.stderr)
+        sys.exit(0)
+
+    cmd = ["git", "commit", "--amend" if args.amend else None, "-m", message]
+    cmd = [c for c in cmd if c is not None]
+    if args.no_verify:
+        cmd.append("--no-verify")
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as exc:
+        sys.exit(exc.returncode)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=sys.stderr)
+        sys.exit(130)
