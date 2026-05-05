@@ -139,8 +139,8 @@ namespace {
       // - TOCTOU race on Py_IsInitialized() without GIL
       // - Module offloading in interpreter cleanup phase 2
     }
-    py_callback(py_callback&&) = delete;
-    py_callback& operator=(py_callback&&) = delete;
+    py_callback(py_callback&&) = default;
+    py_callback& operator=(py_callback&&) = default;
 
     template <typename... Args>
     intptr_t call(Args... args)
