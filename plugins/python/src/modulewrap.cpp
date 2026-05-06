@@ -679,7 +679,8 @@ static PyObject* parse_args(PyObject* args,
 
   static char kw0[] = "callable", kw1[] = "input_family", kw2[] = "output_product_suffixes",
               kw3[] = "concurrency", kw4[] = "name";
-  static char const* kwnames[] = {kw0, kw1, kw2, kw3, kw4, nullptr};
+  // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
+  static char* kwnames[] = {kw0, kw1, kw2, kw3, kw4, nullptr};
   PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0, *pyname = 0;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|OOO", kwnames, &callable, &input, &output, &concurrency, &pyname)) {
@@ -1173,7 +1174,8 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // nodes going from C++ to PyObject* and back.
 
   static char kw0[] = "callable", kw1[] = "output_product", kw2[] = "name";
-  static char const* kwnames[] = {kw0, kw1, kw2, nullptr};
+  // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
+  static char* kwnames[] = {kw0, kw1, kw2, nullptr};
   PyObject *callable = 0, *output = 0, *pyname = 0;
   if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O", kwnames, &callable, &output, &pyname)) {
     // error already set by argument parser
