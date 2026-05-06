@@ -40,7 +40,8 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
     m_tree = m_tfile->Get<TTree>(top_name().c_str());
   }
   if (m_tree == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::read no tree found with name " + top_name());
+    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::read no tree found with name " +
+                             top_name());
   }
   if (m_branch == nullptr) {
     m_branch = m_tree->GetBranch(col_name().c_str());
