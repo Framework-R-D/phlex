@@ -454,3 +454,32 @@ jobs:
           path: coverage-artifacts/coverage-html/
           if-no-files-found: warn
           retention-days: 30
+
+  coverage-complete:
+    needs: [setup, coverage, coverage-upload]
+    if: always() && github.event_name == 'issue_comment' && needs.setup.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Comment on coverage completion
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          message: |
+            Coverage workflow completed.
+
+            **Result:** ${{ needs.coverage.result == 'success' && '✅ Coverage analysis passed.'
+              || needs.coverage.result == 'failure' && '❌ Coverage analysis failed.'
+              || needs.coverage.result == 'cancelled' && '⚠️ Coverage analysis was cancelled.'
+              || needs.coverage.result == 'skipped' && 'ℹ️ No relevant changes detected; coverage skipped.'
+              || format('ℹ️ Coverage completed with status: {0}.', needs.coverage.result) }}
+
+            See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.
+
+      - name: Update PR comment reactions
+        if: always()
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        with:
+          status: ${{ needs.coverage.result }}

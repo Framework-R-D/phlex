@@ -302,6 +302,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      issues: write
 
     steps:
       - name: Comment on build completion
@@ -319,3 +320,9 @@ jobs:
 
             See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.
           # yamllint enable
+
+      - name: Update PR comment reactions
+        if: always()
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        with:
+          status: ${{ needs.build.result }}

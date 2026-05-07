@@ -12,6 +12,11 @@ inputs:
     required: false
     default: "false"
 
+outputs:
+  has_content:
+    description: "Whether any clang-tidy artifacts with reportable content were found"
+    value: ${{ steps.check.outputs.has_summary_content }}
+
 runs:
   using: "composite"
   steps:

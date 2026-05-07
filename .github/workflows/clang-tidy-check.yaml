@@ -217,8 +217,23 @@ jobs:
       issues: write
     steps:
       - name: Post Clang-Tidy results
+        id: post_results
         uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@main
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}
           post-summary: "true"
+
+      - name: Post no-issues comment
+        if: >-
+          always() && github.event_name == 'issue_comment' && needs.clang-tidy-check.result == 'success' &&
+          steps.post_results.outputs.has_content != 'true' && needs.setup.outputs.pr_number != ''
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          message: "No clang-tidy issues found."
+
+      - name: Update PR comment reactions
+        if: always() && github.event_name == 'issue_comment'
+        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        with:
+          status: ${{ needs.clang-tidy-check.result }}
