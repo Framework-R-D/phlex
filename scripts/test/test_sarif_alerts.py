@@ -38,8 +38,11 @@ _spec.loader.exec_module(sarif_alerts)  # type: ignore[union-attr]
 
 # Typed aliases so Pylance can reason about call sites instead of treating
 # these as Unknown (the module was loaded dynamically via importlib).
+# pylint: disable=protected-access
+# pylint: disable-next=line-too-long
 _collect: Callable[[list[Path]], list[Path]] = sarif_alerts._collect_sarif_paths  # type: ignore[attr-defined]
 _process: Callable[..., Iterator[str]] = sarif_alerts._process_sarif  # type: ignore[attr-defined]
+# pylint: enable=protected-access
 _main: Callable[[list[str] | None], int] = sarif_alerts.main  # type: ignore[attr-defined]
 
 # ---------------------------------------------------------------------------
@@ -255,7 +258,7 @@ class TestProcessSarif:
     def test_empty_results_yields_nothing(self, tmp_path: Path) -> None:
         """Empty results yields nothing."""
         f = _write_sarif(tmp_path / "r.sarif", [])
-        assert list(_process(f)) == []
+        assert not list(_process(f))
 
     def test_multiple_runs_merged(self, tmp_path: Path) -> None:
         """Multiple runs merged."""
@@ -354,9 +357,7 @@ class TestMain:
     def _sarif_file(self, tmp_path: Path, results: list[dict]) -> Path:
         return _write_sarif(tmp_path / "results.sarif", results)
 
-    def test_returns_zero_on_success(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_returns_zero_on_success(self, tmp_path: Path) -> None:
         """Returns zero on success."""
         f = self._sarif_file(tmp_path, [_make_result()])
         rc = _main([str(f)])
