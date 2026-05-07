@@ -242,9 +242,10 @@ def _paginate_alerts_api(
     owner: str, repo: str, *, state: str = "open", ref: str | None = None
 ) -> collections.abc.Iterator[dict]:
     """Paginate Code Scanning alerts from the GitHub API for given repo and ref."""
+    per_page = 100
     page = 1
     while True:
-        params = {"state": state, "per_page": 100, "page": page}
+        params = {"state": state, "per_page": per_page, "page": page}
         if ref:
             params["ref"] = ref
         result = _api_request("GET", f"/repos/{owner}/{repo}/code-scanning/alerts", params=params)
@@ -254,6 +255,9 @@ def _paginate_alerts_api(
             return
         for alert in result:
             yield alert
+        # GitHub returns fewer than per_page items on the last page
+        if len(result) < per_page:
+            return
         page += 1
 
 
@@ -350,7 +354,7 @@ def _to_alert_api(raw: dict) -> Alert:
         html_url=raw.get("html_url"),
         rule_id=rule_id,
         level=(raw.get("severity") or "warning"),
-        message=str(raw.get("message", {}).get("text") or rule_name or "(no message)"),
+        message=str((instance.get("message") or {}).get("text") or rule_name or "(no message)"),
         location=location,
         rule_name=rule_name,
         help_uri=help_uri,
@@ -790,7 +794,7 @@ def write_summary(
         if new_alerts:
             handle.write(
                 f"❌ {len(new_alerts)} new alert{'s' if len(new_alerts) != 1 else ''} "
-                "(level ≥ {threshold}).\n"
+                f"(level ≥ {threshold}).\n"
             )
             for line in _format_section(new_alerts, max_results=max_results, bullet_prefix=":x:"):
                 handle.write(f"{line}\n")
@@ -873,7 +877,9 @@ def set_outputs(
             handle.write("log_path=\n")
 
 
-def _compare_alerts_via_api(owner: str, repo: str, ref: str) -> APIAlertComparison:
+def _compare_alerts_via_api(
+    owner: str, repo: str, ref: str, *, min_level: str = "warning"
+) -> APIAlertComparison:
     """Compare alerts between a ref and the main branch using the GitHub API."""
     # Fetch alerts for the PR merge ref (fixed) and for the repo default state (open)
     pr_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=ref))
@@ -885,6 +891,7 @@ def _compare_alerts_via_api(owner: str, repo: str, ref: str) -> APIAlertComparis
     base_ref: str | None = None
     prev_commit_ref: str | None = None
     base_sha: str | None = None
+    base_alerts_raw: list[dict] = []
     if ref.startswith("refs/pull/"):
         try:
             pr_num = int(ref.split("/")[2])
@@ -901,7 +908,6 @@ def _compare_alerts_via_api(owner: str, repo: str, ref: str) -> APIAlertComparis
             base_ref = None
             prev_commit_ref = None
 
-        base_alerts_raw: list[dict] = []
         if base_ref or base_sha:
             # prefer base SHA if available
             base_target = base_sha or base_ref
@@ -986,13 +992,20 @@ def _compare_alerts_via_api(owner: str, repo: str, ref: str) -> APIAlertComparis
         new_vs_base = [pr_alerts[rid] for rid in sorted(new_vs_base_ids)]
         fixed_vs_base = [base_alerts[rid] for rid in sorted(fixed_vs_base_ids)]
 
+    def _meets_threshold(a: Alert) -> bool:
+        return severity_reaches_threshold(a.level, min_level)
+
+    # Resolved alerts (fixed_*) are intentionally NOT filtered by min_level:
+    # surfacing that any alert was resolved — even a below-threshold one — is
+    # always useful information for reviewers.  Only *new* alerts are gated by
+    # the threshold because those are the ones that can block a PR.
     return APIAlertComparison(
-        new_alerts=[pr_alerts[rid] for rid in sorted(new_ids)],
+        new_alerts=[pr_alerts[rid] for rid in sorted(new_ids) if _meets_threshold(pr_alerts[rid])],
         fixed_alerts=[main_alerts[rid] for rid in sorted(fixed_ids)],
         matched_alerts=[pr_alerts[rid] for rid in sorted(pr_keys & main_keys)],
-        new_vs_prev=new_vs_prev,
+        new_vs_prev=[a for a in new_vs_prev if _meets_threshold(a)],
         fixed_vs_prev=fixed_vs_prev,
-        new_vs_base=new_vs_base,
+        new_vs_base=[a for a in new_vs_base if _meets_threshold(a)],
         fixed_vs_base=fixed_vs_base,
         base_sha=base_sha,
         prev_commit_ref=prev_commit_ref,
@@ -1066,6 +1079,38 @@ def _build_multi_section_comment(
         )
         lines.append("")
 
+    # When no finer-grained comparisons are available, fall back to the main
+    # new/fixed-vs-main lists so the comment always shows useful alert details.
+    has_detail = (
+        api_comp.new_vs_prev
+        or api_comp.fixed_vs_prev
+        or api_comp.new_vs_base
+        or api_comp.fixed_vs_base
+    )
+    if not has_detail:
+        if api_comp.new_alerts:
+            lines.append(
+                f"## ❌ {len(api_comp.new_alerts)} new CodeQL alert"
+                f"{'s' if len(api_comp.new_alerts) != 1 else ''} compared to main"
+            )
+            lines.extend(
+                _format_section(api_comp.new_alerts, max_results=max_results, bullet_prefix=":x:")
+            )
+            lines.append("")
+        if api_comp.fixed_alerts:
+            lines.append(
+                f"## ✅ {len(api_comp.fixed_alerts)} CodeQL alert"
+                f"{'s' if len(api_comp.fixed_alerts) != 1 else ''} resolved compared to main"
+            )
+            lines.extend(
+                _format_section(
+                    api_comp.fixed_alerts,
+                    max_results=max_results,
+                    bullet_prefix=":white_check_mark:",
+                )
+            )
+            lines.append("")
+
     repo_str = os.environ.get("GITHUB_REPOSITORY")
     if repo_str:
         code_scanning_url = f"https://github.com/{repo_str}/security/code-scanning"
@@ -1073,7 +1118,7 @@ def _build_multi_section_comment(
     else:
         lines.append("Review the CodeQL report in the Security tab for full details.")
 
-    return "\n".join(line for line in lines if line).strip() + "\n"
+    return "\n".join(lines).strip() + "\n"
 
 
 def main(argv: collections.abc.Sequence[str] | None = None) -> int:
@@ -1119,7 +1164,7 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
                 return 2
             owner, repo = repo_full.split("/", 1)
         try:
-            api_comp = _compare_alerts_via_api(owner, repo, args.ref)
+            api_comp = _compare_alerts_via_api(owner, repo, args.ref, min_level=min_level)
             new_alerts = api_comp.new_alerts
             fixed_alerts = api_comp.fixed_alerts
         except GitHubAPIError as exc:
