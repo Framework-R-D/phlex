@@ -11,7 +11,6 @@ directories of SARIF files) and prints a human-readable summary.  Tests cover:
 
 from __future__ import annotations
 
-import importlib
 import importlib.util
 import json
 import os

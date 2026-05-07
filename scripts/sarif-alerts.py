@@ -96,6 +96,14 @@ def _process_sarif(
             yield f"{rule} [{level}/{baseline}] {loc} — {message}"
 
 
+def _positive_int(value: str) -> int:
+    """Argparse type for --max-message: reject values less than 1."""
+    n = int(value)
+    if n < 1:
+        raise argparse.ArgumentTypeError(f"N must be at least 1, got {n}")
+    return n
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the sarif-alerts tool.
 
@@ -118,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--level",
         default="none",
-        choices=sorted(_KNOWN_LEVELS),
+        choices=list(_LEVEL_ORDER),
         metavar="LEVEL",
         help=(
             "Minimum severity level to display "
@@ -139,10 +147,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--max-message",
-        type=int,
+        type=_positive_int,
         default=200,
         metavar="N",
-        help="Truncate result messages to N characters (default: 200).",
+        help="Truncate result messages to N characters (default: 200, minimum: 1).",
     )
     args = parser.parse_args(argv)
 
