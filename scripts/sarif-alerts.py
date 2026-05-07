@@ -3,8 +3,8 @@
 import argparse
 import json
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterable
 
 # Levels defined by the SARIF 2.1.0 spec (§3.27.10), ordered by severity.
 _LEVEL_ORDER = {"none": 0, "note": 1, "warning": 2, "error": 3}
@@ -34,7 +34,7 @@ def _process_sarif(
     min_level: str = "none",
     baseline_filter: set[str] | None = None,
     max_message: int = 200,
-) -> Iterable[str]:
+) -> Iterator[str]:
     """Yield one formatted line per result in the SARIF file at *path*.
 
     Args:
@@ -122,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         metavar="LEVEL",
         help=(
             "Minimum severity level to display "
-            f"({', '.join(sorted(_LEVEL_ORDER, key=_LEVEL_ORDER.get))}). "
+            f"({', '.join(sorted(_LEVEL_ORDER, key=lambda k: _LEVEL_ORDER[k]))}). "
             "Default: none (show all)."
         ),
     )

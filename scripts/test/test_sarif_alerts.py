@@ -12,12 +12,13 @@ directories of SARIF files) and prints a human-readable summary.  Tests cover:
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import json
+import os
 import sys
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
-
-import os
 
 import pytest
 
@@ -31,12 +32,17 @@ _spec = importlib.util.spec_from_file_location(
 )
 assert _spec is not None and _spec.loader is not None
 sarif_alerts = importlib.util.module_from_spec(_spec)
+# exec_module is defined on ExecutionLoader (a subclass of Loader); the assert
+# above confirms loader is not None, and spec_from_file_location always returns
+# a SourceFileLoader which does implement exec_module.
+assert hasattr(_spec.loader, "exec_module")
 _spec.loader.exec_module(sarif_alerts)  # type: ignore[union-attr]
 
-# Convenience aliases
-_collect = sarif_alerts._collect_sarif_paths
-_process = sarif_alerts._process_sarif
-_main = sarif_alerts.main
+# Typed aliases so Pylance can reason about call sites instead of treating
+# these as Unknown (the module was loaded dynamically via importlib).
+_collect: Callable[[list[Path]], list[Path]] = sarif_alerts._collect_sarif_paths  # type: ignore[attr-defined]
+_process: Callable[..., Iterator[str]] = sarif_alerts._process_sarif  # type: ignore[attr-defined]
+_main: Callable[[list[str] | None], int] = sarif_alerts.main  # type: ignore[attr-defined]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -436,16 +442,11 @@ class TestMain:
         assert msg_part.endswith("…")
 
     def test_sys_not_imported_lazily(self) -> None:
-        """sys must be importable at module level so missing-file errors work
+        """sys must be imported at module level so missing-file errors work
         when main() is called programmatically (not via __main__ guard)."""
-        import sys as _sys
-
         assert hasattr(sarif_alerts, "__file__")
-        # The module must have sys in its globals, not just inside __main__
-        import importlib as _il
-
         src = Path(sarif_alerts.__file__).read_text(encoding="utf-8")
-        # 'import sys' must appear before any function that uses sys
+        # 'import sys' must appear before any function definition that uses it
         import_pos = src.index("import sys")
         main_pos = src.index("def main(")
         assert import_pos < main_pos, "'import sys' must appear at module level before main()"
