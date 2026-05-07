@@ -16,6 +16,7 @@ import sys
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import urlparse
 
 import pytest
 
@@ -200,7 +201,8 @@ class TestCheckUrl:
     def test_no_dash_falls_back_to_root(self) -> None:
         """A check with no dash still produces a valid URL."""
         url = M._check_url("clang-tidy")
-        assert "clang.llvm.org" in url
+        parsed = urlparse(url)
+        assert parsed.hostname == "clang.llvm.org"
 
     def test_url_starts_with_https(self) -> None:
         """All generated URLs start with https://."""
