@@ -35,3 +35,10 @@ convention = "google"
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.coverage.run]
+# Exclude the test helpers from coverage measurement.  pytest-cov resolves
+# this glob relative to the measurement source root (scripts/), so the pattern
+# works whether pytest is invoked from the repo root or a build directory that
+# sets --cov=scripts.
+omit = ["scripts/test/*"]

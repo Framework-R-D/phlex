@@ -15,7 +15,6 @@ import importlib
 import importlib.util
 import json
 import os
-import sys
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -25,8 +24,8 @@ import pytest
 # ---------------------------------------------------------------------------
 # Import the module.  The file is named "sarif-alerts.py" (with a hyphen),
 # which is not a valid Python identifier, so importlib is required.
+# sys.path is set up by scripts/test/conftest.py.
 # ---------------------------------------------------------------------------
-sys.path.insert(0, str(Path(__file__).parent.parent))
 _spec = importlib.util.spec_from_file_location(
     "sarif_alerts", Path(__file__).parent.parent / "sarif-alerts.py"
 )
@@ -115,7 +114,9 @@ class TestCollectSarifPaths:
         result = _collect([tmp_path])
         assert tmp_path / "sub" / "c.sarif" in result
 
-    def test_empty_directory_warns(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_empty_directory_warns(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         _collect([tmp_path])
         assert "no .sarif files" in capsys.readouterr().err
 
@@ -323,17 +324,23 @@ class TestMain:
     def _sarif_file(self, tmp_path: Path, results: list[dict]) -> Path:
         return _write_sarif(tmp_path / "results.sarif", results)
 
-    def test_returns_zero_on_success(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_returns_zero_on_success(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         f = self._sarif_file(tmp_path, [_make_result()])
         rc = _main([str(f)])
         assert rc == 0
 
-    def test_missing_file_returns_one(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_missing_file_returns_one(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         rc = _main([str(tmp_path / "nonexistent.sarif")])
         assert rc == 1
         assert "Error" in capsys.readouterr().err
 
-    def test_bad_json_returns_one(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_bad_json_returns_one(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         f = tmp_path / "bad.sarif"
         f.write_text("{bad json}", encoding="utf-8")
         rc = _main([str(f)])
@@ -341,20 +348,22 @@ class TestMain:
         assert "Error" in capsys.readouterr().err
 
     def test_output_contains_result_line(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         f = self._sarif_file(tmp_path, [_make_result(rule_id="py/sql-injection")])
         _main([str(f)])
         out = capsys.readouterr().out
         assert "py/sql-injection" in out
 
-    def test_total_line_printed(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_total_line_printed(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         f = self._sarif_file(tmp_path, [_make_result(), _make_result()])
         _main([str(f)])
         out = capsys.readouterr().out
         assert "Total alerts: 2" in out
 
-    def test_level_filter_applied(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_level_filter_applied(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         f = self._sarif_file(
             tmp_path,
             [_make_result(level="note"), _make_result(level="error")],
@@ -364,7 +373,9 @@ class TestMain:
         assert "Total alerts: 1" in out
         assert "note" not in out
 
-    def test_baseline_filter_applied(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_baseline_filter_applied(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         f = self._sarif_file(
             tmp_path,
             [_make_result(baseline_state="new"), _make_result(baseline_state="unchanged")],
@@ -374,7 +385,9 @@ class TestMain:
         assert "Total alerts: 1" in out
         assert "unchanged" not in out
 
-    def test_baseline_filter_repeated(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_baseline_filter_repeated(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         f = self._sarif_file(
             tmp_path,
             [
@@ -387,7 +400,7 @@ class TestMain:
         out = capsys.readouterr().out
         assert "Total alerts: 2" in out
 
-    def test_directory_input(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_directory_input(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         sarif_dir = tmp_path / "sarif"
         _write_sarif(sarif_dir / "a.sarif", [_make_result(rule_id="py/r1")])
         _write_sarif(sarif_dir / "b.sarif", [_make_result(rule_id="py/r2")])
@@ -398,7 +411,7 @@ class TestMain:
         assert "py/r2" in out
         assert "Total alerts: 2" in out
 
-    def test_multiple_files(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_multiple_files(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         f1 = _write_sarif(tmp_path / "a.sarif", [_make_result(rule_id="r1")])
         f2 = _write_sarif(tmp_path / "b.sarif", [_make_result(rule_id="r2")])
         _main([str(f1), str(f2)])
@@ -406,7 +419,7 @@ class TestMain:
         assert "Total alerts: 2" in out
 
     def test_header_line_printed_per_file(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         f = self._sarif_file(tmp_path, [_make_result()])
         _main([str(f)])
@@ -414,7 +427,7 @@ class TestMain:
         assert f"== {f} ==" in out
 
     def test_partial_failure_still_processes_good_files(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         good = self._sarif_file(tmp_path, [_make_result(rule_id="good/rule")])
         bad = tmp_path / "bad.sarif"
@@ -425,13 +438,13 @@ class TestMain:
         assert "good/rule" in out  # good file was still processed
 
     def test_empty_sarif_shows_zero_total(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         f = self._sarif_file(tmp_path, [])
         _main([str(f)])
         assert "Total alerts: 0" in capsys.readouterr().out
 
-    def test_max_message_arg(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    def test_max_message_arg(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         long_msg = "y" * 300
         f = self._sarif_file(tmp_path, [_make_result(message=long_msg)])
         _main([str(f), "--max-message", "30"])

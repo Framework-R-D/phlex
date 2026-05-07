@@ -83,6 +83,7 @@ jobs:
       has_coverage_xml: ${{ steps.coverage_outputs.outputs.has_coverage_xml }}
       has_coverage_html: ${{ steps.coverage_outputs.outputs.has_coverage_html }}
       has_coverage_llvm_info: ${{ steps.coverage_outputs.outputs.has_coverage_llvm_info }}
+      has_coverage_python_xml: ${{ steps.coverage_outputs.outputs.has_coverage_python_xml }}
       artifact_upload_available: ${{ steps.artifact_runtime.outputs.available }}
 
     steps:
@@ -271,7 +272,6 @@ jobs:
             --cov=scripts \
             --cov-report=xml:"$BUILD_DIR/coverage-scripts.xml" \
             --cov-report=term-missing \
-            --omit="scripts/test/*" \
             -q; then
             echo "✅ Scripts coverage report generation succeeded."
           else

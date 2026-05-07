@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-# Make the scripts directory importable.
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
+# sys.path is set up by scripts/test/conftest.py.
 from clang_tidy_diff_issues import (  # noqa: E402
     filter_new_issues,
     parse_diff,

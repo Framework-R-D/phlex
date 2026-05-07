@@ -20,17 +20,14 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Make the scripts directory importable from the test sub-package.
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import check_codeql_alerts as M  # noqa: E402  (must come after sys.path tweak)
+# sys.path is set up by scripts/test/conftest.py.
+import check_codeql_alerts as M  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
