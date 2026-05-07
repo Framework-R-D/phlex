@@ -19,7 +19,7 @@ def _collect_sarif_paths(inputs: list[Path]) -> list[Path]:
     paths: list[Path] = []
     for p in inputs:
         if p.is_dir():
-            found = sorted(p.rglob("*.sarif"), key=lambda x: str(x))
+            found = sorted(p.rglob("*.sarif"), key=str)
             if not found:
                 print(f"Warning: no .sarif files found under {p}", file=sys.stderr)
             paths.extend(found)
