@@ -150,6 +150,58 @@ Quick coverage workflow:
 
 See `scripts/README.md` for detailed coverage documentation.
 
+## Developer Tools (Quick Reference)
+
+Three local-only utility scripts for post-processing clang-tidy output and
+managing GitHub CodeQL alerts.  None of these are invoked by CI.
+
+### clang-tidy Checklist
+
+After running `run-clang-tidy -export-fixes build/fixes.yaml ...`, generate a
+markdown task list of checks with occurrence counts:
+
+```bash
+# Plain list to stdout
+python3 scripts/clang_tidy_check_summary.py build/fixes.yaml
+
+# With documentation hyperlinks, written to a file
+python3 scripts/clang_tidy_check_summary.py build/fixes.yaml --links \
+    -o summary.md
+```
+
+### clang-tidy → VS Code Problem Links
+
+Convert the same YAML to gcc-style `file:line:col: severity: message [check]`
+lines that VS Code's `$gcc` problem matcher turns into clickable source links:
+
+```bash
+# Diagnostics to stdout (clickable in VS Code terminal)
+python3 scripts/clang_tidy_fixes_to_problems.py build/fixes.yaml
+
+# Translate CI runner paths to local paths
+python3 scripts/clang_tidy_fixes_to_problems.py build/fixes.yaml \
+    --path-map /__w/phlex/phlex/phlex-src=/your/local/checkout \
+    -o build/problems.txt
+```
+
+### Reset Dismissed CodeQL Alerts
+
+Reopen all dismissed CodeQL alerts so the next scan re-evaluates them:
+
+```bash
+# Preview (no changes)
+GITHUB_TOKEN=$(gh auth token) \
+python3 scripts/codeql_reset_dismissed_alerts.py \
+    --owner Framework-R-D --repo phlex --dry-run
+
+# Live run
+GITHUB_TOKEN=$(gh auth token) \
+python3 scripts/codeql_reset_dismissed_alerts.py \
+    --owner Framework-R-D --repo phlex
+```
+
+See `scripts/README.md` for full documentation on all three tools.
+
 ## Getting Help
 
 - Script documentation: `scripts/README.md`
