@@ -8,7 +8,6 @@ from pathlib import Path
 
 # Levels defined by the SARIF 2.1.0 spec (§3.27.10), ordered by severity.
 _LEVEL_ORDER = {"none": 0, "note": 1, "warning": 2, "error": 3}
-_KNOWN_LEVELS = set(_LEVEL_ORDER)
 
 
 def _collect_sarif_paths(inputs: list[Path]) -> list[Path]:
