@@ -506,7 +506,7 @@ class TestMain:
         (not via the ``__main__`` guard).
         """
         assert hasattr(sarif_alerts, "__file__")
-        src = Path(sarif_alerts.__file__).read_text(encoding="utf-8")
+        src = Path(sarif_alerts.__file__ or "").read_text(encoding="utf-8")
         # 'import sys' must appear before any function definition that uses it
         import_pos = src.index("import sys")
         main_pos = src.index("def main(")
