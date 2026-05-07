@@ -94,13 +94,17 @@ def _write_sarif(path: Path, results: list[dict[str, Any]]) -> Path:
 
 
 class TestCollectSarifPaths:
+    """Tests for TestCollectSarifPaths."""
+
     def test_file_returned_as_is(self, tmp_path: Path) -> None:
+        """File returned as is."""
         f = tmp_path / "a.sarif"
         f.write_text("{}", encoding="utf-8")
         result = _collect([f])
         assert result == [f]
 
     def test_directory_expanded_to_sarif_files(self, tmp_path: Path) -> None:
+        """Directory expanded to sarif files."""
         (tmp_path / "a.sarif").write_text("{}", encoding="utf-8")
         (tmp_path / "b.sarif").write_text("{}", encoding="utf-8")
         (tmp_path / "note.txt").write_text("ignored", encoding="utf-8")
@@ -108,6 +112,7 @@ class TestCollectSarifPaths:
         assert sorted(result) == sorted([tmp_path / "a.sarif", tmp_path / "b.sarif"])
 
     def test_directory_recursive(self, tmp_path: Path) -> None:
+        """Directory recursive."""
         sub = tmp_path / "sub"
         sub.mkdir()
         (sub / "c.sarif").write_text("{}", encoding="utf-8")
@@ -117,10 +122,12 @@ class TestCollectSarifPaths:
     def test_empty_directory_warns(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Empty directory warns."""
         _collect([tmp_path])
         assert "no .sarif files" in capsys.readouterr().err
 
     def test_mixed_files_and_dirs(self, tmp_path: Path) -> None:
+        """Mixed files and dirs."""
         f = tmp_path / "direct.sarif"
         f.write_text("{}", encoding="utf-8")
         sub = tmp_path / "sub"
@@ -131,6 +138,7 @@ class TestCollectSarifPaths:
         assert sub / "nested.sarif" in result
 
     def test_sorted_order_within_directory(self, tmp_path: Path) -> None:
+        """Sorted order within directory."""
         for name in ("c.sarif", "a.sarif", "b.sarif"):
             (tmp_path / name).write_text("{}", encoding="utf-8")
         result = _collect([tmp_path])
@@ -143,7 +151,10 @@ class TestCollectSarifPaths:
 
 
 class TestProcessSarif:
+    """Tests for TestProcessSarif."""
+
     def test_basic_result_formatted(self, tmp_path: Path) -> None:
+        """Basic result formatted."""
         f = _write_sarif(tmp_path / "r.sarif", [_make_result()])
         lines = list(_process(f))
         assert len(lines) == 1
@@ -153,12 +164,14 @@ class TestProcessSarif:
         assert "Possible SQL injection." in lines[0]
 
     def test_uri_only_when_no_line(self, tmp_path: Path) -> None:
+        """Uri only when no line."""
         f = _write_sarif(tmp_path / "r.sarif", [_make_result(start_line=None)])
         lines = list(_process(f))
         assert "src/app.py" in lines[0]
         assert ":None" not in lines[0]
 
     def test_no_locations_shows_unknown(self, tmp_path: Path) -> None:
+        """No locations shows unknown."""
         result = _make_result()
         result["locations"] = []
         f = tmp_path / "r.sarif"
@@ -167,6 +180,7 @@ class TestProcessSarif:
         assert "(unknown location)" in lines[0]
 
     def test_min_level_filters_below_threshold(self, tmp_path: Path) -> None:
+        """Min level filters below threshold."""
         f = _write_sarif(
             tmp_path / "r.sarif",
             [
@@ -180,6 +194,7 @@ class TestProcessSarif:
         assert all("note" not in ln for ln in lines)
 
     def test_min_level_none_shows_all(self, tmp_path: Path) -> None:
+        """Min level none shows all."""
         f = _write_sarif(
             tmp_path / "r.sarif",
             [_make_result(level="none"), _make_result(level="note")],
@@ -188,6 +203,7 @@ class TestProcessSarif:
         assert len(lines) == 2
 
     def test_baseline_filter_exact(self, tmp_path: Path) -> None:
+        """Baseline filter exact."""
         f = _write_sarif(
             tmp_path / "r.sarif",
             [
@@ -201,6 +217,7 @@ class TestProcessSarif:
         assert "new" in lines[0]
 
     def test_baseline_filter_multiple(self, tmp_path: Path) -> None:
+        """Baseline filter multiple."""
         f = _write_sarif(
             tmp_path / "r.sarif",
             [
@@ -213,6 +230,7 @@ class TestProcessSarif:
         assert len(lines) == 2
 
     def test_baseline_filter_none_shows_all(self, tmp_path: Path) -> None:
+        """Baseline filter none shows all."""
         f = _write_sarif(
             tmp_path / "r.sarif",
             [_make_result(baseline_state="new"), _make_result(baseline_state="unchanged")],
@@ -221,6 +239,7 @@ class TestProcessSarif:
         assert len(lines) == 2
 
     def test_message_truncated(self, tmp_path: Path) -> None:
+        """Message truncated."""
         long_msg = "x" * 300
         f = _write_sarif(tmp_path / "r.sarif", [_make_result(message=long_msg)])
         lines = list(_process(f, max_message=50))
@@ -229,15 +248,18 @@ class TestProcessSarif:
         assert msg_part.endswith("…")
 
     def test_message_whitespace_collapsed(self, tmp_path: Path) -> None:
+        """Message whitespace collapsed."""
         f = _write_sarif(tmp_path / "r.sarif", [_make_result(message="a  b\n  c")])
         lines = list(_process(f))
         assert "a b c" in lines[0]
 
     def test_empty_results_yields_nothing(self, tmp_path: Path) -> None:
+        """Empty results yields nothing."""
         f = _write_sarif(tmp_path / "r.sarif", [])
         assert list(_process(f)) == []
 
     def test_multiple_runs_merged(self, tmp_path: Path) -> None:
+        """Multiple runs merged."""
         sarif = {
             "version": "2.1.0",
             "runs": [
@@ -258,12 +280,14 @@ class TestProcessSarif:
         assert rule_ids == {"py/r1", "cpp/r2"}
 
     def test_invalid_json_raises_value_error(self, tmp_path: Path) -> None:
+        """Invalid json raises value error."""
         f = tmp_path / "bad.sarif"
         f.write_text("{not valid json}", encoding="utf-8")
         with pytest.raises(ValueError, match="Invalid JSON"):
             list(_process(f))
 
     def test_non_object_json_raises_value_error(self, tmp_path: Path) -> None:
+        """Non object json raises value error."""
         f = tmp_path / "bad.sarif"
         f.write_text("[1, 2, 3]", encoding="utf-8")
         with pytest.raises(ValueError, match="Not a SARIF document"):
@@ -271,6 +295,7 @@ class TestProcessSarif:
 
     @pytest.mark.skipif(os.getuid() == 0, reason="root bypasses file permission checks")
     def test_unreadable_file_raises_oserror(self, tmp_path: Path) -> None:
+        """Unreadable file raises oserror."""
         f = tmp_path / "locked.sarif"
         f.write_text("{}", encoding="utf-8")
         f.chmod(0o000)
@@ -281,6 +306,7 @@ class TestProcessSarif:
             f.chmod(0o644)
 
     def test_missing_message_field(self, tmp_path: Path) -> None:
+        """Missing message field."""
         result = _make_result()
         del result["message"]
         f = tmp_path / "r.sarif"
@@ -291,6 +317,7 @@ class TestProcessSarif:
         assert "— " in lines[0]
 
     def test_missing_rule_id(self, tmp_path: Path) -> None:
+        """Missing rule id."""
         result = _make_result()
         del result["ruleId"]
         f = tmp_path / "r.sarif"
@@ -299,6 +326,7 @@ class TestProcessSarif:
         assert "<no rule>" in lines[0]
 
     def test_missing_level_defaults_to_none(self, tmp_path: Path) -> None:
+        """Missing level defaults to none."""
         result = _make_result()
         del result["level"]
         f = tmp_path / "r.sarif"
@@ -307,6 +335,7 @@ class TestProcessSarif:
         assert "none/" in lines[0]
 
     def test_missing_baseline_defaults_to_unchanged(self, tmp_path: Path) -> None:
+        """Missing baseline defaults to unchanged."""
         result = _make_result()
         del result["baselineState"]
         f = tmp_path / "r.sarif"
@@ -321,12 +350,15 @@ class TestProcessSarif:
 
 
 class TestMain:
+    """Tests for TestMain."""
+
     def _sarif_file(self, tmp_path: Path, results: list[dict]) -> Path:
         return _write_sarif(tmp_path / "results.sarif", results)
 
     def test_returns_zero_on_success(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Returns zero on success."""
         f = self._sarif_file(tmp_path, [_make_result()])
         rc = _main([str(f)])
         assert rc == 0
@@ -334,6 +366,7 @@ class TestMain:
     def test_missing_file_returns_one(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Missing file returns one."""
         rc = _main([str(tmp_path / "nonexistent.sarif")])
         assert rc == 1
         assert "Error" in capsys.readouterr().err
@@ -341,6 +374,7 @@ class TestMain:
     def test_bad_json_returns_one(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Bad json returns one."""
         f = tmp_path / "bad.sarif"
         f.write_text("{bad json}", encoding="utf-8")
         rc = _main([str(f)])
@@ -350,12 +384,14 @@ class TestMain:
     def test_output_contains_result_line(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Output contains result line."""
         f = self._sarif_file(tmp_path, [_make_result(rule_id="py/sql-injection")])
         _main([str(f)])
         out = capsys.readouterr().out
         assert "py/sql-injection" in out
 
     def test_total_line_printed(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Total line printed."""
         f = self._sarif_file(tmp_path, [_make_result(), _make_result()])
         _main([str(f)])
         out = capsys.readouterr().out
@@ -364,6 +400,7 @@ class TestMain:
     def test_level_filter_applied(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Level filter applied."""
         f = self._sarif_file(
             tmp_path,
             [_make_result(level="note"), _make_result(level="error")],
@@ -376,6 +413,7 @@ class TestMain:
     def test_baseline_filter_applied(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Baseline filter applied."""
         f = self._sarif_file(
             tmp_path,
             [_make_result(baseline_state="new"), _make_result(baseline_state="unchanged")],
@@ -388,6 +426,7 @@ class TestMain:
     def test_baseline_filter_repeated(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Baseline filter repeated."""
         f = self._sarif_file(
             tmp_path,
             [
@@ -401,6 +440,7 @@ class TestMain:
         assert "Total alerts: 2" in out
 
     def test_directory_input(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Directory input."""
         sarif_dir = tmp_path / "sarif"
         _write_sarif(sarif_dir / "a.sarif", [_make_result(rule_id="py/r1")])
         _write_sarif(sarif_dir / "b.sarif", [_make_result(rule_id="py/r2")])
@@ -412,6 +452,7 @@ class TestMain:
         assert "Total alerts: 2" in out
 
     def test_multiple_files(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Multiple files."""
         f1 = _write_sarif(tmp_path / "a.sarif", [_make_result(rule_id="r1")])
         f2 = _write_sarif(tmp_path / "b.sarif", [_make_result(rule_id="r2")])
         _main([str(f1), str(f2)])
@@ -421,6 +462,7 @@ class TestMain:
     def test_header_line_printed_per_file(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Header line printed per file."""
         f = self._sarif_file(tmp_path, [_make_result()])
         _main([str(f)])
         out = capsys.readouterr().out
@@ -429,6 +471,7 @@ class TestMain:
     def test_partial_failure_still_processes_good_files(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Partial failure still processes good files."""
         good = self._sarif_file(tmp_path, [_make_result(rule_id="good/rule")])
         bad = tmp_path / "bad.sarif"
         bad.write_text("{broken}", encoding="utf-8")
@@ -440,11 +483,13 @@ class TestMain:
     def test_empty_sarif_shows_zero_total(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
+        """Empty sarif shows zero total."""
         f = self._sarif_file(tmp_path, [])
         _main([str(f)])
         assert "Total alerts: 0" in capsys.readouterr().out
 
     def test_max_message_arg(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Max message arg."""
         long_msg = "y" * 300
         f = self._sarif_file(tmp_path, [_make_result(message=long_msg)])
         _main([str(f), "--max-message", "30"])
@@ -455,8 +500,11 @@ class TestMain:
         assert msg_part.endswith("…")
 
     def test_sys_not_imported_lazily(self) -> None:
-        """sys must be imported at module level so missing-file errors work
-        when main() is called programmatically (not via __main__ guard)."""
+        """`sys` must be imported at module level.
+
+        Missing-file errors must work when main() is called programmatically
+        (not via the ``__main__`` guard).
+        """
         assert hasattr(sarif_alerts, "__file__")
         src = Path(sarif_alerts.__file__).read_text(encoding="utf-8")
         # 'import sys' must appear before any function definition that uses it

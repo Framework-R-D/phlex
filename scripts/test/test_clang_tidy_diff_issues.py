@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 # sys.path is set up by scripts/test/conftest.py.
 from clang_tidy_diff_issues import (  # noqa: E402
     filter_new_issues,

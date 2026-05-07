@@ -30,6 +30,24 @@ extend-ignore = [
     "E203", # whitespace before ':'
 ]
 
+[tool.ruff.lint.isort]
+# Scripts are treated as first-party so that `import clang_tidy_check_summary`
+# and similar local imports are grouped correctly relative to third-party ones
+# (e.g. pytest), avoiding false I001 violations in scripts/test/.
+known-first-party = [
+  "check_codeql_alerts",
+  "clang_tidy_check_summary",
+  "clang_tidy_diff_issues",
+  "clang_tidy_fixes_to_problems",
+  "codeql_reset_dismissed_alerts",
+  "create_coverage_symlinks",
+  "export_llvm_lcov",
+  "fix_header_guards",
+  "normalize_coverage_lcov",
+  "normalize_coverage_xml",
+  "sarif_alerts",
+]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
