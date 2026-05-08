@@ -5,12 +5,12 @@
 # Podman instructions for building tagged images with this file:
 #
 #   $ podman build --format docker \
-#       [-v <local-spack-cache>:/build-cache] \
-#       [-v ~/.gnupg:/run/gpg] \
+#       [-v <local-spack-cache>:/build-cache:Z] \
+#       [-v ~/.gnupg:/run/gpg:Z] \
 #       --target ci   --tag phlex-ci:<tag>  .
 #   $ podman build --format docker \
-#       [-v <local-spack-cache>:/build-cache] \
-#       [-v ~/.gnupg:/run/gpg] \
+#       [-v <local-spack-cache>:/build-cache:Z] \
+#       [-v ~/.gnupg:/run/gpg:Z] \
 #       --target dev  --tag phlex-dev:<tag> .
 #   $ podman login ghcr.io --username <username> -p <token>
 #   $ podman push phlex-ci:<tag>  ghcr.io/framework-r-d/phlex-ci:<tag>
@@ -71,6 +71,7 @@ apt-get upgrade -y --no-install-recommends
 apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
+    cmake \
     curl \
     file \
     git \
@@ -78,11 +79,16 @@ apt-get install -y --no-install-recommends \
     locales-all \
     libcurl4-openssl-dev \
     libssl-dev \
+    libxslt1-dev \
+    libxml2-dev \
     lsb-release \
     ninja-build \
+    pkg-config \
     software-properties-common \
     sudo \
-    unzip
+    unzip \
+    zlib1g-dev
+
 apt autoremove -y
 apt-get clean
 rm -rf /var/lib/apt/lists/*
@@ -115,6 +121,7 @@ PREP_SPACK_GROUP
 ########################################################################
 # Configure Spack: add repos, compilers, externals, and cache locations
 
+COPY packages.yaml /tmp/packages.yaml
 RUN <<'SPACK_CONFIGURE_DEFAULTS'
 set -euo pipefail
 
@@ -130,10 +137,23 @@ find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
 . /spack/share/spack/setup-env.sh
 
-spack --timestamp repo add --scope site $SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex
-spack --timestamp repo add --scope site $SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art
-spack --timestamp repo add --scope site $SPACK_REPO_ROOT/spack-packages/repos/spack_repo/builtin
-spack --timestamp compiler find
+# Install settings from our copied packages.yaml
+spack config --scope site add -f /tmp/packages.yaml
+rm -f /tmp/packages.yaml
+
+# Recipe repos
+spack repo add --scope site $SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex
+spack repo add --scope site $SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art
+spack repo add --scope site $SPACK_REPO_ROOT/spack-packages/repos/spack_repo/builtin
+
+# Other config settings
+spack config --scope defaults add config:build_stage:/opt/spack-stage
+spack config --scope defaults add config:source_cache:/opt/spack-cache/downloads
+spack config --scope defaults add config:misc_cache:/opt/spack-cache/misc
+spack config --scope defaults add config:install_tree:padded_length:255
+
+# Find compilers (destination packages.yaml for Spack >=1.0)
+spack --timestamp compiler find --scope site
 
 # Discover externals
 #
@@ -141,11 +161,6 @@ spack --timestamp compiler find
 #   not necessarily include the Python.h header file.  We therefore need
 #   Spack to build Python.
 spack --timestamp external find --exclude python
-
-spack config --scope defaults add config:build_stage:/opt/spack-stage
-spack config --scope defaults add config:source_cache:/opt/spack-cache/downloads
-spack config --scope defaults add config:misc_cache:/opt/spack-cache/misc
-spack config --scope defaults add "config:install_tree:padded_length:255"
 SPACK_CONFIGURE_DEFAULTS
 
 ENV GNUPGHOME=/run/gpg
@@ -168,7 +183,7 @@ set -euo pipefail
 spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
 if [ -d "/build-cache" ]; then
-  spack --timestamp mirror add --type binary --unsigned phlex-dev-local /build-cache
+  spack mirror add --type binary --unsigned phlex-dev-local /build-cache
 fi
 
 spack buildcache keys -it
@@ -188,7 +203,8 @@ spack --timestamp install --fail-fast -j "$(nproc)" -p 1 \
       gcc@15.2 target=x86_64_v3 \
       +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
       build_type=Release \
-      languages=c,c++,fortran,lto
+      languages=c,c++,fortran,lto \
+      %c,cxx=gcc@13.3.0 # % must be LAST (along with ^ dependencies)
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -197,7 +213,7 @@ if [ -d "/build-cache" ]; then
   else
     key_args=(-u)
   fi
-  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
         /build-cache $(spack find --no-groups -LI | \
         sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
@@ -221,6 +237,7 @@ set -euo pipefail
 mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
 rm -rf "$PHLEX_SPACK_ENV"
 spack --timestamp env create -d "$PHLEX_SPACK_ENV" /tmp/spack.yaml
+rm -f /tmp/spack.yaml
 spack --timestamp env activate -d "$PHLEX_SPACK_ENV"
 spack --timestamp concretize
 chgrp -R spack "$PHLEX_SPACK_ENV"
@@ -241,7 +258,7 @@ set -euo pipefail
 
 spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
-  cmake lcov ninja py-gcovr
+  cmake lcov ninja py-gcovr py-pytest-cov py-pyyaml
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -250,13 +267,34 @@ if [ -d "/build-cache" ]; then
   else
     key_args=(-u)
   fi
-  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
         /build-cache $(spack find --no-groups -LI | \
         sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
 
 spack clean -dfs
 INSTALL_TOOLING_CORE
+
+########################################################################
+# Verify Python was built with SSL support
+
+RUN <<'VERIFY_PYTHON_SSL'
+set -euo pipefail
+
+# Confirm that the Spack-built Python provides a working ssl module,
+# which requires that Python was compiled against the expected SSL library.
+. /entrypoint.sh
+
+python -c "
+import ssl
+ctx = ssl.create_default_context()
+print('Python SSL OK:', ssl.OPENSSL_VERSION)
+" || {
+  echo "ERROR: Spack Python does not provide a working ssl module." >&2
+  echo "Check that Python was built with OpenSSL support (openssl~shared is a common culprit)." >&2
+  exit 1
+}
+VERIFY_PYTHON_SSL
 
 ########################################################################
 # Install LLVM toolchain separately for caching efficiency
@@ -277,7 +315,7 @@ if [ -d "/build-cache" ]; then
   else
     key_args=(-u)
   fi
-  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
         /build-cache $(spack find --no-groups -LI | \
         sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
@@ -305,7 +343,7 @@ if [ -d "/build-cache" ]; then
   else
     key_args=(-u)
   fi
-  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
         /build-cache $(spack find --no-groups -LI | \
         sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
@@ -330,27 +368,6 @@ spack clean -dfs
 SPACK_INSTALL_PHLEX_DEPENDENCIES
 
 ########################################################################
-# Verify Python was built with SSL support
-
-RUN <<'VERIFY_PYTHON_SSL'
-set -euo pipefail
-
-# Confirm that the Spack-built Python provides a working ssl module,
-# which requires that Python was compiled against the expected SSL library.
-. /entrypoint.sh
-
-python -c "
-import ssl
-ctx = ssl.create_default_context()
-print('Python SSL OK:', ssl.OPENSSL_VERSION)
-" || {
-  echo "ERROR: Spack Python does not provide a working ssl module." >&2
-  echo "Check that Python was built with OpenSSL support (openssl~shared is a common culprit)." >&2
-  exit 1
-}
-VERIFY_PYTHON_SSL
-
-########################################################################
 # Publish buildcache artifacts if a cache volume is mounted
 
 RUN <<'WRITE_BUILDCACHE'
@@ -369,7 +386,7 @@ if [ -d "/build-cache" ]; then
   else
     key_args=(-u)
   fi
-  spack --timestamp buildcache create ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
         /build-cache $(spack find --no-groups -LI | \
         sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
@@ -438,6 +455,25 @@ USER root
 
 FROM base AS dev
 ENV SPACK_GROUP=spack
+
+########################################################################
+# Install useful developer command-line tools with apt-get
+
+RUN <<'INSTALL_DEV_ESSENTIALS'
+set -euo pipefail
+
+# Install locale support required by tooling and Spack
+apt-get update
+apt-get upgrade -y --no-install-recommends
+apt-get install -y --no-install-recommends \
+  ack \
+  bubblewrap \
+  less \
+  ripgrep
+apt autoremove -y
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+INSTALL_DEV_ESSENTIALS
 
 ########################################################################
 # Install developer tooling (gersemi, prek, ruff)
