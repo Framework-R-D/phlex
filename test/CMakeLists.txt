@@ -80,18 +80,15 @@ cet_test(
 )
 
 cet_test(
-  different_hierarchies
+  fold_duplicate_layer_name
   USE_CATCH2_MAIN
   SOURCE
-  different_hierarchies.cpp
+  fold_duplicate_layer_name_test.cpp
   LIBRARIES
   phlex::core_internal
   spdlog::spdlog
   layer_generator_internal
 )
-# Disable pending resolution of [Change fold-result caching to use
-# `multilayer_join_node`](https://github.com/Framework-R-D/phlex/issues/359)
-set_tests_properties(different_hierarchies PROPERTIES DISABLED TRUE)
 
 cet_test(filter_impl USE_CATCH2_MAIN SOURCE filter_impl.cpp LIBRARIES
          phlex::core_internal
