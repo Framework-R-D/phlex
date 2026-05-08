@@ -239,7 +239,7 @@ jobs:
           build-path: ${{ env.local_build_path }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
+        uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           languages: ${{ matrix.language }}
           config-file: ${{ env.local_checkout_path }}/.github/codeql/codeql-config.yml
@@ -265,7 +265,7 @@ jobs:
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
+        uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           checkout_path: ${{ env.local_checkout_path }}
           output: results
