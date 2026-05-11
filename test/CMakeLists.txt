@@ -176,6 +176,14 @@ cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
 cet_test(fixed_hierarchy_test USE_CATCH2_MAIN SOURCE fixed_hierarchy_test.cpp LIBRARIES
          phlex::model
 )
+cet_test(data_cell_tracker USE_CATCH2_MAIN SOURCE data_cell_tracker_test.cpp LIBRARIES
+         phlex::model
+         TBB::tbb
+)
+cet_test(child_tracker USE_CATCH2_MAIN SOURCE child_tracker_test.cpp LIBRARIES
+         phlex::model_internal
+         TBB::tbb
+)
 cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
          phlex::core_internal
 )
