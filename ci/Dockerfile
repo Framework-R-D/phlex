@@ -368,6 +368,21 @@ spack clean -dfs
 SPACK_INSTALL_PHLEX_DEPENDENCIES
 
 ########################################################################
+# Work around intel-oneapi-tbb's non-standard CMake config layout
+
+RUN <<'FIX_TBB_CMAKE_PATH'
+set -euo pipefail
+
+# intel-oneapi-tbb installs its CMake config files under
+# <prefix>/tbb/latest/lib/cmake/tbb/ rather than the standard
+# <prefix>/lib/cmake/tbb/.  CMake's find_package(TBB) searches
+# <prefix>/lib/<name>/ as a fallback, so a symlink at lib/tbb pointing
+# into the actual cmake directory is sufficient.
+VIEW="${PHLEX_SPACK_ENV}/.spack-env/view"
+ln -sfT "../tbb/latest/lib/cmake/tbb" "${VIEW}/lib/tbb"
+FIX_TBB_CMAKE_PATH
+
+########################################################################
 # Publish buildcache artifacts if a cache volume is mounted
 
 RUN <<'WRITE_BUILDCACHE'

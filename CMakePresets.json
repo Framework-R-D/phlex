@@ -46,6 +46,7 @@
             "description": "Standard build with C++ module scanning disabled for clang-tidy compatibility.",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
             }
         }

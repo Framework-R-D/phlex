@@ -42,6 +42,10 @@ spack:
         - "~qtgui"
         - "@4:"
 
+    llvm:
+      require:
+        - "%c,cxx=gcc@15"
+
     phlex:
       require:
         - "+form"
