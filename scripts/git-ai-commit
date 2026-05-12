@@ -544,7 +544,10 @@ def _edit(text: str) -> str:
             raise _Error(f"Editor not found: {editor!r}. Set $EDITOR or $VISUAL.") from None
         except subprocess.CalledProcessError as exc:
             raise _Error(f"Editor exited with status {exc.returncode}.") from exc
-        lines = tmp.read_text(encoding="utf-8").splitlines()
+        try:
+            lines = tmp.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError) as exc:
+            raise _Error(f"Could not read editor output: {exc}") from exc
         return "\n".join(line for line in lines if not line.startswith("#")).strip()
     finally:
         tmp.unlink(missing_ok=True)

@@ -87,13 +87,9 @@ class TestKiloAuthToken:
         """OSError while reading the file → None."""
         p = tmp_path / "auth.json"
         p.write_text("{}", encoding="utf-8")
-        p.chmod(0o000)
         self._setup(monkeypatch, p)
-        try:
-            result = _kilo_auth_token()
-        finally:
-            p.chmod(0o644)
-        assert result is None
+        with patch("pathlib.Path.read_text", side_effect=OSError("permission denied")):
+            assert _kilo_auth_token() is None
 
     def test_top_level_not_dict_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -292,3 +288,15 @@ class TestEdit:
             result = _edit("original")
 
         assert result == ""
+
+    def test_read_error_after_edit_raises_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """OSError reading the temp file after a successful editor run raises _Error."""
+        self._env(monkeypatch)
+
+        def _succeed(cmd: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(cmd, 0)
+
+        with patch("subprocess.run", side_effect=_succeed):
+            with patch("pathlib.Path.read_text", side_effect=OSError("disk error")):
+                with pytest.raises(_Error, match="Could not read"):
+                    _edit("original")
