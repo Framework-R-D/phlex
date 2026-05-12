@@ -11,7 +11,7 @@ namespace form::detail::experimental {
 
   class Storage_Associative_Write_Container : public Storage_Write_Container {
   public:
-    Storage_Associative_Write_Container(std::string const& name);
+    explicit Storage_Associative_Write_Container(std::string const& name);
     ~Storage_Associative_Write_Container() override;
 
     std::string const& top_name();

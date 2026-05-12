@@ -30,7 +30,7 @@ namespace {
 
   // Hacky!
   struct sum_numbers {
-    sum_numbers(unsigned int const n) : total{n} {}
+    explicit sum_numbers(unsigned int const n) : total{n} {}
     ~sum_numbers() { CHECK(sum == total); }
     sum_numbers(sum_numbers const&) = delete;
     sum_numbers& operator=(sum_numbers const&) = delete;
@@ -63,7 +63,7 @@ namespace {
 
   // Hacky!
   struct check_multiple_numbers {
-    check_multiple_numbers(int const n) : total{n}
+    explicit check_multiple_numbers(int const n) : total{n}
     {
       spdlog::debug("construct check_multiple_numbers with n = {}", n);
     }

@@ -30,7 +30,7 @@ namespace phlex::experimental {
   class PHLEX_CORE_EXPORT edge_maker {
   public:
     template <typename... Args>
-    edge_maker(Args&... args);
+    explicit edge_maker(Args&... args);
 
     template <typename... Args>
     void operator()(tbb::flow::graph& g,

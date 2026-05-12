@@ -12,9 +12,11 @@ namespace phlex::experimental {
   public:
     algorithm_name();
 
+    // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     algorithm_name(char const* spec);
     algorithm_name(std::string const& spec);
     algorithm_name(std::string_view spec);
+    // NOLINTEND(google-explicit-constructor)
     algorithm_name(identifier plugin,
                    identifier algorithm,
                    specified_fields fields = specified_fields::both);

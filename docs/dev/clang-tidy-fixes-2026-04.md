@@ -90,6 +90,8 @@
   - [PR #560](https://github.com/Framework-R-D/phlex/pull/560)
 - [x] [cppcoreguidelines-use-default-member-init](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/use-default-member-init.html) (5)
   - [PR #556](https://github.com/Framework-R-D/phlex/pull/556)
+- [ ] [google-explicit-constructor](https://clang.llvm.org/extra/clang-tidy/checks/google/explicit-constructor.html) (38)
+  - _a.k.a._ [misc-explicit-constructor](https://clang.llvm.org/extra/clang-tidy/checks/misc/explicit-constructor.html) (`clang-tidy` >= 23.0.0)
 - [ ] [modernize-avoid-c-arrays](https://clang.llvm.org/extra/clang-tidy/checks/modernize/avoid-c-arrays.html) (17)
 - [ ] [modernize-avoid-c-style-cast](https://clang.llvm.org/extra/clang-tidy/checks/modernize/avoid-c-style-cast.html) (82)
 - [ ] [modernize-concat-nested-namespaces](https://clang.llvm.org/extra/clang-tidy/checks/modernize/concat-nested-namespaces.html) (1)

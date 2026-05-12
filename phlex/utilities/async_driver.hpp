@@ -18,10 +18,10 @@ namespace phlex::experimental {
 
   public:
     template <typename FT>
-    async_driver(FT ft) : driver_{std::move(ft)}
+    explicit async_driver(FT ft) : driver_{std::move(ft)}
     {
     }
-    async_driver(void (*ft)(async_driver<RT>&)) : driver_{ft} {}
+    explicit async_driver(void (*ft)(async_driver<RT>&)) : driver_{ft} {}
 
     std::optional<RT> operator()()
     {

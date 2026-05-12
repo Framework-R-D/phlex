@@ -68,7 +68,7 @@ namespace refl {
     static auto ins(int) -> char;
 
     template <typename U, int = sizeof(fn_def<T, U, N, sizeof(ins<U, N>(0)) == sizeof(char)>)>
-    operator U();
+    operator U(); // NOLINT(google-explicit-constructor) - Implicit conversion is intentional
   };
 
   // Here we detect the data type field number. The byproduct is instantiations.  Uses

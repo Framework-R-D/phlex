@@ -35,9 +35,11 @@ namespace phlex::experimental {
 
     // This is here to allow the node API which heretofore stored names as strings to be easily transitioned
     // over to identifiers
-    explicit identifier(std::string&& str);
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
+    identifier(std::string&& str);
 
     // char const* calls string_view
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     identifier(char const* lit) : identifier(std::string_view(lit)) {}
 
     identifier& operator=(identifier const& rhs) = default;

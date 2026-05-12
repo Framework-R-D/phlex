@@ -109,12 +109,14 @@ namespace {
   struct py_callback {
     PyObject* m_callable; // owned
 
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     py_callback(PyObject* callable) : m_callable(callable)
     {
       // callable is always non-null here (validated before py_callback construction)
       PyGILRAII gil;
       Py_INCREF(m_callable);
     }
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     py_callback(py_callback const& pc) : m_callable(pc.m_callable)
     {
       // Must hold GIL when manipulating reference counts
@@ -132,6 +134,7 @@ namespace {
       }
       return *this;
     }
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     ~py_callback()
     {
       // TODO: cleanup deferred to Phlex shutdown hook
