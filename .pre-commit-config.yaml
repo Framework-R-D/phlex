@@ -31,8 +31,11 @@ repos:
         files: \.(h|hpp)$
       - id: scripts-unit-tests
         name: scripts/ unit tests
-        entry: python3 -m pytest scripts/test/ -v
-        language: system
+        entry: pytest scripts/test/ -v
+        language: python
+        additional_dependencies:
+          - pytest
+          - PyYAML
         files: ^scripts/
         types_or: [python]
         pass_filenames: false
