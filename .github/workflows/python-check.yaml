@@ -59,7 +59,9 @@ jobs:
         id: setup
         uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
-          file-type: python
+          file-type: |
+            python
+            yaml
           head-ref: ${{ inputs.pr-head-sha }}
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -125,3 +127,33 @@ jobs:
             exit 1
           fi
         # yamllint enable
+
+  scripts-test:
+    needs: setup
+    if: >
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.setup.outputs.ref }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          repository: ${{ needs.setup.outputs.repo }}
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Run scripts unit tests
+        working-directory: ${{ needs.setup.outputs.checkout_path }}
+        run: |
+          echo "➡️ Running scripts/ unit tests with pytest..."
+          uv run --with pytest --with PyYAML pytest scripts/test/ -v
