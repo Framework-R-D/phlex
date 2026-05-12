@@ -19,6 +19,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import patch
 
@@ -35,6 +36,15 @@ assert _spec is not None
 _M = importlib.util.module_from_spec(_spec)
 sys.modules.setdefault("git_ai_commit", _M)
 _loader.exec_module(_M)
+
+# Typed aliases so static analysis can reason about call sites instead of
+# treating these as Unknown (the module was loaded dynamically via importlib).
+# pylint: disable=protected-access
+_kilo_auth_token: Callable[[], str | None] = _M._kilo_auth_token  # type: ignore[attr-defined]
+_gh_cli_token: Callable[[], str | None] = _M._gh_cli_token  # type: ignore[attr-defined]
+_edit: Callable[[str], str] = _M._edit  # type: ignore[attr-defined]
+_Error: type[Exception] = _M._Error  # type: ignore[attr-defined]
+# pylint: enable=protected-access
 
 
 # ===========================================================================
@@ -60,7 +70,7 @@ class TestKiloAuthToken:
     ) -> None:
         """No auth.json → None without raising."""
         self._setup(monkeypatch, tmp_path / "absent.json")
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_invalid_json_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -69,7 +79,7 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         p.write_text("{not valid json", encoding="utf-8")
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_oserror_on_read_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -80,7 +90,7 @@ class TestKiloAuthToken:
         p.chmod(0o000)
         self._setup(monkeypatch, p)
         try:
-            result = _M._kilo_auth_token()
+            result = _kilo_auth_token()
         finally:
             p.chmod(0o644)
         assert result is None
@@ -92,7 +102,7 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         p.write_text("[1, 2, 3]", encoding="utf-8")
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_provider_absent_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -101,7 +111,7 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         self._write(p, {"other-provider": {"key": "abc"}})
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_provider_not_dict_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -110,7 +120,7 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         self._write(p, {self._PROVIDER: "just-a-string"})
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_key_not_string_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -119,14 +129,14 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         self._write(p, {self._PROVIDER: {"key": 12345}})
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_key_empty_returns_none(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Empty 'key' string → None."""
         p = tmp_path / "auth.json"
         self._write(p, {self._PROVIDER: {"key": ""}})
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_key_whitespace_only_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -135,7 +145,7 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         self._write(p, {self._PROVIDER: {"key": "   "}})
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() is None
+        assert _kilo_auth_token() is None
 
     def test_valid_key_stripped_and_returned(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -144,7 +154,7 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         self._write(p, {self._PROVIDER: {"key": "  my-secret-token  "}})
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() == "my-secret-token"
+        assert _kilo_auth_token() == "my-secret-token"
 
     def test_valid_key_no_whitespace(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -153,7 +163,7 @@ class TestKiloAuthToken:
         p = tmp_path / "auth.json"
         self._write(p, {self._PROVIDER: {"key": "tok123"}})
         self._setup(monkeypatch, p)
-        assert _M._kilo_auth_token() == "tok123"
+        assert _kilo_auth_token() == "tok123"
 
 
 # ===========================================================================
@@ -167,31 +177,31 @@ class TestGhCliToken:
     def test_gh_not_installed_returns_none(self) -> None:
         """FileNotFoundError from subprocess (gh absent) → None."""
         with patch("subprocess.run", side_effect=FileNotFoundError):
-            assert _M._gh_cli_token() is None
+            assert _gh_cli_token() is None
 
     def test_gh_exits_nonzero_returns_none(self) -> None:
-        """gh returns a non-zero exit code → explicit None."""
+        """Ensure gh returns a non-zero exit code → explicit None."""
         mock_result = subprocess.CompletedProcess(
             ["gh", "auth", "token"], returncode=1, stdout="", stderr="error"
         )
         with patch("subprocess.run", return_value=mock_result):
-            assert _M._gh_cli_token() is None
+            assert _gh_cli_token() is None
 
     def test_gh_exits_zero_empty_stdout_returns_none(self) -> None:
-        """gh returns zero but produces only whitespace → None."""
+        """Ensure gh returns zero but produces only whitespace → None."""
         mock_result = subprocess.CompletedProcess(
             ["gh", "auth", "token"], returncode=0, stdout="   \n", stderr=""
         )
         with patch("subprocess.run", return_value=mock_result):
-            assert _M._gh_cli_token() is None
+            assert _gh_cli_token() is None
 
     def test_gh_returns_token_stripped(self) -> None:
-        """gh succeeds with a token — trailing newline is stripped."""
+        """Ensure gh succeeds with a token — trailing newline is stripped."""
         mock_result = subprocess.CompletedProcess(
             ["gh", "auth", "token"], returncode=0, stdout="ghs_mytoken\n", stderr=""
         )
         with patch("subprocess.run", return_value=mock_result):
-            assert _M._gh_cli_token() == "ghs_mytoken"
+            assert _gh_cli_token() == "ghs_mytoken"
 
 
 # ===========================================================================
@@ -210,29 +220,29 @@ class TestEdit:
         """Missing editor binary raises _Error with a descriptive message."""
         self._env(monkeypatch, "nonexistent-editor-xyz")
         with patch("subprocess.run", side_effect=FileNotFoundError):
-            with pytest.raises(_M._Error, match="Editor not found"):
-                _M._edit("subject\n\nbody")
+            with pytest.raises(_Error, match="Editor not found"):
+                _edit("subject\n\nbody")
 
     def test_editor_nonzero_exit_raises_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Non-zero editor exit raises _Error mentioning the status code."""
         self._env(monkeypatch)
         exc = subprocess.CalledProcessError(1, "vi")
         with patch("subprocess.run", side_effect=exc):
-            with pytest.raises(_M._Error, match="status 1"):
-                _M._edit("subject\n\nbody")
+            with pytest.raises(_Error, match="status 1"):
+                _edit("subject\n\nbody")
 
     def test_tempfile_cleaned_up_after_editor_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The temp file is removed even when the editor raises."""
         self._env(monkeypatch)
         recorded: list[Path] = []
 
-        def _fail(cmd: list[str], **kwargs: object) -> None:
+        def _fail(cmd: list[str], **_kwargs: object) -> None:
             recorded.append(Path(cmd[-1]))
             raise subprocess.CalledProcessError(130, cmd)
 
         with patch("subprocess.run", side_effect=_fail):
-            with pytest.raises(_M._Error):
-                _M._edit("msg")
+            with pytest.raises(_Error):
+                _edit("msg")
 
         assert recorded, "mock was never called"
         assert not recorded[0].exists(), "temp file was not cleaned up"
@@ -244,13 +254,13 @@ class TestEdit:
         self._env(monkeypatch, "no-such-editor")
         recorded: list[Path] = []
 
-        def _missing(cmd: list[str], **kwargs: object) -> None:
+        def _missing(cmd: list[str], **_kwargs: object) -> None:
             recorded.append(Path(cmd[-1]))
             raise FileNotFoundError
 
         with patch("subprocess.run", side_effect=_missing):
-            with pytest.raises(_M._Error):
-                _M._edit("msg")
+            with pytest.raises(_Error):
+                _edit("msg")
 
         assert recorded, "mock was never called"
         assert not recorded[0].exists(), "temp file was not cleaned up"
@@ -259,12 +269,12 @@ class TestEdit:
         """Lines starting with '#' are removed from the returned message."""
         self._env(monkeypatch)
 
-        def _save(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        def _save(cmd: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
             Path(cmd[-1]).write_text("subject\n\nbody line\n# a comment\n", encoding="utf-8")
             return subprocess.CompletedProcess(cmd, 0)
 
         with patch("subprocess.run", side_effect=_save):
-            result = _M._edit("original")
+            result = _edit("original")
 
         assert "# a comment" not in result
         assert "subject" in result
@@ -274,11 +284,11 @@ class TestEdit:
         """A file consisting entirely of comment lines returns an empty string."""
         self._env(monkeypatch)
 
-        def _all_comments(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        def _all_comments(cmd: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
             Path(cmd[-1]).write_text("# line 1\n# line 2\n", encoding="utf-8")
             return subprocess.CompletedProcess(cmd, 0)
 
         with patch("subprocess.run", side_effect=_all_comments):
-            result = _M._edit("original")
+            result = _edit("original")
 
         assert result == ""
