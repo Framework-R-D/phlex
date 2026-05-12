@@ -81,7 +81,7 @@ namespace phlex {
   {
   }
 
-  fixed_hierarchy::fixed_hierarchy(std::vector<std::vector<std::string>> layer_paths) :
+  fixed_hierarchy::fixed_hierarchy(std::vector<std::vector<std::string>> const& layer_paths) :
     layer_hashes_(std::from_range, build_hashes(layer_paths))
   {
   }

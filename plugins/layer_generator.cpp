@@ -29,7 +29,7 @@ namespace phlex::experimental {
                            std::ranges::to<std::vector<layer_path_t>>()};
   }
 
-  std::size_t layer_generator::emitted_cell_count(std::string layer_path) const
+  std::size_t layer_generator::emitted_cell_count(std::string const& layer_path) const
   {
     // Check if the count of all emitted cells is requested
     if (layer_path.empty()) {

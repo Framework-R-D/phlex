@@ -37,6 +37,7 @@ namespace phlex::experimental {
 
   public:
     registration_api(configuration const* config,
+                     // NOLINTNEXTLINE(performance-unnecessary-value-param) - moved
                      std::string name,
                      AlgorithmBits alg,
                      concurrency c,
@@ -119,7 +120,7 @@ namespace phlex::experimental {
   class provider_api {
   public:
     provider_api(configuration const* config,
-                 std::string name,
+                 std::string name, // NOLINT(performance-unnecessary-value-param) - moved
                  AlgorithmBits alg,
                  concurrency c,
                  tbb::flow::graph& g,
@@ -171,7 +172,7 @@ namespace phlex::experimental {
 
   public:
     fold_api(configuration const* config,
-             std::string name,
+             std::string name, // NOLINT(performance-unnecessary-value-param) - moved
              AlgorithmBits alg,
              concurrency c,
              tbb::flow::graph& g,
@@ -248,7 +249,7 @@ namespace phlex::experimental {
 
   public:
     unfold_api(configuration const* config,
-               std::string name,
+               std::string name, // NOLINT(performance-unnecessary-value-param) - moved
                Predicate predicate,
                Unfold unfold,
                concurrency c,

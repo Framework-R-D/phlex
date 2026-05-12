@@ -4,7 +4,7 @@
 namespace phlex::experimental {
   output_api::output_api(registrar<declared_output_ptr> reg,
                          configuration const* config,
-                         std::string name,
+                         std::string name, // NOLINT(performance-unnecessary-value-param) - moved
                          tbb::flow::graph& g,
                          detail::output_function_t&& f,
                          concurrency c) :
@@ -18,7 +18,8 @@ namespace phlex::experimental {
     if (config) {
       reg_.set_predicates(detail::maybe_predicates(config));
     }
-    reg_.set_creator([this](auto predicates, auto) {
+    reg_.set_creator([this](auto predicates,
+                            auto) { // NOLINT(performance-unnecessary-value-param) - dummy parameter
       return std::make_unique<declared_output>(
         std::move(name_), concurrency_.value, std::move(predicates), graph_, std::move(ft_));
     });

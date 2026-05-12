@@ -56,7 +56,7 @@ namespace phlex::experimental {
                   std::size_t concurrency,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
-                  product_query output) :
+                  product_query output) : // NOLINT(performance-unnecessary-value-param) - lifetime
       declared_provider{std::move(name), output},
       output_{algorithm_name::create(std::string_view(identifier(output.creator))),
               output.suffix.value_or(identifier("")),

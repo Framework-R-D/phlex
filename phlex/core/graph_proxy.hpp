@@ -120,7 +120,7 @@ namespace phlex::experimental {
                 std::shared_ptr<T> bound_obj,
                 std::vector<std::string>& errors)
       requires(not std::same_as<T, void_tag>)
-      : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{bound_obj}, errors_{errors}
+      : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{std::move(bound_obj)}, errors_{errors}
     {
     }
 

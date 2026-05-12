@@ -99,7 +99,7 @@ namespace phlex {
     template <typename U>
     friend class handle;
 
-    bool operator==(handle other) const noexcept
+    bool operator==(handle const& other) const noexcept
     {
       return product_ == other.product_ and id_ == other.id_;
     }

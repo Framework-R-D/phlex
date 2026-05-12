@@ -47,7 +47,7 @@ namespace phlex {
     fixed_hierarchy() = default;
     // Using an std::initializer_list removes one set of braces that the user must provide
     explicit fixed_hierarchy(std::initializer_list<std::vector<std::string>> layer_paths);
-    explicit fixed_hierarchy(std::vector<std::vector<std::string>> layer_paths);
+    explicit fixed_hierarchy(std::vector<std::vector<std::string>> const& layer_paths);
 
     void validate(data_cell_index_ptr const& index) const;
 

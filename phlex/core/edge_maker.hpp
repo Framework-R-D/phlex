@@ -24,8 +24,8 @@
 
 namespace phlex::experimental {
 
-  index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
-                                                           declared_providers& providers);
+  index_router::provider_input_ports_t make_provider_edges(
+    index_router::head_ports_t const& head_ports, declared_providers& providers);
 
   class PHLEX_CORE_EXPORT edge_maker {
   public:

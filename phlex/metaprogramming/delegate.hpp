@@ -10,12 +10,14 @@ namespace phlex::experimental {
   struct void_tag {};
 
   template <typename FT>
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) - overload signature matching
   auto delegate(std::shared_ptr<void_tag>, FT f) // Used for lambda closures
   {
     return std::function{f};
   }
 
   template <typename R, typename... Args>
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) - overload signature matching
   auto delegate(std::shared_ptr<void_tag>, R (*f)(Args...))
   {
     return std::function{f};
@@ -24,15 +26,17 @@ namespace phlex::experimental {
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...))
   {
-    return std::function{
-      [t = std::move(obj), f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
+    return std::function{[t = std::move(obj), f](Args... args) mutable -> R {
+      return ((*t).*f)(std::forward<Args>(args)...);
+    }};
   }
 
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...) const)
   {
-    return std::function{
-      [t = std::move(obj), f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
+    return std::function{[t = std::move(obj), f](Args... args) mutable -> R {
+      return ((*t).*f)(std::forward<Args>(args)...);
+    }};
   }
 
   template <typename Bound, typename Algorithm>

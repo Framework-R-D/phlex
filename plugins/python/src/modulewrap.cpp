@@ -659,7 +659,7 @@ namespace {
                         std::string const& output)
   {
     mod->ph_module->transform(name, converter, concurrency::serial)
-      .input_family(pq_in)
+      .input_family(std::move(pq_in))
       .output_product_suffixes(output);
   }
 

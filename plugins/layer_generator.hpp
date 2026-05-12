@@ -58,7 +58,7 @@ namespace phlex::experimental {
     void operator()(data_cell_cursor const& job);
 
     fixed_hierarchy hierarchy() const;
-    std::size_t emitted_cell_count(std::string layer_path = {}) const;
+    std::size_t emitted_cell_count(std::string const& layer_path = {}) const;
 
   private:
     void execute(data_cell_cursor const& cell);
