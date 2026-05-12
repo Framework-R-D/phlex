@@ -163,8 +163,8 @@ outstanding findings before enforcement is tightened.
 
 - ruff (configured in `pyproject.toml`): 99-char limit, double quotes
 - Google-style docstrings; type hints recommended (mypy configured)
-- Support Python >=3.9; use `from __future__ import annotations` to enable
-  Python >=3.10-style union-syntax type annotations
+- Use `from __future__ import annotations` to enable deferred evaluation of
+  type annotations (avoids forward-reference issues; Python >=3.12)
 - Test files: `test_*.py`; do NOT name files after stdlib modules (e.g. `types.py`)
 - PEP 8 naming; `CapWords` for classes, `snake_case` for everything else
 

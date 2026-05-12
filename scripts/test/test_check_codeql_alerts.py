@@ -1055,7 +1055,7 @@ class TestBuildMultiSectionComment:
         lines = body.splitlines()
         h2_indices = [i for i, ln in enumerate(lines) if ln.startswith("##")]
         assert len(h2_indices) >= 2
-        for a, b in zip(h2_indices, h2_indices[1:]):
+        for a, b in zip(h2_indices, h2_indices[1:], strict=False):
             assert b - a > 1, "H2 headings are directly adjacent (no blank line)"
 
     def test_code_scanning_link_present(self, monkeypatch: pytest.MonkeyPatch) -> None:
