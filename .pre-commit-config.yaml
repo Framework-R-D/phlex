@@ -29,6 +29,13 @@ repos:
         entry: python3 scripts/fix_header_guards.py
         language: system
         files: \.(h|hpp)$
+      - id: scripts-unit-tests
+        name: scripts/ unit tests
+        entry: python3 -m pytest scripts/test/ -v
+        language: system
+        files: ^scripts/
+        types_or: [python]
+        pass_filenames: false
   - repo: https://github.com/BlankSpruce/gersemi
     rev: 0.26.1
     hooks:

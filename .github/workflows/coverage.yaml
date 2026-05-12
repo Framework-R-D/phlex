@@ -67,6 +67,7 @@ jobs:
             cpp
             cmake
             python
+          exclude-globs: scripts/**
 
   coverage:
     needs: setup

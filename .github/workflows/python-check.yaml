@@ -139,6 +139,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -152,8 +154,24 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
-      - name: Run scripts unit tests
+      - name: Run scripts unit tests with coverage
         working-directory: ${{ needs.setup.outputs.checkout_path }}
         run: |
-          echo "➡️ Running scripts/ unit tests with pytest..."
-          uv run --with pytest --with PyYAML pytest scripts/test/ -v
+          echo "➡️ Running scripts/ unit tests with coverage..."
+          uv run --with pytest --with PyYAML --with pytest-cov \
+            pytest scripts/test/ -v \
+            --cov=scripts \
+            --cov-report="xml:${GITHUB_WORKSPACE}/coverage-scripts.xml" \
+            --cov-report=term-missing
+
+      - name: Upload scripts coverage to Codecov
+        if: ${{ hashFiles('coverage-scripts.xml') != '' }}
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        with:
+          files: coverage-scripts.xml
+          flags: scripts
+          name: phlex-scripts-coverage
+          fail_ci_if_error: false
+          verbose: true
+          root_dir: ${{ needs.setup.outputs.checkout_path || '.' }}
+          token: ${{ env.CODECOV_TOKEN }}
