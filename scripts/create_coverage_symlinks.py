@@ -6,12 +6,14 @@ CMake-driven coverage targets can prepare the mapping without relying on the
 shell script.
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import pathlib
 import shutil
 import sys
-from typing import Iterable
+from collections.abc import Iterable
 
 SUPPORTED_SUFFIXES = {
     ".c",

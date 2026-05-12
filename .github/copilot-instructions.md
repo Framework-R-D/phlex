@@ -256,6 +256,8 @@ If a feature (e.g., lock guards) is conspicuously missing, add a comment explain
 - Follow Google-style docstring conventions
 - Line length: 99 characters
 - Use double quotes for strings
+- Support Python >=3.9; use `from __future__ import annotations` to enable
+  Python >=3.10-style union-syntax type annotations
 - Type hints recommended (mypy configured in `pyproject.toml`)
 
 ### CMake Files

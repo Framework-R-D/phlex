@@ -1,5 +1,7 @@
 """A simple tool to print SARIF results from one or more SARIF files or directories."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import sys

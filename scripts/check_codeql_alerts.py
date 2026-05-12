@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Summarize CodeQL SARIF results for newly introduced or resolved alerts."""
 
+from __future__ import annotations
+
 import argparse
 import collections.abc
 import json

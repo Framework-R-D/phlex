@@ -69,8 +69,9 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Iterator, List, Optional
+from typing import Any
 
 API_ROOT = "https://api.github.com"
 API_VERSION = "2022-11-28"
@@ -101,8 +102,8 @@ def _request(
     method: str,
     path: str,
     *,
-    params: Optional[dict] = None,
-    payload: Optional[dict] = None,
+    params: dict | None = None,
+    payload: dict | None = None,
 ) -> Any:
     """Make an authenticated request to the GitHub REST API.
 
@@ -124,7 +125,7 @@ def _request(
     if params:
         url = f"{url}?{urllib.parse.urlencode(params)}"
 
-    data: Optional[bytes] = None
+    data: bytes | None = None
     headers = {
         "Authorization": f"Bearer {_token()}",
         "Accept": "application/vnd.github+json",
@@ -192,7 +193,7 @@ class Alert:
     rule_id: str
     """The CodeQL rule/query that generated this alert (e.g. ``py/sql-injection``)."""
 
-    dismissed_reason: Optional[str]
+    dismissed_reason: str | None
     """The reason it was dismissed, or ``None`` if not recorded."""
 
 
@@ -249,7 +250,7 @@ def reopen_alert(owner: str, repo: str, alert: Alert, *, dry_run: bool) -> None:
     print(f"Reopened alert #{alert.number} ({alert.rule_id})")
 
 
-def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments.
 
     Args:
@@ -301,7 +302,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Entry point: list dismissed alerts and reopen them.
 
     Args:
