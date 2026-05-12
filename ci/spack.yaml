@@ -6,8 +6,7 @@
 
 spack:
   specs:
-    - >-
-      phlex ^intel-oneapi-tbb@2023.0.0:
+    - phlex
     - catch2
     - cmake
     - lcov
@@ -34,9 +33,6 @@ spack:
         - type: buildcache
 
   packages:
-    all:
-      providers:
-        "tbb:": [intel-oneapi-tbb]
     cmake:
       require:
         - "~qtgui"
@@ -51,7 +47,7 @@ spack:
         - "+form"
         - "cxxstd=23"
         - "%cxx=gcc@15"
-        - "^tbb@2023.0.0:"
+        - "^intel-tbb@2023.0.0:"
 
     py-cython:
       require:

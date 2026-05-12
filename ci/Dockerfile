@@ -190,6 +190,22 @@ spack buildcache keys -it
 SPACK_CONFIGURE_MIRRORS
 
 ########################################################################
+# Ensure intel-tbb@2023.0.0 has a checksum in the Spack recipe
+
+RUN <<'ENSURE_INTEL_TBB_CHECKSUM'
+set -euo pipefail
+
+# intel-tbb@2023.0.0 may not be present in the spack-packages recipe that
+# was cloned above.  If spack versions -n lists it as "new" (not checksummed), fetch the archive
+# and add its checksum to the package file so that Spack can install it.
+. /spack/share/spack/setup-env.sh
+
+if spack versions -n intel-tbb | grep -Fwq '2023.0.0'; then
+  EDITOR=true spack checksum -ab intel-tbb 2023.0.0
+fi
+ENSURE_INTEL_TBB_CHECKSUM
+
+########################################################################
 # Use Spack to install the GCC we want to use
 
 RUN <<'SPACK_INSTALL_GCC'
@@ -366,21 +382,6 @@ spack --timestamp install --fail-fast -j $(nproc) -p 1 \
 
 spack clean -dfs
 SPACK_INSTALL_PHLEX_DEPENDENCIES
-
-########################################################################
-# Work around intel-oneapi-tbb's non-standard CMake config layout
-
-RUN <<'FIX_TBB_CMAKE_PATH'
-set -euo pipefail
-
-# intel-oneapi-tbb installs its CMake config files under
-# <prefix>/tbb/latest/lib/cmake/tbb/ rather than the standard
-# <prefix>/lib/cmake/tbb/.  CMake's find_package(TBB) searches
-# <prefix>/lib/<name>/ as a fallback, so a symlink at lib/tbb pointing
-# into the actual cmake directory is sufficient.
-VIEW="${PHLEX_SPACK_ENV}/.spack-env/view"
-ln -sfT "../tbb/latest/lib/cmake/tbb" "${VIEW}/lib/tbb"
-FIX_TBB_CMAKE_PATH
 
 ########################################################################
 # Publish buildcache artifacts if a cache volume is mounted
