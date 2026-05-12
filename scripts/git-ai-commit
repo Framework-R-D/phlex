@@ -206,13 +206,17 @@ def _read_dir_md(path: Path) -> str:
         return ""
     parts: list[str] = []
     try:
-        for item in sorted(path.glob("*.md")):
-            if item.is_file():
-                content = item.read_text().strip()
-                if content:
-                    parts.append(f"#### {item.name}\n\n{content}")
+        items = sorted(path.glob("*.md"))
     except OSError:
-        pass
+        return ""  # directory listing failed; nothing to include
+    for item in items:
+        if item.is_file():
+            try:
+                content = item.read_text().strip()
+            except OSError:
+                continue  # file disappeared or is unreadable; skip it
+            if content:
+                parts.append(f"#### {item.name}\n\n{content}")
     return "\n\n".join(parts)
 
 
@@ -291,7 +295,7 @@ def _get_instructions(root: Path) -> str:
                 if content:
                     instructions.append(f"### User-level instructions ({path})\n\n{content}")
             except OSError:
-                pass
+                continue  # file unreadable; skip to next candidate
 
     for path in repo_files:
         if path.is_file():
@@ -300,7 +304,7 @@ def _get_instructions(root: Path) -> str:
                 if content:
                     instructions.append(f"### Repository instructions ({path.name})\n\n{content}")
             except OSError:
-                pass
+                continue  # file unreadable; skip to next candidate
 
     for path in repo_dirs:
         if path.is_dir():
@@ -314,12 +318,11 @@ def _get_instructions(root: Path) -> str:
             full_path = Path(os.path.expanduser(template_path))
             if not full_path.is_absolute():
                 full_path = root / full_path
-            if full_path.is_file():
-                content = full_path.read_text().strip()
-                if content:
-                    instructions.append(f"### Git commit template ({template_path})\n\n{content}")
+            content = full_path.read_text().strip() if full_path.is_file() else ""
         except OSError:
-            pass
+            content = ""  # commit template unreadable; skip it
+        if content:
+            instructions.append(f"### Git commit template ({template_path})\n\n{content}")
 
     return "\n\n".join(instructions)
 
@@ -339,10 +342,17 @@ def _kilo_auth_token() -> str | None:
         return None
     try:
         data = json.loads(_KILO_AUTH_JSON.read_text())
-        key = data.get(_DEFAULT_KILO_PROVIDER, {}).get("key", "").strip()
-        return key or None
-    except (OSError, json.JSONDecodeError, AttributeError):
+    except (OSError, json.JSONDecodeError):
         return None
+    if not isinstance(data, dict):
+        return None
+    provider = data.get(_DEFAULT_KILO_PROVIDER)
+    if not isinstance(provider, dict):
+        return None
+    key = provider.get("key", "")
+    if not isinstance(key, str):
+        return None
+    return key.strip() or None
 
 
 def _gh_config_token() -> str | None:
@@ -369,7 +379,7 @@ def _gh_cli_token() -> str | None:
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.strip()
     except FileNotFoundError:
-        pass
+        return None  # gh is not installed; no token available
     return None
 
 
@@ -527,7 +537,12 @@ def _edit(text: str) -> str:
         )
         tmp = Path(fh.name)
     try:
-        subprocess.run([editor, str(tmp)], check=True)
+        try:
+            subprocess.run([editor, str(tmp)], check=True)
+        except FileNotFoundError:
+            raise _Error(f"Editor not found: {editor!r}. Set $EDITOR or $VISUAL.") from None
+        except subprocess.CalledProcessError as exc:
+            raise _Error(f"Editor exited with status {exc.returncode}.") from exc
         lines = tmp.read_text().splitlines()
         return "\n".join(line for line in lines if not line.startswith("#")).strip()
     finally:
@@ -709,7 +724,11 @@ def main() -> None:
         return
 
     if args.edit:
-        message = _edit(message)
+        try:
+            message = _edit(message)
+        except _Error as exc:
+            print(f"git-ai-commit: {exc}", file=sys.stderr)
+            sys.exit(1)
         if not message.strip():
             print("Empty message — aborting.", file=sys.stderr)
             sys.exit(0)
