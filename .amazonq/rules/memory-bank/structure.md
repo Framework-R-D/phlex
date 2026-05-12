@@ -13,7 +13,7 @@ The main framework implementation containing the execution engine and core abstr
   - `version.cpp.in/hpp`: Version information
 
 - **`core/`**: Core framework abstractions and execution engine
-  - Algorithm declarations: `declared_provider.cpp/hpp`, `declared_transform.cpp/hpp`, `declared_observer.cpp/hpp`, `declared_fold.cpp/hpp`, `declared_unfold.cpp/hpp`, `declared_predicate.cpp/hpp`, `declared_output.cpp/hpp`
+  - Algorithm declarations: `provider_node.cpp/hpp`, `declared_transform.cpp/hpp`, `declared_observer.cpp/hpp`, `declared_fold.cpp/hpp`, `declared_unfold.cpp/hpp`, `declared_predicate.cpp/hpp`, `declared_output.cpp/hpp`
   - Graph execution: `framework_graph.cpp/hpp`, `edge_maker.cpp/hpp`, `edge_creation_policy.cpp/hpp`
   - Data flow: `message.cpp/hpp`, `message_sender.cpp/hpp`, `consumer.cpp/hpp`
   - Product management: `product_query.cpp/hpp`, `products_consumer.cpp/hpp`

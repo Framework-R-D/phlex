@@ -130,21 +130,23 @@ namespace phlex::experimental {
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
-      registrar_{nodes.registrar_for<declared_provider_ptr>(errors)}
+      registrar_{nodes.registrar_for<provider_node_ptr>(errors)}
     {
     }
 
     auto output_product(product_query output)
     {
       using return_type = return_type<typename AlgorithmBits::algorithm_type>;
-      using provider_type = provider_node<AlgorithmBits>;
-
       output.type = make_type_id<return_type>();
 
-      registrar_.set_creator([this, output = std::move(output)](
+      auto type_erased_alg = [alg = alg_.release_algorithm()](data_cell_index const& index) {
+        return product_for(std::invoke(alg, index));
+      };
+
+      registrar_.set_creator([this, alg = std::move(type_erased_alg), output = std::move(output)](
                                auto /* predicates */, auto /* output_product_suffixes */) {
-        return std::make_unique<provider_type>(
-          std::move(name_), concurrency_.value, graph_, std::move(alg_), std::move(output));
+        return std::make_unique<provider_node>(
+          std::move(name_), concurrency_.value, graph_, std::move(alg), std::move(output));
       });
     }
 
@@ -155,7 +157,7 @@ namespace phlex::experimental {
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    registrar<declared_provider_ptr> registrar_;
+    registrar<provider_node_ptr> registrar_;
   };
 
   // ====================================================================================
