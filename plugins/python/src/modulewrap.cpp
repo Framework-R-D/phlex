@@ -134,7 +134,6 @@ namespace {
       }
       return *this;
     }
-    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     ~py_callback()
     {
       // TODO: cleanup deferred to Phlex shutdown hook
