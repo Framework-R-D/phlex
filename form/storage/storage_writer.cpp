@@ -27,11 +27,10 @@ void StorageWriter::createContainers(
     auto cont = m_write_containers.find(key);
     if (cont == m_write_containers.end()) {
       // Ensure the file exists
-      auto file = m_files.find(plcmnt->fileName());
-      if (file == m_files.end()) {
-        m_files.insert(
-          {plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')});
-        file = m_files.find(plcmnt->fileName());
+      auto [file, inserted] = m_files.try_emplace(
+          plcmnt->fileName(),
+          createFile(plcmnt->technology(), plcmnt->fileName(), 'o'));
+      if (inserted) {
         for (auto const& [key, value] :
              settings.getFileTable(plcmnt->technology(), plcmnt->fileName()))
           file->second->setAttribute(key, value);

@@ -24,20 +24,21 @@ int StorageReader::getIndex(Token const& token,
     auto key = std::make_pair(token.fileName(), token.containerName());
     auto cont = m_read_containers.find(key);
     if (cont == m_read_containers.end()) {
-      auto file = m_files.find(token.fileName());
-      if (file == m_files.end()) {
-        m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
-        file = m_files.find(token.fileName());
+      auto [file, inserted] = m_files.try_emplace(
+          token.fileName(), createFile(token.technology(), token.fileName(), 'i'));
+      if (inserted) {
         for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
           file->second->setAttribute(key, value);
       }
-      m_read_containers.insert(
-        {key, createReadContainer(token.technology(), token.containerName())});
-      cont = m_read_containers.find(key);
-      for (auto const& [key, value] :
-           settings.getContainerTable(token.technology(), token.containerName()))
-        cont->second->setAttribute(key, value);
-      cont->second->setFile(file->second);
+      auto [cont_it, cont_inserted] = m_read_containers.try_emplace(
+          key, createReadContainer(token.technology(), token.containerName()));
+      if (cont_inserted) {
+        for (auto const& [key, value] :
+             settings.getContainerTable(token.technology(), token.containerName()))
+          cont_it->second->setAttribute(key, value);
+        cont_it->second->setFile(file->second);
+      }
+      cont = cont_it;
     }
     auto const& type = typeid(std::string);
     int entry = 1;
@@ -60,19 +61,21 @@ void StorageReader::readContainer(Token const& token,
   auto key = std::make_pair(token.fileName(), token.containerName());
   auto cont = m_read_containers.find(key);
   if (cont == m_read_containers.end()) {
-    auto file = m_files.find(token.fileName());
-    if (file == m_files.end()) {
-      m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
-      file = m_files.find(token.fileName());
+    auto [file, inserted] = m_files.try_emplace(
+        token.fileName(), createFile(token.technology(), token.fileName(), 'i'));
+    if (inserted) {
       for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
         file->second->setAttribute(key, value);
     }
-    m_read_containers.insert({key, createReadContainer(token.technology(), token.containerName())});
-    cont = m_read_containers.find(key);
-    cont->second->setFile(file->second);
-    for (auto const& [key, value] :
-         settings.getContainerTable(token.technology(), token.containerName()))
-      cont->second->setAttribute(key, value);
+    auto [cont_it, cont_inserted] = m_read_containers.try_emplace(
+        key, createReadContainer(token.technology(), token.containerName()));
+    if (cont_inserted) {
+      cont_it->second->setFile(file->second);
+      for (auto const& [key, value] :
+           settings.getContainerTable(token.technology(), token.containerName()))
+        cont_it->second->setAttribute(key, value);
+    }
+    cont = cont_it;
   }
   cont->second->read(token.id(), data, type);
   return;
