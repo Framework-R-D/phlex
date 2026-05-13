@@ -31,8 +31,14 @@ namespace phlex::experimental {
     // class template.
     explicit product(T&& prod) : obj{std::move(prod)} {}
 
+    // The following two final overrides of virtual member functions are not
+    // instantiated unless they are needed in some compilers (e.g. GCC and Clang), so unless
+    // tested explicitly, compilation errors may hide until exposed by user code.
+    // NOLINTBEGIN(portability-template-virtual-member-function)
     void const* address() const final { return &obj; }
     std::type_info const& type() const final { return typeid(T); }
+    // NOLINTEND(portability-template-virtual-member-function)
+
     std::remove_cvref_t<T> obj;
   };
 
