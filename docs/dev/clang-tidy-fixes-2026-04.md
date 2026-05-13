@@ -110,8 +110,6 @@
   - [PR #563](https://github.com/Framework-R-D/phlex/pull/563)
 - [x] [performance-enum-size](https://clang.llvm.org/extra/clang-tidy/checks/performance/enum-size.html) (2)
   - [PR #583](https://github.com/Framework-R-D/phlex/pull/583)
-- [ ] [performance-faster-string-find](https://clang.llvm.org/extra/clang-tidy/checks/performance/faster-string-find.html) (4)
-- [ ] [performance-enum-size](https://clang.llvm.org/extra/clang-tidy/checks/performance/enum-size.html) (2)
 - [x] [performance-faster-string-find](https://clang.llvm.org/extra/clang-tidy/checks/performance/faster-string-find.html) (4)
   - [PR #584](https://github.com/Framework-R-D/phlex/pull/584)
 - [ ] [performance-inefficient-string-concatenation](https://clang.llvm.org/extra/clang-tidy/checks/performance/inefficient-string-concatenation.html) (2)
