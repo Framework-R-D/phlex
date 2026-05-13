@@ -25,13 +25,13 @@ int StorageReader::getIndex(Token const& token,
     auto cont = m_read_containers.find(key);
     if (cont == m_read_containers.end()) {
       auto [file, inserted] = m_files.try_emplace(
-          token.fileName(), createFile(token.technology(), token.fileName(), 'i'));
+        token.fileName(), createFile(token.technology(), token.fileName(), 'i'));
       if (inserted) {
         for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
           file->second->setAttribute(key, value);
       }
       auto [cont_it, cont_inserted] = m_read_containers.try_emplace(
-          key, createReadContainer(token.technology(), token.containerName()));
+        key, createReadContainer(token.technology(), token.containerName()));
       if (cont_inserted) {
         for (auto const& [key, value] :
              settings.getContainerTable(token.technology(), token.containerName()))
@@ -61,14 +61,14 @@ void StorageReader::readContainer(Token const& token,
   auto key = std::make_pair(token.fileName(), token.containerName());
   auto cont = m_read_containers.find(key);
   if (cont == m_read_containers.end()) {
-    auto [file, inserted] = m_files.try_emplace(
-        token.fileName(), createFile(token.technology(), token.fileName(), 'i'));
+    auto [file, inserted] =
+      m_files.try_emplace(token.fileName(), createFile(token.technology(), token.fileName(), 'i'));
     if (inserted) {
       for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
         file->second->setAttribute(key, value);
     }
     auto [cont_it, cont_inserted] = m_read_containers.try_emplace(
-        key, createReadContainer(token.technology(), token.containerName()));
+      key, createReadContainer(token.technology(), token.containerName()));
     if (cont_inserted) {
       cont_it->second->setFile(file->second);
       for (auto const& [key, value] :

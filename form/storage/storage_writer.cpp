@@ -28,8 +28,7 @@ void StorageWriter::createContainers(
     if (cont == m_write_containers.end()) {
       // Ensure the file exists
       auto [file, inserted] = m_files.try_emplace(
-          plcmnt->fileName(),
-          createFile(plcmnt->technology(), plcmnt->fileName(), 'o'));
+        plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o'));
       if (inserted) {
         for (auto const& [key, value] :
              settings.getFileTable(plcmnt->technology(), plcmnt->fileName()))
