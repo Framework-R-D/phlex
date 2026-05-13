@@ -105,12 +105,12 @@ namespace phlex::experimental {
 
     void finalize(tbb::flow::graph& g,
                   provider_input_ports_t provider_input_ports,
-                  std::map<std::string, named_index_ports> multilayers);
+                  std::map<std::string, named_index_ports> const& multilayers);
     void drain();
     flusher_t& flusher() { return flusher_; }
 
   private:
-    void backout_to(data_cell_index_ptr store);
+    void backout_to(data_cell_index_ptr const& store);
     void send_to_provider_index_nodes(data_cell_index_ptr const& index, std::size_t message_id);
     detail::multilayer_slots const& send_to_multilayer_join_nodes(data_cell_index_ptr const& index,
                                                                   std::size_t message_id);

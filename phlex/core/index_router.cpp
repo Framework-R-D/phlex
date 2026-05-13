@@ -44,7 +44,7 @@ namespace phlex::experimental {
     counters_{counters},
     flusher_{flusher},
     slots_{slots_for_layer},
-    index_{index},
+    index_{std::move(index)},
     message_id_{message_id}
   {
     // FIXME: Only for folds right now
@@ -128,7 +128,7 @@ namespace phlex::experimental {
 
   void index_router::finalize(tbb::flow::graph& g,
                               provider_input_ports_t provider_input_ports,
-                              std::map<std::string, named_index_ports> multilayers)
+                              std::map<std::string, named_index_ports> const& multilayers)
   {
     // We must have at least one provider port, or there can be no data to process.
     assert(!provider_input_ports.empty());
@@ -168,7 +168,7 @@ namespace phlex::experimental {
     return index;
   }
 
-  void index_router::backout_to(data_cell_index_ptr const index)
+  void index_router::backout_to(data_cell_index_ptr const& index)
   {
     assert(index);
     auto const new_depth = index->depth();

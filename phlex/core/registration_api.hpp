@@ -58,15 +58,18 @@ namespace phlex::experimental {
       populate_types<input_parameter_types>(input_args);
 
       if constexpr (num_outputs == 0ull) {
-        registrar_.set_creator([this, inputs = std::move(input_args)](
-                                 auto predicates, auto /* output_product_suffixes */) {
-          return std::make_unique<hof_type>(std::move(name_),
-                                            concurrency_.value,
-                                            std::move(predicates),
-                                            graph_,
-                                            std::move(alg_),
-                                            std::vector(inputs.begin(), inputs.end()));
-        });
+        registrar_.set_creator(
+          [this, inputs = std::move(input_args)](
+            auto predicates,
+            // NOLINTNEXTLINE(performance-unnecessary-value-param) - not used for 0 outputs
+            auto /* output_product_suffixes */) {
+            return std::make_unique<hof_type>(std::move(name_),
+                                              concurrency_.value,
+                                              std::move(predicates),
+                                              graph_,
+                                              std::move(alg_),
+                                              std::vector(inputs.begin(), inputs.end()));
+          });
       } else {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
@@ -142,11 +145,16 @@ namespace phlex::experimental {
 
       output.type = make_type_id<return_type>();
 
-      registrar_.set_creator([this, output = std::move(output)](
-                               auto /* predicates */, auto /* output_product_suffixes */) {
-        return std::make_unique<provider_type>(
-          std::move(name_), concurrency_.value, graph_, std::move(alg_), std::move(output));
-      });
+      auto creator =
+        [this, output = std::move(output)](
+          // NOLINTNEXTLINE(performance-unnecessary-value-param) - not used for providers
+          auto /* predicates */,
+          // NOLINTNEXTLINE(performance-unnecessary-value-param) - not used for providers
+          auto /* output_product_suffixes */) {
+          return std::make_unique<provider_type>(
+            std::move(name_), concurrency_.value, graph_, std::move(alg_), std::move(output));
+        };
+      registrar_.set_creator(std::move(creator));
     }
 
   private:
