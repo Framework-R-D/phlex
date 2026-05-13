@@ -97,9 +97,9 @@ TEST_CASE("Splitting the processing", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "max_number"});
+    .output_product("input", "max_number", "event");
   g.provide("provide_ten_numbers", provide_ten_numbers, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "ten_numbers"});
+    .output_product("input", "ten_numbers", "event");
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
@@ -136,4 +136,52 @@ TEST_CASE("Splitting the processing", "[graph]")
   CHECK(g.execution_count("iterate_through") == index_limit);
   CHECK(g.execution_count("add_numbers") == 20);
   CHECK(g.execution_count("check_sum_same") == index_limit);
+}
+
+// =======================================================================================
+// This test exercises a multi-layer transform whose two inputs come from different data
+// layers: one from the unfolded (child) layer and one from the parent (event) layer.
+//
+/*     Index Router                                                                     */
+/*          |                                                                           */
+/*     provide_max_number (event layer)                                                 */
+/*          |      \                                                                    */
+/*     unfold/iota (creates "subevent" children)                                        */
+/*          |        \                                                                  */
+/*          |         \                                                                 */
+/*   (subevent)        (event, repeated)                                                */
+/*    new_number        max_number                                                      */
+/*          \          /                                                                */
+/*      multi-layer transform: max_number + new_number                                  */
+// =======================================================================================
+TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
+{
+  constexpr auto index_limit = 2u;
+
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", index_limit});
+
+  experimental::framework_graph g{driver_for_test(gen)};
+
+  g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
+    .output_product("input", "max_number", "event");
+
+  g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "subevent")
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+    .output_product_suffixes("new_number");
+
+  g.transform(
+     "add_max_and_new",
+     [](unsigned int i, unsigned int j) { return i + j; },
+     concurrency::unlimited)
+    .input_family(product_query{.creator = "iota", .layer = "subevent", .suffix = "new_number"},
+                  product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+    .output_product_suffixes("result");
+
+  g.execute();
+
+  // event 0: max_number=10, new_number in [0,9]  -> 10 executions
+  // event 1: max_number=20, new_number in [0,19] -> 20 executions
+  CHECK(g.execution_count("iota") == index_limit);
+  CHECK(g.execution_count("add_max_and_new") == 30u);
 }

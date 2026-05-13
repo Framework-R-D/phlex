@@ -3,13 +3,13 @@
 #ifndef TEST_FORM_TEST_UTILS_HPP
 #define TEST_FORM_TEST_UTILS_HPP
 
+#include "root_storage/demangle_name.hpp"
 #include "storage/istorage.hpp"
 #include "storage/storage_associative_write_container.hpp"
 #include "storage/storage_read_container.hpp"
 #include "util/factories.hpp"
 
-#include "TClass.h"
-
+#include <cstring>
 #include <iostream>
 #include <memory>
 
@@ -23,13 +23,17 @@ namespace form::test {
   template <class PROD>
   inline std::string getTypeName()
   {
-    return TClass::GetClass<PROD>()->GetName();
+    return DemangleName(typeid(PROD));
   }
 
   template <class PROD>
   inline std::string makeTestBranchName()
   {
-    return std::string(testTreeName) + "/" + getTypeName<PROD>();
+    auto branchName = std::string(testTreeName) + "/" + getTypeName<PROD>();
+    for (size_t firstSpace = branchName.find_first_of(' '); firstSpace != std::string::npos;
+         firstSpace = branchName.find_first_of(' '))
+      branchName = branchName.erase(firstSpace, 1);
+    return branchName;
   }
 
   inline std::vector<std::shared_ptr<IStorage_Write_Container>> doWrite(
@@ -98,21 +102,19 @@ namespace form::test {
     return std::make_tuple(doRead<PRODS>(file, technology)...);
   }
 
-  inline int getTechnology(int const argc, char const** argv)
+  inline int getTechnology(std::string const& tech_string)
   {
-    if (argc > 2 || (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")))) {
-      std::cerr << "Expected exactly one argument, but got " << argc - 1 << "\n"
-                << "USAGE: testSchemaWriteOldProduct <technologyInt>\n";
-      return -1;
+    std::unordered_map<std::string_view, int> const tech_lookup = {
+      {"ROOT_TTREE", form::technology::ROOT_TTREE},
+      {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
+      {"HDF5", form::technology::HDF5}};
+
+    auto const it = tech_lookup.find(tech_string);
+    if (it == tech_lookup.end()) {
+      throw std::runtime_error("Unknown technology: " + tech_string);
     }
 
-    //Default to TTree with TFile
-    int technology = form::technology::ROOT_TTREE;
-
-    if (argc == 2)
-      technology = std::stoi(argv[1]);
-
-    return technology;
+    return it->second;
   }
 
 } // namespace form::test

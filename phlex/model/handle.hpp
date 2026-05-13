@@ -82,9 +82,10 @@ namespace phlex {
 
     const_pointer operator->() const noexcept { return product_; }
     [[nodiscard]] const_reference operator*() const noexcept { return *operator->(); }
+    // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     operator const_reference() const noexcept { return operator*(); }
     operator const_pointer() const noexcept { return operator->(); }
-
+    // NOLINTEND(google-explicit-constructor)
     auto const& data_cell_index() const noexcept { return *id_; }
 
     // Product specification information

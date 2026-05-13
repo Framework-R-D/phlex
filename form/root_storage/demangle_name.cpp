@@ -7,9 +7,10 @@
 namespace {
   class char_string_holder {
   public:
-    char_string_holder(char* cstr) : m_cstr(cstr, std::free) {}
-    operator char const*() const { return m_cstr.get(); }
-
+    explicit char_string_holder(char* cstr) : m_cstr(cstr, std::free) {}
+    // Implicit conversion from char* to allow direct return of
+    // the result of TClassEdit::DemangleTypeIdName.
+    operator char const*() const { return m_cstr.get(); } // NOLINT(google-explicit-constructor)
   private:
     std::unique_ptr<char, decltype(&std::free)> m_cstr;
   };

@@ -11,9 +11,7 @@ using namespace form::test;
 
 int main(int const argc, char const** argv)
 try {
-  int const technology = getTechnology(argc, argv);
-  if (technology < 0)
-    return 1;
+  int const technology = getTechnology((argc > 1) ? argv[1] : "ROOT_TTREE");
 
   auto const& [prods] = read<std::vector<TrackStart>>(technology);
   std::ofstream outFile("form_root_schema_read_log.txt");

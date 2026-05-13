@@ -4,7 +4,9 @@ cet_make_library(
   SHARED
   SOURCE
   algorithm_name.cpp
-  data_cell_counter.cpp
+  data_cell_counts.cpp
+  data_cell_tracker.cpp
+  flush_gate.cpp
   fixed_hierarchy.cpp
   data_layer_hierarchy.cpp
   data_cell_index.cpp
@@ -27,9 +29,12 @@ install(
   FILES
     algorithm_name.hpp
     fixed_hierarchy.hpp
+    flush_messages.hpp
     fwd.hpp
     handle.hpp
-    data_cell_counter.hpp
+    data_cell_counts.hpp
+    data_cell_tracker.hpp
+    flush_gate.hpp
     data_layer_hierarchy.hpp
     data_cell_index.hpp
     identifier.hpp

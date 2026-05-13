@@ -20,7 +20,7 @@ try {
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
+    .output_product("input", "number", "event");
   g.transform("pass_on", pass_on, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
     .output_product_suffixes("different");

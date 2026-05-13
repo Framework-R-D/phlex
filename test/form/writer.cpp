@@ -4,6 +4,7 @@
 #include "form/form_writer.hpp"
 #include "form/technology.hpp"
 #include "test_helpers.hpp"
+#include "test_utils.hpp"
 #include "toy_tracker.hpp"
 
 #include <cstdlib>
@@ -12,6 +13,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <ranges>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
@@ -43,19 +45,19 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
+  int const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
 
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::ItemConfig config_items;
-  config_items.addItem("trackStart", filename, form::technology::ROOT_TTREE);
-  config_items.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
-  config_items.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
-  config_items.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackStart", filename, technology);
+  config_items.addItem("trackNumberHits", filename, technology);
+  config_items.addItem("trackStartPoints", filename, technology);
+  config_items.addItem("trackStartX", filename, technology);
 
   form::experimental::config::tech_setting_config tech_config;
   tech_config.container_settings[form::technology::ROOT_TTREE]["trackStart"].emplace_back(
     "auto_flush", "1");
-  tech_config.file_settings[form::technology::ROOT_TTREE]["toy.root"].emplace_back("compression",
-                                                                                   "kZSTD");
+  tech_config.file_settings[technology]["toy.root"].emplace_back("compression", "kZSTD");
   tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"]
     .emplace_back("force_streamer_field", "true");
 
@@ -94,10 +96,7 @@ int main(int argc, char** argv)
         "trackStart", &track_start_x, &typeid(std::vector<float>)};
       products.push_back(pb);
 
-      std::vector<int> track_n_hits;
-      for (int i = 0; i < 100; ++i) {
-        track_n_hits.push_back(i);
-      }
+      std::vector<int> track_n_hits(std::from_range, std::views::iota(0, 100));
       for (int val : track_n_hits)
         check += static_cast<float>(val);
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text

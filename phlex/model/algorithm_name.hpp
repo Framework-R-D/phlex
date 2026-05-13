@@ -5,16 +5,20 @@
 
 #include "phlex/model/identifier.hpp"
 
+#include <cstdint>
+
 namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT algorithm_name {
-    enum class specified_fields { neither, either, both };
+    enum class specified_fields : std::uint8_t { neither, either, both };
 
   public:
     algorithm_name();
 
+    // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     algorithm_name(char const* spec);
     algorithm_name(std::string const& spec);
     algorithm_name(std::string_view spec);
+    // NOLINTEND(google-explicit-constructor)
     algorithm_name(identifier plugin,
                    identifier algorithm,
                    specified_fields fields = specified_fields::both);

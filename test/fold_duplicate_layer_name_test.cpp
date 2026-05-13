@@ -48,7 +48,7 @@ namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 }
 
-TEST_CASE("Different hierarchies used with fold", "[graph]")
+TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
 {
   // job -> run -> event layers
   constexpr auto index_limit = 2u;
@@ -66,7 +66,7 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
+    .output_product("input", "number", "event");
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})

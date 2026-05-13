@@ -30,6 +30,7 @@ namespace phlex {
       }
       template <typename U>
         requires std::constructible_from<T, U>
+      // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       required_creator_name(U&& rhs) : // NOLINT(cppcoreguidelines-missing-std-forward)
         content_(std::forward_like<T>(rhs))
       {
@@ -38,6 +39,7 @@ namespace phlex {
         }
       }
 
+      // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       operator T const&() const noexcept { return content_; }
 
     private:
@@ -54,6 +56,7 @@ namespace phlex {
       }
       template <typename U>
         requires std::constructible_from<T, U>
+      // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       required_layer_name(U&& rhs) : // NOLINT(cppcoreguidelines-missing-std-forward)
         content_(std::forward_like<T>(rhs))
       {
@@ -62,6 +65,7 @@ namespace phlex {
         }
       }
 
+      // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       operator T const&() const noexcept { return content_; }
 
     private:
@@ -81,6 +85,11 @@ namespace phlex {
 
     // Check if a product_specification satisfies this query
     bool match(experimental::product_specification const& spec) const;
+
+    // Check if a product_specification, layer, and stage together satisfies this query
+    bool match(experimental::product_specification const& spec,
+               experimental::identifier const& layer,
+               experimental::identifier const& stage) const;
 
     std::string to_string() const;
 

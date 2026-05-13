@@ -84,14 +84,15 @@ PHLEX_REGISTER_PROVIDERS(s, config)
 
   // --- Register providers dynamically from config ---
   // FIXME: Prototype 0.1 -- types hardcoded as int.
+  // FIXME: output_product should also be given the correct stage name
   for (auto const& name : products) {
     s.provide("provide_" + name,
               [form_input, creator, name](phlex::data_cell_index const& id) -> int {
                 return form_input->read<int>(creator, name, id);
               })
-      .output_product(phlex::product_query{.creator = phlex::experimental::identifier(creator),
-                                           .layer = phlex::experimental::identifier("event"),
-                                           .suffix = phlex::experimental::identifier(name)});
+      .output_product(phlex::experimental::algorithm_name::create(creator),
+                      phlex::experimental::identifier(name),
+                      phlex::experimental::identifier("event"));
   }
 
   std::cout << "FORM input source registered successfully\n";

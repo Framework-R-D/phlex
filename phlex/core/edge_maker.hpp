@@ -5,10 +5,10 @@
 
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/declared_output.hpp"
-#include "phlex/core/declared_provider.hpp"
 #include "phlex/core/edge_creation_policy.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/index_router.hpp"
+#include "phlex/core/provider_node.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
@@ -25,20 +25,19 @@
 namespace phlex::experimental {
 
   index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
-                                                           declared_providers& providers);
+                                                           provider_nodes& providers);
 
   class PHLEX_CORE_EXPORT edge_maker {
   public:
     template <typename... Args>
-    edge_maker(Args&... args);
+    explicit edge_maker(Args&... args);
 
     template <typename... Args>
-    void operator()(tbb::flow::graph& g,
-                    index_router& multi,
-                    std::map<std::string, filter>& filters,
-                    declared_outputs& outputs,
-                    declared_providers& providers,
-                    Args&... consumers);
+    std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
+    operator()(std::map<std::string, filter>& filters,
+               declared_outputs& outputs,
+               provider_nodes& providers,
+               Args&... consumers);
 
   private:
     template <typename T>
@@ -100,12 +99,11 @@ namespace phlex::experimental {
   }
 
   template <typename... Args>
-  void edge_maker::operator()(tbb::flow::graph& g,
-                              index_router& multi,
-                              std::map<std::string, filter>& filters,
-                              declared_outputs& outputs,
-                              declared_providers& providers,
-                              Args&... consumers)
+  std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
+  edge_maker::operator()(std::map<std::string, filter>& filters,
+                         declared_outputs& outputs,
+                         provider_nodes& providers,
+                         Args&... consumers)
   {
     // Create edges to outputs
     for (auto const& [output_name, output_node] : outputs) {
@@ -122,11 +120,11 @@ namespace phlex::experimental {
     (head_ports.merge(edges(filters, consumers)), ...);
     // Eventually, we want to look at the filled-in head_ports and
     // figure out what provider nodes are needed.
-    // For now, we take as input a mapping of declared_providers.
+    // For now, we take as input a mapping of provider_nodes.
 
     if (head_ports.empty()) {
       // This can happen for jobs that only execute the driver, which is helpful for debugging
-      return;
+      return {};
     }
 
     auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
@@ -134,7 +132,7 @@ namespace phlex::experimental {
     std::map<std::string, named_index_ports> multilayer_join_index_ports;
     (multilayer_join_index_ports.merge(multilayer_ports(consumers)), ...);
 
-    multi.finalize(g, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
+    return std::make_tuple(std::move(provider_input_ports), std::move(multilayer_join_index_ports));
   }
 }
 

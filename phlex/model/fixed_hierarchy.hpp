@@ -45,9 +45,15 @@ namespace phlex {
   class PHLEX_MODEL_EXPORT fixed_hierarchy {
   public:
     fixed_hierarchy() = default;
-    // Using an std::initializer_list removes one set of braces that the user must provide
+    // Using an std::initializer_list removes one set of braces that the
+    // user must provide; leaving it explicit preserves clarity of
+    // expression for callers.
+    // NOLINTNEXTLINE(performance-google-explicit-constructor)
     explicit fixed_hierarchy(std::initializer_list<std::vector<std::string>> layer_paths);
     explicit fixed_hierarchy(std::vector<std::vector<std::string>> layer_paths);
+
+    // Returns the layer paths for this fixed hierarchy.
+    auto const& layer_paths() const { return layer_paths_; }
 
     void validate(data_cell_index_ptr const& index) const;
 
@@ -57,6 +63,7 @@ namespace phlex {
     data_cell_cursor yield_job(experimental::async_driver<data_cell_index_ptr>& d) const;
 
   private:
+    std::vector<std::vector<std::string>> layer_paths_;
     std::vector<std::size_t> layer_hashes_;
   };
 

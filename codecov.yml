@@ -27,6 +27,8 @@ coverage:
 flags:
   unittests:
     # Coverage from the main C++ and Python test suite.
+    paths:
+      - "!scripts/"
     carryforward: true
   scripts:
     # Coverage for scripts/ utility modules.  No status thresholds are set

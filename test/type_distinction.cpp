@@ -50,9 +50,9 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
 
   // Register providers
   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "numbers"});
+    .output_product("input", "numbers", "event");
   g.provide("provide_length", provide_length, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "length"});
+    .output_product("input", "length", "event");
 
   SECTION("Duplicate product name but differ in creator name")
   {

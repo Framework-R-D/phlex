@@ -7,7 +7,7 @@ using namespace form::detail::experimental;
 Storage_Associative_Write_Container::Storage_Associative_Write_Container(std::string const& name) :
   Storage_Write_Container::Storage_Write_Container(name), m_tName(), m_cName(), m_parent(nullptr)
 {
-  auto del_pos = name.find("/");
+  auto del_pos = name.find('/');
   if (del_pos != std::string::npos) {
     m_tName = name.substr(0, del_pos);
     m_cName = name.substr(del_pos + 1);

@@ -9,7 +9,7 @@ using namespace std::string_literals;
 
 namespace phlex::experimental {
   index_router::provider_input_ports_t make_provider_edges(index_router::head_ports_t head_ports,
-                                                           declared_providers& providers)
+                                                           provider_nodes& providers)
   {
     assert(!head_ports.empty());
 
@@ -21,7 +21,8 @@ namespace phlex::experimental {
         bool found_match = false;
         for (auto const& [_, p] : providers) {
           auto& provider = *p;
-          if (port.input_product.match(provider.output_product())) {
+          if (port.input_product.match(
+                provider.output_product(), provider.layer(), provider.stage())) {
             if (!result.contains(provider.full_name())) {
               result.try_emplace(provider.full_name(), port.input_product, provider.input_port());
             }
