@@ -7,7 +7,7 @@
 
 namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT algorithm_name {
-    enum class specified_fields { neither, either, both };
+    enum class specified_fields : std::uint8_t { neither, either, both };
 
   public:
     algorithm_name();

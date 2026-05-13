@@ -14,7 +14,7 @@ namespace phlex::experimental {
 
   template <typename RT>
   class async_driver {
-    enum class states { off, drive, park };
+    enum class states : std::uint8_t { off, drive, park };
 
   public:
     template <typename FT>
