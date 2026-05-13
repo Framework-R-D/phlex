@@ -10,7 +10,7 @@
 using namespace form::test;
 
 int main(int const argc, char const** argv)
-{
+try {
   int const technology = getTechnology((argc > 1) ? argv[1] : "ROOT_TTREE");
   if (technology < 0)
     return 1;
@@ -18,7 +18,13 @@ int main(int const argc, char const** argv)
   auto const& [prods] = read<std::vector<TrackStart>>(technology);
   std::ofstream outFile("form_root_schema_read_log.txt");
   for (auto const& prod : *prods)
-    outFile << prod << std::endl;
+    outFile << prod << '\n';
 
   return 0;
+} catch (std::exception const& e) {
+  std::cerr << "Exception caught in main: " << e.what() << '\n';
+  return 1;
+} catch (...) {
+  std::cerr << "Unknown exception caught in main.\n";
+  return 1;
 }

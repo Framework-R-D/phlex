@@ -27,6 +27,8 @@
 - Google-style docstrings
 - 99-character line limit
 - Double quotes for strings
+- Use `from __future__ import annotations` to enable deferred evaluation of
+  type annotations (avoids forward-reference issues; Python >=3.12)
 - Type hints recommended (mypy configured)
 
 **CMake Files:**

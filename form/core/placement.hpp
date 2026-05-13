@@ -27,7 +27,7 @@ namespace form::detail::experimental {
 
   private:
     /// Technology identifier
-    int m_technology;
+    int m_technology{};
     /// File name
     std::string m_fileName;
     /// Container name

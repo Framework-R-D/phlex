@@ -3,7 +3,7 @@ name: "CodeQL Analysis"
 
 "on":
   push:
-    branches: [main, develop]
+    branches: [main, "release/*"]
   pull_request:
   schedule:
     - cron: "0 3 * * 0" # weekly (UTC) — adjust as needed
@@ -239,7 +239,7 @@ jobs:
           build-path: ${{ env.local_build_path }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+        uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           languages: ${{ matrix.language }}
           config-file: ${{ env.local_checkout_path }}/.github/codeql/codeql-config.yml
@@ -265,14 +265,14 @@ jobs:
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+        uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           checkout_path: ${{ env.local_checkout_path }}
           output: results
           category: ${{ matrix.language }}
 
       - name: Upload SARIF results
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: codeql-sarif-${{ matrix.language }}
           path: results
@@ -346,7 +346,7 @@ jobs:
 
       - name: Upload CodeQL alerts debug log
         if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: codeql-alerts-debug-log
           path: ${{ steps.set_log_path.outputs.path }}
@@ -365,7 +365,7 @@ jobs:
       - name: Upload PR comment data
         if: >-
           github.event_name == 'pull_request' && steps.check_codeql.outputs.comment_path != ''
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: codeql-pr-data
           path: pr_comment_data/

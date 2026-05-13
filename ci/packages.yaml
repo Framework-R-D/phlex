@@ -1,0 +1,39 @@
+# Spack site-level packages configuration.
+#
+# This file is installed to the Spack site configuration directory
+# (/etc/spack/packages.yaml) during the container build so that all
+# environments and ad-hoc installs inherit these settings without
+# needing to repeat them in every spack.yaml.
+#
+# Design notes:
+#   - All packages default to target x86_64_v3 and compiler gcc@13.
+#     This covers root's own dependencies (e.g. zlib, python, xrootd)
+#     which do not need to share the gcc@15 ABI of root itself.
+#   - root and its dependents (phlex) require gcc@15; those overrides
+#     live in each environment's spack.yaml, not here.
+#   - System zlib is declared external so Spack does not build its own
+#     zlib / zlib-ng, eliminating duplicate virtual-provider builds.
+
+packages:
+  all:
+    target:
+      - x86_64_v3
+    providers:
+      "zlib-api:": [zlib]
+
+  c:
+    prefer: ["gcc@13"]
+  cxx:
+    prefer: ["gcc@13"]
+  fortran:
+    prefer: ["gcc@13"]
+
+  # Use the system zlib rather than building zlib / zlib-ng from source.
+  # The external entry must match the Ubuntu 24.04 package layout.
+  zlib:
+    externals:
+      - spec: zlib@1.3
+        prefix: /usr
+    buildable: false
+  zlib-ng:
+    buildable: false

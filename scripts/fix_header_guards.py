@@ -22,7 +22,7 @@ def compute_expected_guard(file_path: Path, root: Path) -> str:
 
 def check_header_guard(file_path: Path, root: Path) -> tuple[bool, str | None]:
     """Check if header guard is correct. Returns (is_valid, expected_guard)."""
-    content = file_path.read_text()
+    content = file_path.read_text(encoding="utf-8")
     lines = content.splitlines(keepends=True)
 
     if len(lines) < 3:
@@ -58,7 +58,7 @@ def check_header_guard(file_path: Path, root: Path) -> tuple[bool, str | None]:
 
 def fix_header_guard(file_path: Path, root: Path) -> bool:
     """Fix header guard. Returns True if modified."""
-    content = file_path.read_text()
+    content = file_path.read_text(encoding="utf-8")
     lines = content.splitlines(keepends=True)
 
     if len(lines) < 3:
@@ -96,7 +96,7 @@ def fix_header_guard(file_path: Path, root: Path) -> bool:
         modified = True
 
     if modified:
-        file_path.write_text("".join(lines))
+        file_path.write_text("".join(lines), encoding="utf-8")
     return modified
 
 

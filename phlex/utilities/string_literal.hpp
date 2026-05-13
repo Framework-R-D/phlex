@@ -10,7 +10,7 @@ namespace phlex::experimental {
   struct string_literal {
     constexpr string_literal(char const (&str)[N]) { std::copy_n(str, N, value); }
     constexpr operator std::string_view() const { return value; }
-    char value[N];
+    char value[N]{};
   };
 
   namespace detail {

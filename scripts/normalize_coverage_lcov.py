@@ -122,7 +122,7 @@ def normalize(
     missing: list[str] = []
     external: list[str] = []
 
-    lines = report_path.read_text().splitlines()
+    lines = report_path.read_text(encoding="utf-8").splitlines()
     rewritten: list[str] = []
     record: list[str] = []
 
@@ -228,7 +228,7 @@ def normalize(
     # Handle any trailing lines without an end_of_record (unlikely but safe).
     flush_record(record)
 
-    report_path.write_text("\n".join(rewritten) + "\n")
+    report_path.write_text("\n".join(rewritten) + "\n", encoding="utf-8")
     return missing, external
 
 

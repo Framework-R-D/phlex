@@ -18,6 +18,8 @@ namespace phlex::experimental::detail {
                 } else if (tagged.is_a<indexed_end_token>()) {
                   key = handle_flush_token(tagged.cast_to<indexed_end_token>());
                 } else {
+                  // Should never receive unknown message types
+                  assert(tagged.is_a<index_message>()); // Hint to static analyzers
                   key = handle_index_message(tagged.cast_to<index_message>());
                 }
 

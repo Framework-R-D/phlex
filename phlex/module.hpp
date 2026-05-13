@@ -1,13 +1,17 @@
 #ifndef PHLEX_MODULE_HPP
 #define PHLEX_MODULE_HPP
 
-#include "boost/dll/alias.hpp"
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/graph_proxy.hpp"
 #include "phlex/detail/plugin_macros.hpp"
 
 namespace phlex::experimental {
+  /// @brief Proxy for registering module algorithm nodes.
+  ///
+  /// Passed to @c PHLEX_REGISTER_ALGORITHMS plugin entry points. Provides
+  /// access to fold, observe, predicate, transform, and unfold registration.
+  /// Users never construct this type directly.
   template <typename T>
   class module_graph_proxy : graph_proxy<T> {
     using base = graph_proxy<T>;

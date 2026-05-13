@@ -5,6 +5,7 @@ cet_make_library(
   SOURCE
   algorithm_name.cpp
   data_cell_counter.cpp
+  fixed_hierarchy.cpp
   data_layer_hierarchy.cpp
   data_cell_index.cpp
   identifier.cpp
@@ -25,6 +26,7 @@ cet_make_library(
 install(
   FILES
     algorithm_name.hpp
+    fixed_hierarchy.hpp
     fwd.hpp
     handle.hpp
     data_cell_counter.hpp
@@ -40,6 +42,16 @@ install(
 )
 
 target_include_directories(phlex_model PRIVATE ${PROJECT_SOURCE_DIR})
+phlex_apply_symbol_visibility(phlex_model)
+phlex_apply_optimizations(phlex_model)
+
+phlex_make_internal_library(
+  phlex_model
+  LIBRARIES
+  PUBLIC Boost::boost spdlog::spdlog fmt::fmt
+  PRIVATE phlex_utilities_internal TBB::tbb
+)
+add_library(phlex::model_internal ALIAS phlex_model_internal)
 
 # Interface library
 cet_make_library(

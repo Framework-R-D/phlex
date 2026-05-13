@@ -23,9 +23,12 @@ namespace phlex::experimental {
 
     // If factory function goes out of scope, then the library is unloaded...and that's
     // bad.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::vector<std::function<detail::module_creator_t>> create_module;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::vector<std::function<detail::source_creator_t>> create_source;
-    std::function<detail::driver_creator_t> create_driver;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    std::function<detail::driver_shim_t> create_driver;
 
     template <typename creator_t>
     std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
@@ -49,7 +52,7 @@ namespace phlex::experimental {
           // (e.g., NumPy). Load all other plugins with rtld_local (default) to avoid symbol collisions.
           auto const load_mode =
             (spec == pymodule_name) ? dll::load_mode::rtld_global : dll::load_mode::default_mode;
-          return dll::import_alias<creator_t>(shared_library_path, symbol_name, load_mode);
+          return dll::import_symbol<creator_t>(shared_library_path, symbol_name, load_mode);
         }
       }
       throw std::runtime_error("Could not locate library with specification '"s + spec +
@@ -95,24 +98,32 @@ namespace phlex::experimental {
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const& spec = value_to<std::string>(raw_config.at("cpp"));
+    auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
+
+    auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto& creator =
       create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
     //        (e.g. make_algorithm_name).
-    raw_config["module_label"] = label;
+    // adjusted_config["module_label"] = label;       // already set by adjust_config
 
-    configuration const config{raw_config};
+    configuration const config{adjusted_config};
     creator(g.source_proxy(config), config);
   }
 
-  detail::next_index_t load_driver(boost::json::object const& raw_config)
+  driver_bundle load_driver(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
-    create_driver = plugin_loader<detail::driver_creator_t>(spec, "create_driver");
-    return create_driver(config);
+    // False positive: clang-analyzer cannot trace ownership through Boost's is_any_of<char>
+    // internal reference counting in classification.hpp.
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
+    create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
+    driver_proxy const proxy{};
+    driver_bundle result;
+    create_driver(proxy, config, &result);
+    return result;
   }
 }

@@ -64,8 +64,8 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
 
   ROOT const root_resource{};
 
-  flow::resource_provider<ROOT const*> root_resource_provider{&root_resource};
-  flow::resource_provider<GENIE> genie_resource{GENIE{}};
+  flow::resource_limiter<ROOT const*> root_resource_provider{&root_resource};
+  flow::resource_limiter<GENIE> genie_resource{GENIE{}};
 
   flow::resource_limited_node<unsigned int, std::tuple<unsigned int>> node1{
     g,
@@ -134,7 +134,7 @@ TEST_CASE("Serialize functions in diamond graph", "[multithreading]")
                          return 0u;
                        }};
 
-  flow::resource_provider<ROOT> root_resource{ROOT{}};
+  flow::resource_limiter<ROOT> root_resource{ROOT{}};
 
   std::atomic<unsigned int> root_counter{};
 
@@ -193,12 +193,12 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
   std::atomic<unsigned int> genie_counter{};
   std::atomic<unsigned int> db_counter{};
 
-  flow::resource_provider<ROOT> root_limiter{ROOT{}};
-  flow::resource_provider<GENIE> genie_limiter{GENIE{}};
+  flow::resource_limiter<ROOT> root_limiter{ROOT{}};
+  flow::resource_limiter<GENIE> genie_limiter{GENIE{}};
 
   DB const db1{1};
   DB const db13{13};
-  flow::resource_provider<DB const*> db_limiter{&db1, &db13};
+  flow::resource_limiter<DB const*> db_limiter{&db1, &db13};
 
   auto fill_histo = [&root_counter](unsigned int const i, auto& outputs, ROOT) {
     thread_counter c{root_counter};

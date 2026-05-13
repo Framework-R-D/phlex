@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_GLUE_HPP
 #define PHLEX_CORE_GLUE_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/registrar.hpp"
@@ -23,7 +25,7 @@ namespace phlex::experimental {
   struct node_catalog;
 
   namespace detail {
-    void verify_name(std::string const& name, configuration const* config);
+    PHLEX_CORE_EXPORT void verify_name(std::string const& name, configuration const* config);
   }
 
   // ==============================================================================
@@ -149,10 +151,11 @@ namespace phlex::experimental {
     }
 
   private:
-    tbb::flow::graph& graph_;
-    node_catalog& nodes_;
+    // Non-owning references to framework-owned resources; glue<T> is a short-lived builder.
+    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    node_catalog& nodes_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::shared_ptr<T> bound_obj_;
-    std::vector<std::string>& errors_;
+    std::vector<std::string>& errors_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     configuration const* config_;
   };
 }

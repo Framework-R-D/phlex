@@ -1,6 +1,7 @@
 #include "toy_tracker.hpp"
 #include "data_products/track_start.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 
 ToyTracker::ToyTracker(int maxTracks) : m_maxTracks(maxTracks) {}
@@ -8,12 +9,13 @@ ToyTracker::ToyTracker(int maxTracks) : m_maxTracks(maxTracks) {}
 std::vector<TrackStart> ToyTracker::operator()()
 {
   int32_t const npx = generateRandom() % m_maxTracks;
-  std::vector<TrackStart> points(npx);
-  for (int nelement = 0; nelement < npx; ++nelement) {
-    points[nelement] = TrackStart(float(generateRandom()) / random_max,
-                                  float(generateRandom()) / random_max,
-                                  float(generateRandom()) / random_max);
-  }
+  std::vector<TrackStart> points;
+  points.reserve(npx);
+  std::generate_n(std::back_inserter(points), npx, [this] {
+    return TrackStart(static_cast<float>(generateRandom()) / static_cast<float>(random_max),
+                      static_cast<float>(generateRandom()) / static_cast<float>(random_max),
+                      static_cast<float>(generateRandom()) / static_cast<float>(random_max));
+  });
 
   return points;
 }
@@ -21,7 +23,9 @@ std::vector<TrackStart> ToyTracker::operator()()
 int32_t ToyTracker::generateRandom()
 {
   //Get a 32-bit random integer with even the lowest allowed precision of rand()
-  int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Test code, single-threaded
-  int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Test code, single-threaded
+  // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Test code, single-threaded
+  int rand1 = rand() % 32768;
+  int rand2 = rand() % 32768;
+  // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Test code, single-threaded
   return (rand1 * 32768 + rand2);
 }

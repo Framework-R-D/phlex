@@ -10,7 +10,7 @@ TEST_CASE("Verify independent hashes", "[data model]")
   // In the original implementation of the hash algorithm, there was a collision between the hash for
   // "run:0 subrun:0 event: 760" and "run:0 subrun:1 event: 4999".
 
-  auto base = data_cell_index::base_ptr();
+  auto base = data_cell_index::job();
   CHECK(base->hash() == 0ull);
 
   auto run = base->make_child("run", 0);
@@ -27,7 +27,7 @@ TEST_CASE("Verify independent hashes", "[data model]")
 
 TEST_CASE("data_cell_index methods", "[data model]")
 {
-  auto base = data_cell_index::base_ptr();
+  auto base = data_cell_index::job();
   auto run0 = base->make_child("run", 0);
   auto run1 = base->make_child("run", 1);
 
@@ -68,6 +68,4 @@ TEST_CASE("data_cell_index methods", "[data model]")
     auto subrun = run0->make_child("subrun", 5);
     CHECK(subrun->layer_path() == "/job/run/subrun");
   }
-
-  SECTION("Base access") { CHECK(&data_cell_index::base() == data_cell_index::base_ptr().get()); }
 }

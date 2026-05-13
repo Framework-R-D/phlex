@@ -66,3 +66,21 @@ TEST_CASE("Filter data map", "[filtering]")
   data.update(msg_id, store_with_b);
   CHECK(data.is_complete(msg_id));
 }
+
+TEST_CASE("Data map for output only", "[filtering]")
+{
+  // Exercises data_map(for_output_t) which uses the output-only product query
+  data_map data{data_map::for_output};
+
+  std::size_t const msg_id{1};
+  CHECK(not data.is_complete(msg_id));
+
+  // Output-only data maps accept any store (no product lookup required)
+  auto store = product_store::base(algorithm_name::create("output_only"));
+  data.update(msg_id, store);
+  CHECK(data.is_complete(msg_id));
+
+  auto result = data.release_data(msg_id);
+  CHECK(result.size() == 1);
+  CHECK(not data.is_complete(msg_id));
+}

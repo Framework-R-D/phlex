@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_INDEX_ROUTER_HPP
 #define PHLEX_CORE_INDEX_ROUTER_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_counter.hpp"
@@ -30,7 +32,7 @@ namespace phlex::experimental {
     // join operation.  It:
     //   (a) routes index messages to either the matching layer or its data-layer parent, and
     //   (b) emits flush tokens to the repeater to evict a cached data product from memory.
-    class multilayer_slot {
+    class PHLEX_CORE_EXPORT multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
                       identifier layer,
@@ -55,7 +57,7 @@ namespace phlex::experimental {
     // A layer_scope object is an RAII object that manages layer-scoped operations during
     // data-cell-index routing. It updates flush counters on construction and ensures cleanup
     // (flushing end tokens and releasing fold results) on destruction.
-    class layer_scope {
+    class PHLEX_CORE_EXPORT layer_scope {
     public:
       layer_scope(flush_counters& counters,
                   flusher_t& flusher,
@@ -63,22 +65,29 @@ namespace phlex::experimental {
                   data_cell_index_ptr index,
                   std::size_t message_id);
       ~layer_scope();
+      layer_scope(layer_scope const&) = delete;
+      layer_scope& operator=(layer_scope const&) = delete;
+      layer_scope(layer_scope&&) = delete;
+      layer_scope& operator=(layer_scope&&) = delete;
       std::size_t depth() const;
 
     private:
+      // Non-owning references to externally-owned state; layer_scope is an RAII guard.
+      // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
       flush_counters& counters_;
       flusher_t& flusher_;
       multilayer_slots const& slots_;
+      // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
       data_cell_index_ptr index_;
       std::size_t message_id_;
     };
   }
 
-  class index_router {
+  class PHLEX_CORE_EXPORT index_router {
   public:
     struct named_input_port {
       product_query input_product;
-      tbb::flow::receiver<message>* port;
+      tbb::flow::receiver<message>* port{};
     };
     using named_input_ports_t = std::vector<named_input_port>;
 
@@ -87,7 +96,7 @@ namespace phlex::experimental {
 
     struct provider_input_port_t {
       product_query input_product;
-      tbb::flow::receiver<index_message>* port;
+      tbb::flow::receiver<index_message>* port{};
     };
     using provider_input_ports_t = std::map<std::string, provider_input_port_t>;
 

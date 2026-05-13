@@ -21,10 +21,14 @@ namespace {
 
   metrics get_rusage() noexcept
   {
-    rusage used;
+    rusage used{};
     getrusage(RUSAGE_SELF, &used);
     auto const [secs, microsecs] = used.ru_utime;
-    return {.elapsed_time = secs + microsecs / 1e6, .max_rss = used.ru_maxrss / mem_denominator};
+    // ru_maxrss is a POSIX field inside a GCC __extension__ union in <sys/resource.h>;
+    // no user-controlled alternative exists.
+    return {.elapsed_time = double(secs) + double(microsecs) / 1e6,
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+            .max_rss = double(used.ru_maxrss) / mem_denominator};
   }
 }
 
@@ -39,7 +43,8 @@ namespace phlex::experimental {
     auto const [elapsed_time, max_rss] = get_rusage();
     auto const end_wall = steady_clock::now();
     auto const cpu_time = elapsed_time - begin_cpu_;
-    auto const real_time = duration_cast<nanoseconds>(end_wall - begin_wall_).count() / 1e9;
+    auto const real_time =
+      static_cast<double>(duration_cast<nanoseconds>(end_wall - begin_wall_).count()) / 1e9;
     spdlog::info("CPU time: {:.5f}s  Real time: {:.5f}s  CPU efficiency: {:6.2f}%",
                  cpu_time,
                  real_time,

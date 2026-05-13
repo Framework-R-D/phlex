@@ -17,7 +17,7 @@ namespace form::detail::experimental {
   class ROOT_TBranch_Write_ContainerImp : public Storage_Associative_Write_Container {
   public:
     ROOT_TBranch_Write_ContainerImp(std::string const& name);
-    ~ROOT_TBranch_Write_ContainerImp() = default;
+    ~ROOT_TBranch_Write_ContainerImp() override = default;
 
     void setAttribute(std::string const& key, std::string const& value) override;
 
@@ -30,8 +30,8 @@ namespace form::detail::experimental {
 
   private:
     std::shared_ptr<TFile> m_tfile;
-    TTree* m_tree;
-    TBranch* m_branch;
+    TTree* m_tree{nullptr};
+    TBranch* m_branch{nullptr};
   };
 
 } // namespace form::detail::experimental

@@ -1,7 +1,7 @@
-cet_test(sized_tuple SOURCE sized_tuple.cpp LIBRARIES phlex::utilities)
+cet_test(sized_tuple SOURCE sized_tuple.cpp LIBRARIES phlex::utilities_internal)
 
 cet_test(sleep_for USE_CATCH2_MAIN SOURCE sleep_for.cpp LIBRARIES
-         phlex::utilities
+         phlex::utilities_internal
 )
 cet_test(
   thread_counter
@@ -9,6 +9,6 @@ cet_test(
   SOURCE
   thread_counter.cpp
   LIBRARIES
-  phlex::utilities
+  phlex::utilities_internal
   TBB::tbb
 )

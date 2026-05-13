@@ -16,6 +16,19 @@ namespace phlex::experimental {
     emitted_cells_["/job"] = 0ull;
   }
 
+  fixed_hierarchy layer_generator::hierarchy() const
+  {
+    using layer_path_t = std::vector<std::string>;
+    return fixed_hierarchy{layer_paths_ | std::views::transform([](auto const& path) {
+                             return path | std::views::split('/') |
+                                    std::views::filter([](auto t) { return !t.empty(); }) |
+                                    std::views::transform(
+                                      [](auto t) { return std::string(t.begin(), t.end()); }) |
+                                    std::ranges::to<layer_path_t>();
+                           }) |
+                           std::ranges::to<std::vector<layer_path_t>>()};
+  }
+
   std::size_t layer_generator::emitted_cell_count(std::string layer_path) const
   {
     // Check if the count of all emitted cells is requested
@@ -63,6 +76,7 @@ namespace phlex::experimental {
   {
     // First check if layer paths need to be rebased
     std::vector<size_t> indices_for_rebasing;
+    // We can use std::views::enumerate once the AppleClang C++ STL supports it.
     for (std::size_t i = 0ull, n = layer_paths_.size(); i != n; ++i) {
       auto const& layer = layer_paths_[i];
       if (layer.starts_with("/" + layer_name)) {
@@ -78,7 +92,7 @@ namespace phlex::experimental {
       auto layer_handle = layers_.extract(old_layer_path);
       layer_handle.key() = new_layer_path;
       auto const old_parent_path = layer_handle.mapped().parent_layer_name;
-      auto const new_parent_path = new_layer_path.substr(0, new_layer_path.find_last_of("/"));
+      auto const new_parent_path = new_layer_path.substr(0, new_layer_path.find_last_of('/'));
       layer_handle.mapped().parent_layer_name = new_parent_path;
       layers_.insert(std::move(layer_handle));
 
@@ -109,27 +123,27 @@ namespace phlex::experimental {
     layer_paths_.push_back(full_path);
   }
 
-  void layer_generator::execute(framework_driver& driver, data_cell_index_ptr index, bool recurse)
+  void layer_generator::operator()(data_cell_cursor const& job)
   {
-    auto cell_it = emitted_cells_.find(index->layer_path());
-    assert(cell_it != emitted_cells_.cend());
-    ++cell_it->second;
+    ++emitted_cells_.at("/job");
+    execute(job);
+  }
 
-    driver.yield(index);
-
-    if (not recurse) {
-      return;
-    }
-
-    auto it = parent_to_children_.find(index->layer_path());
+  void layer_generator::execute(data_cell_cursor const& cell)
+  {
+    auto it = parent_to_children_.find(cell.layer_path());
     assert(it != parent_to_children_.cend());
 
     for (auto const& child : it->second) {
-      auto const full_child_path = index->layer_path() + "/" + child;
-      bool const recurse = parent_to_children_.contains(full_child_path);
+      auto const full_child_path = cell.layer_path() + "/" + child;
       auto const& [_, total_per_parent, starting_value] = layers_.at(full_child_path);
+      bool const has_children = parent_to_children_.contains(full_child_path);
       for (unsigned int i : std::views::iota(starting_value, total_per_parent + starting_value)) {
-        execute(driver, index->make_child(child, i), recurse);
+        ++emitted_cells_.at(full_child_path);
+        auto const child_cell = cell.yield_child(child, i);
+        if (has_children) {
+          execute(child_cell);
+        }
       }
     }
   }

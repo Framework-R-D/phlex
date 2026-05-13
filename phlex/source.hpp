@@ -1,13 +1,16 @@
 #ifndef PHLEX_SOURCE_HPP
 #define PHLEX_SOURCE_HPP
 
-#include "boost/dll/alias.hpp"
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/graph_proxy.hpp"
 #include "phlex/detail/plugin_macros.hpp"
 
 namespace phlex::experimental {
+  /// @brief Proxy for registering source (provider) nodes.
+  ///
+  /// Passed to @c PHLEX_REGISTER_PROVIDERS plugin entry points. Only provide
+  /// registration is accessible. Users never construct this type directly.
   template <typename T>
   class source_graph_proxy : graph_proxy<T> {
     using base = graph_proxy<T>;

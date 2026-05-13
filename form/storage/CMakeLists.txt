@@ -13,5 +13,5 @@ add_library(
 )
 
 if(FORM_USE_ROOT_STORAGE)
-  target_link_libraries(storage core root_storage)
+  target_link_libraries(storage PUBLIC core PRIVATE root_storage)
 endif()

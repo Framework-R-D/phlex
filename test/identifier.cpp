@@ -33,6 +33,7 @@ TEST_CASE("Identifier from JSON", "[identifier]")
   boost::json::object parsed_json = boost::json::parse(R"( {"identifier": "b" } )").as_object();
   auto b_from_json = phlex::detail::value_if_exists(parsed_json, "identifier");
   REQUIRE(b_from_json);
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- `REQUIRE` protects against incorrect access
   CHECK(b == *b_from_json);
 }
 

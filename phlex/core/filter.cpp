@@ -5,6 +5,9 @@
 #include "fmt/std.h"
 #include "oneapi/tbb/flow_graph.h"
 
+#include <cassert>
+#include <ranges>
+
 using namespace phlex::experimental;
 using namespace oneapi::tbb;
 
@@ -47,6 +50,7 @@ namespace phlex::experimental {
       msg_id = msg.id;
       data_.update(msg.id, msg.store);
     } else {
+      assert(t.is_a<predicate_result>()); // Hint to static analyzers
       auto const& result = t.cast_to<predicate_result>();
       decisions_.update(result);
       msg_id = result.msg_id;
@@ -66,8 +70,8 @@ namespace phlex::experimental {
       if (empty(stores)) {
         return {};
       }
-      for (std::size_t i = 0ull; i != nargs_; ++i) {
-        downstream_ports_[i]->try_put({stores[i], msg_id});
+      for (auto const& [port, store] : std::views::zip(downstream_ports_, stores)) {
+        port->try_put({store, msg_id});
       }
       // Decision must be erased while access is claimed
       decisions_.erase(a);

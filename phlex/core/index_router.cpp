@@ -216,8 +216,8 @@ namespace phlex::experimental {
       return matched_flushing_entries_.find(layer_hash)->second;
     }
 
-    auto [routing_it, _] = matched_routing_entries_.try_emplace(layer_hash);
-    auto [flushing_it, __] = matched_flushing_entries_.try_emplace(layer_hash);
+    auto routing_it = matched_routing_entries_.try_emplace(layer_hash).first;
+    auto flushing_it = matched_flushing_entries_.try_emplace(layer_hash).first;
 
     auto const layer_path = index->layer_path();
 

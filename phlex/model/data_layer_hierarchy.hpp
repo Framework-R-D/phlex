@@ -1,6 +1,8 @@
 #ifndef PHLEX_MODEL_DATA_LAYER_HIERARCHY_HPP
 #define PHLEX_MODEL_DATA_LAYER_HIERARCHY_HPP
 
+#include "phlex/phlex_model_export.hpp"
+
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 
@@ -13,9 +15,15 @@
 
 namespace phlex::experimental {
 
-  class data_layer_hierarchy {
+  class PHLEX_MODEL_EXPORT data_layer_hierarchy {
   public:
     ~data_layer_hierarchy();
+    data_layer_hierarchy() = default;
+    data_layer_hierarchy(data_layer_hierarchy const&) = delete;
+    data_layer_hierarchy& operator=(data_layer_hierarchy const&) = delete;
+    data_layer_hierarchy(data_layer_hierarchy&&) = delete;
+    data_layer_hierarchy& operator=(data_layer_hierarchy&&) = delete;
+
     void increment_count(data_cell_index_ptr const& id);
     std::size_t count_for(std::string const& layer, bool missing_ok = false) const;
 

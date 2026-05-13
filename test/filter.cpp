@@ -1,6 +1,7 @@
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_vector.h"
@@ -11,25 +12,6 @@ using namespace phlex;
 using namespace oneapi::tbb;
 
 namespace {
-  class source {
-  public:
-    explicit source(unsigned const max_n) : max_{max_n} {}
-
-    void operator()(framework_driver& driver)
-    {
-      auto job_index = data_cell_index::base_ptr();
-      driver.yield(job_index);
-
-      for (unsigned int i : std::views::iota(1u, max_ + 1)) {
-        auto index = job_index->make_child("event", i);
-        driver.yield(index);
-      }
-    }
-
-  private:
-    unsigned const max_;
-  };
-
   // Provider algorithms
   unsigned int give_me_nums(data_cell_index const& id) { return id.number() - 1; }
 
@@ -50,6 +32,10 @@ namespace {
   struct sum_numbers {
     sum_numbers(unsigned int const n) : total{n} {}
     ~sum_numbers() { CHECK(sum == total); }
+    sum_numbers(sum_numbers const&) = delete;
+    sum_numbers& operator=(sum_numbers const&) = delete;
+    sum_numbers(sum_numbers&&) = delete;
+    sum_numbers& operator=(sum_numbers&&) = delete;
     void add(unsigned int const num) { sum += num; }
     std::atomic<unsigned int> sum;
     unsigned int const total;
@@ -64,8 +50,14 @@ namespace {
       std::sort(begin(sorted_actual), end(sorted_actual));
       CHECK(expected == sorted_actual);
     }
+    collect_numbers(collect_numbers const&) = delete;
+    collect_numbers& operator=(collect_numbers const&) = delete;
+    collect_numbers(collect_numbers&&) = delete;
+    collect_numbers& operator=(collect_numbers&&) = delete;
     void collect(unsigned int const num) { actual.push_back(num); }
     tbb::concurrent_vector<unsigned int> actual;
+    // Immutable test expectation set at construction; intentionally prevents accidental mutation.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::vector<unsigned int> const expected;
   };
 
@@ -76,6 +68,10 @@ namespace {
       spdlog::debug("construct check_multiple_numbers with n = {}", n);
     }
     ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total)); }
+    check_multiple_numbers(check_multiple_numbers const&) = delete;
+    check_multiple_numbers& operator=(check_multiple_numbers const&) = delete;
+    check_multiple_numbers(check_multiple_numbers&&) = delete;
+    check_multiple_numbers& operator=(check_multiple_numbers&&) = delete;
     void add_difference(unsigned int const a, unsigned int const b)
     {
       // The difference is calculated to test that add(a, b) yields a different result
@@ -95,15 +91,20 @@ namespace {
 
   struct not_in_range {
     explicit not_in_range(unsigned int const b, unsigned int const e) : begin{b}, end{e} {}
+    // Immutable range bounds set at construction; intentionally prevents accidental mutation.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     unsigned int const begin;
     unsigned int const end;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     bool eval(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
   };
 }
 
 TEST_CASE("Two predicates", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", 10, 1});
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -127,7 +128,9 @@ TEST_CASE("Two predicates", "[filtering]")
 
 TEST_CASE("Two predicates in series", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", 10, 1});
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -147,7 +150,9 @@ TEST_CASE("Two predicates in series", "[filtering]")
 
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", 10, 1});
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -175,7 +180,9 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
                                         {.name = "exclude_6_to_7", .begin = 6, .end = 7},
                                         {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
-  experimental::framework_graph g{source{10u}};
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", 10, 1});
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   for (auto const& [name, b, e] : configs) {
@@ -199,7 +206,9 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
-  experimental::framework_graph g{source{10u}};
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", 10, 1});
+  experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)

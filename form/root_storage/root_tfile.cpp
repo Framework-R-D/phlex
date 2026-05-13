@@ -21,7 +21,7 @@ void ROOT_TFileImp::setAttribute(std::string const& key, std::string const& valu
 {
   if (key == "compression") {
     using RComp = ROOT::RCompressionSetting::EAlgorithm;
-    RComp::EValues compression;
+    RComp::EValues compression{RComp::kUndefined};
     if (value == "kZLIB")
       compression = RComp::kZLIB;
     else if (value == "kLZMA")
@@ -32,8 +32,8 @@ void ROOT_TFileImp::setAttribute(std::string const& key, std::string const& valu
       compression = RComp::kLZ4;
     else if (value == "kZSTD")
       compression = RComp::kZSTD;
-    else
-      compression = RComp::kUndefined;
+    else { // leave compression as kUndefined, which will use ROOT's default
+    }
 
     m_file->SetCompressionAlgorithm(compression);
   } else {

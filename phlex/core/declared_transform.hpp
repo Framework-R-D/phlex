@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DECLARED_TRANSFORM_HPP
 #define PHLEX_CORE_DECLARED_TRANSFORM_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 // FIXME: Add comments explaining the process.  For each implementation, explain what part
 //        of the process a given section of code is addressing.
 
@@ -36,12 +38,12 @@
 
 namespace phlex::experimental {
 
-  class declared_transform : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_transform : public products_consumer {
   public:
     declared_transform(algorithm_name name,
                        std::vector<std::string> predicates,
                        product_queries input_products);
-    virtual ~declared_transform();
+    ~declared_transform() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual product_specifications const& output() const = 0;

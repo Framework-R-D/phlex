@@ -17,7 +17,7 @@ namespace form::detail::experimental {
   class ROOT_TBranch_Read_ContainerImp : public Storage_Read_Container {
   public:
     ROOT_TBranch_Read_ContainerImp(std::string const& name);
-    ~ROOT_TBranch_Read_ContainerImp() = default;
+    ~ROOT_TBranch_Read_ContainerImp() override = default;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
 
@@ -25,8 +25,8 @@ namespace form::detail::experimental {
 
   private:
     std::shared_ptr<TFile> m_tfile;
-    TTree* m_tree;
-    TBranch* m_branch;
+    TTree* m_tree{nullptr};
+    TBranch* m_branch{nullptr};
   };
 
 } // namespace form::detail::experimental

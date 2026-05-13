@@ -45,4 +45,8 @@ list(APPEND
 )
 endif()
 
-target_link_libraries(root_storage PUBLIC ${FORM_ROOT_STORAGE_DEPS})
+target_link_libraries(
+  root_storage
+  PUBLIC ${FORM_ROOT_STORAGE_DEPS}
+  PRIVATE Microsoft.GSL::GSL
+)

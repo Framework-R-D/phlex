@@ -70,6 +70,7 @@ namespace phlex {
 
     // Handles cannot be invalid
     handle() = delete;
+    ~handle() = default;
 
     // Copy operations
     handle(handle const&) noexcept = default;

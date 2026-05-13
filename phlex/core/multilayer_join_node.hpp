@@ -7,6 +7,7 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
+#include <ranges>
 #include <set>
 #include <string>
 #include <utility>
@@ -109,8 +110,8 @@ namespace phlex::experimental {
     {
       std::vector<named_index_port> result;
       result.reserve(repeaters_.size());
-      for (std::size_t i = 0; i != repeaters_.size(); ++i) {
-        result.emplace_back(layers_[i], &repeaters_[i]->flush_port(), &repeaters_[i]->index_port());
+      for (auto const& [layer, repeater] : std::views::zip(layers_, repeaters_)) {
+        result.emplace_back(layer, &repeater->flush_port(), &repeater->index_port());
       }
       return result;
     }
@@ -118,8 +119,11 @@ namespace phlex::experimental {
   private:
     std::vector<std::unique_ptr<detail::repeater_node>> repeaters_;
     tbb::flow::join_node<args_t, tbb::flow::tag_matching> join_;
+    // Immutable after construction; tbb::flow::join_node is already non-movable.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const name_;
     std::vector<identifier> const layers_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   namespace detail {

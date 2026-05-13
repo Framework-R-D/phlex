@@ -16,6 +16,16 @@
 
 using namespace form::detail::experimental;
 
+TEST_CASE("Token default constructor", "[form]")
+{
+  Token t;
+  CHECK(t.fileName() == "");
+  CHECK(t.containerName() == "");
+  CHECK(t.technology() == 0);
+  // Default-constructed token must carry the -1 sentinel for id
+  CHECK(t.id() == -1);
+}
+
 TEST_CASE("Token basics", "[form]")
 {
   Token t("file.root", "container", form::technology::ROOT_TTREE, 42);
@@ -207,7 +217,8 @@ TEST_CASE("form::experimental::config tests", "[form]")
     cfg.addItem("prod1", "file1.root", 1);
 
     auto item = cfg.findItem("prod1");
-    REQUIRE(item.has_value());
+    REQUIRE(item);
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- `REQUIRE` protects against incorrect access
     CHECK(item->product_name == "prod1");
 
     CHECK_FALSE(cfg.findItem("nonexistent").has_value());

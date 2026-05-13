@@ -34,17 +34,21 @@
             "**/local/.*/**": true,
             "**/local/*/": true,
             "**/build/_deps/**": true,
-            "**/build/CMakeFiles/**": true
+            "**/build/CMakeFiles/**": true,
+            "**/.venv/**": true,
+            "**/py_virtual_env/**": true
         },
         "files.watcherExclude": {
             "**/local/.*/**": true,
             "**/local/*/": true,
             "**/build/_deps/**": true,
-            "**/build/CMakeFiles/**": true
+            "**/build/CMakeFiles/**": true,
+            "**/.venv/**": true,
+            "**/py_virtual_env/**": true
         },
         "cmake.sourceDirectory": "${workspaceFolder:Phlex}",
-        "cmake.buildDirectory": "${workspaceFolder:Phlex}/build",
         "cmake.useCMakePresets": "always",
+        "cmake.buildDirectory": "${workspaceFolder:Phlex}/build",
         "cmake.generator": "Ninja",
         "C_Cpp.default.cStandard": "c17",
         "C_Cpp.default.cppStandard": "c++23",
@@ -60,21 +64,40 @@
         "python.languageServer": "Pylance",
         "python.terminal.activateEnvironment": false,
         "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+        "esbonio.server.pythonPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+        "esbonio.logging.level": "debug",
         "python.analysis.typeCheckingMode": "basic",
         "python.analysis.diagnosticMode": "workspace",
+        "python.analysis.include": [
+            "/workspaces/phlex"
+        ],
+        "python.analysis.extraPaths": [
+            "/workspaces/phlex/plugins/python/python",
+            "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
+            "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
+        ],
         "python.analysis.exclude": [
-            "**/local/.*/**",
-            "**/local/*/",
-            "**/build/_deps/**",
-            "**/build/CMakeFiles/**"
+            "/opt/spack-environments",
+            "/workspaces/phlex/local",
+            "/workspaces/phlex/build/_deps",
+            "/workspaces/phlex/build/CMakeFiles",
+            "/workspaces/phlex/**/.venv",
+            "/workspaces/phlex/**/py_virtual_env"
         ],
         "python.analysis.ignore": [
-            "**/local/.*/**",
-            "**/local/*/",
-            "**/build/_deps/**",
-            "**/build/CMakeFiles/**"
+            "/opt/spack-environments",
+            "/workspaces/phlex-design",
+            "/workspaces/phlex-examples",
+            "/workspaces/phlex-coding-guidelines",
+            "/workspaces/phlex-spack-recipes",
+            "/workspaces/phlex/local",
+            "/workspaces/phlex/build/_deps",
+            "/workspaces/phlex/build/CMakeFiles",
+            "/workspaces/phlex/**/.venv",
+            "/workspaces/phlex/**/py_virtual_env"
         ],
         "flake8.enabled": false,
+        "pylint.enabled": false,
         "[python]": {
             "editor.formatOnSave": true,
             "editor.defaultFormatter": "charliermarsh.ruff",
@@ -84,7 +107,8 @@
             }
         },
         "yaml.schemas": {
-            "https://json.schemastore.org/github-workflow.json": "./.github/workflows/*"
+            "https://json.schemastore.org/github-workflow.json": "./.github/workflows/*",
+            "https://json.schemastore.org/github-action.json": "./.github/actions/*/action.yaml"
         }
     },
     "extensions": {
@@ -106,6 +130,7 @@
             "github.copilot",
             "ikuyadeu.r",
             "ms-python.flake8",
+            "ms-python.pylint",
             "ms-python.python",
             "ms-toolsai.jupyter",
             "ms-vscode.r",
@@ -118,6 +143,36 @@
             "vscjava.vscode-java-pack",
             "vscjava.vscode-java-test",
             "vscjava.vscode-maven"
+        ]
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "Generate clang-tidy Problems Log",
+                "type": "shell",
+                "command": "python3 ${workspaceFolder:Phlex}/scripts/clang_tidy_fixes_to_problems.py ${workspaceFolder:Phlex}/build/clang-tidy-fixes.yaml -o ${workspaceFolder:Phlex}/out/clang-tidy-problems.log --workspace-root ${workspaceFolder:Phlex}",
+                "problemMatcher": []
+            },
+            {
+                "label": "Load clang-tidy Problems",
+                "type": "shell",
+                "command": "python3 ${workspaceFolder:Phlex}/scripts/clang_tidy_fixes_to_problems.py ${workspaceFolder:Phlex}/build/clang-tidy-fixes.yaml -o ${workspaceFolder:Phlex}/out/clang-tidy-problems.log --workspace-root ${workspaceFolder:Phlex} && cat ${workspaceFolder:Phlex}/out/clang-tidy-problems.log",
+                "problemMatcher": [
+                    {
+                        "owner": "clang-tidy",
+                        "fileLocation": "absolute",
+                        "pattern": {
+                            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error|note):\\s+(.*)$",
+                            "file": 1,
+                            "line": 2,
+                            "column": 3,
+                            "severity": 4,
+                            "message": 5
+                        }
+                    }
+                ]
+            }
         ]
     }
 }

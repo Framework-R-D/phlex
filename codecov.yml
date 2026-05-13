@@ -9,13 +9,32 @@ coverage:
   status:
     project:
       default:
+        # Restrict to unittests flag so scripts coverage does not dilute
+        # the project-wide 80% threshold.
+        flags:
+          - unittests
         target: 80%
         threshold: 2%
         if_ci_failed: error
     patch:
       default:
+        # Restrict to unittests flag for the same reason.
+        flags:
+          - unittests
         target: 80%
         threshold: 5%
+
+flags:
+  unittests:
+    # Coverage from the main C++ and Python test suite.
+    carryforward: true
+  scripts:
+    # Coverage for scripts/ utility modules.  No status thresholds are set
+    # yet; the flag is tracked and visible in the CodeCov UI but does not
+    # gate CI.
+    paths:
+      - scripts/
+    carryforward: true
 
 comment:
   layout: "header, diff, flags, files, footer"
@@ -26,6 +45,7 @@ comment:
 
 ignore:
   - "test/**/*" # Ignore test files
+  - "scripts/test/**/*" # Ignore scripts test helpers
   - "**/CMakeFiles/**" # Ignore CMake generated files
   - "build/**" # Ignore build directories (generic 1/3)
   - "build-*/**" # Ignore build directories (generic 2/3)

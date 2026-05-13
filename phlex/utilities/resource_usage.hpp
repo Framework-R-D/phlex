@@ -6,13 +6,19 @@
 // resource_usage object.  The destructor will also report the maximum RSS of the process.
 // =======================================================================================
 
+#include "phlex/phlex_utilities_export.hpp"
+
 #include <chrono>
 
 namespace phlex::experimental {
-  class resource_usage {
+  class PHLEX_UTILITIES_EXPORT resource_usage {
   public:
     resource_usage() noexcept;
     ~resource_usage();
+    resource_usage(resource_usage const&) = delete;
+    resource_usage& operator=(resource_usage const&) = delete;
+    resource_usage(resource_usage&&) = delete;
+    resource_usage& operator=(resource_usage&&) = delete;
 
   private:
     std::chrono::time_point<std::chrono::steady_clock> begin_wall_;

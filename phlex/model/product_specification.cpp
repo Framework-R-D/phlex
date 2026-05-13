@@ -2,6 +2,8 @@
 #include "phlex/model/algorithm_name.hpp"
 
 #include <cassert>
+#include <ranges>
+#include <stdexcept>
 #include <utility>
 
 namespace phlex::experimental {
@@ -48,19 +50,29 @@ namespace phlex::experimental {
     return {algorithm_name::create(""), identifier(s), type_id{}};
   }
 
-  product_specifications to_product_specifications(std::string_view const name,
+  product_specifications to_product_specifications(std::string_view const algorithm_specification,
                                                    std::vector<std::string> output_suffixes,
                                                    std::vector<type_id> output_types)
   {
-    assert(output_suffixes.size() == output_types.size());
-    product_specifications outputs;
-    outputs.reserve(output_suffixes.size());
+    static std::string const default_product_suffix = "";
 
-    // zip view isn't available until C++23 so we have to use a loop over the index
-    for (std::size_t i = 0; i < output_suffixes.size(); ++i) {
-      outputs.emplace_back(
-        algorithm_name::create(name), identifier(output_suffixes[i]), output_types[i]);
+    if (output_suffixes.empty()) {
+      // This happens whenever the user does not specify output_product_suffixes(...), so we
+      // assign the default suffix to all output data products.
+      output_suffixes.assign(output_types.size(), default_product_suffix);
     }
-    return outputs;
+
+    // If output_suffixes and output_types are non-empty, the framework guarantees that they will
+    // have the same length. They will either have the same length due to the default-suffix
+    // assignment above, or because the call to output_product_suffixes(...) demands it.
+    assert(output_suffixes.size() == output_types.size());
+
+    // We can use std::views::zip_transform once the AppleClang C++ STL supports it.
+    auto const algo_name = algorithm_name::create(algorithm_specification);
+    return std::views::zip(output_suffixes, output_types) |
+           std::views::transform([&algo_name](auto const& p) {
+             return product_specification{algo_name, identifier(std::get<0>(p)), std::get<1>(p)};
+           }) |
+           std::ranges::to<product_specifications>();
   }
 }

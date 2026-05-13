@@ -115,6 +115,10 @@ The project automatically runs coverage analysis on every PR and push to main/de
 
 Coverage reports are uploaded to Codecov for tracking and PR integration, with automatic comments on PRs showing coverage changes.
 
+## Running clang-tidy
+
+For clang-tidy workflow behavior, local command examples, and configuration details, see [CLANG_TIDY_CONFIGURATION.md](CLANG_TIDY_CONFIGURATION.md).
+
 ## On GitHub Copilot
 
 The `.github/copilot-instructions.md` contains various "ground rules" to be observed by GitHub Copilot for every session. They are intended to be useful for everyone, but you can override or augment them yourself by creating a `<workspace>/.github/copilot-instructions.md` file. If this file exists, its contents will be merged with—but take precedence over—the repository level instructions.

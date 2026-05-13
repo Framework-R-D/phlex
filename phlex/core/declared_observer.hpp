@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DECLARED_OBSERVER_HPP
 #define PHLEX_CORE_DECLARED_OBSERVER_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -30,12 +32,12 @@
 
 namespace phlex::experimental {
 
-  class declared_observer : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_observer : public products_consumer {
   public:
     declared_observer(algorithm_name name,
                       std::vector<std::string> predicates,
                       product_queries input_products);
-    virtual ~declared_observer();
+    ~declared_observer() override;
   };
 
   using declared_observer_ptr = std::unique_ptr<declared_observer>;

@@ -129,11 +129,28 @@ jobs:
 - `checkout-path` (string, optional): Path to check out code to.
 - `build-path` (string, optional): Path for build artifacts.
 - `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs the build if C++ or CMake files have changed.
-- `build-combinations` (string, optional): A space-separated list of build combinations to run.
+- `build-combinations` (string, optional): A space-separated or comma-separated list of build
+  combinations to run. Each combination is of the form `<compiler>/<sanitizer>`, where compiler is
+  `gcc` or `clang` and sanitizer is `none`, `asan`, `tsan`, `valgrind`, or `perfetto`. Special
+  syntax is also supported:
+  - `all` — run all combinations
+  - `all -<combo>` — run all except the specified combination(s)
+  - `+<combo>` — run the default matrix plus the specified combination(s)
 - `ref` (string, optional): The branch, ref, or SHA to check out.
 - `repo` (string, optional): The repository to check out from.
 - `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
 - `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+
+#### Manual Run Inputs (`workflow_dispatch` only)
+
+These inputs are available only when running the workflow manually from the Actions tab. They are
+not available when calling the workflow from another workflow (`workflow_call`).
+
+- `perfetto-heap-profile` (boolean, optional, default: `false`): Enable heap profiling via
+  `heapprofd` for Perfetto runs. Only meaningful when a `perfetto` combination is selected.
+- `perfetto-cpu-profile` (boolean, optional, default: `true`): Enable CPU profiling (frequency,
+  idle, and scheduler tracing) for Perfetto runs. Only meaningful when a `perfetto` combination
+  is selected.
 
 ### 2. `cmake-format-check.yaml`
 

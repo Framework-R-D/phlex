@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DECLARED_UNFOLD_HPP
 #define PHLEX_CORE_DECLARED_UNFOLD_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
@@ -32,7 +34,7 @@
 
 namespace phlex::experimental {
 
-  class generator {
+  class PHLEX_CORE_EXPORT generator {
   public:
     explicit generator(product_store_const_ptr const& parent,
                        algorithm_name node_name,
@@ -49,17 +51,19 @@ namespace phlex::experimental {
     product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
     algorithm_name node_name_;
+    // References declared_unfold::child_layer_, which outlives this short-lived object.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
     std::map<data_cell_index::hash_type, std::size_t> child_counts_;
   };
 
-  class declared_unfold : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_unfold : public products_consumer {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
                     product_queries input_products,
                     std::string child_layer);
-    virtual ~declared_unfold();
+    ~declared_unfold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::sender<data_cell_index_ptr>& output_index_port() = 0;

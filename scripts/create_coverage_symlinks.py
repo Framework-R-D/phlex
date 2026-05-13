@@ -6,12 +6,14 @@ CMake-driven coverage targets can prepare the mapping without relying on the
 shell script.
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import pathlib
 import shutil
 import sys
-from typing import Iterable
+from collections.abc import Iterable
 
 SUPPORTED_SUFFIXES = {
     ".c",
@@ -44,16 +46,7 @@ def should_link(path: pathlib.Path) -> bool:
     """
     if not path.is_file():
         return False
-    suffix = path.suffix
-    if suffix in SUPPORTED_SUFFIXES:
-        return True
-    if path.name.endswith(".c++") or path.name.endswith(".h++"):
-        return True
-    if path.name.endswith(".icc") or path.name.endswith(".tcc"):
-        return True
-    if path.suffix in {".i", ".ii"}:
-        return True
-    return False
+    return path.suffix in SUPPORTED_SUFFIXES
 
 
 def iter_source_files(build_root: pathlib.Path) -> Iterable[pathlib.Path]:

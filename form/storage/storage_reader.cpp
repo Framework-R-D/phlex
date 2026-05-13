@@ -1,8 +1,8 @@
 // Copyright (C) 2025 ...
 
 #include "storage_reader.hpp"
-#include "storage_read_container.hpp"
 #include "storage_file.hpp"
+#include "storage_read_container.hpp"
 
 #include "util/factories.hpp"
 
@@ -39,14 +39,12 @@ int StorageReader::getIndex(Token const& token,
         cont->second->setAttribute(key, value);
       cont->second->setFile(file->second);
     }
-    void const* data;
     auto const& type = typeid(std::string);
     int entry = 1;
-    while (cont->second->read(entry, &data, type)) {
-      m_indexMaps[token.containerName()].insert(
-        std::make_pair(*(static_cast<std::string const*>(data)), entry));
-      delete static_cast<std::string const*>(
-        data); //FIXME: smart pointer?  The overhead to delete an arbitrary type is not much prettier
+    void const* rawData = nullptr;
+    while (cont->second->read(entry, &rawData, type)) {
+      std::unique_ptr<std::string const> data(static_cast<std::string const*>(rawData));
+      m_indexMaps[token.containerName()].insert(std::make_pair(*data, entry));
       entry++;
     }
   }

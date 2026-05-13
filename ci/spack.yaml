@@ -13,10 +13,16 @@ spack:
     - ninja
     - py-gcovr
     - py-pytest-cov # Needed for Python coverage reports
+    - py-pyyaml # Needed by run-clang-tidy --export-fixes to merge per-TU fix files
     - |
-      llvm@22.1.1 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
+      llvm@22.1.3 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
-  view: true
+  view:
+    default:
+      root: .spack-env/view
+      link: all
+      projections:
+        zstd: "{name}-{version}/{compiler.name}-{compiler.version}/{hash}"
 
   concretizer:
     unify: true
@@ -27,36 +33,50 @@ spack:
         - type: buildcache
 
   packages:
-    all:
-      target:
-        - x86_64_v3
-
     cmake:
       require:
-        - "%c,cxx=gcc@13"
         - "~qtgui"
         - "@4:"
+
+    llvm:
+      require:
+        - "%c,cxx=gcc@15"
 
     phlex:
       require:
         - "+form"
         - "cxxstd=23"
-        - "%gcc@15"
+        - "%cxx=gcc@15"
+        - "^intel-tbb@2023.0.0:"
 
-    # GCC 15 uses C23 as the default C language, and the versions of
-    # libunwind and unuran available in Spack (as of 8/12/2025) do not
-    # yet support C23.
-    libunwind:
+    py-cython:
       require:
-        - "cflags='-std=c17'"
+        - "build_system=python_pip"
 
-    unuran:
+    py-gcovr:
       require:
-        - "cflags='-std=c17'"
+        - "build_system=python_pip"
 
+    py-pytest-cov:
+      require:
+        - "build_system=python_pip"
+
+    py-pyyaml:
+      require:
+        - "build_system=python_pip"
+
+    # Temporary version pin for C-API `char const *` consistency
+    python:
+      require:
+        - "@3.12"
+
+    # root and its dependents (phlex) must be built with gcc@15 so
+    # they share a single ABI.  root's own dependencies (e.g. zlib,
+    # python, xrootd) inherit the gcc@13 site default instead.
     # ROOT should be built with the same version of the C++ standard
     # as will be used by Phlex (C++23 for now).
     root:
       require:
         - "~x" # No graphics libraries required
         - "cxxstd=23"
+        - "%c,cxx=gcc@15"

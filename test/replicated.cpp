@@ -13,6 +13,8 @@ using namespace oneapi::tbb;
 
 namespace {
 
+  // std::atomic counter incremented from concurrent callbacks across the entire test; must be mutable.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   std::atomic<unsigned int> processed_messages{};
   struct thread_unsafe {
     std::atomic<unsigned int> counter{};

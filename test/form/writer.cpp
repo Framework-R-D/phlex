@@ -8,34 +8,40 @@
 #include "test_utils.hpp"
 
 #include <cstdlib>
+#include <ctime>
+#include <format>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <ranges>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;
 
-static char const* const evt_id = "[EVENT=%08X]";
-static char const* const seg_id = "[EVENT=%08X;SEG=%08X]";
-
 void generate(std::vector<float>& vrand, int size)
 {
-  int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
-  int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
+  // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
+  int rand1 = rand() % 32768;
+  int rand2 = rand() % 32768;
+  // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
   int npx = (rand1 * 32768 + rand2) % size;
   for (int nelement = 0; nelement < npx; ++nelement) {
-    int rand1 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
-    int rand2 = rand() % 32768; // NOLINT(concurrency-mt-unsafe) - Single-threaded test
-    float random = float(rand1 * 32768 + rand2) / (32768 * 32768);
+    // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
+    int rand1 = rand() % 32768;
+    int rand2 = rand() % 32768;
+    // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
+    float random = static_cast<float>(rand1 * 32768 + rand2) / (32768.0f * 32768);
     vrand.push_back(random);
   }
 }
 
 int main(int argc, char** argv)
 {
-  std::cout << "In main" << std::endl;
-  srand(time(0));
+  std::cout << "In main" << '\n';
+  // Deliberately use C-style random number generation for simplicity in a test
+  // NOLINTNEXTLINE(bugprone-random-generator-seed, cert-msc32-c, cert-msc51-cpp)
+  srand(time(nullptr));
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
@@ -63,12 +69,12 @@ int main(int argc, char** argv)
   // Open checksum file for writing
   std::ofstream checksum_file(checksum_filename);
   if (!checksum_file.is_open()) {
-    std::cerr << "ERROR: Could not open checksum file: " << checksum_filename << std::endl;
+    std::cerr << "ERROR: Could not open checksum file: " << checksum_filename << '\n';
     return 1;
   }
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
-    std::cout << "PHLEX: Write Event No. " << nevent << std::endl;
+    std::cout << "PHLEX: Write Event No. " << nevent << '\n';
 
     std::vector<float> track_x;
 
@@ -80,10 +86,9 @@ int main(int argc, char** argv)
       for (float val : track_start_x)
         check += val;
 
-      char seg_id_text[64];
-      snprintf(seg_id_text, 64, seg_id, nevent, nseg);
+      std::string const seg_id_text = std::format("[EVENT={:08X};SEG={:08X}]", nevent, nseg);
 
-      std::string segment_id(seg_id_text);
+      std::string const& segment_id = seg_id_text;
 
       std::vector<form::experimental::product_with_name> products;
       std::string const creator = "Toy_Tracker";
@@ -92,14 +97,11 @@ int main(int argc, char** argv)
         "trackStart", &track_start_x, &typeid(std::vector<float>)};
       products.push_back(pb);
 
-      std::vector<int> track_n_hits;
-      for (int i = 0; i < 100; ++i) {
-        track_n_hits.push_back(i);
-      }
+      std::vector<int> track_n_hits(std::from_range, std::views::iota(0, 100));
       for (int val : track_n_hits)
-        check += val;
+        check += static_cast<float>(val);
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", check = " << check << std::endl;
+                << ", check = " << check << '\n';
 
       form::experimental::product_with_name pb_int = {
         "trackNumberHits", &track_n_hits, &typeid(std::vector<int>)};
@@ -110,7 +112,7 @@ int main(int argc, char** argv)
       for (TrackStart const& point : start_points)
         checkPoints += point;
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", checkPoints = " << checkPoints << std::endl;
+                << ", checkPoints = " << checkPoints << '\n';
 
       form::experimental::product_with_name pb_points = {
         "trackStartPoints", &start_points, &typeid(std::vector<TrackStart>)};
@@ -125,32 +127,31 @@ int main(int argc, char** argv)
       track_x.insert(track_x.end(), track_start_x.begin(), track_start_x.end());
     }
 
-    std::cout << "PHLEX: Write Event segments done " << nevent << std::endl;
+    std::cout << "PHLEX: Write Event segments done " << nevent << '\n';
 
     float check = 0.0;
     for (float val : track_x)
       check += val;
 
-    char evt_id_text[64];
-    snprintf(evt_id_text, 64, evt_id, nevent);
+    std::string const evt_id_text = std::format("[EVENT={:08X}]", nevent);
 
-    std::string event_id(evt_id_text);
+    std::string const& event_id = evt_id_text;
 
     std::string const creator = "Toy_Tracker_Event";
 
     form::experimental::product_with_name pb = {
       "trackStartX", &track_x, &typeid(std::vector<float>)};
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
-              << ", check = " << check << std::endl;
+              << ", check = " << check << '\n';
 
     form.write(creator, event_id, pb);
 
     // Save event checksum
     checksum_file << std::setprecision(10) << "EVT " << nevent << " " << check << "\n";
-    std::cout << "PHLEX: Write Event done " << nevent << std::endl;
+    std::cout << "PHLEX: Write Event done " << nevent << '\n';
   }
 
   checksum_file.close();
-  std::cout << "PHLEX: Write done. Checksums saved to " << checksum_filename << std::endl;
+  std::cout << "PHLEX: Write done. Checksums saved to " << checksum_filename << '\n';
   return 0;
 }

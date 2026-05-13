@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_MESSAGE_HPP
 #define PHLEX_CORE_MESSAGE_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/product_query.hpp"
 #include "phlex/model/fwd.hpp"
@@ -22,7 +24,7 @@ namespace phlex::experimental {
 
   struct index_message {
     data_cell_index_ptr index;
-    std::size_t msg_id;
+    std::size_t msg_id{};
     bool cache{true};
   };
 
@@ -35,16 +37,16 @@ namespace phlex::experimental {
   struct flush_message {
     data_cell_index_ptr index;
     flush_counts_ptr counts;
-    std::size_t original_id; // FIXME: Used only by folds
+    std::size_t original_id{}; // FIXME: Used only by folds
   };
 
   struct message {
     // FIXME: Maybe consider adding an 'index' data member?
     product_store_const_ptr store;
-    std::size_t id;
+    std::size_t id{};
   };
 
-  struct message_matcher {
+  struct PHLEX_CORE_EXPORT message_matcher {
     std::size_t operator()(message const& msg) const noexcept;
   };
 
@@ -62,13 +64,16 @@ namespace phlex::experimental {
   using named_index_ports = std::vector<named_index_port>;
 
   // Overload for use with most_derived
-  message const& more_derived(message const& a, message const& b);
+  PHLEX_CORE_EXPORT message const& more_derived(message const& a, message const& b);
 
   // Non-template overload for single message case
-  inline message const& most_derived(message const& msg) { return msg; }
+  inline message const& most_derived(message const& msg)
+  {
+    return msg; // NOLINT(bugprone-return-const-ref-from-parameter)
+  }
 
-  std::size_t port_index_for(product_queries const& input_products,
-                             product_query const& input_product);
+  PHLEX_CORE_EXPORT std::size_t port_index_for(product_queries const& input_products,
+                                               product_query const& input_product);
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP

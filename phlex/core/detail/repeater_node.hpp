@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DETAIL_REPEATER_NODE_HPP
 #define PHLEX_CORE_DETAIL_REPEATER_NODE_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/core/message.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -15,7 +17,8 @@ namespace phlex::experimental::detail {
 
   using repeater_node_input = std::tuple<message, indexed_end_token, index_message>;
 
-  class repeater_node : public tbb::flow::composite_node<repeater_node_input, message_tuple<1>> {
+  class PHLEX_CORE_EXPORT repeater_node :
+    public tbb::flow::composite_node<repeater_node_input, message_tuple<1>> {
   public:
     repeater_node(tbb::flow::graph& g, std::string node_name, identifier layer_name);
 
@@ -26,7 +29,11 @@ namespace phlex::experimental::detail {
     bool cache_is_empty() const;
     std::size_t cache_size() const;
 
-    ~repeater_node();
+    ~repeater_node() override;
+    repeater_node(repeater_node const&) = delete;
+    repeater_node& operator=(repeater_node const&) = delete;
+    repeater_node(repeater_node&&) = delete;
+    repeater_node& operator=(repeater_node&&) = delete;
 
   private:
     using base_t = tbb::flow::composite_node<repeater_node_input, message_tuple<1>>;

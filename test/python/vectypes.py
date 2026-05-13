@@ -133,7 +133,7 @@ def sum_list_uint64(coll: "list[uint64_t]") -> "uint64_t":  # type: ignore # noq
     return sum(coll)
 
 
-def sum_list_float(coll: list[float]) -> float:
+def sum_list_float(coll: list[float]) -> np.float32:
     """Sum a list of floats."""
     return np.float32(sum(coll))
 

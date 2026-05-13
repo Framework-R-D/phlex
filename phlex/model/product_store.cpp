@@ -17,7 +17,7 @@ namespace phlex::experimental {
 
   product_store_ptr product_store::base(algorithm_name base_name)
   {
-    return product_store_ptr{new product_store{data_cell_index::base_ptr(), std::move(base_name)}};
+    return product_store_ptr{new product_store{data_cell_index::job(), std::move(base_name)}};
   }
 
   identifier const& product_store::layer_name() const noexcept { return id_->layer_name(); }
@@ -32,9 +32,9 @@ namespace phlex::experimental {
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
   {
     if (a->index()->depth() > b->index()->depth()) {
-      return a;
+      return a; // NOLINT(bugprone-return-const-ref-from-parameter)
     }
-    return b;
+    return b; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
 
   algorithm_name product_store::default_source()

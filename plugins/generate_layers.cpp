@@ -19,37 +19,22 @@
 #include "phlex/driver.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "phlex/core/framework_graph.hpp"
-
-#include "fmt/ranges.h"
-#include "spdlog/spdlog.h"
-
 #include <string>
 
-using namespace phlex;
+PHLEX_REGISTER_DRIVER(d, config)
+{
+  using namespace phlex;
 
-namespace {
-  class generate_layers {
-  public:
-    generate_layers(configuration const& config)
-    {
-      auto const layers = config.get<configuration>("layers", {});
-      for (auto const& key : layers.keys()) {
-        auto const layer_config = layers.get<configuration>(key);
-        auto const parent = layer_config.get<std::string>("parent", "job");
-        auto const total_number = layer_config.get<unsigned int>("total");
-        auto const starting_number = layer_config.get<unsigned int>("starting_number", 0);
-        gen_.add_layer(key, {parent, total_number, starting_number});
-      }
+  auto gen = std::make_shared<experimental::layer_generator>();
 
-      // FIXME: Print out statement?
-    }
+  auto const layers = config.get<configuration>("layers", {});
+  for (auto const& key : layers.keys()) {
+    auto const layer_config = layers.get<configuration>(key);
+    gen->add_layer(key,
+                   {.parent_layer_name = layer_config.get<std::string>("parent", "job"),
+                    .total_per_parent_data_cell = layer_config.get<unsigned int>("total"),
+                    .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
+  }
 
-    void next(framework_driver& driver) { gen_(driver); }
-
-  private:
-    experimental::layer_generator gen_;
-  };
+  return d.driver(gen->hierarchy(), [gen](data_cell_cursor const& job) { (*gen)(job); });
 }
-
-PHLEX_EXPERIMENTAL_REGISTER_DRIVER(generate_layers)

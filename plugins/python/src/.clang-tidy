@@ -1,0 +1,7 @@
+---
+
+InheritParentConfig: true
+
+Checks: >
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-vararg

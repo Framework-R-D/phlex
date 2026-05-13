@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <optional>
+#include <ranges>
 #include <string>
 
 #include "phlex/configuration.hpp"
@@ -18,17 +20,16 @@ struct phlex::experimental::py_config_map {
 PyObject* phlex::experimental::wrap_configuration(configuration const& config)
 {
   py_config_map* pyconfig =
-    (py_config_map*)PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr);
+    reinterpret_cast<py_config_map*>(PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr));
 
   pyconfig->ph_config = &config;
 
-  return (PyObject*)pyconfig;
+  return reinterpret_cast<PyObject*>(pyconfig);
 }
 
-//= CPyCppyy low level view construction/destruction =========================
 static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
 {
-  py_config_map* pcm = (py_config_map*)subtype->tp_alloc(subtype, 0);
+  py_config_map* pcm = reinterpret_cast<py_config_map*>(subtype->tp_alloc(subtype, 0));
   if (!pcm)
     return nullptr;
 
@@ -40,7 +41,18 @@ static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
 static void pcm_dealloc(py_config_map* pcm)
 {
   Py_DECREF(pcm->ph_config_cache);
-  Py_TYPE(pcm)->tp_free((PyObject*)pcm);
+  Py_TYPE(pcm)->tp_free(reinterpret_cast<PyObject*>(pcm));
+}
+
+// Returns the array size as Py_ssize_t, or std::nullopt (and sets a Python
+// OverflowError) if the size exceeds PY_SSIZE_T_MAX.
+static std::optional<Py_ssize_t> checked_tuple_size(std::size_t n)
+{
+  if (n > static_cast<std::size_t>(PY_SSIZE_T_MAX)) {
+    PyErr_Format(PyExc_OverflowError, "array is too large to convert to a Python tuple");
+    return std::nullopt;
+  }
+  return static_cast<Py_ssize_t>(n);
 }
 
 static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
@@ -78,48 +90,75 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
     if (k.second /* is array */) {
       if (k.first == boost::json::kind::bool_) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<bool>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyLong_FromLong((long)cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::int64) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::int64_t>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromInt64
           PyObject* item = PyLong_FromLongLong(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::uint64) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::uint64_t>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           // Note Python3.14 is expected to add PyLong_FromUInt64
           PyObject* item = PyLong_FromUnsignedLongLong(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::double_) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<double>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyFloat_FromDouble(cvalue[i]);
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::string) {
         auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
-          PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(), cvalue[i].size());
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
+          PyObject* item =
+            PyUnicode_FromStringAndSize(cvalue[i].c_str(), (Py_ssize_t)cvalue[i].size());
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::object) {
-        auto cvalue = pycmap->ph_config->get<std::vector<std::map<std::string, std::string>>>(ckey);
-        pyvalue = PyTuple_New(cvalue.size());
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)cvalue.size(); ++i) {
+        auto const& cvalue =
+          pycmap->ph_config->get<std::vector<std::map<std::string, std::string>>>(ckey);
+        auto const cvalue_size = checked_tuple_size(cvalue.size());
+        if (!cvalue_size)
+          return nullptr;
+        pyvalue = PyTuple_New(*cvalue_size);
+        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
+        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyDict_New();
           for (auto const& kv : cvalue[i]) {
-            PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(), kv.second.size());
+            PyObject* val =
+              PyUnicode_FromStringAndSize(kv.second.c_str(), (Py_ssize_t)kv.second.size());
             PyDict_SetItemString(item, kv.first.c_str(), val);
             Py_DECREF(val);
           }
@@ -146,12 +185,13 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         pyvalue = PyFloat_FromDouble(cvalue);
       } else if (k.first == boost::json::kind::string) {
         auto const& cvalue = pycmap->ph_config->get<std::string>(ckey);
-        pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), cvalue.size());
+        pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), (Py_ssize_t)cvalue.size());
       } else if (k.first == boost::json::kind::object) {
         auto cvalue = pycmap->ph_config->get<std::map<std::string, std::string>>(ckey);
         pyvalue = PyDict_New();
         for (auto const& kv : cvalue) {
-          PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(), kv.second.size());
+          PyObject* val =
+            PyUnicode_FromStringAndSize(kv.second.c_str(), (Py_ssize_t)kv.second.size());
           PyDict_SetItemString(pyvalue, kv.first.c_str(), val);
           Py_DECREF(val);
         }
@@ -171,15 +211,20 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
   return pyvalue;
 }
 
-static PyMappingMethods pcm_as_mapping = {nullptr, (binaryfunc)pcm_subscript, nullptr};
+// PyMappingMethods must be non-const; tp_as_mapping in PyTypeObject takes a non-const pointer.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static PyMappingMethods pcm_as_mapping = {
+  nullptr, reinterpret_cast<binaryfunc>(pcm_subscript), nullptr};
 
 // clang-format off
+// PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexConfig_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  (char*) "pyphlex.configuration",                   // tp_name
+  "pyphlex.configuration",                           // tp_name
   sizeof(py_config_map),                             // tp_basicsize
   0,                                                 // tp_itemsize
-  (destructor)pcm_dealloc,                           // tp_dealloc
+  reinterpret_cast<destructor>(pcm_dealloc),         // tp_dealloc
   0,                                                 // tp_vectorcall_offset / tp_print
   0,                                                 // tp_getattr
   0,                                                 // tp_setattr
@@ -195,7 +240,7 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   0,                                                 // tp_setattro
   0,                                                 // tp_as_buffer
   Py_TPFLAGS_DEFAULT,                                // tp_flags
-  (char*)"phlex configuration object-as-dictionary", // tp_doc
+  "phlex configuration object-as-dictionary",        // tp_doc
   0,                                                 // tp_traverse
   0,                                                 // tp_clear
   0,                                                 // tp_richcompare
@@ -212,7 +257,7 @@ PyTypeObject phlex::experimental::PhlexConfig_Type = {
   offsetof(py_config_map, ph_config_cache),          // tp_dictoffset
   0,                                                 // tp_init
   0,                                                 // tp_alloc
-  (newfunc)pcm_new,                                  // tp_new
+  reinterpret_cast<newfunc>(pcm_new),                // tp_new
   0,                                                 // tp_free
   0,                                                 // tp_is_gc
   0,                                                 // tp_bases

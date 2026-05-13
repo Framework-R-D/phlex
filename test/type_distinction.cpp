@@ -1,11 +1,14 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/driver.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
+#include "plugins/layer_generator.hpp"
 
 #include "spdlog/spdlog.h"
 
 #include "catch2/catch_test_macros.hpp"
 
+#include <ranges>
 #include <tuple>
 #include <vector>
 
@@ -28,11 +31,9 @@ namespace {
   auto add_vectors(std::vector<int> const& x, std::vector<int> const& y)
   {
     std::vector<int> res;
-    std::size_t const len = std::min(x.size(), y.size());
-
-    res.reserve(len);
-    for (std::size_t i = 0; i < len; ++i) {
-      res.push_back(x[i] + y[i]);
+    res.reserve(std::min(x.size(), y.size()));
+    for (auto const [xi, yi] : std::views::zip(x, y)) {
+      res.push_back(xi + yi);
     }
     return res;
   }
@@ -42,18 +43,10 @@ namespace {
 
 TEST_CASE("Distinguish products with same name and different types", "[programming model]")
 {
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", 10, 1});
 
-  auto gen = [](auto& driver) {
-    std::vector<int> numbers{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    auto job_index = data_cell_index::base_ptr();
-    driver.yield(job_index);
-    for (int i : numbers) {
-      auto event_index = job_index->make_child("event", unsigned(i));
-      driver.yield(event_index);
-    }
-  };
-
-  experimental::framework_graph g{gen};
+  experimental::framework_graph g{driver_for_test(gen)};
 
   // Register providers
   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)

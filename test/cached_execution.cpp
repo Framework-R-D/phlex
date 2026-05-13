@@ -38,9 +38,9 @@ using namespace phlex;
 
 namespace {
   // Provider functions
-  int provide_number(data_cell_index const& index) { return 2 * index.number(); }
-  int provide_another(data_cell_index const& index) { return 3 * index.number(); }
-  int provide_still(data_cell_index const& index) { return 4 * index.number(); }
+  int provide_number(data_cell_index const& index) { return 2 * static_cast<int>(index.number()); }
+  int provide_another(data_cell_index const& index) { return 3 * static_cast<int>(index.number()); }
+  int provide_still(data_cell_index const& index) { return 4 * static_cast<int>(index.number()); }
 
   int call_one(int) noexcept { return 1; }
   int call_two(int, int) noexcept { return 2; }
@@ -97,8 +97,8 @@ TEST_CASE("Cached function calls", "[data model]")
   CHECK(g.execution_count("A2") == n_runs);
   CHECK(g.execution_count("A3") == n_runs);
 
-  CHECK(g.execution_count("B1") == n_runs * n_subruns);
-  CHECK(g.execution_count("B2") == n_runs * n_subruns);
+  CHECK(g.execution_count("B1") == std::size_t{n_runs} * n_subruns);
+  CHECK(g.execution_count("B2") == std::size_t{n_runs} * n_subruns);
 
-  CHECK(g.execution_count("C") == n_runs * n_subruns * n_events);
+  CHECK(g.execution_count("C") == std::size_t{n_runs} * n_subruns * n_events);
 }

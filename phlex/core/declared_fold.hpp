@@ -1,6 +1,8 @@
 #ifndef PHLEX_CORE_DECLARED_FOLD_HPP
 #define PHLEX_CORE_DECLARED_FOLD_HPP
 
+#include "phlex/phlex_core_export.hpp"
+
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fold/send.hpp"
@@ -34,12 +36,12 @@
 #include <utility>
 
 namespace phlex::experimental {
-  class declared_fold : public products_consumer {
+  class PHLEX_CORE_EXPORT declared_fold : public products_consumer {
   public:
     declared_fold(algorithm_name name,
                   std::vector<std::string> predicates,
                   product_queries input_products);
-    virtual ~declared_fold();
+    ~declared_fold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
@@ -156,12 +158,11 @@ namespace phlex::experimental {
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_index->hash());
       if (it == results_.end()) {
-        it =
-          results_
-            .insert({parent_index->hash(),
-                     initialized_object(std::move(initializer_),
-                                        std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
-            .first;
+        it = results_
+               .insert({parent_index->hash(),
+                        initialized_object(
+                          initializer_, std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
+               .first;
       }
 
       if constexpr (num_inputs == 1ull) {
@@ -176,10 +177,9 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     template <size_t... Is>
-    auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
+    auto initialized_object(InitTuple const& init, std::index_sequence<Is...>) const
     {
-      return std::unique_ptr<result_type>{
-        new result_type{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
+      return std::unique_ptr<result_type>(new result_type{std::get<Is>(init)...});
     }
 
     auto commit(product_store_ptr& store)

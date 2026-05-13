@@ -45,12 +45,13 @@ namespace phlex::experimental {
   {
   }
 
-  product_matcher::product_matcher(std::array<std::string, 4u> fields) :
-    layer_path_{std::move(fields[0])},
-    module_name_{std::move(fields[1])},
-    node_name_{std::move(fields[2])},
-    product_name_{std::move(fields[3])}
+  product_matcher::product_matcher(std::array<std::string, 4u> fields)
   {
+    auto& [lp, mn, nn, pn] = fields;
+    layer_path_ = std::move(lp);
+    module_name_ = std::move(mn);
+    node_name_ = std::move(nn);
+    product_name_ = std::move(pn);
   }
 
   std::string product_matcher::encode() const
