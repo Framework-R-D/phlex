@@ -8,10 +8,10 @@
 namespace phlex::experimental {
   template <std::size_t N>
   struct string_literal {
-    // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     constexpr string_literal(char const (&str)[N]) { std::copy_n(str, N, value); }
+    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
     constexpr operator std::string_view() const { return value; }
-    // NOLINTEND(google-explicit-constructor)
     char value[N]{};
   };
 
