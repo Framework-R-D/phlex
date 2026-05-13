@@ -4,11 +4,11 @@
 #include "phlex/core/edge_maker.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "fmt/std.h"
 #include "spdlog/cfg/env.h"
 #include "spdlog/spdlog.h"
 
 #include <cassert>
+#include <format>
 #include <iostream>
 
 namespace phlex::experimental {
@@ -120,7 +120,7 @@ namespace phlex::experimental {
             make_edge(predicate->sender(), it->second.predicate_port());
             continue;
           }
-          throw std::runtime_error(fmt::format(
+          throw std::runtime_error(std::format(
             "A non-existent filter with the name '{}' was specified for {}", predicate_name, name));
         }
       }
