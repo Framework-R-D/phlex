@@ -8,7 +8,7 @@ using namespace form::detail::experimental;
 Storage_Read_Container::Storage_Read_Container(std::string const& name) :
   m_name(name), m_file(nullptr)
 {
-  auto del_pos = name.find("/");
+  auto del_pos = name.find('/');
   if (del_pos != std::string::npos) {
     m_tName = name.substr(0, del_pos);
     m_cName = name.substr(del_pos + 1);

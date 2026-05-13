@@ -7,7 +7,7 @@ using namespace form::detail::experimental;
 namespace {
   std::string maybe_remove_suffix(std::string const& name)
   {
-    auto del_pos = name.find("/");
+    auto del_pos = name.find('/');
     if (del_pos != std::string::npos) {
       return name.substr(0, del_pos);
     }

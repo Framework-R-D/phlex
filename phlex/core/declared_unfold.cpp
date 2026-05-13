@@ -26,7 +26,7 @@ namespace phlex::experimental {
   flush_counts_ptr generator::flush_result() const
   {
     if (not child_counts_.empty()) {
-      return std::make_shared<flush_counts const>(std::move(child_counts_));
+      return std::make_shared<flush_counts const>(child_counts_);
     }
     return nullptr;
   }

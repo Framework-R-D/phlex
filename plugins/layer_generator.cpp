@@ -92,7 +92,7 @@ namespace phlex::experimental {
       auto layer_handle = layers_.extract(old_layer_path);
       layer_handle.key() = new_layer_path;
       auto const old_parent_path = layer_handle.mapped().parent_layer_name;
-      auto const new_parent_path = new_layer_path.substr(0, new_layer_path.find_last_of("/"));
+      auto const new_parent_path = new_layer_path.substr(0, new_layer_path.find_last_of('/'));
       layer_handle.mapped().parent_layer_name = new_parent_path;
       layers_.insert(std::move(layer_handle));
 
