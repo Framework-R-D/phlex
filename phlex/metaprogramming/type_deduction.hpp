@@ -54,8 +54,6 @@ namespace phlex::experimental {
     static_assert(std::tuple_size<input_parameters>{} >= sizeof...(Args));
     static constexpr bool value =
       mp11::mp_starts_with<input_parameters, std::tuple<Args...>>::value;
-    // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-    constexpr operator bool() noexcept { return value; }
   };
 
   // ===================================================================
