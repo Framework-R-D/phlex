@@ -110,8 +110,10 @@ namespace phlex::experimental {
             make_edge(predicate->sender(), it->second.predicate_port());
             continue;
           }
-          throw std::runtime_error("A non-existent filter with the name '" + predicate_name +
-                                   "' was specified for " + name);
+          throw std::runtime_error(std::string("A non-existent filter with the name '")
+                                     .append(predicate_name)
+                                     .append("' was specified for ")
+                                     .append(name));
         }
       }
       return result;
