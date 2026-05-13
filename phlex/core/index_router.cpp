@@ -154,7 +154,7 @@ namespace phlex::experimental {
     }
   }
 
-  data_cell_index_ptr index_router::route(data_cell_index_ptr const index)
+  data_cell_index_ptr index_router::route(data_cell_index_ptr index)
   {
     backout_to(index);
 
