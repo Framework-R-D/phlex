@@ -121,9 +121,7 @@ namespace phlex::experimental {
             continue;
           }
           throw std::runtime_error(fmt::format(
-            "A non-existent filter with the name '{}' was specified for {}",
-            predicate_name,
-            name));
+            "A non-existent filter with the name '{}' was specified for {}", predicate_name, name));
         }
       }
       return result;
