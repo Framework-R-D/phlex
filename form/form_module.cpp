@@ -58,7 +58,7 @@ namespace {
       // STEP 1: Extract metadata from Phlex's product_store
 
       // Extract creator (algorithm name)
-      auto creator = store.source();
+      auto const& creator = store.source();
 
       // Extract segment ID (partition) - extract once for entire store
       auto segment_id = store.index()->to_string();
