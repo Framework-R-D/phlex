@@ -1103,58 +1103,58 @@ PyTypeObject phlex::experimental::PhlexModule_Type = {
   "pyphlex.module",              // tp_name
   sizeof(py_phlex_module),       // tp_basicsize
   0,                             // tp_itemsize
-  nullptr,                             // tp_dealloc
+  nullptr,                       // tp_dealloc
   0,                             // tp_vectorcall_offset / tp_print
-  nullptr,                             // tp_getattr
-  nullptr,                             // tp_setattr
-  nullptr,                             // tp_as_async / tp_compare
-  nullptr,                             // tp_repr
-  nullptr,                             // tp_as_number
-  nullptr,                             // tp_as_sequence
-  nullptr,                             // tp_as_mapping
-  nullptr,                             // tp_hash
-  nullptr,                             // tp_call
-  nullptr,                             // tp_str
-  nullptr,                             // tp_getattro
-  nullptr,                             // tp_setattro
-  nullptr,                             // tp_as_buffer
+  nullptr,                       // tp_getattr
+  nullptr,                       // tp_setattr
+  nullptr,                       // tp_as_async / tp_compare
+  nullptr,                       // tp_repr
+  nullptr,                       // tp_as_number
+  nullptr,                       // tp_as_sequence
+  nullptr,                       // tp_as_mapping
+  nullptr,                       // tp_hash
+  nullptr,                       // tp_call
+  nullptr,                       // tp_str
+  nullptr,                       // tp_getattro
+  nullptr,                       // tp_setattro
+  nullptr,                       // tp_as_buffer
   Py_TPFLAGS_DEFAULT,            // tp_flags
   "phlex module wrapper",        // tp_doc
-  nullptr,                             // tp_traverse
-  nullptr,                             // tp_clear
-  nullptr,                             // tp_richcompare
+  nullptr,                       // tp_traverse
+  nullptr,                       // tp_clear
+  nullptr,                       // tp_richcompare
   0,                             // tp_weaklistoffset
-  nullptr,                             // tp_iter
-  nullptr,                             // tp_iternext
+  nullptr,                       // tp_iter
+  nullptr,                       // tp_iternext
   md_methods,                    // tp_methods
-  nullptr,                             // tp_members
-  nullptr,                             // tp_getset
-  nullptr,                             // tp_base
-  nullptr,                             // tp_dict
-  nullptr,                             // tp_descr_get
-  nullptr,                             // tp_descr_set
+  nullptr,                       // tp_members
+  nullptr,                       // tp_getset
+  nullptr,                       // tp_base
+  nullptr,                       // tp_dict
+  nullptr,                       // tp_descr_get
+  nullptr,                       // tp_descr_set
   0,                             // tp_dictoffset
-  nullptr,                             // tp_init
-  nullptr,                             // tp_alloc
-  nullptr,                             // tp_new
-  nullptr,                             // tp_free
-  nullptr,                             // tp_is_gc
-  nullptr,                             // tp_bases
-  nullptr,                             // tp_mro
-  nullptr,                             // tp_cache
-  nullptr,                             // tp_subclasses
-  nullptr                              // tp_weaklist
+  nullptr,                       // tp_init
+  nullptr,                       // tp_alloc
+  nullptr,                       // tp_new
+  nullptr,                       // tp_free
+  nullptr,                       // tp_is_gc
+  nullptr,                       // tp_bases
+  nullptr,                       // tp_mro
+  nullptr,                       // tp_cache
+  nullptr,                       // tp_subclasses
+  nullptr                        // tp_weaklist
 #if PY_VERSION_HEX >= 0x02030000
-  , nullptr                            // tp_del
+  , nullptr                      // tp_del
 #endif
 #if PY_VERSION_HEX >= 0x02060000
   , 0                            // tp_version_tag
 #endif
 #if PY_VERSION_HEX >= 0x03040000
-  , nullptr                            // tp_finalize
+  , nullptr                      // tp_finalize
 #endif
 #if PY_VERSION_HEX >= 0x03080000
-  , nullptr                            // tp_vectorcall
+  , nullptr                      // tp_vectorcall
 #endif
 #if PY_VERSION_HEX >= 0x030c0000
   , 0                            // tp_watched
@@ -1310,58 +1310,58 @@ PyTypeObject phlex::experimental::PhlexSource_Type = {
   "pyphlex.source",              // tp_name
   sizeof(py_phlex_source),       // tp_basicsize
   0,                             // tp_itemsize
-  nullptr,                             // tp_dealloc
+  nullptr,                       // tp_dealloc
   0,                             // tp_vectorcall_offset / tp_print
-  nullptr,                             // tp_getattr
-  nullptr,                             // tp_setattr
-  nullptr,                             // tp_as_async / tp_compare
-  nullptr,                             // tp_repr
-  nullptr,                             // tp_as_number
-  nullptr,                             // tp_as_sequence
-  nullptr,                             // tp_as_mapping
-  nullptr,                             // tp_hash
-  nullptr,                             // tp_call
-  nullptr,                             // tp_str
-  nullptr,                             // tp_getattro
-  nullptr,                             // tp_setattro
-  nullptr,                             // tp_as_buffer
+  nullptr,                       // tp_getattr
+  nullptr,                       // tp_setattr
+  nullptr,                       // tp_as_async / tp_compare
+  nullptr,                       // tp_repr
+  nullptr,                       // tp_as_number
+  nullptr,                       // tp_as_sequence
+  nullptr,                       // tp_as_mapping
+  nullptr,                       // tp_hash
+  nullptr,                       // tp_call
+  nullptr,                       // tp_str
+  nullptr,                       // tp_getattro
+  nullptr,                       // tp_setattro
+  nullptr,                       // tp_as_buffer
   Py_TPFLAGS_DEFAULT,            // tp_flags
   "phlex source wrapper",        // tp_doc
-  nullptr,                             // tp_traverse
-  nullptr,                             // tp_clear
-  nullptr,                             // tp_richcompare
+  nullptr,                       // tp_traverse
+  nullptr,                       // tp_clear
+  nullptr,                       // tp_richcompare
   0,                             // tp_weaklistoffset
-  nullptr,                             // tp_iter
-  nullptr,                             // tp_iternext
+  nullptr,                       // tp_iter
+  nullptr,                       // tp_iternext
   sc_methods,                    // tp_methods
-  nullptr,                             // tp_members
-  nullptr,                             // tp_getset
-  nullptr,                             // tp_base
-  nullptr,                             // tp_dict
-  nullptr,                             // tp_descr_get
-  nullptr,                             // tp_descr_set
+  nullptr,                       // tp_members
+  nullptr,                       // tp_getset
+  nullptr,                       // tp_base
+  nullptr,                       // tp_dict
+  nullptr,                       // tp_descr_get
+  nullptr,                       // tp_descr_set
   0,                             // tp_dictoffset
-  nullptr,                             // tp_init
-  nullptr,                             // tp_alloc
-  nullptr,                             // tp_new
-  nullptr,                             // tp_free
-  nullptr,                             // tp_is_gc
-  nullptr,                             // tp_bases
-  nullptr,                             // tp_mro
-  nullptr,                             // tp_cache
-  nullptr,                             // tp_subclasses
-  nullptr                              // tp_weaklist
+  nullptr,                       // tp_init
+  nullptr,                       // tp_alloc
+  nullptr,                       // tp_new
+  nullptr,                       // tp_free
+  nullptr,                       // tp_is_gc
+  nullptr,                       // tp_bases
+  nullptr,                       // tp_mro
+  nullptr,                       // tp_cache
+  nullptr,                       // tp_subclasses
+  nullptr                        // tp_weaklist
 #if PY_VERSION_HEX >= 0x02030000
-  , nullptr                            // tp_del
+  , nullptr                      // tp_del
 #endif
 #if PY_VERSION_HEX >= 0x02060000
   , 0                            // tp_version_tag
 #endif
 #if PY_VERSION_HEX >= 0x03040000
-  , nullptr                            // tp_finalize
+  , nullptr                      // tp_finalize
 #endif
 #if PY_VERSION_HEX >= 0x03080000
-  , nullptr                            // tp_vectorcall
+  , nullptr                      // tp_vectorcall
 #endif
 #if PY_VERSION_HEX >= 0x030c0000
   , 0                            // tp_watched
