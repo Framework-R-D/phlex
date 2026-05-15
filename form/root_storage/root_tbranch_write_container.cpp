@@ -57,20 +57,19 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
 {
   //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
   //An empty leaf list (i.e. for a type not in this map) defaults to Float_t; this is intentional.
-  static std::map<Int_t, std::string> typeNameToLeafList = {
-    {kChar_t, "/B"},
-    {kUChar_t, "/b"},
-    {kInt_t, "/I"},
-    {kUInt_t, "/i"},
-    {kFloat_t, "/F"},
-    {kDouble_t, "/D"},
-    {kShort_t, "/S"},
-    {kUShort_t, "/s"},
-    {kLong_t, "/G"},
-    {kULong_t, "/g"},
-    {kLong64_t, "/L"},
-    {kULong64_t, "/l"},
-    {kBool_t, "/O"}};
+  static std::map<Int_t, std::string> typeNameToLeafList = {{kChar_t, "/B"},
+                                                            {kUChar_t, "/b"},
+                                                            {kInt_t, "/I"},
+                                                            {kUInt_t, "/i"},
+                                                            {kFloat_t, "/F"},
+                                                            {kDouble_t, "/D"},
+                                                            {kShort_t, "/S"},
+                                                            {kUShort_t, "/s"},
+                                                            {kLong_t, "/G"},
+                                                            {kULong_t, "/g"},
+                                                            {kLong64_t, "/L"},
+                                                            {kULong64_t, "/l"},
+                                                            {kBool_t, "/O"}};
 
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no tree found");
@@ -83,10 +82,11 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
                                DemangleName(type));
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
-      m_branch = m_tree->Branch(col_name().c_str(),
-                                static_cast<void*>(nullptr), // Overload selection
-                                (col_name() + typeNameToLeafList[static_cast<TDataType*>(dictInfo)->GetType()]).c_str(),
-                                4096);
+      m_branch = m_tree->Branch(
+        col_name().c_str(),
+        static_cast<void*>(nullptr), // Overload selection
+        (col_name() + typeNameToLeafList[static_cast<TDataType*>(dictInfo)->GetType()]).c_str(),
+        4096);
     } else {
       m_branch = m_tree->Branch(col_name().c_str(), dictInfo->GetName(), nullptr);
     }
