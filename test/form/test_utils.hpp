@@ -7,11 +7,11 @@
 #include "storage/storage_associative_write_container.hpp"
 #include "storage/storage_read_container.hpp"
 #include "util/factories.hpp"
-
-#include "TClass.h"
+#include "root_storage/demangle_name.hpp"
 
 #include <iostream>
 #include <memory>
+#include <cstring>
 
 using namespace form::detail::experimental;
 
@@ -23,7 +23,7 @@ namespace form::test {
   template <class PROD>
   inline std::string getTypeName()
   {
-    return TClass::GetClass<PROD>()->GetName();
+    return DemangleName(typeid(PROD));
   }
 
   template <class PROD>
