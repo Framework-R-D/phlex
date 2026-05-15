@@ -82,10 +82,10 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
                                DemangleName(type));
     }
     if (dictInfo->Property() & EProperty::kIsFundamental) {
-      //NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
       m_branch = m_tree->Branch(
         col_name().c_str(),
         static_cast<void*>(nullptr), // Overload selection
+        //NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         (col_name() + type_name_to_leaf_list[static_cast<TDataType*>(dictInfo)->GetType()]).c_str(),
         4096);
     } else {
