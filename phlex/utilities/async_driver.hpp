@@ -1,13 +1,31 @@
 #ifndef PHLEX_UTILITIES_ASYNC_DRIVER_HPP
 #define PHLEX_UTILITIES_ASYNC_DRIVER_HPP
 
+// ===========================================================================================
+// async_driver mediates between a TBB task thread and a dedicated driver thread that produces
+// items one at a time via yield().
+//
+// The two threads alternate ownership of a single slot using two binary semaphores:
+//
+//   item_ready_  (driver → TBB):  the driver releases this after placing an item in current_
+//                                 (or after the driver function returns).  The TBB thread
+//                                 acquires it before reading current_.
+//
+//   slot_ready_  (TBB → driver):  the TBB thread releases this after consuming current_.
+//                                 The driver acquires it inside yield() before overwriting
+//                                 current_ with the next item.
+//
+// Because each semaphore starts at 0 and is released exactly once per cycle, neither thread
+// can advance past its semaphore until the other thread is ready.  This strict alternation
+// avoids any need for a mutex or additional buffering.
+// ===========================================================================================
+
 #include <atomic>
-#include <condition_variable>
 #include <cstdint>
 #include <exception>
 #include <functional>
-#include <mutex>
 #include <optional>
+#include <semaphore>
 #include <thread>
 #include <utility>
 
@@ -35,14 +53,13 @@ namespace phlex::experimental {
             cached_exception_ = std::current_exception();
           }
           gear_ = states::park;
-          cv_.notify_one();
+          item_ready_.release();
         }};
       } else {
-        cv_.notify_one();
+        slot_ready_.release();
       }
 
-      std::unique_lock lock{mutex_};
-      cv_.wait(lock, [&] { return current_.has_value() or gear_ == states::park; });
+      item_ready_.acquire();
 
       if (cached_exception_) {
         std::rethrow_exception(cached_exception_);
@@ -55,15 +72,16 @@ namespace phlex::experimental {
     {
       // API that should only be called by the framework_graph
       gear_ = states::park;
-      cv_.notify_one();
+      slot_ready_.release();
     }
 
     void yield(RT rt)
     {
-      std::unique_lock lock{mutex_};
       current_ = std::make_optional(std::move(rt));
-      cv_.notify_one();
-      cv_.wait(lock);
+
+      item_ready_.release();
+      slot_ready_.acquire();
+
       if (gear_ == states::park) {
         // Can only be in park at this point if the framework needs to prematurely shut down
         throw std::runtime_error("Framework shutdown");
@@ -75,8 +93,8 @@ namespace phlex::experimental {
     std::optional<RT> current_;
     std::atomic<states> gear_ = states::off;
     std::jthread thread_;
-    std::mutex mutex_;
-    std::condition_variable cv_;
+    std::binary_semaphore item_ready_{0};
+    std::binary_semaphore slot_ready_{0};
     std::exception_ptr cached_exception_;
   };
 }

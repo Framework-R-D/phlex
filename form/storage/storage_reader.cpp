@@ -26,14 +26,15 @@ int StorageReader::getIndex(Token const& token,
     if (cont == m_read_containers.end()) {
       auto file = m_files.find(token.fileName());
       if (file == m_files.end()) {
-        m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
-        file = m_files.find(token.fileName());
+        file =
+          m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
+            .first;
         for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
           file->second->setAttribute(key, value);
       }
-      m_read_containers.insert(
-        {key, createReadContainer(token.technology(), token.containerName())});
-      cont = m_read_containers.find(key);
+      cont = m_read_containers
+               .insert({key, createReadContainer(token.technology(), token.containerName())})
+               .first;
       for (auto const& [key, value] :
            settings.getContainerTable(token.technology(), token.containerName()))
         cont->second->setAttribute(key, value);
@@ -62,13 +63,15 @@ void StorageReader::readContainer(Token const& token,
   if (cont == m_read_containers.end()) {
     auto file = m_files.find(token.fileName());
     if (file == m_files.end()) {
-      m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')});
-      file = m_files.find(token.fileName());
+      file =
+        m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
+          .first;
       for (auto const& [key, value] : settings.getFileTable(token.technology(), token.fileName()))
         file->second->setAttribute(key, value);
     }
-    m_read_containers.insert({key, createReadContainer(token.technology(), token.containerName())});
-    cont = m_read_containers.find(key);
+    cont = m_read_containers
+             .insert({key, createReadContainer(token.technology(), token.containerName())})
+             .first;
     cont->second->setFile(file->second);
     for (auto const& [key, value] :
          settings.getContainerTable(token.technology(), token.containerName()))

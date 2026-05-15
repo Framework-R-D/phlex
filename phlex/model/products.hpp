@@ -6,6 +6,7 @@
 #include "phlex/model/product_specification.hpp"
 
 #include <cassert>
+#include <concepts>
 #include <memory>
 #include <string>
 #include <typeinfo>
@@ -19,6 +20,7 @@ namespace phlex::experimental {
     virtual void const* address() const = 0;
     virtual std::type_info const& type() const = 0;
   };
+  using product_ptr = std::unique_ptr<product_base>;
 
   template <typename T>
   struct product : product_base {
@@ -34,8 +36,18 @@ namespace phlex::experimental {
     std::remove_cvref_t<T> obj;
   };
 
+  template <typename T>
+  product_ptr product_for(T&& t)
+  {
+    if constexpr (std::convertible_to<T, product_ptr>) {
+      return std::forward<T>(t);
+    } else {
+      return std::make_unique<product<std::remove_cvref_t<T>>>(std::forward<T>(t));
+    }
+  }
+
   class PHLEX_MODEL_EXPORT products {
-    using collection_t = std::unordered_map<product_specification, std::unique_ptr<product_base>>;
+    using collection_t = std::unordered_map<product_specification, product_ptr>;
 
   public:
     using const_iterator = collection_t::const_iterator;
@@ -44,13 +56,7 @@ namespace phlex::experimental {
     template <typename T>
     void add(product_specification const& spec, T t)
     {
-      products_.emplace(spec, std::make_unique<product<std::remove_cvref_t<T>>>(std::move(t)));
-    }
-
-    template <typename T>
-    void add(product_specification const& spec, std::unique_ptr<product<T>> t)
-    {
-      products_.emplace(spec, std::move(t));
+      products_.emplace(spec, product_for(std::move(t)));
     }
 
     template <typename Ts>
