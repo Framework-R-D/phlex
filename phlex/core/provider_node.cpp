@@ -12,12 +12,13 @@ namespace phlex::experimental {
                                std::size_t concurrency,
                                tbb::flow::graph& g,
                                provider_function provider_func,
-                               product_query output) :
+                               product_specification output_spec,
+                               identifier output_layer,
+                               identifier stage) :
     name_{std::move(name)},
-    output_product_{output},
-    output_{algorithm_name::create(std::string_view(identifier(output.creator))),
-            output.suffix.value_or(identifier("")),
-            output.type},
+    output_{std::move(output_spec)},
+    layer_{std::move(output_layer)},
+    stage_{std::move(stage)},
     provider_{g,
               concurrency,
               [this, ft = std::move(provider_func)](index_message const& index_msg) -> message {
@@ -35,13 +36,13 @@ namespace phlex::experimental {
               }}
   {
     spdlog::debug(
-      "Created provider node {} making output {}", this->full_name(), output.to_string());
+      "Created provider node {} making output {} ϵ {}", this->full_name(), output_.full(), layer_);
   }
 
   std::string provider_node::full_name() const { return name_.full(); }
 
-  product_query const& provider_node::output_product() const noexcept { return output_product_; }
+  product_specification const& provider_node::output_product() const noexcept { return output_; }
 
-  identifier const& provider_node::layer() const noexcept { return output_product_.layer; }
+  identifier const& provider_node::layer() const noexcept { return layer_; }
 
 }
