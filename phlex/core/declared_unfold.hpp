@@ -167,7 +167,7 @@ namespace phlex::experimental {
       std::size_t counter = 0;
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
-        products new_products;
+        products new_products{num_outputs};
         auto new_id = unfolded_id->make_child(child_layer(), counter);
         if constexpr (requires { std::invoke(unfold, obj, running_value, *new_id); }) {
           auto [next_value, prods] = std::invoke(unfold, obj, running_value, *new_id);

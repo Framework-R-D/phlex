@@ -89,10 +89,10 @@ namespace phlex::experimental {
           ++calls_;
           ++product_count_[store->index()->layer_hash()];
 
-          products new_products;
+          products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
-          auto new_store = std::make_shared<product_store>(
-            store->index(), this->full_name(), std::move(new_products));
+          auto new_store =
+            std::make_shared<product_store>(store->index(), this->name(), std::move(new_products));
 
           std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
         }}

@@ -126,7 +126,7 @@ namespace phlex::experimental {
     void emit_and_evict_if_done(data_cell_index_ptr const& fold_index)
     {
       if (auto counter = done_with(fold_index->hash())) {
-        auto parent = std::make_shared<product_store>(fold_index, this->full_name());
+        auto parent = std::make_shared<product_store>(fold_index, this->name());
         commit(parent);
         ++product_count_;
         tbb::flow::output_port<0>(fold_).try_put(
