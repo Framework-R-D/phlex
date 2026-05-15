@@ -85,7 +85,7 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
       m_branch = m_tree->Branch(
         col_name().c_str(),
         static_cast<void*>(nullptr), // Overload selection
-        (col_name() + typeNameToLeafList[static_cast<TDataType*>(dictInfo)->GetType()]).c_str(),
+        (col_name() + type_name_to_leaf_list[static_cast<TDataType*>(dictInfo)->GetType()]).c_str(),
         4096);
     } else {
       m_branch = m_tree->Branch(col_name().c_str(), dictInfo->GetName(), nullptr);
