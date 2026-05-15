@@ -1238,12 +1238,18 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
     PyErr_Clear();
   }
 
-  // translate and validate the output query
+  // translate and validate the output "query"
+  // Since a query in Python is just a dictionary, it isn't called out in the user API as a query
   auto opq = validate_query(output);
   if (!opq.has_value()) {
     // validate_query has set a python exception with details about the error
     return nullptr;
   }
+
+  algorithm_name creator =
+    algorithm_name::create(std::string_view(identifier(opq.value().creator)));
+  identifier layer = opq.value().layer;
+  identifier suffix = opq.value().suffix.value_or("");
 
   // insert provider node (TODO: as in transform and observe, we'll leak the
   // callable for now, until there's a proper shutdown procedure)
@@ -1252,19 +1258,26 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // is fixed, so there is no combinatorics problem.
   std::string const& out_type = output_types[0];
   if (out_type == "bool") {
-    src->ph_source->provide(functor_name, provider_cb_bool{callable}).output_product(opq.value());
+    src->ph_source->provide(functor_name, provider_cb_bool{callable})
+      .output_product(creator, suffix, layer);
   } else if (out_type == "int32_t") {
-    src->ph_source->provide(functor_name, provider_cb_int{callable}).output_product(opq.value());
+    src->ph_source->provide(functor_name, provider_cb_int{callable})
+      .output_product(creator, suffix, layer);
   } else if (out_type == "uint32_t") {
-    src->ph_source->provide(functor_name, provider_cb_uint{callable}).output_product(opq.value());
+    src->ph_source->provide(functor_name, provider_cb_uint{callable})
+      .output_product(creator, suffix, layer);
   } else if (out_type == "int64_t") {
-    src->ph_source->provide(functor_name, provider_cb_long{callable}).output_product(opq.value());
+    src->ph_source->provide(functor_name, provider_cb_long{callable})
+      .output_product(creator, suffix, layer);
   } else if (out_type == "uint64_t") {
-    src->ph_source->provide(functor_name, provider_cb_ulong{callable}).output_product(opq.value());
+    src->ph_source->provide(functor_name, provider_cb_ulong{callable})
+      .output_product(creator, suffix, layer);
   } else if (out_type == "float") {
-    src->ph_source->provide(functor_name, provider_cb_float{callable}).output_product(opq.value());
+    src->ph_source->provide(functor_name, provider_cb_float{callable})
+      .output_product(creator, suffix, layer);
   } else if (out_type == "double") {
-    src->ph_source->provide(functor_name, provider_cb_double{callable}).output_product(opq.value());
+    src->ph_source->provide(functor_name, provider_cb_double{callable})
+      .output_product(creator, suffix, layer);
   } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
@@ -1274,22 +1287,23 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
       return nullptr;
     }
     if (*dtype == "[int32_t]") {
-      src->ph_source->provide(functor_name, provider_cb_vint{callable}).output_product(opq.value());
+      src->ph_source->provide(functor_name, provider_cb_vint{callable})
+        .output_product(creator, suffix, layer);
     } else if (*dtype == "[uint32_t]") {
       src->ph_source->provide(functor_name, provider_cb_vuint{callable})
-        .output_product(opq.value());
+        .output_product(creator, suffix, layer);
     } else if (*dtype == "[int64_t]") {
       src->ph_source->provide(functor_name, provider_cb_vlong{callable})
-        .output_product(opq.value());
+        .output_product(creator, suffix, layer);
     } else if (*dtype == "[uint64_t]") {
       src->ph_source->provide(functor_name, provider_cb_vulong{callable})
-        .output_product(opq.value());
+        .output_product(creator, suffix, layer);
     } else if (*dtype == "[float]") {
       src->ph_source->provide(functor_name, provider_cb_vfloat{callable})
-        .output_product(opq.value());
+        .output_product(creator, suffix, layer);
     } else if (*dtype == "[double]") {
       src->ph_source->provide(functor_name, provider_cb_vdouble{callable})
-        .output_product(opq.value());
+        .output_product(creator, suffix, layer);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return nullptr;
