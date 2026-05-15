@@ -57,7 +57,7 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
 {
   //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
   //An empty leaf list (i.e. for a type not in this map) defaults to Float_t; this is intentional.
-  static std::map<Int_t, std::string> typeNameToLeafList = {
+  static std::map<Int_t, std::string> type_name_to_leaf_list = {
     {kChar_t, "/B"},
     {kUChar_t, "/b"},
     {kInt_t, "/I"},
