@@ -39,8 +39,7 @@ TEST_CASE("provider_test")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
-    .output_product(
-      product_query{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
+    .output_product(experimental::algorithm_name::create("input"), "happy_vertices", "spill");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});

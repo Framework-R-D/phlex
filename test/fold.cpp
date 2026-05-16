@@ -53,7 +53,7 @@ TEST_CASE("Different data layers of fold", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
+    .output_product(experimental::algorithm_name::create("input"), "number", "event");
 
   g.fold("run_add", add, concurrency::unlimited, "run")
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})

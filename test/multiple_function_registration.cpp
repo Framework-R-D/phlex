@@ -45,9 +45,9 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   g.provide("provide_numbers",
             [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })
-    .output_product(product_query{.creator = "input", .layer = "job", .suffix = "numbers"});
+    .output_product(experimental::algorithm_name::create("input"), "numbers", "job");
   g.provide("provide_offset", [](data_cell_index const&) -> unsigned { return 6u; })
-    .output_product(product_query{.creator = "input", .layer = "job", .suffix = "offset"});
+    .output_product(experimental::algorithm_name::create("input"), "offset", "job");
 
   SECTION("All free functions")
   {

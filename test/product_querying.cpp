@@ -34,16 +34,15 @@ TEST_CASE("Querying products in different ways", "[graph]")
 
   // Register providers
   g.provide("provide_number_in_job", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "job", .suffix = "number"});
+    .output_product(experimental::algorithm_name::create("input"), "number", "job");
   g.provide("provide_number_in_event", provide_idx, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "evt_number"});
+    .output_product(experimental::algorithm_name::create("input"), "evt_number", "event");
   g.provide("provide_temperature_in_event", provide_temperature, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "temperature"});
+    .output_product(experimental::algorithm_name::create("input"), "temperature", "event");
   g.provide("provide_temperature_in_event_again", provide_temperature, concurrency::unlimited)
-    .output_product(
-      product_query{.creator = "thermometer", .layer = "event", .suffix = "temperature"});
+    .output_product(experimental::algorithm_name::create("thermometer"), "temperature", "event");
   g.provide("provide_name_in_event", provide_name, concurrency::unlimited)
-    .output_product(product_query{.creator = "give_name", .layer = "event", .suffix = "name"});
+    .output_product(experimental::algorithm_name::create("give_name"), "name", "event");
 
   // Duplicate with transform
   g.transform("duplicate_temperature", [](double const& t) { return t; })

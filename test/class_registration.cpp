@@ -69,11 +69,11 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 
   // Register providers for the input products
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "job", .suffix = "number"});
+    .output_product(experimental::algorithm_name::create("input"), "number", "job");
   g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "job", .suffix = "temperature"});
+    .output_product(experimental::algorithm_name::create("input"), "temperature", "job");
   g.provide("provide_name", provide_name, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "job", .suffix = "name"});
+    .output_product(experimental::algorithm_name::create("input"), "name", "job");
 
   auto glueball = g.make<A>();
   SECTION("No framework")

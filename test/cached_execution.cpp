@@ -61,11 +61,11 @@ TEST_CASE("Cached function calls", "[data model]")
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "run", .suffix = "number"});
+    .output_product(experimental::algorithm_name::create("input"), "number", "run");
   g.provide("provide_another", provide_another, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "subrun", .suffix = "another"});
+    .output_product(experimental::algorithm_name::create("input"), "another", "subrun");
   g.provide("provide_still", provide_still, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "still"});
+    .output_product(experimental::algorithm_name::create("input"), "still", "event");
 
   g.transform("A1", call_one, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "run", .suffix = "number"})
