@@ -33,6 +33,7 @@ namespace phlex::experimental {
     std::string full_name() const;
     product_specification const& output_product() const noexcept;
     identifier const& layer() const noexcept;
+    identifier const& stage() const noexcept;
 
     tbb::flow::receiver<index_message>* input_port() { return &provider_; }
     tbb::flow::sender<message>& output_port() { return provider_; }

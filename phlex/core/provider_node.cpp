@@ -45,4 +45,6 @@ namespace phlex::experimental {
 
   identifier const& provider_node::layer() const noexcept { return layer_; }
 
+  identifier const& provider_node::stage() const noexcept { return stage_; }
+
 }
