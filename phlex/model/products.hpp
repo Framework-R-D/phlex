@@ -5,7 +5,6 @@
 
 #include "phlex/model/product_specification.hpp"
 
-#include <algorithm>
 #include <cassert>
 #include <concepts>
 #include <memory>
@@ -88,12 +87,7 @@ namespace phlex::experimental {
     template <typename T>
     T const& get(product_specification const& spec) const
     {
-      auto it = std::ranges::find(products_, spec, [](auto const& p) { return p.first; });
-      if (it == products_.end()) {
-        throw std::runtime_error(fmt::format("No product exists with the name '{}'.", spec.full()));
-      }
-
-      auto const* available_product = it->second.get();
+      auto const* available_product = find_product(spec);
 
       if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product)) {
         return desired_product->obj;
@@ -109,6 +103,7 @@ namespace phlex::experimental {
     bool empty() const noexcept;
 
   private:
+    product_base const* find_product(product_specification const& spec) const;
     static void throw_mismatched_type [[noreturn]] (product_specification const& spec,
                                                     char const* requested_type,
                                                     char const* available_type);
