@@ -4,6 +4,7 @@
 #include "form/form_reader.hpp"
 #include "form/technology.hpp"
 #include "test_helpers.hpp"
+#include "test_utils.hpp"
 
 #include <cmath>
 #include <format>
@@ -35,6 +36,7 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
+  int const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
 
   // Load expected checksums from file
   std::map<std::pair<int, int>, SegChecksum> expected_seg;
@@ -67,10 +69,10 @@ int main(int argc, char** argv)
 
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::ItemConfig config_items;
-  config_items.addItem("trackStart", filename, form::technology::ROOT_TTREE);
-  config_items.addItem("trackNumberHits", filename, form::technology::ROOT_TTREE);
-  config_items.addItem("trackStartPoints", filename, form::technology::ROOT_TTREE);
-  config_items.addItem("trackStartX", filename, form::technology::ROOT_TTREE);
+  config_items.addItem("trackStart", filename, technology);
+  config_items.addItem("trackNumberHits", filename, technology);
+  config_items.addItem("trackStartPoints", filename, technology);
+  config_items.addItem("trackStartX", filename, technology);
 
   form::experimental::config::tech_setting_config tech_config;
 
