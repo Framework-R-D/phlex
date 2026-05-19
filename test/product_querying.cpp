@@ -34,15 +34,15 @@ TEST_CASE("Querying products in different ways", "[graph]")
 
   // Register providers
   g.provide("provide_number_in_job", provide_number, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "number", "job");
+    .output_product("input", "number", "job");
   g.provide("provide_number_in_event", provide_idx, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "evt_number", "event");
+    .output_product("input", "evt_number", "event");
   g.provide("provide_temperature_in_event", provide_temperature, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "temperature", "event");
+    .output_product("input", "temperature", "event");
   g.provide("provide_temperature_in_event_again", provide_temperature, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("thermometer"), "temperature", "event");
+    .output_product("thermometer", "temperature", "event");
   g.provide("provide_name_in_event", provide_name, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("give_name"), "name", "event");
+    .output_product("give_name", "name", "event");
 
   // Duplicate with transform
   g.transform("duplicate_temperature", [](double const& t) { return t; })

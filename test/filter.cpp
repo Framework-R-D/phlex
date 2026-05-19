@@ -106,7 +106,7 @@ TEST_CASE("Two predicates", "[filtering]")
   gen.add_layer("event", {"job", 10, 1});
   experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "num", "event");
+    .output_product("input", "num", "event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
@@ -132,7 +132,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
   gen.add_layer("event", {"job", 10, 1});
   experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "num", "event");
+    .output_product("input", "num", "event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
@@ -154,7 +154,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
   gen.add_layer("event", {"job", 10, 1});
   experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "num", "event");
+    .output_product("input", "num", "event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)
@@ -184,7 +184,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
   gen.add_layer("event", {"job", 10, 1});
   experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "num", "event");
+    .output_product("input", "num", "event");
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
       .predicate(name, &not_in_range::eval, concurrency::unlimited)
@@ -210,9 +210,9 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
   gen.add_layer("event", {"job", 10, 1});
   experimental::framework_graph g{driver_for_test(gen)};
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "num", "event");
+    .output_product("input", "num", "event");
   g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "other_num", "event");
+    .output_product("input", "other_num", "event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"});
   g.predicate("odds_only", odds_only, concurrency::unlimited)

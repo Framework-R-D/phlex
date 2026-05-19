@@ -31,7 +31,7 @@ TEST_CASE("Make progress with one thread", "[graph]")
      "provide_number",
      [](data_cell_index const& index) -> unsigned int { return index.number(); },
      concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "number", "spill");
+    .output_product("input", "number", "spill");
   g.observe(
      "observe_number", [](unsigned int const /*number*/) {}, concurrency::unlimited)
     .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "number"});
@@ -54,7 +54,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
        throw std::runtime_error("Error to stop driver");
      },
      concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "number", "spill");
+    .output_product("input", "number", "spill");
 
   // Must have at least one downstream node that requires something of the
   // provider...otherwise provider will not be executed.

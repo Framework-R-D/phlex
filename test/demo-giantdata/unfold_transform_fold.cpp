@@ -59,7 +59,7 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
                                spill_index.parent()->number(),
                                spill_index.number());
             })
-    .output_product(experimental::algorithm_name::create("input"), "wgen", "spill");
+    .output_product("input", "wgen", "spill");
 
   g.unfold<demo::WaveformGenerator>(
      "WaveformGenerator",

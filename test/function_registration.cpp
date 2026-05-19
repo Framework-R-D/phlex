@@ -65,11 +65,11 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "number", "job");
+    .output_product("input", "number", "job");
   g.provide("provide_temperature", provide_temperature, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "temperature", "job");
+    .output_product("input", "temperature", "job");
   g.provide("provide_name", provide_name, concurrency::unlimited)
-    .output_product(experimental::algorithm_name::create("input"), "name", "job");
+    .output_product("input", "name", "job");
 
   SECTION("No framework")
   {
