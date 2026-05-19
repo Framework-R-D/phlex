@@ -44,6 +44,23 @@ namespace phlex {
     return true;
   }
 
+  // Check if a product_specification, layer, and stage together satisfies this query
+  bool product_query::match(experimental::product_specification const& spec,
+                            experimental::identifier const& layer,
+                            experimental::identifier const& stage) const
+  {
+    if (!match(spec)) {
+      return false;
+    }
+    if (this->layer != layer) {
+      return false;
+    }
+    if (this->stage && this->stage != stage) {
+      return false;
+    }
+    return true;
+  }
+
   std::string product_query::to_string() const
   {
     if (suffix) {

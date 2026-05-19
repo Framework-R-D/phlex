@@ -134,20 +134,33 @@ namespace phlex::experimental {
     {
     }
 
-    auto output_product(product_query output)
+    auto output_product(algorithm_name creator,
+                        identifier suffix,
+                        identifier output_layer,
+                        identifier stage = "CURRENT"_id)
     {
       using return_type = return_type<typename AlgorithmBits::algorithm_type>;
-      output.type = make_type_id<return_type>();
+      product_specification output_spec(
+        std::move(creator), std::move(suffix), make_type_id<return_type>());
 
       auto type_erased_alg = [alg = alg_.release_algorithm()](data_cell_index const& index) {
         return product_for(std::invoke(alg, index));
       };
 
-      registrar_.set_creator([this, alg = std::move(type_erased_alg), output = std::move(output)](
-                               auto /* predicates */, auto /* output_product_suffixes */) {
-        return std::make_unique<provider_node>(
-          std::move(name_), concurrency_.value, graph_, std::move(alg), std::move(output));
-      });
+      registrar_.set_creator(
+        [this,
+         alg = std::move(type_erased_alg),
+         output_spec = std::move(output_spec),
+         output_layer = std::move(output_layer),
+         stage = std::move(stage)](auto /* predicates */, auto /* output_product_suffixes */) {
+          return std::make_unique<provider_node>(std::move(name_),
+                                                 concurrency_.value,
+                                                 graph_,
+                                                 std::move(alg),
+                                                 std::move(output_spec),
+                                                 std::move(output_layer),
+                                                 std::move(stage));
+        });
     }
 
   private:

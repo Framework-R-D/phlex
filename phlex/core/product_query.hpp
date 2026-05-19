@@ -86,6 +86,11 @@ namespace phlex {
     // Check if a product_specification satisfies this query
     bool match(experimental::product_specification const& spec) const;
 
+    // Check if a product_specification, layer, and stage together satisfies this query
+    bool match(experimental::product_specification const& spec,
+               experimental::identifier const& layer,
+               experimental::identifier const& stage) const;
+
     std::string to_string() const;
 
     bool operator==(product_query const& rhs) const;

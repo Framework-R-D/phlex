@@ -97,9 +97,9 @@ TEST_CASE("Splitting the processing", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "max_number"});
+    .output_product("input", "max_number", "event");
   g.provide("provide_ten_numbers", provide_ten_numbers, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "ten_numbers"});
+    .output_product("input", "ten_numbers", "event");
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})

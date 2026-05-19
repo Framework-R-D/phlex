@@ -66,7 +66,7 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
+    .output_product("input", "number", "event");
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})

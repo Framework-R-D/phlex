@@ -43,11 +43,11 @@ TEST_CASE("Testing families", "[data model]")
 
   // Wire up providers for each level
   g.provide("run_id_provider", provide_index, concurrency::unlimited)
-    .output_product(product_query{.creator = "dummy", .layer = "run", .suffix = "id"});
+    .output_product("dummy", "id", "run");
   g.provide("subrun_id_provider", provide_index, concurrency::unlimited)
-    .output_product(product_query{.creator = "dummy", .layer = "subrun", .suffix = "id"});
+    .output_product("dummy", "id", "subrun");
   g.provide("event_id_provider", provide_index, concurrency::unlimited)
-    .output_product(product_query{.creator = "dummy", .layer = "event", .suffix = "id"});
+    .output_product("dummy", "id", "event");
 
   g.observe("se", check_two_ids)
     .input_family(product_query{.creator = "dummy", .layer = "subrun", .suffix = "id"},

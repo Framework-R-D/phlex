@@ -42,8 +42,7 @@ TEST_CASE("Output data products", "[graph]")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("provide_number", [](data_cell_index const&) -> int { return 17; })
-    .output_product(
-      product_query{.creator = "input", .layer = "spill", .suffix = "number_from_provider"});
+    .output_product("input", "number_from_provider", "spill");
 
   g.transform(
      "square_number",
