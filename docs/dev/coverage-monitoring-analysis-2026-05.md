@@ -139,35 +139,7 @@ Python files (regardless of whether C++ changes), and uses an isolated `uv` envi
 
 ### 2.4 CodeCov Configuration
 
-`codecov.yml`:
-
-```yaml
-coverage:
-  status:
-    project:
-      default:
-        flags: [unittests]   # only unittests flag governs project threshold
-        target: 80%
-        threshold: 2%
-    patch:
-      default:
-        flags: [unittests]   # only unittests flag governs patch threshold
-        target: 80%
-        threshold: 5%
-
-flags:
-  unittests:
-    carryforward: true      # no paths restriction
-  scripts:
-    paths: [scripts/]       # associated with scripts/ directory
-    carryforward: true      # no status thresholds
-
-ignore:
-  - "test/**/*"
-  - "scripts/test/**/*"
-  - "**/CMakeFiles/**"
-  - "build/**"
-```
+See [`codecov.yml`](../../codecov.yml).
 
 ### 2.5 Normalization Scripts
 
