@@ -87,7 +87,7 @@ namespace phlex::experimental {
     static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
 
   public:
-    unfold_node(algorithm_name name,
+    unfold_node(algorithm_name algo_name,
                 std::size_t concurrency,
                 std::vector<std::string> predicates,
                 tbb::flow::graph& g,
@@ -96,14 +96,14 @@ namespace phlex::experimental {
                 product_queries input_products,
                 std::vector<std::string> output_product_suffixes,
                 std::string child_layer_name) :
-      declared_unfold{std::move(name),
+      declared_unfold{std::move(algo_name),
                       std::move(predicates),
                       std::move(input_products),
                       std::move(child_layer_name)},
-      output_{to_product_specifications(full_name(),
+      output_{to_product_specifications(name().full(),
                                         std::move(output_product_suffixes),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
-      join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
+      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
       unfold_{g,
               concurrency,
               [this, p = std::move(predicate), ufold = std::move(unfold)](
@@ -111,7 +111,7 @@ namespace phlex::experimental {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
 
-                generator gen{store, this->full_name(), child_layer()};
+                generator gen{store, name().full(), child_layer()};
                 call(
                   p, ufold, store->index(), gen, messages, std::make_index_sequence<num_inputs>{});
                 std::get<2>(outputs).try_put({.index = store->index(),

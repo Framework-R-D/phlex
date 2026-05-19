@@ -59,14 +59,14 @@ namespace phlex::experimental {
     static constexpr auto number_output_products = 0ull;
     using node_ptr_type = declared_predicate_ptr;
 
-    predicate_node(algorithm_name name,
+    predicate_node(algorithm_name algo_name,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
                    AlgorithmBits alg,
                    product_queries input_products) :
-      declared_predicate{std::move(name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
+      declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
       predicate_{g,
                  concurrency,
                  [this, ft = alg.release_algorithm()](

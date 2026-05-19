@@ -14,7 +14,6 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <string>
 
 namespace phlex::experimental {
 
@@ -30,7 +29,7 @@ namespace phlex::experimental {
                   identifier output_layer,
                   identifier stage);
 
-    std::string full_name() const;
+    algorithm_name const& name() const noexcept;
     product_specification const& output_product() const noexcept;
     identifier const& layer() const noexcept;
     identifier const& stage() const noexcept;

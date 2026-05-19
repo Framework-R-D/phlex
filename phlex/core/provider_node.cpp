@@ -8,14 +8,14 @@
 #include <utility>
 
 namespace phlex::experimental {
-  provider_node::provider_node(algorithm_name name,
+  provider_node::provider_node(algorithm_name algo_name,
                                std::size_t concurrency,
                                tbb::flow::graph& g,
                                provider_function provider_func,
                                product_specification output_spec,
                                identifier output_layer,
                                identifier stage) :
-    name_{std::move(name)},
+    name_{std::move(algo_name)},
     output_{std::move(output_spec)},
     layer_{std::move(output_layer)},
     stage_{std::move(stage)},
@@ -35,10 +35,10 @@ namespace phlex::experimental {
               }}
   {
     spdlog::debug(
-      "Created provider node {} making output {} ϵ {}", this->full_name(), output_.full(), layer_);
+      "Created provider node {} making output {} ϵ {}", name().full(), output_.full(), layer_);
   }
 
-  std::string provider_node::full_name() const { return name_.full(); }
+  algorithm_name const& provider_node::name() const noexcept { return name_; }
 
   product_specification const& provider_node::output_product() const noexcept { return output_; }
 
