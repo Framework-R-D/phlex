@@ -17,9 +17,11 @@ namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT product_specification {
   public:
     product_specification();
+    // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     product_specification(char const* name);
     product_specification(std::string const& name);
     product_specification(std::string_view name);
+    // NOLINTEND(google-explicit-constructor)
     product_specification(algorithm_name qualifier, identifier suffix, type_id type);
 
     std::string full() const;

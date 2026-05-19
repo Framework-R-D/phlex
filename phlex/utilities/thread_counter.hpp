@@ -10,7 +10,7 @@ namespace phlex::experimental {
   public:
     using counter_type = std::atomic<unsigned int>;
     using value_type = counter_type::value_type;
-    thread_counter(counter_type& counter, value_type const max_value = 1) :
+    explicit thread_counter(counter_type& counter, value_type const max_value = 1) :
       counter_{counter}, max_{max_value}
     {
       auto const count = ++counter_;

@@ -9,7 +9,6 @@ cet_make_library(
   declared_observer.cpp
   declared_output.cpp
   declared_predicate.cpp
-  declared_provider.cpp
   declared_transform.cpp
   declared_unfold.cpp
   detail/make_algorithm_name.cpp
@@ -25,6 +24,7 @@ cet_make_library(
   node_catalog.cpp
   index_router.cpp
   products_consumer.cpp
+  provider_node.cpp
   registrar.cpp
   registration_api.cpp
   product_query.cpp
@@ -47,7 +47,6 @@ install(
     declared_observer.hpp
     declared_output.hpp
     declared_predicate.hpp
-    declared_provider.hpp
     declared_transform.hpp
     declared_unfold.hpp
     edge_creation_policy.hpp
@@ -64,6 +63,7 @@ install(
     node_catalog.hpp
     product_query.hpp
     products_consumer.hpp
+    provider_node.hpp
     registrar.hpp
     registration_api.hpp
     store_counters.hpp

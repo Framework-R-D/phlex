@@ -52,56 +52,56 @@ PyTypeObject phlex::experimental::PhlexLifeline_Type = {
   0,                                                 // tp_itemsize
   reinterpret_cast<destructor>(ll_dealloc),          // tp_dealloc
   0,                                                 // tp_vectorcall_offset / tp_print
-  0,                                                 // tp_getattr
-  0,                                                 // tp_setattr
-  0,                                                 // tp_as_async / tp_compare
-  0,                                                 // tp_repr
-  0,                                                 // tp_as_number
-  0,                                                 // tp_as_sequence
-  0,                                                 // tp_as_mapping
-  0,                                                 // tp_hash
-  0,                                                 // tp_call
-  0,                                                 // tp_str
-  0,                                                 // tp_getattro
-  0,                                                 // tp_setattro
-  0,                                                 // tp_as_buffer
+  nullptr,                                           // tp_getattr
+  nullptr,                                           // tp_setattr
+  nullptr,                                           // tp_as_async / tp_compare
+  nullptr,                                           // tp_repr
+  nullptr,                                           // tp_as_number
+  nullptr,                                           // tp_as_sequence
+  nullptr,                                           // tp_as_mapping
+  nullptr,                                           // tp_hash
+  nullptr,                                           // tp_call
+  nullptr,                                           // tp_str
+  nullptr,                                           // tp_getattro
+  nullptr,                                           // tp_setattro
+  nullptr,                                           // tp_as_buffer
   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,           // tp_flags
   "internal",                                        // tp_doc
   reinterpret_cast<traverseproc>(ll_traverse),       // tp_traverse
   reinterpret_cast<inquiry>(ll_clear),               // tp_clear
-  0,                                                 // tp_richcompare
+  nullptr,                                           // tp_richcompare
   0,                                                 // tp_weaklistoffset
-  0,                                                 // tp_iter
-  0,                                                 // tp_iternext
-  0,                                                 // tp_methods
-  0,                                                 // tp_members
-  0,                                                 // tp_getset
-  0,                                                 // tp_base
-  0,                                                 // tp_dict
-  0,                                                 // tp_descr_get
-  0,                                                 // tp_descr_set
+  nullptr,                                           // tp_iter
+  nullptr,                                           // tp_iternext
+  nullptr,                                           // tp_methods
+  nullptr,                                           // tp_members
+  nullptr,                                           // tp_getset
+  nullptr,                                           // tp_base
+  nullptr,                                           // tp_dict
+  nullptr,                                           // tp_descr_get
+  nullptr,                                           // tp_descr_set
   0,                                                 // tp_dictoffset
-  0,                                                 // tp_init
-  0,                                                 // tp_alloc
+  nullptr,                                           // tp_init
+  nullptr,                                           // tp_alloc
   reinterpret_cast<newfunc>(ll_new),                 // tp_new
-  0,                                                 // tp_free
-  0,                                                 // tp_is_gc
-  0,                                                 // tp_bases
-  0,                                                 // tp_mro
-  0,                                                 // tp_cache
-  0,                                                 // tp_subclasses
-  0                                                  // tp_weaklist
+  nullptr,                                           // tp_free
+  nullptr,                                           // tp_is_gc
+  nullptr,                                           // tp_bases
+  nullptr,                                           // tp_mro
+  nullptr,                                           // tp_cache
+  nullptr,                                           // tp_subclasses
+  nullptr                                            // tp_weaklist
 #if PY_VERSION_HEX >= 0x02030000
-  , 0                                                // tp_del
+  , nullptr                                          // tp_del
 #endif
 #if PY_VERSION_HEX >= 0x02060000
   , 0                                                // tp_version_tag
 #endif
 #if PY_VERSION_HEX >= 0x03040000
-  , 0                                                // tp_finalize
+  , nullptr                                          // tp_finalize
 #endif
 #if PY_VERSION_HEX >= 0x03080000
-  , 0                                                // tp_vectorcall
+  , nullptr                                          // tp_vectorcall
 #endif
 #if PY_VERSION_HEX >= 0x030c0000
   , 0                                                // tp_watched

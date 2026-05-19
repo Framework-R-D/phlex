@@ -20,7 +20,7 @@ namespace phlex::experimental {
   class PHLEX_CORE_EXPORT edge_creation_policy {
   public:
     template <typename... Args>
-    edge_creation_policy(Args&... producers);
+    explicit edge_creation_policy(Args&... producers);
 
     struct named_output_port {
       algorithm_name node;

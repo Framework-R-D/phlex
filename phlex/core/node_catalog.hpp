@@ -7,9 +7,9 @@
 #include "phlex/core/declared_observer.hpp"
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/declared_predicate.hpp"
-#include "phlex/core/declared_provider.hpp"
 #include "phlex/core/declared_transform.hpp"
 #include "phlex/core/declared_unfold.hpp"
+#include "phlex/core/provider_node.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
@@ -34,7 +34,7 @@ namespace phlex::experimental {
     simple_ptr_map<declared_fold_ptr> folds{};
     simple_ptr_map<declared_unfold_ptr> unfolds{};
     simple_ptr_map<declared_transform_ptr> transforms{};
-    simple_ptr_map<declared_provider_ptr> providers{};
+    simple_ptr_map<provider_node_ptr> providers{};
   };
 }
 

@@ -11,7 +11,7 @@ namespace form::detail::experimental {
 
   class Storage_Write_Association : public Storage_Write_Container {
   public:
-    Storage_Write_Association(std::string const& name);
+    explicit Storage_Write_Association(std::string const& name);
     ~Storage_Write_Association() override = default;
 
     void setAttribute(std::string const& key, std::string const& value) override;

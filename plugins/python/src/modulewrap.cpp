@@ -109,7 +109,7 @@ namespace {
   struct py_callback {
     PyObject* m_callable; // owned
 
-    py_callback(PyObject* callable) : m_callable(callable)
+    explicit py_callback(PyObject* callable) : m_callable(callable)
     {
       // callable is always non-null here (validated before py_callback construction)
       PyGILRAII gil;
@@ -203,14 +203,17 @@ namespace {
   // use explicit instatiations to ensure that the function signature can
   // be derived by the graph builder
   struct py_callback_1 : public py_callback<1> {
+    using py_callback<1>::py_callback;
     intptr_t operator()(intptr_t arg0) { return call(arg0); }
   };
 
   struct py_callback_2 : public py_callback<2> {
+    using py_callback<2>::py_callback;
     intptr_t operator()(intptr_t arg0, intptr_t arg1) { return call(arg0, arg1); }
   };
 
   struct py_callback_3 : public py_callback<3> {
+    using py_callback<3>::py_callback;
     intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2)
     {
       return call(arg0, arg1, arg2);
@@ -218,14 +221,17 @@ namespace {
   };
 
   struct py_callback_1v : public py_callback<1> {
+    using py_callback<1>::py_callback;
     void operator()(intptr_t arg0) { callv(arg0); }
   };
 
   struct py_callback_2v : public py_callback<2> {
+    using py_callback<2>::py_callback;
     void operator()(intptr_t arg0, intptr_t arg1) { callv(arg0, arg1); }
   };
 
   struct py_callback_3v : public py_callback<3> {
+    using py_callback<3>::py_callback;
     void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
   };
 
@@ -514,6 +520,7 @@ namespace {
   }                                                                                                \
                                                                                                    \
   struct provider_cb_##name : public py_callback<1> {                                              \
+    using py_callback<1>::py_callback;                                                             \
     cpptype operator()(data_cell_index const& id)                                                  \
     {                                                                                              \
       PyGILRAII gil;                                                                               \
@@ -632,6 +639,7 @@ namespace {
   }                                                                                                \
                                                                                                    \
   struct provider_cb_##name : public py_callback<1> {                                              \
+    using py_callback<1>::py_callback;                                                             \
     std::shared_ptr<std::vector<cpptype>> operator()(data_cell_index const& id)                    \
     {                                                                                              \
       PyGILRAII gil;                                                                               \
@@ -681,7 +689,8 @@ static PyObject* parse_args(PyObject* args,
               kw3[] = "concurrency", kw4[] = "name";
   // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
   static char* kwnames[] = {kw0, kw1, kw2, kw3, kw4, nullptr};
-  PyObject *callable = 0, *input = 0, *output = 0, *concurrency = 0, *pyname = 0;
+  PyObject *callable = nullptr, *input = nullptr, *output = nullptr, *concurrency = nullptr,
+           *pyname = nullptr;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|OOO", kwnames, &callable, &input, &output, &concurrency, &pyname)) {
     // error already set by argument parser
@@ -1102,58 +1111,58 @@ PyTypeObject phlex::experimental::PhlexModule_Type = {
   "pyphlex.module",              // tp_name
   sizeof(py_phlex_module),       // tp_basicsize
   0,                             // tp_itemsize
-  0,                             // tp_dealloc
+  nullptr,                       // tp_dealloc
   0,                             // tp_vectorcall_offset / tp_print
-  0,                             // tp_getattr
-  0,                             // tp_setattr
-  0,                             // tp_as_async / tp_compare
-  0,                             // tp_repr
-  0,                             // tp_as_number
-  0,                             // tp_as_sequence
-  0,                             // tp_as_mapping
-  0,                             // tp_hash
-  0,                             // tp_call
-  0,                             // tp_str
-  0,                             // tp_getattro
-  0,                             // tp_setattro
-  0,                             // tp_as_buffer
+  nullptr,                       // tp_getattr
+  nullptr,                       // tp_setattr
+  nullptr,                       // tp_as_async / tp_compare
+  nullptr,                       // tp_repr
+  nullptr,                       // tp_as_number
+  nullptr,                       // tp_as_sequence
+  nullptr,                       // tp_as_mapping
+  nullptr,                       // tp_hash
+  nullptr,                       // tp_call
+  nullptr,                       // tp_str
+  nullptr,                       // tp_getattro
+  nullptr,                       // tp_setattro
+  nullptr,                       // tp_as_buffer
   Py_TPFLAGS_DEFAULT,            // tp_flags
   "phlex module wrapper",        // tp_doc
-  0,                             // tp_traverse
-  0,                             // tp_clear
-  0,                             // tp_richcompare
+  nullptr,                       // tp_traverse
+  nullptr,                       // tp_clear
+  nullptr,                       // tp_richcompare
   0,                             // tp_weaklistoffset
-  0,                             // tp_iter
-  0,                             // tp_iternext
+  nullptr,                       // tp_iter
+  nullptr,                       // tp_iternext
   md_methods,                    // tp_methods
-  0,                             // tp_members
-  0,                             // tp_getset
-  0,                             // tp_base
-  0,                             // tp_dict
-  0,                             // tp_descr_get
-  0,                             // tp_descr_set
+  nullptr,                       // tp_members
+  nullptr,                       // tp_getset
+  nullptr,                       // tp_base
+  nullptr,                       // tp_dict
+  nullptr,                       // tp_descr_get
+  nullptr,                       // tp_descr_set
   0,                             // tp_dictoffset
-  0,                             // tp_init
-  0,                             // tp_alloc
-  0,                             // tp_new
-  0,                             // tp_free
-  0,                             // tp_is_gc
-  0,                             // tp_bases
-  0,                             // tp_mro
-  0,                             // tp_cache
-  0,                             // tp_subclasses
-  0                              // tp_weaklist
+  nullptr,                       // tp_init
+  nullptr,                       // tp_alloc
+  nullptr,                       // tp_new
+  nullptr,                       // tp_free
+  nullptr,                       // tp_is_gc
+  nullptr,                       // tp_bases
+  nullptr,                       // tp_mro
+  nullptr,                       // tp_cache
+  nullptr,                       // tp_subclasses
+  nullptr                        // tp_weaklist
 #if PY_VERSION_HEX >= 0x02030000
-  , 0                            // tp_del
+  , nullptr                      // tp_del
 #endif
 #if PY_VERSION_HEX >= 0x02060000
   , 0                            // tp_version_tag
 #endif
 #if PY_VERSION_HEX >= 0x03040000
-  , 0                            // tp_finalize
+  , nullptr                      // tp_finalize
 #endif
 #if PY_VERSION_HEX >= 0x03080000
-  , 0                            // tp_vectorcall
+  , nullptr                      // tp_vectorcall
 #endif
 #if PY_VERSION_HEX >= 0x030c0000
   , 0                            // tp_watched
@@ -1176,7 +1185,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   static char kw0[] = "callable", kw1[] = "output_product", kw2[] = "name";
   // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
   static char* kwnames[] = {kw0, kw1, kw2, nullptr};
-  PyObject *callable = 0, *output = 0, *pyname = 0;
+  PyObject *callable = nullptr, *output = nullptr, *pyname = nullptr;
   if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O", kwnames, &callable, &output, &pyname)) {
     // error already set by argument parser
     return nullptr;
@@ -1309,58 +1318,58 @@ PyTypeObject phlex::experimental::PhlexSource_Type = {
   "pyphlex.source",              // tp_name
   sizeof(py_phlex_source),       // tp_basicsize
   0,                             // tp_itemsize
-  0,                             // tp_dealloc
+  nullptr,                       // tp_dealloc
   0,                             // tp_vectorcall_offset / tp_print
-  0,                             // tp_getattr
-  0,                             // tp_setattr
-  0,                             // tp_as_async / tp_compare
-  0,                             // tp_repr
-  0,                             // tp_as_number
-  0,                             // tp_as_sequence
-  0,                             // tp_as_mapping
-  0,                             // tp_hash
-  0,                             // tp_call
-  0,                             // tp_str
-  0,                             // tp_getattro
-  0,                             // tp_setattro
-  0,                             // tp_as_buffer
+  nullptr,                       // tp_getattr
+  nullptr,                       // tp_setattr
+  nullptr,                       // tp_as_async / tp_compare
+  nullptr,                       // tp_repr
+  nullptr,                       // tp_as_number
+  nullptr,                       // tp_as_sequence
+  nullptr,                       // tp_as_mapping
+  nullptr,                       // tp_hash
+  nullptr,                       // tp_call
+  nullptr,                       // tp_str
+  nullptr,                       // tp_getattro
+  nullptr,                       // tp_setattro
+  nullptr,                       // tp_as_buffer
   Py_TPFLAGS_DEFAULT,            // tp_flags
   "phlex source wrapper",        // tp_doc
-  0,                             // tp_traverse
-  0,                             // tp_clear
-  0,                             // tp_richcompare
+  nullptr,                       // tp_traverse
+  nullptr,                       // tp_clear
+  nullptr,                       // tp_richcompare
   0,                             // tp_weaklistoffset
-  0,                             // tp_iter
-  0,                             // tp_iternext
+  nullptr,                       // tp_iter
+  nullptr,                       // tp_iternext
   sc_methods,                    // tp_methods
-  0,                             // tp_members
-  0,                             // tp_getset
-  0,                             // tp_base
-  0,                             // tp_dict
-  0,                             // tp_descr_get
-  0,                             // tp_descr_set
+  nullptr,                       // tp_members
+  nullptr,                       // tp_getset
+  nullptr,                       // tp_base
+  nullptr,                       // tp_dict
+  nullptr,                       // tp_descr_get
+  nullptr,                       // tp_descr_set
   0,                             // tp_dictoffset
-  0,                             // tp_init
-  0,                             // tp_alloc
-  0,                             // tp_new
-  0,                             // tp_free
-  0,                             // tp_is_gc
-  0,                             // tp_bases
-  0,                             // tp_mro
-  0,                             // tp_cache
-  0,                             // tp_subclasses
-  0                              // tp_weaklist
+  nullptr,                       // tp_init
+  nullptr,                       // tp_alloc
+  nullptr,                       // tp_new
+  nullptr,                       // tp_free
+  nullptr,                       // tp_is_gc
+  nullptr,                       // tp_bases
+  nullptr,                       // tp_mro
+  nullptr,                       // tp_cache
+  nullptr,                       // tp_subclasses
+  nullptr                        // tp_weaklist
 #if PY_VERSION_HEX >= 0x02030000
-  , 0                            // tp_del
+  , nullptr                      // tp_del
 #endif
 #if PY_VERSION_HEX >= 0x02060000
   , 0                            // tp_version_tag
 #endif
 #if PY_VERSION_HEX >= 0x03040000
-  , 0                            // tp_finalize
+  , nullptr                      // tp_finalize
 #endif
 #if PY_VERSION_HEX >= 0x03080000
-  , 0                            // tp_vectorcall
+  , nullptr                      // tp_vectorcall
 #endif
 #if PY_VERSION_HEX >= 0x030c0000
   , 0                            // tp_watched

@@ -8,7 +8,7 @@ class TrackStart;
 
 class ToyTracker {
 public:
-  ToyTracker(int maxTracks);
+  explicit ToyTracker(int maxTracks);
   ~ToyTracker() = default;
 
   std::vector<TrackStart> operator()();
