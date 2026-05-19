@@ -24,11 +24,6 @@ namespace phlex::experimental {
   algorithm_name const& product_store::source() const noexcept { return source_; }
   data_cell_index_ptr const& product_store::index() const noexcept { return id_; }
 
-  bool product_store::contains_product(product_specification const& key) const
-  {
-    return products_.contains(key);
-  }
-
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
   {
     if (a->index()->depth() > b->index()->depth()) {

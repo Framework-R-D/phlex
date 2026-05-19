@@ -96,7 +96,6 @@ namespace phlex::experimental {
       throw_mismatched_type(spec, typeid(T).name(), available_product->type().name());
     }
 
-    bool contains(product_specification const& spec) const;
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
     size_type size() const noexcept;
