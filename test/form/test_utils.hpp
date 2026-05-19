@@ -29,7 +29,10 @@ namespace form::test {
   template <class PROD>
   inline std::string makeTestBranchName()
   {
-    return std::string(testTreeName) + "/" + getTypeName<PROD>();
+    auto branchName = std::string(testTreeName) + "/" + getTypeName<PROD>();
+    for(size_t firstSpace = branchName.find_first_of(' '); firstSpace != std::string::npos; firstSpace = branchName.find_first_of(' '))
+      branchName = branchName.erase(firstSpace, 1);
+    return branchName;
   }
 
   inline std::vector<std::shared_ptr<IStorage_Write_Container>> doWrite(
