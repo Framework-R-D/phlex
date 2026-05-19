@@ -142,17 +142,18 @@ Python files (regardless of whether C++ changes), and uses an isolated `uv` envi
 `codecov.yml`:
 
 ```yaml
-status:
-  project:
-    default:
-      flags: [unittests]   # only unittests flag governs project threshold
-      target: 80%
-      threshold: 2%
-  patch:
-    default:
-      flags: [unittests]   # only unittests flag governs patch threshold
-      target: 80%
-      threshold: 5%
+coverage:
+  status:
+    project:
+      default:
+        flags: [unittests]   # only unittests flag governs project threshold
+        target: 80%
+        threshold: 2%
+    patch:
+      default:
+        flags: [unittests]   # only unittests flag governs patch threshold
+        target: 80%
+        threshold: 5%
 
 flags:
   unittests:
@@ -270,16 +271,17 @@ so coverage.py expands it to an absolute path like `/repo/scripts/test/*`. If py
 from a different directory (e.g., a build directory), the pattern would fail to match. The mechanism
 is correct, but the justification in the comment is wrong.
 
-#### Deficiency 5 (Minor): `conftest.py` in `test/python/` may appear in `coverage-python.xml`
+#### Potential Risk 5 (Minor): if a `conftest.py` is added under `test/python/`, it may appear in `coverage-python.xml`
 
 The `coverage-python` target passes `--cov=${CMAKE_CURRENT_SOURCE_DIR}` (i.e., `test/python/`).
 The `test/python/.coveragerc` omits `test_*.py` and `*/test/*`. However, `conftest.py` does not
 match `test_*.py` (it does not start with `test_`), and whether it matches `*/test/*` depends on
 coverage.py's fnmatch semantics — `*` in fnmatch does not cross path separator boundaries, so
-`*/test/*` would match `/x/test/conftest.py` but not `/x/test/python/conftest.py`. A `conftest.py`
-at `test/python/conftest.py` may therefore appear in `coverage-python.xml` and be attributed to the
-`unittests` flag. CodeCov's `ignore: ["test/**/*"]` will filter it out of the CodeCov display, but
-it still inflates the uploaded XML. This is cosmetic.
+`*/test/*` would match `/x/test/conftest.py` but not `/x/test/python/conftest.py`. If a
+`conftest.py` is added at `test/python/conftest.py` in the future, it may therefore appear in
+`coverage-python.xml` and be attributed to the `unittests` flag. CodeCov's
+`ignore: ["test/**/*"]` would still filter it out of the CodeCov display, but the uploaded XML
+could include it. This would be cosmetic.
 
 ### 3.4 Summary Table
 
