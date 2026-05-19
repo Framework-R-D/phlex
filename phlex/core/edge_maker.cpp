@@ -21,13 +21,8 @@ namespace phlex::experimental {
         bool found_match = false;
         for (auto const& [_, p] : providers) {
           auto& provider = *p;
-          if (port.input_product.match(provider.output_product()) &&
-              (port.input_product.layer == provider.layer()) &&
-              port.input_product
-                .stage // for some reason clang-tidy didn't like a simple has_value() ? ... :
-                .transform(
-                  [&stage = provider.stage()](auto const& stage_q) { return stage_q == stage; })
-                .value_or(true)) {
+          if (port.input_product.match(
+                provider.output_product(), provider.layer(), provider.stage())) {
             if (!result.contains(provider.full_name())) {
               result.try_emplace(provider.full_name(), port.input_product, provider.input_port());
             }
