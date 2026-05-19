@@ -111,11 +111,12 @@ namespace phlex::experimental {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
 
-                generator g{store, this->full_name(), child_layer()};
-                call(p, ufold, store->index(), g, messages, std::make_index_sequence<num_inputs>{});
+                generator gen{store, this->full_name(), child_layer()};
+                call(
+                  p, ufold, store->index(), gen, messages, std::make_index_sequence<num_inputs>{});
                 std::get<2>(outputs).try_put({.index = store->index(),
-                                              .layer_hash = g.child_layer_hash(),
-                                              .count = g.child_count()});
+                                              .layer_hash = gen.child_layer_hash(),
+                                              .count = gen.child_count()});
               }}
     {
       if constexpr (num_inputs > 1ull) {

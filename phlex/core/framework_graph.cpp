@@ -190,19 +190,19 @@ namespace phlex::experimental {
     // framework.  To assemble the report, data-cell indices emitted by the input node are
     // recorded as well as any data-cell indices emitted by an unfold.
 
-    // FIXME: Eventually the separate index_receiver_ and index_router_.index_receiver() may be combined.
-    //        Should also consider whether inline tasks can be used.
+    // FIXME: Eventually the separate index_receiver_ and index_router_.unfold_index_receiver()
+    //        may be combined.
     make_edge(src_, index_receiver_);
     make_edge(index_receiver_, hierarchy_node_);
-    make_edge(index_router_.index_receiver(), hierarchy_node_);
+    make_edge(index_router_.unfold_index_receiver(), hierarchy_node_);
 
     for (auto& [_, node] : nodes_.folds) {
       make_edge(index_router_.flusher(), node->flush_port());
     }
 
     for (auto& [_, node] : nodes_.unfolds) {
-      make_edge(node->output_index_port(), index_router_.index_receiver());
-      make_edge(node->flush_sender(), index_router_.flush_receiver());
+      make_edge(node->output_index_port(), index_router_.unfold_index_receiver());
+      make_edge(node->flush_sender(), index_router_.unfold_flush_receiver());
     }
   }
 }

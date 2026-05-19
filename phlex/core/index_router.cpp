@@ -107,23 +107,21 @@ namespace phlex::experimental {
   //========================================================================================
   // index_router implementation
   index_router::index_router(tbb::flow::graph& g) :
-    index_receiver_{g,
-                    tbb::flow::unlimited,
-                    [this](index_message const& msg) -> data_cell_index_ptr {
-                      auto const& [index, message_id, _] = msg;
-                      assert(index);
-                      return route(index, index_is_lowest_layer(index), message_id);
-                    }},
-    flush_receiver_{g,
-                    tbb::flow::unlimited,
-                    [this](unfold_flush input) -> tbb::flow::continue_msg {
-                      auto&& [index, layer_hash, count] = input;
-                      apply_expected_count(*gate_for(index), layer_hash, count);
-                      // Because the flush receiver receives flush values, the index cannot
-                      // correspond to a lowest layer.
-                      flush_if_done(index);
-                      return {};
-                    }},
+    unfold_index_receiver_{g,
+                           tbb::flow::unlimited,
+                           [this](index_message const& msg) -> data_cell_index_ptr {
+                             auto const& [index, message_id, _] = msg;
+                             assert(index);
+                             return route(index, index_is_lowest_layer(index), message_id);
+                           }},
+    unfold_flush_receiver_{g,
+                           tbb::flow::unlimited,
+                           [this](unfold_flush input) -> tbb::flow::continue_msg {
+                             auto&& [index, layer_hash, count] = input;
+                             apply_expected_count(*gate_for(index), layer_hash, count);
+                             flush_if_done(index);
+                             return {};
+                           }},
     flusher_{g}
   {
   }

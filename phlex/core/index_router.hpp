@@ -71,11 +71,14 @@ namespace phlex::experimental {
     void drain(index_flushes flushes);
     flusher_t& flusher() { return flusher_; }
 
-    tbb::flow::function_node<index_message, data_cell_index_ptr>& index_receiver()
+    tbb::flow::function_node<index_message, data_cell_index_ptr>& unfold_index_receiver()
     {
-      return index_receiver_;
+      return unfold_index_receiver_;
     }
-    tbb::flow::function_node<unfold_flush>& flush_receiver() { return flush_receiver_; }
+    tbb::flow::function_node<unfold_flush>& unfold_flush_receiver()
+    {
+      return unfold_flush_receiver_;
+    }
 
   private:
     data_cell_index_ptr route(data_cell_index_ptr index,
@@ -99,8 +102,8 @@ namespace phlex::experimental {
     flush_gate_ptr gate_for(data_cell_index_ptr const& index);
     void flush_if_done(data_cell_index_ptr index);
 
-    tbb::flow::function_node<index_message, data_cell_index_ptr> index_receiver_;
-    tbb::flow::function_node<unfold_flush> flush_receiver_;
+    tbb::flow::function_node<index_message, data_cell_index_ptr> unfold_index_receiver_;
+    tbb::flow::function_node<unfold_flush> unfold_flush_receiver_;
     std::atomic<std::size_t> received_indices_{};
     flusher_t flusher_;
     tbb::concurrent_unordered_map<std::size_t, bool> is_lowest_layer_hashes_;
