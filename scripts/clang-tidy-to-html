@@ -1,0 +1,722 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "pyyaml>=6.0.0",
+# ]
+# ///
+"""
+Generate a dark-mode Bootstrap HTML report for clang-tidy output.
+
+Expected ZIP contents:
+  - clang-tidy-new-issues.txt
+  - clang-tidy.log
+  - clang-tidy-fixes.yaml
+
+Usage:
+  ./clang-tidy-to-html clang-tidy-check.zip -o clang-tidy-report.html
+"""
+
+from __future__ import annotations
+
+import argparse
+import html
+import re
+import zipfile
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+
+@dataclass(frozen=True)
+class Issue:
+    path: str
+    line: int | None
+    column: int | None
+    level: str
+    message: str
+    check: str | None
+
+
+@dataclass
+class Diagnostic:
+    path: str
+    offset: int | None
+    check: str
+    level: str
+    message: str
+    replacements: list[dict[str, Any]]
+
+
+ISSUE_RE = re.compile(
+    r"^(?P<path>.*?):(?P<line>\d+)"
+    r"(?::(?P<column>\d+))?:\s*"
+    r"(?P<level>warning|error|note):\s*"
+    r"(?P<message>.*?)"
+    r"(?:\s*\[(?P<check>[^\]]+)\])?\s*$"
+)
+
+LOG_DIAG_RE = re.compile(
+    r"^(?P<path>.*?):(?P<line>\d+):(?P<column>\d+):\s*"
+    r"(?P<level>warning|error|note):\s*"
+    r"(?P<message>.*?)"
+    r"(?:\s*\[(?P<check>[^\]]+)\])?\s*$"
+)
+
+
+def read_zip_text(zf: zipfile.ZipFile, name: str) -> str:
+    try:
+        return zf.read(name).decode("utf-8", errors="replace")
+    except KeyError:
+        return ""
+
+
+def short_path(path: str) -> str:
+    marker = "/phlex-src/"
+    if marker in path:
+        return path.split(marker, 1)[1]
+    return path.lstrip("/")
+
+
+def parse_issues(text: str) -> list[Issue]:
+    issues: list[Issue] = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        match = ISSUE_RE.match(line)
+        if not match:
+            issues.append(
+                Issue(
+                    path=line,
+                    line=None,
+                    column=None,
+                    level="warning",
+                    message=line,
+                    check=None,
+                )
+            )
+            continue
+
+        issues.append(
+            Issue(
+                path=match.group("path"),
+                line=int(match.group("line")),
+                column=int(match.group("column")) if match.group("column") else None,
+                level=match.group("level"),
+                message=match.group("message"),
+                check=match.group("check"),
+            )
+        )
+
+    return issues
+
+
+def parse_all_warnings_from_log(log_text: str) -> list[Issue]:
+    issues: list[Issue] = []
+
+    for line in log_text.splitlines():
+        match = LOG_DIAG_RE.match(line.strip())
+        if not match:
+            continue
+
+        issues.append(
+            Issue(
+                path=match.group("path"),
+                line=int(match.group("line")),
+                column=int(match.group("column")),
+                level=match.group("level"),
+                message=match.group("message"),
+                check=match.group("check"),
+            )
+        )
+
+    return issues
+
+
+def parse_fixes_yaml(text: str) -> list[Diagnostic]:
+    if not text.strip():
+        return []
+
+    data = yaml.safe_load(text) or {}
+    diagnostics: list[Diagnostic] = []
+
+    for item in data.get("Diagnostics", []):
+        msg = item.get("DiagnosticMessage", {}) or {}
+        replacements = msg.get("Replacements", []) or []
+
+        diagnostics.append(
+            Diagnostic(
+                path=msg.get("FilePath", ""),
+                offset=msg.get("FileOffset"),
+                check=item.get("DiagnosticName", ""),
+                level=item.get("Level", ""),
+                message=msg.get("Message", ""),
+                replacements=replacements,
+            )
+        )
+
+    return diagnostics
+
+
+def extract_log_blocks(log_text: str, context_after: int = 8) -> dict[tuple[str, int], str]:
+    lines = log_text.splitlines()
+    blocks: dict[tuple[str, int], str] = {}
+
+    for i, line in enumerate(lines):
+        match = LOG_DIAG_RE.match(line)
+        if not match:
+            continue
+
+        path = match.group("path")
+        line_no = int(match.group("line"))
+
+        block_lines = [line]
+        j = i + 1
+
+        while j < len(lines) and j <= i + context_after:
+            next_line = lines[j]
+            if LOG_DIAG_RE.match(next_line):
+                break
+            block_lines.append(next_line)
+            j += 1
+
+        blocks[(path, line_no)] = "\n".join(block_lines)
+
+    return blocks
+
+
+def find_matching_diagnostic(issue: Issue, diagnostics: list[Diagnostic]) -> Diagnostic | None:
+    issue_short = short_path(issue.path)
+
+    candidates: list[Diagnostic] = []
+    for diag in diagnostics:
+        if short_path(diag.path) != issue_short:
+            continue
+        if issue.check and diag.check != issue.check:
+            continue
+        if issue.message and issue.message not in diag.message and diag.message not in issue.message:
+            continue
+        candidates.append(diag)
+
+    if candidates:
+        return candidates[0]
+
+    for diag in diagnostics:
+        if short_path(diag.path) == issue_short:
+            return diag
+
+    return None
+
+
+def find_log_block(issue: Issue, log_blocks: dict[tuple[str, int], str]) -> str:
+    if issue.line is None:
+        return ""
+
+    direct = log_blocks.get((issue.path, issue.line))
+    if direct:
+        return direct
+
+    for (path, line_no), block in log_blocks.items():
+        if short_path(path) == short_path(issue.path) and line_no == issue.line:
+            return block
+
+    return ""
+
+
+def highlight_context(text: str) -> str:
+    escaped = html.escape(text)
+    lines = []
+
+    for line in escaped.splitlines():
+        if re.match(r"^.*?:\d+:\d+:\s*(warning|error|note):", line):
+            line = re.sub(
+                r"(warning|error|note):",
+                r"<span class='tok-level'>\1:</span>",
+                line,
+                count=1,
+            )
+            line = re.sub(r"(\[[^\]]+\])$", r"<span class='tok-check'>\1</span>", line)
+            line = f"<span class='diag-line'>{line}</span>"
+        elif line.strip().startswith("^") or line.strip().startswith("~"):
+            line = f"<span class='caret-line'>{line}</span>"
+        elif line.strip().startswith("|"):
+            line = f"<span class='source-line'>{line}</span>"
+
+        lines.append(line)
+
+    return "\n".join(lines)
+
+
+def replacement_summary(replacements: list[dict[str, Any]]) -> str:
+    if not replacements:
+        return "<span class='text-secondary'>No machine-applicable fix recorded.</span>"
+
+    rows = []
+    for repl in replacements:
+        replacement_text = repl.get("ReplacementText", "")
+        rows.append(
+            "<tr>"
+            f"<td class='path-cell'><code>{html.escape(short_path(str(repl.get('FilePath', ''))))}</code></td>"
+            f"<td>{html.escape(str(repl.get('Offset', '')))}</td>"
+            f"<td>{html.escape(str(repl.get('Length', '')))}</td>"
+            f"<td><pre class='mb-0 small fix-pre'>{html.escape(replacement_text)}</pre></td>"
+            "</tr>"
+        )
+
+    return (
+        "<div class='table-responsive-soft'>"
+        "<table class='table table-dark table-sm table-bordered align-middle'>"
+        "<thead><tr><th>File</th><th>Offset</th><th>Length</th><th>Replacement</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table>"
+        "</div>"
+    )
+
+
+def badge_class(level: str) -> str:
+    return {
+        "error": "text-bg-danger",
+        "warning": "text-bg-warning",
+        "note": "text-bg-secondary",
+    }.get(level.lower(), "text-bg-secondary")
+
+
+def issue_location(issue: Issue) -> str:
+    location = short_path(issue.path)
+    if issue.line is not None:
+        location += f":{issue.line}"
+    if issue.column is not None:
+        location += f":{issue.column}"
+    return location
+
+
+def issue_key(issue: Issue) -> tuple[str, int | None, int | None, str | None, str]:
+    return (short_path(issue.path), issue.line, issue.column, issue.check, issue.message)
+
+
+def dedupe_issues(issues: list[Issue]) -> list[Issue]:
+    seen: set[tuple[str, int | None, int | None, str | None, str]] = set()
+    result: list[Issue] = []
+
+    for issue in issues:
+        key = issue_key(issue)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(issue)
+
+    return result
+
+
+def render_issue_detail(
+    issue: Issue,
+    diagnostics: list[Diagnostic],
+    log_blocks: dict[tuple[str, int], str],
+) -> str:
+    diag = find_matching_diagnostic(issue, diagnostics)
+    log_block = find_log_block(issue, log_blocks)
+    fix_html = replacement_summary(diag.replacements if diag else [])
+
+    return f"""
+      <div class="issue-detail">
+        <p class="mb-2">
+          <strong>Location:</strong>
+          <code>{html.escape(issue_location(issue))}</code>
+        </p>
+
+        <h6 class="mt-4">clang-tidy context</h6>
+        <pre class="context-pre border rounded p-3 small"><code>{highlight_context(log_block or "No matching clang-tidy log context found.")}</code></pre>
+
+        <h6 class="mt-4">Fix information</h6>
+        {fix_html}
+      </div>
+    """
+
+
+def render_issue_accordion(
+    issues: list[Issue],
+    diagnostics: list[Diagnostic],
+    log_blocks: dict[tuple[str, int], str],
+    accordion_id: str,
+    empty_html: str,
+) -> str:
+    if not issues:
+        return empty_html
+
+    items = []
+
+    for index, issue in enumerate(issues, start=1):
+        item_id = f"{accordion_id}-item-{index}"
+        check = issue.check or "unknown-check"
+
+        items.append(
+            f"""
+            <div class="accordion-item">
+              <h3 class="accordion-header">
+                <button
+                  class="accordion-button collapsed issue-button"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#{item_id}"
+                  aria-expanded="false"
+                  aria-controls="{item_id}"
+                >
+                  <span class="badge {badge_class(issue.level)} me-2">{html.escape(issue.level)}</span>
+                  <span class="issue-summary">
+                    <code>{html.escape(check)}</code>
+                    <span class="summary-message">{html.escape(issue.message)}</span>
+                    <code class="summary-location">{html.escape(issue_location(issue))}</code>
+                  </span>
+                </button>
+              </h3>
+
+              <div
+                id="{item_id}"
+                class="accordion-collapse collapse"
+                data-bs-parent="#{accordion_id}"
+              >
+                <div class="accordion-body">
+                  {render_issue_detail(issue, diagnostics, log_blocks)}
+                </div>
+              </div>
+            </div>
+            """
+        )
+
+    return f"""
+    <div class="accordion issue-accordion" id="{accordion_id}">
+      {''.join(items)}
+    </div>
+    """
+
+
+def render_report(
+    new_issues: list[Issue],
+    all_warnings: list[Issue],
+    diagnostics: list[Diagnostic],
+    log_blocks: dict[tuple[str, int], str],
+    title: str,
+) -> str:
+    fixable_count = 0
+    for issue in new_issues:
+        diag = find_matching_diagnostic(issue, diagnostics)
+        if diag and diag.replacements:
+            fixable_count += 1
+
+    new_issues_html = render_issue_accordion(
+        new_issues,
+        diagnostics,
+        log_blocks,
+        "newIssuesAccordion",
+        '<div class="alert alert-success">No new issues found.</div>',
+    )
+
+    all_warnings_html = render_issue_accordion(
+        all_warnings,
+        diagnostics,
+        log_blocks,
+        "allWarningsAccordion",
+        '<div class="alert alert-secondary">No warnings found in clang-tidy.log.</div>',
+    )
+
+    return f"""<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{html.escape(title)}</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <style>
+    :root {{
+      --report-bg: #0d1117;
+      --report-card: #161b22;
+      --report-border: #30363d;
+      --report-text: #e6edf3;
+      --report-muted: #8b949e;
+      --report-pre: #010409;
+      --report-warning: #d29922;
+      --report-note: #79c0ff;
+      --report-check: #a5d6ff;
+      --report-source: #c9d1d9;
+      --report-caret: #ff7b72;
+    }}
+
+    body {{
+      background: var(--report-bg);
+      color: var(--report-text);
+      overflow-x: hidden;
+    }}
+
+    .container {{
+      max-width: 1200px;
+    }}
+
+    .card,
+    .accordion-item {{
+      background: var(--report-card);
+      border-color: var(--report-border);
+    }}
+
+    .card-header,
+    .accordion-button {{
+      background: #111820;
+      border-color: var(--report-border);
+      color: var(--report-text);
+    }}
+
+    .accordion-button:not(.collapsed) {{
+      background: #1f2937;
+      color: var(--report-text);
+      box-shadow: none;
+    }}
+
+    .accordion-button:focus {{
+      box-shadow: 0 0 0 .15rem rgba(121, 192, 255, .25);
+    }}
+
+    .issue-button {{
+      align-items: flex-start;
+      gap: .25rem;
+      min-width: 0;
+      white-space: normal;
+    }}
+
+    .issue-summary {{
+      display: grid;
+      grid-template-columns: minmax(12rem, 22rem) minmax(0, 1fr) minmax(10rem, 24rem);
+      gap: .75rem;
+      width: 100%;
+      min-width: 0;
+      align-items: start;
+    }}
+
+    .summary-message,
+    .summary-location,
+    .path-cell,
+    code,
+    pre {{
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }}
+
+    .summary-location {{
+      color: var(--report-muted);
+    }}
+
+    .context-pre,
+    .fix-pre {{
+      background: var(--report-pre);
+      color: var(--report-source);
+      white-space: pre-wrap;
+      tab-size: 2;
+      max-width: 100%;
+      overflow-x: hidden;
+    }}
+
+    code {{
+      color: inherit;
+    }}
+
+    .tok-level {{
+      color: var(--report-warning);
+      font-weight: 700;
+    }}
+
+    .tok-check {{
+      color: var(--report-check);
+      font-weight: 600;
+    }}
+
+    .diag-line {{
+      color: var(--report-note);
+      font-weight: 600;
+    }}
+
+    .source-line {{
+      color: var(--report-source);
+    }}
+
+    .caret-line {{
+      color: var(--report-caret);
+      font-weight: 700;
+    }}
+
+    .table {{
+      --bs-table-bg: var(--report-card);
+      --bs-table-border-color: var(--report-border);
+      table-layout: fixed;
+      width: 100%;
+    }}
+
+    .table th,
+    .table td {{
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }}
+
+    .table-responsive-soft {{
+      width: 100%;
+      overflow-x: hidden;
+    }}
+
+    .collapsed-section > .accordion-collapse > .accordion-body {{
+      padding: 1rem;
+    }}
+
+    @media (max-width: 900px) {{
+      .issue-summary {{
+        grid-template-columns: 1fr;
+        gap: .35rem;
+      }}
+    }}
+  </style>
+</head>
+
+<body>
+  <main class="container py-4">
+    <div class="mb-4">
+      <h1 class="mb-2">{html.escape(title)}</h1>
+      <p class="text-secondary mb-0">
+        New clang-tidy issues and all warnings, each expandable for context and fix information.
+      </p>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="text-secondary small">New issues</div>
+            <div class="display-6">{len(new_issues)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="text-secondary small">New issues with fixes</div>
+            <div class="display-6">{fixable_count}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="text-secondary small">All warnings</div>
+            <div class="display-6">{len(all_warnings)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="text-secondary small">YAML diagnostics</div>
+            <div class="display-6">{len(diagnostics)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion mb-4" id="sectionsAccordion">
+      <div class="accordion-item collapsed-section">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#newIssuesSection"
+            aria-expanded="true"
+            aria-controls="newIssuesSection"
+          >
+            New issues ({len(new_issues)})
+          </button>
+        </h2>
+        <div id="newIssuesSection" class="accordion-collapse collapse show">
+          <div class="accordion-body">
+            {new_issues_html}
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item collapsed-section">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button collapsed"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#allWarningsSection"
+            aria-expanded="false"
+            aria-controls="allWarningsSection"
+          >
+            All warnings ({len(all_warnings)})
+          </button>
+        </h2>
+        <div id="allWarningsSection" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            {all_warnings_html}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+"""
+
+
+def generate_report(zip_path: Path, output_path: Path) -> None:
+    with zipfile.ZipFile(zip_path) as zf:
+        new_issues_text = read_zip_text(zf, "clang-tidy-new-issues.txt")
+        log_text = read_zip_text(zf, "clang-tidy.log")
+        fixes_text = read_zip_text(zf, "clang-tidy-fixes.yaml")
+
+    new_issues = dedupe_issues(parse_issues(new_issues_text))
+    all_warnings = dedupe_issues(parse_all_warnings_from_log(log_text))
+    diagnostics = parse_fixes_yaml(fixes_text)
+    log_blocks = extract_log_blocks(log_text)
+
+    html_text = render_report(
+        new_issues=new_issues,
+        all_warnings=all_warnings,
+        diagnostics=diagnostics,
+        log_blocks=log_blocks,
+        title=f"clang-tidy report: {zip_path.name}",
+    )
+
+    output_path.write_text(html_text, encoding="utf-8")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Generate a Bootstrap HTML report for clang-tidy output."
+    )
+    parser.add_argument("zip_file", type=Path, help="Path to clang-tidy ZIP archive.")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("clang-tidy-report.html"),
+        help="Output HTML file.",
+    )
+
+    args = parser.parse_args()
+
+    generate_report(args.zip_file, args.output)
+    print(f"Wrote {args.output}")
+
+
+if __name__ == "__main__":
+    main()
