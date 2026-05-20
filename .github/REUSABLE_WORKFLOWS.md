@@ -665,6 +665,5 @@ The following workflows exist in the repository but are **not** designed for reu
 
 - `clang-tidy-check.yaml` — runs clang-tidy analysis; only for use within this repository and its forks
 - `clang-tidy-fix.yaml` — applies clang-tidy fixes; only for use within this repository and its forks
-- `clang-tidy-report.yaml` — posts clang-tidy PR comments via `workflow_run`; internal companion to `clang-tidy-check.yaml`
 - `codeql-analysis.yaml` (when called from outside; see §11 for supported `workflow_call` usage) — the companion `codeql-comment.yaml` is internal
 - `add-issues.yaml`, `coverage.yaml`, `dependabot-auto-merge.yaml` — repository-specific internal workflows
