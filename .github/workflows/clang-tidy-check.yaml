@@ -49,6 +49,8 @@ jobs:
 
   clang-tidy-check:
     needs: setup
+    outputs:
+      artifact_id: ${{ steps.upload_artifacts.outputs.artifact-id }}
     if: >
       always() && (github.event_name == 'workflow_dispatch' || needs.setup.outputs.has_changes == 'true')
     runs-on: ubuntu-24.04
@@ -197,6 +199,7 @@ jobs:
           echo "✅ No new clang-tidy issues on modified lines"
 
       - name: Upload artifacts
+        id: upload_artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -231,6 +234,17 @@ jobs:
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
           message: "No clang-tidy issues found."
+
+      - name: Post failure artifact link
+        if: >-
+          always() && github.event_name == 'pull_request' && needs.clang-tidy-check.result == 'failure' &&
+          needs.clang-tidy-check.outputs.artifact_id != ''
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          message: |
+            ⚠️ The clang-tidy workflow failed.
+
+            Download artifact ZIP: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ needs.clang-tidy-check.outputs.artifact_id }}
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment'
