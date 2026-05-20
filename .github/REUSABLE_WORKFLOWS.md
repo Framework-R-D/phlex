@@ -5,7 +5,7 @@
 The workflows in `Framework-R-D/phlex/` may be invoked as follows:
 
 1. Automatically as part of CI checks on a PR submitted to `Framework-R-D/phlex`, at PR creation time and thereafter on pushes to the PR branch. This should work whether your PR branch is situated in the primary repository or a fork.
-1. Via triggering comments on the PR (`@${{ github.event.repository.name }}bot <action>`).
+1. Via triggering comments on the PR (`@phlexbot <action>` for this repository; on a fork named `my-phlex`, the bot name is `@my-phlexbot`).
 1. Via the "actions" tab on the project's GitHub web page.
 
 Additionally, you can configure your own fork of Phlex to run CI checks on local PRs, and on its default branch, following the instructions below.
@@ -596,6 +596,75 @@ Centralized workflow that calls all format fix workflows in parallel and posts a
 
 **Note:** This workflow is not designed to be called via `workflow_call` from other repositories. It is specifically for use within the Phlex repository.
 
+### 16. `clang-format-check.yaml`
+
+Checks C++ source files for formatting issues using `clang-format`.
+
+#### Usage Example
+
+```yaml
+jobs:
+  check_clang_format:
+    uses: Framework-R-D/phlex/.github/workflows/clang-format-check.yaml@<commit_sha>
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if C++ files have changed.
+- `ref` (string, optional): The branch, ref, or SHA to check out.
+- `repo` (string, optional): The repository to check out from.
+- `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+- `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+
+### 17. `header-guards-check.yaml`
+
+Checks C++ header files for correct header guard formatting.
+
+#### Usage Example
+
+```yaml
+jobs:
+  check_header_guards:
+    uses: Framework-R-D/phlex/.github/workflows/header-guards-check.yaml@<commit_sha>
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if C++ header files have changed.
+- `ref` (string, optional): The branch, ref, or SHA to check out.
+- `repo` (string, optional): The repository to check out from.
+- `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+- `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+
+### 18. `yaml-check.yaml`
+
+Checks YAML files for formatting and syntax issues using `yamllint`.
+
+#### Usage Example
+
+```yaml
+jobs:
+  check_yaml:
+    uses: Framework-R-D/phlex/.github/workflows/yaml-check.yaml@<commit_sha>
+```
+
+#### All Inputs
+
+- `checkout-path` (string, optional): Path to check out code to.
+- `skip-relevance-check` (boolean, optional, default: `false`): Bypass the check that only runs if YAML files have changed.
+- `ref` (string, optional): The branch, ref, or SHA to check out.
+- `repo` (string, optional): The repository to check out from.
+- `pr-base-sha` (string, optional): Base SHA of the PR for relevance check.
+- `pr-head-sha` (string, optional): Head SHA of the PR for relevance check.
+
 ### Other Workflows
 
-The repository also provides `clang-tidy-check.yaml` and `clang-tidy-fix.yaml`. These workflows are currently **not** available for reuse via `workflow_call` as they are specifically intended for use on this repository and its forks.
+The following workflows exist in the repository but are **not** designed for reuse via `workflow_call`:
+
+- `clang-tidy-check.yaml` — runs clang-tidy analysis; only for use within this repository and its forks
+- `clang-tidy-fix.yaml` — applies clang-tidy fixes; only for use within this repository and its forks
+- `clang-tidy-report.yaml` — posts clang-tidy PR comments via `workflow_run`; internal companion to `clang-tidy-check.yaml`
+- `codeql-analysis.yaml` (when called from outside; see §11 for supported `workflow_call` usage) — the companion `codeql-comment.yaml` is internal
+- `add-issues.yaml`, `coverage.yaml`, `dependabot-auto-merge.yaml` — repository-specific internal workflows
