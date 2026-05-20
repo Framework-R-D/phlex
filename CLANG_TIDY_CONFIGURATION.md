@@ -111,22 +111,45 @@ The configuration enforces consistent naming:
 - Configures project with the `clang-tidy` CMake preset (enables compile commands export and disables C++ module scanning)
 - Runs `run-clang-tidy` over selected source trees (`phlex`, `form`, `plugins`, `test`)
 - Reports warnings and errors with detailed output
-- Uploads clang-tidy fixes YAML, log, and new-issues report as artifacts (retention: 7 days)
-- Uses the `report` job in the same workflow to post inline PR comments and a summary when a PR number is available
+- Uploads clang-tidy fixes YAML, log, and PR number as artifacts (retention: 7 days)
+- For `issue_comment` and `workflow_dispatch` events, posts inline PR comments directly
+- For `pull_request` events, defers comment posting to `clang-tidy-report.yaml` (see below)
 
 **How it works:**
 
 1. Configure the project with the `clang-tidy` CMake preset (implies `CMAKE_EXPORT_COMPILE_COMMANDS=YES` and `CMAKE_CXX_SCAN_FOR_MODULES=OFF`)
 2. Run `run-clang-tidy -p <build-dir> -export-fixes <build-dir>/clang-tidy-fixes.yaml -j <N>` from the source root
 3. Restrict path arguments to source directories so generated build files are excluded
-4. Upload the fix, log, and new-issues artifacts
-5. Run the `report` job, which invokes the `post-clang-tidy-results` action and posts a summary or inline comments when appropriate
+4. On `pull_request` events, save `pr_number.txt` alongside the fix artifacts
+5. Upload artifacts; `clang-tidy-report.yaml` picks them up for fork-safe PR commenting
 
 **How to use:**
 
 - Automatically runs on every pull request
-- Review the PR summary and any inline PR comments posted by the `report` job
+- Review inline PR comments for details (posted by `clang-tidy-report.yaml` for PR events)
 - Comment `@phlexbot tidy-fix` to attempt automatic fixes
+
+### Clang-Tidy Report (`clang-tidy-report.yaml`)
+
+**Purpose:** Post clang-tidy results as PR comments for pull requests, including those from fork repositories
+
+**Trigger:** `workflow_run` on completion of the "Clang-Tidy Check" workflow
+
+**Why a separate workflow?**
+
+For pull requests from forked repositories, GitHub caps the `GITHUB_TOKEN` at read-only
+access during `pull_request` events, regardless of the `permissions:` block in the YAML.
+Posting PR comments (a write operation) therefore cannot be done inside `clang-tidy-check.yaml`
+for fork PRs. The `workflow_run` event always runs in the base repository's context and can
+be granted write access, so `clang-tidy-report.yaml` handles all PR comment posting for
+`pull_request`-triggered runs.
+
+**How it works:**
+
+1. Triggered after every "Clang-Tidy Check" run that was itself triggered by a `pull_request` event
+2. Downloads the `clang-tidy-check` artifact bundle (which includes `pr_number.txt`, `clang-tidy-fixes.yaml`, and `clang-tidy-new-issues.txt`) using the originating `run-id` for cross-run artifact access
+3. Extracts the PR number from `pr_number.txt`
+4. Calls the `post-clang-tidy-results` action to post inline comments and a summary
 
 ### Clang-Tidy Fix (`clang-tidy-fix.yaml`)
 
