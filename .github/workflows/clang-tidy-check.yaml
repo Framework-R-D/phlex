@@ -196,6 +196,17 @@ jobs:
 
           echo "✅ No new clang-tidy issues on modified lines"
 
+      - name: Save PR metadata
+        if: always() && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
+          mkdir -p "$BUILD_DIR"
+          printf '%s\n' "$PR_NUMBER" > "$BUILD_DIR/pr_number.txt"
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -205,12 +216,16 @@ jobs:
             ${{ needs.setup.outputs.build_path }}/clang-tidy-fixes.yaml
             ${{ needs.setup.outputs.build_path }}/clang-tidy.log
             ${{ needs.setup.outputs.build_path }}/clang-tidy-new-issues.txt
+            ${{ needs.setup.outputs.build_path }}/pr_number.txt
           retention-days: 7
           if-no-files-found: ignore
 
   report:
     needs: [setup, clang-tidy-check]
-    if: always() && needs.setup.result == 'success'
+    # pull_request events from forks have read-only GITHUB_TOKEN; the separate
+    # clang-tidy-report.yaml workflow (triggered via workflow_run) handles
+    # posting PR comments for pull_request events with the necessary write access.
+    if: always() && needs.setup.result == 'success' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
