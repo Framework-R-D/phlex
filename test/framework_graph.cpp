@@ -90,7 +90,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
      "provide_num",
      [](data_cell_index const& id) -> unsigned int { return id.number(); },
      concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "num"});
+    .output_product("input", "num", "event");
 
   g.observe(
      "observe_num", [](unsigned int const) {}, concurrency::unlimited)
