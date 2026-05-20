@@ -57,7 +57,8 @@ namespace {
 }
 
 namespace phlex {
-
+  // ================================================================================
+  // data_cell_cursor implementation
   data_cell_cursor::data_cell_cursor(data_cell_index_ptr index,
                                      fixed_hierarchy const& h,
                                      experimental::async_driver<data_cell_index_ptr>& d) :
@@ -76,13 +77,15 @@ namespace phlex {
 
   std::string data_cell_cursor::layer_path() const { return index_->layer_path(); }
 
+  // ================================================================================
+  // fixed_hierarchy implementation
   fixed_hierarchy::fixed_hierarchy(std::initializer_list<std::vector<std::string>> layer_paths) :
     fixed_hierarchy(std::vector<std::vector<std::string>>(layer_paths))
   {
   }
 
   fixed_hierarchy::fixed_hierarchy(std::vector<std::vector<std::string>> layer_paths) :
-    layer_hashes_(std::from_range, build_hashes(layer_paths))
+    layer_paths_(std::move(layer_paths)), layer_hashes_(std::from_range, build_hashes(layer_paths_))
   {
   }
 

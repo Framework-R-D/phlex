@@ -2,7 +2,6 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/core/edge_maker.hpp"
-#include "phlex/model/data_cell_counter.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "fmt/std.h"
@@ -29,15 +28,21 @@ namespace phlex::experimental {
     fixed_hierarchy_{std::move(bundle.hierarchy)},
     driver_{std::move(bundle.driver)},
     src_{graph_,
-         [this](tbb::flow_control& fc) mutable -> data_cell_index_ptr {
+         [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
            if (auto item = driver_()) {
-             return index_router_.route(*item);
+             return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
+                     .index_to_emit = *item};
            }
-           index_router_.drain();
            fc.stop();
            return {};
          }},
     index_router_{graph_},
+    index_receiver_{graph_,
+                    tbb::flow::unlimited,
+                    [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
+                      auto&& [ready_flushes, index_to_emit] = input;
+                      return index_router_.route(index_to_emit, ready_flushes);
+                    }},
     hierarchy_node_{graph_,
                     tbb::flow::unlimited,
                     [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
@@ -53,7 +58,8 @@ namespace phlex::experimental {
   {
     if (shutdown_on_error_) {
       // When in an error state, we need to sanely pop the layer stack and wait for any tasks to finish.
-      index_router_.drain();
+      auto remaining_flushes = cell_tracker_.report_and_evict_ready_flushes(nullptr);
+      index_router_.drain(std::move(remaining_flushes));
       graph_.wait_for_all();
     }
   }
@@ -88,6 +94,10 @@ namespace phlex::experimental {
   void framework_graph::run()
   {
     src_.activate();
+    graph_.wait_for_all();
+
+    // Now back out of all remaining layers
+    index_router_.drain(cell_tracker_.report_and_evict_ready_flushes(nullptr));
     graph_.wait_for_all();
   }
 
@@ -135,49 +145,64 @@ namespace phlex::experimental {
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.unfolds));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.transforms));
 
-    edge_maker make_edges{nodes_.transforms, nodes_.folds, nodes_.unfolds};
-    make_edges(graph_,
-               index_router_,
-               filters_,
-               nodes_.outputs,
-               nodes_.providers,
-               nodes_.predicates,
-               nodes_.observers,
-               nodes_.folds,
-               nodes_.unfolds,
-               nodes_.transforms);
-
-    std::map<identifier, flusher_t*> flushers_from_unfolds;
+    std::set<identifier> unfold_input_layer_names;
+    // Count how many distinct unfold nodes consume each input layer.  When that count is
+    // greater than one, the flush_gate for an index in that layer must collect a flush
+    // message from every unfold before it knows the total number of children it will see.
+    std::map<identifier, std::size_t> unfold_count_per_input_layer;
     for (auto const& n : nodes_.unfolds | std::views::values) {
-      flushers_from_unfolds.try_emplace(identifier{n->child_layer()}, &n->flusher());
+      for (auto const& input : n->input()) {
+        if (!static_cast<identifier const&>(input.layer).empty()) {
+          unfold_input_layer_names.insert(input.layer);
+          ++unfold_count_per_input_layer[identifier{input.layer}];
+        }
+      }
     }
 
-    // Connect edges between all nodes, the graph-wide flusher, and the unfolds' flushers
-    auto connect_with_flusher =
-      [this, unfold_flushers = std::move(flushers_from_unfolds)](auto& consumers) {
-        for (auto& n : consumers | std::views::values) {
-          std::set<flusher_t*> flushers;
-          // For providers
-          for (product_query const& pq : n->input()) {
-            if (auto it = unfold_flushers.find(pq.layer); it != unfold_flushers.end()) {
-              flushers.insert(it->second);
-            } else {
-              flushers.insert(&index_router_.flusher());
-            }
-          }
-          for (flusher_t* flusher : flushers) {
-            make_edge(*flusher, n->flush_port());
-          }
-        }
-      };
-    connect_with_flusher(nodes_.folds);
+    std::vector<identifier> unfold_output_layer_names;
+    for (auto const& n : nodes_.unfolds | std::views::values) {
+      unfold_output_layer_names.emplace_back(n->child_layer());
+    }
+
+    index_router_.establish_layers(
+      fixed_hierarchy_.layer_paths(),
+      std::vector<identifier>(unfold_input_layer_names.begin(), unfold_input_layer_names.end()),
+      unfold_output_layer_names);
+    index_router_.register_unfold_count_per_input_layer(std::move(unfold_count_per_input_layer));
+
+    edge_maker make_edges{nodes_.transforms, nodes_.folds, nodes_.unfolds};
+    auto [provider_input_ports, multilayer_join_index_ports] =
+      make_edges(filters_,
+                 nodes_.outputs,
+                 nodes_.providers,
+                 // Consumers of data products below
+                 nodes_.predicates,
+                 nodes_.observers,
+                 nodes_.folds,
+                 nodes_.unfolds,
+                 nodes_.transforms);
+    if (not std::empty(provider_input_ports)) {
+      index_router_.finalize(
+        graph_, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
+    }
 
     // The hierarchy node is used to report which data layers have been seen by the
     // framework.  To assemble the report, data-cell indices emitted by the input node are
     // recorded as well as any data-cell indices emitted by an unfold.
-    make_edge(src_, hierarchy_node_);
+
+    // FIXME: Eventually the separate index_receiver_ and index_router_.unfold_index_receiver()
+    //        may be combined.
+    make_edge(src_, index_receiver_);
+    make_edge(index_receiver_, hierarchy_node_);
+    make_edge(index_router_.unfold_index_receiver(), hierarchy_node_);
+
+    for (auto& [_, node] : nodes_.folds) {
+      make_edge(index_router_.flusher(), node->flush_port());
+    }
+
     for (auto& [_, node] : nodes_.unfolds) {
-      make_edge(node->output_index_port(), hierarchy_node_);
+      make_edge(node->output_index_port(), index_router_.unfold_index_receiver());
+      make_edge(node->flush_sender(), index_router_.unfold_flush_receiver());
     }
   }
 }

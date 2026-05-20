@@ -48,7 +48,7 @@ namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 }
 
-TEST_CASE("Different hierarchies used with fold", "[graph]")
+TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
 {
   // job -> run -> event layers
   constexpr auto index_limit = 2u;

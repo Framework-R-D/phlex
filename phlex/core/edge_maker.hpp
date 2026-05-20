@@ -33,12 +33,11 @@ namespace phlex::experimental {
     explicit edge_maker(Args&... args);
 
     template <typename... Args>
-    void operator()(tbb::flow::graph& g,
-                    index_router& multi,
-                    std::map<std::string, filter>& filters,
-                    declared_outputs& outputs,
-                    provider_nodes& providers,
-                    Args&... consumers);
+    std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
+    operator()(std::map<std::string, filter>& filters,
+               declared_outputs& outputs,
+               provider_nodes& providers,
+               Args&... consumers);
 
   private:
     template <typename T>
@@ -100,12 +99,11 @@ namespace phlex::experimental {
   }
 
   template <typename... Args>
-  void edge_maker::operator()(tbb::flow::graph& g,
-                              index_router& multi,
-                              std::map<std::string, filter>& filters,
-                              declared_outputs& outputs,
-                              provider_nodes& providers,
-                              Args&... consumers)
+  std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
+  edge_maker::operator()(std::map<std::string, filter>& filters,
+                         declared_outputs& outputs,
+                         provider_nodes& providers,
+                         Args&... consumers)
   {
     // Create edges to outputs
     for (auto const& [output_name, output_node] : outputs) {
@@ -126,7 +124,7 @@ namespace phlex::experimental {
 
     if (head_ports.empty()) {
       // This can happen for jobs that only execute the driver, which is helpful for debugging
-      return;
+      return {};
     }
 
     auto provider_input_ports = make_provider_edges(std::move(head_ports), providers);
@@ -134,7 +132,7 @@ namespace phlex::experimental {
     std::map<std::string, named_index_ports> multilayer_join_index_ports;
     (multilayer_join_index_ports.merge(multilayer_ports(consumers)), ...);
 
-    multi.finalize(g, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
+    return std::make_tuple(std::move(provider_input_ports), std::move(multilayer_join_index_ports));
   }
 }
 

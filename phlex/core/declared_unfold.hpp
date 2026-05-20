@@ -11,6 +11,7 @@
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/flush_messages.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
@@ -39,22 +40,19 @@ namespace phlex::experimental {
     explicit generator(product_store_const_ptr const& parent,
                        algorithm_name node_name,
                        std::string const& child_layer_name);
-    flush_counts_ptr flush_result() const;
 
-    product_store_const_ptr make_child_for(std::size_t const data_cell_number,
-                                           products new_products)
-    {
-      return make_child(data_cell_number, std::move(new_products));
-    }
+    std::size_t child_layer_hash() const { return child_layer_hash_; }
+    std::size_t child_count() const { return child_counts_; }
+    product_store_const_ptr make_child(std::size_t i, products new_products);
 
   private:
-    product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
     algorithm_name node_name_;
     // References declared_unfold::child_layer_, which outlives this short-lived object.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
-    std::map<data_cell_index::hash_type, std::size_t> child_counts_;
+    std::size_t child_layer_hash_;
+    std::size_t child_counts_ = 0;
   };
 
   class PHLEX_CORE_EXPORT declared_unfold : public products_consumer {
@@ -66,10 +64,10 @@ namespace phlex::experimental {
     ~declared_unfold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
-    virtual tbb::flow::sender<data_cell_index_ptr>& output_index_port() = 0;
+    virtual tbb::flow::sender<index_message>& output_index_port() = 0;
+    virtual tbb::flow::sender<unfold_flush>& flush_sender() = 0;
     virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
-    virtual flusher_t& flusher() = 0;
 
     std::string const& child_layer() const noexcept { return child_layer_; }
 
@@ -109,19 +107,17 @@ namespace phlex::experimental {
       unfold_{g,
               concurrency,
               [this, p = std::move(predicate), ufold = std::move(unfold)](
-                messages_t<num_inputs> const& messages, auto&) {
+                messages_t<num_inputs> const& messages, auto& outputs) {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
 
-                std::size_t const original_message_id{msg_counter_};
-                generator g{store, this->full_name(), child_layer()};
-                call(p, ufold, store->index(), g, messages, std::make_index_sequence<num_inputs>{});
-
-                flusher_.try_put({.index = store->index(),
-                                  .counts = g.flush_result(),
-                                  .original_id = original_message_id});
-              }},
-      flusher_{g}
+                generator gen{store, this->full_name(), child_layer()};
+                call(
+                  p, ufold, store->index(), gen, messages, std::make_index_sequence<num_inputs>{});
+                std::get<2>(outputs).try_put({.index = store->index(),
+                                              .layer_hash = gen.child_layer_hash(),
+                                              .count = gen.child_count()});
+              }}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, unfold_);
@@ -142,12 +138,15 @@ namespace phlex::experimental {
     {
       return tbb::flow::output_port<0>(unfold_);
     }
-    tbb::flow::sender<data_cell_index_ptr>& output_index_port() override
+    tbb::flow::sender<index_message>& output_index_port() override
     {
       return tbb::flow::output_port<1>(unfold_);
     }
+    tbb::flow::sender<unfold_flush>& flush_sender() override
+    {
+      return tbb::flow::output_port<2>(unfold_);
+    }
     product_specifications const& output() const override { return output_; }
-    flusher_t& flusher() override { return flusher_; }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,
@@ -181,10 +180,10 @@ namespace phlex::experimental {
         }
         ++product_count_;
 
-        auto child = g.make_child_for(counter++, std::move(new_products));
-        tbb::flow::output_port<0>(unfold_).try_put(
-          {.store = child, .id = msg_counter_.fetch_add(1)});
-        tbb::flow::output_port<1>(unfold_).try_put(child->index());
+        auto child = g.make_child(counter++, std::move(new_products));
+        auto const msg_id = msg_counter_.fetch_add(1);
+        tbb::flow::output_port<0>(unfold_).try_put({.store = child, .id = msg_id});
+        tbb::flow::output_port<1>(unfold_).try_put({.index = child->index(), .msg_id = msg_id});
       }
     }
 
@@ -195,9 +194,9 @@ namespace phlex::experimental {
     input_retriever_types<input_args> input_{input_arguments<input_args>()};
     product_specifications output_;
     join_or_none_t<num_inputs> join_;
-    tbb::flow::multifunction_node<messages_t<num_inputs>, std::tuple<message, data_cell_index_ptr>>
+    tbb::flow::multifunction_node<messages_t<num_inputs>,
+                                  std::tuple<message, index_message, unfold_flush>>
       unfold_;
-    flusher_t flusher_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
     std::atomic<std::size_t> product_count_{};

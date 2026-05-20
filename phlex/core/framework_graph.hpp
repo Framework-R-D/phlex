@@ -11,7 +11,9 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_catalog.hpp"
 #include "phlex/driver.hpp"
+#include "phlex/model/data_cell_tracker.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
+#include "phlex/model/flush_messages.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
@@ -166,9 +168,13 @@ namespace phlex::experimental {
     tbb::flow::graph graph_{};
     framework_driver driver_;
     std::vector<std::string> registration_errors_{};
-    tbb::flow::input_node<data_cell_index_ptr> src_;
+    data_cell_tracker cell_tracker_{};
+    tbb::flow::input_node<ready_flushes_then_emit> src_;
     index_router index_router_;
-    tbb::flow::function_node<data_cell_index_ptr> hierarchy_node_;
+    tbb::flow::function_node<ready_flushes_then_emit, data_cell_index_ptr, tbb::flow::lightweight>
+      index_receiver_;
+    tbb::flow::function_node<data_cell_index_ptr, tbb::flow::continue_msg, tbb::flow::lightweight>
+      hierarchy_node_;
     bool shutdown_on_error_{false};
   };
 }

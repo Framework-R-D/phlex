@@ -36,7 +36,7 @@ namespace phlex::experimental {
 
   struct flush_message {
     data_cell_index_ptr index;
-    flush_counts_ptr counts;
+    data_cell_counts_const_ptr counts;
     std::size_t original_id{}; // FIXME: Used only by folds
   };
 
