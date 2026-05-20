@@ -49,7 +49,7 @@ namespace phlex::experimental {
   using product_specifications = std::vector<product_specification>;
 
   PHLEX_MODEL_EXPORT product_specifications
-  to_product_specifications(std::string_view name,
+  to_product_specifications(algorithm_name const& algo_name,
                             std::vector<std::string> output_suffixes,
                             std::vector<type_id> output_types);
 }

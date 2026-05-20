@@ -100,7 +100,7 @@ namespace phlex::experimental {
                       std::move(predicates),
                       std::move(input_products),
                       std::move(child_layer_name)},
-      output_{to_product_specifications(name().full(),
+      output_{to_product_specifications(name(),
                                         std::move(output_product_suffixes),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
       join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
@@ -111,7 +111,7 @@ namespace phlex::experimental {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
 
-                generator gen{store, name().full(), child_layer()};
+                generator gen{store, name(), child_layer()};
                 call(
                   p, ufold, store->index(), gen, messages, std::make_index_sequence<num_inputs>{});
                 std::get<2>(outputs).try_put({.index = store->index(),

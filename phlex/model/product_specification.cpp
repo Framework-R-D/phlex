@@ -50,7 +50,7 @@ namespace phlex::experimental {
     return {algorithm_name::create(""), identifier(s), type_id{}};
   }
 
-  product_specifications to_product_specifications(std::string_view const algorithm_specification,
+  product_specifications to_product_specifications(algorithm_name const& algo_name,
                                                    std::vector<std::string> output_suffixes,
                                                    std::vector<type_id> output_types)
   {
@@ -68,7 +68,6 @@ namespace phlex::experimental {
     assert(output_suffixes.size() == output_types.size());
 
     // We can use std::views::zip_transform once the AppleClang C++ STL supports it.
-    auto const algo_name = algorithm_name::create(algorithm_specification);
     return std::views::zip(output_suffixes, output_types) |
            std::views::transform([&algo_name](auto const& p) {
              return product_specification{algo_name, identifier(std::get<0>(p)), std::get<1>(p)};

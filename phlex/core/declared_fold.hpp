@@ -76,8 +76,7 @@ namespace phlex::experimental {
               std::string partition) :
       declared_fold{std::move(algo_name), std::move(predicates), std::move(input_products)},
       initializer_{std::move(initializer)},
-      output_{
-        to_product_specifications(name().full(), std::move(output), make_type_ids<result_type>())},
+      output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       partition_{std::move(partition)},
       flush_receiver_{g,
                       tbb::flow::unlimited,

@@ -75,8 +75,8 @@ namespace phlex::experimental {
                    product_queries input_products,
                    std::vector<std::string> output) :
       declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products)},
-      output_{to_product_specifications(
-        name().full(), std::move(output), make_output_type_ids<function_t>())},
+      output_{
+        to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
       transform_{
         g,
