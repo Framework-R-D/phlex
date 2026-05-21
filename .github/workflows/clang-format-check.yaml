@@ -15,6 +15,33 @@ permissions:
         description: "The branch, ref, or SHA to checkout. Defaults to the repository's default branch."
         required: false
         type: string
+  workflow_call:
+    inputs:
+      checkout-path:
+        description: "Path to check out code to"
+        required: false
+        type: string
+      skip-relevance-check:
+        description: "Bypass relevance check"
+        required: false
+        type: boolean
+        default: false
+      pr-base-sha:
+        description: "Base SHA of the PR for relevance check"
+        required: false
+        type: string
+      pr-head-sha:
+        description: "Head SHA of the PR for relevance check"
+        required: false
+        type: string
+      ref:
+        description: "The branch, ref, or SHA to checkout"
+        required: false
+        type: string
+      repo:
+        description: "The repository to checkout from"
+        required: false
+        type: string
 
 jobs:
   setup:
@@ -33,11 +60,20 @@ jobs:
         uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
         with:
           file-type: cpp
+          head-ref: ${{ inputs.pr-head-sha }}
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          pr-base-sha: ${{ inputs.pr-base-sha }}
+          checkout-path: ${{ inputs.checkout-path }}
 
   clang-format-check:
     needs: setup
     if: >
-      always() && (github.event_name == 'workflow_dispatch' || needs.setup.outputs.has_changes == 'true')
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
