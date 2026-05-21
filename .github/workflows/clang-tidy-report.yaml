@@ -29,6 +29,7 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request'
     steps:
       - name: Download clang-tidy artifacts
+        id: download
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: clang-tidy-*
@@ -41,11 +42,20 @@ jobs:
       - name: Locate artifacts and PR number
         id: locate
         shell: bash
+        env:
+          DOWNLOAD_OUTCOME: ${{ steps.download.outcome }}
         run: |
+          if [ "$DOWNLOAD_OUTCOME" = "failure" ]; then
+            echo "::error::Artifact download failed — check token permissions or artifact expiry"
+            exit 1
+          fi
+
           pr_number_file=$(find artifacts -name "pr_number.txt" 2>/dev/null | head -1)
           if [ -n "$pr_number_file" ]; then
             pr_number=$(cat "$pr_number_file")
             echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::pr_number.txt not found in downloaded artifacts; skipping PR comment"
           fi
 
           fixes_file=$(find artifacts -name "clang-tidy-fixes.yaml" 2>/dev/null | head -1)
