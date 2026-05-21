@@ -4,8 +4,8 @@
 #include "form/form_writer.hpp"
 #include "form/technology.hpp"
 #include "test_helpers.hpp"
-#include "toy_tracker.hpp"
 #include "test_utils.hpp"
+#include "toy_tracker.hpp"
 
 #include <cstdlib>
 #include <ctime>
@@ -57,8 +57,7 @@ int main(int argc, char** argv)
   form::experimental::config::tech_setting_config tech_config;
   tech_config.container_settings[form::technology::ROOT_TTREE]["trackStart"].emplace_back(
     "auto_flush", "1");
-  tech_config.file_settings[technology]["toy.root"].emplace_back("compression",
-                                                                                   "kZSTD");
+  tech_config.file_settings[technology]["toy.root"].emplace_back("compression", "kZSTD");
   tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"]
     .emplace_back("force_streamer_field", "true");
 
