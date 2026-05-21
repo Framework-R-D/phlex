@@ -63,7 +63,10 @@ if(FORM_USE_ROOT_STORAGE)
         TEST_ARGS
         ${TECH}
     )
-    target_include_directories("form_root_schema_write_test_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
+    target_include_directories(
+      "form_root_schema_write_test_${TECH}"
+      PRIVATE ${PROJECT_SOURCE_DIR}/form
+    )
 
     cet_test(
        "form_root_schema_read_test_${TECH}"
@@ -82,7 +85,10 @@ if(FORM_USE_ROOT_STORAGE)
        TEST_ARGS
        ${TECH}
     )
-    target_include_directories("form_root_schema_read_test_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
+    target_include_directories(
+      "form_root_schema_read_test_${TECH}"
+      PRIVATE ${PROJECT_SOURCE_DIR}/form
+    )
 
     cet_test(
       "check_root_schema_evolution_${TECH}"
