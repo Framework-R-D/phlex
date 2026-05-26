@@ -359,11 +359,7 @@ source = ../../plugins/python/python
 omit =
     conftest.py
     **/conftest.py
-    test_*.py
-    **/test_*.py
-    unit_test_*.py
-    **/unit_test_*.py
-    */test/*
+...
 ```
 
 This prevents test infrastructure files from appearing in `coverage-python.xml` even before CodeCov
