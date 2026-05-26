@@ -65,7 +65,7 @@ runs:
     - name: Prepare basic outputs (check mode)
       if: inputs.mode == 'check'
       id: prepare_check
-      uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@main
+      uses: Framework-R-D/phlex/.github/actions/prepare-check-outputs@1b6b94e13ce2adbc2ba092d8d0fce6e11b252916 # actions-v0.1.0
       with:
         ref: ${{ inputs.ref }}
         repo: ${{ inputs.repo }}
@@ -76,7 +76,7 @@ runs:
     - name: Prepare basic outputs (fix mode)
       if: inputs.mode == 'fix'
       id: prepare_fix
-      uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@main
+      uses: Framework-R-D/phlex/.github/actions/prepare-fix-outputs@1b6b94e13ce2adbc2ba092d8d0fce6e11b252916 # actions-v0.1.0
       with:
         ref: ${{ inputs.ref }}
         repo: ${{ inputs.repo }}
@@ -125,7 +125,7 @@ runs:
     - name: Run change detection
       id: detect
       if: (inputs.file-type != '' || inputs.include-globs != '') && steps.prepare.outputs.is_act != 'true'
-      uses: Framework-R-D/phlex/.github/actions/run-change-detection@main
+      uses: Framework-R-D/phlex/.github/actions/run-change-detection@1b6b94e13ce2adbc2ba092d8d0fce6e11b252916 # actions-v0.1.0
       with:
         checkout-path: ${{ steps.prepare.outputs.checkout_path }}
         ref: ${{ steps.prepare.outputs.ref }}
