@@ -66,7 +66,7 @@ TEST_CASE("consumer tests", "[core]")
   algorithm_name an = algorithm_name::create("p:a");
   consumer c(an, {"pred1"});
 
-  CHECK(c.full_name() == "p:a");
+  CHECK(c.name().full() == "p:a");
   CHECK(c.plugin() == "p"_idq);
   CHECK(c.algorithm() == "a"_idq);
   CHECK(c.when().size() == 1);

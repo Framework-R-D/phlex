@@ -55,14 +55,14 @@ namespace phlex::experimental {
     static constexpr auto number_output_products = 0;
     using node_ptr_type = declared_observer_ptr;
 
-    observer_node(algorithm_name name,
+    observer_node(algorithm_name algo_name,
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
                   product_queries input_products) :
-      declared_observer{std::move(name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
+      declared_observer{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
       observer_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](

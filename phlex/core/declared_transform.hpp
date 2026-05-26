@@ -67,17 +67,17 @@ namespace phlex::experimental {
     using node_ptr_type = declared_transform_ptr;
     static constexpr auto number_output_products = num_outputs;
 
-    transform_node(algorithm_name name,
+    transform_node(algorithm_name algo_name,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
                    AlgorithmBits alg,
                    product_queries input_products,
                    std::vector<std::string> output) :
-      declared_transform{std::move(name), std::move(predicates), std::move(input_products)},
-      output_{to_product_specifications(
-        full_name(), std::move(output), make_output_type_ids<function_t>())},
-      join_{make_join_or_none<num_inputs>(g, full_name(), layers())},
+      declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      output_{
+        to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
+      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
       transform_{
         g,
         concurrency,
@@ -89,10 +89,10 @@ namespace phlex::experimental {
           ++calls_;
           ++product_count_[store->index()->layer_hash()];
 
-          products new_products;
+          products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
-          auto new_store = std::make_shared<product_store>(
-            store->index(), this->full_name(), std::move(new_products));
+          auto new_store =
+            std::make_shared<product_store>(store->index(), name(), std::move(new_products));
 
           std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
         }}

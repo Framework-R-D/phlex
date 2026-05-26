@@ -2,18 +2,29 @@
 
 #include "boost/core/demangle.hpp"
 
+#include <algorithm>
+#include <stdexcept>
 #include <string>
 
 namespace phlex::experimental {
-  bool products::contains(product_specification const& spec) const
+  products::products(std::size_t number_known_products)
   {
-    return products_.contains(spec);
+    products_.reserve(number_known_products);
   }
 
   products::const_iterator products::begin() const noexcept { return products_.begin(); }
   products::const_iterator products::end() const noexcept { return products_.end(); }
   products::size_type products::size() const noexcept { return products_.size(); }
   bool products::empty() const noexcept { return products_.empty(); }
+
+  product_base const* products::find_product(product_specification const& spec) const
+  {
+    auto it = std::ranges::find(products_, spec, [](auto const& p) { return p.first; });
+    if (it == products_.end()) {
+      throw std::runtime_error(fmt::format("No product exists with the name '{}'.", spec.full()));
+    }
+    return it->second.get();
+  }
 
   void products::throw_mismatched_type(product_specification const& spec,
                                        char const* requested_type,

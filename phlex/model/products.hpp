@@ -10,8 +10,8 @@
 #include <memory>
 #include <string>
 #include <typeinfo>
-#include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace phlex::experimental {
 
@@ -53,16 +53,19 @@ namespace phlex::experimental {
   }
 
   class PHLEX_MODEL_EXPORT products {
-    using collection_t = std::unordered_map<product_specification, product_ptr>;
+    using collection_t = std::vector<std::pair<product_specification, product_ptr>>;
 
   public:
     using const_iterator = collection_t::const_iterator;
     using size_type = collection_t::size_type;
 
+    products() = default;
+    explicit products(std::size_t number_known_products);
+
     template <typename T>
     void add(product_specification const& spec, T t)
     {
-      products_.emplace(spec, product_for(std::move(t)));
+      products_.emplace_back(spec, product_for(std::move(t)));
     }
 
     template <typename Ts>
@@ -84,12 +87,7 @@ namespace phlex::experimental {
     template <typename T>
     T const& get(product_specification const& spec) const
     {
-      auto it = products_.find(spec);
-      if (it == cend(products_)) {
-        throw std::runtime_error(fmt::format("No product exists with the name '{}'.", spec.full()));
-      }
-
-      auto const* available_product = it->second.get();
+      auto const* available_product = find_product(spec);
 
       if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product)) {
         return desired_product->obj;
@@ -98,13 +96,13 @@ namespace phlex::experimental {
       throw_mismatched_type(spec, typeid(T).name(), available_product->type().name());
     }
 
-    bool contains(product_specification const& spec) const;
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
     size_type size() const noexcept;
     bool empty() const noexcept;
 
   private:
+    product_base const* find_product(product_specification const& spec) const;
     static void throw_mismatched_type [[noreturn]] (product_specification const& spec,
                                                     char const* requested_type,
                                                     char const* available_type);

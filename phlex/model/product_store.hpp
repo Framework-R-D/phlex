@@ -35,8 +35,6 @@ namespace phlex::experimental {
     data_cell_index_ptr const& index() const noexcept;
 
     // Product interface
-    bool contains_product(product_specification const& key) const;
-
     template <typename T>
     T const& get_product(product_specification const& key) const;
 

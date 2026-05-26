@@ -65,7 +65,7 @@ namespace phlex::experimental {
     using function_t = typename AlgorithmBits::bound_type;
 
   public:
-    fold_node(algorithm_name name,
+    fold_node(algorithm_name algo_name,
               std::size_t concurrency,
               std::vector<std::string> predicates,
               tbb::flow::graph& g,
@@ -74,10 +74,9 @@ namespace phlex::experimental {
               product_queries input_products,
               std::vector<std::string> output,
               std::string partition) :
-      declared_fold{std::move(name), std::move(predicates), std::move(input_products)},
+      declared_fold{std::move(algo_name), std::move(predicates), std::move(input_products)},
       initializer_{std::move(initializer)},
-      output_{
-        to_product_specifications(full_name(), std::move(output), make_type_ids<result_type>())},
+      output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       partition_{std::move(partition)},
       flush_receiver_{g,
                       tbb::flow::unlimited,
@@ -92,7 +91,7 @@ namespace phlex::experimental {
                         return {};
                       }},
       join_{make_join_or_none<num_inputs>(
-        g, full_name(), layers())}, // FIXME: This should change to include result product!
+        g, name().full(), layers())}, // FIXME: This should change to include result product!
       fold_{g,
             concurrency,
             [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto&) {
@@ -126,7 +125,7 @@ namespace phlex::experimental {
     void emit_and_evict_if_done(data_cell_index_ptr const& fold_index)
     {
       if (auto counter = done_with(fold_index->hash())) {
-        auto parent = std::make_shared<product_store>(fold_index, this->full_name());
+        auto parent = std::make_shared<product_store>(fold_index, name());
         commit(parent);
         ++product_count_;
         tbb::flow::output_port<0>(fold_).try_put(
