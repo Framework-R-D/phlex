@@ -25,7 +25,7 @@ namespace {
     void record(experimental::product_store const& store)
     {
       for (auto const& spec : store | std::views::keys) {
-        products_->insert(spec.full());
+        products_->insert(spec.to_string());
       }
     }
 

@@ -32,27 +32,28 @@ namespace phlex::experimental {
           spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
                         "from candidate list.",
                         query.to_string(),
-                        producer.node.full(),
+                        producer.node.to_string(),
                         query.type,
                         producer.type);
         } else {
           if (query.type.exact_compare(producer.type)) {
             spdlog::debug("Matched ({}) from {} and types match. Keeping in candidate list.",
                           query.to_string(),
-                          producer.node.full());
+                          producer.node.to_string());
           } else {
             spdlog::warn("Matched ({}) from {} and types match, but not exactly (produce {} and "
                          "consume {}). Keeping in candidate list!",
                          query.to_string(),
-                         producer.node.full(),
+                         producer.node.to_string(),
                          query.type.exact_name(),
                          producer.type.exact_name());
           }
-          candidates.emplace(producer.node.full(), &producer);
+          candidates.emplace(producer.node.to_string(), &producer);
         }
       } else {
-        spdlog::debug(
-          "Creator name mismatch between ({}) and {}", query.to_string(), producer.node.full());
+        spdlog::debug("Creator name mismatch between ({}) and {}",
+                      query.to_string(),
+                      producer.node.to_string());
       }
     }
 

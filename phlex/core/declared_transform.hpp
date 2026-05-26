@@ -77,7 +77,7 @@ namespace phlex::experimental {
       declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products)},
       output_{
         to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
-      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
+      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       transform_{
         g,
         concurrency,

@@ -21,7 +21,7 @@ namespace phlex::experimental {
   public:
     using provider_function = std::function<product_ptr(data_cell_index const&)>;
 
-    provider_node(algorithm_name name,
+    provider_node(algorithm_name algo_name,
                   std::size_t concurrency,
                   tbb::flow::graph& g,
                   provider_function provider_func,

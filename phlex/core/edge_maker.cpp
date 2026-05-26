@@ -23,11 +23,12 @@ namespace phlex::experimental {
           auto& provider = *p;
           if (port.input_product.match(
                 provider.output_product(), provider.layer(), provider.stage())) {
-            if (!result.contains(provider.name().full())) {
-              result.try_emplace(provider.name().full(), port.input_product, provider.input_port());
+            if (!result.contains(provider.name().to_string())) {
+              result.try_emplace(
+                provider.name().to_string(), port.input_product, provider.input_port());
             }
             spdlog::debug("Connecting provider {} to node {} (product: {})",
-                          provider.name().full(),
+                          provider.name().to_string(),
                           node_name,
                           port.input_product.to_string());
             make_edge(provider.output_port(), *(port.port));

@@ -27,6 +27,9 @@ namespace phlex::experimental {
                 auto new_product = std::invoke(ft, *index);
                 ++calls_;
 
+                // The constructor argument 1uz specifies how many slots to reserve in the
+                // underlying product container.  For providers, only one data product is
+                // produced per input index.
                 products new_products{1uz};
                 new_products.add(output_, std::move(new_product));
                 auto store = std::make_shared<product_store>(index, name_, std::move(new_products));
@@ -34,8 +37,10 @@ namespace phlex::experimental {
                 return {.store = std::move(store), .id = msg_id};
               }}
   {
-    spdlog::debug(
-      "Created provider node {} making output {} ϵ {}", name().full(), output_.full(), layer_);
+    spdlog::debug("Created provider node {} making output {} ϵ {}",
+                  name().to_string(),
+                  output_.to_string(),
+                  layer_);
   }
 
   algorithm_name const& provider_node::name() const noexcept { return name_; }

@@ -62,7 +62,7 @@ namespace phlex::experimental {
                   AlgorithmBits alg,
                   product_queries input_products) :
       declared_observer{std::move(algo_name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
+      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       observer_{g,
                 concurrency,
                 [this, ft = alg.release_algorithm()](

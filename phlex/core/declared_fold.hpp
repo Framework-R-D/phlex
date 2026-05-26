@@ -91,7 +91,7 @@ namespace phlex::experimental {
                         return {};
                       }},
       join_{make_join_or_none<num_inputs>(
-        g, name().full(), layers())}, // FIXME: This should change to include result product!
+        g, name().to_string(), layers())}, // FIXME: This should change to include result product!
       fold_{g,
             concurrency,
             [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto&) {
