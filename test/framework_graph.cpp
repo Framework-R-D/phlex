@@ -94,7 +94,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
 
   g.observe(
      "observe_num", [](unsigned int const) {}, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when("missing_predicate");
 
   CHECK_THROWS_WITH(
