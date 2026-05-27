@@ -123,26 +123,35 @@ namespace phlex::experimental {
     layer_paths_.push_back(full_path);
   }
 
-  void layer_generator::operator()(data_cell_cursor const& job)
+  index_generator layer_generator::indices()
   {
     ++emitted_cells_.at("/job");
-    execute(job);
+    auto job = data_cell_index::job();
+    co_yield job;
+
+    for (auto const& generated_cell : execute(job)) {
+      co_yield generated_cell;
+    }
   }
 
-  void layer_generator::execute(data_cell_cursor const& cell)
+  index_generator layer_generator::execute(data_cell_index_ptr const cell)
   {
-    auto it = parent_to_children_.find(cell.layer_path());
+    auto it = parent_to_children_.find(cell->layer_path());
     assert(it != parent_to_children_.cend());
 
     for (auto const& child : it->second) {
-      auto const full_child_path = cell.layer_path() + "/" + child;
+      auto const full_child_path = cell->layer_path() + "/" + child;
       auto const& [_, total_per_parent, starting_value] = layers_.at(full_child_path);
       bool const has_children = parent_to_children_.contains(full_child_path);
       for (unsigned int i : std::views::iota(starting_value, total_per_parent + starting_value)) {
+        auto child_cell = cell->make_child(child, i);
         ++emitted_cells_.at(full_child_path);
-        auto const child_cell = cell.yield_child(child, i);
+        co_yield child_cell;
+
         if (has_children) {
-          execute(child_cell);
+          for (auto const& generated_cell : execute(child_cell)) {
+            co_yield generated_cell;
+          }
         }
       }
     }

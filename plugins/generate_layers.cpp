@@ -36,5 +36,9 @@ PHLEX_REGISTER_DRIVER(d, config)
                     .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
   }
 
-  return d.driver(gen->hierarchy(), [gen](data_cell_cursor const& job) { (*gen)(job); });
+  return d.driver(gen->hierarchy(), [gen](data_cell_yielder const yield) {
+    for (data_cell_index_ptr const& index : gen->indices()) {
+      yield(index);
+    }
+  });
 }

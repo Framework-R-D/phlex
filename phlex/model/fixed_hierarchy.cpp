@@ -78,6 +78,20 @@ namespace phlex {
   std::string data_cell_cursor::layer_path() const { return index_->layer_path(); }
 
   // ================================================================================
+  // data_cell_yielder implementation
+  data_cell_yielder::data_cell_yielder(fixed_hierarchy const& h,
+                                       experimental::async_driver<data_cell_index_ptr>& d) :
+    hierarchy_{h}, driver_{d}
+  {
+  }
+
+  void data_cell_yielder::operator()(data_cell_index_ptr const& index) const
+  {
+    hierarchy_.validate(index);
+    driver_.yield(index);
+  }
+
+  // ================================================================================
   // fixed_hierarchy implementation
   fixed_hierarchy::fixed_hierarchy(std::initializer_list<std::vector<std::string>> layer_paths) :
     fixed_hierarchy(std::vector<std::vector<std::string>>(layer_paths))
@@ -109,4 +123,9 @@ namespace phlex {
     return data_cell_cursor{job, *this, d};
   }
 
+  data_cell_yielder fixed_hierarchy::yielder(
+    experimental::async_driver<data_cell_index_ptr>& d) const
+  {
+    return data_cell_yielder{*this, d};
+  }
 }

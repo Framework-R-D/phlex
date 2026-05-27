@@ -42,6 +42,20 @@ namespace phlex {
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
+  class PHLEX_MODEL_EXPORT data_cell_yielder {
+  public:
+    void operator()(data_cell_index_ptr const& index) const;
+
+  private:
+    friend class fixed_hierarchy;
+    data_cell_yielder(fixed_hierarchy const& h, experimental::async_driver<data_cell_index_ptr>& d);
+
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    fixed_hierarchy const& hierarchy_;
+    experimental::async_driver<data_cell_index_ptr>& driver_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+  };
+
   class PHLEX_MODEL_EXPORT fixed_hierarchy {
   public:
     fixed_hierarchy() = default;
@@ -61,6 +75,8 @@ namespace phlex {
     // data_cell_cursor for the job.  Must only be called from a function registered
     // via driver_proxy::drive().
     data_cell_cursor yield_job(experimental::async_driver<data_cell_index_ptr>& d) const;
+
+    data_cell_yielder yielder(experimental::async_driver<data_cell_index_ptr>& d) const;
 
   private:
     std::vector<std::vector<std::string>> layer_paths_;

@@ -36,7 +36,10 @@ namespace phlex::experimental {
 
 namespace phlex::experimental {
   template <typename F>
-  concept is_driver_like = std::invocable<F, data_cell_cursor const&>;
+  concept is_driver_like_with_cursor = std::invocable<F, data_cell_cursor>;
+
+  template <typename F>
+  concept is_driver_like_with_yielder = std::invocable<F, data_cell_yielder>;
 
   /// @brief Proxy for constructing a driver bundle from a user-supplied driver function.
   ///
@@ -49,11 +52,27 @@ namespace phlex::experimental {
     /// @param hierarchy  The data hierarchy the driver will traverse.
     /// @param driver_function  A callable receiving a @c data_cell_cursor const& that
     ///                         emits data cells to the framework.
-    driver_bundle driver(fixed_hierarchy hierarchy, is_driver_like auto driver_function) const
+    driver_bundle driver(fixed_hierarchy hierarchy,
+                         is_driver_like_with_cursor auto driver_function) const
     {
       auto h = hierarchy;
       return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
                 f(h.yield_job(d));
+              },
+              std::move(hierarchy)};
+    }
+
+    /// @brief Creates a driver_bundle from a hierarchy and a user-supplied driver function.
+    ///
+    /// @param hierarchy  The data hierarchy the driver will traverse.
+    /// @param driver_function  A callable receiving a @c data_cell_yielder const& that
+    ///                         emits data cells to the framework.
+    driver_bundle driver(fixed_hierarchy hierarchy,
+                         is_driver_like_with_yielder auto driver_function) const
+    {
+      auto h = hierarchy;
+      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
+                f(h.yielder(d));
               },
               std::move(hierarchy)};
     }
