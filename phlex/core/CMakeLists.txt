@@ -27,7 +27,7 @@ cet_make_library(
   provider_node.cpp
   registrar.cpp
   registration_api.cpp
-  product_query.cpp
+  product_selector.cpp
   store_counters.cpp
   LIBRARIES
   PUBLIC
@@ -61,7 +61,7 @@ install(
     multilayer_join_node.hpp
     index_router.hpp
     node_catalog.hpp
-    product_query.hpp
+    product_selector.hpp
     products_consumer.hpp
     provider_node.hpp
     registrar.hpp

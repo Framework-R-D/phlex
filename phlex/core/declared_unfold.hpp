@@ -59,7 +59,7 @@ namespace phlex::experimental {
   public:
     declared_unfold(algorithm_name name,
                     std::vector<std::string> predicates,
-                    product_queries input_products,
+                    product_selectors input_products,
                     std::string child_layer);
     ~declared_unfold() override;
 
@@ -93,7 +93,7 @@ namespace phlex::experimental {
                 tbb::flow::graph& g,
                 Predicate&& predicate,
                 Unfold&& unfold,
-                product_queries input_products,
+                product_selectors input_products,
                 std::vector<std::string> output_product_suffixes,
                 std::string child_layer_name) :
       declared_unfold{std::move(algo_name),
@@ -125,7 +125,7 @@ namespace phlex::experimental {
     }
 
   private:
-    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
+    tbb::flow::receiver<message>& port_for(product_selector const& input_product) override
     {
       return receiver_for<num_inputs>(join_, input(), input_product, unfold_);
     }

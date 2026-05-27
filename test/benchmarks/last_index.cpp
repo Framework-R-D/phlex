@@ -10,6 +10,6 @@ namespace {
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   m.transform("last_index", last_index, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "id"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "id"})
     .output_product_suffixes(config.get<std::string>("produces", "a"));
 }

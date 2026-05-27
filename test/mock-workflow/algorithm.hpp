@@ -3,7 +3,7 @@
 
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "test/mock-workflow/timed_busy.hpp"
 
 #include "fmt/std.h"
@@ -56,7 +56,7 @@ namespace phlex::experimental::test {
       return Outputs{};
     }
 
-    using inputs = std::array<product_query, sizeof...(Inputs)>;
+    using inputs = std::array<product_selector, sizeof...(Inputs)>;
     using outputs = std::array<std::string, output_size<Outputs>>;
 
   private:

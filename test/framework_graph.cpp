@@ -35,7 +35,7 @@ TEST_CASE("Make progress with one thread", "[graph]")
     .output_product("input", "number", "spill");
   g.observe(
      "observe_number", [](unsigned int const /*number*/) {}, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "number"});
+    .input_family(product_selector{.creator = "input", .layer = "spill", .suffix = "number"});
   g.execute();
 
   CHECK(gen.emitted_cell_count("/job/spill") == 1000);
@@ -61,7 +61,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
   // provider...otherwise provider will not be executed.
   g.observe(
      "downstream_of_exception", [](unsigned int) {}, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "number"});
+    .input_family(product_selector{.creator = "input", .layer = "spill", .suffix = "number"});
 
   CHECK_THROWS(g.execute());
 
@@ -94,7 +94,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
 
   g.observe(
      "observe_num", [](unsigned int const) {}, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "num"})
     .experimental_when("missing_predicate");
 
   CHECK_THROWS_WITH(

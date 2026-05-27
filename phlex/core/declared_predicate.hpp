@@ -9,7 +9,7 @@
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -38,7 +38,7 @@ namespace phlex::experimental {
   public:
     declared_predicate(algorithm_name name,
                        std::vector<std::string> predicates,
-                       product_queries input_products);
+                       product_selectors input_products);
     ~declared_predicate() override;
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
@@ -64,7 +64,7 @@ namespace phlex::experimental {
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
                    AlgorithmBits alg,
-                   product_queries input_products) :
+                   product_selectors input_products) :
       declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products)},
       join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
       predicate_{g,
@@ -85,16 +85,16 @@ namespace phlex::experimental {
     }
 
   private:
-    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
+    tbb::flow::receiver<message>& port_for(product_selector const& input_product) override
     {
       return receiver_for<num_inputs>(join_, input(), input_product, predicate_);
     }
+    tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
 
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
       return input_ports<num_inputs>(join_, predicate_);
     }
-    tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
 
     template <std::size_t... Is>
     bool call(function_t const& ft,

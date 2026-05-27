@@ -219,17 +219,17 @@ cet_test(
   spdlog::spdlog
 )
 cet_test(
-  product_querying
+  product_selecting
   USE_CATCH2_MAIN
   SOURCE
-  product_querying.cpp
+  product_selecting.cpp
   LIBRARIES
   phlex::core
   layer_generator
   Boost::json
   fmt::fmt
 )
-cet_test(product_query USE_CATCH2_MAIN SOURCE product_query.cpp LIBRARIES
+cet_test(product_selector USE_CATCH2_MAIN SOURCE product_selector.cpp LIBRARIES
          phlex::core_internal
 )
 cet_test(core_misc_test USE_CATCH2_MAIN SOURCE core_misc_test.cpp LIBRARIES

@@ -42,7 +42,8 @@ TEST_CASE("provider_test")
     .output_product("input", "happy_vertices", "spill");
 
   g.transform("passer", pass_on, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
+    .input_family(
+      product_selector{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
 
   g.execute();
 

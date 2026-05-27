@@ -20,7 +20,7 @@
 // Python algorithms are supported by inserting nodes from C++ -> Python,
 // followed by the intended call, and another from Python -> C++.
 //
-// Since product_query inputs, list the creator name, the suffix can remain
+// Since product_selector inputs, list the creator name, the suffix can remain
 // the same throughout the chain (as does the layer), distinguishing the
 // stage with the creator name (and thus the node names) only.
 //
@@ -42,7 +42,7 @@
 using namespace phlex::experimental;
 using namespace phlex;
 using phlex::concurrency;
-using phlex::product_query;
+using phlex::product_selector;
 
 // NOLINTBEGIN(performance-no-int-to-ptr) - necessary for Python interface
 
@@ -85,9 +85,9 @@ namespace {
     return fmt::format("{:n}", v);
   }
 
-  static inline std::string stringify(std::vector<product_query>& v)
+  static inline std::string stringify(std::vector<product_selector>& v)
   {
-    return fmt::format("{:n}", std::ranges::views::transform(v, &product_query::to_string));
+    return fmt::format("{:n}", std::ranges::views::transform(v, &product_selector::to_string));
   }
 
   static inline std::string input_converter_name(std::string const& algname, size_t arg)
@@ -235,7 +235,7 @@ namespace {
     void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
   };
 
-  static inline std::optional<product_query> validate_query(PyObject* pyquery)
+  static inline std::optional<product_selector> validate_query(PyObject* pyquery)
   {
     if (!PyDict_Check(pyquery)) {
       PyErr_Format(PyExc_TypeError, "query should be a product specification");
@@ -267,13 +267,13 @@ namespace {
     } else
       PyErr_Clear();
 
-    return std::optional<product_query>{
-      product_query{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
+    return std::optional<product_selector>{
+      product_selector{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
   }
 
-  static std::vector<product_query> validate_input(PyObject* input)
+  static std::vector<product_selector> validate_input(PyObject* input)
   {
-    std::vector<product_query> cargs;
+    std::vector<product_selector> cargs;
     if (!input)
       return cargs;
 
@@ -663,7 +663,7 @@ namespace {
   void insert_converter(py_phlex_module* mod,
                         std::string const& name,
                         R (*converter)(Args...),
-                        product_query pq_in,
+                        product_selector pq_in,
                         std::string const& output)
   {
     mod->ph_module->transform(name, converter, concurrency::serial)
@@ -676,7 +676,7 @@ namespace {
 static PyObject* parse_args(PyObject* args,
                             PyObject* kwds,
                             std::string& functor_name,
-                            std::vector<product_query>& input_queries,
+                            std::vector<product_selector>& input_queries,
                             std::vector<std::string>& input_types,
                             std::vector<std::string>& output_suffixes,
                             std::vector<std::string>& output_types)
@@ -793,7 +793,7 @@ static std::optional<std::string_view> collection_dtype(std::string const& type_
 
 static bool insert_input_converters(py_phlex_module* mod,
                                     std::string const& cname, // TODO: shared_ptr<PyObject>
-                                    std::vector<product_query> const& input_queries,
+                                    std::vector<product_selector> const& input_queries,
                                     std::vector<std::string> const& input_types)
 {
   // insert input converter nodes into the graph
@@ -856,7 +856,7 @@ static bool insert_input_converters(py_phlex_module* mod,
 
 static bool insert_output_converter(py_phlex_module* mod,
                                     std::string const& cname,
-                                    product_query const& out_pq,
+                                    product_selector const& out_pq,
                                     std::string const& out_type,
                                     std::string const& output)
 {
@@ -913,7 +913,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // nodes going from C++ to PyObject* and back.
 
   std::string cname;
-  std::vector<product_query> input_queries;
+  std::vector<product_selector> input_queries;
   std::vector<std::string> input_types, output_suffixes, output_types;
   PyObject* callable =
     parse_args(args, kwds, cname, input_queries, input_types, output_suffixes, output_types);
@@ -960,8 +960,8 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   switch (input_queries.size()) {
   case 1: {
     mod->ph_module->transform(pyname, py_callback_1{callable}, concurrency::serial)
-      .input_family(
-        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
+      .input_family(product_selector{
+        .creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
       .output_product_suffixes(pyoutput);
     break;
   }
@@ -971,9 +971,11 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     std::string suff1 =
       "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
     mod->ph_module->transform(pyname, py_callback_2{callable}, concurrency::serial)
-      .input_family(
-        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
-        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)})
+      .input_family(product_selector{.creator = identifier(c0),
+                                     .layer = pq0.layer,
+                                     .suffix = identifier(suff0)},
+                    product_selector{
+                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)})
       .output_product_suffixes(pyoutput);
     break;
   }
@@ -987,10 +989,13 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     std::string suff2 =
       "py_" + (pq2.suffix ? std::string{static_cast<std::string_view>(*pq2.suffix)} : "");
     mod->ph_module->transform(pyname, py_callback_3{callable}, concurrency::serial)
-      .input_family(
-        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
-        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
-        product_query{.creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)})
+      .input_family(product_selector{.creator = identifier(c0),
+                                     .layer = pq0.layer,
+                                     .suffix = identifier(suff0)},
+                    product_selector{
+                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
+                    product_selector{
+                      .creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)})
       .output_product_suffixes(pyoutput);
     break;
   }
@@ -1002,9 +1007,9 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   }
 
   // insert output converter node into the graph
-  auto out_pq = product_query{.creator = identifier(pyname),
-                              .layer = identifier(output_layer),
-                              .suffix = identifier(pyoutput)};
+  auto out_pq = product_selector{.creator = identifier(pyname),
+                                 .layer = identifier(output_layer),
+                                 .suffix = identifier(pyoutput)};
   std::string const& out_type = output_types[0];
   std::string const& output = output_suffixes[0];
   if (!insert_output_converter(mod, cname, out_pq, out_type, output)) {
@@ -1022,7 +1027,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   // nodes going from C++ to PyObject* and back.
 
   std::string cname;
-  std::vector<product_query> input_queries;
+  std::vector<product_selector> input_queries;
   std::vector<std::string> input_types, output_suffixes, output_types;
   PyObject* callable =
     parse_args(args, kwds, cname, input_queries, input_types, output_suffixes, output_types);
@@ -1049,8 +1054,8 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   switch (input_queries.size()) {
   case 1: {
     mod->ph_module->observe(cname, py_callback_1v{callable}, concurrency::serial)
-      .input_family(
-        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)});
+      .input_family(product_selector{
+        .creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)});
     break;
   }
   case 2: {
@@ -1059,9 +1064,11 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     std::string suff1 =
       "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
     mod->ph_module->observe(cname, py_callback_2v{callable}, concurrency::serial)
-      .input_family(
-        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
-        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)});
+      .input_family(product_selector{.creator = identifier(c0),
+                                     .layer = pq0.layer,
+                                     .suffix = identifier(suff0)},
+                    product_selector{
+                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)});
     break;
   }
   case 3: {
@@ -1074,10 +1081,13 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     std::string suff2 =
       "py_" + (pq2.suffix ? std::string{static_cast<std::string_view>(*pq2.suffix)} : "");
     mod->ph_module->observe(cname, py_callback_3v{callable}, concurrency::serial)
-      .input_family(
-        product_query{.creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)},
-        product_query{.creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
-        product_query{.creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)});
+      .input_family(product_selector{.creator = identifier(c0),
+                                     .layer = pq0.layer,
+                                     .suffix = identifier(suff0)},
+                    product_selector{
+                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
+                    product_selector{
+                      .creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)});
     break;
   }
   default: {

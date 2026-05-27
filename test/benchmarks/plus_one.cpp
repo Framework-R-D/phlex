@@ -9,6 +9,6 @@ namespace {
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   m.transform("plus_one", plus_one, concurrency::unlimited)
-    .input_family(config.get<product_query>("input"))
+    .input_family(config.get<product_selector>("input"))
     .output_product_suffixes("b");
 }

@@ -49,7 +49,7 @@ TEST_CASE("Output data products", "[graph]")
      [](int const number) -> int { return number * number; },
      concurrency::unlimited)
     .input_family(
-      product_query{.creator = "input", .layer = "spill", .suffix = "number_from_provider"})
+      product_selector{.creator = "input", .layer = "spill", .suffix = "number_from_provider"})
     .output_product_suffixes("squared_number");
 
   std::set<std::string> products_from_nodes;

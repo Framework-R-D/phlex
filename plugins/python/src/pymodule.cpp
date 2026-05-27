@@ -58,7 +58,7 @@ namespace pymodule_register_providers {
     }
 
     //m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number() % 2; })
-    //.output_product(product_query{.creator = "input", .layer = "event", .suffix = "i"});
+    //.output_product(product_selector{.creator = "input", .layer = "event", .suffix = "i"});
   }
 } // namespace pymodule_register_providers
 
