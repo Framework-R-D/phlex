@@ -706,6 +706,7 @@ def build_comment(
     repo: str | None,
     max_results: int,
     threshold: str,
+    pr_number: int | None = None,
 ) -> str:
     """Builds a comment body for a pull request.
 
@@ -715,6 +716,7 @@ def build_comment(
         repo: The repository name.
         max_results: The maximum number of results to include.
         threshold: The severity threshold.
+        pr_number: The pull request number, used to generate a filtered report link.
 
     Returns:
         The formatted comment body.
@@ -751,7 +753,12 @@ def build_comment(
         lines.append("")
 
     if repo:
-        code_scanning_url = f"https://github.com/{repo}/security/code-scanning"
+        if pr_number:
+            code_scanning_url = (
+                f"https://github.com/{repo}/security/code-scanning?query=pr%3A{pr_number}"
+            )
+        else:
+            code_scanning_url = f"https://github.com/{repo}/security/code-scanning"
         lines.append(f"Review the [full CodeQL report]({code_scanning_url}) for details.")
     else:
         lines.append("Review the CodeQL report in the Security tab for full details.")
@@ -926,9 +933,12 @@ def _compare_alerts_via_api(
         _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
 
     def alert_key(a: Alert) -> tuple[str, str]:
-        # Prefer analysis_key/fingerprint when available; otherwise use rule+location
-        if a.analysis_key:
-            return ("ak", str(a.analysis_key))
+        # Prefer alert number as it is the stable, per-alert unique identifier in
+        # the GitHub Code Scanning API.  The analysis_key field is per-analysis
+        # (i.e. shared by all alerts from the same job), so using it as a key
+        # would collapse every alert from a single CodeQL run into one entry.
+        if a.number is not None:
+            return ("num", str(a.number))
         return ("rl", f"{a.rule_id}::{a.location or '(location unavailable)'}")
 
     pr_alerts: dict[tuple[str, str], Alert] = {}
@@ -1017,6 +1027,8 @@ def _compare_alerts_via_api(
 def _build_multi_section_comment(
     api_comp: APIAlertComparison,
     max_results: int,
+    *,
+    pr_number: int | None = None,
 ) -> str:
     """Build a detailed PR comment when multiple comparisons have been made."""
     lines: list[str] = []
@@ -1115,7 +1127,12 @@ def _build_multi_section_comment(
 
     repo_str = os.environ.get("GITHUB_REPOSITORY")
     if repo_str:
-        code_scanning_url = f"https://github.com/{repo_str}/security/code-scanning"
+        if pr_number:
+            code_scanning_url = (
+                f"https://github.com/{repo_str}/security/code-scanning?query=pr%3A{pr_number}"
+            )
+        else:
+            code_scanning_url = f"https://github.com/{repo_str}/security/code-scanning"
         lines.append(f"Review the [full CodeQL report]({code_scanning_url}) for details.")
     else:
         lines.append("Review the CodeQL report in the Security tab for full details.")
@@ -1221,9 +1238,19 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
         )
     ):
         repo_str = os.environ.get("GITHUB_REPOSITORY")
+        pr_number: int | None = None
+        if args.ref and args.ref.startswith("refs/pull/"):
+            parts = args.ref.split("/")
+            if len(parts) >= 3:
+                try:
+                    pr_number = int(parts[2])
+                except ValueError:
+                    pass
         comment_body = ""
         if api_comp:
-            comment_body = _build_multi_section_comment(api_comp, args.max_results)
+            comment_body = _build_multi_section_comment(
+                api_comp, args.max_results, pr_number=pr_number
+            )
         else:
             comment_body = build_comment(
                 new_alerts=new_alerts,
@@ -1231,6 +1258,7 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
                 repo=repo_str,
                 max_results=args.max_results,
                 threshold=min_level,
+                pr_number=pr_number,
             )
 
         comment_path = Path(os.environ.get("RUNNER_TEMP", ".")) / "codeql-alerts.md"

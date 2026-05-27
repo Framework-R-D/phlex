@@ -582,6 +582,19 @@ class TestBuildComment:
         )
         assert "https://github.com/owner/repo/security/code-scanning" in body
 
+    def test_code_scanning_link_includes_pr_filter_when_pr_number_given(self) -> None:
+        """When pr_number is provided the link includes the pr: query filter."""
+        body = M.build_comment(
+            new_alerts=[self._alert()],
+            fixed_alerts=[],
+            repo="owner/repo",
+            max_results=20,
+            threshold="warning",
+            pr_number=614,
+        )
+        assert "?query=pr%3A614" in body
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A614" in body
+
     def test_generic_link_when_repo_unknown(self) -> None:
         """Generic link when repo unknown."""
         body = M.build_comment(
@@ -960,6 +973,31 @@ class TestCompareAlertsViaApi:
         assert len(result.fixed_alerts) == 1
         assert result.fixed_alerts[0].number == 6
 
+    @patch("check_codeql_alerts._api_request")
+    @patch("check_codeql_alerts._paginate_alerts_api")
+    def test_multiple_alerts_with_same_analysis_key_all_counted(
+        self, mock_pag: MagicMock, mock_req: MagicMock
+    ) -> None:
+        """All alerts with the same analysis_key must be counted separately.
+
+        The GitHub Code Scanning API's analysis_key is per-analysis (shared by
+        every alert produced by the same job), not per-alert.  Using it as the
+        deduplication key would collapse all alerts from one run into a single
+        entry.  The alert number is the correct unique identifier.
+        """
+        # Three alerts on main, all sharing the same analysis_key (realistic for CodeQL)
+        shared_ak = "actions-codeql-analysis.yaml:codeql-analysis / analyze actions"
+        main_alert_a = _make_api_alert(number=10, analysis_key=shared_ak)
+        main_alert_b = _make_api_alert(number=11, analysis_key=shared_ak)
+        main_alert_c = _make_api_alert(number=12, analysis_key=shared_ak)
+        # PR fixes all three
+        mock_pag.side_effect = self._mock_paginate(
+            {"refs/pull/7/merge": [], None: [main_alert_a, main_alert_b, main_alert_c]}
+        )
+        mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
+        result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge")
+        assert len(result.fixed_alerts) == 3
+
 
 # ---------------------------------------------------------------------------
 # _build_multi_section_comment
@@ -1064,6 +1102,14 @@ class TestBuildMultiSectionComment:
         comp = self._comp(new_alerts=[self._alert()])
         body = M._build_multi_section_comment(comp, max_results=10)
         assert "https://github.com/owner/repo/security/code-scanning" in body
+
+    def test_code_scanning_link_includes_pr_filter(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When pr_number is provided the link includes the pr: query filter."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        comp = self._comp(new_alerts=[self._alert()])
+        body = M._build_multi_section_comment(comp, max_results=10, pr_number=42)
+        assert "?query=pr%3A42" in body
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A42" in body
 
 
 # ---------------------------------------------------------------------------
