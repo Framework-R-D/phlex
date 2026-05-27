@@ -10,7 +10,7 @@
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/core/store_counters.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -40,7 +40,7 @@ namespace phlex::experimental {
   public:
     declared_fold(algorithm_name name,
                   std::vector<std::string> predicates,
-                  product_queries input_products);
+                  product_selectors input_products);
     ~declared_fold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
@@ -71,7 +71,7 @@ namespace phlex::experimental {
               tbb::flow::graph& g,
               AlgorithmBits alg,
               InitTuple initializer,
-              product_queries input_products,
+              product_selectors input_products,
               std::vector<std::string> output,
               std::string partition) :
       declared_fold{std::move(algo_name), std::move(predicates), std::move(input_products)},
@@ -133,7 +133,7 @@ namespace phlex::experimental {
       }
     }
 
-    tbb::flow::receiver<message>& port_for(product_query const& input_product) override
+    tbb::flow::receiver<message>& port_for(product_selector const& input_product) override
     {
       return receiver_for<num_inputs>(join_, input(), input_product, fold_);
     }

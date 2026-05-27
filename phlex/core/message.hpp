@@ -4,7 +4,7 @@
 #include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/fwd.hpp"
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
@@ -72,8 +72,8 @@ namespace phlex::experimental {
     return msg; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
 
-  PHLEX_CORE_EXPORT std::size_t port_index_for(product_queries const& input_products,
-                                               product_query const& input_product);
+  PHLEX_CORE_EXPORT std::size_t port_index_for(product_selectors const& input_products,
+                                               product_selector const& input_product);
 }
 
 #endif // PHLEX_CORE_MESSAGE_HPP

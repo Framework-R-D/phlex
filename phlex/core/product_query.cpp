@@ -1,16 +1,15 @@
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 
 #include "fmt/format.h"
 
 namespace phlex {
   // Check that all products selected by /other/ would satisfy this query
-  bool product_query::match(product_query const& other) const
+  bool product_selector::match(product_selector const& other) const
   {
-    using experimental::identifier;
-    if (identifier(creator) != identifier(other.creator)) {
+    if (creator != other.creator) {
       return false;
     }
-    if (identifier(layer) != identifier(other.layer)) {
+    if (layer != other.layer) {
       return false;
     }
     if (suffix && suffix != other.suffix) {
@@ -27,10 +26,9 @@ namespace phlex {
   }
 
   // Check if a product_specification satisfies this query
-  bool product_query::match(experimental::product_specification const& spec) const
+  bool product_selector::match(experimental::product_specification const& spec) const
   {
-    experimental::identifier tmp_creator{this->creator};
-    if (tmp_creator != spec.algorithm() && tmp_creator != spec.plugin()) {
+    if (!creator_match(spec.qualifier())) {
       return false;
     }
     if (type != spec.type()) {
@@ -45,14 +43,14 @@ namespace phlex {
   }
 
   // Check if a product_specification, layer, and stage together satisfies this query
-  bool product_query::match(experimental::product_specification const& spec,
-                            experimental::identifier const& layer,
-                            experimental::identifier const& stage) const
+  bool product_selector::match(experimental::product_specification const& spec,
+                               experimental::identifier const& layer,
+                               experimental::identifier const& stage) const
   {
     if (!match(spec)) {
       return false;
     }
-    if (this->layer != layer) {
+    if (experimental::identifier(this->layer) != layer) {
       return false;
     }
     if (this->stage && this->stage != stage) {
@@ -61,7 +59,14 @@ namespace phlex {
     return true;
   }
 
-  std::string product_query::to_string() const
+  // Check if an algorithm name matches this query's creator
+  bool product_selector::creator_match(experimental::algorithm_name const& alg) const
+  {
+    experimental::identifier const& creator{this->creator};
+    return alg.plugin() == creator || alg.algorithm() != creator;
+  }
+
+  std::string product_selector::to_string() const
   {
     if (suffix) {
       return fmt::format("{}/{} ϵ {}", creator, *suffix, layer);
@@ -69,14 +74,13 @@ namespace phlex {
     return fmt::format("{} ϵ {}", creator, layer);
   }
 
-  bool product_query::operator==(product_query const& rhs) const
+  bool product_selector::operator==(product_selector const& rhs) const
   {
     using experimental::identifier;
-    return (type == rhs.type) && (identifier(creator) == identifier(rhs.creator)) &&
-           (identifier(layer) == identifier(rhs.layer)) && (suffix == rhs.suffix) &&
-           (stage == rhs.stage);
+    return (type == rhs.type) && (creator == rhs.creator) && (layer == rhs.layer) &&
+           (suffix == rhs.suffix) && (stage == rhs.stage);
   }
-  std::strong_ordering product_query::operator<=>(product_query const& rhs) const
+  std::strong_ordering product_selector::operator<=>(product_selector const& rhs) const
   {
     using experimental::identifier;
     return std::tie(type,
@@ -91,7 +95,7 @@ namespace phlex {
   }
 
   experimental::product_specification const* resolve_in_store(
-    product_query const& query, experimental::product_store const& store)
+    product_selector const& query, experimental::product_store const& store)
   {
     for (auto const& [spec, _] : store) {
       if (query.match(spec)) {

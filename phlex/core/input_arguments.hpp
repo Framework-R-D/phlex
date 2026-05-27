@@ -2,7 +2,7 @@
 #define PHLEX_CORE_INPUT_ARGUMENTS_HPP
 
 #include "phlex/core/message.hpp"
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/handle.hpp"
 
 #include "fmt/format.h"
@@ -19,7 +19,7 @@ namespace phlex::experimental {
   template <typename T>
   struct retriever {
     using handle_arg_t = detail::handle_value_type<T>;
-    product_query query;
+    product_selector query;
     auto retrieve(message const& msg) const
     {
       namespace views = std::ranges::views;
@@ -50,13 +50,13 @@ namespace phlex::experimental {
   };
 
   template <typename InputTypes, std::size_t... Is>
-  auto form_input_arguments_impl(product_queries const& args, std::index_sequence<Is...>)
+  auto form_input_arguments_impl(product_selectors const& args, std::index_sequence<Is...>)
   {
     return std::make_tuple(retriever<std::tuple_element_t<Is, InputTypes>>{args[Is]}...);
   }
 
   template <typename InputTypes>
-  auto form_input_arguments(product_queries const& args)
+  auto form_input_arguments(product_selectors const& args)
   {
     constexpr auto num_inputs = std::tuple_size_v<InputTypes>;
     return form_input_arguments_impl<InputTypes>(args, std::make_index_sequence<num_inputs>{});

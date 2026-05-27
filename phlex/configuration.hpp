@@ -4,7 +4,7 @@
 #include "phlex/phlex_configuration_internal_export.hpp"
 
 #include "boost/json.hpp"
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/identifier.hpp"
 
 #include <optional>
@@ -23,7 +23,7 @@ namespace phlex {
       throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
     }
 
-    // Used later for product_query
+    // Used later for product_selector
     PHLEX_CONFIGURATION_INTERNAL_EXPORT std::optional<phlex::experimental::identifier>
     value_if_exists(boost::json::object const& obj, std::string_view parameter);
 
@@ -94,8 +94,8 @@ namespace phlex {
   PHLEX_CONFIGURATION_INTERNAL_EXPORT configuration
   tag_invoke(boost::json::value_to_tag<configuration> const&, boost::json::value const& jv);
 
-  PHLEX_CONFIGURATION_INTERNAL_EXPORT product_query
-  tag_invoke(boost::json::value_to_tag<product_query> const&, boost::json::value const& jv);
+  PHLEX_CONFIGURATION_INTERNAL_EXPORT product_selector
+  tag_invoke(boost::json::value_to_tag<product_selector> const&, boost::json::value const& jv);
 
   namespace experimental {
     PHLEX_CONFIGURATION_INTERNAL_EXPORT identifier
@@ -103,17 +103,17 @@ namespace phlex {
   }
 
   template <std::size_t N>
-  std::array<product_query, N> tag_invoke(
-    boost::json::value_to_tag<std::array<product_query, N>> const&, boost::json::value const& jv)
+  std::array<product_selector, N> tag_invoke(
+    boost::json::value_to_tag<std::array<product_selector, N>> const&, boost::json::value const& jv)
   {
     auto const& array = jv.as_array();
-    return detail::unpack_json_array<product_query>(array, std::make_index_sequence<N>());
+    return detail::unpack_json_array<product_selector>(array, std::make_index_sequence<N>());
   }
 }
 
 // The below is a better long term fix but it requires a Boost JSON bug (#1140) to be fixed
 // namespace boost::json {
 //   template <std::size_t N>
-//   struct is_sequence_like<std::array<phlex::product_query, N>> : std::false_type {};
+//   struct is_sequence_like<std::array<phlex::product_selector, N>> : std::false_type {};
 // }
 #endif // PHLEX_CONFIGURATION_HPP

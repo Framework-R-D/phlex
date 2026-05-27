@@ -46,11 +46,11 @@ TEST_CASE("Test vector of abstract types")
   g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
     .output_product("dummy", "thing", "event");
   g.transform("read_thing", read_abstract)
-    .input_family(product_query{.creator = "dummy", .layer = "event", .suffix = "thing"})
+    .input_family(product_selector{.creator = "dummy", .layer = "event", .suffix = "thing"})
     .output_product_suffixes("sum");
   g.observe(
      "verify_sum", [](int sum) { CHECK(sum == 3); }, concurrency::serial)
-    .input_family(product_query{.creator = "read_thing", .layer = "event", .suffix = "sum"});
+    .input_family(product_selector{.creator = "read_thing", .layer = "event", .suffix = "sum"});
   g.execute();
 
   CHECK(g.execution_count("provide_thing") == 1);

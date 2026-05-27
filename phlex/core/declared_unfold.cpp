@@ -26,7 +26,7 @@ namespace phlex::experimental {
 
   declared_unfold::declared_unfold(algorithm_name name,
                                    std::vector<std::string> predicates,
-                                   product_queries input_products,
+                                   product_selectors input_products,
                                    std::string child_layer) :
     products_consumer{std::move(name), std::move(predicates), std::move(input_products)},
     child_layer_{std::move(child_layer)}

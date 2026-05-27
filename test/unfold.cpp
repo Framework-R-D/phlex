@@ -102,27 +102,27 @@ TEST_CASE("Splitting the processing", "[graph]")
     .output_product("input", "ten_numbers", "event");
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "max_number"})
     .output_product_suffixes("new_number");
   g.fold("add", add, concurrency::unlimited, "event")
-    .input_family(product_query{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
+    .input_family(product_selector{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
     .output_product_suffixes("sum1");
   g.observe("check_sum", check_sum, concurrency::unlimited)
-    .input_family(product_query{.creator = "add", .layer = "event", .suffix = "sum1"});
+    .input_family(product_selector{.creator = "add", .layer = "event", .suffix = "sum1"});
 
   g.unfold<iterate_through>("iterate_through",
                             &iterate_through::predicate,
                             &iterate_through::unfold,
                             concurrency::unlimited,
                             "lower2")
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "ten_numbers"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "ten_numbers"})
     .output_product_suffixes("each_number");
   g.fold("add_numbers", add_numbers, concurrency::unlimited, "event")
     .input_family(
-      product_query{.creator = "iterate_through", .layer = "lower2", .suffix = "each_number"})
+      product_selector{.creator = "iterate_through", .layer = "lower2", .suffix = "each_number"})
     .output_product_suffixes("sum2");
   g.observe("check_sum_same", check_sum_same, concurrency::unlimited)
-    .input_family(product_query{.creator = "add_numbers", .layer = "event", .suffix = "sum2"});
+    .input_family(product_selector{.creator = "add_numbers", .layer = "event", .suffix = "sum2"});
 
   g.make<experimental::test::products_for_output>().output(
     "save", &experimental::test::products_for_output::save, concurrency::serial);
@@ -167,15 +167,15 @@ TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
     .output_product("input", "max_number", "event");
 
   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "subevent")
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "max_number"})
     .output_product_suffixes("new_number");
 
   g.transform(
      "add_max_and_new",
      [](unsigned int i, unsigned int j) { return i + j; },
      concurrency::unlimited)
-    .input_family(product_query{.creator = "iota", .layer = "subevent", .suffix = "new_number"},
-                  product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+    .input_family(product_selector{.creator = "iota", .layer = "subevent", .suffix = "new_number"},
+                  product_selector{.creator = "input", .layer = "event", .suffix = "max_number"})
     .output_product_suffixes("result");
 
   g.execute();

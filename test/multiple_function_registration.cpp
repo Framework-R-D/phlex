@@ -52,40 +52,40 @@ TEST_CASE("Call multiple functions", "[programming model]")
   SECTION("All free functions")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family(product_query{.creator = "input", .layer = "job", .suffix = "numbers"})
+      .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "numbers"})
       .output_product_suffixes("squared_numbers");
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
       .input_family(
-        product_query{.creator = "square_numbers", .layer = "job", .suffix = "squared_numbers"})
+        product_selector{.creator = "square_numbers", .layer = "job", .suffix = "squared_numbers"})
       .output_product_suffixes("summed_numbers");
     g.transform("sqrt_sum", sqrt_sum_numbers, concurrency::unlimited)
       .input_family(
-        product_query{.creator = "sum_numbers", .layer = "job", .suffix = "summed_numbers"},
-        product_query{.creator = "input", .layer = "job", .suffix = "offset"})
+        product_selector{.creator = "sum_numbers", .layer = "job", .suffix = "summed_numbers"},
+        product_selector{.creator = "input", .layer = "job", .suffix = "offset"})
       .output_product_suffixes("result");
   }
 
   SECTION("Transforms, one from a class")
   {
     g.transform("square_numbers", square_numbers, concurrency::unlimited)
-      .input_family(product_query{.creator = "input", .layer = "job", .suffix = "numbers"})
+      .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "numbers"})
       .output_product_suffixes("squared_numbers");
 
     g.transform("sum_numbers", sum_numbers, concurrency::unlimited)
       .input_family(
-        product_query{.creator = "square_numbers", .layer = "job", .suffix = "squared_numbers"})
+        product_selector{.creator = "square_numbers", .layer = "job", .suffix = "squared_numbers"})
       .output_product_suffixes("summed_numbers");
 
     g.make<A>()
       .transform("sqrt_sum", &A::sqrt_sum, concurrency::unlimited)
       .input_family(
-        product_query{.creator = "sum_numbers", .layer = "job", .suffix = "summed_numbers"},
-        product_query{.creator = "input", .layer = "job", .suffix = "offset"})
+        product_selector{.creator = "sum_numbers", .layer = "job", .suffix = "summed_numbers"},
+        product_selector{.creator = "input", .layer = "job", .suffix = "offset"})
       .output_product_suffixes("result");
   }
 
   // The following is invoked for *each* section above
   g.observe("verify_result", [](double actual) { assert(actual == 6.); })
-    .input_family(product_query{.creator = "sqrt_sum", .layer = "job", .suffix = "result"});
+    .input_family(product_selector{.creator = "sqrt_sum", .layer = "job", .suffix = "result"});
   g.execute();
 }

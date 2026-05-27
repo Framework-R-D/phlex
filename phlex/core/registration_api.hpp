@@ -52,7 +52,7 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<product_query, num_inputs> input_args)
+    auto input_family(std::array<product_selector, num_inputs> input_args)
     {
       populate_types<input_parameter_types>(input_args);
 
@@ -81,7 +81,7 @@ namespace phlex::experimental {
       return upstream_predicates<node_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
-    auto input_family(std::same_as<product_query> auto... input_args)
+    auto input_family(std::same_as<product_selector> auto... input_args)
     {
       static_assert(num_inputs == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
@@ -205,7 +205,7 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<product_query, num_inputs - 1> input_args)
+    auto input_family(std::array<product_selector, num_inputs - 1> input_args)
     {
       populate_types<input_parameter_types>(input_args);
 
@@ -225,7 +225,7 @@ namespace phlex::experimental {
       return upstream_predicates<declared_fold_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
-    auto input_family(std::same_as<product_query> auto... input_args)
+    auto input_family(std::same_as<product_selector> auto... input_args)
     {
       static_assert(num_inputs - 1 == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
@@ -282,7 +282,7 @@ namespace phlex::experimental {
     {
     }
 
-    auto input_family(std::array<product_query, num_inputs> input_args)
+    auto input_family(std::array<product_selector, num_inputs> input_args)
     {
       populate_types<input_parameter_types>(input_args);
 
@@ -302,7 +302,7 @@ namespace phlex::experimental {
       return upstream_predicates<declared_unfold_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
-    auto input_family(std::same_as<product_query> auto... input_args)
+    auto input_family(std::same_as<product_selector> auto... input_args)
     {
       static_assert(num_inputs == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "

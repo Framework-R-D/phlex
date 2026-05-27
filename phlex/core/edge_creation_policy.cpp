@@ -7,7 +7,7 @@
 
 namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
-    product_query const& query) const
+    product_selector const& query) const
   {
     if (producers_.empty()) {
       spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",
@@ -27,7 +27,7 @@ namespace phlex::experimental {
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
       // TODO: Getting there -- this whole thing needs to be replaced with something
       //       that indexes all the fields from the beginning.
-      if (producer.node.plugin() == query.creator || producer.node.algorithm() == query.creator) {
+      if (query.creator_match(producer.node)) {
         if (query.type != producer.type) {
           spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
                         "from candidate list.",

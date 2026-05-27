@@ -4,7 +4,7 @@
 #include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/fwd.hpp"
-#include "phlex/core/product_query.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -59,7 +59,7 @@ namespace phlex::experimental {
     struct for_output_t {};
     static constexpr for_output_t for_output{};
     explicit data_map(for_output_t);
-    explicit data_map(product_queries const& product_names);
+    explicit data_map(product_selectors const& product_names);
 
     bool is_complete(std::size_t const msg_id) const;
 
@@ -68,7 +68,7 @@ namespace phlex::experimental {
 
   private:
     stores_t stores_;
-    std::vector<product_query> const* input_products_;
+    std::vector<product_selector> const* input_products_;
     std::size_t nargs_;
   };
 }

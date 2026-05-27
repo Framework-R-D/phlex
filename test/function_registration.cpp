@@ -55,9 +55,9 @@ namespace {
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
   std::array const input_products{
-    product_query{.creator = "input", .layer = "job", .suffix = "number"},
-    product_query{.creator = "input", .layer = "job", .suffix = "temperature"},
-    product_query{.creator = "input", .layer = "job", .suffix = "name"}};
+    product_selector{.creator = "input", .layer = "job", .suffix = "number"},
+    product_selector{.creator = "input", .layer = "job", .suffix = "temperature"},
+    product_selector{.creator = "input", .layer = "job", .suffix = "name"}};
   std::array const product_suffixes = {"onumber"s, "otemperature"s, "oname"s};
   std::array const result{"result"s};
 
