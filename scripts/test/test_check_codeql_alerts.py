@@ -19,6 +19,8 @@ from .github/workflows/codeql-analysis.yaml:
 from __future__ import annotations
 
 import json
+import runpy
+import sys
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -1360,6 +1362,38 @@ class TestMainSarifMode:
         assert "?query=pr%3A104" in comment
         assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A104" in comment
 
+    def test_non_integer_pr_ref_no_filtered_url(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A --ref whose PR segment is not an integer leaves pr_number as None.
+
+        Exercises the ``except ValueError: pass`` branch in main() so that a
+        malformed ref such as ``refs/pull/abc/merge`` does not crash the script
+        and produces a comment with no PR-scoped query parameter.
+        """
+        sarif_dir = self._write_sarif(
+            tmp_path / "sarif", [_make_result(baseline_state="new", level="error")]
+        )
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        log = tmp_path / "codeql.log"
+        rc = M.main(
+            [
+                "--sarif",
+                str(sarif_dir),
+                "--ref",
+                "refs/pull/abc/merge",
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ]
+        )
+        assert rc == 0
+        comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
+        # No PR-scoped filter should appear when the PR number cannot be parsed
+        assert "?query=pr%3A" not in comment
+
 
 class TestMainApiMode:
     """End-to-end tests for API comparison mode (no SARIF baselineState)."""
@@ -1594,3 +1628,41 @@ class TestMainApiModeWithPrRef:
         comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
         assert "?query=pr%3A104" in comment
         assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A104" in comment
+
+
+class TestMainEntrypoint:
+    """Tests for the ``if __name__ == "__main__"`` entry-point block.
+
+    ``runpy.run_path(..., run_name="__main__")`` executes the script in-process
+    so coverage is collected for the ``try: sys.exit(main())`` lines that are
+    unreachable when the module is imported directly.
+    """
+
+    _SCRIPT = Path(__file__).parent.parent / "check_codeql_alerts.py"
+
+    def test_entrypoint_no_alerts_exits_zero(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Script exits 0 when run as ``__main__`` with a SARIF file containing no alerts.
+
+        Exercises the ``try: sys.exit(main())`` lines in the ``__main__`` block.
+        """
+        sarif_dir = _write_sarif_to(tmp_path / "sarif", [])
+        log = tmp_path / "codeql.log"
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "check_codeql_alerts.py",
+                "--sarif",
+                str(sarif_dir),
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ],
+        )
+        with pytest.raises(SystemExit) as exc_info:
+            runpy.run_path(str(self._SCRIPT), run_name="__main__")
+        assert exc_info.value.code == 0
