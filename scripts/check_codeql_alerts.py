@@ -1245,7 +1245,7 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
                 try:
                     pr_number = int(parts[2])
                 except ValueError:
-                    pass
+                    pass  # ref does not match refs/pull/N/merge; pr_number stays None
         comment_body = ""
         if api_comp:
             comment_body = _build_multi_section_comment(

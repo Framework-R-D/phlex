@@ -81,7 +81,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         m.observe(v, input_family=config["input"])
         return
     except (KeyError, TypeError):
-        pass
+        pass  # Optional bool configuration missing; fall through to the default sum verifier
 
     assert_sum = Verifier(config["sum_total"])
     m.observe(assert_sum, input_family=config["input"])
