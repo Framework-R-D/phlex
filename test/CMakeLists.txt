@@ -219,10 +219,10 @@ cet_test(
   spdlog::spdlog
 )
 cet_test(
-  product_selectoring
+  product_selecting
   USE_CATCH2_MAIN
   SOURCE
-  product_selectoring.cpp
+  product_selecting.cpp
   LIBRARIES
   phlex::core
   layer_generator
