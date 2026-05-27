@@ -1328,6 +1328,38 @@ class TestMainSarifMode:
         comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
         assert "2 new CodeQL alerts" in comment
 
+    def test_sarif_mode_pr_ref_produces_filtered_url(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Passing --ref refs/pull/N/merge in SARIF mode produces a filtered Code Scanning URL.
+
+        This exercises the PR number extraction path in main() (refs/pull/<N>/merge → pr_number)
+        and asserts that the generated comment contains the pr-filtered query parameter, so any
+        regression in that parsing/passthrough path would fail.
+        """
+        sarif_dir = self._write_sarif(
+            tmp_path / "sarif", [_make_result(baseline_state="new", level="error")]
+        )
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        log = tmp_path / "codeql.log"
+        rc = M.main(
+            [
+                "--sarif",
+                str(sarif_dir),
+                "--ref",
+                "refs/pull/104/merge",
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ]
+        )
+        assert rc == 0
+        comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
+        assert "?query=pr%3A104" in comment
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A104" in comment
+
 
 class TestMainApiMode:
     """End-to-end tests for API comparison mode (no SARIF baselineState)."""
@@ -1507,3 +1539,58 @@ class TestMainApiMode:
         )
         mock_pag.assert_not_called()
         mock_req.assert_not_called()
+
+
+class TestMainApiModeWithPrRef:
+    """End-to-end tests verifying PR-number extraction from --ref in API mode."""
+
+    def _empty_sarif_dir(self, base: Path) -> Path:
+        return _write_sarif_to(base / "sarif", [])  # no baselineState results
+
+    @patch("check_codeql_alerts._api_request")
+    @patch("check_codeql_alerts._paginate_alerts_api")
+    def test_api_mode_pr_ref_produces_filtered_url(
+        self,
+        mock_pag: MagicMock,
+        mock_req: MagicMock,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Passing --ref refs/pull/N/merge in API mode produces a filtered Code Scanning URL.
+
+        This exercises the same PR number extraction path (refs/pull/<N>/merge → pr_number)
+        that feeds into _build_multi_section_comment(), ensuring a regression in parsing or
+        passthrough would fail.
+        """
+        sarif_dir = self._empty_sarif_dir(tmp_path)
+        pr_alert = _make_api_alert(number=1, severity="error", analysis_key="ak:1")
+
+        def _paginate(owner: str, repo: str, *, state: str = "open", ref: str | None = None):  # noqa: ANN202
+            if ref == "refs/pull/104/merge":
+                yield pr_alert
+            # main, base, and prev-commit refs return nothing
+
+        mock_pag.side_effect = _paginate
+        mock_req.side_effect = [
+            {"base": {"ref": "main", "sha": "base_sha"}},  # PR info
+            [{"sha": "prev000"}],  # commits (only 1 → no prev-commit comparison)
+        ]
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        log = tmp_path / "codeql.log"
+        rc = M.main(
+            [
+                "--sarif",
+                str(sarif_dir),
+                "--ref",
+                "refs/pull/104/merge",
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ]
+        )
+        assert rc == 0
+        comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
+        assert "?query=pr%3A104" in comment
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A104" in comment
