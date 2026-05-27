@@ -1654,7 +1654,7 @@ class TestMainEntrypoint:
             sys,
             "argv",
             [
-                "check_codeql_alerts.py",
+                str(self._SCRIPT),
                 "--sarif",
                 str(sarif_dir),
                 "--min-level",
