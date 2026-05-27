@@ -3,6 +3,7 @@
 #include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/matchers/catch_matchers_string.hpp"
 
 #include <stdexcept>
 
@@ -77,4 +78,27 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
   // will have executed.
   CHECK(g.execution_count("throw_exception") == 0ull);
   CHECK(g.execution_count("downstream_of_exception") == 0ull);
+}
+
+TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]")
+{
+  experimental::layer_generator gen;
+  gen.add_layer("event", {"job", 1, 1});
+
+  experimental::framework_graph g{driver_for_test(gen)};
+  g.provide(
+     "provide_num",
+     [](data_cell_index const& id) -> unsigned int { return id.number(); },
+     concurrency::unlimited)
+    .output_product("input", "num", "event");
+
+  g.observe(
+     "observe_num", [](unsigned int const) {}, concurrency::unlimited)
+    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "num"})
+    .experimental_when("missing_predicate");
+
+  CHECK_THROWS_WITH(
+    g.execute(),
+    Catch::Matchers::ContainsSubstring(
+      "A non-existent filter with the name 'missing_predicate' was specified for observe_num"));
 }
