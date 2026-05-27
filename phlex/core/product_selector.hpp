@@ -1,5 +1,5 @@
-#ifndef PHLEX_CORE_PRODUCT_QUERY_HPP
-#define PHLEX_CORE_PRODUCT_QUERY_HPP
+#ifndef PHLEX_CORE_PRODUCT_SELECTOR_HPP
+#define PHLEX_CORE_PRODUCT_SELECTOR_HPP
 
 #include "phlex/phlex_core_export.hpp"
 
@@ -146,4 +146,4 @@ namespace phlex {
     product_selector const& query, experimental::product_store const& store);
 }
 
-#endif // PHLEX_CORE_PRODUCT_QUERY_HPP
+#endif // PHLEX_CORE_PRODUCT_SELECTOR_HPP
