@@ -72,6 +72,15 @@ TEST_CASE("Querying products in different ways", "[graph]")
     CHECK(g.execution_count("creator_and_layer_by_creator") == num_events);
   }
 
+  SECTION("Layer alone, distinguished by type")
+  {
+    g.transform("layer_by_type", [](std::string const& str) { return str; })
+      .input_family(product_selector{.layer = "event"})
+      .output_product_suffixes("new_name");
+    g.execute();
+    CHECK(g.execution_count("layer_by_type") == num_events);
+  }
+
   SECTION("Creator and Layer, using layer")
   {
     g.transform("creator_and_layer_by_layer", [](double const& d) { return d; })

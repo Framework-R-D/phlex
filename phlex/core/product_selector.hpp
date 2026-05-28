@@ -76,7 +76,7 @@ namespace phlex {
   }
 
   struct PHLEX_CORE_EXPORT product_selector {
-    detail::required_creator_name<experimental::identifier> creator;
+    std::optional<experimental::identifier> creator;
     detail::required_layer_name<experimental::identifier> layer;
     std::optional<experimental::identifier> suffix;
     std::optional<experimental::identifier> stage;

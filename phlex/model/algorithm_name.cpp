@@ -61,7 +61,7 @@ namespace phlex::experimental {
     }
     case specified_fields::either: {
       // Either the plugin or the algorithm can match
-      return other.plugin_ == plugin_ or other.plugin_ == algorithm_;
+      return other.algorithm_ == plugin_ or other.algorithm_ == algorithm_;
     }
     case specified_fields::both: {
       // Exact equality expected if both the plugin or algorithm is specified
@@ -100,6 +100,12 @@ namespace phlex::experimental {
       throw std::runtime_error(
         fmt::format("The specification '{}' is not a valid algorithm name.", spec));
     }
-    return {identifier(spec), identifier(spec), specified_fields::either};
+    return {"", identifier(spec), specified_fields::either};
   }
+
+  bool algorithm_name::operator==(algorithm_name const& rhs) const noexcept
+  {
+    return std::tie(plugin_, algorithm_) == std::tie(rhs.plugin_, rhs.algorithm_);
+  }
+
 }

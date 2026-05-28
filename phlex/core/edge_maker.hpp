@@ -68,7 +68,7 @@ namespace phlex::experimental {
 
       for (auto const& query : node->input()) {
         auto* receiver_port = collector ? collector : &node->port(query);
-        auto producer = producers_.find_producer(query);
+        auto producer = producers_.find_producer(query, node->name());
         if (not producer) {
           // Is there a way to detect mis-specified product dependencies?
           result[node_name].push_back({query, receiver_port});

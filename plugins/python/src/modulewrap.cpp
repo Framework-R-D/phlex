@@ -1257,7 +1257,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   }
 
   algorithm_name creator =
-    algorithm_name::create(std::string_view(identifier(opq.value().creator)));
+    algorithm_name::create(std::string_view(opq.value().creator.value_or("")));
   identifier layer = opq.value().layer;
   identifier suffix = opq.value().suffix.value_or("");
 

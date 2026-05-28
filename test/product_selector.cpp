@@ -8,9 +8,6 @@ using namespace phlex;
 TEST_CASE("Empty specifications", "[data model]")
 {
   CHECK_THROWS_WITH(
-    (product_selector{.creator = "", .layer = "layer"}),
-    Catch::Matchers::ContainsSubstring("Cannot specify product with empty creator name."));
-  CHECK_THROWS_WITH(
     (product_selector{.creator = "creator", .layer = ""}),
     Catch::Matchers::ContainsSubstring("Cannot specify the empty string as a data layer."));
 }
@@ -23,6 +20,9 @@ TEST_CASE("Product name with data layer", "[data model]")
   CHECK(label.suffix == "product"_id);
   // Mismatched creator
   CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(
+    product_selector{.creator = "2", .layer = "event", .suffix = "prod"}));
+  // Missing creator matches anything
+  CHECK(product_selector{.layer = "event", .suffix = "prod"}.match(
     product_selector{.creator = "2", .layer = "event", .suffix = "prod"}));
   // Mismatched layer
   CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(

@@ -27,8 +27,8 @@ TEST_CASE("algorithm_name tests", "[model]")
   SECTION("Create from string without colon")
   {
     auto an = algorithm_name::create("algo");
-    // For 'either' cases, the word is stored as plugin_ and algorithm_
-    CHECK(an.to_string() == "algo:algo");
+    // For 'either' cases, the word is stored as plugin_
+    CHECK(an.to_string() == "algo");
   }
   SECTION("Create from char pointer")
   {
