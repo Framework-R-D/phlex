@@ -175,13 +175,13 @@ namespace phlex::experimental {
     }
   }
 
-  data_cell_index_ptr index_router::route(data_cell_index_ptr const index, index_flushes flushes)
+  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index, index_flushes flushes)
   {
     update_flush_counts(std::move(flushes));
     return route(index, index_is_lowest_layer(index), received_indices_.fetch_add(1));
   }
 
-  data_cell_index_ptr index_router::route(data_cell_index_ptr index,
+  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index,
                                           bool const is_lowest_layer,
                                           std::size_t const message_id)
   {

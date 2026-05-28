@@ -54,7 +54,7 @@ namespace phlex::experimental {
     using provider_input_ports_t = std::map<std::string, provider_input_port_t>;
 
     explicit index_router(tbb::flow::graph& g);
-    data_cell_index_ptr route(data_cell_index_ptr index, index_flushes flushes);
+    data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes flushes);
 
     void establish_layers(std::vector<std::vector<std::string>> const& layer_paths_from_driver,
                           std::vector<identifier> unfold_input_layer_names,
@@ -81,7 +81,7 @@ namespace phlex::experimental {
     }
 
   private:
-    data_cell_index_ptr route(data_cell_index_ptr index,
+    data_cell_index_ptr route(data_cell_index_ptr const& index,
                               bool is_lowest_layer,
                               std::size_t message_id);
     bool index_is_lowest_layer(data_cell_index_ptr const& index);
