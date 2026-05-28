@@ -43,7 +43,7 @@ namespace phlex::experimental {
   {
   }
 
-  std::string algorithm_name::full() const
+  std::string algorithm_name::to_string() const
   {
     if (!plugin_.empty()) {
       return fmt::format("{}:{}", plugin_, algorithm_);

@@ -19,19 +19,19 @@ namespace phlex::experimental {
   }
   product_specification::product_specification(std::string_view name) { *this = create(name); }
 
-  product_specification::product_specification(algorithm_name qualifier,
+  product_specification::product_specification(algorithm_name creator,
                                                identifier suffix,
                                                type_id type) :
-    qualifier_{std::move(qualifier)}, suffix_{std::move(suffix)}, type_id_{std::move(type)}
+    creator_{std::move(creator)}, suffix_{std::move(suffix)}, type_id_{std::move(type)}
   {
   }
 
-  std::string product_specification::full() const
+  std::string product_specification::to_string() const
   {
-    if (qualifier_.plugin().empty() && qualifier_.algorithm().empty()) {
+    if (creator_.plugin().empty() && creator_.algorithm().empty()) {
       return fmt::format("{}", suffix_);
     }
-    return fmt::format("{}/{}", qualifier_.full(), suffix_);
+    return fmt::format("{}/{}", creator_.to_string(), suffix_);
   }
 
   product_specification product_specification::create(char const* c)

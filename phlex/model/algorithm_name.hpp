@@ -23,7 +23,7 @@ namespace phlex::experimental {
                    identifier algorithm,
                    specified_fields fields = specified_fields::both);
 
-    std::string full() const;
+    std::string to_string() const;
     identifier const& plugin() const noexcept { return plugin_; }
     identifier const& algorithm() const noexcept { return algorithm_; }
 

@@ -66,7 +66,7 @@ namespace phlex::experimental {
                    AlgorithmBits alg,
                    product_selectors input_products) :
       declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
+      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       predicate_{g,
                  concurrency,
                  [this, ft = alg.release_algorithm()](

@@ -103,7 +103,7 @@ namespace phlex::experimental {
       output_{to_product_specifications(name(),
                                         std::move(output_product_suffixes),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
-      join_{make_join_or_none<num_inputs>(g, name().full(), layers())},
+      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       unfold_{g,
               concurrency,
               [this, p = std::move(predicate), ufold = std::move(unfold)](

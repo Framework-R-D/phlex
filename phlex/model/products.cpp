@@ -21,7 +21,8 @@ namespace phlex::experimental {
   {
     auto it = std::ranges::find(products_, spec, [](auto const& p) { return p.first; });
     if (it == products_.end()) {
-      throw std::runtime_error(fmt::format("No product exists with the name '{}'.", spec.full()));
+      throw std::runtime_error(
+        fmt::format("No product exists with the specification '{}'.", spec.to_string()));
     }
     return it->second.get();
   }
@@ -32,7 +33,7 @@ namespace phlex::experimental {
   {
     std::string const msg =
       fmt::format("Cannot get product '{}' with type '{}' -- must specify type '{}'.",
-                  spec.full(),
+                  spec.to_string(),
                   boost::core::demangle(requested_type),
                   boost::core::demangle(available_type));
     throw std::runtime_error(msg);
