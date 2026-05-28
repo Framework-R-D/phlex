@@ -54,21 +54,21 @@ namespace phlex::experimental {
 
   bool algorithm_name::match(algorithm_name const& other) const
   {
-    switch (other.fields_) {
-    case specified_fields::neither: {
+    if (fields_ == specified_fields::neither || other.fields_ == specified_fields::neither) {
       // Always return true if neither the plugin or algorithm is specified
       return true;
     }
-    case specified_fields::either: {
-      // Either the plugin or the algorithm can match
-      return other.algorithm_ == plugin_ or other.algorithm_ == algorithm_;
-    }
-    case specified_fields::both: {
-      // Exact equality expected if both the plugin or algorithm is specified
+
+    if (fields_ == specified_fields::both && other.fields_ == specified_fields::both) {
       return operator==(other);
     }
+
+    // Now either fields_ or other.field_ is `either`
+    if (fields_ == specified_fields::either) {
+      // Works even when both are `either`
+      return algorithm_ == other.algorithm_ || algorithm_ == other.plugin_;
     }
-    return false; // other is an invalid algorithm_name
+    return other.algorithm_ == plugin_ || other.algorithm_ == algorithm_;
   }
 
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
