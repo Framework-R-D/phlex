@@ -3,6 +3,14 @@
 
 #include <memory>
 
+namespace phlex {
+  class data_cell_index;
+  using data_cell_index_ptr = std::shared_ptr<data_cell_index const>;
+
+  template <typename T>
+  class handle;
+}
+
 namespace phlex::experimental {
   class data_layer_hierarchy;
   class data_cell_counts;
@@ -12,14 +20,11 @@ namespace phlex::experimental {
   using data_cell_counts_ptr = std::shared_ptr<data_cell_counts>;
   using product_store_const_ptr = std::shared_ptr<product_store const>;
   using product_store_ptr = std::shared_ptr<product_store>;
-}
 
-namespace phlex {
-  class data_cell_index;
-  using data_cell_index_ptr = std::shared_ptr<data_cell_index const>;
+  template <typename RT>
+  class resumable_driver;
 
-  template <typename T>
-  class handle;
+  using framework_driver = resumable_driver<data_cell_index_ptr>;
 }
 
 #endif // PHLEX_MODEL_FWD_HPP

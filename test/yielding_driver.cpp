@@ -1,6 +1,6 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/index_generator.hpp"
-#include "phlex/utilities/async_driver.hpp"
+#include "phlex/utilities/resumable_driver.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
@@ -31,7 +31,7 @@ namespace {
     }
   }
 
-  void cells_to_process(experimental::async_driver<data_cell_index_ptr>& d)
+  void cells_to_process(experimental::resumable_driver<data_cell_index_ptr>& d)
   {
     for (auto const& index : make_indices(2, 2, 3)) {
       d.yield(index);
@@ -39,9 +39,9 @@ namespace {
   }
 }
 
-TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
+TEST_CASE("Resumable driver with TBB flow graph", "[resumable_driver]")
 {
-  experimental::async_driver<data_cell_index_ptr> drive{cells_to_process};
+  experimental::resumable_driver<data_cell_index_ptr> drive{cells_to_process};
   std::vector<std::string> received_indices;
 
   tbb::flow::graph g{};

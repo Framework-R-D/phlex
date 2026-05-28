@@ -7,7 +7,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/utilities/async_driver.hpp"
+#include "phlex/utilities/resumable_driver.hpp"
 
 #include <concepts>
 #include <functional>
@@ -17,11 +17,8 @@ namespace phlex::experimental {
   class driver_proxy;
   struct driver_bundle;
 
-  using framework_driver = experimental::async_driver<data_cell_index_ptr>;
-
   namespace detail {
     using next_index_t = std::function<void(framework_driver&)>;
-    using driver_creator_t = driver_bundle(driver_proxy const&, configuration const&);
     // Shim type for the extern "C" entry-point: out-parameter avoids returning a C++ type
     // across a C-linkage boundary.
     using driver_shim_t = void(driver_proxy const&, configuration const&, driver_bundle*);
@@ -56,7 +53,7 @@ namespace phlex::experimental {
                          is_driver_like_with_cursor auto driver_function) const
     {
       auto h = hierarchy;
-      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
+      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) {
                 f(h.yield_job(d));
               },
               std::move(hierarchy)};
@@ -71,7 +68,7 @@ namespace phlex::experimental {
                          is_driver_like_with_yielder auto driver_function) const
     {
       auto h = hierarchy;
-      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
+      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) {
                 f(h.yielder(d));
               },
               std::move(hierarchy)};

@@ -9,7 +9,7 @@
 #include <string_view>
 
 namespace phlex::detail {
-  std::optional<phlex::experimental::identifier> value_if_exists(
+  std::optional<experimental::identifier> value_if_exists(
     boost::json::object const& obj, // will be used later for new product_selector
     std::string_view parameter)
   {
@@ -17,7 +17,7 @@ namespace phlex::detail {
       return std::nullopt;
     }
     auto const& val = obj.at(parameter);
-    return boost::json::value_to<phlex::experimental::identifier>(val);
+    return boost::json::value_to<experimental::identifier>(val);
   }
 }
 

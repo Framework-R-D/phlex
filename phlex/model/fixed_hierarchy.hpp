@@ -10,11 +10,6 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
-  template <typename RT>
-  class async_driver;
-}
-
 namespace phlex {
 
   class fixed_hierarchy;
@@ -31,14 +26,14 @@ namespace phlex {
     friend class fixed_hierarchy;
     data_cell_cursor(data_cell_index_ptr index,
                      fixed_hierarchy const& h,
-                     experimental::async_driver<data_cell_index_ptr>& d);
+                     experimental::framework_driver& d);
 
     data_cell_index_ptr index_;
     // Non-owning references to the enclosing hierarchy and driver; data_cell_cursor is a
     // short-lived view and does not manage their lifetimes.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     fixed_hierarchy const& hierarchy_;
-    experimental::async_driver<data_cell_index_ptr>& driver_;
+    experimental::framework_driver& driver_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
@@ -48,11 +43,11 @@ namespace phlex {
 
   private:
     friend class fixed_hierarchy;
-    data_cell_yielder(fixed_hierarchy const& h, experimental::async_driver<data_cell_index_ptr>& d);
+    data_cell_yielder(fixed_hierarchy const& h, experimental::framework_driver& d);
 
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     fixed_hierarchy const& hierarchy_;
-    experimental::async_driver<data_cell_index_ptr>& driver_;
+    experimental::framework_driver& driver_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
@@ -74,9 +69,11 @@ namespace phlex {
     // Yields the job-level data-cell index to the provided driver and returns a
     // data_cell_cursor for the job.  Must only be called from a function registered
     // via driver_proxy::drive().
-    data_cell_cursor yield_job(experimental::async_driver<data_cell_index_ptr>& d) const;
+    data_cell_cursor yield_job(experimental::framework_driver& d) const;
 
-    data_cell_yielder yielder(experimental::async_driver<data_cell_index_ptr>& d) const;
+    // Returns a callable data-cell yielder bound to the provided driver for use when
+    // yielding additional data-cell indexes from registered framework functions.
+    data_cell_yielder yielder(experimental::framework_driver& d) const;
 
   private:
     std::vector<std::vector<std::string>> layer_paths_;
