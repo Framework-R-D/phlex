@@ -1,11 +1,13 @@
 #include "plugins/layer_generator.hpp"
-#include "phlex/model/data_cell_index.hpp"
 
 #include "fmt/format.h"
-#include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <cassert>
+#include <functional>
 #include <ranges>
+#include <stdexcept>
+#include <utility>
 
 namespace phlex::experimental {
 
@@ -33,12 +35,7 @@ namespace phlex::experimental {
   {
     // Check if the count of all emitted cells is requested
     if (layer_path.empty()) {
-      // For C++23, we can use std::ranges::fold_left
-      std::size_t total{};
-      for (auto const& [_, count] : emitted_cells_) {
-        total += count;
-      }
-      return total;
+      return std::ranges::fold_left(emitted_cells_ | std::views::values, 0uz, std::plus<>{});
     }
 
     if (auto it = emitted_cells_.find(layer_path); it != emitted_cells_.end()) {
