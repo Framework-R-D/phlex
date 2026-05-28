@@ -28,13 +28,13 @@ namespace phlex::experimental {
       // Prevent self-edges
       if (producer.node == consumer_name) {
         spdlog::debug(
-          "Skipping self-edge if {} matched {}", query.to_string(), producer.node.full());
+          "Skipping self-edge if {} matched {}", query.to_string(), producer.node.to_string());
         continue;
-      } else {
-        spdlog::debug("Checking product made by {} against input required by {}",
-                      producer.node.full(),
-                      consumer_name.full());
       }
+      spdlog::debug("Checking product made by {} against input required by {}",
+                    producer.node.to_string(),
+                    consumer_name.to_string());
+
       // TODO: Getting there -- this whole thing needs to be replaced with something
       //       that indexes all the fields from the beginning.
       if (query.creator_match(producer.node)) {
