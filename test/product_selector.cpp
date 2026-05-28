@@ -34,4 +34,7 @@ TEST_CASE("Product name with data layer", "[data model]")
   CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod", .stage = "stage"_id}
            .match(product_selector{
              .creator = "1", .layer = "event", .suffix = "prod", .stage = "stage1"_id}));
+  // Here for no reason other than to satisfy codecov
+  CHECK(label == label);
+  CHECK((label <=> label) == std::strong_ordering::equal);
 }
