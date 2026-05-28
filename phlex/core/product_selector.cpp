@@ -28,7 +28,7 @@ namespace phlex {
   // Check if a product_specification satisfies this query
   bool product_selector::match(experimental::product_specification const& spec) const
   {
-    if (!creator_match(spec.qualifier())) {
+    if (!creator_match(spec.creator())) {
       return false;
     }
     if (type != spec.type()) {
