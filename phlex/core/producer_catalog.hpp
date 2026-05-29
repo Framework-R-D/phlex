@@ -1,5 +1,5 @@
-#ifndef PHLEX_CORE_EDGE_CREATION_POLICY_HPP
-#define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
+#ifndef PHLEX_CORE_PRODUCER_CATALOG_HPP
+#define PHLEX_CORE_PRODUCER_CATALOG_HPP
 
 #include "phlex/phlex_core_export.hpp"
 
@@ -17,10 +17,10 @@
 namespace phlex::experimental {
   using product_suffix_t = identifier;
 
-  class PHLEX_CORE_EXPORT edge_creation_policy {
+  class PHLEX_CORE_EXPORT producer_catalog {
   public:
     template <typename... Args>
-    explicit edge_creation_policy(Args&... producers);
+    explicit producer_catalog(Args&... producers);
 
     struct named_output_port {
       algorithm_name node;
@@ -42,8 +42,8 @@ namespace phlex::experimental {
   // =============================================================================
   // Implementation
   template <typename T>
-  std::multimap<product_suffix_t, edge_creation_policy::named_output_port>
-  edge_creation_policy::producing_nodes(T& nodes)
+  std::multimap<product_suffix_t, producer_catalog::named_output_port>
+  producer_catalog::producing_nodes(T& nodes)
   {
     std::multimap<product_suffix_t, named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
@@ -56,10 +56,10 @@ namespace phlex::experimental {
   }
 
   template <typename... Args>
-  edge_creation_policy::edge_creation_policy(Args&... producers)
+  producer_catalog::producer_catalog(Args&... producers)
   {
     (producers_.merge(producing_nodes(producers)), ...);
   }
 }
 
-#endif // PHLEX_CORE_EDGE_CREATION_POLICY_HPP
+#endif // PHLEX_CORE_PRODUCER_CATALOG_HPP

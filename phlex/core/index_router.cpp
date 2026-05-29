@@ -145,8 +145,8 @@ namespace phlex::experimental {
       }
     }
 
-    unfold_input_layer_names_ = unfold_input_layer_names;
-    unfold_output_layer_names_ = unfold_output_layer_names;
+    unfold_input_layer_names_ = std::move(unfold_input_layer_names);
+    unfold_output_layer_names_ = std::move(unfold_output_layer_names);
   }
 
   void index_router::finalize(tbb::flow::graph& g,

@@ -1,9 +1,11 @@
 #include "phlex/core/framework_graph.hpp"
 
 #include "phlex/concurrency.hpp"
-#include "phlex/core/edge_maker.hpp"
+#include "phlex/core/make_computational_edges.hpp"
 #include "phlex/model/product_store.hpp"
 
+#include "fmt/format.h"
+#include "fmt/ranges.h"
 #include "spdlog/cfg/env.h"
 #include "spdlog/spdlog.h"
 
@@ -128,24 +130,71 @@ namespace phlex::experimental {
     }
   }
 
-  void framework_graph::finalize()
+  void framework_graph::throw_if_registration_errors() const
   {
-    if (not empty(registration_errors_)) {
-      std::string error_msg{"\nConfiguration errors:\n"};
-      for (auto const& error : registration_errors_) {
-        error_msg += "  - " + error + '\n';
-      }
-      throw std::runtime_error(error_msg);
+    if (registration_errors_.empty()) {
+      return;
     }
+    throw std::runtime_error(
+      fmt::format("\nConfiguration errors:\n  - {}", fmt::join(registration_errors_, "\n  - ")));
+  }
 
+  void framework_graph::make_filter_edges()
+  {
+    // Create filters for predicates and connect them to their consumers
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.predicates));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.observers));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.outputs));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.folds));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.unfolds));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.transforms));
+  }
 
+  void framework_graph::make_bookkeeping_edges()
+  {
+    // Connect the driver node to the index router, which forwards the index to index-set nodes.
+    // The hierarchy node is a node that counts how many data cells have been seen for each layer.
+    // This information is reported at the end of the job.
+    make_edge(src_, index_receiver_);
+    make_edge(index_receiver_, hierarchy_node_);
+    make_edge(index_router_.unfold_index_receiver(), hierarchy_node_);
+
+    for (auto& node : nodes_.folds | std::views::values) {
+      make_edge(index_router_.flusher(), node->flush_port());
+    }
+
+    for (auto& node : nodes_.unfolds | std::views::values) {
+      make_edge(node->output_index_port(), index_router_.unfold_index_receiver());
+      make_edge(node->flush_sender(), index_router_.unfold_flush_receiver());
+    }
+  }
+
+  void framework_graph::finalize()
+  {
+    throw_if_registration_errors();
+    make_filter_edges();
+    make_bookkeeping_edges();
+
+    auto [provider_input_ports, multilayer_join_index_ports] =
+      make_computational_edges(nodes_, filters_);
+
+    if (provider_input_ports.empty()) {
+      assert(multilayer_join_index_ports.empty());
+      // No algorithms downstream of source.
+      return;
+    }
+
+    // Index-router finalization makes edges between the index-set nodes and the provider nodes.
+    finalize_router(std::move(provider_input_ports), std::move(multilayer_join_index_ports));
+  }
+
+  // FIXME: Much, if not all, of this logic should be moved to the index_router.
+  void framework_graph::finalize_router(
+    index_router::provider_input_ports_t provider_input_ports,
+    std::map<std::string, named_index_ports> multilayer_join_index_ports)
+  {
     std::set<identifier> unfold_input_layer_names;
+
     // Count how many distinct unfold nodes consume each input layer.  When that count is
     // greater than one, the flush_gate for an index in that layer must collect a flush
     // message from every unfold before it knows the total number of children it will see.
@@ -164,45 +213,13 @@ namespace phlex::experimental {
       unfold_output_layer_names.emplace_back(n->child_layer());
     }
 
+    // FIXME: All of this should be collapsed into one call to index_router::finalize()
     index_router_.establish_layers(
       fixed_hierarchy_.layer_paths(),
       std::vector<identifier>(unfold_input_layer_names.begin(), unfold_input_layer_names.end()),
       unfold_output_layer_names);
     index_router_.register_unfold_count_per_input_layer(std::move(unfold_count_per_input_layer));
-
-    edge_maker make_edges{nodes_.transforms, nodes_.folds, nodes_.unfolds};
-    auto [provider_input_ports, multilayer_join_index_ports] =
-      make_edges(filters_,
-                 nodes_.outputs,
-                 nodes_.providers,
-                 // Consumers of data products below
-                 nodes_.predicates,
-                 nodes_.observers,
-                 nodes_.folds,
-                 nodes_.unfolds,
-                 nodes_.transforms);
-    if (not std::empty(provider_input_ports)) {
-      index_router_.finalize(
-        graph_, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
-    }
-
-    // The hierarchy node is used to report which data layers have been seen by the
-    // framework.  To assemble the report, data-cell indices emitted by the input node are
-    // recorded as well as any data-cell indices emitted by an unfold.
-
-    // FIXME: Eventually the separate index_receiver_ and index_router_.unfold_index_receiver()
-    //        may be combined.
-    make_edge(src_, index_receiver_);
-    make_edge(index_receiver_, hierarchy_node_);
-    make_edge(index_router_.unfold_index_receiver(), hierarchy_node_);
-
-    for (auto& [_, node] : nodes_.folds) {
-      make_edge(index_router_.flusher(), node->flush_port());
-    }
-
-    for (auto& [_, node] : nodes_.unfolds) {
-      make_edge(node->output_index_port(), index_router_.unfold_index_receiver());
-      make_edge(node->flush_sender(), index_router_.unfold_flush_receiver());
-    }
+    index_router_.finalize(
+      graph_, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
   }
 }
