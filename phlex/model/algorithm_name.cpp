@@ -38,8 +38,8 @@ namespace phlex::experimental {
   }
   algorithm_name::algorithm_name(std::string_view spec) { *this = create(spec); }
 
-  algorithm_name::algorithm_name(identifier plugin, identifier algorithm, specified_fields fields) :
-    plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}, fields_{fields}
+  algorithm_name::algorithm_name(identifier plugin, identifier algorithm) :
+    plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}
   {
   }
 
@@ -52,24 +52,7 @@ namespace phlex::experimental {
     return fmt::format("{}", algorithm_);
   }
 
-  bool algorithm_name::match(algorithm_name const& other) const
-  {
-    if (fields_ == specified_fields::neither || other.fields_ == specified_fields::neither) {
-      // Always return true if neither the plugin or algorithm is specified
-      return true;
-    }
-
-    if (fields_ == specified_fields::both && other.fields_ == specified_fields::both) {
-      return operator==(other);
-    }
-
-    // Now either fields_ or other.field_ is `either`
-    if (fields_ == specified_fields::either) {
-      // Works even when both are `either`
-      return algorithm_ == other.algorithm_ || algorithm_ == other.plugin_;
-    }
-    return other.algorithm_ == plugin_ || other.algorithm_ == algorithm_;
-  }
+  bool algorithm_name::match(algorithm_name const& other) const { return operator==(other); }
 
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
   algorithm_name algorithm_name::create(std::string_view spec)
@@ -92,7 +75,7 @@ namespace phlex::experimental {
         throw std::runtime_error(
           fmt::format("The specification '{}' is not a valid algorithm name.", spec));
       }
-      return {identifier(plugin), identifier(algorithm), specified_fields::both};
+      return {identifier(plugin), identifier(algorithm)};
     }
 
     // No colon -- could be plugin or algorithm
@@ -100,12 +83,6 @@ namespace phlex::experimental {
       throw std::runtime_error(
         fmt::format("The specification '{}' is not a valid algorithm name.", spec));
     }
-    return {"", identifier(spec), specified_fields::either};
+    return {"", identifier(spec)};
   }
-
-  bool algorithm_name::operator==(algorithm_name const& rhs) const noexcept
-  {
-    return std::tie(plugin_, algorithm_) == std::tie(rhs.plugin_, rhs.algorithm_);
-  }
-
 }

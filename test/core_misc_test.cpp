@@ -27,7 +27,7 @@ TEST_CASE("algorithm_name tests", "[model]")
   SECTION("Create from string without colon")
   {
     auto an = algorithm_name::create("algo");
-    // For 'either' cases, the word is stored as plugin_
+    // For 'either' cases, the word is stored as algorithm_
     CHECK(an.to_string() == "algo");
   }
   SECTION("Create from char pointer")
@@ -38,18 +38,6 @@ TEST_CASE("algorithm_name tests", "[model]")
   SECTION("Create error - trailing colon")
   {
     CHECK_THROWS_AS(algorithm_name::create("plugin:"), std::runtime_error);
-  }
-  SECTION("Match neither")
-  {
-    algorithm_name an = algorithm_name::create("p:a");
-    algorithm_name other; // neither
-    CHECK(an.match(other));
-  }
-  SECTION("Match either")
-  {
-    algorithm_name an = algorithm_name::create("p:a");
-    CHECK(an.match(algorithm_name::create("p")));
-    CHECK(an.match(algorithm_name::create("a")));
   }
   SECTION("Match both")
   {
