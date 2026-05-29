@@ -72,9 +72,9 @@ namespace phlex {
   std::string product_selector::to_string() const
   {
     if (suffix) {
-      return fmt::format("{}/{} ϵ {}", creator.value_or("[ANY]"_id), *suffix, layer);
+      return fmt::format("{}/{} ϵ {}", creator, *suffix, layer);
     }
-    return fmt::format("{} ϵ {}", creator.value_or("[ANY]"_id), layer);
+    return fmt::format("{} ϵ {}", creator, layer);
   }
 
   bool product_selector::operator==(product_selector const& rhs) const

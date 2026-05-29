@@ -20,31 +20,32 @@ using namespace phlex::experimental::literals;
 
 namespace phlex {
   namespace detail {
-    // The required_creator_name has to be a template for static_assert(false)
+    // The creator_name has to be a template for static_assert(false)
     template <std::same_as<experimental::identifier> T>
-    class required_creator_name {
+    class creator_name {
     public:
-      required_creator_name()
-      {
-        static_assert(false, "The creator name has not been set in this product_selector.");
-      }
+      creator_name() : content_{std::nullopt} {}
       template <typename U>
         requires std::constructible_from<T, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      required_creator_name(U&& rhs) : // NOLINT(cppcoreguidelines-missing-std-forward)
+      creator_name(U&& rhs) : // NOLINT(cppcoreguidelines-missing-std-forward)
         content_(std::forward_like<T>(rhs))
       {
-        if (content_.empty()) {
+        if (content_.value().empty()) {
           throw std::runtime_error("Cannot specify product with empty creator name.");
         }
       }
 
-      // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      operator T const&() const noexcept { return content_; }
-      bool operator==(required_creator_name const&) const noexcept = default;
+      operator bool() const noexcept { return content_.has_value(); }
+      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
+      friend experimental::identifier format_as(creator_name const& me) noexcept
+      {
+        return me.content_.value_or("[ANY]");
+      }
+      bool operator==(creator_name const&) const noexcept = default;
 
     private:
-      experimental::identifier content_;
+      std::optional<experimental::identifier> content_;
     };
 
     // The required_layer_name has to be a template for static_assert(false)
@@ -76,7 +77,7 @@ namespace phlex {
   }
 
   struct PHLEX_CORE_EXPORT product_selector {
-    std::optional<experimental::identifier> creator;
+    detail::creator_name<experimental::identifier> creator;
     detail::required_layer_name<experimental::identifier> layer;
     std::optional<experimental::identifier> suffix;
     std::optional<experimental::identifier> stage;
