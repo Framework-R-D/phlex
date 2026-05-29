@@ -19,6 +19,8 @@ from .github/workflows/codeql-analysis.yaml:
 from __future__ import annotations
 
 import json
+import runpy
+import sys
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -582,6 +584,19 @@ class TestBuildComment:
         )
         assert "https://github.com/owner/repo/security/code-scanning" in body
 
+    def test_code_scanning_link_includes_pr_filter_when_pr_number_given(self) -> None:
+        """When pr_number is provided the link includes the pr: query filter."""
+        body = M.build_comment(
+            new_alerts=[self._alert()],
+            fixed_alerts=[],
+            repo="owner/repo",
+            max_results=20,
+            threshold="warning",
+            pr_number=614,
+        )
+        assert "?query=pr%3A614" in body
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A614" in body
+
     def test_generic_link_when_repo_unknown(self) -> None:
         """Generic link when repo unknown."""
         body = M.build_comment(
@@ -960,6 +975,31 @@ class TestCompareAlertsViaApi:
         assert len(result.fixed_alerts) == 1
         assert result.fixed_alerts[0].number == 6
 
+    @patch("check_codeql_alerts._api_request")
+    @patch("check_codeql_alerts._paginate_alerts_api")
+    def test_multiple_alerts_with_same_analysis_key_all_counted(
+        self, mock_pag: MagicMock, mock_req: MagicMock
+    ) -> None:
+        """All alerts with the same analysis_key must be counted separately.
+
+        The GitHub Code Scanning API's analysis_key is per-analysis (shared by
+        every alert produced by the same job), not per-alert.  Using it as the
+        deduplication key would collapse all alerts from one run into a single
+        entry.  The alert number is the correct unique identifier.
+        """
+        # Three alerts on main, all sharing the same analysis_key (realistic for CodeQL)
+        shared_ak = "actions-codeql-analysis.yaml:codeql-analysis / analyze actions"
+        main_alert_a = _make_api_alert(number=10, analysis_key=shared_ak)
+        main_alert_b = _make_api_alert(number=11, analysis_key=shared_ak)
+        main_alert_c = _make_api_alert(number=12, analysis_key=shared_ak)
+        # PR fixes all three
+        mock_pag.side_effect = self._mock_paginate(
+            {"refs/pull/7/merge": [], None: [main_alert_a, main_alert_b, main_alert_c]}
+        )
+        mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
+        result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge")
+        assert len(result.fixed_alerts) == 3
+
 
 # ---------------------------------------------------------------------------
 # _build_multi_section_comment
@@ -1064,6 +1104,14 @@ class TestBuildMultiSectionComment:
         comp = self._comp(new_alerts=[self._alert()])
         body = M._build_multi_section_comment(comp, max_results=10)
         assert "https://github.com/owner/repo/security/code-scanning" in body
+
+    def test_code_scanning_link_includes_pr_filter(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When pr_number is provided the link includes the pr: query filter."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        comp = self._comp(new_alerts=[self._alert()])
+        body = M._build_multi_section_comment(comp, max_results=10, pr_number=42)
+        assert "?query=pr%3A42" in body
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A42" in body
 
 
 # ---------------------------------------------------------------------------
@@ -1282,6 +1330,70 @@ class TestMainSarifMode:
         comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
         assert "2 new CodeQL alerts" in comment
 
+    def test_sarif_mode_pr_ref_produces_filtered_url(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Passing --ref refs/pull/N/merge in SARIF mode produces a filtered Code Scanning URL.
+
+        This exercises the PR number extraction path in main() (refs/pull/<N>/merge → pr_number)
+        and asserts that the generated comment contains the pr-filtered query parameter, so any
+        regression in that parsing/passthrough path would fail.
+        """
+        sarif_dir = self._write_sarif(
+            tmp_path / "sarif", [_make_result(baseline_state="new", level="error")]
+        )
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        log = tmp_path / "codeql.log"
+        rc = M.main(
+            [
+                "--sarif",
+                str(sarif_dir),
+                "--ref",
+                "refs/pull/104/merge",
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ]
+        )
+        assert rc == 0
+        comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
+        assert "?query=pr%3A104" in comment
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A104" in comment
+
+    def test_non_integer_pr_ref_no_filtered_url(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A --ref whose PR segment is not an integer leaves pr_number as None.
+
+        Exercises the ``except ValueError: pass`` branch in main() so that a
+        malformed ref such as ``refs/pull/abc/merge`` does not crash the script
+        and produces a comment with no PR-scoped query parameter.
+        """
+        sarif_dir = self._write_sarif(
+            tmp_path / "sarif", [_make_result(baseline_state="new", level="error")]
+        )
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        log = tmp_path / "codeql.log"
+        rc = M.main(
+            [
+                "--sarif",
+                str(sarif_dir),
+                "--ref",
+                "refs/pull/abc/merge",
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ]
+        )
+        assert rc == 0
+        comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
+        # No PR-scoped filter should appear when the PR number cannot be parsed
+        assert "?query=pr%3A" not in comment
+
 
 class TestMainApiMode:
     """End-to-end tests for API comparison mode (no SARIF baselineState)."""
@@ -1461,3 +1573,96 @@ class TestMainApiMode:
         )
         mock_pag.assert_not_called()
         mock_req.assert_not_called()
+
+
+class TestMainApiModeWithPrRef:
+    """End-to-end tests verifying PR-number extraction from --ref in API mode."""
+
+    def _empty_sarif_dir(self, base: Path) -> Path:
+        return _write_sarif_to(base / "sarif", [])  # no baselineState results
+
+    @patch("check_codeql_alerts._api_request")
+    @patch("check_codeql_alerts._paginate_alerts_api")
+    def test_api_mode_pr_ref_produces_filtered_url(
+        self,
+        mock_pag: MagicMock,
+        mock_req: MagicMock,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Passing --ref refs/pull/N/merge in API mode produces a filtered Code Scanning URL.
+
+        This exercises the same PR number extraction path (refs/pull/<N>/merge → pr_number)
+        that feeds into _build_multi_section_comment(), ensuring a regression in parsing or
+        passthrough would fail.
+        """
+        sarif_dir = self._empty_sarif_dir(tmp_path)
+        pr_alert = _make_api_alert(number=1, severity="error", analysis_key="ak:1")
+
+        def _paginate(owner: str, repo: str, *, state: str = "open", ref: str | None = None):  # noqa: ANN202
+            if ref == "refs/pull/104/merge":
+                yield pr_alert
+            # main, base, and prev-commit refs return nothing
+
+        mock_pag.side_effect = _paginate
+        mock_req.side_effect = [
+            {"base": {"ref": "main", "sha": "base_sha"}},  # PR info
+            [{"sha": "prev000"}],  # commits (only 1 → no prev-commit comparison)
+        ]
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        log = tmp_path / "codeql.log"
+        rc = M.main(
+            [
+                "--sarif",
+                str(sarif_dir),
+                "--ref",
+                "refs/pull/104/merge",
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ]
+        )
+        assert rc == 0
+        comment = (tmp_path / "runner" / "codeql-alerts.md").read_text()
+        assert "?query=pr%3A104" in comment
+        assert "https://github.com/owner/repo/security/code-scanning?query=pr%3A104" in comment
+
+
+class TestMainEntrypoint:
+    """Tests for the ``if __name__ == "__main__"`` entry-point block.
+
+    ``runpy.run_path(..., run_name="__main__")`` executes the script in-process
+    so coverage is collected for the ``try: sys.exit(main())`` lines that are
+    unreachable when the module is imported directly.
+    """
+
+    _SCRIPT = Path(__file__).parent.parent / "check_codeql_alerts.py"
+
+    def test_entrypoint_no_alerts_exits_zero(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Script exits 0 when run as ``__main__`` with a SARIF file containing no alerts.
+
+        Exercises the ``try: sys.exit(main())`` lines in the ``__main__`` block.
+        """
+        sarif_dir = _write_sarif_to(tmp_path / "sarif", [])
+        log = tmp_path / "codeql.log"
+        monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                str(self._SCRIPT),
+                "--sarif",
+                str(sarif_dir),
+                "--min-level",
+                "warning",
+                "--log-path",
+                str(log),
+            ],
+        )
+        with pytest.raises(SystemExit) as exc_info:
+            runpy.run_path(str(self._SCRIPT), run_name="__main__")
+        assert exc_info.value.code == 0
