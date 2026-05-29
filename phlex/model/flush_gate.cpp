@@ -1,19 +1,14 @@
 #include "phlex/model/flush_gate.hpp"
 
-#include "spdlog/spdlog.h"
-
 #include <cassert>
 #include <functional>
-#include <mutex>
 #include <ranges>
 #include <utility>
 
 namespace phlex::experimental {
 
   flush_gate::flush_gate(data_cell_index_ptr index, std::size_t expected_flush_count) :
-    index_{std::move(index)},
-    committed_counts_{std::make_shared<data_cell_counts>()},
-    expected_flush_count_{expected_flush_count}
+    index_{std::move(index)}, expected_flush_count_{expected_flush_count}
   {
   }
 
@@ -24,13 +19,13 @@ namespace phlex::experimental {
 
   std::size_t flush_gate::committed_total_count() const
   {
-    return std::ranges::fold_left(*committed_counts_ | std::views::values, 0uz, std::plus{});
+    return std::ranges::fold_left(committed_counts_ | std::views::values, 0uz, std::plus{});
   }
 
   std::size_t flush_gate::committed_count_for_layer(
     data_cell_index::hash_type const layer_hash) const
   {
-    return committed_counts_->count(layer_hash);
+    return committed_counts_.count(layer_hash);
   }
 
   void flush_gate::update_expected_count(data_cell_index::hash_type const layer_hash,
@@ -40,11 +35,10 @@ namespace phlex::experimental {
     ++received_flush_count_;
   }
 
-  void flush_gate::roll_up_child(data_cell_counts_const_ptr child_committed_counts)
+  void flush_gate::roll_up_child(data_cell_counts const& child_committed_counts)
   {
-    assert(child_committed_counts);
-    for (auto const& [layer_hash, count] : *child_committed_counts) {
-      committed_counts_->add_to(layer_hash, count);
+    for (auto const& [layer_hash, count] : child_committed_counts) {
+      committed_counts_.add_to(layer_hash, count);
     }
     --pending_child_rollups_;
   }
@@ -89,7 +83,7 @@ namespace phlex::experimental {
   void flush_gate::commit()
   {
     for (auto const& [layer_hash, count] : expected_counts_) {
-      committed_counts_->add_to(layer_hash, count.load());
+      committed_counts_.add_to(layer_hash, count.load());
     }
 
     // At some point, we might consider clearing the expected_counts_ map to free memory,
