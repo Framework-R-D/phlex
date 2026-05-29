@@ -21,7 +21,7 @@ TEST_CASE("Product name with data layer", "[data model]")
   // Mismatched creator
   CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(
     product_selector{.creator = "2", .layer = "event", .suffix = "prod"}));
-  // Missing creator matches anything
+  // Missing creator matches any creator
   CHECK(product_selector{.layer = "event", .suffix = "prod"}.match(
     product_selector{.creator = "2", .layer = "event", .suffix = "prod"}));
   // Mismatched layer
