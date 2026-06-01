@@ -192,6 +192,13 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 add_test(NAME py:coverage COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
 
+# numba tests if installed
+if(HAS_NUMBA)
+  # phlex-based tests that require numpy support
+  add_test(NAME py:jited COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyjited.jsonnet)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:jited)
+endif()
+
 add_test(
   NAME py:mismatch
   COMMAND ${PROJECT_BINARY_DIR}/bin/phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pymismatch.jsonnet
