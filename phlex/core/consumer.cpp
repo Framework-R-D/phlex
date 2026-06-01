@@ -6,8 +6,7 @@ namespace phlex::experimental {
   {
   }
 
-  std::string consumer::full_name() const { return name_.full(); }
-
+  algorithm_name const& consumer::name() const noexcept { return name_; }
   identifier const& consumer::plugin() const noexcept { return name_.plugin(); }
   identifier const& consumer::algorithm() const noexcept { return name_.algorithm(); }
 

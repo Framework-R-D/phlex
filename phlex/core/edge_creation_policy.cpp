@@ -7,7 +7,7 @@
 
 namespace phlex::experimental {
   edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
-    product_query const& query) const
+    product_selector const& query, algorithm_name const& consumer_name) const
   {
     if (producers_.empty()) {
       spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",
@@ -25,34 +25,45 @@ namespace phlex::experimental {
     }
     std::map<std::string, named_output_port const*> candidates;
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
+      // Prevent self-edges
+      if (producer.node == consumer_name) {
+        spdlog::debug(
+          "Skipping self-edge if {} matched {}", query.to_string(), producer.node.to_string());
+        continue;
+      }
+      spdlog::debug("Checking product made by {} against input required by {}",
+                    producer.node.to_string(),
+                    consumer_name.to_string());
+
       // TODO: Getting there -- this whole thing needs to be replaced with something
       //       that indexes all the fields from the beginning.
-      if (producer.node.plugin() == query.creator || producer.node.algorithm() == query.creator) {
+      if (query.creator_match(producer.node)) {
         if (query.type != producer.type) {
           spdlog::debug("Matched ({}) from {} but types don't match (`{}` vs `{}`). Excluding "
                         "from candidate list.",
                         query.to_string(),
-                        producer.node.full(),
+                        producer.node.to_string(),
                         query.type,
                         producer.type);
         } else {
           if (query.type.exact_compare(producer.type)) {
             spdlog::debug("Matched ({}) from {} and types match. Keeping in candidate list.",
                           query.to_string(),
-                          producer.node.full());
+                          producer.node.to_string());
           } else {
             spdlog::warn("Matched ({}) from {} and types match, but not exactly (produce {} and "
                          "consume {}). Keeping in candidate list!",
                          query.to_string(),
-                         producer.node.full(),
+                         producer.node.to_string(),
                          query.type.exact_name(),
                          producer.type.exact_name());
           }
-          candidates.emplace(producer.node.full(), &producer);
+          candidates.emplace(producer.node.to_string(), &producer);
         }
       } else {
-        spdlog::debug(
-          "Creator name mismatch between ({}) and {}", query.to_string(), producer.node.full());
+        spdlog::debug("Creator name mismatch between ({}) and {}",
+                      query.to_string(),
+                      producer.node.to_string());
       }
     }
 

@@ -8,16 +8,17 @@
 #include <utility>
 
 namespace phlex::experimental {
-  provider_node::provider_node(algorithm_name name,
+  provider_node::provider_node(algorithm_name algo_name,
                                std::size_t concurrency,
                                tbb::flow::graph& g,
                                provider_function provider_func,
-                               product_query output) :
-    name_{std::move(name)},
-    output_product_{output},
-    output_{algorithm_name::create(std::string_view(identifier(output.creator))),
-            output.suffix.value_or(identifier("")),
-            output.type},
+                               product_specification output_spec,
+                               identifier output_layer,
+                               identifier stage) :
+    name_{std::move(algo_name)},
+    output_{std::move(output_spec)},
+    layer_{std::move(output_layer)},
+    stage_{std::move(stage)},
     provider_{g,
               concurrency,
               [this, ft = std::move(provider_func)](index_message const& index_msg) -> message {
@@ -26,22 +27,28 @@ namespace phlex::experimental {
                 auto new_product = std::invoke(ft, *index);
                 ++calls_;
 
-                products new_products;
+                // The constructor argument 1uz specifies how many slots to reserve in the
+                // underlying product container.  For providers, only one data product is
+                // produced per input index.
+                products new_products{1uz};
                 new_products.add(output_, std::move(new_product));
-                auto store = std::make_shared<product_store>(
-                  index, this->full_name(), std::move(new_products));
+                auto store = std::make_shared<product_store>(index, name_, std::move(new_products));
 
                 return {.store = std::move(store), .id = msg_id};
               }}
   {
-    spdlog::debug(
-      "Created provider node {} making output {}", this->full_name(), output.to_string());
+    spdlog::debug("Created provider node {} making output {} ϵ {}",
+                  name().to_string(),
+                  output_.to_string(),
+                  layer_);
   }
 
-  std::string provider_node::full_name() const { return name_.full(); }
+  algorithm_name const& provider_node::name() const noexcept { return name_; }
 
-  product_query const& provider_node::output_product() const noexcept { return output_product_; }
+  product_specification const& provider_node::output_product() const noexcept { return output_; }
 
-  identifier const& provider_node::layer() const noexcept { return output_product_.layer; }
+  identifier const& provider_node::layer() const noexcept { return layer_; }
+
+  identifier const& provider_node::stage() const noexcept { return stage_; }
 
 }

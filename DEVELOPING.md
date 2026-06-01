@@ -105,7 +105,7 @@ The upload command uses the Codecov CLI and automatically normalizes paths for r
 
 ## Coverage in CI
 
-The project automatically runs coverage analysis on every PR and push to main/develop branches. The workflow:
+The project automatically runs coverage analysis on every PR and push to the `main` and `release/*` branches. The workflow:
 
 1. Builds with `-DCMAKE_BUILD_TYPE=Coverage -DENABLE_COVERAGE=ON`
 2. Runs all tests via `ctest`
@@ -131,9 +131,11 @@ If you wish to add your own personalized instructions, or adjust/augment the rep
 
 The tool pre-commit offers a framework for setting up hooks that are run on staged files before committing, ensuring correct formatting and catching some errors before they end up in a commit.
 
-To set up this tool locally, first install `pre-commit` (or `prek`, a faster re-implementation in rust) using your system package manager or `uv`/`pip(x)`, e.g. `uv tool install pre-commit`.
+In the devcontainer, `prek` (a faster Rust re-implementation of `pre-commit`) is already installed and the hooks are configured automatically. No manual setup is needed in that environment.
 
-So set up the hooks in the Phlex repository, run the `pre-commit install` command once in the repository. The hooks now should run automatically prior to each commit.
+Outside the devcontainer, install `pre-commit` or `prek` using your system package manager or `uv`/`pip(x)`, e.g. `uv tool install pre-commit`.
+
+To set up the hooks in the Phlex repository, run the `pre-commit install` command once in the repository. The hooks now should run automatically prior to each commit.
 
 To skip a check temporarily, run `SKIP=ruff-format git commit -m "..."`. To skip all hooks, you can use the `--no-verify` flag to `git commit`.
 

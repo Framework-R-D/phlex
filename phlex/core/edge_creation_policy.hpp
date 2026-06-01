@@ -28,7 +28,8 @@ namespace phlex::experimental {
       type_id type;
     };
 
-    named_output_port const* find_producer(product_query const& query) const;
+    named_output_port const* find_producer(product_selector const& query,
+                                           algorithm_name const& consumer_name) const;
     auto values() const { return producers_ | std::views::values; }
 
   private:

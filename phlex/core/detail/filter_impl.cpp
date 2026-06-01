@@ -5,11 +5,11 @@
 #include <string>
 
 namespace {
-  phlex::product_queries const& for_output_only()
+  phlex::product_selectors const& for_output_only()
   {
-    static phlex::product_query const output_dummy = phlex::product_query{
+    static phlex::product_selector const output_dummy = phlex::product_selector{
       .creator = "for_output_only"_id, .layer = "dummy_layer"_id, .suffix = "for_output_only"_id};
-    static phlex::product_queries const for_output_only_queries{output_dummy};
+    static phlex::product_selectors const for_output_only_queries{output_dummy};
     return for_output_only_queries;
   }
 }
@@ -55,7 +55,7 @@ namespace phlex::experimental {
 
   void decision_map::erase(accessor& a) { results_.erase(a); }
 
-  data_map::data_map(product_queries const& input_products) :
+  data_map::data_map(product_selectors const& input_products) :
     input_products_{&input_products}, nargs_{input_products.size()}
   {
     assert(nargs_ > 0);

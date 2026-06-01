@@ -17,39 +17,27 @@ TEST_CASE("algorithm_name tests", "[model]")
   SECTION("Default constructor")
   {
     algorithm_name an;
-    CHECK(an.full() == "");
+    CHECK(an.to_string() == "");
   }
   SECTION("Create from string with colon")
   {
     auto an = algorithm_name::create("plugin:algo");
-    CHECK(an.full() == "plugin:algo");
+    CHECK(an.to_string() == "plugin:algo");
   }
   SECTION("Create from string without colon")
   {
     auto an = algorithm_name::create("algo");
-    // For 'either' cases, the word is stored as plugin_ and algorithm_
-    CHECK(an.full() == "algo:algo");
+    // For 'either' cases, the word is stored as algorithm_
+    CHECK(an.to_string() == "algo");
   }
   SECTION("Create from char pointer")
   {
     auto an = algorithm_name::create("ptr:algo");
-    CHECK(an.full() == "ptr:algo");
+    CHECK(an.to_string() == "ptr:algo");
   }
   SECTION("Create error - trailing colon")
   {
     CHECK_THROWS_AS(algorithm_name::create("plugin:"), std::runtime_error);
-  }
-  SECTION("Match neither")
-  {
-    algorithm_name an = algorithm_name::create("p:a");
-    algorithm_name other; // neither
-    CHECK(an.match(other));
-  }
-  SECTION("Match either")
-  {
-    algorithm_name an = algorithm_name::create("p:a");
-    CHECK(an.match(algorithm_name::create("p")));
-    CHECK(an.match(algorithm_name::create("a")));
   }
   SECTION("Match both")
   {
@@ -66,7 +54,7 @@ TEST_CASE("consumer tests", "[core]")
   algorithm_name an = algorithm_name::create("p:a");
   consumer c(an, {"pred1"});
 
-  CHECK(c.full_name() == "p:a");
+  CHECK(c.name().to_string() == "p:a");
   CHECK(c.plugin() == "p"_idq);
   CHECK(c.algorithm() == "a"_idq);
   CHECK(c.when().size() == 1);

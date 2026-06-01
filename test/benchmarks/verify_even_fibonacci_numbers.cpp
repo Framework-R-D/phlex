@@ -20,5 +20,5 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   using namespace test;
   m.make<even_fibonacci_numbers>(config.get<int>("max_number"))
     .observe("only_even", &even_fibonacci_numbers::only_even, concurrency::unlimited)
-    .input_family(config.get<product_query>("consumes"));
+    .input_family(config.get<product_selector>("consumes"));
 }

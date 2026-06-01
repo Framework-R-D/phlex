@@ -14,7 +14,6 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <string>
 
 namespace phlex::experimental {
 
@@ -22,15 +21,18 @@ namespace phlex::experimental {
   public:
     using provider_function = std::function<product_ptr(data_cell_index const&)>;
 
-    provider_node(algorithm_name name,
+    provider_node(algorithm_name algo_name,
                   std::size_t concurrency,
                   tbb::flow::graph& g,
                   provider_function provider_func,
-                  product_query output);
+                  product_specification output_spec,
+                  identifier output_layer,
+                  identifier stage);
 
-    std::string full_name() const;
-    product_query const& output_product() const noexcept;
+    algorithm_name const& name() const noexcept;
+    product_specification const& output_product() const noexcept;
     identifier const& layer() const noexcept;
+    identifier const& stage() const noexcept;
 
     tbb::flow::receiver<index_message>* input_port() { return &provider_; }
     tbb::flow::sender<message>& output_port() { return provider_; }
@@ -38,8 +40,9 @@ namespace phlex::experimental {
 
   private:
     algorithm_name name_;
-    product_query output_product_;
     product_specification output_;
+    identifier layer_;
+    identifier stage_;
     tbb::flow::function_node<index_message, message> provider_;
     std::atomic<std::size_t> calls_;
   };

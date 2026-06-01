@@ -48,7 +48,7 @@ namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 }
 
-TEST_CASE("Different hierarchies used with fold", "[graph]")
+TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
 {
   // job -> run -> event layers
   constexpr auto index_limit = 2u;
@@ -66,22 +66,22 @@ TEST_CASE("Different hierarchies used with fold", "[graph]")
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
+    .output_product("input", "number", "event");
 
   g.fold("run_add", add, concurrency::unlimited, "run", 0u)
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
     .output_product_suffixes("run_sum");
   g.fold("job_add", add, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"})
     .output_product_suffixes("job_sum");
 
   g.observe("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
-    .input_family(product_query{.creator = "run_add", .layer = "run", .suffix = "run_sum"});
+    .input_family(product_selector{.creator = "run_add", .layer = "run", .suffix = "run_sum"});
   g.observe("verify_job_sum",
             [](unsigned int actual) {
               CHECK(actual == 20u + 45u); // 20u from nested events, 45u from top-level events
             })
-    .input_family(product_query{.creator = "job_add", .layer = "job", .suffix = "job_sum"});
+    .input_family(product_selector{.creator = "job_add", .layer = "job", .suffix = "job_sum"});
 
   g.execute();
 

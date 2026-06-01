@@ -195,8 +195,8 @@ namespace phlex::experimental {
     // the corresponding input port of the join node.  Only valid for N > 1.
     template <std::size_t N>
     tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                               product_queries const& input_products,
-                                               product_query const& input_product)
+                                               product_selectors const& input_products,
+                                               product_selector const& input_product)
     {
       static_assert(N > 1ull, "receiver_for should not be called for N=1");
       auto const index = port_index_for(input_products, input_product);
@@ -221,8 +221,8 @@ namespace phlex::experimental {
   // looked up by query within the join.
   template <std::size_t N, typename Node>
   tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             product_queries const& input_products,
-                                             product_query const& input_product,
+                                             product_selectors const& input_products,
+                                             product_selector const& input_product,
                                              Node& node)
   {
     if constexpr (N == 1ull) {

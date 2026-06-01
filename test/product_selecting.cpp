@@ -34,26 +34,25 @@ TEST_CASE("Querying products in different ways", "[graph]")
 
   // Register providers
   g.provide("provide_number_in_job", provide_number, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "job", .suffix = "number"});
+    .output_product("input", "number", "job");
   g.provide("provide_number_in_event", provide_idx, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "evt_number"});
+    .output_product("input", "evt_number", "event");
   g.provide("provide_temperature_in_event", provide_temperature, concurrency::unlimited)
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "temperature"});
+    .output_product("input", "temperature", "event");
   g.provide("provide_temperature_in_event_again", provide_temperature, concurrency::unlimited)
-    .output_product(
-      product_query{.creator = "thermometer", .layer = "event", .suffix = "temperature"});
+    .output_product("thermometer", "temperature", "event");
   g.provide("provide_name_in_event", provide_name, concurrency::unlimited)
-    .output_product(product_query{.creator = "give_name", .layer = "event", .suffix = "name"});
+    .output_product("give_name", "name", "event");
 
   // Duplicate with transform
   g.transform("duplicate_temperature", [](double const& t) { return t; })
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "temperature"})
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "temperature"})
     .output_product_suffixes("temperature");
 
   SECTION("All fields")
   {
     g.transform("all_fields", [](int const& i) { return i + 1; })
-      .input_family(product_query{.creator = "input", .layer = "job", .suffix = "number"})
+      .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "number"})
       .output_product_suffixes("job_number");
     g.execute();
     CHECK(g.execution_count("all_fields") == 1);
@@ -62,21 +61,30 @@ TEST_CASE("Querying products in different ways", "[graph]")
   SECTION("Creator and Layer, using creator (and using type alone)")
   {
     g.transform("creator_and_layer_by_creator", [](std::string const& str) { return str; })
-      .input_family(product_query{.creator = "give_name", .layer = "event"})
+      .input_family(product_selector{.creator = "give_name", .layer = "event"})
       .output_product_suffixes("event_name");
     g.observe(
        "verify_name",
        [](std::string const& str, int const& n) { CHECK(str == fmt::format("John the {}th", n)); })
-      .input_family(product_query{.creator = "give_name", .layer = "event"},
-                    product_query{.creator = "input", .layer = "event"});
+      .input_family(product_selector{.creator = "give_name", .layer = "event"},
+                    product_selector{.creator = "input", .layer = "event"});
     g.execute();
     CHECK(g.execution_count("creator_and_layer_by_creator") == num_events);
+  }
+
+  SECTION("Layer alone, distinguished by type")
+  {
+    g.transform("layer_by_type", [](std::string const& str) { return str; })
+      .input_family(product_selector{.layer = "event"})
+      .output_product_suffixes("new_name");
+    g.execute();
+    CHECK(g.execution_count("layer_by_type") == num_events);
   }
 
   SECTION("Creator and Layer, using layer")
   {
     g.transform("creator_and_layer_by_layer", [](double const& d) { return d; })
-      .input_family(product_query{.creator = "input", .layer = "event"})
+      .input_family(product_selector{.creator = "input", .layer = "event"})
       .output_product_suffixes("event_temp");
     g.execute();
     CHECK(g.execution_count("creator_and_layer_by_layer") == num_events);
@@ -85,7 +93,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
   SECTION("Creator and Layer only, after transform")
   {
     g.transform("creator_and_layer_after_transform", [](double const& d) { return d; })
-      .input_family(product_query{.creator = "duplicate_temperature", .layer = "event"})
+      .input_family(product_selector{.creator = "duplicate_temperature", .layer = "event"})
       .output_product_suffixes("event_temp");
     g.execute();
     CHECK(g.execution_count("creator_and_layer_after_transform") == num_events);

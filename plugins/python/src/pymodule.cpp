@@ -58,7 +58,7 @@ namespace pymodule_register_providers {
     }
 
     //m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number() % 2; })
-    //.output_product(product_query{.creator = "input", .layer = "event", .suffix = "i"});
+    //.output_product(product_selector{.creator = "input", .layer = "event", .suffix = "i"});
   }
 } // namespace pymodule_register_providers
 
@@ -120,9 +120,8 @@ static void add_cmake_prefix_paths_to_syspath(char const* cmake_prefix_path)
   // Build site-packages paths from each CMAKE_PREFIX_PATH token
   while (std::getline(iss, path_entry, ':')) {
     if (!path_entry.empty()) {
-      std::string version_str =
-        std::to_string(PY_MAJOR_VERSION) + "." + std::to_string(PY_MINOR_VERSION);
-      std::string site_packages = path_entry + "/lib/python" + version_str + "/site-packages";
+      std::string site_packages = path_entry + "/lib/python" + std::to_string(PY_MAJOR_VERSION) +
+                                  "." + std::to_string(PY_MINOR_VERSION) + "/site-packages";
       site_package_paths.push_back(site_packages);
     }
   }

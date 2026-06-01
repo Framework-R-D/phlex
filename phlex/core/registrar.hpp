@@ -112,7 +112,7 @@ namespace phlex::experimental {
     {
       assert(creator_);
       auto ptr = creator_(release_predicates(), std::move(output_product_suffixes));
-      auto name = ptr->full_name();
+      auto name = ptr->name().to_string();
       auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
       if (not inserted) {
         detail::add_to_error_messages(*errors_, name);

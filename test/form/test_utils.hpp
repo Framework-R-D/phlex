@@ -30,7 +30,8 @@ namespace form::test {
   inline std::string makeTestBranchName()
   {
     auto branchName = std::string(testTreeName) + "/" + getTypeName<PROD>();
-    for(size_t firstSpace = branchName.find_first_of(' '); firstSpace != std::string::npos; firstSpace = branchName.find_first_of(' '))
+    for (size_t firstSpace = branchName.find_first_of(' '); firstSpace != std::string::npos;
+         firstSpace = branchName.find_first_of(' '))
       branchName = branchName.erase(firstSpace, 1);
     return branchName;
   }

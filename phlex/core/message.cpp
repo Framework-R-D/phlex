@@ -22,8 +22,8 @@ namespace phlex::experimental {
     return b; // NOLINT(bugprone-return-const-ref-from-parameter)
   }
 
-  std::size_t port_index_for(product_queries const& input_products,
-                             product_query const& input_product)
+  std::size_t port_index_for(product_selectors const& input_products,
+                             product_selector const& input_product)
   {
     auto const [b, e] = std::tuple{cbegin(input_products), cend(input_products)};
     auto it = std::find(b, e, input_product);

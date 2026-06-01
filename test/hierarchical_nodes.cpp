@@ -89,7 +89,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               spdlog::info("Providing time for {}", index.to_string());
               return std::chrono::system_clock::now();
             })
-    .output_product(product_query{.creator = "input", .layer = "run", .suffix = "time"});
+    .output_product("input", "time", "run");
 
   g.provide("provide_number",
             [](data_cell_index const& index) -> unsigned int {
@@ -97,23 +97,23 @@ TEST_CASE("Hierarchical nodes", "[graph]")
               auto const run_number = index.parent()->number();
               return event_number + run_number;
             })
-    .output_product(product_query{.creator = "input", .layer = "event", .suffix = "number"});
+    .output_product("input", "number", "event");
 
   g.transform("get_the_time", strtime, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "run", .suffix = "time"})
+    .input_family(product_selector{.creator = "input", .layer = "run", .suffix = "time"})
     .experimental_when();
   g.transform("square", square, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"});
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "number"});
 
   g.fold("add", add, concurrency::unlimited, "run", 15u)
-    .input_family(product_query{.creator = "square", .layer = "event"})
+    .input_family(product_selector{.creator = "square", .layer = "event"})
     .experimental_when();
 
   g.transform("scale", scale, concurrency::unlimited)
-    .input_family(product_query{.creator = "add", .layer = "run"});
+    .input_family(product_selector{.creator = "add", .layer = "run"});
   g.observe("print_result", print_result, concurrency::unlimited)
-    .input_family(product_query{.creator = "scale", .layer = "run"},
-                  product_query{.creator = "get_the_time", .layer = "run"});
+    .input_family(product_selector{.creator = "scale", .layer = "run"},
+                  product_selector{.creator = "get_the_time", .layer = "run"});
 
   g.make<experimental::test::products_for_output>()
     .output("save", &experimental::test::products_for_output::save)

@@ -43,22 +43,22 @@ TEST_CASE("Testing families", "[data model]")
 
   // Wire up providers for each level
   g.provide("run_id_provider", provide_index, concurrency::unlimited)
-    .output_product(product_query{.creator = "dummy", .layer = "run", .suffix = "id"});
+    .output_product("dummy", "id", "run");
   g.provide("subrun_id_provider", provide_index, concurrency::unlimited)
-    .output_product(product_query{.creator = "dummy", .layer = "subrun", .suffix = "id"});
+    .output_product("dummy", "id", "subrun");
   g.provide("event_id_provider", provide_index, concurrency::unlimited)
-    .output_product(product_query{.creator = "dummy", .layer = "event", .suffix = "id"});
+    .output_product("dummy", "id", "event");
 
   g.observe("se", check_two_ids)
-    .input_family(product_query{.creator = "dummy", .layer = "subrun", .suffix = "id"},
-                  product_query{.creator = "dummy", .layer = "event", .suffix = "id"});
+    .input_family(product_selector{.creator = "dummy", .layer = "subrun", .suffix = "id"},
+                  product_selector{.creator = "dummy", .layer = "event", .suffix = "id"});
   g.observe("rs", check_two_ids)
-    .input_family(product_query{.creator = "dummy", .layer = "run", .suffix = "id"},
-                  product_query{.creator = "dummy", .layer = "subrun", .suffix = "id"});
+    .input_family(product_selector{.creator = "dummy", .layer = "run", .suffix = "id"},
+                  product_selector{.creator = "dummy", .layer = "subrun", .suffix = "id"});
   g.observe("rse", check_three_ids)
-    .input_family(product_query{.creator = "dummy", .layer = "run", .suffix = "id"},
-                  product_query{.creator = "dummy", .layer = "subrun", .suffix = "id"},
-                  product_query{.creator = "dummy", .layer = "event", .suffix = "id"});
+    .input_family(product_selector{.creator = "dummy", .layer = "run", .suffix = "id"},
+                  product_selector{.creator = "dummy", .layer = "subrun", .suffix = "id"},
+                  product_selector{.creator = "dummy", .layer = "event", .suffix = "id"});
   g.execute();
 
   CHECK(g.execution_count("se") == 1ull);

@@ -29,7 +29,7 @@ TEST_CASE("Retrieve value that is a configuration object", "[config]")
   CHECK(nested_table.keys().empty());
 }
 
-TEST_CASE("Retrieve product_query", "[config]")
+TEST_CASE("Retrieve product_selector", "[config]")
 {
   boost::json::object input;
   input["creator"] = "tracks_alg";
@@ -51,13 +51,13 @@ TEST_CASE("Retrieve product_query", "[config]")
   underlying_config["malformed2"] = std::move(malformed_input2);
   configuration config{underlying_config};
 
-  auto input_query = config.get<product_query>("input");
-  CHECK(
-    input_query.match(product_query{.creator = "tracks_alg", .layer = "job", .suffix = "tracks"}));
-  CHECK_THROWS_WITH(config.get<product_query>("malformed1"),
+  auto input_query = config.get<product_selector>("input");
+  CHECK(input_query.match(
+    product_selector{.creator = "tracks_alg", .layer = "job", .suffix = "tracks"}));
+  CHECK_THROWS_WITH(config.get<product_selector>("malformed1"),
                     ContainsSubstring("Error retrieving parameter 'malformed1'") &&
                       ContainsSubstring("not a string"));
-  CHECK_THROWS_WITH(config.get<product_query>("malformed2"),
+  CHECK_THROWS_WITH(config.get<product_selector>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
                       ContainsSubstring("Error retrieving parameter 'layer'"));
 }
