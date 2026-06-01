@@ -9,9 +9,9 @@ if(FORM_USE_ROOT_STORAGE)
   target_include_directories(form_test_utils INTERFACE ${PROJECT_SOURCE_DIR})
 
   list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_TTREE")
-  #if(FORM_USE_RNTUPLE_STORAGE) #Example of what this loop will be used for
-  #  list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_RNTUPLE")
-  #endif()
+#  if(FORM_USE_RNTUPLE_STORAGE)
+#    list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_RNTUPLE")
+#  endif()
 
   foreach(TECH IN LISTS FORM_TEST_TECHNOLOGIES)
     cet_test(
@@ -107,6 +107,14 @@ if(FORM_USE_ROOT_STORAGE)
       "form_root_schema_write_test_${TECH}"
       "form_root_schema_read_test_${TECH}"
     )
+
+    cet_test("form_storage_test_${TECH}" USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
+             root_storage
+             storage
+             form_test_utils
+    )
+    target_include_directories("form_storage_test_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
+    target_compile_definitions("form_storage_test_${TECH}" PRIVATE FORM_TEST_TECHNOLOGY="${TECH}")
   endforeach()
 endif()
 
@@ -127,10 +135,3 @@ cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
          form
 )
 target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
-
-cet_test(form_storage_test USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
-         root_storage
-         storage
-         form_test_utils
-)
-target_include_directories(form_storage_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
