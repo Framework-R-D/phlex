@@ -1032,17 +1032,12 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string pyname = "py_" + cname;
   std::string pyoutput = output_suffixes[0] + "_py";
 
-  auto pq0 = input_queries[0];
-  std::string c0 = input_converter_name(cname, 0);
-  std::string suff0 =
-    "py_" + (pq0.suffix ? std::string{static_cast<std::string_view>(*pq0.suffix)} : "");
-
   auto transform_N_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
     constexpr size_t N = sizeof...(Is);
 
     auto make_product_selector = [&](size_t i) {
       auto pq = input_queries[i];
-      std::string c = (i == 0) ? c0 : input_converter_name(cname, i);
+      std::string c = input_converter_name(cname, i);
       std::string suff =
         "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
 
@@ -1112,56 +1107,28 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     return nullptr; // error already set
   }
 
-  // register Python observer
-  auto pq0 = input_queries[0];
-  std::string c0 = input_converter_name(cname, 0);
-  std::string suff0 =
-    "py_" + (pq0.suffix ? std::string{static_cast<std::string_view>(*pq0.suffix)} : "");
+  // register Python observer callbacks
+  auto observe_N_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
+    constexpr size_t N = sizeof...(Is);
 
-  switch (input_queries.size()) {
-  case 1: {
-    mod->ph_module->observe(cname, py_callback<void, 1>{callable}, nconcur)
-      .input_family(product_selector{
-        .creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)});
-    break;
-  }
-  case 2: {
-    auto pq1 = input_queries[1];
-    std::string c1 = input_converter_name(cname, 1);
-    std::string suff1 =
-      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
-    mod->ph_module->observe(cname, py_callback<void, 2>{callable}, nconcur)
-      .input_family(product_selector{.creator = identifier(c0),
-                                     .layer = pq0.layer,
-                                     .suffix = identifier(suff0)},
-                    product_selector{
-                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)});
-    break;
-  }
-  case 3: {
-    auto pq1 = input_queries[1];
-    std::string c1 = input_converter_name(cname, 1);
-    std::string suff1 =
-      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
-    auto pq2 = input_queries[2];
-    std::string c2 = input_converter_name(cname, 2);
-    std::string suff2 =
-      "py_" + (pq2.suffix ? std::string{static_cast<std::string_view>(*pq2.suffix)} : "");
-    mod->ph_module->observe(cname, py_callback<void, 3>{callable}, nconcur)
-      .input_family(product_selector{.creator = identifier(c0),
-                                     .layer = pq0.layer,
-                                     .suffix = identifier(suff0)},
-                    product_selector{
-                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
-                    product_selector{
-                      .creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)});
-    break;
-  }
-  default: {
+    auto make_product_selector = [&](size_t i) {
+      auto pq = input_queries[i];
+      std::string c = input_converter_name(cname, i);
+      std::string suff =
+        "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
+
+      return product_selector{
+        .creator = identifier(c), .layer = pq.layer, .suffix = identifier(suff)};
+    };
+
+    mod->ph_module->observe(cname, py_callback<void, N>{callable}, nconcur)
+      .input_family(make_product_selector(Is)...);
+  };
+
+  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_queries.size(), observe_N_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
-  }
   }
 
   Py_DECREF(callable);
