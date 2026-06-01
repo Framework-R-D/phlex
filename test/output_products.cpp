@@ -65,5 +65,5 @@ TEST_CASE("Output data products", "[graph]")
   // "square_number" transform.
   CHECK(g.execution_count("record_numbers") == 2u);
   CHECK(products_from_nodes ==
-        std::set<std::string>{"input:input/number_from_provider", "square_number/squared_number"});
+        std::set<std::string>{"input/number_from_provider", "square_number/squared_number"});
 }
