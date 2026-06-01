@@ -62,6 +62,11 @@ namespace form::detail::experimental {
 
   void ROOT_RField_Write_ContainerImp::fill(void const* data)
   {
+    if(!m_rntuple_parent) {
+      throw std::runtime_error(
+        "ROOT_RField_Write_ContainerImp::fill No parent RNTuple set up before first fill() call");
+    }
+
     if (!m_rntuple_parent->m_writer) {
       if (!m_tfile) {
         throw std::runtime_error(
@@ -77,6 +82,11 @@ namespace form::detail::experimental {
 
   void ROOT_RField_Write_ContainerImp::commit()
   {
+    if (!m_rntuple_parent) {
+      throw std::runtime_error("ROOT_RField_Write_ContainerImp::commit No parent RNTuple set up.  "
+                               "You may have called commit() without calling setParent() first.");
+    }
+
     if (!m_rntuple_parent->m_entry) {
       throw std::runtime_error("ROOT_RField_Write_ContainerImp::commit No RRawPtrWriteEntry set up.  "
                                "You may have called commit() without calling setupWrite() first.");
@@ -90,6 +100,11 @@ namespace form::detail::experimental {
 
   void ROOT_RField_Write_ContainerImp::setupWrite(std::type_info const& type)
   {
+    if(!m_rntuple_parent) {
+      throw std::runtime_error("ROOT_RField_Write_ContainerImp::setupWrite No parent RNTuple set up.  "
+                               "You may have called setupWrite() before setParent().");
+    }
+
     auto const& type_name = DemangleName(type);
     std::unique_ptr<ROOT::RFieldBase> field;
 
