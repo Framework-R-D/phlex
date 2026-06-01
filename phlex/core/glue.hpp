@@ -7,6 +7,7 @@
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/core/registration_api.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -148,6 +149,16 @@ namespace phlex::experimental {
                         graph_,
                         delegate(bound_obj_, f),
                         c};
+    }
+
+    template <std::derived_from<source> Source, typename... Args>
+    void source(std::string name, Args&&... args)
+    {
+      auto [_, inserted] =
+        nodes_.sources.try_emplace(name, std::make_unique<Source>(std::forward<Args>(args)...));
+      if (not inserted) {
+        detail::add_to_error_messages(errors_, name); // From registrar.hpp
+      }
     }
 
   private:

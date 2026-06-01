@@ -3,8 +3,6 @@
 
 #include "phlex/phlex_core_export.hpp"
 
-#include "phlex/core/declared_fold.hpp"
-#include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/filter.hpp"
 #include "phlex/core/glue.hpp"
 #include "phlex/core/index_router.hpp"
@@ -13,6 +11,7 @@
 #include "phlex/driver.hpp"
 #include "phlex/model/data_cell_tracker.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
+#include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/model/flush_messages.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/module.hpp"
@@ -23,8 +22,10 @@
 #include "oneapi/tbb/flow_graph.h"
 #include "oneapi/tbb/info.h"
 
+#include <concepts>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -58,7 +59,7 @@ namespace phlex::experimental {
       return {config, graph_, nodes_, registration_errors_};
     }
 
-    source_graph_proxy<void_tag> source_proxy(configuration const& config)
+    source_bundle source_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
     }
@@ -111,6 +112,12 @@ namespace phlex::experimental {
     auto provide(std::string name, auto f, concurrency c = concurrency::serial)
     {
       return make_glue().provide(std::move(name), std::move(f), c);
+    }
+
+    template <std::derived_from<source> Source, typename... Args>
+    void source(std::string name, Args&&... args)
+    {
+      return make_glue().template source<Source>(std::move(name), std::forward<Args>(args)...);
     }
 
     template <typename T, typename... Args>
