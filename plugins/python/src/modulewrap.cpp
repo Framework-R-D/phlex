@@ -119,8 +119,7 @@ namespace {
     PyObject* m_callable; // owned
     void* m_ccallback;    // C callable (either dispatcher or direct pointer)
 
-    py_callback_base(PyObject* callable,
-                     void* cb = (void*)PyObject_CallFunctionObjArgs):
+    py_callback_base(PyObject* callable, void* cb = (void*)PyObject_CallFunctionObjArgs) :
       m_callable(callable), m_ccallback(cb)
     {
       // callable is always non-null here (validated before construction)
@@ -158,15 +157,18 @@ namespace {
   };
 
   // type repeater to automatically instantiate callbacks taking N args
-  template<typename T, size_t>
+  template <typename T, size_t>
   using type_repeater = T;
 
   template <typename RT, typename Sq>
   struct py_callback_impl;
 
-  template<typename RT, size_t... Is>
+  template <typename RT, size_t... Is>
   struct py_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
-    py_callback_impl(PyObject* callable) : py_callback_base(callable, (void*)PyObject_CallFunctionObjArgs) {}
+    py_callback_impl(PyObject* callable) :
+      py_callback_base(callable, (void*)PyObject_CallFunctionObjArgs)
+    {
+    }
 
     RT operator()(type_repeater<dcarg, Is>... args)
     {
@@ -210,13 +212,13 @@ namespace {
   template <typename RT, typename Sq>
   struct jit_callback_impl;
 
-  template<typename RT, size_t... Is>
+  template <typename RT, size_t... Is>
   struct jit_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
     using py_callback_base::py_callback_base;
 
     RT operator()(type_repeater<dcarg, Is>... args)
     {
-      dcarg result{0.};//nullptr};
+      dcarg result{0.}; //nullptr};
       dcargs_t argsv;
       argsv.reserve(sizeof...(Is));
       (argsv.push_back(args), ...);
@@ -231,12 +233,11 @@ namespace {
 
   // aliases to reduce typing downstream (explicit instatiations used to ensure
   // that the function signature can be derived by the graph builder
-  template<typename RT, size_t N>
+  template <typename RT, size_t N>
   using py_callback = py_callback_impl<RT, std::make_index_sequence<N>>;
 
   template <typename RT, size_t N>
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
-
 
   // input/output validation helpers
   static inline std::optional<product_selector> validate_query(PyObject* pyquery)
@@ -695,7 +696,7 @@ namespace {
       PyGILRAII gil;                                                                               \
       PyObject* arg0 = wrap_dci(id);                                                               \
       dcarg pyres = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */       \
-      auto cres = py_to_##name(pyres); /* decrefs pyres */                                         \
+      auto cres = py_to_##name(pyres);                                    /* decrefs pyres */      \
       return cres;                                                                                 \
     }                                                                                              \
   };
@@ -716,7 +717,8 @@ namespace {
                         product_selector pq_in,
                         std::string const& output)
   {
-    mod->ph_module->transform(name, converter, (concurrency)16) //concurrency::serial)  // TODO!
+    mod->ph_module
+      ->transform(name, converter, (concurrency)16) //concurrency::serial)  // TODO!
       .input_family(pq_in)
       .output_product_suffixes(output);
   }
@@ -959,14 +961,14 @@ static bool insert_output_converter(py_phlex_module* mod,
 }
 
 template <size_t N, typename Cf>
-static bool unroll_switch(size_t rt_size, Cf&& func) {
+static bool unroll_switch(size_t rt_size, Cf&& func)
+{
   return [&]<size_t... Is>(std::index_sequence<Is...>) {
     // 1-based sequence (all computational nodes have an input, or they can't be scheduled),
     // with the fold expression short-circuited using ||
-    bool matched = ( ... || (
-      (rt_size == (Is + 1)) ?
-        (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true) : false
-    ));
+    bool matched = (... || ((rt_size == (Is + 1))
+                              ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
+                              : false));
 
     return matched;
   }(std::make_index_sequence<N>{});
@@ -1041,13 +1043,11 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     auto make_product_selector = [&](size_t i) {
       auto pq = input_queries[i];
       std::string c = (i == 0) ? c0 : input_converter_name(cname, i);
-      std::string suff = "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
+      std::string suff =
+        "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
 
       return product_selector{
-        .creator = identifier(c),
-        .layer = pq.layer,
-        .suffix = identifier(suff)
-      };
+        .creator = identifier(c), .layer = pq.layer, .suffix = identifier(suff)};
     };
 
     auto insert_tranform_for_callback = [&](auto& cb) {
