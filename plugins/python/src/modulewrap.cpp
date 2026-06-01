@@ -1,3 +1,4 @@
+#include "dyncall.hpp"
 #include "wrap.hpp"
 
 #include "phlex/model/data_cell_index.hpp"
@@ -11,6 +12,8 @@
 #include <optional>
 #include <ranges>
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #define NO_IMPORT_ARRAY
@@ -38,6 +41,13 @@
 // For now, each input will have its own converter, even if multiple nodes
 // need that same input translated. This simplifies memory management, but
 // can cause a performance bottleneck (since all require the GIL).
+
+// This is dumb, but for now, because all templates need to be instantiated, only
+// support up to a fixed compile-timee maximum number of arguments. An alternative
+// would be to collect the arguments, but that currently suffers from needing a
+// "initial" to create the container to collect arguments into. This may all go
+// away once converter nodes have better support in phlex' core
+constexpr size_t MAX_SUPPORTED_ARGS = 3;
 
 using namespace phlex::experimental;
 using namespace phlex;
@@ -95,33 +105,36 @@ namespace {
     return fmt::format("{}_arg{}_py", algname, arg);
   }
 
-  static inline PyObject* lifeline_transform(intptr_t arg)
+  static inline dcarg lifeline_transform(dcarg arg)
   {
-    PyObject* pyobj = reinterpret_cast<PyObject*>(arg);
+    PyObject* pyobj = reinterpret_cast<PyObject*>(arg.m_ptr);
     if (pyobj && PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
-      return reinterpret_cast<py_lifeline_t*>(pyobj)->m_view;
+      return dcarg{reinterpret_cast<py_lifeline_t*>(pyobj)->m_view};
     }
-    return pyobj;
+    return arg;
   }
 
-  // callable object managing the callback
-  template <size_t N>
-  struct py_callback {
+  // callable objects managing the callback
+  struct py_callback_base {
     PyObject* m_callable; // owned
+    void* m_ccallback;    // C callable (either dispatcher or direct pointer)
 
-    explicit py_callback(PyObject* callable) : m_callable(callable)
+    py_callback_base(PyObject* callable,
+                     void* cb = (void*)PyObject_CallFunctionObjArgs):
+      m_callable(callable), m_ccallback(cb)
     {
-      // callable is always non-null here (validated before py_callback construction)
+      // callable is always non-null here (validated before construction)
       PyGILRAII gil;
       Py_INCREF(m_callable);
     }
-    py_callback(py_callback const& pc) : m_callable(pc.m_callable)
+    py_callback_base(py_callback_base const& pc) :
+      m_callable(pc.m_callable), m_ccallback(pc.m_ccallback)
     {
       // Must hold GIL when manipulating reference counts
       PyGILRAII gil;
       Py_INCREF(m_callable);
     }
-    py_callback& operator=(py_callback const& pc)
+    py_callback_base& operator=(py_callback_base const& pc)
     {
       if (this != &pc) {
         // Must hold GIL when manipulating reference counts
@@ -129,66 +142,60 @@ namespace {
         Py_INCREF(pc.m_callable);
         Py_DECREF(m_callable);
         m_callable = pc.m_callable;
+        m_ccallback = pc.m_ccallback;
       }
       return *this;
     }
-    ~py_callback()
+    virtual ~py_callback_base()
     {
       // TODO: cleanup deferred to Phlex shutdown hook
       // Cannot safely Py_DECREF during arbitrary destruction due to:
       // - TOCTOU race on Py_IsInitialized() without GIL
       // - Module offloading in interpreter cleanup phase 2
     }
-    py_callback(py_callback&&) = default;
-    py_callback& operator=(py_callback&&) = default;
+    py_callback_base(py_callback_base&&) = default;
+    py_callback_base& operator=(py_callback_base&&) = default;
+  };
 
-    template <typename... Args>
-    intptr_t call(Args... args)
+  // type repeater to automatically instantiate callbacks taking N args
+  template<typename T, size_t>
+  using type_repeater = T;
+
+  template <typename RT, typename Sq>
+  struct py_callback_impl;
+
+  template<typename RT, size_t... Is>
+  struct py_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
+    py_callback_impl(PyObject* callable) : py_callback_base(callable, (void*)PyObject_CallFunctionObjArgs) {}
+
+    RT operator()(type_repeater<dcarg, Is>... args)
     {
-      static_assert(sizeof...(Args) == N, "Argument count mismatch");
+      dcargs_t argsv;
+      argsv.reserve(sizeof...(Is) + 2);
+      argsv.push_back(dcarg{m_callable});
+      (argsv.push_back(lifeline_transform(args)), ...);
+      argsv.push_back(dcarg{nullptr});
 
       PyGILRAII gil;
 
-      PyObject* result =
-        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
+      dcarg result{nullptr};
+      dyncall((void*)m_ccallback, result, argsv, 1);
 
       std::string error_msg;
-      if (!result) {
+      if (!result.m_ptr) {
         if (!msg_from_py_error(error_msg))
           error_msg = "Unknown python error";
       }
 
       decref_all(args...);
 
-      if (!error_msg.empty()) {
+      if (!error_msg.empty())
         throw std::runtime_error(error_msg.c_str());
-      }
 
-      return reinterpret_cast<intptr_t>(result);
-    }
-
-    template <typename... Args>
-    void callv(Args... args)
-    {
-      static_assert(sizeof...(Args) == N, "Argument count mismatch");
-
-      PyGILRAII gil;
-
-      PyObject* result =
-        PyObject_CallFunctionObjArgs(m_callable, lifeline_transform(args)..., nullptr);
-
-      std::string error_msg;
-      if (!result) {
-        if (!msg_from_py_error(error_msg))
-          error_msg = "Unknown python error";
-      } else
-        Py_DECREF(result);
-
-      decref_all(args...);
-
-      if (!error_msg.empty()) {
-        throw std::runtime_error(error_msg.c_str());
-      }
+      if constexpr (!std::is_void_v<RT>)
+        return result;
+      else
+        Py_DECREF((PyObject*)result.m_ptr);
     }
 
   private:
@@ -196,45 +203,42 @@ namespace {
     void decref_all(Args... args)
     {
       // helper to decrement reference counts of N arguments
-      (Py_DECREF((PyObject*)args), ...);
+      (Py_DECREF((PyObject*)args.m_ptr), ...);
     }
   };
 
-  // use explicit instatiations to ensure that the function signature can
-  // be derived by the graph builder
-  struct py_callback_1 : public py_callback<1> {
-    using py_callback<1>::py_callback;
-    intptr_t operator()(intptr_t arg0) { return call(arg0); }
-  };
+  template <typename RT, typename Sq>
+  struct jit_callback_impl;
 
-  struct py_callback_2 : public py_callback<2> {
-    using py_callback<2>::py_callback;
-    intptr_t operator()(intptr_t arg0, intptr_t arg1) { return call(arg0, arg1); }
-  };
+  template<typename RT, size_t... Is>
+  struct jit_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
+    using py_callback_base::py_callback_base;
 
-  struct py_callback_3 : public py_callback<3> {
-    using py_callback<3>::py_callback;
-    intptr_t operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2)
+    RT operator()(type_repeater<dcarg, Is>... args)
     {
-      return call(arg0, arg1, arg2);
+      dcarg result{0.};//nullptr};
+      dcargs_t argsv;
+      argsv.reserve(sizeof...(Is));
+      (argsv.push_back(args), ...);
+
+      dyncall((void*)m_ccallback, result, argsv);
+      // TODO: error reporting?
+
+      if constexpr (!std::is_void_v<RT>)
+        return result;
     }
   };
 
-  struct py_callback_1v : public py_callback<1> {
-    using py_callback<1>::py_callback;
-    void operator()(intptr_t arg0) { callv(arg0); }
-  };
+  // aliases to reduce typing downstream (explicit instatiations used to ensure
+  // that the function signature can be derived by the graph builder
+  template<typename RT, size_t N>
+  using py_callback = py_callback_impl<RT, std::make_index_sequence<N>>;
 
-  struct py_callback_2v : public py_callback<2> {
-    using py_callback<2>::py_callback;
-    void operator()(intptr_t arg0, intptr_t arg1) { callv(arg0, arg1); }
-  };
+  template <typename RT, size_t N>
+  using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
-  struct py_callback_3v : public py_callback<3> {
-    using py_callback<3>::py_callback;
-    void operator()(intptr_t arg0, intptr_t arg1, intptr_t arg2) { callv(arg0, arg1, arg2); }
-  };
 
+  // input/output validation helpers
   static inline std::optional<product_selector> validate_query(PyObject* pyquery)
   {
     if (!PyDict_Check(pyquery)) {
@@ -345,6 +349,31 @@ namespace {
 
 namespace {
 
+  static bool is_numba_cfunc(PyObject* obj)
+  {
+    static PyObject* cfunc_type = nullptr;
+    static bool checked = false;
+    if (!checked) {
+      checked = true;
+
+      PyObject* nbmod = PyImport_ImportModule("numba.core.ccallback");
+      if (nbmod) {
+        cfunc_type = PyObject_GetAttrString(nbmod, "CFunc");
+        Py_DECREF(nbmod);
+      }
+
+      if (!cfunc_type)
+        PyErr_Clear();
+      // hard reference to cfunc_type here if not null
+    }
+
+    if (!cfunc_type)
+      return false;
+
+    int result = PyObject_IsInstance(obj, cfunc_type);
+    return result == 1;
+  }
+
   static std::string annotation_as_text(PyObject* pyobj)
   {
     static PyObject* normalizer = nullptr;
@@ -381,26 +410,49 @@ namespace {
                                      std::vector<std::string>& input_types,
                                      std::vector<std::string>& output_types)
   {
+    bool conversion_ok = false;
+
     PyObject* sann = PyUnicode_FromString("__annotations__");
     PyObject* annot = PyObject_GetAttr(callable, sann);
     if (!annot) {
-      // the callable may be an instance with a __call__ method
-      PyErr_Clear();
-      PyObject* callm = PyObject_GetAttrString(callable, "__call__");
-      if (callm) {
-        annot = PyObject_GetAttr(callm, sann);
-        Py_DECREF(callm);
+      // the callable may be a Numba CFunc and have a declared signature
+      PyObject* sig = PyObject_GetAttrString(callable, "_sig");
+      if (sig) {
+        PyObject* ret = PyObject_GetAttrString(sig, "return_type");
+        PyObject* args = PyObject_GetAttrString(sig, "args");
+
+        if (ret && args && PyTuple_CheckExact(args)) {
+          output_types.push_back(annotation_as_text(ret));
+          for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); ++i) {
+            PyObject* item = PyTuple_GET_ITEM(args, i);
+            input_types.push_back(annotation_as_text(item));
+          }
+          conversion_ok = true;
+        } else
+          PyErr_Clear();
+
+        Py_XDECREF(args);
+        Py_XDECREF(ret);
+      } else {
+        PyErr_Clear();
+        // the callable may be an instance with a __call__ method
+        PyObject* callm = PyObject_GetAttrString(callable, "__call__");
+        if (callm) {
+          annot = PyObject_GetAttr(callm, sann);
+          Py_DECREF(callm);
+        }
       }
     }
     Py_DECREF(sann);
 
-    bool conversion_ok = true;
-    if (annot && PyDict_Check(annot)) {
+    if (!conversion_ok && annot && PyDict_Check(annot)) {
       // Variant guarantees OrderedDict with "return" last
       Py_ssize_t pos = 0;
 
       PyObject* key = nullptr;
       PyObject* value = nullptr;
+
+      conversion_ok = true;
       while (PyDict_Next(annot, &pos, &key, &value)) {
         std::string const& ann = annotation_as_text(value);
         if (ann.empty() && PyErr_Occurred()) {
@@ -416,7 +468,6 @@ namespace {
         }
       }
     } else {
-      conversion_ok = false;
       if (!PyErr_Occurred())
         PyErr_SetString(PyExc_TypeError, "unknown annotation formatting");
     }
@@ -500,33 +551,38 @@ namespace {
 // for expressions, but causes havoc with C++ signatures. We suppress this warning for the block
 // because the use of continuations makes per-line suppression impossible.
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
-  static intptr_t name##_to_py(cpptype a)                                                          \
+  static dcarg name##_to_py(cpptype a)                                                             \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    return reinterpret_cast<intptr_t>(topy(a));                                                    \
+    return dcarg{topy(a)};                                                                         \
   }                                                                                                \
                                                                                                    \
-  static cpptype py_to_##name(intptr_t pyobj)                                                      \
+  static dcarg name##_to_dcarg(cpptype a) { return dcarg{a}; }                                     \
+                                                                                                   \
+  static cpptype py_to_##name(dcarg a)                                                             \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    cpptype i = static_cast<cpptype>(frompy(reinterpret_cast<PyObject*>(pyobj)));                  \
+    PyObject* pyobj = reinterpret_cast<PyObject*>(a.m_ptr);                                        \
+    cpptype i = static_cast<cpptype>(frompy(pyobj));                                               \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
-      Py_DECREF(reinterpret_cast<PyObject*>(pyobj));                                               \
+      Py_DECREF(pyobj);                                                                            \
       throw std::runtime_error("Python conversion error for type " #name ": " + msg);              \
     }                                                                                              \
-    Py_DECREF(reinterpret_cast<PyObject*>(pyobj));                                                 \
+    Py_DECREF(pyobj);                                                                              \
     return i;                                                                                      \
   }                                                                                                \
                                                                                                    \
-  struct provider_cb_##name : public py_callback<1> {                                              \
-    using py_callback<1>::py_callback;                                                             \
+  static cpptype dcarg_to_##name(dcarg a) { return a.m_##name; }                                   \
+                                                                                                   \
+  struct provider_cb_##name : public py_callback<dcarg, 1> {                                       \
+    using py_callback<dcarg, 1>::py_callback;                                                      \
     cpptype operator()(data_cell_index const& id)                                                  \
     {                                                                                              \
       PyGILRAII gil;                                                                               \
       PyObject* arg0 = wrap_dci(id);                                                               \
-      intptr_t const arg0i = reinterpret_cast<intptr_t>(arg0);                                     \
-      PyObject* pyres = reinterpret_cast<PyObject*>(call(arg0i)); /* decrefs arg0 */               \
+      dcarg res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */         \
+      PyObject* pyres = reinterpret_cast<PyObject*>(res.m_ptr);                                    \
       cpptype cres = frompy(pyres);                                                                \
       Py_DECREF(pyres);                                                                            \
       return cres;                                                                                 \
@@ -536,25 +592,18 @@ namespace {
   BASIC_CONVERTER(bool, bool, PyBool_FromLong, pylong_as_bool)
   BASIC_CONVERTER(int, std::int32_t, PyLong_FromLong, PyLong_AsLong)
   BASIC_CONVERTER(uint, std::uint32_t, PyLong_FromLong, pylong_or_int_as_ulong)
-#if defined(__APPLE__) && defined(__MACH__)
-  // This is a temporary workaround until we have a solution for handling translation of types
-  // between C++ and Python.
-  BASIC_CONVERTER(long, long, PyLong_FromLong, pylong_as_strictlong)
-  BASIC_CONVERTER(ulong, unsigned long, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
-#else
-  BASIC_CONVERTER(long, std::int64_t, PyLong_FromLong, pylong_as_strictlong)
-  BASIC_CONVERTER(ulong, std::uint64_t, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
-#endif
+  BASIC_CONVERTER(long, ph_long_t, PyLong_FromLong, pylong_as_strictlong)
+  BASIC_CONVERTER(ulong, ph_ulong_t, PyLong_FromUnsignedLong, pylong_or_int_as_ulong)
   BASIC_CONVERTER(float, float, PyFloat_FromDouble, PyFloat_AsDouble)
   BASIC_CONVERTER(double, double, PyFloat_FromDouble, PyFloat_AsDouble)
 
 #define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
-  static intptr_t name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                     \
+  static dcarg name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                        \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     if (!v)                                                                                        \
-      return 0;                                                                                    \
+      return dcarg{nullptr};                                                                       \
                                                                                                    \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
@@ -567,7 +616,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view)                                                                                  \
-      return 0;                                                                                    \
+      return dcarg{nullptr};                                                                       \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS(reinterpret_cast<PyArrayObject*>(np_view), NPY_ARRAY_WRITEABLE);            \
@@ -579,12 +628,12 @@ namespace {
       PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr));                           \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
-      return 0;                                                                                    \
+      return dcarg{nullptr};                                                                       \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \
                                                                                                    \
-    return reinterpret_cast<intptr_t>(pyll);                                                       \
+    return dcarg{pyll};                                                                            \
   }
 
   VECTOR_CONVERTER(vint, std::int32_t, NPY_INT32)
@@ -595,14 +644,15 @@ namespace {
   VECTOR_CONVERTER(vdouble, double, NPY_DOUBLE)
 
 #define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype, frompy)                                       \
-  static std::shared_ptr<std::vector<cpptype>> py_to_##name(intptr_t pyobj)                        \
+  static std::shared_ptr<std::vector<cpptype>> py_to_##name(dcarg a)                               \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
+    PyObject* pyobj = (PyObject*)a.m_ptr;                                                          \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
-    if (PyArray_Check(reinterpret_cast<PyObject*>(pyobj))) {                                       \
+    if (PyArray_Check(pyobj)) {                                                                    \
       PyArrayObject* arr = reinterpret_cast<PyArrayObject*>(pyobj);                                \
                                                                                                    \
       /* TODO: flattening the array here seems to be the only workable solution */                 \
@@ -616,11 +666,11 @@ namespace {
       cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                     \
       vec->reserve(total);                                                                         \
       vec->insert(vec->end(), raw, raw + total);                                                   \
-    } else if (PyList_Check(reinterpret_cast<PyObject*>(pyobj))) {                                 \
-      Py_ssize_t total = PyList_Size(reinterpret_cast<PyObject*>(pyobj));                          \
+    } else if (PyList_Check(pyobj)) {                                                              \
+      Py_ssize_t total = PyList_Size(pyobj);                                                       \
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
-        PyObject* item = PyList_GetItem(reinterpret_cast<PyObject*>(pyobj), i);                    \
+        PyObject* item = PyList_GetItem(pyobj, i);                                                 \
         vec->push_back(static_cast<cpptype>(frompy(item)));                                        \
         if (PyErr_Occurred()) {                                                                    \
           PyErr_Clear();                                                                           \
@@ -634,18 +684,18 @@ namespace {
       }                                                                                            \
     }                                                                                              \
                                                                                                    \
-    Py_DECREF(reinterpret_cast<PyObject*>(pyobj));                                                 \
+    Py_DECREF(pyobj);                                                                              \
     return vec;                                                                                    \
   }                                                                                                \
                                                                                                    \
-  struct provider_cb_##name : public py_callback<1> {                                              \
-    using py_callback<1>::py_callback;                                                             \
+  struct provider_cb_##name : public py_callback<dcarg, 1> {                                       \
+    using py_callback<dcarg, 1>::py_callback;                                                      \
     std::shared_ptr<std::vector<cpptype>> operator()(data_cell_index const& id)                    \
     {                                                                                              \
       PyGILRAII gil;                                                                               \
       PyObject* arg0 = wrap_dci(id);                                                               \
-      intptr_t pyres = call(reinterpret_cast<intptr_t>(arg0)); /* decrefs arg0 */                  \
-      auto cres = py_to_##name(pyres);                         /* decrefs pyres */                 \
+      dcarg pyres = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */       \
+      auto cres = py_to_##name(pyres); /* decrefs pyres */                                         \
       return cres;                                                                                 \
     }                                                                                              \
   };
@@ -666,7 +716,7 @@ namespace {
                         product_selector pq_in,
                         std::string const& output)
   {
-    mod->ph_module->transform(name, converter, concurrency::serial)
+    mod->ph_module->transform(name, converter, (concurrency)16) //concurrency::serial)  // TODO!
       .input_family(pq_in)
       .output_product_suffixes(output);
   }
@@ -679,7 +729,8 @@ static PyObject* parse_args(PyObject* args,
                             std::vector<product_selector>& input_queries,
                             std::vector<std::string>& input_types,
                             std::vector<std::string>& output_suffixes,
-                            std::vector<std::string>& output_types)
+                            std::vector<std::string>& output_types,
+                            concurrency& nconcur)
 {
   // Helper function to extract the common names and identifiers needed to insert
   // any node. (The observer does not require outputs, but they still need to be
@@ -689,16 +740,11 @@ static PyObject* parse_args(PyObject* args,
               kw3[] = "concurrency", kw4[] = "name";
   // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
   static char* kwnames[] = {kw0, kw1, kw2, kw3, kw4, nullptr};
-  PyObject *callable = nullptr, *input = nullptr, *output = nullptr, *concurrency = nullptr,
-           *pyname = nullptr;
+  PyObject *callable = nullptr, *input = nullptr, *output = nullptr, *pyname = nullptr;
+  int nconcur_ = -1;
   if (!PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO|OOO", kwnames, &callable, &input, &output, &concurrency, &pyname)) {
+        args, kwds, "OO|OiO", (char**)kwnames, &callable, &input, &output, &nconcur_, &pyname)) {
     // error already set by argument parser
-    return nullptr;
-  }
-
-  if (concurrency && concurrency != Py_None) {
-    PyErr_SetString(PyExc_TypeError, "only serial concurrency is supported");
     return nullptr;
   }
 
@@ -706,6 +752,9 @@ static PyObject* parse_args(PyObject* args,
     PyErr_SetString(PyExc_TypeError, "provided algorithm is not callable");
     return nullptr;
   }
+
+  // set concurrency, or the default of serial if not set
+  nconcur = nconcur_ > 0 ? (concurrency)nconcur_ : concurrency::serial;
 
   // retrieve function name
   if (!pyname) {
@@ -744,7 +793,7 @@ static PyObject* parse_args(PyObject* args,
     return nullptr;
   }
 
-  // retrieve C++ (matching) types from annotations
+  // retrieve C++ (matching) types if provided
   input_types.reserve(input_queries.size());
   if (!annotations_to_strings(callable, input_types, output_types))
     return nullptr; // Python error already set
@@ -794,7 +843,8 @@ static std::optional<std::string_view> collection_dtype(std::string const& type_
 static bool insert_input_converters(py_phlex_module* mod,
                                     std::string const& cname, // TODO: shared_ptr<PyObject>
                                     std::vector<product_selector> const& input_queries,
-                                    std::vector<std::string> const& input_types)
+                                    std::vector<std::string> const& input_types,
+                                    bool ispy)
 {
   // insert input converter nodes into the graph
   for (auto const [i, inp_pq, inp_type] :
@@ -807,19 +857,19 @@ static bool insert_input_converters(py_phlex_module* mod,
       "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
 
     if (inp_type == "bool")
-      insert_converter(mod, pyname, bool_to_py, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output);
     else if (inp_type == "int32_t")
-      insert_converter(mod, pyname, int_to_py, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? int_to_py : int_to_dcarg, inp_pq, output);
     else if (inp_type == "uint32_t")
-      insert_converter(mod, pyname, uint_to_py, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? uint_to_py : uint_to_dcarg, inp_pq, output);
     else if (inp_type == "int64_t")
-      insert_converter(mod, pyname, long_to_py, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? long_to_py : long_to_dcarg, inp_pq, output);
     else if (inp_type == "uint64_t")
-      insert_converter(mod, pyname, ulong_to_py, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? ulong_to_py : ulong_to_dcarg, inp_pq, output);
     else if (inp_type == "float")
-      insert_converter(mod, pyname, float_to_py, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output);
     else if (inp_type == "double")
-      insert_converter(mod, pyname, double_to_py, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output);
     else if (inp_type.compare(0, 7, "ndarray") == 0 || inp_type.compare(0, 4, "list") == 0) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
@@ -858,23 +908,24 @@ static bool insert_output_converter(py_phlex_module* mod,
                                     std::string const& cname,
                                     product_selector const& out_pq,
                                     std::string const& out_type,
-                                    std::string const& output)
+                                    std::string const& output,
+                                    bool ispy)
 {
   // insert output converter node into the graph
   if (out_type == "bool")
-    insert_converter(mod, cname, py_to_bool, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_bool : dcarg_to_bool, out_pq, output);
   else if (out_type == "int32_t")
-    insert_converter(mod, cname, py_to_int, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_int : dcarg_to_int, out_pq, output);
   else if (out_type == "uint32_t")
-    insert_converter(mod, cname, py_to_uint, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_uint : dcarg_to_uint, out_pq, output);
   else if (out_type == "int64_t")
-    insert_converter(mod, cname, py_to_long, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_long : dcarg_to_long, out_pq, output);
   else if (out_type == "uint64_t")
-    insert_converter(mod, cname, py_to_ulong, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_ulong : dcarg_to_ulong, out_pq, output);
   else if (out_type == "float")
-    insert_converter(mod, cname, py_to_float, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_float : dcarg_to_float, out_pq, output);
   else if (out_type == "double")
-    insert_converter(mod, cname, py_to_double, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_double : dcarg_to_double, out_pq, output);
   else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
@@ -907,6 +958,20 @@ static bool insert_output_converter(py_phlex_module* mod,
   return true;
 }
 
+template <size_t N, typename Cf>
+static bool unroll_switch(size_t rt_size, Cf&& func) {
+  return [&]<size_t... Is>(std::index_sequence<Is...>) {
+    // 1-based sequence (all computational nodes have an input, or they can't be scheduled),
+    // with the fold expression short-circuited using ||
+    bool matched = ( ... || (
+      (rt_size == (Is + 1)) ?
+        (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true) : false
+    ));
+
+    return matched;
+  }(std::make_index_sequence<N>{});
+}
+
 static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kwds)
 {
   // Register a python algorithm by adding the necessary intermediate converter
@@ -915,10 +980,23 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string cname;
   std::vector<product_selector> input_queries;
   std::vector<std::string> input_types, output_suffixes, output_types;
-  PyObject* callable =
-    parse_args(args, kwds, cname, input_queries, input_types, output_suffixes, output_types);
+  concurrency nconcur;
+  PyObject* callable = parse_args(
+    args, kwds, cname, input_queries, input_types, output_suffixes, output_types, nconcur);
+
   if (!callable)
     return nullptr; // error already set
+
+  // detect numba and extract C function pointer if any, else use default Python
+  // callable dispatcher
+  void* ccallf = nullptr;
+  if (is_numba_cfunc(callable)) {
+    PyObject* pyaddr = PyObject_GetAttrString(callable, "address");
+    if (pyaddr)
+      ccallf = PyLong_AsVoidPtr(pyaddr);
+    if (!ccallf)
+      PyErr_Clear();
+  }
 
   if (output_types.empty()) {
     PyErr_Format(PyExc_TypeError, "transform %s should have an output type", cname.c_str());
@@ -939,12 +1017,12 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     }
   }
 
-  if (!insert_input_converters(mod, cname, input_queries, input_types)) {
+  if (!insert_input_converters(mod, cname, input_queries, input_types, !ccallf)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
 
-  // register Python transform
+  // register Python transform callbacks
 
   // TODO: only support single output type for now, as there has to be a mapping
   // onto a std::tuple otherwise, which is a typed object, thus complicating the
@@ -957,53 +1035,40 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string suff0 =
     "py_" + (pq0.suffix ? std::string{static_cast<std::string_view>(*pq0.suffix)} : "");
 
-  switch (input_queries.size()) {
-  case 1: {
-    mod->ph_module->transform(pyname, py_callback_1{callable}, concurrency::serial)
-      .input_family(product_selector{
-        .creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)})
-      .output_product_suffixes(pyoutput);
-    break;
-  }
-  case 2: {
-    auto pq1 = input_queries[1];
-    std::string c1 = input_converter_name(cname, 1);
-    std::string suff1 =
-      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
-    mod->ph_module->transform(pyname, py_callback_2{callable}, concurrency::serial)
-      .input_family(product_selector{.creator = identifier(c0),
-                                     .layer = pq0.layer,
-                                     .suffix = identifier(suff0)},
-                    product_selector{
-                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)})
-      .output_product_suffixes(pyoutput);
-    break;
-  }
-  case 3: {
-    auto pq1 = input_queries[1];
-    std::string c1 = input_converter_name(cname, 1);
-    std::string suff1 =
-      "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
-    auto pq2 = input_queries[2];
-    std::string c2 = input_converter_name(cname, 2);
-    std::string suff2 =
-      "py_" + (pq2.suffix ? std::string{static_cast<std::string_view>(*pq2.suffix)} : "");
-    mod->ph_module->transform(pyname, py_callback_3{callable}, concurrency::serial)
-      .input_family(product_selector{.creator = identifier(c0),
-                                     .layer = pq0.layer,
-                                     .suffix = identifier(suff0)},
-                    product_selector{
-                      .creator = identifier(c1), .layer = pq1.layer, .suffix = identifier(suff1)},
-                    product_selector{
-                      .creator = identifier(c2), .layer = pq2.layer, .suffix = identifier(suff2)})
-      .output_product_suffixes(pyoutput);
-    break;
-  }
-  default: {
+  auto transform_N_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
+    constexpr size_t N = sizeof...(Is);
+
+    auto make_product_selector = [&](size_t i) {
+      auto pq = input_queries[i];
+      std::string c = (i == 0) ? c0 : input_converter_name(cname, i);
+      std::string suff = "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
+
+      return product_selector{
+        .creator = identifier(c),
+        .layer = pq.layer,
+        .suffix = identifier(suff)
+      };
+    };
+
+    auto insert_tranform_for_callback = [&](auto& cb) {
+      mod->ph_module->transform(pyname, cb, nconcur)
+        .input_family(make_product_selector(Is)...)
+        .output_product_suffixes(pyoutput);
+    };
+
+    if (ccallf) {
+      jit_callback<dcarg, N> cb{callable, ccallf};
+      insert_tranform_for_callback(cb);
+    } else {
+      py_callback<dcarg, N> cb{callable};
+      insert_tranform_for_callback(cb);
+    }
+  };
+
+  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_queries.size(), transform_N_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
-  }
   }
 
   // insert output converter node into the graph
@@ -1012,7 +1077,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
                                  .suffix = identifier(pyoutput)};
   std::string const& out_type = output_types[0];
   std::string const& output = output_suffixes[0];
-  if (!insert_output_converter(mod, cname, out_pq, out_type, output)) {
+  if (!insert_output_converter(mod, cname, out_pq, out_type, output, !ccallf)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1029,8 +1094,10 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   std::string cname;
   std::vector<product_selector> input_queries;
   std::vector<std::string> input_types, output_suffixes, output_types;
-  PyObject* callable =
-    parse_args(args, kwds, cname, input_queries, input_types, output_suffixes, output_types);
+  concurrency nconcur;
+  PyObject* callable = parse_args(
+    args, kwds, cname, input_queries, input_types, output_suffixes, output_types, nconcur);
+
   if (!callable)
     return nullptr; // error already set
 
@@ -1040,7 +1107,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  if (!insert_input_converters(mod, cname, input_queries, input_types)) {
+  if (!insert_input_converters(mod, cname, input_queries, input_types, true)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1053,7 +1120,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
   switch (input_queries.size()) {
   case 1: {
-    mod->ph_module->observe(cname, py_callback_1v{callable}, concurrency::serial)
+    mod->ph_module->observe(cname, py_callback<void, 1>{callable}, nconcur)
       .input_family(product_selector{
         .creator = identifier(c0), .layer = pq0.layer, .suffix = identifier(suff0)});
     break;
@@ -1063,7 +1130,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     std::string c1 = input_converter_name(cname, 1);
     std::string suff1 =
       "py_" + (pq1.suffix ? std::string{static_cast<std::string_view>(*pq1.suffix)} : "");
-    mod->ph_module->observe(cname, py_callback_2v{callable}, concurrency::serial)
+    mod->ph_module->observe(cname, py_callback<void, 2>{callable}, nconcur)
       .input_family(product_selector{.creator = identifier(c0),
                                      .layer = pq0.layer,
                                      .suffix = identifier(suff0)},
@@ -1080,7 +1147,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     std::string c2 = input_converter_name(cname, 2);
     std::string suff2 =
       "py_" + (pq2.suffix ? std::string{static_cast<std::string_view>(*pq2.suffix)} : "");
-    mod->ph_module->observe(cname, py_callback_3v{callable}, concurrency::serial)
+    mod->ph_module->observe(cname, py_callback<void, 3>{callable}, nconcur)
       .input_family(product_selector{.creator = identifier(c0),
                                      .layer = pq0.layer,
                                      .suffix = identifier(suff0)},
