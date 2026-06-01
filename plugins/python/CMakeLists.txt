@@ -7,6 +7,9 @@ if(Python_NumPy_VERSION VERSION_LESS "2.0.0")
   )
 endif()
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFI REQUIRED IMPORTED_TARGET libffi)
+
 # Phlex module to run Python algorithms
 add_library(
   pymodule
@@ -17,8 +20,9 @@ add_library(
   src/dciwrap.cpp
   src/lifelinewrap.cpp
   src/errorwrap.cpp
+  src/dyncall.cpp
 )
-target_link_libraries(pymodule PRIVATE phlex::module Python::Python Python::NumPy)
+target_link_libraries(pymodule PRIVATE phlex::module PkgConfig::FFI Python::Python Python::NumPy)
 target_compile_definitions(pymodule PRIVATE NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION)
 
 install(TARGETS pymodule LIBRARY DESTINATION lib)
