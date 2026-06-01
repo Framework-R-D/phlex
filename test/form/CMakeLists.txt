@@ -9,7 +9,7 @@ if(FORM_USE_ROOT_STORAGE)
   target_include_directories(form_test_utils INTERFACE ${PROJECT_SOURCE_DIR})
 
   list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_TTREE")
-#  if(FORM_USE_RNTUPLE_STORAGE)
+#  if(FORM_USE_RNTUPLE_STORAGE) #Example of what this loop will be used for
 #    list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_RNTUPLE")
 #  endif()
 
