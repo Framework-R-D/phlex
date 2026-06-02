@@ -166,7 +166,7 @@ namespace {
   template <typename RT, size_t... Is>
   struct py_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
     py_callback_impl(PyObject* callable) :
-      py_callback_base(callable, (void*)PyObject_CallFunctionObjArgs)
+      py_callback_base(callable, reinterpret_cast<void*>(PyObject_CallFunctionObjArgs))
     {
     }
 
@@ -197,7 +197,7 @@ namespace {
       if constexpr (!std::is_void_v<RT>)
         return result;
       else
-        Py_DECREF((PyObject*)result.m_ptr);
+        Py_DECREF(reinterpret_cast<PyObject*>(result.m_ptr));
     }
 
   private:
@@ -217,9 +217,8 @@ namespace {
     edctype m_rtype;     // dynamic call return type
 
     jit_callback_impl(PyObject* callable, void* cb, const std::string& stype) :
-      py_callback_base(callable, cb)
+      py_callback_base(callable, cb), m_rtype(str2edctype(stype))
     {
-      m_rtype = str2edctype(stype);
     }
 
     RT operator()(type_repeater<dcarg, Is>... args)
@@ -973,7 +972,7 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
     // 1-based sequence (all computational nodes have an input, or they can't be scheduled),
     // with the fold expression short-circuited using ||
     bool matched = (... || ((rt_size == (Is + 1))
-                              ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
+                              ? (func(std::make_index_sequence<Is + 1>{}), true)
                               : false));
 
     return matched;

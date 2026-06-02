@@ -14,7 +14,7 @@
 using namespace phlex::experimental;
 
 namespace phlex::experimental {
-  static ffi_type* ffi_t[] = {
+  static ffi_type* const ffi_t[] = {
     &ffi_type_pointer,
     &ffi_type_uint8,
     &ffi_type_sint8,
@@ -52,6 +52,14 @@ phlex::experimental::edctype phlex::experimental::str2edctype(const std::string&
 
 void phlex::experimental::dyncall(void* fn, dcarg& result, dcargs_t& args, int var_offset)
 {
+  // Perform a dynamic call of function fn, taking arguments `args` and returning
+  // `result`. Set `var_offset` to the appropriate number of positional arguments
+  // if the other arguments are variational.
+
+  // Except for the memory management unique_ptrs, this code is essentially C,
+  // because libffi is, and that yields a plethora of warnings from clang-tidy,
+  // none of which warrant actual changes.
+  // NOLINTBEGIN
   std::size_t N = (std::size_t)args.size();
 
   auto t = std::make_unique<ffi_type*[]>(N);
@@ -74,4 +82,5 @@ void phlex::experimental::dyncall(void* fn, dcarg& result, dcargs_t& args, int v
     throw std::runtime_error("ffi prep failed");
 
   ffi_call(&cif, (void (*)())fn, result.value_ptr(), p.get());
+  // NOLINTEND
 }

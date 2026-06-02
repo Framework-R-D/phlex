@@ -93,8 +93,8 @@ namespace phlex::experimental {
       else if (etype == edctype::U16) m_uint16 = 0;
       else if (etype == edctype::I32) m_int = 0;
       else if (etype == edctype::U32) m_uint = 0;
-      else if (etype == edctype::I64) m_long = 0l;
-      else if (etype == edctype::U64) m_ulong = 0ul;
+      else if (etype == edctype::I64) m_long = 0L;
+      else if (etype == edctype::U64) m_ulong = 0UL;
       else if (etype == edctype::F32) m_float = 0.f;
       else if (etype == edctype::F64) m_double = 0.;
       else m_ptr = nullptr;
@@ -105,7 +105,7 @@ namespace phlex::experimental {
     {
       switch (m_type) {
       case edctype::Ptr:
-        return &m_ptr;
+        return reinterpret_cast<void*>(&m_ptr);
       case edctype::Bool:
         return &m_bool;
       case edctype::I8:
