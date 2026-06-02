@@ -12,9 +12,9 @@
 
 using namespace form::detail::experimental;
 
-namespace
-{
-  int const technology = form::test::getTechnology(FORM_TEST_TECHNOLOGY); //Defined in test/form/CMakeLists.txt
+namespace {
+  int const technology =
+    form::test::getTechnology(FORM_TEST_TECHNOLOGY); //Defined in test/form/CMakeLists.txt
 }
 
 TEST_CASE("Storage_Container read wrong type", "[form]")
