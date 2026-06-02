@@ -170,6 +170,9 @@ cet_test(
 cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
          phlex::model_internal
 )
+cet_test(index_generator USE_CATCH2_MAIN SOURCE index_generator.cpp LIBRARIES
+         phlex::model_internal
+)
 cet_test(fixed_hierarchy_test USE_CATCH2_MAIN SOURCE fixed_hierarchy_test.cpp LIBRARIES
          phlex::model
 )

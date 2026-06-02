@@ -41,7 +41,7 @@ namespace phlex::experimental {
                     tbb::flow::unlimited,
                     [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
                       auto&& [ready_flushes, index_to_emit] = input;
-                      return index_router_.route(index_to_emit, ready_flushes);
+                      return index_router_.route(index_to_emit, std::move(ready_flushes));
                     }},
     hierarchy_node_{graph_,
                     tbb::flow::unlimited,

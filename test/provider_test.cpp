@@ -30,8 +30,6 @@ namespace {
 TEST_CASE("provider_test")
 {
   constexpr auto max_events{3u};
-  // constexpr auto max_events{1'000'000u};
-  spdlog::flush_on(spdlog::level::trace);
 
   experimental::layer_generator gen;
   gen.add_layer("spill", {"job", max_events, 1u});

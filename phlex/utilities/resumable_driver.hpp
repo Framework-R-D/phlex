@@ -1,9 +1,9 @@
-#ifndef PHLEX_UTILITIES_ASYNC_DRIVER_HPP
-#define PHLEX_UTILITIES_ASYNC_DRIVER_HPP
+#ifndef PHLEX_UTILITIES_RESUMABLE_DRIVER_HPP
+#define PHLEX_UTILITIES_RESUMABLE_DRIVER_HPP
 
 // ===========================================================================================
-// async_driver mediates between a TBB task thread and a dedicated driver thread that produces
-// items one at a time via yield().
+// resumable_driver mediates between a TBB task thread and a dedicated driver thread that
+// produces items one at a time via yield().
 //
 // The two threads alternate ownership of a single slot using two binary semaphores:
 //
@@ -32,15 +32,15 @@
 namespace phlex::experimental {
 
   template <typename RT>
-  class async_driver {
+  class resumable_driver {
     enum class states : std::uint8_t { off, drive, park };
 
   public:
     template <typename FT>
-    explicit async_driver(FT ft) : driver_{std::move(ft)}
+    explicit resumable_driver(FT ft) : driver_{std::move(ft)}
     {
     }
-    explicit async_driver(void (*ft)(async_driver<RT>&)) : driver_{ft} {}
+    explicit resumable_driver(void (*ft)(resumable_driver<RT>&)) : driver_{ft} {}
 
     std::optional<RT> operator()()
     {
@@ -89,7 +89,7 @@ namespace phlex::experimental {
     }
 
   private:
-    std::function<void(async_driver&)> driver_;
+    std::function<void(resumable_driver&)> driver_;
     std::optional<RT> current_;
     std::atomic<states> gear_ = states::off;
     std::jthread thread_;
@@ -99,4 +99,4 @@ namespace phlex::experimental {
   };
 }
 
-#endif // PHLEX_UTILITIES_ASYNC_DRIVER_HPP
+#endif // PHLEX_UTILITIES_RESUMABLE_DRIVER_HPP

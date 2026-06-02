@@ -8,17 +8,17 @@
 #include <stdexcept>
 
 using namespace phlex;
+using phlex::experimental::framework_driver;
 
 TEST_CASE("Catch STL exceptions", "[graph]")
 {
-  experimental::framework_graph g{
-    [](experimental::framework_driver&) { throw std::runtime_error("STL error"); }};
+  experimental::framework_graph g{[](framework_driver&) { throw std::runtime_error("STL error"); }};
   CHECK_THROWS_AS(g.execute(), std::exception);
 }
 
 TEST_CASE("Catch other exceptions", "[graph]")
 {
-  experimental::framework_graph g{[](experimental::framework_driver&) { throw 2.5; }};
+  experimental::framework_graph g{[](framework_driver&) { throw 2.5; }};
   CHECK_THROWS_AS(g.execute(), double);
 }
 
