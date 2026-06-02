@@ -53,7 +53,7 @@ namespace phlex::experimental {
                          is_driver_like_with_cursor auto driver_function) const
     {
       auto h = hierarchy;
-      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) {
+      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
                 f(h.yield_job(d));
               },
               std::move(hierarchy)};
@@ -68,7 +68,7 @@ namespace phlex::experimental {
                          is_driver_like_with_yielder auto driver_function) const
     {
       auto h = hierarchy;
-      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) {
+      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
                 f(h.yielder(d));
               },
               std::move(hierarchy)};
