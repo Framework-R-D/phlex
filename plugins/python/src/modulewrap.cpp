@@ -119,7 +119,7 @@ namespace {
     PyObject* m_callable; // owned
     void* m_ccallback;    // C callable (either dispatcher or direct pointer)
 
-    py_callback_base(PyObject* callable, void* cb = (void*)PyObject_CallFunctionObjArgs) :
+    py_callback_base(PyObject* callable, void* cb) :
       m_callable(callable), m_ccallback(cb)
     {
       // callable is always non-null here (validated before construction)
@@ -214,11 +214,17 @@ namespace {
 
   template <typename RT, size_t... Is>
   struct jit_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
-    using py_callback_base::py_callback_base;
+    edctype m_rtype;     // dynamic call return type
+
+    jit_callback_impl(PyObject* callable, void* cb, const std::string& stype) :
+      py_callback_base(callable, cb)
+    {
+      m_rtype = str2edctype(stype);
+    }
 
     RT operator()(type_repeater<dcarg, Is>... args)
     {
-      dcarg result{0.}; //nullptr};
+      dcarg result{m_rtype};
       dcargs_t argsv;
       argsv.reserve(sizeof...(Is));
       (argsv.push_back(args), ...);
@@ -1031,6 +1037,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // template instantiation
   std::string pyname = "py_" + cname;
   std::string pyoutput = output_suffixes[0] + "_py";
+  std::string const& out_type = output_types[0];
 
   auto transform_N_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
     constexpr size_t N = sizeof...(Is);
@@ -1052,7 +1059,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     };
 
     if (ccallf) {
-      jit_callback<dcarg, N> cb{callable, ccallf};
+      jit_callback<dcarg, N> cb{callable, ccallf, out_type};
       insert_tranform_for_callback(cb);
     } else {
       py_callback<dcarg, N> cb{callable};
@@ -1070,7 +1077,6 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   auto out_pq = product_selector{.creator = identifier(pyname),
                                  .layer = identifier(output_layer),
                                  .suffix = identifier(pyoutput)};
-  std::string const& out_type = output_types[0];
   std::string const& output = output_suffixes[0];
   if (!insert_output_converter(mod, cname, out_pq, out_type, output, !ccallf)) {
     Py_DECREF(callable);
