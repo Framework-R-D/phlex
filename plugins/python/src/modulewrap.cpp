@@ -246,21 +246,21 @@ namespace {
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
   // input/output validation helpers
-  static inline std::optional<product_selector> validate_query(PyObject* pyquery)
+  static inline std::optional<product_selector> validate_selector(PyObject* pysel)
   {
-    if (!PyDict_Check(pyquery)) {
-      PyErr_Format(PyExc_TypeError, "query should be a product specification");
+    if (!PyDict_Check(pysel)) {
+      PyErr_Format(PyExc_TypeError, "selector should be a product specification");
       return std::nullopt;
     }
 
-    PyObject* pyc = PyDict_GetItemString(pyquery, "creator");
+    PyObject* pyc = PyDict_GetItemString(pysel, "creator");
     if (!pyc || !PyUnicode_Check(pyc)) {
       PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
       return std::nullopt;
     }
     char const* c = PyUnicode_AsUTF8(pyc);
 
-    PyObject* pyl = PyDict_GetItemString(pyquery, "layer");
+    PyObject* pyl = PyDict_GetItemString(pysel, "layer");
     if (!pyl || !PyUnicode_Check(pyl)) {
       PyErr_Format(PyExc_TypeError, "missing \"layer\" or not a string");
       return std::nullopt;
@@ -268,7 +268,7 @@ namespace {
     char const* l = PyUnicode_AsUTF8(pyl);
 
     std::optional<identifier> s;
-    PyObject* pys = PyDict_GetItemString(pyquery, "suffix");
+    PyObject* pys = PyDict_GetItemString(pysel, "suffix");
     if (pys) {
       if (!PyUnicode_Check(pys)) {
         PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
@@ -299,11 +299,11 @@ namespace {
     for (Py_ssize_t i = 0; i < len; ++i) {
       PyObject* item = items[i]; // borrowed reference
 
-      auto pq = validate_query(item);
+      auto pq = validate_selector(item);
       if (pq.has_value()) {
         cargs.push_back(pq.value());
       } else {
-        // validate_query will have set a python exception
+        // validate_selection will have set a python exception
         break;
       }
     }
@@ -734,7 +734,7 @@ namespace {
 static PyObject* parse_args(PyObject* args,
                             PyObject* kwds,
                             std::string& functor_name,
-                            std::vector<product_selector>& input_queries,
+                            std::vector<product_selector>& input_selectors,
                             std::vector<std::string>& input_types,
                             std::vector<std::string>& output_suffixes,
                             std::vector<std::string>& output_types,
@@ -784,8 +784,8 @@ static PyObject* parse_args(PyObject* args,
   }
 
   // convert input declarations, to be able to pass them to Phlex
-  input_queries = validate_input(input);
-  if (input_queries.empty()) {
+  input_selectors = validate_input(input);
+  if (input_selectors.empty()) {
     if (!PyErr_Occurred()) {
       PyErr_Format(PyExc_ValueError,
                    "no input provided for %s; node can not be scheduled",
@@ -802,7 +802,7 @@ static PyObject* parse_args(PyObject* args,
   }
 
   // retrieve C++ (matching) types if provided
-  input_types.reserve(input_queries.size());
+  input_types.reserve(input_selectors.size());
   if (!annotations_to_strings(callable, input_types, output_types))
     return nullptr; // Python error already set
 
@@ -811,12 +811,12 @@ static PyObject* parse_args(PyObject* args,
     output_types.clear();
 
   // if annotations were correct (and correctly parsed), there should be as many
-  // input types as input product queries
-  if (input_types.size() != input_queries.size()) {
+  // input types as input product selectors
+  if (input_types.size() != input_selectors.size()) {
     PyErr_Format(PyExc_TypeError,
                  "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
-                 input_queries.size(),
-                 stringify(input_queries).c_str(),
+                 input_selectors.size(),
+                 stringify(input_selectors).c_str(),
                  input_types.size(),
                  stringify(input_types).c_str());
     return nullptr;
@@ -850,13 +850,13 @@ static std::optional<std::string_view> collection_dtype(std::string const& type_
 
 static bool insert_input_converters(py_phlex_module* mod,
                                     std::string const& cname, // TODO: shared_ptr<PyObject>
-                                    std::vector<product_selector> const& input_queries,
+                                    std::vector<product_selector> const& input_selectors,
                                     std::vector<std::string> const& input_types,
                                     bool ispy)
 {
   // insert input converter nodes into the graph
   for (auto const [i, inp_pq, inp_type] :
-       std::views::zip(std::views::iota(size_t{}), input_queries, input_types)) {
+       std::views::zip(std::views::iota(size_t{}), input_selectors, input_types)) {
     // TODO: this seems overly verbose and inefficient, but the function needs
     // to be properly types, so every option is made explicit
 
@@ -986,11 +986,11 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // nodes going from C++ to PyObject* and back.
 
   std::string cname;
-  std::vector<product_selector> input_queries;
+  std::vector<product_selector> input_selectors;
   std::vector<std::string> input_types, output_suffixes, output_types;
   concurrency nconcur;
   PyObject* callable = parse_args(
-    args, kwds, cname, input_queries, input_types, output_suffixes, output_types, nconcur);
+    args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
   if (!callable)
     return nullptr; // error already set
@@ -1014,9 +1014,9 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   // TODO: it's not clear what the output layer will be if the input layers are not
   // all the same, so for now, simply raise an error if their is any ambiguity
-  auto output_layer = static_cast<identifier>(input_queries[0].layer);
-  if (1 < input_queries.size()) {
-    for (auto const& iq_pq : input_queries | std::views::drop(1)) {
+  auto output_layer = static_cast<identifier>(input_selectors[0].layer);
+  if (1 < input_selectors.size()) {
+    for (auto const& iq_pq : input_selectors | std::views::drop(1)) {
       if (static_cast<identifier>(iq_pq.layer) != output_layer) {
         PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", cname.c_str());
         Py_DECREF(callable);
@@ -1025,7 +1025,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     }
   }
 
-  if (!insert_input_converters(mod, cname, input_queries, input_types, !ccallf)) {
+  if (!insert_input_converters(mod, cname, input_selectors, input_types, !ccallf)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1043,7 +1043,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     constexpr size_t N = sizeof...(Is);
 
     auto make_product_selector = [&](size_t i) {
-      auto pq = input_queries[i];
+      auto pq = input_selectors[i];
       std::string c = input_converter_name(cname, i);
       std::string suff =
         "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
@@ -1067,7 +1067,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     }
   };
 
-  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_queries.size(), transform_N_args)) {
+  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_selectors.size(), transform_N_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
@@ -1093,11 +1093,11 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   // nodes going from C++ to PyObject* and back.
 
   std::string cname;
-  std::vector<product_selector> input_queries;
+  std::vector<product_selector> input_selectors;
   std::vector<std::string> input_types, output_suffixes, output_types;
   concurrency nconcur;
   PyObject* callable = parse_args(
-    args, kwds, cname, input_queries, input_types, output_suffixes, output_types, nconcur);
+    args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
   if (!callable)
     return nullptr; // error already set
@@ -1108,7 +1108,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  if (!insert_input_converters(mod, cname, input_queries, input_types, true)) {
+  if (!insert_input_converters(mod, cname, input_selectors, input_types, true)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1118,7 +1118,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     constexpr size_t N = sizeof...(Is);
 
     auto make_product_selector = [&](size_t i) {
-      auto pq = input_queries[i];
+      auto pq = input_selectors[i];
       std::string c = input_converter_name(cname, i);
       std::string suff =
         "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
@@ -1131,7 +1131,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
       .input_family(make_product_selector(Is)...);
   };
 
-  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_queries.size(), observe_N_args)) {
+  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_selectors.size(), observe_N_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
@@ -1288,11 +1288,12 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
     PyErr_Clear();
   }
 
-  // translate and validate the output "query"
-  // Since a query in Python is just a dictionary, it isn't called out in the user API as a query
-  auto opq = validate_query(output);
+  // translate and validate the output "selectors"
+  // Since a selector in Python is just a dictionary, it isn't called out in the user
+  // API as a selector
+  auto opq = validate_selector(output);
   if (!opq.has_value()) {
-    // validate_query has set a python exception with details about the error
+    // validate_selector has set a python exception with details about the error
     return nullptr;
   }
 
