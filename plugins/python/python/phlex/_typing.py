@@ -58,6 +58,7 @@ if has_numba:
         nb_types.uint32: "uint32_t",
         nb_types.uint64: "uint64_t",
         nb_types.Float: "float",
+        nb_types.float32: "float",
         nb_types.double: "double",
     })
 
@@ -117,8 +118,11 @@ _C2C: dict[str, str] = {
     "unsigned int": _PY2CPP[ctypes.c_uint],
     "long": _PY2CPP[ctypes.c_long],
     "unsigned long": _PY2CPP[ctypes.c_ulong],
+    # special cases; not necessarily correct but as expected on major platforms
     "long long": "int64_t",
     "unsigned long long": "uint64_t",
+    "float32": "float",
+    "float64": "double",
 }
 
 
