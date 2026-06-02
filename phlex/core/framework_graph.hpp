@@ -149,7 +149,7 @@ namespace phlex::experimental {
     glue<T> make_glue(Args&&... args)
     {
       std::shared_ptr<T> bound_object{nullptr};
-      if constexpr (!std::same_as<T, void_tag> && Construct) {
+      if constexpr (is_bound_object<T> && Construct) {
         bound_object = std::make_shared<T>(std::forward<Args>(args)...);
       }
       return {graph_, nodes_, std::move(bound_object), registration_errors_};

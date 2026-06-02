@@ -86,6 +86,13 @@ namespace phlex::experimental {
 
   template <typename... Ts>
   class is_tuple<std::tuple<Ts...>> : public std::true_type {};
+
+  // void_tag is a type used to represent the absence of a bound object in template contexts.
+  //
+  // Used as a sentinel type in graph proxy templates to distinguish between
+  // unbound proxies (no bound algorithm object) and bound proxies (with a
+  // bound algorithm object instance).
+  struct void_tag {};
 }
 
 #endif // PHLEX_METAPROGRAMMING_TYPE_DEDUCTION_HPP
