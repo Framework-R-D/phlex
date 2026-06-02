@@ -1,6 +1,18 @@
 #ifndef PHLEX_MODEL_INDEX_GENERATOR_HPP
 #define PHLEX_MODEL_INDEX_GENERATOR_HPP
 
+/// @file
+/// @brief Provides a generator-like iterator for data_cell_index_ptr values.
+///
+/// This file exists to support generator-like behavior for compilers that do not necessarily
+/// support std::generator (for example, Apple clang). It is intended to be removed once the
+/// compilers we develop with support std::generator.
+///
+/// Phlex uses index_generator for sources that need to produce a sequence of data-cell index
+/// pointers, typically for iterating over hierarchical data structures (e.g., run → subrun →
+/// trigger record). The generator pattern allows sources to yield indices lazily as they traverse
+/// the hierarchy.
+
 #include "phlex/model/fwd.hpp"
 
 #if defined(__has_include)
