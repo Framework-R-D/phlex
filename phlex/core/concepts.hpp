@@ -14,6 +14,9 @@ namespace phlex::experimental {
   concept not_void = !std::same_as<T, void>;
 
   template <typename T>
+  concept is_bound_object = not std::same_as<T, void_tag>;
+
+  template <typename T>
   concept sendable = std::move_constructible<T> || requires(T& t) {
     { send(t) } -> std::move_constructible;
   };

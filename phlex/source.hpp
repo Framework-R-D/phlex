@@ -13,16 +13,16 @@ namespace phlex::experimental {
   ///
   /// Passed to @c PHLEX_REGISTER_PROVIDERS plugin entry points. Only provide
   /// registration is accessible. Users never construct this type directly.
-  template <typename T, bool BoundObject = false>
-  class source_graph_proxy : graph_proxy<T, BoundObject> {
-    using base = graph_proxy<T, BoundObject>;
+  template <typename T>
+  class source_graph_proxy : graph_proxy<T> {
+    using base = graph_proxy<T>;
 
   public:
     using base::graph_proxy;
 
     template <typename U, typename... Args>
-    source_graph_proxy<U, true> make(Args&&... args)
-      requires(not BoundObject)
+    source_graph_proxy<U> make(Args&&... args)
+      requires(not is_bound_object<T>)
     {
       return this->template bind_to<source_graph_proxy, U>(std::forward<Args>(args)...);
     }

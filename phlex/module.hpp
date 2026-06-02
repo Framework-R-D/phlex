@@ -14,16 +14,16 @@ namespace phlex::experimental {
   /// Passed to @c PHLEX_REGISTER_ALGORITHMS plugin entry points. Provides
   /// access to fold, observe, predicate, transform, and unfold registration.
   /// Users never construct this type directly.
-  template <typename T, bool BoundObject = false>
-  class module_graph_proxy : graph_proxy<T, BoundObject> {
-    using base = graph_proxy<T, BoundObject>;
+  template <typename T>
+  class module_graph_proxy : graph_proxy<T> {
+    using base = graph_proxy<T>;
 
   public:
     using base::graph_proxy;
 
     template <typename U, typename... Args>
-    module_graph_proxy<U, true> make(Args&&... args)
-      requires(not BoundObject)
+    module_graph_proxy<U> make(Args&&... args)
+      requires(not is_bound_object<T>)
     {
       return this->template bind_to<module_graph_proxy, U>(std::forward<Args>(args)...);
     }
