@@ -9,6 +9,8 @@ namespace phlex {
 
   template <typename T>
   class handle;
+
+  class fixed_hierarchy;
 }
 
 namespace phlex::experimental {
