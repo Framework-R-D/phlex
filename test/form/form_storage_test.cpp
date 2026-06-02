@@ -5,16 +5,15 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_session.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <numeric>
 #include <vector>
 
 using namespace form::detail::experimental;
 
-namespace
-{
+namespace {
   int technology = form::technology::ROOT_TTREE; //Potentially overridden in main
                                                  //Global variable required by limitations of Catch2
 }
@@ -25,14 +24,14 @@ int main(int const argc, char** const argv)
 
   std::string tech_string;
   using namespace Catch::Clara;
-  auto cli = session.cli()
-    | Opt(tech_string, "technology")["--technology"]
-      ("FORM technology backend");
+  auto cli =
+    session.cli() | Opt(tech_string, "technology")["--technology"]("FORM technology backend");
 
   session.cli(cli);
 
   int const returnCode = session.applyCommandLine(argc, argv);
-  if(returnCode != 0) return returnCode;
+  if (returnCode != 0)
+    return returnCode;
 
   technology = form::test::getTechnology(tech_string);
 
