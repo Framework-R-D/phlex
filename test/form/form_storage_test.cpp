@@ -13,11 +13,10 @@
 
 using namespace form::detail::experimental;
 
-namespace
-{
+namespace {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   int technology = form::technology::ROOT_TTREE; //Potentially overridden in main
-                                                 //Non-const global variable required by limitations of Catch2
+  //Non-const global variable required by limitations of Catch2
 }
 
 int main(int const argc, char** const argv)
