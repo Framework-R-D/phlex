@@ -112,9 +112,11 @@ if(FORM_USE_ROOT_STORAGE)
              root_storage
              storage
              form_test_utils
+             TEST_ARGS
+             --technology
+             ${TECH}
     )
     target_include_directories("form_storage_test_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
-    target_compile_definitions("form_storage_test_${TECH}" PRIVATE FORM_TEST_TECHNOLOGY="${TECH}")
   endforeach()
 endif()
 
