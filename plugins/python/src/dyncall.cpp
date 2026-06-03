@@ -58,7 +58,7 @@ namespace {
         // just as uint8 is, there being no bool in C; the code is cleaner
         // with each type on its own line, however, rather than combining the
         // two in a single predicate as a special case
-        // NOLINTBEGIN(readability-redundant-condition)
+        // NOLINTBEGIN(bugprone-branch-clone)
         if constexpr (std::is_same_v<T, std::monostate>)
           return &ffi_type_void;
         else if constexpr (std::is_same_v<T, void*>)
@@ -85,7 +85,7 @@ namespace {
           return &ffi_type_float;
         else if constexpr (std::is_same_v<T, double>)
           return &ffi_type_double;
-        // NOLINTEND(readability-redundant-condition)
+        // NOLINTEND(bugprone-branch-clone)
       },
       d.m_value);
   }

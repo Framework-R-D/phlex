@@ -973,10 +973,11 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
 
     // clang-tidy is incorrect here, b/c the condition "rt_size == (Is + 1)" is only ever
     // true once, so the forward is only called once, and func is never used after move
-    // NOLINT(bugprone-use-after-move)
+    // NOLINTBEGIN(bugprone-use-after-move)
     bool matched = (... || ((rt_size == (Is + 1))
                               ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
                               : false));
+    // NOLINTEND(bugprone-use-after-move)
 
     return matched;
   }(std::make_index_sequence<N>{});
