@@ -6,7 +6,6 @@
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 #include "toy_tracker.hpp"
-#include "test_utils.hpp"
 
 #include <cstdlib>
 #include <ctime>
