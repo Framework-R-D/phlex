@@ -16,8 +16,6 @@ namespace form::detail::experimental {
   {
   }
 
-  ROOT_RField_Write_ContainerImp::~ROOT_RField_Write_ContainerImp() {}
-
   void ROOT_RField_Write_ContainerImp::setAttribute(std::string const& key, std::string const& /*value*/)
   {
     if (key == "force_streamer_field") {

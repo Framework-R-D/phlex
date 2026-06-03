@@ -12,19 +12,12 @@
 
 namespace form::detail::experimental {
   ROOT_RField_Read_ContainerImp::ROOT_RField_Read_ContainerImp(std::string const& name) :
-    Storage_Read_Container(name), m_force_streamer_field(false)
+    Storage_Read_Container(name)
   {
   }
 
-  ROOT_RField_Read_ContainerImp::~ROOT_RField_Read_ContainerImp() {}
-
-  void ROOT_RField_Read_ContainerImp::setAttribute(std::string const& key, std::string const& /*value*/)
+  ROOT_RField_Read_ContainerImp::~ROOT_RField_Read_ContainerImp()
   {
-    if (key == "force_streamer_field") {
-      m_force_streamer_field = true;
-    } else {
-      throw std::runtime_error("ROOT_RField_Read_ContainerImp supports some attributes, but not " + key);
-    }
   }
 
   void ROOT_RField_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)

@@ -21,9 +21,7 @@ namespace form::detail::experimental {
   class ROOT_RField_Read_ContainerImp : public Storage_Read_Container {
   public:
     ROOT_RField_Read_ContainerImp(std::string const& name);
-    ~ROOT_RField_Read_ContainerImp();
-
-    void setAttribute(std::string const& key, std::string const& value) override;
+    ~ROOT_RField_Read_ContainerImp() override; //Must not be defined in header because that requires definition of RNTupleReader, etc.
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     bool read(int id, void const** data, std::type_info const& type) override;

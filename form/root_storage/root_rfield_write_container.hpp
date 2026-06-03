@@ -16,7 +16,7 @@ namespace form::detail::experimental {
   class ROOT_RField_Write_ContainerImp : public Storage_Associative_Write_Container {
   public:
     ROOT_RField_Write_ContainerImp(std::string const& name);
-    ~ROOT_RField_Write_ContainerImp();
+    ~ROOT_RField_Write_ContainerImp() override = default;
 
     void setAttribute(std::string const& key, std::string const& value) override;
 
