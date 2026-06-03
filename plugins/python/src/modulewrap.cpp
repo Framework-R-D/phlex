@@ -107,7 +107,7 @@ namespace {
 
   static inline dcarg lifeline_transform(dcarg arg)
   {
-    PyObject* pyobj = reinterpret_cast<PyObject*>(arg.m_ptr);
+    PyObject* pyobj = arg.get<PyObject*>();
     if (pyobj && PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
       return dcarg{reinterpret_cast<py_lifeline_t*>(pyobj)->m_view};
     }
@@ -184,7 +184,7 @@ namespace {
       dyncall((void*)m_ccallback, result, argsv, 1);
 
       std::string error_msg;
-      if (!result.m_ptr) {
+      if (!result.get<PyObject*>()) {
         if (!msg_from_py_error(error_msg))
           error_msg = "Unknown python error";
       }
@@ -197,7 +197,7 @@ namespace {
       if constexpr (!std::is_void_v<RT>)
         return result;
       else
-        Py_DECREF(reinterpret_cast<PyObject*>(result.m_ptr));
+        Py_DECREF(result.get<PyObject*>());
     }
 
   private:
@@ -205,7 +205,7 @@ namespace {
     void decref_all(Args... args)
     {
       // helper to decrement reference counts of N arguments
-      (Py_DECREF((PyObject*)args.m_ptr), ...);
+      (Py_DECREF(reinterpret_cast<PyObject*>(std::get<void*>(args.m_value))), ...);
     }
   };
 
@@ -214,10 +214,10 @@ namespace {
 
   template <typename RT, size_t... Is>
   struct jit_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
-    edctype m_rtype;     // dynamic call return type
+    dcarg m_rtype;      // dynamic call return type
 
     jit_callback_impl(PyObject* callable, void* cb, const std::string& stype) :
-      py_callback_base(callable, cb), m_rtype(str2edctype(stype))
+      py_callback_base(callable, cb), m_rtype(dcarg::from_str(stype))
     {
     }
 
@@ -568,7 +568,7 @@ namespace {
   static cpptype py_to_##name(dcarg a)                                                             \
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
-    PyObject* pyobj = reinterpret_cast<PyObject*>(a.m_ptr);                                        \
+    PyObject* pyobj = a.get<PyObject*>();                                                          \
     cpptype i = static_cast<cpptype>(frompy(pyobj));                                               \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
@@ -579,7 +579,7 @@ namespace {
     return i;                                                                                      \
   }                                                                                                \
                                                                                                    \
-  static cpptype dcarg_to_##name(dcarg a) { return a.m_##name; }                                   \
+  static cpptype dcarg_to_##name(dcarg a) { return a.get<cpptype>(); }                             \
                                                                                                    \
   struct provider_cb_##name : public py_callback<dcarg, 1> {                                       \
     using py_callback<dcarg, 1>::py_callback;                                                      \
@@ -588,7 +588,7 @@ namespace {
       PyGILRAII gil;                                                                               \
       PyObject* arg0 = wrap_dci(id);                                                               \
       dcarg res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */         \
-      PyObject* pyres = reinterpret_cast<PyObject*>(res.m_ptr);                                    \
+      PyObject* pyres = res.get<PyObject*>();                                                      \
       cpptype cres = frompy(pyres);                                                                \
       Py_DECREF(pyres);                                                                            \
       return cres;                                                                                 \
@@ -655,7 +655,7 @@ namespace {
     PyGILRAII gil;                                                                                 \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
-    PyObject* pyobj = (PyObject*)a.m_ptr;                                                          \
+    PyObject* pyobj = a.get<PyObject*>();                                                          \
                                                                                                    \
     /* TODO: because of unresolved ownership issues, copy the full array contents */               \
     if (PyArray_Check(pyobj)) {                                                                    \

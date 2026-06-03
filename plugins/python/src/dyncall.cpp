@@ -31,23 +31,51 @@ namespace phlex::experimental {
   };
 } // namespace phlex::experimental
 
-phlex::experimental::edctype phlex::experimental::str2edctype(const std::string& stype)
+phlex::experimental::dcarg phlex::experimental::dcarg::from_str(const std::string& stype)
 {
-  if (stype == "bool")
-    return edctype::Bool;
-  else if (stype == "int32_t")
-    return edctype::I32;
-  else if (stype == "uint32_t")
-    return edctype::U32;
-  else if (stype == "int64_t")
-    return edctype::I64;
-  else if (stype == "uint64_t")
-    return edctype::U64;
-  else if (stype == "float")
-    return edctype::F32;
-  else if (stype == "double")
-    return edctype::F64;
-  return edctype::Void;
+  // only types currently used in modulewrap are added, not all ffi types
+  if (stype == "bool") return dcarg(false);
+  else if (stype == "int32_t")  return dcarg(static_cast<std::int32_t>(0));
+  else if (stype == "uint32_t")  return dcarg(static_cast<std::uint32_t>(0));
+  else if (stype == "int64_t")  return dcarg(static_cast<ph_long_t>(0));
+  else if (stype == "uint64_t")  return dcarg(static_cast<ph_ulong_t>(0));
+  else if (stype == "float")  return dcarg(0.0f);
+  else if (stype == "double")  return dcarg(0.0);
+
+  throw std::invalid_argument("unknown type string: " + stype);
+}
+
+void* phlex::experimental::dcarg::value_ptr() {
+  return std::visit([](auto& val) -> void* {
+    using T = std::decay_t<decltype(val)>;
+    if constexpr (std::is_same_v<T, std::monostate>) {
+      return nullptr;
+    } else {
+        return static_cast<void*>(&val);
+    }
+  }, m_value);
+}
+
+namespace {
+  static ffi_type* get_ffi_type(const dcarg& d) {
+    return std::visit([](auto&& val) -> ffi_type* {
+      using T = std::decay_t<decltype(val)>;
+
+      if constexpr (std::is_same_v<T, std::monostate>) return &ffi_type_void;
+      else if constexpr (std::is_same_v<T, void*>) return &ffi_type_pointer;
+      else if constexpr (std::is_same_v<T, bool>) return &ffi_type_uint8;
+      else if constexpr (std::is_same_v<T, std::int8_t>) return &ffi_type_sint8;
+      else if constexpr (std::is_same_v<T, std::uint8_t>) return &ffi_type_uint8;
+      else if constexpr (std::is_same_v<T, std::int16_t>) return &ffi_type_sint16;
+      else if constexpr (std::is_same_v<T, std::uint16_t>) return &ffi_type_uint16;
+      else if constexpr (std::is_same_v<T, std::int32_t>) return &ffi_type_sint32;
+      else if constexpr (std::is_same_v<T, std::uint32_t>) return &ffi_type_uint32;
+      else if constexpr (std::is_same_v<T, ph_long_t>) return &ffi_type_sint64;
+      else if constexpr (std::is_same_v<T, ph_ulong_t>) return &ffi_type_uint64;
+      else if constexpr (std::is_same_v<T, float>) return &ffi_type_float;
+      else if constexpr (std::is_same_v<T, double>) return &ffi_type_double;
+    }, d.m_value);
+  }
 }
 
 void phlex::experimental::dyncall(void* fn, dcarg& result, dcargs_t& args, int var_offset)
@@ -67,16 +95,16 @@ void phlex::experimental::dyncall(void* fn, dcarg& result, dcargs_t& args, int v
 
   for (dcargs_t::size_type i = 0; i < N; ++i) {
     auto& a = args[i];
-    t[i] = ffi_t[(int)a.m_type];
+    t[i] = get_ffi_type(a);
     p[i] = a.value_ptr();
   }
 
   ffi_cif cif;
   ffi_status status;
   if (0 < var_offset)
-    status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, var_offset, N, ffi_t[(int)result.m_type], t.get());
+    status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, var_offset, N, get_ffi_type(result), t.get());
   else
-    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, N, ffi_t[(int)result.m_type], t.get());
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, N, get_ffi_type(result), t.get());
 
   if (status)
     throw std::runtime_error("ffi prep failed");
