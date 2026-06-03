@@ -1,5 +1,5 @@
-#ifndef phlex_python_dyncall_hpp
-#define phlex_python_dyncall_hpp
+#ifndef PLUGINS_PYTHON_SRC_DYNCALL_HPP
+#define PLUGINS_PYTHON_SRC_DYNCALL_HPP
 
 // =======================================================================================
 //
@@ -94,4 +94,4 @@ namespace phlex::experimental {
 
 } // phlex::experimental
 
-#endif // phlex_python_dyncall_hpp
+#endif // PLUGINS_PYTHON_SRC_DYNCALL_HPP
