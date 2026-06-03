@@ -38,26 +38,24 @@ typedef _object PyObject;
 namespace phlex::experimental {
 
   struct dcarg {
-    using FFIType = std::variant<
-      std::monostate,   // void (default)
-      void*,
-      bool,
-      std::int8_t,
-      std::uint8_t,
-      std::int16_t,
-      std::uint16_t,
-      std::int32_t,
-      std::uint32_t,
-      ph_long_t,
-      ph_ulong_t,
-      float,
-      double
-    >;
+    using FFIType = std::variant<std::monostate, // void (default)
+                                 void*,
+                                 bool,
+                                 std::int8_t,
+                                 std::uint8_t,
+                                 std::int16_t,
+                                 std::uint16_t,
+                                 std::int32_t,
+                                 std::uint32_t,
+                                 ph_long_t,
+                                 ph_ulong_t,
+                                 float,
+                                 double>;
 
     FFIType m_value;
 
     // convenience mapper of human-readable string to dcarg
-    static dcarg from_str(const std::string& stype);
+    static dcarg from_str(std::string const& stype);
 
     // factory-style constructors to guarantee value/type match
     dcarg() : m_value(std::monostate{}) {}
@@ -78,13 +76,17 @@ namespace phlex::experimental {
     void* value_ptr();
 
     // value access to payload
-    template<typename T>
-    T get() { return std::get<T>(m_value); }
+    template <typename T>
+    T get()
+    {
+      return std::get<T>(m_value);
+    }
   };
 
   // specialization to simplify a very common case
-  template<>
-  inline PyObject* dcarg::get<PyObject*>() {
+  template <>
+  inline PyObject* dcarg::get<PyObject*>()
+  {
     return reinterpret_cast<PyObject*>(std::get<void*>(m_value));
   }
 

@@ -119,8 +119,7 @@ namespace {
     PyObject* m_callable; // owned
     void* m_ccallback;    // C callable (either dispatcher or direct pointer)
 
-    py_callback_base(PyObject* callable, void* cb) :
-      m_callable(callable), m_ccallback(cb)
+    py_callback_base(PyObject* callable, void* cb) : m_callable(callable), m_ccallback(cb)
     {
       // callable is always non-null here (validated before construction)
       PyGILRAII gil;
@@ -214,9 +213,9 @@ namespace {
 
   template <typename RT, size_t... Is>
   struct jit_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
-    dcarg m_rtype;      // dynamic call return type
+    dcarg m_rtype; // dynamic call return type
 
-    jit_callback_impl(PyObject* callable, void* cb, const std::string& stype) :
+    jit_callback_impl(PyObject* callable, void* cb, std::string const& stype) :
       py_callback_base(callable, cb), m_rtype(dcarg::from_str(stype))
     {
     }
@@ -971,9 +970,8 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
   return [&]<size_t... Is>(std::index_sequence<Is...>) {
     // 1-based sequence (all computational nodes have an input, or they can't be scheduled),
     // with the fold expression short-circuited using ||
-    bool matched = (... || ((rt_size == (Is + 1))
-                              ? (func(std::make_index_sequence<Is + 1>{}), true)
-                              : false));
+    bool matched =
+      (... || ((rt_size == (Is + 1)) ? (func(std::make_index_sequence<Is + 1>{}), true) : false));
 
     return matched;
   }(std::make_index_sequence<N>{});

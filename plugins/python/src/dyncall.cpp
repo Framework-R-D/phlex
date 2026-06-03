@@ -10,7 +10,6 @@
 
 #include <ffi.h>
 
-
 using namespace phlex::experimental;
 
 namespace phlex::experimental {
@@ -31,50 +30,76 @@ namespace phlex::experimental {
   };
 } // namespace phlex::experimental
 
-phlex::experimental::dcarg phlex::experimental::dcarg::from_str(const std::string& stype)
+phlex::experimental::dcarg phlex::experimental::dcarg::from_str(std::string const& stype)
 {
   // only types currently used in modulewrap are added, not all ffi types
-  if (stype == "bool") return dcarg(false);
-  else if (stype == "int32_t")  return dcarg(static_cast<std::int32_t>(0));
-  else if (stype == "uint32_t")  return dcarg(static_cast<std::uint32_t>(0));
-  else if (stype == "int64_t")  return dcarg(static_cast<ph_long_t>(0));
-  else if (stype == "uint64_t")  return dcarg(static_cast<ph_ulong_t>(0));
-  else if (stype == "float")  return dcarg(0.0f);
-  else if (stype == "double")  return dcarg(0.0);
+  if (stype == "bool")
+    return dcarg(false);
+  else if (stype == "int32_t")
+    return dcarg(static_cast<std::int32_t>(0));
+  else if (stype == "uint32_t")
+    return dcarg(static_cast<std::uint32_t>(0));
+  else if (stype == "int64_t")
+    return dcarg(static_cast<ph_long_t>(0));
+  else if (stype == "uint64_t")
+    return dcarg(static_cast<ph_ulong_t>(0));
+  else if (stype == "float")
+    return dcarg(0.0f);
+  else if (stype == "double")
+    return dcarg(0.0);
 
   throw std::invalid_argument("unknown type string: " + stype);
 }
 
-void* phlex::experimental::dcarg::value_ptr() {
-  return std::visit([](auto& val) -> void* {
-    using T = std::decay_t<decltype(val)>;
-    if constexpr (std::is_same_v<T, std::monostate>) {
-      return nullptr;
-    } else {
+void* phlex::experimental::dcarg::value_ptr()
+{
+  return std::visit(
+    [](auto& val) -> void* {
+      using T = std::decay_t<decltype(val)>;
+      if constexpr (std::is_same_v<T, std::monostate>) {
+        return nullptr;
+      } else {
         return static_cast<void*>(&val);
-    }
-  }, m_value);
+      }
+    },
+    m_value);
 }
 
 namespace {
-  static ffi_type* get_ffi_type(const dcarg& d) {
-    return std::visit([](auto&& val) -> ffi_type* {
-      using T = std::decay_t<decltype(val)>;
+  static ffi_type* get_ffi_type(dcarg const& d)
+  {
+    return std::visit(
+      [](auto&& val) -> ffi_type* {
+        using T = std::decay_t<decltype(val)>;
 
-      if constexpr (std::is_same_v<T, std::monostate>) return &ffi_type_void;
-      else if constexpr (std::is_same_v<T, void*>) return &ffi_type_pointer;
-      else if constexpr (std::is_same_v<T, bool>) return &ffi_type_uint8;
-      else if constexpr (std::is_same_v<T, std::int8_t>) return &ffi_type_sint8;
-      else if constexpr (std::is_same_v<T, std::uint8_t>) return &ffi_type_uint8;
-      else if constexpr (std::is_same_v<T, std::int16_t>) return &ffi_type_sint16;
-      else if constexpr (std::is_same_v<T, std::uint16_t>) return &ffi_type_uint16;
-      else if constexpr (std::is_same_v<T, std::int32_t>) return &ffi_type_sint32;
-      else if constexpr (std::is_same_v<T, std::uint32_t>) return &ffi_type_uint32;
-      else if constexpr (std::is_same_v<T, ph_long_t>) return &ffi_type_sint64;
-      else if constexpr (std::is_same_v<T, ph_ulong_t>) return &ffi_type_uint64;
-      else if constexpr (std::is_same_v<T, float>) return &ffi_type_float;
-      else if constexpr (std::is_same_v<T, double>) return &ffi_type_double;
-    }, d.m_value);
+        if constexpr (std::is_same_v<T, std::monostate>)
+          return &ffi_type_void;
+        else if constexpr (std::is_same_v<T, void*>)
+          return &ffi_type_pointer;
+        else if constexpr (std::is_same_v<T, bool>)
+          return &ffi_type_uint8;
+        else if constexpr (std::is_same_v<T, std::int8_t>)
+          return &ffi_type_sint8;
+        else if constexpr (std::is_same_v<T, std::uint8_t>)
+          return &ffi_type_uint8;
+        else if constexpr (std::is_same_v<T, std::int16_t>)
+          return &ffi_type_sint16;
+        else if constexpr (std::is_same_v<T, std::uint16_t>)
+          return &ffi_type_uint16;
+        else if constexpr (std::is_same_v<T, std::int32_t>)
+          return &ffi_type_sint32;
+        else if constexpr (std::is_same_v<T, std::uint32_t>)
+          return &ffi_type_uint32;
+        else if constexpr (std::is_same_v<T, ph_long_t>)
+          return &ffi_type_sint64;
+        else if constexpr (std::is_same_v<T, ph_ulong_t>)
+          return &ffi_type_uint64;
+        else if constexpr (std::is_same_v<T, float>)
+          return &ffi_type_float;
+        else if constexpr (std::is_same_v<T, double>)
+          return &ffi_type_double;
+      },
+      d.m_value);
   }
 }
 
