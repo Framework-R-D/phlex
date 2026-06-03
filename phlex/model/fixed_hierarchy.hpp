@@ -10,15 +10,15 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
-  template <typename RT>
-  class async_driver;
-}
-
 namespace phlex {
 
-  class fixed_hierarchy;
-
+  /// @brief Cursor-like object for traversing the data-cell hierarchy.
+  ///
+  /// Represents a position in the hierarchy and provides `yield_child()` to emit
+  /// child data cells and advance the cursor. Used by driver functions that require
+  /// hierarchical traversal of the data-cell tree.
+  ///
+  /// @see data_cell_yielder for a callable alternative that accepts indices directly
   class PHLEX_MODEL_EXPORT data_cell_cursor {
   public:
     // Validates that the child layer is part of the fixed hierarchy and yields the child
@@ -31,14 +31,36 @@ namespace phlex {
     friend class fixed_hierarchy;
     data_cell_cursor(data_cell_index_ptr index,
                      fixed_hierarchy const& h,
-                     experimental::async_driver<data_cell_index_ptr>& d);
+                     experimental::framework_driver& d);
 
     data_cell_index_ptr index_;
     // Non-owning references to the enclosing hierarchy and driver; data_cell_cursor is a
     // short-lived view and does not manage their lifetimes.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     fixed_hierarchy const& hierarchy_;
-    experimental::async_driver<data_cell_index_ptr>& driver_;
+    experimental::framework_driver& driver_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+  };
+
+  /// @brief Callable object that yields data cells to the framework driver.
+  ///
+  /// Bound to a @c fixed_hierarchy and @c framework_driver, this callable accepts
+  /// a @c data_cell_index_ptr and validates it against the hierarchy before yielding
+  /// it to the driver. Used by driver functions that need to emit multiple data cells
+  /// without manually managing the job-level cursor.
+  ///
+  /// @see data_cell_cursor for a cursor-based alternative
+  class PHLEX_MODEL_EXPORT data_cell_yielder {
+  public:
+    void operator()(data_cell_index_ptr const& index) const;
+
+  private:
+    friend class fixed_hierarchy;
+    data_cell_yielder(fixed_hierarchy const& h, experimental::framework_driver& d);
+
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    fixed_hierarchy const& hierarchy_;
+    experimental::framework_driver& driver_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
@@ -58,9 +80,11 @@ namespace phlex {
     void validate(data_cell_index_ptr const& index) const;
 
     // Yields the job-level data-cell index to the provided driver and returns a
-    // data_cell_cursor for the job.  Must only be called from a function registered
-    // via driver_proxy::drive().
-    data_cell_cursor yield_job(experimental::async_driver<data_cell_index_ptr>& d) const;
+    // data_cell_cursor for the job.
+    data_cell_cursor yield_job(experimental::framework_driver& d) const;
+
+    // Returns a callable data-cell yielder bound to the provided driver.
+    data_cell_yielder yielder(experimental::framework_driver& d) const;
 
   private:
     std::vector<std::vector<std::string>> layer_paths_;

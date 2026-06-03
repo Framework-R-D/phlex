@@ -6,6 +6,8 @@
 #include "phlex/core/graph_proxy.hpp"
 #include "phlex/detail/plugin_macros.hpp"
 
+#include <utility>
+
 namespace phlex::experimental {
   /// @brief Proxy for registering source (provider) nodes.
   ///
@@ -18,9 +20,12 @@ namespace phlex::experimental {
   public:
     using base::graph_proxy;
 
-    // FIXME: make sure functions called from make<T>(...) are restricted to the functions below:
-    //        Users can call make<T>(...).provide(...) but not make<T>(...).fold(...)
-    using base::make;
+    template <typename U, typename... Args>
+    source_graph_proxy<U> make(Args&&... args)
+      requires(not is_bound_object<T>)
+    {
+      return this->template bind_to<source_graph_proxy, U>(std::forward<Args>(args)...);
+    }
 
     // Only provide(...) should be accessible
     using base::provide;

@@ -7,7 +7,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/model/product_store.hpp"
-#include "phlex/utilities/async_driver.hpp"
+#include "phlex/utilities/resumable_driver.hpp"
 
 #include <concepts>
 #include <functional>
@@ -17,11 +17,8 @@ namespace phlex::experimental {
   class driver_proxy;
   struct driver_bundle;
 
-  using framework_driver = experimental::async_driver<data_cell_index_ptr>;
-
   namespace detail {
     using next_index_t = std::function<void(framework_driver&)>;
-    using driver_creator_t = driver_bundle(driver_proxy const&, configuration const&);
     // Shim type for the extern "C" entry-point: out-parameter avoids returning a C++ type
     // across a C-linkage boundary.
     using driver_shim_t = void(driver_proxy const&, configuration const&, driver_bundle*);
@@ -36,7 +33,10 @@ namespace phlex::experimental {
 
 namespace phlex::experimental {
   template <typename F>
-  concept is_driver_like = std::invocable<F, data_cell_cursor const&>;
+  concept is_driver_like_with_cursor = std::invocable<F, data_cell_cursor>;
+
+  template <typename F>
+  concept is_driver_like_with_yielder = std::invocable<F, data_cell_yielder>;
 
   /// @brief Proxy for constructing a driver bundle from a user-supplied driver function.
   ///
@@ -49,11 +49,27 @@ namespace phlex::experimental {
     /// @param hierarchy  The data hierarchy the driver will traverse.
     /// @param driver_function  A callable receiving a @c data_cell_cursor const& that
     ///                         emits data cells to the framework.
-    driver_bundle driver(fixed_hierarchy hierarchy, is_driver_like auto driver_function) const
+    driver_bundle driver(fixed_hierarchy hierarchy,
+                         is_driver_like_with_cursor auto driver_function) const
     {
       auto h = hierarchy;
       return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
                 f(h.yield_job(d));
+              },
+              std::move(hierarchy)};
+    }
+
+    /// @brief Creates a driver_bundle from a hierarchy and a user-supplied driver function.
+    ///
+    /// @param hierarchy  The data hierarchy the driver will traverse.
+    /// @param driver_function  A callable receiving a @c data_cell_yielder const& that
+    ///                         emits data cells to the framework.
+    driver_bundle driver(fixed_hierarchy hierarchy,
+                         is_driver_like_with_yielder auto driver_function) const
+    {
+      auto h = hierarchy;
+      return {[f = std::move(driver_function), h = std::move(h)](framework_driver& d) mutable {
+                f(h.yielder(d));
               },
               std::move(hierarchy)};
     }

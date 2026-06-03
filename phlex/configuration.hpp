@@ -24,8 +24,8 @@ namespace phlex {
     }
 
     // Used later for product_selector
-    PHLEX_CONFIGURATION_INTERNAL_EXPORT std::optional<phlex::experimental::identifier>
-    value_if_exists(boost::json::object const& obj, std::string_view parameter);
+    PHLEX_CONFIGURATION_INTERNAL_EXPORT std::optional<experimental::identifier> value_if_exists(
+      boost::json::object const& obj, std::string_view parameter);
 
     // helper for unpacking json array
     template <typename T, std::size_t... I>

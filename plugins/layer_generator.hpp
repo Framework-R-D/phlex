@@ -30,6 +30,7 @@
 
 #include "phlex/driver.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/index_generator.hpp"
 
 #include <functional>
 #include <map>
@@ -55,13 +56,13 @@ namespace phlex::experimental {
 
     void add_layer(std::string layer_name, layer_spec lspec);
 
-    void operator()(data_cell_cursor const& job);
+    index_generator indices();
 
     fixed_hierarchy hierarchy() const;
     std::size_t emitted_cell_count(std::string layer_path = {}) const;
 
   private:
-    void execute(data_cell_cursor const& cell);
+    index_generator execute(data_cell_index_ptr const cell);
     std::string parent_path(std::string const& layer_name,
                             std::string const& parent_layer_spec) const;
     void maybe_rebase_layer_paths(std::string const& layer_name,
@@ -79,8 +80,11 @@ namespace phlex::experimental {
   inline driver_bundle driver_for_test(layer_generator& generator)
   {
     driver_proxy const proxy{};
-    return proxy.driver(generator.hierarchy(),
-                        [&generator](data_cell_cursor const& job) { generator(job); });
+    return proxy.driver(generator.hierarchy(), [&generator](data_cell_yielder const yield) {
+      for (data_cell_index_ptr const& index : generator.indices()) {
+        yield(index);
+      }
+    });
   }
 }
 
