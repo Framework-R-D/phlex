@@ -13,6 +13,7 @@ from types import UnionType
 from typing import Any, Dict, Union
 
 import numpy as np
+
 try:
     import numba.core.types as nb_types
     has_numba = True
