@@ -12,24 +12,6 @@
 
 using namespace phlex::experimental;
 
-namespace phlex::experimental {
-  static ffi_type* const ffi_t[] = {
-    &ffi_type_pointer,
-    &ffi_type_uint8,
-    &ffi_type_sint8,
-    &ffi_type_uint8,
-    &ffi_type_sint16,
-    &ffi_type_uint16,
-    &ffi_type_sint32,
-    &ffi_type_uint32,
-    &ffi_type_sint64,
-    &ffi_type_uint64,
-    &ffi_type_float,
-    &ffi_type_double,
-    &ffi_type_void,
-  };
-} // namespace phlex::experimental
-
 phlex::experimental::dcarg phlex::experimental::dcarg::from_str(std::string const& stype)
 {
   // only types currently used in modulewrap are added, not all ffi types
@@ -72,6 +54,11 @@ namespace {
       [](auto&& val) -> ffi_type* {
         using T = std::decay_t<decltype(val)>;
 
+        // there are duplicate bodies here b/c bool is represented by uint8,
+        // just as uint8 is, there being no bool in C; the code is cleaner
+        // with each type on its own line, however, rather than combining the
+        // two in a single predicate as a special case
+        // NOLINTBEGIN(readability-redundant-condition)
         if constexpr (std::is_same_v<T, std::monostate>)
           return &ffi_type_void;
         else if constexpr (std::is_same_v<T, void*>)
@@ -98,6 +85,7 @@ namespace {
           return &ffi_type_float;
         else if constexpr (std::is_same_v<T, double>)
           return &ffi_type_double;
+        // NOLINTEND(readability-redundant-condition)
       },
       d.m_value);
   }

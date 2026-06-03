@@ -16,6 +16,8 @@
 //
 // =======================================================================================
 
+#include "Python.h" // for PyObject* get<> specialization only
+
 #include <cstdint>
 #include <memory>
 #include <variant>
@@ -30,10 +32,6 @@ typedef unsigned long ph_ulong_t;
 typedef std::int64_t ph_long_t;
 typedef std::uint64_t ph_ulong_t;
 #endif
-
-// Python (for specialization)
-struct _object;
-typedef _object PyObject;
 
 namespace phlex::experimental {
 

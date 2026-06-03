@@ -970,8 +970,13 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
   return [&]<size_t... Is>(std::index_sequence<Is...>) {
     // 1-based sequence (all computational nodes have an input, or they can't be scheduled),
     // with the fold expression short-circuited using ||
-    bool matched =
-      (... || ((rt_size == (Is + 1)) ? (func(std::make_index_sequence<Is + 1>{}), true) : false));
+
+    // clang-tidy is incorrect here, b/c the condition "rt_size == (Is + 1)" is only ever
+    // true once, so the forward is only called once, and func is never used after move
+    // NOLINT(bugprone-use-after-move)
+    bool matched = (... || ((rt_size == (Is + 1))
+                              ? (std::forward<Cf>(func)(std::make_index_sequence<Is + 1>{}), true)
+                              : false));
 
     return matched;
   }(std::make_index_sequence<N>{});
