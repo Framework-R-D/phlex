@@ -102,6 +102,10 @@ function(_create_coverage_targets_impl)
     [=[.*\.hh$]=]
     --exclude
     [=[.*\.hxx$]=]
+    # Exclude assert() lines: assert() is used for preconditions/invariants and is compiled out
+    # in release builds (NDEBUG); the false branch (abort) is never exercised in tests by design.
+    --exclude-branches-by-pattern
+    [=[^\s*assert\s*\(]=]
     # cmake-format: on
   )
   # Clang/llvm-cov coverage target
@@ -199,9 +203,30 @@ function(_create_coverage_targets_impl)
     set(_normalize_llvm_script "${PROJECT_SOURCE_DIR}/scripts/normalize_coverage_lcov.py")
     set(LLVM_COV_NORMALIZED_STAMP ${CMAKE_BINARY_DIR}/coverage-llvm-normalized.stamp)
     if(Python_FOUND AND EXISTS "${_normalize_llvm_script}")
+      # When lcov is available, add an intermediate step to strip assert() branch noise before
+      # normalization.  assert() is used for preconditions/invariants and is compiled out in
+      # release builds (NDEBUG); the false branch (abort) is never exercised in tests by design.
+      set(_llvm_lcov_normalize_depends ${LLVM_COV_LCOV_OUTPUT})
+      if(LCOV_EXECUTABLE)
+        set(LLVM_COV_LCOV_FILTERED ${CMAKE_BINARY_DIR}/coverage-llvm-filtered.stamp)
+        add_custom_command(
+          OUTPUT ${LLVM_COV_LCOV_FILTERED}
+          DEPENDS ${LLVM_COV_LCOV_OUTPUT}
+          COMMAND ${CMAKE_COMMAND} -E echo "[Coverage] Omitting assert() lines from LLVM LCOV data"
+          COMMAND
+            ${LCOV_EXECUTABLE} -a ${LLVM_COV_LCOV_OUTPUT} --omit-lines "^\\s*assert\\s*\\("
+            --output-file ${LLVM_COV_LCOV_OUTPUT} --rc branch_coverage=1 --ignore-errors
+            mismatch,inconsistent,negative,empty,unused
+          COMMAND ${CMAKE_COMMAND} -E touch ${LLVM_COV_LCOV_FILTERED}
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          COMMENT "Filtering assert() branch noise from LLVM LCOV data"
+          VERBATIM
+        )
+        set(_llvm_lcov_normalize_depends ${LLVM_COV_LCOV_FILTERED})
+      endif()
       add_custom_command(
         OUTPUT ${LLVM_COV_NORMALIZED_STAMP}
-        DEPENDS ${LLVM_COV_LCOV_OUTPUT}
+        DEPENDS ${_llvm_lcov_normalize_depends}
         COMMAND
           ${Python_EXECUTABLE} "${_normalize_llvm_script}" --repo-root "${PROJECT_SOURCE_DIR}"
           --coverage-root "${PROJECT_SOURCE_DIR}" --coverage-alias "${PROJECT_SOURCE_DIR}"
@@ -370,10 +395,12 @@ function(_create_coverage_targets_impl)
         ${LCOV_EXECUTABLE} --remove coverage.info ${LCOV_REMOVE_PATTERNS} --output-file
         coverage.info.cleaned --rc branch_coverage=1 --ignore-errors
         mismatch,inconsistent,negative,unused,empty
+      # Exclude assert() lines: assert() is used for preconditions/invariants and is compiled out
+      # in release builds (NDEBUG); the false branch (abort) is never exercised in tests by design.
       COMMAND
-        ${LCOV_EXECUTABLE} --extract coverage.info.cleaned ${LCOV_EXTRACT_PATTERNS} --output-file
-        coverage.info.final --rc branch_coverage=1 --ignore-errors
-        mismatch,inconsistent,negative,empty,unused
+        ${LCOV_EXECUTABLE} --extract coverage.info.cleaned ${LCOV_EXTRACT_PATTERNS} --omit-lines
+        "^\\s*assert\\s*\\(" --output-file coverage.info.final --rc branch_coverage=1
+        --ignore-errors mismatch,inconsistent,negative,empty,unused
       COMMAND
         ${GENHTML_EXECUTABLE} -o coverage-html coverage.info.final --title "Phlex Coverage Report"
         --show-details --legend --branch-coverage --ignore-errors
