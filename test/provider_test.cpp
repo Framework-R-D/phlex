@@ -1,4 +1,5 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "plugins/layer_generator.hpp"
 
@@ -13,6 +14,7 @@ namespace toy {
   struct VertexCollection {
     std::size_t data;
   };
+  auto make_collection(std::size_t i) { return VertexCollection{i}; }
 }
 
 namespace {
@@ -20,15 +22,41 @@ namespace {
   toy::VertexCollection give_me_vertices(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices: {}", id.number());
-    return toy::VertexCollection{id.number()};
+    return toy::make_collection(id.number());
   }
-}
 
-namespace {
+  // Type-erased provider
+  experimental::product_ptr give_me_vertices_erased(data_cell_index const& id)
+  {
+    spdlog::info("give_me_vertices_erased: {}", id.number());
+    return std::make_unique<experimental::product<toy::VertexCollection>>(
+      toy::make_collection(id.number()));
+  }
+
+  // Vertices source for implicit provider test
+  class vertices_source : public experimental::source {
+  public:
+    experimental::provider_bundles create_providers(product_selector const& selector) override
+    {
+      using namespace experimental;
+      provider_bundles bundles;
+      std::string const layer = "spill";
+      std::string const stage = "previous_process";
+      product_specification spec{"input", "happy_vertices", make_type_id<toy::VertexCollection>()};
+
+      if (selector.match(spec, identifier{layer}, identifier{stage})) {
+        bundles.emplace_back(
+          give_me_vertices_erased, concurrency::unlimited, std::move(spec), layer, stage);
+      }
+      return bundles;
+    }
+    index_generator indices() override { co_return; }
+  };
+
   unsigned pass_on(toy::VertexCollection const& vertices) { return vertices.data; }
 }
 
-TEST_CASE("provider_test")
+TEST_CASE("Explicit providers")
 {
   constexpr auto max_events{3u};
 
@@ -50,17 +78,40 @@ TEST_CASE("provider_test")
   CHECK(g.execution_count("my_name_here") == max_events);
 }
 
+TEST_CASE("Implicit providers")
+{
+  constexpr auto max_events{3u};
+
+  experimental::layer_generator gen;
+  gen.add_layer("spill", {"job", max_events, 1u});
+
+  experimental::framework_graph g{driver_for_test(gen)};
+
+  g.source<vertices_source>("vertices_source");
+
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
+
+  g.execute();
+
+  CHECK(g.execution_count("passer") == max_events);
+}
+
 TEST_CASE("Throw when no provider found for required product")
 {
   experimental::framework_graph g;
 
   // Register an observer that needs a product from a creator that does not exist
   // in the graph.  Since there is no matching provider, make_computational_edges
-  // should throw "No provider found for product...".
+  // should throw listing all unmatched products.
   g.observe(
      "observer", [](unsigned int const) {}, concurrency::unlimited)
     .input_family(product_selector{.creator = "nonexistent_creator", .layer = "job"});
 
-  CHECK_THROWS_WITH(g.execute(),
-                    Catch::Matchers::ContainsSubstring("No provider found for product"));
+  CHECK_THROWS_WITH(
+    g.execute(),
+    Catch::Matchers::ContainsSubstring("No provider found for the following required products:") &&
+      Catch::Matchers::ContainsSubstring("nonexistent_creator") &&
+      Catch::Matchers::ContainsSubstring("job"));
 }
