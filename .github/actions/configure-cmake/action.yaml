@@ -30,6 +30,10 @@ inputs:
     description: "Enable FORM root storage"
     required: false
     default: "ON"
+  form-rntuple-storage:
+    description: "Enable FORM RNTuple storage"
+    required: false
+    default: "ON"
   generator:
     description: "Specify CMake generator"
     required: false
@@ -59,6 +63,7 @@ runs:
           -DCMAKE_CXX_COMPILER="$CPP_COMPILER"
           -DPHLEX_USE_FORM="$ENABLE_FORM"
           -DFORM_USE_ROOT_STORAGE="$FORM_ROOT_STORAGE"
+          -DFORM_USE_RNTUPLE_STORAGE="$FORM_RNTUPLE_STORAGE"
         )
 
         # Add build type if specified
@@ -83,6 +88,7 @@ runs:
         EXTRA_OPTIONS: ${{ inputs.extra-options }}
         ENABLE_FORM: ${{ inputs.enable-form }}
         FORM_ROOT_STORAGE: ${{ inputs.form-root-storage }}
+        FORM_RNTUPLE_STORAGE: ${{ inputs.form-rntuple-storage }}
         GENERATOR: ${{ inputs.generator }}
         CPP_COMPILER: ${{ inputs.cpp-compiler }}
         PRESET: ${{ inputs.preset }}
