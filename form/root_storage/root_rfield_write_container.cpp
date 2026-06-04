@@ -1,9 +1,9 @@
 //A ROOT_RField_Write_Container writes data products of a single type from vectors stored in an RNTuple field on disk.
 
 #include "root_rfield_write_container.hpp"
+#include "demangle_name.hpp"
 #include "root_rntuple_write_container.hpp"
 #include "root_tfile.hpp"
-#include "demangle_name.hpp"
 
 #include "ROOT/RNTupleWriter.hxx"
 #include "TFile.h"
@@ -16,12 +16,14 @@ namespace form::detail::experimental {
   {
   }
 
-  void ROOT_RField_Write_ContainerImp::setAttribute(std::string const& key, std::string const& /*value*/)
+  void ROOT_RField_Write_ContainerImp::setAttribute(std::string const& key,
+                                                    std::string const& /*value*/)
   {
     if (key == "force_streamer_field") {
       m_force_streamer_field = true;
     } else {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp supports some attributes, but not " + key);
+      throw std::runtime_error("ROOT_RField_Write_ContainerImp supports some attributes, but not " +
+                               key);
     }
   }
 
@@ -33,9 +35,9 @@ namespace form::detail::experimental {
     if (form_root_file) {
       m_tfile = form_root_file->getTFile();
     } else {
-      throw std::runtime_error(
-        "ROOT_RField_Write_ContainerImp::setFile failed to convert an IStorage_File to a ROOT_TFileImp.  "
-        "ROOT_RField_Write_ContainerImp only works with TFiles.");
+      throw std::runtime_error("ROOT_RField_Write_ContainerImp::setFile failed to convert an "
+                               "IStorage_File to a ROOT_TFileImp.  "
+                               "ROOT_RField_Write_ContainerImp only works with TFiles.");
     }
 
     if (!m_tfile) {
@@ -51,16 +53,16 @@ namespace form::detail::experimental {
     this->Storage_Associative_Write_Container::setParent(parent);
     auto parentDerived = dynamic_pointer_cast<ROOT_RNTuple_Write_ContainerImp>(parent);
     if (!parentDerived) {
-      throw std::runtime_error(
-        "ROOT_RField_Write_ContainerImp::setParent parent is not a ROOT_RNTuple_Write_ContainerImp!  Something "
-        "may be wrong with how Storage works.");
+      throw std::runtime_error("ROOT_RField_Write_ContainerImp::setParent parent is not a "
+                               "ROOT_RNTuple_Write_ContainerImp!  Something "
+                               "may be wrong with how Storage works.");
     }
     m_rntuple_parent = parentDerived;
   }
 
   void ROOT_RField_Write_ContainerImp::fill(void const* data)
   {
-    if(!m_rntuple_parent) {
+    if (!m_rntuple_parent) {
       throw std::runtime_error(
         "ROOT_RField_Write_ContainerImp::fill No parent RNTuple set up before first fill() call");
     }
@@ -86,8 +88,9 @@ namespace form::detail::experimental {
     }
 
     if (!m_rntuple_parent->m_entry) {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp::commit No RRawPtrWriteEntry set up.  "
-                               "You may have called commit() without calling setupWrite() first.");
+      throw std::runtime_error(
+        "ROOT_RField_Write_ContainerImp::commit No RRawPtrWriteEntry set up.  "
+        "You may have called commit() without calling setupWrite() first.");
     }
     if (!m_rntuple_parent->m_writer) {
       throw std::runtime_error("ROOT_RField_Write_ContainerImp::commit No RNTupleWriter set up.  "
@@ -98,9 +101,10 @@ namespace form::detail::experimental {
 
   void ROOT_RField_Write_ContainerImp::setupWrite(std::type_info const& type)
   {
-    if(!m_rntuple_parent) {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp::setupWrite No parent RNTuple set up.  "
-                               "You may have called setupWrite() before setParent().");
+    if (!m_rntuple_parent) {
+      throw std::runtime_error(
+        "ROOT_RField_Write_ContainerImp::setupWrite No parent RNTuple set up.  "
+        "You may have called setupWrite() before setParent().");
     }
 
     auto const& type_name = DemangleName(type);
