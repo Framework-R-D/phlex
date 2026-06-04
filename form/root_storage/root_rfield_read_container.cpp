@@ -1,8 +1,8 @@
 //A ROOT_RField_Read_Container reads data products of a single type from vectors stored in an RNTuple field on disk.
 
 #include "root_rfield_read_container.hpp"
-#include "root_tfile.hpp"
 #include "demangle_name.hpp"
+#include "root_tfile.hpp"
 
 #include "ROOT/RNTupleReader.hxx"
 #include "ROOT/RNTupleView.hxx"
@@ -16,9 +16,7 @@ namespace form::detail::experimental {
   {
   }
 
-  ROOT_RField_Read_ContainerImp::~ROOT_RField_Read_ContainerImp()
-  {
-  }
+  ROOT_RField_Read_ContainerImp::~ROOT_RField_Read_ContainerImp() {}
 
   void ROOT_RField_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
   {
@@ -28,9 +26,9 @@ namespace form::detail::experimental {
     if (form_root_file) {
       m_tfile = form_root_file->getTFile();
     } else {
-      throw std::runtime_error(
-        "ROOT_RField_Read_ContainerImp::setFile failed to convert an IStorage_File to a ROOT_TFileImp.  "
-        "ROOT_RField_Read_ContainerImp only works with TFiles.");
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::setFile failed to convert an "
+                               "IStorage_File to a ROOT_TFileImp.  "
+                               "ROOT_RField_Read_ContainerImp only works with TFiles.");
     }
 
     if (!m_tfile) {
@@ -47,8 +45,8 @@ namespace form::detail::experimental {
     if (!m_view) {
       if (!m_reader) { //First time this RNTuple is read this job
         if (!m_tfile) {
-          throw std::runtime_error(
-            "ROOT_RField_Read_ContainerImp::read No file loaded to read from on first read() call!");
+          throw std::runtime_error("ROOT_RField_Read_ContainerImp::read No file loaded to read "
+                                   "from on first read() call!");
         }
 
         m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
@@ -62,13 +60,13 @@ namespace form::detail::experimental {
         m_view =
           std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, ""));
         //TClass takes the "std::" off of "std::vector<>" when RNTuple's on-disk format doesn't.  Convert RNTuple's type name to match TClass for manual type check because our dictionary of choice will likely be the same as TClass.
-        if (!TDictionary::GetDictionary(type) || 
+        if (!TDictionary::GetDictionary(type) ||
             !TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str()) ||
             strcmp(TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str())->GetName(),
                    TDictionary::GetDictionary(type)->GetName())) {
           throw std::runtime_error(
-            "ROOT_RField_containerImp::read type " + DemangleName(type) + " requested for a field named " +
-            col_name() +
+            "ROOT_RField_containerImp::read type " + DemangleName(type) +
+            " requested for a field named " + col_name() +
             " does not match the type in the file: " + m_view->GetField().GetTypeName());
         }
       }
@@ -80,11 +78,11 @@ namespace form::detail::experimental {
     //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
     auto buffer = m_view->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
     if (!buffer) {
-      throw std::runtime_error("ROOT_RField_Read_Container::read failed to create an object of type " +
-                               m_view->GetField().GetTypeName() +
-                               ".  Maybe the type name for this read() (" + DemangleName(type) +
-                               ") doesn't match the type from the first read() (" +
-                               m_view->GetField().GetTypeName() + ")?");
+      throw std::runtime_error(
+        "ROOT_RField_Read_Container::read failed to create an object of type " +
+        m_view->GetField().GetTypeName() + ".  Maybe the type name for this read() (" +
+        DemangleName(type) + ") doesn't match the type from the first read() (" +
+        m_view->GetField().GetTypeName() + ")?");
     }
 
     m_view->BindRawPtr(buffer.get());
