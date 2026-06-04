@@ -3,6 +3,7 @@
 #include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/matchers/catch_matchers_string.hpp"
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
@@ -47,4 +48,19 @@ TEST_CASE("provider_test")
 
   CHECK(g.execution_count("passer") == max_events);
   CHECK(g.execution_count("my_name_here") == max_events);
+}
+
+TEST_CASE("Throw when no provider found for required product")
+{
+  experimental::framework_graph g;
+
+  // Register an observer that needs a product from a creator that does not exist
+  // in the graph.  Since there is no matching provider, make_computational_edges
+  // should throw "No provider found for product...".
+  g.observe(
+     "observer", [](unsigned int const) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "nonexistent_creator", .layer = "job"});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    Catch::Matchers::ContainsSubstring("No provider found for product"));
 }

@@ -102,3 +102,19 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
     Catch::Matchers::ContainsSubstring(
       "A non-existent filter with the name 'missing_predicate' was specified for observe_num"));
 }
+
+TEST_CASE("Throw on duplicate node registration", "[graph]")
+{
+  experimental::framework_graph g;
+
+  g.observe(
+     "duplicate_name", [](unsigned int const) {}, concurrency::unlimited)
+    .input_family(product_selector{.layer = "job"});
+  g.observe(
+     "duplicate_name", [](unsigned int const) {}, concurrency::unlimited)
+    .input_family(product_selector{.layer = "job"});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    Catch::Matchers::ContainsSubstring("Configuration errors") &&
+                      Catch::Matchers::ContainsSubstring("duplicate_name"));
+}
