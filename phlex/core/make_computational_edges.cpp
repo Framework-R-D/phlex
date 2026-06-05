@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cassert>
 #include <ranges>
+#include <span>
 
 using namespace std::string_literals;
 
