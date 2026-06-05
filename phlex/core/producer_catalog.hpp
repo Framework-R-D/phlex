@@ -20,7 +20,7 @@ namespace phlex::experimental {
   class PHLEX_CORE_EXPORT producer_catalog {
   public:
     template <typename... Args>
-    explicit producer_catalog(Args&... producers);
+    explicit producer_catalog(Args const&... producers);
 
     struct named_output_port {
       algorithm_name node;
@@ -34,7 +34,7 @@ namespace phlex::experimental {
 
   private:
     template <typename T>
-    static std::multimap<product_suffix_t, named_output_port> producing_nodes(T& nodes);
+    static std::multimap<product_suffix_t, named_output_port> producing_nodes(T const& nodes);
 
     std::multimap<product_suffix_t, named_output_port> producers_;
   };
@@ -43,7 +43,7 @@ namespace phlex::experimental {
   // Implementation
   template <typename T>
   std::multimap<product_suffix_t, producer_catalog::named_output_port>
-  producer_catalog::producing_nodes(T& nodes)
+  producer_catalog::producing_nodes(T const& nodes)
   {
     std::multimap<product_suffix_t, named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
@@ -56,7 +56,7 @@ namespace phlex::experimental {
   }
 
   template <typename... Args>
-  producer_catalog::producer_catalog(Args&... producers)
+  producer_catalog::producer_catalog(Args const&... producers)
   {
     (producers_.merge(producing_nodes(producers)), ...);
   }
