@@ -16,14 +16,13 @@ namespace phlex::experimental {
   {
   }
 
-  product_specification const& provider_bundle::specification() const { return spec_; }
-
-  identifier const& provider_bundle::layer() const { return layer_; }
-
   std::function<provider_function_t> provider_bundle::release_provider_function()
   {
     return std::move(provider_function_);
   }
 
-  concurrency provider_bundle::get_concurrency() const { return concurrency_; }
+  product_specification const& provider_bundle::specification() const noexcept { return spec_; }
+  identifier const& provider_bundle::layer() const noexcept { return layer_; }
+  identifier const& provider_bundle::stage() const noexcept { return stage_; }
+  concurrency provider_bundle::get_concurrency() const noexcept { return concurrency_; }
 }

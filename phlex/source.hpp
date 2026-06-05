@@ -11,10 +11,13 @@
 namespace phlex::experimental {
 
   struct source_bundle {
+    // Non-owning references to framework-owned resources; source_bundle is a short-lived struct.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     configuration const& config;
     tbb::flow::graph& graph;
     node_catalog& nodes;
     std::vector<std::string>& registration_errors;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   /// @brief Proxy for registering explicit provider nodes.

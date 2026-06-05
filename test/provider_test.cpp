@@ -98,6 +98,36 @@ TEST_CASE("Implicit providers")
   CHECK(g.execution_count("passer") == max_events);
 }
 
+TEST_CASE("Throw when two sources with the same name are registered")
+{
+  experimental::framework_graph g;
+  g.source<vertices_source>("vertices_source");
+  g.source<vertices_source>("vertices_source");
+
+  CHECK_THROWS_WITH(
+    g.execute(),
+    Catch::Matchers::ContainsSubstring("Node with name 'vertices_source' already exists"));
+}
+
+TEST_CASE("Throw when two implicit providers are found for the same product")
+{
+  experimental::framework_graph g;
+
+  // Register two sources that can provide the same product
+  g.source<vertices_source>("vertices_source_1");
+  g.source<vertices_source>("vertices_source_2");
+
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    Catch::Matchers::ContainsSubstring(
+                      "Multiple implicit providers found for product 'input/happy_vertices") &&
+                      Catch::Matchers::ContainsSubstring("spill") &&
+                      Catch::Matchers::ContainsSubstring("passer"));
+}
+
 TEST_CASE("Throw when no provider found for required product")
 {
   experimental::framework_graph g;

@@ -31,10 +31,11 @@ namespace phlex::experimental {
                     std::string layer,
                     std::string stage);
 
-    product_specification const& specification() const;
-    identifier const& layer() const;
     std::function<provider_function_t> release_provider_function();
-    concurrency get_concurrency() const;
+    concurrency get_concurrency() const noexcept;
+    product_specification const& specification() const noexcept;
+    identifier const& layer() const noexcept;
+    identifier const& stage() const noexcept;
 
   private:
     std::function<provider_function_t> provider_function_;
