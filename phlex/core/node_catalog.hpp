@@ -29,7 +29,7 @@ namespace phlex::experimental {
     }
 
     std::size_t execution_count(std::string const& node_name) const;
-    std::vector<products_consumer*> consumers();
+    std::vector<products_consumer*> consumers() const;
     producer_catalog producers() const;
 
     simple_ptr_map<declared_predicate_ptr> predicates{};

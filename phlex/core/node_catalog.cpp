@@ -5,24 +5,20 @@
 using namespace std::string_literals;
 
 namespace phlex::experimental {
-  std::vector<products_consumer*> node_catalog::consumers()
+  std::vector<products_consumer*> node_catalog::consumers() const
   {
+    auto as_product_consumers = [](auto const& nodes) {
+      return nodes | std::views::values |
+             std::views::transform(
+               [](auto const& node) -> products_consumer* { return node.get(); });
+    };
+
     std::vector<products_consumer*> result;
-    for (auto const& [_, node] : predicates) {
-      result.push_back(node.get());
-    }
-    for (auto const& [_, node] : observers) {
-      result.push_back(node.get());
-    }
-    for (auto const& [_, node] : folds) {
-      result.push_back(node.get());
-    }
-    for (auto const& [_, node] : unfolds) {
-      result.push_back(node.get());
-    }
-    for (auto const& [_, node] : transforms) {
-      result.push_back(node.get());
-    }
+    result.append_range(as_product_consumers(predicates));
+    result.append_range(as_product_consumers(observers));
+    result.append_range(as_product_consumers(folds));
+    result.append_range(as_product_consumers(unfolds));
+    result.append_range(as_product_consumers(transforms));
     return result;
   }
 
