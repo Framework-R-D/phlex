@@ -12,7 +12,8 @@ using namespace std::string_literals;
 
 namespace phlex::experimental {
   namespace {
-    provider_node* find_match(provider_nodes& providers, product_selector const& input_product)
+    provider_node* find_matching_provider(provider_nodes& providers,
+                                          product_selector const& input_product)
     {
       auto pred = [&input_product](auto const& p) {
         return input_product.match(p->output_product(), p->layer(), p->stage());
@@ -37,7 +38,7 @@ namespace phlex::experimental {
         for (auto const& [input_product, port] : ports) {
           // Find the provider that has the right product name (hidden in the
           // output port) and the right family (hidden in the input port).
-          if (auto* matched_provider = find_match(explicit_providers, input_product)) {
+          if (auto* matched_provider = find_matching_provider(explicit_providers, input_product)) {
             auto const provider_name = matched_provider->name().to_string();
             result.try_emplace(provider_name, input_product, matched_provider->input_port());
             spdlog::debug("Connecting provider {} to node {} (product: {})",
