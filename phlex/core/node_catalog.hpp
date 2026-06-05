@@ -9,6 +9,8 @@
 #include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/declared_transform.hpp"
 #include "phlex/core/declared_unfold.hpp"
+#include "phlex/core/producer_catalog.hpp"
+#include "phlex/core/products_consumer.hpp"
 #include "phlex/core/provider_node.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
@@ -27,6 +29,8 @@ namespace phlex::experimental {
     }
 
     std::size_t execution_count(std::string const& node_name) const;
+    std::vector<products_consumer*> consumers() const;
+    producer_catalog producers() const;
 
     simple_ptr_map<declared_predicate_ptr> predicates{};
     simple_ptr_map<declared_observer_ptr> observers{};

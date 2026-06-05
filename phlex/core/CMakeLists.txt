@@ -11,23 +11,23 @@ cet_make_library(
   declared_predicate.cpp
   declared_transform.cpp
   declared_unfold.cpp
+  detail/filter_impl.cpp
   detail/make_algorithm_name.cpp
   detail/maybe_predicates.cpp
-  detail/filter_impl.cpp
   detail/repeater_node.cpp
-  edge_creation_policy.cpp
-  edge_maker.cpp
   filter.cpp
   framework_graph.cpp
   glue.cpp
+  index_router.cpp
+  make_computational_edges.cpp
   message.cpp
   node_catalog.cpp
-  index_router.cpp
+  producer_catalog.cpp
+  product_selector.cpp
   products_consumer.cpp
   provider_node.cpp
   registrar.cpp
   registration_api.cpp
-  product_selector.cpp
   store_counters.cpp
   LIBRARIES
   PUBLIC
@@ -49,8 +49,8 @@ install(
     declared_predicate.hpp
     declared_transform.hpp
     declared_unfold.hpp
-    edge_creation_policy.hpp
-    edge_maker.hpp
+    producer_catalog.hpp
+    make_computational_edges.hpp
     filter.hpp
     framework_graph.hpp
     fwd.hpp
