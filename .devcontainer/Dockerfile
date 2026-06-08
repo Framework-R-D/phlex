@@ -1,7 +1,12 @@
 FROM ghcr.io/framework-r-d/phlex-dev:latest
 
-# Validate Python site-packages symlink
-RUN <<'VALIDATE_PYTHON_SYMLINK'
+# Validate Python site-packages symlink.
+# Invoke bash explicitly: the script uses bash features (pipefail, arrays,
+# shopt). Do NOT rely on the base image's SHELL being inherited -- the OCI
+# image config has no Shell field, so podman/buildah builds run RUN under
+# /bin/sh and these heredocs would fail. `RUN bash <<...` works on both
+# docker (BuildKit) and podman/buildah regardless of image format.
+RUN bash <<'VALIDATE_PYTHON_SYMLINK'
 set -euo pipefail
 shopt -s nullglob
 
@@ -58,7 +63,7 @@ VALIDATE_PYTHON_SYMLINK
 
 # Install podman client and socat inside the container to support nested
 # container communication and provide a 'docker' command alias.
-RUN <<'INSTALL_PODMAN_CLIENT'
+RUN bash <<'INSTALL_PODMAN_CLIENT'
 set -euo pipefail
 apt-get update
 apt-get install -y --no-install-recommends podman socat
