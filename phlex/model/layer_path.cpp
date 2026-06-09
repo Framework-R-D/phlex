@@ -1,5 +1,6 @@
 #include "layer_path.hpp"
 
+#include "boost/container_hash/hash.hpp"
 #include "fmt/format.h"
 #include "fmt/ranges.h"
 
@@ -40,5 +41,17 @@ namespace phlex::experimental {
   std::string layer_path::to_string() const
   {
     return fmt::format("{}{}", complete() ? "/" : "", fmt::join(layer_path_, "/"));
+  }
+  std::size_t layer_path::hash() const noexcept
+  {
+    if (empty()) {
+      return 0;
+    }
+    if (layer_path_.size() == 1) {
+      return layer_path_[0].hash();
+    }
+    std::size_t seed = layer_path_[0].hash();
+    boost::hash_range(seed, layer_path_.begin() + 1, layer_path_.end());
+    return seed;
   }
 }

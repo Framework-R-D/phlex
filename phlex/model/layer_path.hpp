@@ -31,11 +31,15 @@ namespace phlex::experimental {
     /// Convert to string
     std::string to_string() const;
 
+    /// Hash
+    std::size_t hash() const noexcept;
+
   private:
     std::vector<identifier> layer_path_;
   };
 
   inline std::string format_as(layer_path const& lp) { return lp.to_string(); }
+  inline std::size_t hash_value(layer_path const& lp) { return lp.hash(); }
 }
 
 #endif // PHLEX_MODEL_LAYER_PATH_HPP
