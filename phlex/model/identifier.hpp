@@ -79,6 +79,7 @@ namespace phlex::experimental {
 
   // Really trying to avoid the extra function call here
   inline std::string_view format_as(identifier const& id) { return std::string_view(id); }
+  inline std::size_t hash_value(identifier const& id) { return id.hash(); }
 }
 
 template <>
