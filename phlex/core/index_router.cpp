@@ -1,6 +1,7 @@
 #include "phlex/core/index_router.hpp"
 
 #include "phlex/model/flush_gate.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
 #include "phlex/utilities/hashing.hpp"
 
 #include "fmt/std.h"
@@ -13,34 +14,6 @@
 #include <stdexcept>
 
 using namespace phlex::experimental;
-
-namespace {
-  using layer_path_t = std::vector<std::string>;
-
-  std::size_t layer_hash_for_path(layer_path_t const& layer_path)
-  {
-    std::size_t result = "job"_id.hash();
-    for (auto const& layer_name : layer_path | std::views::drop(1)) {
-      result = hash(result, identifier{layer_name}.hash());
-    }
-    return result;
-  }
-
-  bool is_strict_prefix(layer_path_t const& candidate, layer_path_t const& other)
-  {
-    // FIXME: Use std::ranges::starts_with(other, candidate) once the compilers support it (C++23)
-    return candidate.size() < other.size() and
-           std::ranges::mismatch(other, candidate).in2 == std::ranges::end(candidate);
-  }
-
-  std::string delimited_layer_path(std::string_view const layer_path)
-  {
-    if (not layer_path.starts_with("/")) {
-      return fmt::format("/{}", layer_path);
-    }
-    return std::string{layer_path};
-  }
-}
 
 namespace phlex::experimental {
 
@@ -57,7 +30,7 @@ namespace phlex::experimental {
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
       void put_end_token(data_cell_index_ptr const& index, flush_gate const& fc);
 
-      bool matches_exactly(std::string const& layer_path) const;
+      bool matches_exactly(layer_path const& layer_path) const;
       bool is_parent_of(data_cell_index_ptr const& index) const;
 
     private:
@@ -93,9 +66,9 @@ namespace phlex::experimental {
       flusher_.try_put({.index = index, .count = static_cast<int>(fc.committed_total_count())});
     }
 
-    bool multilayer_slot::matches_exactly(std::string const& layer_path) const
+    bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
     {
-      return layer_path.ends_with(delimited_layer_path(static_cast<std::string_view>(layer_)));
+      return layer_path.ends_with(layer_);
     }
 
     bool multilayer_slot::is_parent_of(data_cell_index_ptr const& index) const
@@ -131,16 +104,22 @@ namespace phlex::experimental {
     std::vector<identifier> unfold_input_layer_names,
     std::vector<identifier> unfold_output_layer_names)
   {
-    auto sorted_layer_paths = layer_paths_from_driver;
+    auto sorted_layer_paths =
+      layer_paths_from_driver | std::views::transform([](auto const& lp) {
+        auto lp_as_ids = lp |
+                         std::views::transform([](auto const& str) { return identifier(str); }) |
+                         std::ranges::to<std::vector>();
+        return layer_path(std::move(lp_as_ids));
+      }) |
+      std::ranges::to<std::vector<layer_path>>();
     std::ranges::sort(sorted_layer_paths);
 
     // In sorted order, a path can only be a prefix of paths that follow it.
-    for (std::size_t i = 0; i < sorted_layer_paths.size(); ++i) {
+    for (std::size_t i = 0; i + 1 < sorted_layer_paths.size(); ++i) {
       bool const is_not_lowest_layer =
-        i + 1 < sorted_layer_paths.size() and
-        is_strict_prefix(sorted_layer_paths[i], sorted_layer_paths[i + 1]);
+        sorted_layer_paths[i].is_strict_prefix_of(sorted_layer_paths[i + 1]);
       if (is_not_lowest_layer) {
-        auto const layer_hash = layer_hash_for_path(sorted_layer_paths[i]);
+        auto const layer_hash = sorted_layer_paths[i].hash();
         is_lowest_layer_hashes_.emplace(layer_hash, false);
       }
     }
@@ -252,19 +231,17 @@ namespace phlex::experimental {
       return it->second;
     }
 
-    std::string const layerish_path{static_cast<std::string_view>(index->layer_name())};
+    layer_path const layerish_path{{index->layer_name()}};
     auto broadcaster = index_set_node_for(layerish_path);
     index_set_node_cache_.insert({layer_hash, broadcaster});
     return broadcaster;
   }
 
-  auto index_router::index_set_node_for(std::string const& layer_path) -> detail::index_set_node_ptr
+  auto index_router::index_set_node_for(layer_path const& layer_path) -> detail::index_set_node_ptr
   {
-    std::string const search_token = delimited_layer_path(layer_path);
-
     std::vector<decltype(index_set_nodes_.begin())> candidates;
     for (auto it = index_set_nodes_.begin(), e = index_set_nodes_.end(); it != e; ++it) {
-      if (search_token.ends_with(delimited_layer_path(static_cast<std::string_view>(it->first)))) {
+      if (layer_path.ends_with(it->first)) {
         candidates.push_back(it);
       }
     }
@@ -277,10 +254,10 @@ namespace phlex::experimental {
       return nullptr;
     }
 
-    std::string msg = fmt::format("Multiple layers match specification {}:\n", layer_path);
-    for (auto const& it : candidates) {
-      msg += fmt::format("\n- {}", it->first);
-    }
+    std::string msg = fmt::format(
+      "Multiple layers match specification {}:\n{}",
+      layer_path,
+      bulleted_list(candidates | std::views::transform([](auto const& it) { return it->first; })));
     throw std::runtime_error(msg);
   }
 

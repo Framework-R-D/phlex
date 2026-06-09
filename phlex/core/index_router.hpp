@@ -91,7 +91,7 @@ namespace phlex::experimental {
     // correct for unfold outputs (the only source of unknown hashes) and consistent with
     // index_is_lowest_layer()'s fall-through default.
     bool is_lowest_layer_hash(std::size_t layer_hash) const;
-    detail::index_set_node_ptr index_set_node_for(std::string const& layer);
+    detail::index_set_node_ptr index_set_node_for(layer_path const& layer);
     detail::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<detail::multilayer_slots_ptr, detail::multilayer_slots_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);

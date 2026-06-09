@@ -5,6 +5,7 @@
 
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
+#include "phlex/model/layer_path.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 
@@ -25,7 +26,7 @@ namespace phlex::experimental {
     data_layer_hierarchy& operator=(data_layer_hierarchy&&) = delete;
 
     void increment_count(data_cell_index_ptr const& id);
-    std::size_t count_for(std::string const& layer, bool missing_ok = false) const;
+    std::size_t count_for(layer_path const& layer, bool missing_ok = false) const;
 
     void print() const;
 
@@ -39,13 +40,13 @@ namespace phlex::experimental {
                                std::string indent = {}) const;
 
     struct layer_entry {
-      layer_entry(identifier n, std::string path, std::size_t par_hash) :
+      layer_entry(identifier n, experimental::layer_path path, std::size_t par_hash) :
         name{std::move(n)}, layer_path{std::move(path)}, parent_hash{par_hash}
       {
       }
 
       identifier name;
-      std::string layer_path;
+      experimental::layer_path layer_path;
       std::size_t parent_hash;
       std::atomic<std::size_t> count{};
     };

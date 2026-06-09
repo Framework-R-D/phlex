@@ -3,6 +3,7 @@
 #include "phlex/model/identifier.hpp"
 #include "phlex/phlex_model_export.hpp"
 
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,6 +15,12 @@ namespace phlex::experimental {
     layer_path(std::vector<identifier> const& path) : layer_path_{path} {}
     layer_path(std::vector<identifier>&& path) : layer_path_{std::move(path)} {}
     layer_path(std::string_view path);
+
+    template <typename T>
+      requires std::constructible_from<std::string_view, T> && (!std::same_as<std::string_view, T>)
+    layer_path(T const& path) : layer_path(std::string_view(path))
+    {
+    }
 
     auto operator<=>(layer_path const&) const noexcept = default;
 
@@ -28,6 +35,9 @@ namespace phlex::experimental {
     /// Does this path end with other
     bool ends_with(layer_path const& other) const noexcept;
 
+    /// Does this path identify a layer called name
+    bool ends_with(identifier const& name) const noexcept;
+
     /// Convert to string
     std::string to_string() const;
 
@@ -40,6 +50,12 @@ namespace phlex::experimental {
 
   inline std::string format_as(layer_path const& lp) { return lp.to_string(); }
   inline std::size_t hash_value(layer_path const& lp) { return lp.hash(); }
+
+  // Required by catch2
+  inline std::ostream& operator<<(std::ostream& os, layer_path const& lp)
+  {
+    return os << lp.to_string();
+  }
 }
 
 #endif // PHLEX_MODEL_LAYER_PATH_HPP

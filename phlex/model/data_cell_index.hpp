@@ -5,6 +5,7 @@
 
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 
 #include <cstddef>
 #include <initializer_list>
@@ -23,7 +24,7 @@ namespace phlex {
     using hash_type = std::size_t;
     data_cell_index_ptr make_child(std::string layer_name, std::size_t data_cell_number) const;
     experimental::identifier const& layer_name() const noexcept;
-    std::string layer_path() const;
+    experimental::layer_path layer_path() const;
     std::size_t depth() const noexcept;
     data_cell_index_ptr parent(experimental::identifier const& layer_name) const;
     data_cell_index_ptr parent() const noexcept;

@@ -16,7 +16,6 @@ namespace phlex::experimental {
 
     template <typename R>
     concept range_of_to_stringable = requires(std::ranges::range_value_t<R> const& val) {
-      !range_of_formattable<R>;
       { val.to_string() } -> std::same_as<std::string>;
     };
   }
@@ -31,6 +30,7 @@ namespace phlex::experimental {
   }
 
   template <detail::range_of_to_stringable R>
+    requires(!detail::range_of_formattable<R>)
   std::string bulleted_list(R const& rng, std::size_t indent = 2)
   {
     std::string prefix =

@@ -37,6 +37,10 @@ namespace phlex::experimental {
   {
     return std::ranges::ends_with(layer_path_, other.layer_path_);
   }
+  bool layer_path::ends_with(identifier const& name) const noexcept
+  {
+    return not empty() and layer_path_.back() == name;
+  }
 
   std::string layer_path::to_string() const
   {

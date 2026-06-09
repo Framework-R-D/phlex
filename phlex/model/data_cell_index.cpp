@@ -62,15 +62,16 @@ namespace phlex {
     return layer_name_;
   }
 
-  std::string data_cell_index::layer_path() const
+  experimental::layer_path data_cell_index::layer_path() const
   {
-    std::vector layers_in_reverse{std::string_view(layer_name_)};
-    auto next_parent = parent();
-    while (next_parent) {
-      layers_in_reverse.push_back(std::string_view(next_parent->layer_name()));
-      next_parent = next_parent->parent();
+    // We know how deep we are so we can pre-allocate and fill in reverse
+    std::vector<experimental::identifier> layers(depth_ + 1);
+    auto const* ptr = this;
+    for (auto& layer : std::views::reverse(layers)) {
+      layer = ptr->layer_name();
+      ptr = ptr->parent_.get();
     }
-    return fmt::format("/{}", fmt::join(std::views::reverse(layers_in_reverse), "/"));
+    return experimental::layer_path{std::move(layers)};
   }
 
   std::size_t data_cell_index::depth() const noexcept { return depth_; }

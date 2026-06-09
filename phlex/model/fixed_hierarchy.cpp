@@ -75,7 +75,7 @@ namespace phlex {
     return data_cell_cursor{child, hierarchy_, driver_};
   }
 
-  std::string data_cell_cursor::layer_path() const { return index_->layer_path(); }
+  experimental::layer_path data_cell_cursor::layer_path() const { return index_->layer_path(); }
 
   // ================================================================================
   // data_cell_yielder implementation
