@@ -87,6 +87,9 @@ namespace phlex {
     // Returns a callable data-cell yielder bound to the provided driver.
     data_cell_yielder yielder(experimental::framework_driver& d) const;
 
+    // Merges additional layer paths into the hierarchy, ignoring duplicates.
+    void update(std::vector<experimental::layer_path> layer_paths);
+
   private:
     std::vector<experimental::layer_path> layer_paths_;
     std::vector<std::size_t> layer_hashes_;
