@@ -10,9 +10,7 @@
 namespace phlex::experimental {
   namespace detail {
     template <typename R>
-    concept range_of_formattable = requires(std::ranges::range_value_t<R> const& val) {
-      { fmt::format("{}", val) } -> std::same_as<std::string>;
-    };
+    concept range_of_formattable = fmt::formattable<std::ranges::range_value_t<R>>;
 
     template <typename R>
     concept range_of_to_stringable = requires(std::ranges::range_value_t<R> const& val) {

@@ -3,6 +3,7 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/core/make_computational_edges.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -136,7 +137,7 @@ namespace phlex::experimental {
       return;
     }
     throw std::runtime_error(
-      fmt::format("\nConfiguration errors:\n  - {}", fmt::join(registration_errors_, "\n  - ")));
+      fmt::format("\nConfiguration errors:\n{}", bulleted_list(registration_errors_)));
   }
 
   void framework_graph::make_filter_edges()
