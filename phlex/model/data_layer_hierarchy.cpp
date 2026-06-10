@@ -39,7 +39,8 @@ namespace phlex::experimental {
 
   std::size_t data_layer_hierarchy::count_for(layer_path const& layer, bool const missing_ok) const
   {
-    // The assumption is that specified layer is the component of a layer path
+    // The assumption is that specified layer is a portion of a layer path
+    // sufficient to uniquely identify a layer
     std::vector<layer_entry const*> candidates;
     for (auto const& [_, entry] : layers_) {
       if (entry->layer_path.ends_with(layer)) {

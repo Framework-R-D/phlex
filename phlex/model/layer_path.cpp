@@ -18,7 +18,7 @@ namespace phlex::experimental {
         std::views::filter([](auto const& sr) { return not sr.empty(); }) |
         std::views::transform([](auto const& sr) { return identifier(std::string_view(sr)); })}
   {
-    if (path.starts_with("/") and not path.starts_with("/job")) {
+    if (path.starts_with("/") and not complete()) {
       throw std::runtime_error(
         fmt::format("A complete layer path must start with '/job'. '{}' does not!", path));
     }
@@ -30,6 +30,10 @@ namespace phlex::experimental {
 
   bool layer_path::is_strict_prefix_of(layer_path const& other) const noexcept
   {
+    if (layer_path_.size() >= other.layer_path_.size()) {
+      // Optimization, and address Codex observation that a path is not a _strict_ prefix of itself
+      return false;
+    }
     // starts_with / ends_with aren't supported until libstdc++ *16*
     // return std::ranges::starts_with(other.layer_path_, layer_path_);
     auto const& [it, other_it] = std::ranges::mismatch(layer_path_, other.layer_path_);
