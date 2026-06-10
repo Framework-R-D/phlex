@@ -3,6 +3,7 @@
 #include "phlex/core/glue.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 #include <boost/json.hpp>
@@ -44,6 +45,12 @@ TEST_CASE("algorithm_name tests", "[model]")
     algorithm_name an = algorithm_name::create("p:a");
     CHECK(an.match(algorithm_name::create("p:a")));
     CHECK_FALSE(an.match(algorithm_name::create("p:b")));
+  }
+  SECTION("Bulleted list of algorithm_name")
+  {
+    std::vector<algorithm_name> ans = {algorithm_name::create("p:a1"),
+                                       algorithm_name::create("p:a2")};
+    CHECK(bulleted_list(ans) == "  - p:a1\n  - p:a2");
   }
 }
 
