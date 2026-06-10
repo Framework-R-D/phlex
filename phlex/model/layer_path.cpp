@@ -30,12 +30,20 @@ namespace phlex::experimental {
 
   bool layer_path::is_strict_prefix_of(layer_path const& other) const noexcept
   {
-    return std::ranges::starts_with(other.layer_path_, layer_path_);
+    // starts_with / ends_with aren't supported until libstdc++ *16*
+    // return std::ranges::starts_with(other.layer_path_, layer_path_);
+    auto const& [it, other_it] = std::ranges::mismatch(layer_path_, other.layer_path_);
+    return it == layer_path_.end();
   }
 
   bool layer_path::ends_with(layer_path const& other) const noexcept
   {
-    return std::ranges::ends_with(layer_path_, other.layer_path_);
+    // starts_with / ends_with aren't supported until libstdc++ *16*
+    // return std::ranges::ends_with(layer_path_, other.layer_path_);
+    auto rev_layer_path = std::views::reverse(layer_path_);
+    auto rev_other_layer_path = std::views::reverse(other.layer_path_);
+    auto const& [it, other_it] = std::ranges::mismatch(rev_layer_path, rev_other_layer_path);
+    return other_it == rev_other_layer_path.end();
   }
   bool layer_path::ends_with(identifier const& name) const noexcept
   {
