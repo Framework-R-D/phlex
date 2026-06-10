@@ -9,6 +9,7 @@
 #include "spdlog/spdlog.h"
 
 using namespace phlex;
+using Catch::Matchers::ContainsSubstring;
 
 namespace toy {
   struct VertexCollection {
@@ -25,7 +26,7 @@ namespace {
     return toy::make_collection(id.number());
   }
 
-  // Type-erased provider
+  // Type-erased provider function
   experimental::product_ptr give_me_vertices_erased(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices_erased: {}", id.number());
@@ -104,9 +105,8 @@ TEST_CASE("Throw when two sources with the same name are registered")
   g.source<vertices_source>("vertices_source");
   g.source<vertices_source>("vertices_source");
 
-  CHECK_THROWS_WITH(
-    g.execute(),
-    Catch::Matchers::ContainsSubstring("Node with name 'vertices_source' already exists"));
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("Node with name 'vertices_source' already exists"));
 }
 
 TEST_CASE("Throw when two implicit providers are found for the same product")
@@ -121,27 +121,24 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
     .input_family(
       product_selector{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
 
-  CHECK_THROWS_WITH(g.execute(),
-                    Catch::Matchers::ContainsSubstring(
-                      "Multiple implicit providers found for product 'input/happy_vertices") &&
-                      Catch::Matchers::ContainsSubstring("spill") &&
-                      Catch::Matchers::ContainsSubstring("passer"));
+  CHECK_THROWS_WITH(
+    g.execute(),
+    ContainsSubstring("Multiple implicit providers found for product 'input/happy_vertices") &&
+      ContainsSubstring("spill") && ContainsSubstring("passer"));
 }
 
 TEST_CASE("Throw when no provider found for required product")
 {
   experimental::framework_graph g;
 
-  // Register an observer that needs a product from a creator that does not exist
-  // in the graph.  Since there is no matching provider, make_computational_edges
-  // should throw listing all unmatched products.
+  // Register an observer that needs a product from a creator that does not exist in the graph.
+  // Since there is no matching provider, make_computational_edges should throw listing all
+  // unmatched products.
   g.observe(
      "observer", [](unsigned int const) {}, concurrency::unlimited)
     .input_family(product_selector{.creator = "nonexistent_creator", .layer = "job"});
 
-  CHECK_THROWS_WITH(
-    g.execute(),
-    Catch::Matchers::ContainsSubstring("No provider found for the following required products:") &&
-      Catch::Matchers::ContainsSubstring("nonexistent_creator") &&
-      Catch::Matchers::ContainsSubstring("job"));
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("No provider found for the following required products:") &&
+                      ContainsSubstring("nonexistent_creator") && ContainsSubstring("job"));
 }
