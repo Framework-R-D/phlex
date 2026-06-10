@@ -46,8 +46,11 @@ namespace {
       product_specification spec{"input", "happy_vertices", make_type_id<toy::VertexCollection>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
-        bundles.emplace_back(
-          give_me_vertices_erased, concurrency::unlimited, std::move(spec), layer, stage);
+        bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
+                                          .max_concurrency = concurrency::unlimited,
+                                          .spec = std::move(spec),
+                                          .layer = layer,
+                                          .stage = stage});
       }
       return bundles;
     }

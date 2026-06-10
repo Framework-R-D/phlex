@@ -93,14 +93,14 @@ namespace phlex::experimental {
           }
 
           auto& bundle = bundles[0];
-          auto const& spec = bundle.specification();
+          auto const& spec = bundle.spec;
           auto node = std::make_unique<provider_node>(spec.creator(),
-                                                      bundle.get_concurrency().value,
+                                                      bundle.max_concurrency.value,
                                                       g,
-                                                      bundle.release_provider_function(),
+                                                      std::move(bundle.provider_function),
                                                       spec,
-                                                      bundle.layer(),
-                                                      bundle.stage());
+                                                      identifier{bundle.layer},
+                                                      identifier{bundle.stage});
           auto const provider_name = node->name().to_string();
           result.try_emplace(provider_name, input_product, node->input_port());
           make_edge(node->output_port(), *port);

@@ -23,26 +23,12 @@ namespace phlex::experimental {
   // Function type for type-erased data-product types (used by implicit providers)
   using provider_function_t = product_ptr(data_cell_index const&);
 
-  class provider_bundle {
-  public:
-    provider_bundle(provider_function_t f,
-                    concurrency c,
-                    product_specification spec,
-                    std::string layer,
-                    std::string stage);
-
-    std::function<provider_function_t> release_provider_function();
-    concurrency get_concurrency() const noexcept;
-    product_specification const& specification() const noexcept;
-    identifier const& layer() const noexcept;
-    identifier const& stage() const noexcept;
-
-  private:
-    std::function<provider_function_t> provider_function_;
-    concurrency concurrency_;
-    product_specification spec_;
-    identifier layer_;
-    identifier stage_;
+  struct provider_bundle {
+    std::function<provider_function_t> provider_function;
+    concurrency max_concurrency;
+    product_specification spec;
+    std::string layer;
+    std::string stage;
   };
 
   using provider_bundles = std::vector<provider_bundle>;

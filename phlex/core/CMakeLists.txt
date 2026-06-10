@@ -28,7 +28,6 @@ cet_make_library(
   provider_node.cpp
   registrar.cpp
   registration_api.cpp
-  source.cpp
   store_counters.cpp
   LIBRARIES
   PUBLIC
