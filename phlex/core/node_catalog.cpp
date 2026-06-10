@@ -5,6 +5,23 @@
 using namespace std::string_literals;
 
 namespace phlex::experimental {
+  std::vector<products_consumer*> node_catalog::consumers() const
+  {
+    auto as_product_consumers = [](auto const& nodes) {
+      return nodes | std::views::values |
+             std::views::transform(
+               [](auto const& node) -> products_consumer* { return node.get(); });
+    };
+
+    std::vector<products_consumer*> result;
+    result.append_range(as_product_consumers(predicates));
+    result.append_range(as_product_consumers(observers));
+    result.append_range(as_product_consumers(folds));
+    result.append_range(as_product_consumers(unfolds));
+    result.append_range(as_product_consumers(transforms));
+    return result;
+  }
+
   std::size_t node_catalog::execution_count(std::string const& node_name) const
   {
     // FIXME: Yuck!
@@ -30,5 +47,10 @@ namespace phlex::experimental {
       return node->num_calls();
     }
     throw std::runtime_error("Unknown node type with name: "s + node_name);
+  }
+
+  producer_catalog node_catalog::producers() const
+  {
+    return producer_catalog{transforms, folds, unfolds};
   }
 }

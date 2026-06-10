@@ -1,4 +1,4 @@
-#include "phlex/core/edge_creation_policy.hpp"
+#include "phlex/core/producer_catalog.hpp"
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -6,7 +6,7 @@
 #include <ranges>
 
 namespace phlex::experimental {
-  edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
+  producer_catalog::named_output_port const* producer_catalog::find_producer(
     product_selector const& query, algorithm_name const& consumer_name) const
   {
     if (producers_.empty()) {
