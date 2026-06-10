@@ -174,7 +174,7 @@ jobs:
 
       - name: Configure CMake
         id: configure
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@aolivier23:form_rntuple_for_inactive_pr
+        uses: Framework-R-D/phlex/.github/actions/configure-cmake@form_rntuple_for_inactive_pr
         with:
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
