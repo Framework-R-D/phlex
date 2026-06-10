@@ -58,10 +58,10 @@ namespace {
 
 TEST_CASE("Explicit providers")
 {
-  constexpr auto max_events{3u};
+  constexpr auto num_spills{3u};
 
   experimental::layer_generator gen;
-  gen.add_layer("spill", {"job", max_events, 1u});
+  gen.add_layer("spill", {"job", num_spills, 1u});
 
   experimental::framework_graph g{driver_for_test(gen)};
 
@@ -74,16 +74,16 @@ TEST_CASE("Explicit providers")
 
   g.execute();
 
-  CHECK(g.execution_count("passer") == max_events);
-  CHECK(g.execution_count("my_name_here") == max_events);
+  CHECK(g.execution_count("passer") == num_spills);
+  CHECK(g.execution_count("my_name_here") == num_spills);
 }
 
 TEST_CASE("Implicit providers")
 {
-  constexpr auto max_events{3u};
+  constexpr auto num_spills{3u};
 
   experimental::layer_generator gen;
-  gen.add_layer("spill", {"job", max_events, 1u});
+  gen.add_layer("spill", {"job", num_spills, 1u});
 
   experimental::framework_graph g{driver_for_test(gen)};
 
@@ -95,7 +95,7 @@ TEST_CASE("Implicit providers")
 
   g.execute();
 
-  CHECK(g.execution_count("passer") == max_events);
+  CHECK(g.execution_count("passer") == num_spills);
 }
 
 TEST_CASE("Throw when two sources with the same name are registered")
