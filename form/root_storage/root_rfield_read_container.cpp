@@ -6,8 +6,8 @@
 
 #include "ROOT/RNTupleReader.hxx"
 #include "ROOT/RNTupleView.hxx"
-#include "TFile.h"
 #include "TDictionary.h"
+#include "TFile.h"
 
 #include <exception>
 
@@ -93,8 +93,9 @@ namespace form::detail::experimental {
       throw std::runtime_error("ROOT_RField_Read_ContainerImp::read got a ROOT exception: " +
                                std::string(e.what()));
     }
-    *data = buffer.release(); //Ownership transferred to Phlex through Persistence and interface layers.
-                              //Any framework using FORM must free this memory.  FORM holds no reference to it.
+    *data =
+      buffer.release(); //Ownership transferred to Phlex through Persistence and interface layers.
+    //Any framework using FORM must free this memory.  FORM holds no reference to it.
 
     return true;
   }
