@@ -129,6 +129,17 @@ TEST_CASE("FORM Container setup error handling")
     CHECK_THROWS_AS(readContainer->setFile(wrongFile), std::runtime_error);
     CHECK_THROWS_AS(writeContainer->setFile(wrongFile), std::runtime_error);
   }
+
+  auto associativeWrite = dynamic_pointer_cast<Storage_Associative_Write_Container>(writeContainer);
+  if(associativeWrite)
+  {
+    SECTION("mismatched parent type")
+    {
+      std::shared_ptr<IStorage_Write_Container> badWriteParent(
+        new Storage_Write_Container("bad"));
+      CHECK_THROWS_AS(associativeWrite->setParent(badWriteParent), std::runtime_error);
+    }
+  }
 }
 
 template <class T>
