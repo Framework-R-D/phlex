@@ -33,7 +33,7 @@ inputs:
   form-rntuple-storage:
     description: "Enable FORM RNTuple storage"
     required: false
-    default: "OFF"
+    default: "ON"
   generator:
     description: "Specify CMake generator"
     required: false
