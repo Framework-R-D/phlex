@@ -104,9 +104,9 @@ TEST_CASE("FORM Container setup error handling")
     CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
   }
 
-  auto writeAssocContainer = dynamic_pointer_cast<Storage_Associative_Write_Container>(writeContainer);
-  if(writeAssocContainer)
-  {
+  auto writeAssocContainer =
+    dynamic_pointer_cast<Storage_Associative_Write_Container>(writeContainer);
+  if (writeAssocContainer) {
     SECTION("fill() before setParent()")
     {
       CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
@@ -126,7 +126,8 @@ TEST_CASE("FORM Container setup error handling")
     auto parent = createWriteAssociation(technology, "test");
     parent->setFile(file);
     parent->setupWrite(typeInfo);
-    if(form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this
+    if (form::technology::GetMinor(technology) !=
+        form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this
     {
       SECTION("commit() before fill()")
       {
@@ -153,12 +154,10 @@ TEST_CASE("FORM Container setup error handling")
   }
 
   auto associativeWrite = dynamic_pointer_cast<Storage_Associative_Write_Container>(writeContainer);
-  if(associativeWrite)
-  {
+  if (associativeWrite) {
     SECTION("mismatched parent type")
     {
-      std::shared_ptr<IStorage_Write_Container> badWriteParent(
-        new Storage_Write_Container("bad"));
+      std::shared_ptr<IStorage_Write_Container> badWriteParent(new Storage_Write_Container("bad"));
       CHECK_THROWS_AS(associativeWrite->setParent(badWriteParent), std::runtime_error);
     }
   }
@@ -274,7 +273,7 @@ TEST_CASE("Root TTree write container: fill and commit are not implemented", "[f
 TEST_CASE("Unsupported attribute throws exception", "[form]")
 {
   auto read_container =
-     createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
+    createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
   CHECK_THROWS_AS(read_container->setAttribute("key", "value"), std::runtime_error);
 
   auto write_container =
