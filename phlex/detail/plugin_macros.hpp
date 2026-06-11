@@ -15,8 +15,8 @@
 #define PHLEX_DETAIL_CREATE_1ARG(token_type, func_name, m)                                         \
   void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const&)
 
-#define PHLEX_DETAIL_CREATE_2ARGS(token_type, func_name, m, pset)                                  \
-  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const& config)
+#define PHLEX_DETAIL_CREATE_2ARGS(token_type, func_name, m, cfg)                                   \
+  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const& cfg)
 
 #define PHLEX_DETAIL_SELECT_SIGNATURE(token_type, func_name, ...)                                  \
   BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
@@ -43,8 +43,8 @@
 #define PHLEX_DETAIL_CREATE_SOURCE_1ARG(token_type, func_name, m)                                  \
   void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const&)
 
-#define PHLEX_DETAIL_CREATE_SOURCE_2ARGS(token_type, func_name, m, pset)                           \
-  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const& config)
+#define PHLEX_DETAIL_CREATE_SOURCE_2ARGS(token_type, func_name, m, cfg)                            \
+  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const& cfg)
 
 #define PHLEX_DETAIL_SELECT_SOURCE_SIGNATURE(token_type, func_name, ...)                           \
   BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
@@ -67,9 +67,9 @@
   phlex::experimental::driver_bundle func_name(phlex::experimental::driver_proxy d,                \
                                                phlex::configuration const&)
 
-#define PHLEX_DETAIL_CREATE_DRIVER_2ARGS(func_name, d, config)                                     \
+#define PHLEX_DETAIL_CREATE_DRIVER_2ARGS(func_name, d, cfg)                                        \
   phlex::experimental::driver_bundle func_name(phlex::experimental::driver_proxy d,                \
-                                               phlex::configuration const& config)
+                                               phlex::configuration const& cfg)
 
 #define PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, ...)                                       \
   BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
