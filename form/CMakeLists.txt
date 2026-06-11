@@ -14,7 +14,7 @@ include_directories(${PROJECT_SOURCE_DIR}/form)
 
 # ROOT Storage toggle
 option(FORM_USE_ROOT_STORAGE "Enable ROOT Storage" ON)
-option(FORM_USE_RNTUPLE_STORAGE "Enable RNTuple Storage" OFF)
+option(FORM_USE_RNTUPLE_STORAGE "Enable RNTuple Storage" ON)
 
 # Add sub directories
 add_subdirectory(form)
