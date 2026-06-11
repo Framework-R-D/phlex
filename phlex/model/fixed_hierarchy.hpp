@@ -88,7 +88,7 @@ namespace phlex {
     data_cell_yielder yielder(experimental::framework_driver& d) const;
 
   private:
-    std::vector<std::vector<std::string>> layer_paths_;
+    std::vector<experimental::layer_path> layer_paths_;
     std::vector<std::size_t> layer_hashes_;
   };
 

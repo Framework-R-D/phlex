@@ -4,6 +4,7 @@
 #include "phlex/phlex_model_export.hpp"
 
 #include <ostream>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,8 +12,8 @@
 namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT layer_path {
   public:
-    layer_path(std::vector<identifier> const& path) : layer_path_{path} {}
-    layer_path(std::vector<identifier>&& path) : layer_path_{std::move(path)} {}
+    layer_path(std::vector<identifier> const& path) : layer_path_{path} { validate(); }
+    layer_path(std::vector<identifier>&& path) : layer_path_{std::move(path)} { validate(); }
     layer_path(std::string_view path);
 
     template <typename T>
@@ -22,8 +23,6 @@ namespace phlex::experimental {
     }
 
     auto operator<=>(layer_path const&) const noexcept = default;
-
-    bool is_empty() const noexcept;
 
     /// Is this path complete (does it start with "job")
     bool is_complete() const noexcept;
@@ -36,10 +35,15 @@ namespace phlex::experimental {
 
     std::string to_string() const;
 
+    /// This function assumes incomplete paths have an implicit job root
     std::size_t hash() const noexcept;
+
+    /// Return hash of this path and every parent path
+    std::set<std::size_t> hashes() const;
 
   private:
     std::vector<identifier> layer_path_;
+    void validate() const;
   };
 
   inline std::string format_as(layer_path const& lp) { return lp.to_string(); }
@@ -51,5 +55,4 @@ namespace phlex::experimental {
     return os << lp.to_string();
   }
 }
-
 #endif // PHLEX_MODEL_LAYER_PATH_HPP

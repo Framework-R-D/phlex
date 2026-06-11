@@ -99,19 +99,11 @@ namespace phlex::experimental {
   {
   }
 
-  void index_router::establish_layers(
-    std::vector<std::vector<std::string>> const& layer_paths_from_driver,
-    std::vector<identifier> unfold_input_layer_names,
-    std::vector<identifier> unfold_output_layer_names)
+  void index_router::establish_layers(std::vector<layer_path> const& layer_paths_from_driver,
+                                      std::vector<identifier> unfold_input_layer_names,
+                                      std::vector<identifier> unfold_output_layer_names)
   {
-    auto sorted_layer_paths =
-      layer_paths_from_driver | std::views::transform([](auto const& lp) {
-        auto lp_as_ids = lp |
-                         std::views::transform([](auto const& str) { return identifier(str); }) |
-                         std::ranges::to<std::vector>();
-        return layer_path(std::move(lp_as_ids));
-      }) |
-      std::ranges::to<std::vector<layer_path>>();
+    auto sorted_layer_paths = layer_paths_from_driver;
     std::ranges::sort(sorted_layer_paths);
 
     // In sorted order, a path can only be a prefix of paths that follow it.

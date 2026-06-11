@@ -56,7 +56,7 @@ namespace phlex::experimental {
     explicit index_router(tbb::flow::graph& g);
     data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes flushes);
 
-    void establish_layers(std::vector<std::vector<std::string>> const& layer_paths_from_driver,
+    void establish_layers(std::vector<layer_path> const& layer_paths_from_driver,
                           std::vector<identifier> unfold_input_layer_names,
                           std::vector<identifier> unfold_output_layer_names);
 

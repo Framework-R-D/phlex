@@ -1,5 +1,7 @@
 #include "layer_path.hpp"
 
+#include "phlex/utilities/hashing.hpp"
+
 #include "boost/container_hash/hash.hpp"
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -7,7 +9,6 @@
 #include <algorithm>
 #include <ranges>
 
-using namespace std::literals;
 using namespace phlex::experimental::literals;
 
 namespace phlex::experimental {
@@ -22,14 +23,23 @@ namespace phlex::experimental {
       throw std::runtime_error(
         fmt::format("A complete layer path must start with '/job'. '{}' does not!", path));
     }
+
+    validate();
   }
 
-  bool layer_path::is_empty() const noexcept { return layer_path_.empty(); }
-
-  bool layer_path::is_complete() const noexcept
+  void layer_path::validate() const
   {
-    return not is_empty() and layer_path_[0] == "job"_idq;
+    using namespace literals;
+    if (layer_path_.empty()) {
+      throw std::runtime_error("Layer paths cannot be empty.");
+    }
+
+    if (layer_path_.size() > 1 &&
+        std::ranges::contains(std::span{layer_path_}.subspan(1), "job"_id)) {
+      throw std::runtime_error("Layer paths may only contain 'job' as the first element.");
+    }
   }
+  bool layer_path::is_complete() const noexcept { return layer_path_[0] == "job"_idq; }
 
   bool layer_path::is_strict_prefix_of(layer_path const& other) const noexcept
   {
@@ -52,25 +62,38 @@ namespace phlex::experimental {
     auto const& [it, other_it] = std::ranges::mismatch(rev_layer_path, rev_other_layer_path);
     return other_it == rev_other_layer_path.end();
   }
+
   bool layer_path::ends_with(identifier const& name) const noexcept
   {
-    return not is_empty() and layer_path_.back() == name;
+    return layer_path_.back() == name;
   }
 
   std::string layer_path::to_string() const
   {
     return fmt::format("{}{}", is_complete() ? "/" : "", fmt::join(layer_path_, "/"));
   }
+
   std::size_t layer_path::hash() const noexcept
   {
-    if (is_empty()) {
-      return 0;
-    }
-    if (layer_path_.size() == 1) {
-      return layer_path_[0].hash();
-    }
-    std::size_t seed = layer_path_[0].hash();
+    // incomplete paths have an implied "job" root in this calculation
+    // Need the experimental:: so it isn't confused for this function
+    std::size_t seed =
+      is_complete() ? "job"_idq.hash : experimental::hash("job"_idq.hash, layer_path_[0].hash());
     boost::hash_range(seed, layer_path_.begin() + 1, layer_path_.end());
     return seed;
+  }
+
+  std::set<std::size_t> layer_path::hashes() const
+  {
+    std::set<std::size_t> hashes;
+    // Add the appropriate first hash
+    std::size_t cumulative_hash =
+      is_complete() ? "job"_idq.hash : experimental::hash("job"_idq.hash, layer_path_[0].hash());
+    hashes.insert(cumulative_hash);
+    for (auto const& name : layer_path_ | std::views::drop(1)) {
+      cumulative_hash = experimental::hash(cumulative_hash, name.hash());
+      hashes.insert(cumulative_hash);
+    }
+    return hashes;
   }
 }
