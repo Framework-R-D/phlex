@@ -43,7 +43,8 @@ namespace {
       provider_bundles bundles;
       std::string const layer = "spill";
       std::string const stage = "previous_process";
-      product_specification spec{"input", "happy_vertices", make_type_id<toy::VertexCollection>()};
+      product_specification spec{
+        "vertices_maker", "happy_vertices", make_type_id<toy::VertexCollection>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
         bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
@@ -70,11 +71,11 @@ TEST_CASE("Explicit providers")
   experimental::framework_graph g{driver_for_test(gen)};
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
-    .output_product("input", "happy_vertices", "spill");
+    .output_product("vertices_maker", "happy_vertices", "spill");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
-      product_selector{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
 
   g.execute();
 
@@ -95,10 +96,11 @@ TEST_CASE("Implicit providers")
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
-      product_selector{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
 
   g.execute();
 
+  CHECK(g.execution_count("vertices_maker") == num_spills);
   CHECK(g.execution_count("passer") == num_spills);
 }
 
@@ -122,11 +124,12 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
-      product_selector{.creator = "input", .layer = "spill", .suffix = "happy_vertices"});
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
 
   CHECK_THROWS_WITH(
     g.execute(),
-    ContainsSubstring("Multiple implicit providers found for product 'input/happy_vertices") &&
+    ContainsSubstring(
+      "Multiple implicit providers found for product 'vertices_maker/happy_vertices") &&
       ContainsSubstring("spill") && ContainsSubstring("passer"));
 }
 
