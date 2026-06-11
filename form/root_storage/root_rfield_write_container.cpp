@@ -92,10 +92,7 @@ namespace form::detail::experimental {
         "ROOT_RField_Write_ContainerImp::commit No RRawPtrWriteEntry set up.  "
         "You may have called commit() without calling fill() first.");
     }
-    if (!m_rntuple_parent->m_writer) {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp::commit No RNTupleWriter set up.  "
-                               "You may have called commit() without calling fill() first.");
-    }
+    assert(m_rntuple_parent->m_writer); //m_write and m_entry are set in the same place: fill()
     m_rntuple_parent->m_writer->Fill(*m_rntuple_parent->m_entry);
   }
 
