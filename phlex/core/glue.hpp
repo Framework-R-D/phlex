@@ -157,7 +157,7 @@ namespace phlex::experimental {
       auto [_, inserted] =
         nodes_.sources.try_emplace(name, std::make_unique<Source>(std::forward<Args>(args)...));
       if (not inserted) {
-        detail::add_to_error_messages(errors_, name); // From registrar.hpp
+        detail::add_to_error_messages(errors_, "Source", name); // From registrar.hpp
       }
     }
 

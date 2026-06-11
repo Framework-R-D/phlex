@@ -109,7 +109,7 @@ TEST_CASE("Throw when two sources with the same name are registered")
   g.source<vertices_source>("vertices_source");
 
   CHECK_THROWS_WITH(g.execute(),
-                    ContainsSubstring("Node with name 'vertices_source' already exists"));
+                    ContainsSubstring("Source with name 'vertices_source' already exists"));
 }
 
 TEST_CASE("Throw when two implicit providers are found for the same product")
