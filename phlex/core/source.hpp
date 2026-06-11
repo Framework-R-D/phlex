@@ -23,7 +23,7 @@ namespace phlex::experimental {
   // Function type for type-erased data-product types (used by implicit providers)
   using provider_function_t = product_ptr(data_cell_index const&);
 
-  struct provider_bundle {
+  struct PHLEX_CORE_EXPORT provider_bundle {
     std::function<provider_function_t> provider_function;
     concurrency max_concurrency;
     product_specification spec;
@@ -34,10 +34,9 @@ namespace phlex::experimental {
   using provider_bundles = std::vector<provider_bundle>;
 
   // ==============================================================================
-  class source {
+  class PHLEX_CORE_EXPORT source {
   public:
     virtual ~source() = default;
-    // FIXME: Should these functions be 'const'?
     virtual provider_bundles create_providers(product_selector const&) = 0;
     virtual index_generator indices() = 0;
   };
