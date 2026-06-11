@@ -24,10 +24,12 @@ if(FORM_USE_ROOT_STORAGE)
         form_test_data_products
         form_test_utils
         TEST_ARGS
-        "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
-        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums.txt"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_${TECH}.root"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums_${TECH}.txt"
         ${TECH}
     )
+    #set_tests_properties("WriteVector_${TECH}" PROPERTIES FIXTURES_SETUP "VectorReadWrite_${TECH}")
+    #set_tests_properties("WriteVector_${TECH}" PROPERTIES RESOURCE_LOCK "toy.root")
     target_include_directories("WriteVector_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
     cet_test(
@@ -39,13 +41,15 @@ if(FORM_USE_ROOT_STORAGE)
         form_test_data_products
         form_test_utils
         TEST_ARGS
-        "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
-        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums.txt"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_${TECH}.root"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums_${TECH}.txt"
         ${TECH}
         TEST_PROPERTIES
         DEPENDS
         "WriteVector_${TECH}"
     )
+    #set_tests_properties("ReadVector_${TECH}" PROPERTIES FIXTURES_REQUIRED "VectorReadWrite_${TECH}")
+    #set_tests_properties("ReadVector_${TECH}" PROPERTIES RESOURCE_LOCK "toy.root")
     target_include_directories("ReadVector_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
     cet_test(
