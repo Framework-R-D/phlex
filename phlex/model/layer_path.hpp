@@ -11,7 +11,6 @@
 namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT layer_path {
   public:
-    layer_path() = default;
     layer_path(std::vector<identifier> const& path) : layer_path_{path} {}
     layer_path(std::vector<identifier>&& path) : layer_path_{std::move(path)} {}
     layer_path(std::string_view path);
@@ -24,24 +23,19 @@ namespace phlex::experimental {
 
     auto operator<=>(layer_path const&) const noexcept = default;
 
-    bool empty() const noexcept;
+    bool is_empty() const noexcept;
 
     /// Is this path complete (does it start with "job")
-    bool complete() const noexcept;
+    bool is_complete() const noexcept;
 
-    /// Is this path a strict prefix of other
     bool is_strict_prefix_of(layer_path const& other) const noexcept;
 
-    /// Does this path end with other
     bool ends_with(layer_path const& other) const noexcept;
 
-    /// Does this path identify a layer called name
     bool ends_with(identifier const& name) const noexcept;
 
-    /// Convert to string
     std::string to_string() const;
 
-    /// Hash
     std::size_t hash() const noexcept;
 
   private:

@@ -40,7 +40,7 @@ namespace phlex::experimental {
                                std::string indent = {}) const;
 
     struct layer_entry {
-      layer_entry(identifier n, experimental::layer_path path, std::size_t par_hash) :
+      layer_entry(identifier n, layer_path path, std::size_t par_hash) :
         name{std::move(n)}, layer_path{std::move(path)}, parent_hash{par_hash}
       {
       }

@@ -18,15 +18,18 @@ namespace phlex::experimental {
         std::views::filter([](auto const& sr) { return not sr.empty(); }) |
         std::views::transform([](auto const& sr) { return identifier(std::string_view(sr)); })}
   {
-    if (path.starts_with("/") and not complete()) {
+    if (path.starts_with("/") and not is_complete()) {
       throw std::runtime_error(
         fmt::format("A complete layer path must start with '/job'. '{}' does not!", path));
     }
   }
 
-  bool layer_path::empty() const noexcept { return layer_path_.empty(); }
+  bool layer_path::is_empty() const noexcept { return layer_path_.empty(); }
 
-  bool layer_path::complete() const noexcept { return not empty() and layer_path_[0] == "job"_idq; }
+  bool layer_path::is_complete() const noexcept
+  {
+    return not is_empty() and layer_path_[0] == "job"_idq;
+  }
 
   bool layer_path::is_strict_prefix_of(layer_path const& other) const noexcept
   {
@@ -51,16 +54,16 @@ namespace phlex::experimental {
   }
   bool layer_path::ends_with(identifier const& name) const noexcept
   {
-    return not empty() and layer_path_.back() == name;
+    return not is_empty() and layer_path_.back() == name;
   }
 
   std::string layer_path::to_string() const
   {
-    return fmt::format("{}{}", complete() ? "/" : "", fmt::join(layer_path_, "/"));
+    return fmt::format("{}{}", is_complete() ? "/" : "", fmt::join(layer_path_, "/"));
   }
   std::size_t layer_path::hash() const noexcept
   {
-    if (empty()) {
+    if (is_empty()) {
       return 0;
     }
     if (layer_path_.size() == 1) {

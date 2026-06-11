@@ -68,6 +68,7 @@ namespace phlex {
     std::vector<experimental::identifier> layers(depth_ + 1);
     auto const* ptr = this;
     for (auto& layer : std::views::reverse(layers)) {
+      assert(ptr);
       layer = ptr->layer_name();
       ptr = ptr->parent_.get();
     }
