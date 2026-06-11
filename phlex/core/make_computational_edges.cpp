@@ -44,7 +44,7 @@ namespace phlex::experimental {
     {
       assert(!head_ports.empty());
 
-      index_router::provider_input_ports_t result;
+      index_router::provider_input_ports_t provider_input_ports;
       index_router::head_ports_t unconsumed_head_ports;
       for (auto const& [node_name, ports] : head_ports) {
         for (auto const& [input_product, port] : ports) {
@@ -52,7 +52,8 @@ namespace phlex::experimental {
           // output port) and the right family (hidden in the input port).
           if (auto* matched_provider = find_matching_provider(explicit_providers, input_product)) {
             auto const provider_name = matched_provider->name().to_string();
-            result.try_emplace(provider_name, input_product, matched_provider->input_port());
+            provider_input_ports.try_emplace(
+              provider_name, input_product, matched_provider->input_port());
             spdlog::debug("Connecting provider {} to node {} (product: {})",
                           provider_name,
                           node_name,
@@ -63,7 +64,7 @@ namespace phlex::experimental {
           }
         }
       }
-      return {std::move(result), std::move(unconsumed_head_ports)};
+      return {std::move(provider_input_ports), std::move(unconsumed_head_ports)};
     }
 
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
@@ -72,7 +73,7 @@ namespace phlex::experimental {
                                   source_map const& sources,
                                   tbb::flow::graph& g)
     {
-      index_router::provider_input_ports_t result;
+      index_router::provider_input_ports_t provider_input_ports;
       index_router::head_ports_t unconsumed_head_ports;
       for (auto const& [node_name, ports] : head_ports) {
         for (auto const& [input_product, port] : ports) {
@@ -102,12 +103,12 @@ namespace phlex::experimental {
                                                       identifier{bundle.layer},
                                                       identifier{bundle.stage});
           auto const provider_name = node->name().to_string();
-          result.try_emplace(provider_name, input_product, node->input_port());
+          provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
           make_edge(node->output_port(), *port);
           providers.try_emplace(provider_name, std::move(node));
         }
       }
-      return {std::move(result), std::move(unconsumed_head_ports)};
+      return {std::move(provider_input_ports), std::move(unconsumed_head_ports)};
     }
 
     index_router::head_ports_t edges_within_computational_graph(
