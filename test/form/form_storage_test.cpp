@@ -94,6 +94,16 @@ TEST_CASE("FORM Container setup error handling")
   void const* ptrTestData = &testData;
   auto const& typeInfo = typeid(testData);
 
+  SECTION("fill() before setupWrite()")
+  {
+    CHECK_THROWS_AS(writeContainer->fill(ptrTestData), std::runtime_error);
+  }
+
+  SECTION("commit() before setupWrite()")
+  {
+    CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+  }
+
   SECTION("fill() before setParent()")
   {
     CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
