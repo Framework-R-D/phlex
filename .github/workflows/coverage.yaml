@@ -143,7 +143,7 @@ jobs:
       - name: Configure CMake with Clang coverage
         id: configure_clang
         if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: aolivier23/phlex/.github/actions/configure-cmake@form_rntuple_for_inactive_pr
         with:
           cpp-compiler: clang++
           preset: coverage-clang
