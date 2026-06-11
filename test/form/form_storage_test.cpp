@@ -227,3 +227,14 @@ TEST_CASE("Root TTree write container: fill and commit are not implemented", "[f
   CHECK_THROWS_AS(writeAssoc->fill(dummy), std::runtime_error);
   CHECK_THROWS_AS(writeAssoc->commit(), std::runtime_error);
 }
+
+TEST_CASE("Unsupported attribute throws exception", "[form]")
+{
+  auto read_container =
+     createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
+  CHECK_THROWS_AS(read_container->setAttribute("key", "value"), std::runtime_error);
+
+  auto write_container =
+    createWriteContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
+  CHECK_THROWS_AS(write_container->setAttribute("key", "value"), std::runtime_error);
+}
