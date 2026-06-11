@@ -30,7 +30,7 @@ namespace form::detail::experimental {
     std::shared_ptr<TFile> m_tfile;
     std::shared_ptr<ROOT_RNTuple_Write_ContainerImp> m_rntuple_parent;
 
-    bool m_force_streamer_field;
+    bool m_force_streamer_field = false;
   };
 }
 

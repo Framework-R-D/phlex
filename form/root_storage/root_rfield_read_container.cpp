@@ -63,8 +63,8 @@ namespace form::detail::experimental {
         //TClass takes the "std::" off of "std::vector<>" when RNTuple's on-disk format doesn't.  Convert RNTuple's type name to match TClass for manual type check because our dictionary of choice will likely be the same as TClass.
         if (!TDictionary::GetDictionary(type) ||
             !TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str()) ||
-            strcmp(TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str())->GetName(),
-                   TDictionary::GetDictionary(type)->GetName())) {
+            (strcmp(TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str())->GetName(),
+                    TDictionary::GetDictionary(type)->GetName()) != 0)) {
           throw std::runtime_error(
             "ROOT_RField_containerImp::read type " + DemangleName(type) +
             " requested for a field named " + col_name() +

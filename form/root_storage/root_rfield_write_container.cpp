@@ -12,7 +12,7 @@
 
 namespace form::detail::experimental {
   ROOT_RField_Write_ContainerImp::ROOT_RField_Write_ContainerImp(std::string const& name) :
-    Storage_Associative_Write_Container(name), m_force_streamer_field(false)
+    Storage_Associative_Write_Container(name)
   {
   }
 

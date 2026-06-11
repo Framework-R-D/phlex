@@ -24,6 +24,12 @@ namespace form::detail::experimental {
     ~ROOT_RField_Read_ContainerImp()
       override; //Must not be defined in header because that requires definition of RNTupleReader, etc.
 
+    //Rule of five
+    ROOT_RField_Read_ContainerImp(ROOT_RField_Read_ContainerImp const& other) = delete;
+    ROOT_RField_Read_ContainerImp(ROOT_RField_Read_ContainerImp const&& other) = delete;
+    ROOT_RField_Read_ContainerImp& operator =(ROOT_RField_Read_ContainerImp const& other) = delete;
+    ROOT_RField_Read_ContainerImp& operator =(ROOT_RField_Read_ContainerImp const&& other) = delete;
+
     void setFile(std::shared_ptr<IStorage_File> file) override;
     bool read(int id, void const** data, std::type_info const& type) override;
 
