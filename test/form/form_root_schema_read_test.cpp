@@ -15,7 +15,7 @@ int main(int const argc, char const** argv)
 
   try {
     int const technology = getTechnology(tech_string);
-  
+
     auto const& [prods] = read<std::vector<TrackStart>>(technology);
     std::ofstream outFile("form_root_schema_read_log_" + tech_string + ".txt");
     for (auto const& prod : *prods)
