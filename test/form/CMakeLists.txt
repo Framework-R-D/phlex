@@ -28,8 +28,6 @@ if(FORM_USE_ROOT_STORAGE)
         "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums_${TECH}.txt"
         ${TECH}
     )
-    #set_tests_properties("WriteVector_${TECH}" PROPERTIES FIXTURES_SETUP "VectorReadWrite_${TECH}")
-    #set_tests_properties("WriteVector_${TECH}" PROPERTIES RESOURCE_LOCK "toy.root")
     target_include_directories("WriteVector_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
     cet_test(
@@ -48,8 +46,6 @@ if(FORM_USE_ROOT_STORAGE)
         DEPENDS
         "WriteVector_${TECH}"
     )
-    #set_tests_properties("ReadVector_${TECH}" PROPERTIES FIXTURES_REQUIRED "VectorReadWrite_${TECH}")
-    #set_tests_properties("ReadVector_${TECH}" PROPERTIES RESOURCE_LOCK "toy.root")
     target_include_directories("ReadVector_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
     cet_test(
@@ -63,7 +59,7 @@ if(FORM_USE_ROOT_STORAGE)
         form_test_data_products
         form_test_utils
         TEST_WORKDIR
-        form_root_schema_test
+        "form_root_schema_test_${TECH}"
         TEST_ARGS
         ${TECH}
     )
@@ -83,7 +79,7 @@ if(FORM_USE_ROOT_STORAGE)
        form_test_utils
        DIRTY_WORKDIR
        TEST_WORKDIR
-       form_root_schema_test
+       "form_root_schema_test_${TECH}"
        REQUIRED_FIXTURES
        "form_root_schema_write_test_${TECH}"
        TEST_ARGS
@@ -102,11 +98,11 @@ if(FORM_USE_ROOT_STORAGE)
       TEST_ARGS
       -E
       compare_files
-      form_root_schema_write_log.txt
-      form_root_schema_read_log.txt
+      "form_root_schema_write_log_${TECH}.txt"
+      "form_root_schema_read_log_${TECH}.txt"
       DIRTY_WORKDIR
       TEST_WORKDIR
-      form_root_schema_test
+      "form_root_schema_test_${TECH}"
       REQUIRED_FIXTURES
       "form_root_schema_write_test_${TECH}"
       "form_root_schema_read_test_${TECH}"
@@ -119,6 +115,9 @@ if(FORM_USE_ROOT_STORAGE)
              TEST_ARGS
              --technology
              ${TECH}
+             TEST_PROPERTIES
+             RESOURCE_LOCK
+             "FORMTestFile.root"
     )
     target_include_directories("form_storage_test_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
   endforeach()
