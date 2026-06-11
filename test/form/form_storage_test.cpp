@@ -162,7 +162,8 @@ TEST_CASE("FORM Container setup error handling")
     }
   }
 
-  if(form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this)
+  if (form::technology::GetMinor(technology) !=
+      form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this)
   {
     SECTION("Bad file")
     {
