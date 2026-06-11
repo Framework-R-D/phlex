@@ -162,6 +162,15 @@ TEST_CASE("FORM Container setup error handling")
       CHECK_THROWS_AS(associativeWrite->setParent(badWriteParent), std::runtime_error);
     }
   }
+
+  if(form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this)
+  {
+    SECTION("Bad file")
+    {
+      auto badFile = createFile(technology, "noSuchFile.root", 'i');
+      CHECK_THROWS_AS(writeContainer->setFile(badFile), std::runtime_error);
+    }
+  }
 }
 
 template <class T>
