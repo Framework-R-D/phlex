@@ -78,13 +78,7 @@ namespace form::detail::experimental {
 
     //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
     auto buffer = m_view->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
-    if (!buffer) {
-      throw std::runtime_error(
-        "ROOT_RField_Read_Container::read failed to create an object of type " +
-        m_view->GetField().GetTypeName() + ".  Maybe the type name for this read() (" +
-        DemangleName(type) + ") doesn't match the type from the first read() (" +
-        m_view->GetField().GetTypeName() + ")?");
-    }
+    assert(buffer);
 
     m_view->BindRawPtr(buffer.get());
     try {
