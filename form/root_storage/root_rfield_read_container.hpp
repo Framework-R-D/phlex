@@ -14,7 +14,7 @@ namespace ROOT {
   class RNTupleReader;
   template <class FIELD_TYPE>
   class RNTupleView;
-  class RNTupleView<void>;
+  template <> class RNTupleView<void>;
 }
 
 namespace form::detail::experimental {
