@@ -104,15 +104,37 @@ TEST_CASE("FORM Container setup error handling")
     CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
   }
 
-  SECTION("fill() before setParent()")
+  auto writeAssocContainer = dynamic_pointer_cast<Storage_Associative_Write_Container>(writeContainer);
+  if(writeAssocContainer)
   {
-    CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
-    CHECK_THROWS_AS(writeContainer->fill(ptrTestData), std::runtime_error);
-  }
+    SECTION("fill() before setParent()")
+    {
+      CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
+      CHECK_THROWS_AS(writeContainer->fill(ptrTestData), std::runtime_error);
+    }
 
-  SECTION("commit() before setParent()")
-  {
-    CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+    SECTION("commit() before setParent()")
+    {
+      CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+    }
+
+    SECTION("setupWrite() before setParent()")
+    {
+      CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
+    }
+
+    auto parent = createWriteAssociation(technology, "test");
+    parent->setFile(file);
+    parent->setupWrite(typeInfo);
+    if(form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this
+    {
+      SECTION("commit() before fill()")
+      {
+        writeAssocContainer->setParent(parent);
+        writeContainer->setupWrite(typeInfo);
+        CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+      }
+    }
   }
 
   auto readContainer = createReadContainer(technology, "test/testData");
