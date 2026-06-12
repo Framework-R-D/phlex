@@ -30,10 +30,6 @@ run-name: "${{ github.actor }} running code coverage"
         description: "Enable FORM integration (set to OFF to exclude FORM sources)"
         required: false
         default: "ON"
-      phlex-enable-form-rntuple:
-        description: "Enable FORM RNTuple backend"
-        required: false
-        default: "ON"
 
 permissions:
   contents: read
@@ -101,8 +97,6 @@ jobs:
             ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-coverage-compiler'] || '' }}
           REQUESTED_FORM:
             ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form'] || '' }}
-          REQUESTED_FORM_RNTUPLE:
-            ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['phlex-enable-form-rntuple'] || '' }}
         run: |
           set -euo pipefail
           compiler="${REQUESTED_COMPILER:-clang}"
@@ -138,7 +132,6 @@ jobs:
           build-path: ${{ needs.setup.outputs.build_path }}
           enable-form: ${{ steps.coverage_options.outputs.enable_form }}
           form-root-storage: ${{ steps.coverage_options.outputs.enable_form }}
-          form-rntuple-storage: ${{ steps.coverage_options.outputs.enable_form_rntuple }}
 
       - name: Configure CMake with Clang coverage
         id: configure_clang
@@ -151,7 +144,6 @@ jobs:
           build-path: ${{ needs.setup.outputs.build_path }}
           enable-form: ${{ steps.coverage_options.outputs.enable_form }}
           form-root-storage: ${{ steps.coverage_options.outputs.enable_form }}
-          enable-form-rntuple: ${{ steps.coverage_options.outputs.enable_form_rntuple }}
 
       - name: Unknown Compiler Error
         if:
