@@ -30,10 +30,10 @@ namespace form::detail::experimental {
 
     //Rule of five
     ROOT_RNTuple_Write_ContainerImp(ROOT_RNTuple_Write_ContainerImp const& other) = delete;
-    ROOT_RNTuple_Write_ContainerImp(ROOT_RNTuple_Write_ContainerImp const&& other) = delete;
+    ROOT_RNTuple_Write_ContainerImp(ROOT_RNTuple_Write_ContainerImp&& other) = delete;
     ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp const& other) =
       delete;
-    ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp const&& other) =
+    ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp&& other) =
       delete;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;

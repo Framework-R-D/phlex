@@ -27,9 +27,9 @@ namespace form::detail::experimental {
 
     //Rule of five
     ROOT_RField_Read_ContainerImp(ROOT_RField_Read_ContainerImp const& other) = delete;
-    ROOT_RField_Read_ContainerImp(ROOT_RField_Read_ContainerImp const&& other) = delete;
+    ROOT_RField_Read_ContainerImp(ROOT_RField_Read_ContainerImp&& other) = delete;
     ROOT_RField_Read_ContainerImp& operator=(ROOT_RField_Read_ContainerImp const& other) = delete;
-    ROOT_RField_Read_ContainerImp& operator=(ROOT_RField_Read_ContainerImp const&& other) = delete;
+    ROOT_RField_Read_ContainerImp& operator=(ROOT_RField_Read_ContainerImp&& other) = delete;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     bool read(int id, void const** data, std::type_info const& type) override;
