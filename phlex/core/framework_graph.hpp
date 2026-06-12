@@ -149,7 +149,7 @@ namespace phlex::experimental {
     glue<T> make_glue(Args&&... args)
     {
       std::shared_ptr<T> bound_object{nullptr};
-      if constexpr (!std::same_as<T, void_tag> && Construct) {
+      if constexpr (is_bound_object<T> && Construct) {
         bound_object = std::make_shared<T>(std::forward<Args>(args)...);
       }
       return {graph_, nodes_, std::move(bound_object), registration_errors_};
@@ -157,6 +157,11 @@ namespace phlex::experimental {
 
     void run();
     void finalize();
+    void throw_if_registration_errors() const;
+    void make_filter_edges();
+    void make_bookkeeping_edges();
+    void finalize_router(index_router::provider_input_ports_t provider_input_ports,
+                         std::map<std::string, named_index_ports> multilayer_join_index_ports);
 
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;

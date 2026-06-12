@@ -44,9 +44,9 @@ namespace phlex {
     parent_{std::move(parent)},
     number_{i},
     layer_name_{std::move(layer_name)},
-    layer_hash_{phlex::experimental::hash(parent_->layer_hash_, layer_name_.hash())},
+    layer_hash_{experimental::hash(parent_->layer_hash_, layer_name_.hash())},
     depth_{parent_->depth_ + 1},
-    hash_{phlex::experimental::hash(parent_->hash_, number_, layer_hash_)}
+    hash_{experimental::hash(parent_->hash_, number_, layer_hash_)}
   {
     // FIXME: Should it be an error to create an ID with an empty name?
   }

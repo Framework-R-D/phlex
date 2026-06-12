@@ -5,6 +5,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <numeric>
@@ -12,9 +13,34 @@
 
 using namespace form::detail::experimental;
 
+namespace {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  int technology = form::technology::ROOT_TTREE; //Potentially overridden in main
+  //Non-const global variable required by limitations of Catch2
+}
+
+int main(int const argc, char** const argv)
+{
+  Catch::Session session;
+
+  std::string tech_string;
+  using namespace Catch::Clara;
+  auto cli =
+    session.cli() | Opt(tech_string, "technology")["--technology"]("FORM technology backend");
+
+  session.cli(cli);
+
+  int const returnCode = session.applyCommandLine(argc, argv);
+  if (returnCode != 0)
+    return returnCode;
+
+  technology = form::test::getTechnology(tech_string);
+
+  return session.run();
+}
+
 TEST_CASE("Storage_Container read wrong type", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
   std::vector<int> primes = {2, 3, 5, 7, 11, 13, 17, 19};
   form::test::write(technology, primes);
 
@@ -28,7 +54,6 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
 
 TEST_CASE("Storage_Container sharing an Association", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
   std::vector<float> piData(10, 3.1415927);
   std::string indexData = "[EVENT=00000001;SEG=00000001]";
 
@@ -43,7 +68,6 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
 
 TEST_CASE("Storage_Container multiple containers in Association", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
   std::vector<float> piData(10, 3.1415927);
   std::vector<int> magicData(17);
   std::iota(magicData.begin(), magicData.end(), 42);
@@ -63,7 +87,6 @@ TEST_CASE("Storage_Container multiple containers in Association", "[form]")
 
 TEST_CASE("FORM Container setup error handling")
 {
-  int const technology = form::technology::ROOT_TTREE;
   auto file = createFile(technology, "testContainerErrorHandling.root", 'o');
   auto writeContainer = createWriteContainer(technology, "test/testData");
 
@@ -99,7 +122,7 @@ TEST_CASE("FORM Container setup error handling")
 }
 
 template <class T>
-void testFundamental(int const technology, T const expected)
+void testFundamental(T const expected)
 {
   SECTION(form::test::getTypeName<T>())
   {
@@ -120,25 +143,23 @@ void testFundamental(int const technology, T const expected)
 // current ROOT release and is therefore not tested here.
 TEST_CASE("Root branch read: fundamental scalar types round-trip", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
-  testFundamental(technology, static_cast<char>('r'));
-  testFundamental(technology, static_cast<unsigned char>(200));
-  testFundamental(technology, static_cast<short>(-1000));
-  testFundamental(technology, static_cast<unsigned short>(60000));
-  testFundamental(technology, -42000);
-  testFundamental(technology, 3000000000u);
-  testFundamental(technology, -9000000000L);
-  testFundamental(technology, 9000000000UL);
-  testFundamental(technology, -4000000000LL);
-  testFundamental(technology, 8000000000ULL);
-  testFundamental(technology, 3.14f);
-  testFundamental(technology, 2.718281828);
-  testFundamental(technology, true);
+  testFundamental(static_cast<char>('r'));
+  testFundamental(static_cast<unsigned char>(200));
+  testFundamental(static_cast<short>(-1000));
+  testFundamental(static_cast<unsigned short>(60000));
+  testFundamental(-42000);
+  testFundamental(3000000000u);
+  testFundamental(-9000000000L);
+  testFundamental(9000000000UL);
+  testFundamental(-4000000000LL);
+  testFundamental(8000000000ULL);
+  testFundamental(3.14f);
+  testFundamental(2.718281828);
+  testFundamental(true);
 }
 
 TEST_CASE("Root branch read: returns false when id exceeds entry count", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
   std::vector<int> data = {1, 2, 3};
   form::test::write(technology, data);
 
@@ -154,7 +175,6 @@ TEST_CASE("Root branch read: returns false when id exceeds entry count", "[form]
 
 TEST_CASE("Root branch read: throws when the named tree is absent from the file", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
@@ -167,7 +187,6 @@ TEST_CASE("Root branch read: throws when the named tree is absent from the file"
 
 TEST_CASE("Root branch read: throws when the named branch is absent from the tree", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
@@ -186,7 +205,6 @@ TEST_CASE("Root branch read: throws for a type with no ROOT dictionary", "[form]
   // exercises the "unsupported type" error path in read().
   struct LocalType {};
 
-  int const technology = form::technology::ROOT_TTREE;
   std::vector<int> data = {42};
   form::test::write(technology, data);
 
@@ -200,7 +218,6 @@ TEST_CASE("Root branch read: throws for a type with no ROOT dictionary", "[form]
 
 TEST_CASE("Root TTree write container: fill and commit are not implemented", "[form]")
 {
-  int const technology = form::technology::ROOT_TTREE;
   auto file = createFile(technology, "testTTreeWriteOps.root", 'o');
   auto writeAssoc = createWriteAssociation(technology, "testTTreeWriteOpsTree");
   writeAssoc->setFile(file);

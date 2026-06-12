@@ -39,7 +39,7 @@ namespace phlex::experimental {
                 tbb::flow::graph& g,
                 node_catalog& nodes,
                 std::vector<std::string>& errors)
-      requires(std::same_as<T, void_tag>)
+      requires(not is_bound_object<T>)
       : config_{&config}, graph_{g}, nodes_{nodes}, errors_{errors}
     {
     }
@@ -51,9 +51,9 @@ namespace phlex::experimental {
     /// be registered as algorithm nodes.
     template <typename U, typename... Args>
     graph_proxy<U> make(Args&&... args)
+      requires(not is_bound_object<T>)
     {
-      return graph_proxy<U>{
-        config_, graph_, nodes_, std::make_shared<U>(std::forward<Args>(args)...), errors_};
+      return bind_to<graph_proxy, U>(std::forward<Args>(args)...);
     }
 
     /// @brief Registers a fold algorithm node.
@@ -113,24 +113,34 @@ namespace phlex::experimental {
       return create_glue().output(std::move(name), std::move(f), c);
     }
 
-  private:
+  protected:
+    template <template <typename> typename Proxy, typename U, typename... Args>
+    Proxy<U> bind_to(Args&&... args)
+      requires(not is_bound_object<T>)
+    {
+      return Proxy<U>{
+        config_, graph_, nodes_, std::make_shared<U>(std::forward<Args>(args)...), errors_};
+    }
+
     graph_proxy(configuration const* config,
                 tbb::flow::graph& g,
                 node_catalog& nodes,
                 std::shared_ptr<T> bound_obj,
                 std::vector<std::string>& errors)
-      requires(not std::same_as<T, void_tag>)
+      requires(is_bound_object<T>)
       : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{bound_obj}, errors_{errors}
     {
     }
 
+  private:
     glue<T> create_glue(bool use_bound_object = true)
     {
       return glue{graph_, nodes_, (use_bound_object ? bound_obj_ : nullptr), errors_, config_};
     }
 
     configuration const* config_;
-    // Non-owning references to framework-owned resources; graph_proxy<T> is a short-lived builder.
+    // Non-owning references to framework-owned resources; graph_proxy<T> is a
+    // short-lived builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     node_catalog& nodes_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::shared_ptr<T> bound_obj_;

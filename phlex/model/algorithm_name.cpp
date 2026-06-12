@@ -38,8 +38,8 @@ namespace phlex::experimental {
   }
   algorithm_name::algorithm_name(std::string_view spec) { *this = create(spec); }
 
-  algorithm_name::algorithm_name(identifier plugin, identifier algorithm, specified_fields fields) :
-    plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}, fields_{fields}
+  algorithm_name::algorithm_name(identifier plugin, identifier algorithm) :
+    plugin_{std::move(plugin)}, algorithm_{std::move(algorithm)}
   {
   }
 
@@ -52,24 +52,7 @@ namespace phlex::experimental {
     return fmt::format("{}", algorithm_);
   }
 
-  bool algorithm_name::match(algorithm_name const& other) const
-  {
-    switch (other.fields_) {
-    case specified_fields::neither: {
-      // Always return true if neither the plugin or algorithm is specified
-      return true;
-    }
-    case specified_fields::either: {
-      // Either the plugin or the algorithm can match
-      return other.plugin_ == plugin_ or other.plugin_ == algorithm_;
-    }
-    case specified_fields::both: {
-      // Exact equality expected if both the plugin or algorithm is specified
-      return operator==(other);
-    }
-    }
-    return false; // other is an invalid algorithm_name
-  }
+  bool algorithm_name::match(algorithm_name const& other) const { return operator==(other); }
 
   algorithm_name algorithm_name::create(char const* spec) { return create(std::string_view{spec}); }
   algorithm_name algorithm_name::create(std::string_view spec)
@@ -92,7 +75,7 @@ namespace phlex::experimental {
         throw std::runtime_error(
           fmt::format("The specification '{}' is not a valid algorithm name.", spec));
       }
-      return {identifier(plugin), identifier(algorithm), specified_fields::both};
+      return {identifier(plugin), identifier(algorithm)};
     }
 
     // No colon -- could be plugin or algorithm
@@ -100,6 +83,6 @@ namespace phlex::experimental {
       throw std::runtime_error(
         fmt::format("The specification '{}' is not a valid algorithm name.", spec));
     }
-    return {identifier(spec), identifier(spec), specified_fields::either};
+    return {"", identifier(spec)};
   }
 }

@@ -1,5 +1,5 @@
-#ifndef PHLEX_CORE_EDGE_CREATION_POLICY_HPP
-#define PHLEX_CORE_EDGE_CREATION_POLICY_HPP
+#ifndef PHLEX_CORE_PRODUCER_CATALOG_HPP
+#define PHLEX_CORE_PRODUCER_CATALOG_HPP
 
 #include "phlex/phlex_core_export.hpp"
 
@@ -17,10 +17,10 @@
 namespace phlex::experimental {
   using product_suffix_t = identifier;
 
-  class PHLEX_CORE_EXPORT edge_creation_policy {
+  class PHLEX_CORE_EXPORT producer_catalog {
   public:
     template <typename... Args>
-    explicit edge_creation_policy(Args&... producers);
+    explicit producer_catalog(Args const&... producers);
 
     struct named_output_port {
       algorithm_name node;
@@ -28,12 +28,13 @@ namespace phlex::experimental {
       type_id type;
     };
 
-    named_output_port const* find_producer(product_selector const& query) const;
+    named_output_port const* find_producer(product_selector const& query,
+                                           algorithm_name const& consumer_name) const;
     auto values() const { return producers_ | std::views::values; }
 
   private:
     template <typename T>
-    static std::multimap<product_suffix_t, named_output_port> producing_nodes(T& nodes);
+    static std::multimap<product_suffix_t, named_output_port> producing_nodes(T const& nodes);
 
     std::multimap<product_suffix_t, named_output_port> producers_;
   };
@@ -41,8 +42,8 @@ namespace phlex::experimental {
   // =============================================================================
   // Implementation
   template <typename T>
-  std::multimap<product_suffix_t, edge_creation_policy::named_output_port>
-  edge_creation_policy::producing_nodes(T& nodes)
+  std::multimap<product_suffix_t, producer_catalog::named_output_port>
+  producer_catalog::producing_nodes(T const& nodes)
   {
     std::multimap<product_suffix_t, named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
@@ -55,10 +56,10 @@ namespace phlex::experimental {
   }
 
   template <typename... Args>
-  edge_creation_policy::edge_creation_policy(Args&... producers)
+  producer_catalog::producer_catalog(Args const&... producers)
   {
     (producers_.merge(producing_nodes(producers)), ...);
   }
 }
 
-#endif // PHLEX_CORE_EDGE_CREATION_POLICY_HPP
+#endif // PHLEX_CORE_PRODUCER_CATALOG_HPP

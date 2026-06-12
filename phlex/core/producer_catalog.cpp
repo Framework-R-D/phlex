@@ -1,4 +1,4 @@
-#include "phlex/core/edge_creation_policy.hpp"
+#include "phlex/core/producer_catalog.hpp"
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -6,8 +6,8 @@
 #include <ranges>
 
 namespace phlex::experimental {
-  edge_creation_policy::named_output_port const* edge_creation_policy::find_producer(
-    product_selector const& query) const
+  producer_catalog::named_output_port const* producer_catalog::find_producer(
+    product_selector const& query, algorithm_name const& consumer_name) const
   {
     if (producers_.empty()) {
       spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",
@@ -25,6 +25,16 @@ namespace phlex::experimental {
     }
     std::map<std::string, named_output_port const*> candidates;
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
+      // Prevent self-edges
+      if (producer.node == consumer_name) {
+        spdlog::debug(
+          "Skipping self-edge if {} matched {}", query.to_string(), producer.node.to_string());
+        continue;
+      }
+      spdlog::debug("Checking product made by {} against input required by {}",
+                    producer.node.to_string(),
+                    consumer_name.to_string());
+
       // TODO: Getting there -- this whole thing needs to be replaced with something
       //       that indexes all the fields from the beginning.
       if (query.creator_match(producer.node)) {

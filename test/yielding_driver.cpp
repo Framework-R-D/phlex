@@ -1,5 +1,6 @@
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/utilities/async_driver.hpp"
+#include "phlex/model/index_generator.hpp"
+#include "phlex/utilities/resumable_driver.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
@@ -10,30 +11,37 @@
 
 using namespace phlex;
 
-void cells_to_process(experimental::async_driver<data_cell_index_ptr>& d)
-{
-  unsigned int const num_runs = 2;
-  unsigned int const num_subruns = 2;
-  unsigned int const num_spills = 3;
-
-  auto job_id = data_cell_index::job();
-  d.yield(job_id);
-  for (unsigned int r : std::views::iota(0u, num_runs)) {
-    auto run_id = job_id->make_child("run", r);
-    d.yield(run_id);
-    for (unsigned int sr : std::views::iota(0u, num_subruns)) {
-      auto subrun_id = run_id->make_child("subrun", sr);
-      d.yield(subrun_id);
-      for (unsigned int spill : std::views::iota(0u, num_spills)) {
-        d.yield(subrun_id->make_child("spill", spill));
+namespace {
+  index_generator make_indices(unsigned int num_runs,
+                               unsigned int num_subruns,
+                               unsigned int num_spills)
+  {
+    auto job_id = data_cell_index::job();
+    co_yield job_id;
+    for (unsigned int r : std::views::iota(0u, num_runs)) {
+      auto run_id = job_id->make_child("run", r);
+      co_yield run_id;
+      for (unsigned int sr : std::views::iota(0u, num_subruns)) {
+        auto subrun_id = run_id->make_child("subrun", sr);
+        co_yield subrun_id;
+        for (unsigned int spill : std::views::iota(0u, num_spills)) {
+          co_yield subrun_id->make_child("spill", spill);
+        }
       }
+    }
+  }
+
+  void cells_to_process(experimental::resumable_driver<data_cell_index_ptr>& d)
+  {
+    for (auto const& index : make_indices(2, 2, 3)) {
+      d.yield(index);
     }
   }
 }
 
-TEST_CASE("Async driver with TBB flow graph", "[async_driver]")
+TEST_CASE("Resumable driver with TBB flow graph", "[resumable_driver]")
 {
-  experimental::async_driver<data_cell_index_ptr> drive{cells_to_process};
+  experimental::resumable_driver<data_cell_index_ptr> drive{cells_to_process};
   std::vector<std::string> received_indices;
 
   tbb::flow::graph g{};

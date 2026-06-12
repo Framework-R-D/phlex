@@ -6,7 +6,7 @@ namespace phlex {
   // Check that all products selected by /other/ would satisfy this query
   bool product_selector::match(product_selector const& other) const
   {
-    if (creator != other.creator) {
+    if (creator && creator != other.creator) {
       return false;
     }
     if (layer != other.layer) {
@@ -62,7 +62,10 @@ namespace phlex {
   // Check if an algorithm name matches this query's creator
   bool product_selector::creator_match(experimental::algorithm_name const& alg) const
   {
-    experimental::identifier const& creator{this->creator};
+    if (!creator) {
+      return true; // empty creator matches everything
+    }
+    experimental::identifier const& creator{*(this->creator)};
     return alg.plugin() == creator || alg.algorithm() == creator;
   }
 
@@ -83,15 +86,12 @@ namespace phlex {
   std::strong_ordering product_selector::operator<=>(product_selector const& rhs) const
   {
     using experimental::identifier;
-    return std::tie(type,
-                    static_cast<identifier const&>(creator),
-                    static_cast<identifier const&>(layer),
-                    suffix,
-                    stage) <=> std::tie(rhs.type,
-                                        static_cast<identifier const&>(rhs.creator),
-                                        static_cast<identifier const&>(rhs.layer),
-                                        rhs.suffix,
-                                        rhs.stage);
+    return std::tie(type, creator, static_cast<identifier const&>(layer), suffix, stage) <=>
+           std::tie(rhs.type,
+                    rhs.creator,
+                    static_cast<identifier const&>(rhs.layer),
+                    rhs.suffix,
+                    rhs.stage);
   }
 
   experimental::product_specification const* resolve_in_store(

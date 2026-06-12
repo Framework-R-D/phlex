@@ -28,6 +28,7 @@ cet_make_library(
 install(
   FILES
     algorithm_name.hpp
+    index_generator.hpp
     fixed_hierarchy.hpp
     flush_messages.hpp
     fwd.hpp
