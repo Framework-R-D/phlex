@@ -88,7 +88,7 @@ namespace phlex::experimental {
       auto child_prefix = !at_end ? indent + " ├ " : indent + " └ ";
       auto const& entry = *layers_.at(child_hash);
       result += "\n" + indent + " │ ";
-      result += fmt::format("\n{}{}: {}", child_prefix, maybe_name(child_name), entry.count);
+      result += fmt::format("\n{}{}: {}", child_prefix, maybe_name(child_name), entry.count.load());
 
       auto new_indent = indent;
       new_indent += at_end ? "   " : " │ ";
