@@ -37,8 +37,9 @@ namespace phlex::experimental {
       throw std::runtime_error("Layer paths cannot be empty.");
     }
 
+    // We can use any_of because identifier_query has a function call operator
     if (layer_path_.size() > 1 &&
-        std::ranges::contains(std::span{layer_path_}.subspan(1), "job"_id)) {
+        std::ranges::any_of(std::span{layer_path_}.subspan(1), "job"_idq)) {
       throw std::runtime_error("Layer paths may only contain 'job' as the first element.");
     }
   }
