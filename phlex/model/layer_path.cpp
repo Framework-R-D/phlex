@@ -19,6 +19,9 @@ namespace phlex::experimental {
         std::views::filter([](auto const& sr) { return not sr.empty(); }) |
         std::views::transform([](auto const& sr) { return identifier(std::string_view(sr)); })}
   {
+    if (layer_path_.empty()) {
+      throw std::runtime_error("Layer paths cannot be empty.");
+    }
     if (path.starts_with("/") and not is_complete()) {
       throw std::runtime_error(
         fmt::format("A complete layer path must start with '/job'. '{}' does not!", path));
