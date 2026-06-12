@@ -3,10 +3,13 @@
 #include "phlex/model/identifier.hpp"
 #include "phlex/phlex_model_export.hpp"
 
+#include <compare>
+#include <concepts>
 #include <ostream>
 #include <set>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace phlex::experimental {

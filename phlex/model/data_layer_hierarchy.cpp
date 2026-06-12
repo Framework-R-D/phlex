@@ -1,11 +1,11 @@
 #include "phlex/model/data_layer_hierarchy.hpp"
-#include "phlex/model/data_cell_index.hpp"
 
 #include "phlex/utilities/bulleted_list.hpp"
 
 #include "fmt/format.h"
-#include "fmt/std.h"
 #include "spdlog/spdlog.h"
+
+#include <ranges>
 
 namespace {
   std::string const& maybe_name(std::string const& name)

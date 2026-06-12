@@ -21,6 +21,9 @@ namespace phlex::experimental {
   template <detail::range_of_formattable R>
   std::string bulleted_list(R const& rng, std::size_t indent = 2)
   {
+    if (std::ranges::empty(rng)) {
+      return "";
+    }
     std::string prefix =
       fmt::format("{blank:{indent}s}- ", fmt::arg("blank", ""), fmt::arg("indent", indent));
     std::string prefix_with_newline = fmt::format("\n{}", prefix);
@@ -31,6 +34,9 @@ namespace phlex::experimental {
     requires(!detail::range_of_formattable<R>)
   std::string bulleted_list(R const& rng, std::size_t indent = 2)
   {
+    if (std::ranges::empty(rng)) {
+      return "";
+    }
     std::string prefix =
       fmt::format("{blank:{indent}s}- ", fmt::arg("blank", ""), fmt::arg("indent", indent));
     std::string prefix_with_newline = fmt::format("\n{}", prefix);
