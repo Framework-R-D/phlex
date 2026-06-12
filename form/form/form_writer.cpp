@@ -72,4 +72,9 @@ namespace form::experimental {
     m_pers_writer->commitOutput(creator, segment_id);
   }
 
+  void form_writer_interface::finalize()
+  {
+    m_pers_writer->finalize();
+  }
+
 }

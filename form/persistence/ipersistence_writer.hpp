@@ -32,6 +32,7 @@ namespace form::detail::experimental {
                                void const* data,
                                std::type_info const& type) = 0;
     virtual void commitOutput(std::string const& creator, std::string const& id) = 0;
+    virtual void finalize() = 0;
   };
 
   std::unique_ptr<IPersistenceWriter> createPersistenceWriter();

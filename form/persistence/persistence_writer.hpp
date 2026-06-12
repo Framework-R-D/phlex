@@ -36,6 +36,7 @@ namespace form::detail::experimental {
                        void const* data,
                        std::type_info const& type) override;
     void commitOutput(std::string const& creator, std::string const& id) override;
+    void finalize() override;
 
   private:
     std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);

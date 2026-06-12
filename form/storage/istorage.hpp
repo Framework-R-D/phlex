@@ -40,6 +40,7 @@ namespace form::detail::experimental {
                                void const* data,
                                std::type_info const& type) = 0;
     virtual void commitContainers(Placement const& plcmnt) = 0;
+    virtual void finalize(form::experimental::config::tech_setting_config const& settings) = 0;
   };
 
   class IStorage_File {

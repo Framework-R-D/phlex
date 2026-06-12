@@ -7,6 +7,9 @@
 #include "test_utils.hpp"
 #include "toy_tracker.hpp"
 
+#include <TFile.h>
+#include <TTree.h>
+
 #include <cstdlib>
 #include <ctime>
 #include <format>
@@ -14,6 +17,7 @@
 #include <iomanip>
 #include <iostream>
 #include <ranges>
+#include <string>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
@@ -152,5 +156,59 @@ int main(int argc, char** argv)
 
   checksum_file.close();
   std::cout << "PHLEX: Write done. Checksums saved to " << checksum_filename << '\n';
+
+  // Finalize to write FileCatalog metadata
+  form.finalize();
+  std::cout << "PHLEX: Finalize done. FileCatalog written to file." << '\n';
+
+  // Verify that the generated FileUUID exists and is a canonical UUID string.
+  TFile* root_file = TFile::Open(filename.c_str(), "READ");
+  if (root_file == nullptr || root_file->IsZombie()) {
+    std::cerr << "ERROR: Could not open generated ROOT file for validation: " << filename << '\n';
+    return 1;
+  }
+
+  TTree* catalog = root_file->Get<TTree>("FileCatalog");
+  if (catalog == nullptr) {
+    std::cerr << "ERROR: FileCatalog tree not found in generated ROOT file." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  std::string* fileUUID = nullptr;
+  int fileFormatVersion = -1;
+  catalog->SetBranchAddress("FileUUID", &fileUUID);
+  catalog->SetBranchAddress("FileFormatVersion", &fileFormatVersion);
+  if (catalog->GetEntries() < 1) {
+    std::cerr << "ERROR: FileCatalog tree has no entries." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  catalog->GetEntry(0);
+  if (fileUUID == nullptr) {
+    std::cerr << "ERROR: FileUUID branch did not populate a valid pointer." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  std::string fileUUIDValue = *fileUUID;
+
+  auto isHexChar = [](char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+  };
+  bool validUUID = fileUUIDValue.size() == 36 &&
+                   fileUUIDValue[8] == '-' && fileUUIDValue[13] == '-' &&
+                   fileUUIDValue[18] == '-' && fileUUIDValue[23] == '-' &&
+                   std::all_of(fileUUIDValue.begin(), fileUUIDValue.end(),
+                               [&](char c) { return c == '-' || isHexChar(c); });
+
+  if (!validUUID) {
+    std::cerr << "ERROR: FileUUID is not canonical: " << fileUUIDValue << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  std::cout << "PHLEX: FileUUID validated: " << fileUUIDValue << " (version=" << fileFormatVersion << ")" << '\n';
+  root_file->Close();
+
   return 0;
 }

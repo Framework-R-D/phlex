@@ -28,6 +28,8 @@ namespace form::experimental {
                std::string const& segment_id,
                std::vector<product_with_name> const& products);
 
+    void finalize();
+
   private:
     std::unique_ptr<form::detail::experimental::IPersistenceWriter> m_pers_writer;
     std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;

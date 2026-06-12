@@ -27,6 +27,7 @@ namespace form::detail::experimental {
                        void const* data,
                        std::type_info const& type) override;
     void commitContainers(Placement const& plcmnt) override;
+    void finalize(form::experimental::config::tech_setting_config const& settings) override;
 
   private:
     std::map<std::string, std::shared_ptr<IStorage_File>> m_files;

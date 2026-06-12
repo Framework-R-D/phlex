@@ -80,3 +80,8 @@ std::unique_ptr<Placement> PersistenceWriter::getPlacement(std::string const& cr
   std::string const full_label = buildFullLabel(creator, label);
   return std::make_unique<Placement>(config_item->file_name, full_label, config_item->technology);
 }
+
+void PersistenceWriter::finalize()
+{
+  m_store_writer->finalize(m_tech_settings);
+}

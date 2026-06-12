@@ -6,6 +6,17 @@
 #include "storage_write_association.hpp"
 
 #include "util/factories.hpp"
+#include "form/technology.hpp"
+
+#include <iomanip>
+#include <random>
+#include <sstream>
+
+#ifdef USE_ROOT_STORAGE
+#include "root_storage/root_tfile.hpp"
+#include "TFile.h"
+#include "TTree.h"
+#endif
 
 using namespace form::detail::experimental;
 
@@ -89,5 +100,86 @@ void StorageWriter::commitContainers(Placement const& plcmnt)
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
   auto cont = m_write_containers.find(key);
   cont->second->commit();
+  return;
+}
+
+static std::string generateUUID()
+{
+  std::random_device rd;
+  std::mt19937_64 generator(rd());
+  std::uniform_int_distribution<uint32_t> distribution(0, 0xFFFFFFFFu);
+
+  uint32_t w0 = distribution(generator);
+  uint32_t w1 = distribution(generator);
+  uint32_t w2 = distribution(generator);
+  uint32_t w3 = distribution(generator);
+
+  // RFC 4122 variant 4 UUID: set the version and variant bits.
+  uint16_t time_hi_and_version = static_cast<uint16_t>((w1 >> 16) & 0x0FFFu);
+  time_hi_and_version |= 0x4000u;
+  uint16_t clock_seq_hi_and_reserved = static_cast<uint16_t>((w2 >> 16) & 0x3FFFu);
+  clock_seq_hi_and_reserved |= 0x8000u;
+
+  std::ostringstream oss;
+  oss << std::hex << std::nouppercase << std::setfill('0');
+  oss << std::setw(8) << w0 << '-';
+  oss << std::setw(4) << static_cast<uint16_t>(w1 >> 16) << '-';
+  oss << std::setw(4) << time_hi_and_version << '-';
+  oss << std::setw(4) << clock_seq_hi_and_reserved << '-';
+  oss << std::setw(4) << static_cast<uint16_t>(w2 & 0xFFFFu);
+  oss << std::setw(8) << w3;
+
+  return oss.str();
+}
+
+void StorageWriter::finalize(form::experimental::config::tech_setting_config const& /* settings */)
+{
+  // Write FileCatalog metadata tree for each file
+#ifdef USE_ROOT_STORAGE
+  for (auto const& [fileName, file] : m_files) {
+    // Try to downcast to ROOT file implementation
+    ROOT_TFileImp* root_file = dynamic_cast<ROOT_TFileImp*>(file.get());
+    if (root_file != nullptr) {
+      auto tfile = root_file->getTFile();
+      if (tfile) {
+        // Preserve any existing FileCatalog metadata if reopening the file.
+        TObject* existing_catalog_obj = tfile->Get("FileCatalog");
+        TTree* existing_catalog = static_cast<TTree*>(existing_catalog_obj);
+        if (existing_catalog != nullptr) {
+          // Existing FileCatalog already contains the persisted FileUUID.
+          continue;
+        }
+
+        // Create FileCatalog tree for new files.
+        TTree* catalog = new TTree("FileCatalog", "File-level metadata catalog");
+
+        // Determine FileFormatVersion based on technology
+        // We need to get technology from somewhere - for now, infer from existing containers
+        int fileFormatVersion = 1; // Default: ROOT TTree
+
+        // Check if any container in this file is ROOT_RNTUPLE
+        for (auto const& [key, container] : m_write_containers) {
+          if (key.first == fileName) {
+            // We could check technology here, but for now assume ROOT_TTREE (version 1)
+            // In future, this could be enhanced to detect ROOT_RNTUPLE (version 2)
+            break;
+          }
+        }
+
+        std::string fileUUID = generateUUID();
+        catalog->Branch("FileUUID", &fileUUID);
+        // Add FileFormatVersion branch
+        catalog->Branch("FileFormatVersion", &fileFormatVersion, "FileFormatVersion/I");
+
+        // Fill the tree with one entry
+        catalog->Fill();
+
+        // Write to file
+        tfile->WriteTObject(catalog);
+        delete catalog;
+      }
+    }
+  }
+#endif
   return;
 }
