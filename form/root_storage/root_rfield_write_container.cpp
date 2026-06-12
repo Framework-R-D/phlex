@@ -18,9 +18,9 @@ namespace form::detail::experimental {
   }
 
   void ROOT_RField_Write_ContainerImp::setAttribute(std::string const& key,
-                                                    std::string const& /*value*/)
+                                                    std::string const& value)
   {
-    if (key == "force_streamer_field") {
+    if (key == "force_streamer_field" && value == "true") {
       m_force_streamer_field = true;
     } else {
       throw std::runtime_error("ROOT_RField_Write_ContainerImp supports some attributes, but not " +
