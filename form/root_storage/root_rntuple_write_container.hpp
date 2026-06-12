@@ -33,8 +33,7 @@ namespace form::detail::experimental {
     ROOT_RNTuple_Write_ContainerImp(ROOT_RNTuple_Write_ContainerImp&& other) = delete;
     ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp const& other) =
       delete;
-    ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp&& other) =
-      delete;
+    ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp&& other) = delete;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setupWrite(std::type_info const& type) override;
