@@ -121,9 +121,8 @@ namespace phlex::experimental {
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
     create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
-    driver_proxy const proxy{};
     driver_bundle result;
-    create_driver(proxy, config, &result);
+    create_driver(driver_proxy{}, config, &result);
     return result;
   }
 }

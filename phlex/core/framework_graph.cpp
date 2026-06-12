@@ -176,7 +176,7 @@ namespace phlex::experimental {
     make_bookkeeping_edges();
 
     auto [provider_input_ports, multilayer_join_index_ports] =
-      make_computational_edges(nodes_, filters_);
+      make_computational_edges(nodes_, filters_, graph_);
 
     if (provider_input_ports.empty()) {
       assert(multilayer_join_index_ports.empty());

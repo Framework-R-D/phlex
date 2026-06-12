@@ -89,7 +89,7 @@ TEST_CASE("add_to_error_messages tests", "[core]")
   using namespace phlex::experimental::detail;
 
   std::vector<std::string> errors;
-  add_to_error_messages(errors, "duplicate_node");
+  add_to_error_messages(errors, "Node", "duplicate_node");
 
   REQUIRE(errors.size() == 1);
   CHECK(errors[0].find("duplicate_node") != std::string::npos);

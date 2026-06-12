@@ -44,7 +44,7 @@ namespace phlex::experimental {
   struct py_phlex_module;
 
   // Phlex' source wrapper to register providers
-  typedef source_graph_proxy<void_tag> phlex_source_t;
+  typedef providers_graph_proxy<void_tag> phlex_source_t;
   PyObject* wrap_source(phlex_source_t& src); // returns new reference
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
