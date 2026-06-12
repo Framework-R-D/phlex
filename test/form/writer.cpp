@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <iostream>
 #include <ranges>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -208,7 +209,51 @@ int main(int argc, char** argv)
   }
 
   std::cout << "PHLEX: FileUUID validated: " << fileUUIDValue << " (version=" << fileFormatVersion << ")" << '\n';
-  root_file->Close();
 
+  TTree* registry = root_file->Get<TTree>("ProductRegistry");
+  if (registry == nullptr) {
+    std::cerr << "ERROR: ProductRegistry tree not found in generated ROOT file." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  std::string* productName = nullptr;
+  std::string* processName = nullptr;
+  std::string* producer = nullptr;
+  registry->SetBranchAddress("ProductName", &productName);
+  registry->SetBranchAddress("ProcessName", &processName);
+  registry->SetBranchAddress("Producer", &producer);
+
+  if (registry->GetEntries() == 0) {
+    std::cerr << "ERROR: ProductRegistry tree has no entries." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  std::set<std::string> product_names;
+  for (int entry = 0; entry < registry->GetEntries(); ++entry) {
+    registry->GetEntry(entry);
+    if (productName == nullptr || processName == nullptr || producer == nullptr) {
+      std::cerr << "ERROR: ProductRegistry branches did not populate valid pointers." << '\n';
+      root_file->Close();
+      return 1;
+    }
+    product_names.insert(*productName);
+    std::cout << "PHLEX: ProductRegistry entry: ProductName='" << *productName
+              << "' ProcessName='" << *processName << "' Producer='" << *producer << "'\n";
+  }
+
+  if (product_names.empty()) {
+    std::cerr << "ERROR: ProductRegistry tree contains no product names." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  std::cout << "PHLEX: ProductRegistry validated: ";
+  for (auto const& name : product_names)
+    std::cout << name << " ";
+  std::cout << '\n';
+
+  root_file->Close();
   return 0;
 }

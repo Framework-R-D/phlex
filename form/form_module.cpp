@@ -47,6 +47,15 @@ namespace {
         std::make_unique<form::experimental::form_writer_interface>(output_cfg, tech_cfg);
     }
 
+    ~FormOutputModule()
+    {
+      if (m_form_interface) {
+        std::cout << "FormOutputModule destructor: calling finalize() to write metadata\n";
+        m_form_interface->finalize();
+        std::cout << "FormOutputModule destructor: finalize() completed\n";
+      }
+    }
+
     // This method is called by Phlex - signature must be: void(product_store const&)
     void save_data_products(phlex::experimental::product_store const& store)
     {

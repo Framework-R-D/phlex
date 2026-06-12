@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <random>
 #include <sstream>
+#include <set>
 
 #ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tfile.hpp"
@@ -177,6 +178,40 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
         // Write to file
         tfile->WriteTObject(catalog);
         delete catalog;
+
+        // Create ProductRegistry tree listing payload data product trees for this file.
+        // The product registry should describe top-level payload TTrees, not individual
+        // branch or container labels within those trees.
+        std::set<std::string> product_names;
+        for (auto const& [key, container] : m_write_containers) {
+          if (key.first != fileName)
+            continue;
+          std::string const& container_name = key.second;
+          if (container_name.size() >= 6 && container_name.compare(container_name.size() - 6, 6, "/index") == 0)
+            continue;
+          if (container_name.find('/') != std::string::npos)
+            continue;
+          product_names.insert(container_name);
+        }
+        if (!product_names.empty()) {
+          TTree* registry = new TTree("ProductRegistry", "Product-level metadata catalog");
+          std::string productName;
+          std::string processName;
+          std::string producer;
+
+          registry->Branch("ProductName", &productName);
+          registry->Branch("ProcessName", &processName);
+          registry->Branch("Producer", &producer);
+
+          for (auto const& nm : product_names) {
+            productName = nm;
+            processName = std::string(); // default empty; user can annotate later
+            producer = nm; // default producer is the top-level creator/tree name
+            registry->Fill();
+          }
+          tfile->WriteTObject(registry);
+          delete registry;
+        }
       }
     }
   }
