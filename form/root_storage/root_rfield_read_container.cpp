@@ -73,7 +73,6 @@ namespace form::detail::experimental {
       }
     }
 
-    assert(id > 0); //int is needed for TTree backend.  But entry number should never be negative.
     if (id >= (int)m_reader->GetNEntries())
       return false;
 
