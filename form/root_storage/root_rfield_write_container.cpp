@@ -97,6 +97,8 @@ namespace form::detail::experimental {
     m_rntuple_parent->m_writer->Fill(*m_rntuple_parent->m_entry);
   }
 
+  //setupWrite() may not be called after the first time fill() is called.
+  //If needed in the future, this can be changed by using RNTupleModels' updater facilities.
   void ROOT_RField_Write_ContainerImp::setupWrite(std::type_info const& type)
   {
     if (!m_rntuple_parent) {
