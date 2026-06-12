@@ -9,6 +9,7 @@
 #include "TFile.h"
 
 #include <exception>
+#include <iostream>
 
 namespace form::detail::experimental {
   ROOT_RField_Write_ContainerImp::ROOT_RField_Write_ContainerImp(std::string const& name) :
