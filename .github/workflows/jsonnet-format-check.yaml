@@ -76,7 +76,7 @@ jobs:
       )
     runs-on: ubuntu-latest
     container:
-      image: public.ecr.aws/bitnami/jsonnet:latest
+      image: docker.io/dysnix/jsonnet:latest
 
     steps:
       - name: Checkout code
