@@ -3,6 +3,8 @@
 
 #include "phlex/phlex_model_export.hpp"
 
+#include <boost/hash2/hash_append.hpp>
+#include <boost/hash2/xxhash.hpp>
 #include <boost/json/fwd.hpp>
 
 #include <fmt/format.h>
@@ -16,15 +18,25 @@
 namespace phlex::experimental {
   /// If you're comparing to an identifier you know at compile time, you're probably not going to need
   /// to print it.
-  struct identifier_query {
+  class identifier;
+  struct PHLEX_MODEL_EXPORT identifier_query {
     std::uint64_t hash;
+    // This means an identifier_query can be used as a callable to check if it compares equal to an identifier
+    bool operator()(identifier const& id) const noexcept;
   };
 
   /// Carries around the string itself (as a shared_ptr to string to make copies lighter)
   /// along with a precomputed hash used for all comparisons
   class PHLEX_MODEL_EXPORT identifier {
   public:
-    static std::uint64_t hash_string(std::string_view str);
+    static constexpr std::uint64_t hash_string(std::string_view str)
+    {
+      // Hash quality is very important here, since comparisons are done using only the hash
+      using namespace boost::hash2;
+      xxhash_64 h;
+      hash_append(h, {}, str);
+      return h.result();
+    }
     // The default constructor is necessary so other classes containing identifiers
     // can have default constructors.
     identifier() = default;
@@ -74,7 +86,11 @@ namespace phlex::experimental {
   // Identifier UDL
   namespace literals {
     PHLEX_MODEL_EXPORT identifier operator""_id(char const* lit, std::size_t len);
-    PHLEX_MODEL_EXPORT identifier_query operator""_idq(char const* lit, std::size_t len);
+    consteval PHLEX_MODEL_EXPORT identifier_query operator""_idq(char const* lit, std::size_t len)
+    {
+      return {identifier::hash_string(std::string_view(lit, len))};
+    }
+
   }
 
   // Really trying to avoid the extra function call here
