@@ -34,7 +34,7 @@ namespace {
     using namespace phlex::experimental::literals;
     std::set<std::size_t> hashes{"job"_idq.hash};
     for (layer_path const& path : layer_paths) {
-      // "job" was added explicityl so it doesn't matter whether it does or does not appear in path.hashes()
+      // "job" was added explicitly so it doesn't matter whether it does or does not appear in path.hashes()
       hashes.merge(path.hashes());
     }
     return hashes;
