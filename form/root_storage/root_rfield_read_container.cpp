@@ -66,13 +66,14 @@ namespace form::detail::experimental {
             (strcmp(TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str())->GetName(),
                     TDictionary::GetDictionary(type)->GetName()) != 0)) {
           throw std::runtime_error(
-            "ROOT_RField_containerImp::read type " + DemangleName(type) +
+            "ROOT_RField_Read_ContainerImp::read type " + DemangleName(type) +
             " requested for a field named " + col_name() +
             " does not match the type in the file: " + m_view->GetField().GetTypeName());
         }
       }
     }
 
+    assert(id > 0); //int is needed for TTree backend.  But entry number should never be negative.
     if (id >= (int)m_reader->GetNEntries())
       return false;
 
