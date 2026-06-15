@@ -66,7 +66,7 @@ VALIDATE_PYTHON_SYMLINK
 RUN bash <<'INSTALL_PODMAN_CLIENT'
 set -euo pipefail
 apt-get update
-apt-get install -y --no-install-recommends podman socat
+apt-get install -y --no-install-recommends ssh podman socat
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 INSTALL_PODMAN_CLIENT
