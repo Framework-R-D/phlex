@@ -1,10 +1,7 @@
 {
     "name": "Phlex CI Dev Container",
     "build": {
-        "dockerfile": "Dockerfile",
-        "options": [
-            "--format=docker"
-        ]
+        "dockerfile": "Dockerfile"
     },
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "root",
