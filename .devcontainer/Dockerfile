@@ -61,6 +61,33 @@ fi
 echo "Python symlink validated: $python_link -> $(readlink "$python_link")"
 VALIDATE_PYTHON_SYMLINK
 
+# Remove the Ubuntu minimal dpkg excludes file so that subsequent package
+# installs populate /usr/share/man and /usr/share/doc normally.  Without this,
+# every apt-get install silently strips man pages and other documentation,
+# producing the "This system has been minimized" warning whenever `man` is run.
+# Also install man-db (the `man` command and database) and groff (the troff
+# rendering pipeline required to display man pages), then reinstall git and
+# git-man to restore man pages that were already stripped at image build time.
+# mandoc is added as a lightweight alternative renderer (e.g. for CI linting).
+RUN <<'INSTALL_MAN_TOOLS'
+set -euo pipefail
+# Remove the dpkg excludes file so future installs populate /usr/share/man.
+rm -f /etc/dpkg/dpkg.cfg.d/excludes
+apt-get update
+apt-get install -y --no-install-recommends man-db groff mandoc
+# Reinstall git and git-man to recover already-stripped man pages.
+apt-get install -y --no-install-recommends --reinstall git git-man
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+# Ubuntu minimal diverts /usr/bin/man to a stub shell script that prints the
+# "This system has been minimized" warning.  Installing man-db is not enough
+# to restore the real binary — the divert must be explicitly removed.
+if [ "$(dpkg-divert --truename /usr/bin/man)" = "/usr/bin/man.REAL" ]; then
+    rm -f /usr/bin/man
+    dpkg-divert --quiet --remove --rename /usr/bin/man
+fi
+INSTALL_MAN_TOOLS
+
 # Install podman client and socat inside the container to support nested
 # container communication and provide a 'docker' command alias.
 RUN bash <<'INSTALL_PODMAN_CLIENT'
