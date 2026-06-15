@@ -28,7 +28,4 @@ void Storage_Write_Container::setAttribute(std::string const& /*name*/,
     m_name);
 }
 
-std::uint64_t Storage_Write_Container::getEntryCount()
-{
-  return 0;
-}
+std::uint64_t Storage_Write_Container::getEntryCount() { return 0; }

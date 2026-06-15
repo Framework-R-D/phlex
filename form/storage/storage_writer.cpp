@@ -5,22 +5,22 @@
 #include "storage_file.hpp"
 #include "storage_write_association.hpp"
 
-#include "util/factories.hpp"
 #include "form/technology.hpp"
+#include "util/factories.hpp"
 
-#include <iomanip>
 #include <cctype>
-#include <cstdint>
 #include <charconv>
+#include <cstdint>
+#include <iomanip>
 #include <random>
-#include <sstream>
 #include <set>
+#include <sstream>
 
 #ifdef USE_ROOT_STORAGE
-#include "root_storage/root_tfile.hpp"
 #include "TFile.h"
 #include "TObjString.h"
 #include "TTree.h"
+#include "root_storage/root_tfile.hpp"
 #endif
 
 using namespace form::detail::experimental;
@@ -114,7 +114,8 @@ namespace {
     std::size_t start = 0;
     while (start < content.size()) {
       auto end = content.find_first_of(",;", start);
-      auto token = trim_copy(content.substr(start, end == std::string::npos ? std::string::npos : end - start));
+      auto token = trim_copy(
+        content.substr(start, end == std::string::npos ? std::string::npos : end - start));
       if (!token.empty()) {
         auto sep_pos = token.find(':');
         if (sep_pos == std::string::npos) {
@@ -259,7 +260,7 @@ void StorageWriter::createContainers(
           m_files
             .insert({plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')})
             .first;
-           for (auto const& [key, value] :
+        for (auto const& [key, value] :
              lookup_file_table(settings, plcmnt->technology(), plcmnt->fileName()))
           file->second->setAttribute(key, value);
       }
@@ -284,8 +285,8 @@ void StorageWriter::createContainers(
         }
       }
 
-       for (auto const& [key, value] :
-         lookup_container_table(settings, plcmnt->technology(), plcmnt->containerName()))
+      for (auto const& [key, value] :
+           lookup_container_table(settings, plcmnt->technology(), plcmnt->containerName()))
         container->setAttribute(key, value);
       container->setFile(file->second);
       container->setupWrite(*type);
@@ -314,8 +315,7 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
 
   if (!is_index_container(plcmnt.containerName())) {
     if (!creator_name.empty()) {
-      std::string const logical_product_name =
-        !product_name.empty() ? product_name : creator_name;
+      std::string const logical_product_name = !product_name.empty() ? product_name : creator_name;
       m_productsByProducer[plcmnt.fileName()][creator_name].insert(logical_product_name);
       auto& pending_products = m_pendingProductsByProducer[plcmnt.fileName()][creator_name];
       if (std::find(pending_products.begin(), pending_products.end(), logical_product_name) ==
@@ -350,7 +350,8 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
         if (all_by_producer != m_productsByProducer.end()) {
           auto const all_products_it = all_by_producer->second.find(creator_name);
           if (all_products_it != all_by_producer->second.end()) {
-            products_for_index.assign(all_products_it->second.begin(), all_products_it->second.end());
+            products_for_index.assign(all_products_it->second.begin(),
+                                      all_products_it->second.end());
           }
         }
       }
@@ -508,7 +509,8 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
     auto containers_it = m_indexContainerNames.find(fileName);
     auto payload_rows_it = m_indexPayloadRows.find(fileName);
     if (schema_it != m_indexLayerSchemas.end() && values_it != m_indexLayerValues.end() &&
-      idx_products_it != m_indexProductNames.end() && idx_producers_it != m_indexProducers.end() &&
+        idx_products_it != m_indexProductNames.end() &&
+        idx_producers_it != m_indexProducers.end() &&
         containers_it != m_indexContainerNames.end() &&
         payload_rows_it != m_indexPayloadRows.end()) {
       auto const& schemas = schema_it->second;
@@ -518,8 +520,8 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
       auto const& container_names = containers_it->second;
       auto const& payload_rows = payload_rows_it->second;
       if (!schemas.empty() && schemas.size() == values.size() &&
-        schemas.size() == product_names.size() && schemas.size() == producers.size() &&
-        schemas.size() == container_names.size() && schemas.size() == payload_rows.size()) {
+          schemas.size() == product_names.size() && schemas.size() == producers.size() &&
+          schemas.size() == container_names.size() && schemas.size() == payload_rows.size()) {
         std::string canonical_schema_key;
         std::size_t canonical_schema_size = 0;
         std::size_t canonical_schema_count = 0;
@@ -547,10 +549,8 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
           std::size_t start = 0;
           while (start <= canonical_schema_key.size()) {
             std::size_t end = canonical_schema_key.find(',', start);
-            std::string token = canonical_schema_key.substr(start,
-                                                             end == std::string::npos
-                                                               ? std::string::npos
-                                                               : end - start);
+            std::string token = canonical_schema_key.substr(
+              start, end == std::string::npos ? std::string::npos : end - start);
             if (!token.empty()) {
               canonical_schema.push_back(token);
             }
@@ -564,9 +564,8 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
         std::vector<std::uint64_t> layer_values_by_branch(canonical_schema.size(), 0);
         for (std::size_t i = 0; i < canonical_schema.size(); ++i) {
           std::string const leaf_list = canonical_schema[i] + "/l";
-          index_registry->Branch(canonical_schema[i].c_str(),
-                                 &layer_values_by_branch[i],
-                                 leaf_list.c_str());
+          index_registry->Branch(
+            canonical_schema[i].c_str(), &layer_values_by_branch[i], leaf_list.c_str());
         }
         std::string index_product_id;
         index_registry->Branch("ProductID", &index_product_id);

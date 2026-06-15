@@ -6,8 +6,8 @@
 #include "istorage.hpp"
 #include "storage_utils.hpp"
 
-#include <map>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -47,7 +47,8 @@ namespace form::detail::experimental {
     std::map<std::string, std::vector<std::string>> m_indexContainerNames;
     std::map<std::string, std::vector<std::uint64_t>> m_indexPayloadRows;
     std::map<std::string, std::map<std::string, std::set<std::string>>> m_productsByProducer;
-    std::map<std::string, std::map<std::string, std::vector<std::string>>> m_pendingProductsByProducer;
+    std::map<std::string, std::map<std::string, std::vector<std::string>>>
+      m_pendingProductsByProducer;
   };
 
 } // namespace form::detail::experimental

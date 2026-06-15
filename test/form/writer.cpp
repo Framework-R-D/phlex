@@ -194,14 +194,13 @@ int main(int argc, char** argv)
   }
   std::string fileUUIDValue = *fileUUID;
 
-  auto isHexChar = [](char c) {
-    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
-  };
-  bool validUUID = fileUUIDValue.size() == 36 &&
-                   fileUUIDValue[8] == '-' && fileUUIDValue[13] == '-' &&
-                   fileUUIDValue[18] == '-' && fileUUIDValue[23] == '-' &&
-                   std::all_of(fileUUIDValue.begin(), fileUUIDValue.end(),
-                               [&](char c) { return c == '-' || isHexChar(c); });
+  auto isHexChar = [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); };
+  bool validUUID = fileUUIDValue.size() == 36 && fileUUIDValue[8] == '-' &&
+                   fileUUIDValue[13] == '-' && fileUUIDValue[18] == '-' &&
+                   fileUUIDValue[23] == '-' &&
+                   std::all_of(fileUUIDValue.begin(), fileUUIDValue.end(), [&](char c) {
+                     return c == '-' || isHexChar(c);
+                   });
 
   if (!validUUID) {
     std::cerr << "ERROR: FileUUID is not canonical: " << fileUUIDValue << '\n';
@@ -209,7 +208,8 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  std::cout << "PHLEX: FileUUID validated: " << fileUUIDValue << " (version=" << fileFormatVersion << ")" << '\n';
+  std::cout << "PHLEX: FileUUID validated: " << fileUUIDValue << " (version=" << fileFormatVersion
+            << ")" << '\n';
 
   TTree* registry = root_file->Get<TTree>("ProductRegistry");
   if (registry == nullptr) {
@@ -243,19 +243,18 @@ int main(int argc, char** argv)
       root_file->Close();
       return 1;
     }
-    std::string const expected_product_id =
-      *productName + "|" + *producer + "|" + *processName;
+    std::string const expected_product_id = *productName + "|" + *producer + "|" + *processName;
     if (*productID != expected_product_id) {
-      std::cerr << "ERROR: ProductRegistry ProductID mismatch. expected='"
-                << expected_product_id << "' got='" << *productID << "'." << '\n';
+      std::cerr << "ERROR: ProductRegistry ProductID mismatch. expected='" << expected_product_id
+                << "' got='" << *productID << "'." << '\n';
       root_file->Close();
       return 1;
     }
     product_names.insert(*productName);
     product_ids.insert(*productID);
-    std::cout << "PHLEX: ProductRegistry entry: ProductName='" << *productName
-              << "' ProcessName='" << *processName << "' Producer='" << *producer
-              << "' ProductID='" << *productID << "'\n";
+    std::cout << "PHLEX: ProductRegistry entry: ProductName='" << *productName << "' ProcessName='"
+              << *processName << "' Producer='" << *producer << "' ProductID='" << *productID
+              << "'\n";
   }
 
   if (product_names.empty()) {
@@ -309,8 +308,8 @@ int main(int argc, char** argv)
     std::size_t start = 0;
     while (start <= schema_text.size()) {
       std::size_t end = schema_text.find(',', start);
-      std::string token = schema_text.substr(start,
-                                             end == std::string::npos ? std::string::npos : end - start);
+      std::string token =
+        schema_text.substr(start, end == std::string::npos ? std::string::npos : end - start);
       if (token.size() >= 2 && token.front() == '"' && token.back() == '"') {
         token = token.substr(1, token.size() - 2);
       }
@@ -343,7 +342,9 @@ int main(int argc, char** argv)
     return 1;
   }
   if (branch_list->GetEntries() != static_cast<int>(header_schema.size()) + 3) {
-    std::cerr << "ERROR: IndexRegistry branch count does not match LayerSchema size + ProductID + ContainerName + PayloadRow." << '\n';
+    std::cerr << "ERROR: IndexRegistry branch count does not match LayerSchema size + ProductID + "
+                 "ContainerName + PayloadRow."
+              << '\n';
     root_file->Close();
     return 1;
   }
@@ -355,16 +356,17 @@ int main(int argc, char** argv)
       return 1;
     }
     if (header_schema[i] != branch_obj->GetName()) {
-      std::cerr << "ERROR: IndexRegistry branch order does not match LayerSchema at position "
-                << i << ": expected '" << header_schema[i] << "' got '" << branch_obj->GetName()
-                << "'." << '\n';
+      std::cerr << "ERROR: IndexRegistry branch order does not match LayerSchema at position " << i
+                << ": expected '" << header_schema[i] << "' got '" << branch_obj->GetName() << "'."
+                << '\n';
       root_file->Close();
       return 1;
     }
   }
   auto* product_branch_obj = branch_list->At(static_cast<int>(header_schema.size()));
   if (product_branch_obj == nullptr || std::string(product_branch_obj->GetName()) != "ProductID") {
-    std::cerr << "ERROR: IndexRegistry branch order missing ProductID after layer branches." << '\n';
+    std::cerr << "ERROR: IndexRegistry branch order missing ProductID after layer branches."
+              << '\n';
     root_file->Close();
     return 1;
   }
@@ -378,7 +380,8 @@ int main(int argc, char** argv)
   auto* payload_row_branch_obj = branch_list->At(static_cast<int>(header_schema.size()) + 2);
   if (payload_row_branch_obj == nullptr ||
       std::string(payload_row_branch_obj->GetName()) != "PayloadRow") {
-    std::cerr << "ERROR: IndexRegistry branch order missing PayloadRow after ContainerName." << '\n';
+    std::cerr << "ERROR: IndexRegistry branch order missing PayloadRow after ContainerName."
+              << '\n';
     root_file->Close();
     return 1;
   }
@@ -386,7 +389,8 @@ int main(int argc, char** argv)
   std::vector<unsigned long long> layer_branch_values(header_schema.size(), 0);
   for (std::size_t i = 0; i < header_schema.size(); ++i) {
     if (index_registry->GetBranch(header_schema[i].c_str()) == nullptr) {
-      std::cerr << "ERROR: IndexRegistry branch missing for layer '" << header_schema[i] << "'." << '\n';
+      std::cerr << "ERROR: IndexRegistry branch missing for layer '" << header_schema[i] << "'."
+                << '\n';
       root_file->Close();
       return 1;
     }
@@ -432,7 +436,8 @@ int main(int argc, char** argv)
       return 1;
     }
     if (container_name == nullptr || container_name->empty()) {
-      std::cerr << "ERROR: IndexRegistry ContainerName branch did not populate valid value." << '\n';
+      std::cerr << "ERROR: IndexRegistry ContainerName branch did not populate valid value."
+                << '\n';
       root_file->Close();
       return 1;
     }
@@ -446,8 +451,8 @@ int main(int argc, char** argv)
 
     unsigned long long const expected_payload_row = static_cast<unsigned long long>(entry);
     if (payload_row != expected_payload_row) {
-      std::cerr << "ERROR: IndexRegistry PayloadRow mismatch at entry " << entry
-                << ": expected " << expected_payload_row << " got " << payload_row << "." << '\n';
+      std::cerr << "ERROR: IndexRegistry PayloadRow mismatch at entry " << entry << ": expected "
+                << expected_payload_row << " got " << payload_row << "." << '\n';
       root_file->Close();
       return 1;
     }
@@ -459,7 +464,8 @@ int main(int argc, char** argv)
       unsigned long long const seg_val = layer_branch_values[1];
 
       if (event_val >= static_cast<unsigned long long>(NUMBER_EVENT)) {
-        std::cerr << "ERROR: EVENT value out of range in IndexRegistry sample: " << event_val << '\n';
+        std::cerr << "ERROR: EVENT value out of range in IndexRegistry sample: " << event_val
+                  << '\n';
         root_file->Close();
         return 1;
       }
@@ -470,12 +476,13 @@ int main(int argc, char** argv)
       }
 
       if (has_prev) {
-        bool const monotonic_ok =
-          (event_val > prev_event && seg_val == 0) ||
-          (event_val == prev_event && seg_val > prev_seg) ||
-          (event_val == prev_event && seg_val == prev_seg);
+        bool const monotonic_ok = (event_val > prev_event && seg_val == 0) ||
+                                  (event_val == prev_event && seg_val > prev_seg) ||
+                                  (event_val == prev_event && seg_val == prev_seg);
         if (!monotonic_ok) {
-          std::cerr << "ERROR: IndexRegistry sample entries are not monotonic by EVENT/SEG ordering." << '\n';
+          std::cerr
+            << "ERROR: IndexRegistry sample entries are not monotonic by EVENT/SEG ordering."
+            << '\n';
           root_file->Close();
           return 1;
         }
@@ -488,7 +495,9 @@ int main(int argc, char** argv)
   }
 
   if (header_schema.size() != 2 || header_schema[0] != "EVENT" || header_schema[1] != "SEG") {
-    std::cerr << "ERROR: IndexRegistry LayerSchema header is not EVENT,SEG as expected for this test." << '\n';
+    std::cerr
+      << "ERROR: IndexRegistry LayerSchema header is not EVENT,SEG as expected for this test."
+      << '\n';
     root_file->Close();
     return 1;
   }
@@ -517,8 +526,8 @@ int main(int argc, char** argv)
   std::cout << "PHLEX: ProductRegistry validated with " << product_names.size()
             << " product names and " << product_ids.size() << " product IDs" << '\n';
 
-  std::cout << "PHLEX: IndexRegistry validated with " << index_registry->GetEntries()
-            << " entries" << '\n';
+  std::cout << "PHLEX: IndexRegistry validated with " << index_registry->GetEntries() << " entries"
+            << '\n';
 
   root_file->Close();
   return 0;

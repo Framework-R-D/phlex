@@ -55,7 +55,7 @@ void PersistenceWriter::registerWrite(std::string const& creator,
                                       std::type_info const& type,
                                       std::string const& product_name)
 {
-  m_current_creator = creator;  // Cache creator for use in commitOutput
+  m_current_creator = creator; // Cache creator for use in commitOutput
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
   m_store_writer->fillContainer(*plcmnt, data, type, product_name);
   return;
@@ -84,7 +84,4 @@ std::unique_ptr<Placement> PersistenceWriter::getPlacement(std::string const& cr
   return std::make_unique<Placement>(config_item->file_name, full_label, config_item->technology);
 }
 
-void PersistenceWriter::finalize()
-{
-  m_store_writer->finalize(m_tech_settings);
-}
+void PersistenceWriter::finalize() { m_store_writer->finalize(m_tech_settings); }
