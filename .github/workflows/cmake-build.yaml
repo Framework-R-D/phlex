@@ -107,7 +107,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -132,7 +132,7 @@ jobs:
       matrix: ${{ steps.generate.outputs.matrix }}
     steps:
       - id: generate
-        uses: Framework-R-D/phlex/.github/actions/generate-build-matrix@main
+        uses: Framework-R-D/action-generate-build-matrix@a867325d7153f7fcc7d64fc69eafcb2b97edae39 # v1
         with:
           user-input: ${{ inputs.build-combinations || github.event.inputs.build-combinations }}
           comment-body: ${{ github.event.comment.body }}
@@ -165,7 +165,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup build environment
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        uses: Framework-R-D/action-setup-build-env@780fd75b00a291df6a42d9d2337651330ebdb907 # v1
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -174,7 +174,7 @@ jobs:
 
       - name: Configure CMake
         id: configure
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: Framework-R-D/action-configure-cmake@e9abed19c06a2eedfed90c1f39f3a875cf206ec3 # v1
         with:
           source-path: ${{ needs.setup.outputs.checkout_path }}
           build-path: ${{ needs.setup.outputs.build_path }}
@@ -187,7 +187,7 @@ jobs:
 
       - name: Build
         id: build
-        uses: Framework-R-D/phlex/.github/actions/build-cmake@main
+        uses: Framework-R-D/action-build-cmake@30bca0b2d76e90cf1cc9e6e863aed5be505e7e61 # v1
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -323,6 +323,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always()
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
         with:
           status: ${{ needs.build.result }}

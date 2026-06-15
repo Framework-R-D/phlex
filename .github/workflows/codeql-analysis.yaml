@@ -83,7 +83,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -110,7 +110,7 @@ jobs:
       - name: Detect C++ changes
         id: detect_cpp
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/phlex/.github/actions/run-change-detection@main
+        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -124,7 +124,7 @@ jobs:
       - name: Detect Python changes
         id: detect_python
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/phlex/.github/actions/run-change-detection@main
+        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -136,7 +136,7 @@ jobs:
       - name: Detect Actions changes
         id: detect_actions
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/phlex/.github/actions/run-change-detection@main
+        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -146,8 +146,6 @@ jobs:
           include-globs: |
             .github/workflows/*.yaml
             .github/workflows/*.yml
-            .github/actions/**/action.yaml
-            .github/actions/**/action.yml
 
   determine-languages:
     needs: setup
@@ -216,7 +214,7 @@ jobs:
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
     env:
-      local_checkout_path: ${{ needs.setup.outputs.checkout_path }}
+      local_checkout_path: .
       local_build_path: ${{ needs.setup.outputs.build_path }}
       CODEQL_EXTRACTOR_CPP_COMPILATION_DATABASE:
         ${{ github.workspace }}/${{ needs.setup.outputs.build_path }}/compile_commands.json
@@ -226,6 +224,11 @@ jobs:
         language: ${{ fromJson(needs.determine-languages.outputs.languages) }}
     timeout-minutes: 120
     steps:
+      - name: Configure git safe directory
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        shell: bash
+
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -234,7 +237,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup build environment
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        uses: Framework-R-D/action-setup-build-env@780fd75b00a291df6a42d9d2337651330ebdb907 # v1
         with:
           build-path: ${{ env.local_build_path }}
 
@@ -248,7 +251,7 @@ jobs:
 
       - name: Produce compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: Framework-R-D/action-configure-cmake@e9abed19c06a2eedfed90c1f39f3a875cf206ec3 # v1
         with:
           build-type: ${{ env.BUILD_TYPE }}
           source-path: ${{ env.local_checkout_path }}
