@@ -34,7 +34,8 @@ namespace form::detail::experimental {
     void registerWrite(std::string const& creator,
                        std::string const& label,
                        void const* data,
-                       std::type_info const& type) override;
+                       std::type_info const& type,
+                       std::string const& product_name = "") override;
     void commitOutput(std::string const& creator, std::string const& id) override;
     void finalize() override;
 
@@ -45,6 +46,7 @@ namespace form::detail::experimental {
     std::unique_ptr<IStorageWriter> m_store_writer;
     form::experimental::config::ItemConfig m_config_items;
     form::experimental::config::tech_setting_config m_tech_settings;
+    std::string m_current_creator;
   };
 
 } // namespace form::detail::experimental

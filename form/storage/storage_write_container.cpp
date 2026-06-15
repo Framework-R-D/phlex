@@ -27,3 +27,8 @@ void Storage_Write_Container::setAttribute(std::string const& /*name*/,
     "Storage_Write_Container::setAttribute does not accept any attributes for a container named " +
     m_name);
 }
+
+std::uint64_t Storage_Write_Container::getEntryCount()
+{
+  return 0;
+}

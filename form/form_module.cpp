@@ -45,6 +45,11 @@ namespace {
       // Initialize FORM interface
       m_form_interface =
         std::make_unique<form::experimental::form_writer_interface>(output_cfg, tech_cfg);
+
+      // Explicitly declare ProductNames from user config (products list in jsonnet)
+      for (auto const& product : products_to_save) {
+        m_form_interface->declareProductName(product, product);
+      }
     }
 
     ~FormOutputModule()

@@ -8,6 +8,7 @@
 #include "toy_tracker.hpp"
 
 #include <TFile.h>
+#include <TObjString.h>
 #include <TTree.h>
 
 #include <cstdlib>
@@ -220,9 +221,11 @@ int main(int argc, char** argv)
   std::string* productName = nullptr;
   std::string* processName = nullptr;
   std::string* producer = nullptr;
+  std::string* productID = nullptr;
   registry->SetBranchAddress("ProductName", &productName);
   registry->SetBranchAddress("ProcessName", &processName);
   registry->SetBranchAddress("Producer", &producer);
+  registry->SetBranchAddress("ProductID", &productID);
 
   if (registry->GetEntries() == 0) {
     std::cerr << "ERROR: ProductRegistry tree has no entries." << '\n';
@@ -231,16 +234,28 @@ int main(int argc, char** argv)
   }
 
   std::set<std::string> product_names;
+  std::set<std::string> product_ids;
   for (int entry = 0; entry < registry->GetEntries(); ++entry) {
     registry->GetEntry(entry);
-    if (productName == nullptr || processName == nullptr || producer == nullptr) {
+    if (productName == nullptr || processName == nullptr || producer == nullptr ||
+        productID == nullptr) {
       std::cerr << "ERROR: ProductRegistry branches did not populate valid pointers." << '\n';
       root_file->Close();
       return 1;
     }
+    std::string const expected_product_id =
+      *productName + "|" + *producer + "|" + *processName;
+    if (*productID != expected_product_id) {
+      std::cerr << "ERROR: ProductRegistry ProductID mismatch. expected='"
+                << expected_product_id << "' got='" << *productID << "'." << '\n';
+      root_file->Close();
+      return 1;
+    }
     product_names.insert(*productName);
+    product_ids.insert(*productID);
     std::cout << "PHLEX: ProductRegistry entry: ProductName='" << *productName
-              << "' ProcessName='" << *processName << "' Producer='" << *producer << "'\n";
+              << "' ProcessName='" << *processName << "' Producer='" << *producer
+              << "' ProductID='" << *productID << "'\n";
   }
 
   if (product_names.empty()) {
@@ -253,6 +268,257 @@ int main(int argc, char** argv)
   for (auto const& name : product_names)
     std::cout << name << " ";
   std::cout << '\n';
+
+  TTree* index_registry = root_file->Get<TTree>("IndexRegistry");
+  if (index_registry == nullptr) {
+    std::cerr << "ERROR: IndexRegistry tree not found in generated ROOT file." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  TObjString* layer_schema_meta = nullptr;
+  auto* user_info = index_registry->GetUserInfo();
+  if (user_info != nullptr) {
+    for (int i = 0; i < user_info->GetEntries(); ++i) {
+      auto* obj = user_info->At(i);
+      auto* candidate = dynamic_cast<TObjString*>(obj);
+      if (candidate == nullptr) {
+        continue;
+      }
+      std::string payload = candidate->GetString().Data();
+      if (payload.size() >= 2 && payload.front() == '[' && payload.back() == ']') {
+        layer_schema_meta = candidate;
+        break;
+      }
+    }
+  }
+
+  if (layer_schema_meta == nullptr) {
+    std::cerr << "ERROR: IndexRegistry header does not contain LayerSchema metadata." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  std::vector<std::string> header_schema;
+  {
+    std::string schema_text = layer_schema_meta->GetString().Data();
+    if (schema_text.size() >= 2 && schema_text.front() == '[' && schema_text.back() == ']') {
+      schema_text = schema_text.substr(1, schema_text.size() - 2);
+    }
+
+    std::size_t start = 0;
+    while (start <= schema_text.size()) {
+      std::size_t end = schema_text.find(',', start);
+      std::string token = schema_text.substr(start,
+                                             end == std::string::npos ? std::string::npos : end - start);
+      if (token.size() >= 2 && token.front() == '"' && token.back() == '"') {
+        token = token.substr(1, token.size() - 2);
+      }
+      if (!token.empty()) {
+        header_schema.push_back(token);
+      }
+      if (end == std::string::npos) {
+        break;
+      }
+      start = end + 1;
+    }
+  }
+
+  if (header_schema.empty()) {
+    std::cerr << "ERROR: IndexRegistry LayerSchema header is empty." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  if (index_registry->GetEntries() == 0) {
+    std::cerr << "ERROR: IndexRegistry tree has no entries." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  auto* branch_list = index_registry->GetListOfBranches();
+  if (branch_list == nullptr) {
+    std::cerr << "ERROR: IndexRegistry has no branch list." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  if (branch_list->GetEntries() != static_cast<int>(header_schema.size()) + 3) {
+    std::cerr << "ERROR: IndexRegistry branch count does not match LayerSchema size + ProductID + ContainerName + PayloadRow." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  for (std::size_t i = 0; i < header_schema.size(); ++i) {
+    auto* branch_obj = branch_list->At(static_cast<int>(i));
+    if (branch_obj == nullptr) {
+      std::cerr << "ERROR: IndexRegistry has null branch object at position " << i << "." << '\n';
+      root_file->Close();
+      return 1;
+    }
+    if (header_schema[i] != branch_obj->GetName()) {
+      std::cerr << "ERROR: IndexRegistry branch order does not match LayerSchema at position "
+                << i << ": expected '" << header_schema[i] << "' got '" << branch_obj->GetName()
+                << "'." << '\n';
+      root_file->Close();
+      return 1;
+    }
+  }
+  auto* product_branch_obj = branch_list->At(static_cast<int>(header_schema.size()));
+  if (product_branch_obj == nullptr || std::string(product_branch_obj->GetName()) != "ProductID") {
+    std::cerr << "ERROR: IndexRegistry branch order missing ProductID after layer branches." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  auto* container_branch_obj = branch_list->At(static_cast<int>(header_schema.size()) + 1);
+  if (container_branch_obj == nullptr ||
+      std::string(container_branch_obj->GetName()) != "ContainerName") {
+    std::cerr << "ERROR: IndexRegistry branch order missing ContainerName after ProductID." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  auto* payload_row_branch_obj = branch_list->At(static_cast<int>(header_schema.size()) + 2);
+  if (payload_row_branch_obj == nullptr ||
+      std::string(payload_row_branch_obj->GetName()) != "PayloadRow") {
+    std::cerr << "ERROR: IndexRegistry branch order missing PayloadRow after ContainerName." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  std::vector<unsigned long long> layer_branch_values(header_schema.size(), 0);
+  for (std::size_t i = 0; i < header_schema.size(); ++i) {
+    if (index_registry->GetBranch(header_schema[i].c_str()) == nullptr) {
+      std::cerr << "ERROR: IndexRegistry branch missing for layer '" << header_schema[i] << "'." << '\n';
+      root_file->Close();
+      return 1;
+    }
+    index_registry->SetBranchAddress(header_schema[i].c_str(), &layer_branch_values[i]);
+  }
+  std::string* product_id = nullptr;
+  if (index_registry->GetBranch("ProductID") == nullptr) {
+    std::cerr << "ERROR: IndexRegistry ProductID branch missing." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  index_registry->SetBranchAddress("ProductID", &product_id);
+  std::string* container_name = nullptr;
+  if (index_registry->GetBranch("ContainerName") == nullptr) {
+    std::cerr << "ERROR: IndexRegistry ContainerName branch missing." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  index_registry->SetBranchAddress("ContainerName", &container_name);
+  unsigned long long payload_row = 0;
+  if (index_registry->GetBranch("PayloadRow") == nullptr) {
+    std::cerr << "ERROR: IndexRegistry PayloadRow branch missing." << '\n';
+    root_file->Close();
+    return 1;
+  }
+  index_registry->SetBranchAddress("PayloadRow", &payload_row);
+
+  int const sample_entries = index_registry->GetEntries() < 8 ? index_registry->GetEntries() : 8;
+  unsigned long long prev_event = 0;
+  unsigned long long prev_seg = 0;
+  std::set<std::string> observed_product_ids;
+  bool has_prev = false;
+  for (int entry = 0; entry < index_registry->GetEntries(); ++entry) {
+    index_registry->GetEntry(entry);
+    if (layer_branch_values.empty()) {
+      std::cerr << "ERROR: IndexRegistry layer branch values are empty." << '\n';
+      root_file->Close();
+      return 1;
+    }
+    if (product_id == nullptr || product_id->empty()) {
+      std::cerr << "ERROR: IndexRegistry ProductID branch did not populate valid value." << '\n';
+      root_file->Close();
+      return 1;
+    }
+    if (container_name == nullptr || container_name->empty()) {
+      std::cerr << "ERROR: IndexRegistry ContainerName branch did not populate valid value." << '\n';
+      root_file->Close();
+      return 1;
+    }
+    // ContainerName must be a top-level TTree/RNTuple name (no '/' slash)
+    if (container_name->find('/') != std::string::npos) {
+      std::cerr << "ERROR: IndexRegistry ContainerName should be top-level container name, got: '"
+                << *container_name << "'." << '\n';
+      root_file->Close();
+      return 1;
+    }
+
+    unsigned long long const expected_payload_row = static_cast<unsigned long long>(entry);
+    if (payload_row != expected_payload_row) {
+      std::cerr << "ERROR: IndexRegistry PayloadRow mismatch at entry " << entry
+                << ": expected " << expected_payload_row << " got " << payload_row << "." << '\n';
+      root_file->Close();
+      return 1;
+    }
+
+    observed_product_ids.insert(*product_id);
+
+    if (entry < sample_entries && header_schema.size() >= 2) {
+      unsigned long long const event_val = layer_branch_values[0];
+      unsigned long long const seg_val = layer_branch_values[1];
+
+      if (event_val >= static_cast<unsigned long long>(NUMBER_EVENT)) {
+        std::cerr << "ERROR: EVENT value out of range in IndexRegistry sample: " << event_val << '\n';
+        root_file->Close();
+        return 1;
+      }
+      if (seg_val >= static_cast<unsigned long long>(NUMBER_SEGMENT)) {
+        std::cerr << "ERROR: SEG value out of range in IndexRegistry sample: " << seg_val << '\n';
+        root_file->Close();
+        return 1;
+      }
+
+      if (has_prev) {
+        bool const monotonic_ok =
+          (event_val > prev_event && seg_val == 0) ||
+          (event_val == prev_event && seg_val > prev_seg) ||
+          (event_val == prev_event && seg_val == prev_seg);
+        if (!monotonic_ok) {
+          std::cerr << "ERROR: IndexRegistry sample entries are not monotonic by EVENT/SEG ordering." << '\n';
+          root_file->Close();
+          return 1;
+        }
+      }
+
+      prev_event = event_val;
+      prev_seg = seg_val;
+      has_prev = true;
+    }
+  }
+
+  if (header_schema.size() != 2 || header_schema[0] != "EVENT" || header_schema[1] != "SEG") {
+    std::cerr << "ERROR: IndexRegistry LayerSchema header is not EVENT,SEG as expected for this test." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  if (product_ids.empty()) {
+    std::cerr << "ERROR: ProductRegistry ProductID values are empty." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  if (observed_product_ids.empty()) {
+    std::cerr << "ERROR: IndexRegistry ProductID values are empty." << '\n';
+    root_file->Close();
+    return 1;
+  }
+
+  for (auto const& observed_id : observed_product_ids) {
+    if (!product_ids.contains(observed_id)) {
+      std::cerr << "ERROR: IndexRegistry ProductID value not present in ProductRegistry: "
+                << observed_id << '\n';
+      root_file->Close();
+      return 1;
+    }
+  }
+
+  std::cout << "PHLEX: ProductRegistry validated with " << product_names.size()
+            << " product names and " << product_ids.size() << " product IDs" << '\n';
+
+  std::cout << "PHLEX: IndexRegistry validated with " << index_registry->GetEntries()
+            << " entries" << '\n';
 
   root_file->Close();
   return 0;
