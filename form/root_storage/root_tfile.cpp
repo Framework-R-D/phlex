@@ -26,10 +26,6 @@ ROOT_TFileImp::ROOT_TFileImp(std::string const& name, char mode) :
   } else {
     throw std::runtime_error(std::string("Unsupported ROOT file open mode: ") + mode);
   }
-
-  if (!m_file || m_file->IsZombie()) {
-    throw std::runtime_error("Failed to open ROOT file: " + name);
-  }
 }
 
 ROOT_TFileImp::~ROOT_TFileImp() = default;
