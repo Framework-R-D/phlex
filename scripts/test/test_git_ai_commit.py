@@ -642,7 +642,7 @@ class TestAntigravityBackend:
         tmp_path: Path,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """main runs successfully with antigravity backend."""
+        """Main runs successfully with antigravity backend."""
         monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "antigravity", "--yes"])
         monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
         monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "some diff")
