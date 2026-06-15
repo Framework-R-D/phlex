@@ -625,7 +625,10 @@ def _chat_antigravity(model: str, messages: list[dict[str, str]]) -> str:
             capture_output=True,
             text=True,
             check=False,
+            timeout=60,
         )
+    except subprocess.TimeoutExpired as exc:
+        raise _APIError("Antigravity CLI (agy) timed out after 60 seconds.", status=0) from exc
     except FileNotFoundError as exc:
         raise _Error(
             "Antigravity CLI (agy) not found in PATH. Ensure it is installed and available."
