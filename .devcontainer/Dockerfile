@@ -69,7 +69,7 @@ VALIDATE_PYTHON_SYMLINK
 # rendering pipeline required to display man pages), then reinstall git and
 # git-man to restore man pages that were already stripped at image build time.
 # mandoc is added as a lightweight alternative renderer (e.g. for CI linting).
-RUN <<'INSTALL_MAN_TOOLS'
+RUN bash <<'INSTALL_MAN_TOOLS'
 set -euo pipefail
 # Remove the dpkg excludes file so future installs populate /usr/share/man.
 rm -f /etc/dpkg/dpkg.cfg.d/excludes
