@@ -697,7 +697,7 @@ been updated to the *old* PR number, so for those you must edit
 
 ```bash
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 # Replace 999 with the phlex PR number recorded in Phase 5 step 8 before running.
 PR_NUMBER="${PR_NUMBER:-999}"
 [ "${PR_NUMBER}" != "999" ] \
