@@ -171,7 +171,7 @@ endif()
 
 # C++ helper to provide a driver
 add_library(cppsource4py MODULE source.cpp)
-target_link_libraries(cppsource4py PRIVATE phlex::module)
+target_link_libraries(cppsource4py PRIVATE phlex::source)
 
 # phlex-based tests (no cppyy dependency)
 add_test(NAME py:add COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyadd.jsonnet)

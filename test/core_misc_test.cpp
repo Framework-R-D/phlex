@@ -3,6 +3,7 @@
 #include "phlex/core/glue.hpp"
 #include "phlex/core/registrar.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 #include <boost/json.hpp>
@@ -44,6 +45,17 @@ TEST_CASE("algorithm_name tests", "[model]")
     algorithm_name an = algorithm_name::create("p:a");
     CHECK(an.match(algorithm_name::create("p:a")));
     CHECK_FALSE(an.match(algorithm_name::create("p:b")));
+  }
+  SECTION("Bulleted list of algorithm_name")
+  {
+    std::vector<algorithm_name> ans = {algorithm_name::create("p:a1"),
+                                       algorithm_name::create("p:a2")};
+    CHECK(bulleted_list(ans) == "  - p:a1\n  - p:a2");
+  }
+  SECTION("Empty bulleted list")
+  {
+    CHECK(bulleted_list(std::vector<identifier>{}) == "");
+    CHECK(bulleted_list(std::vector<algorithm_name>{}) == "");
   }
 }
 
@@ -89,7 +101,7 @@ TEST_CASE("add_to_error_messages tests", "[core]")
   using namespace phlex::experimental::detail;
 
   std::vector<std::string> errors;
-  add_to_error_messages(errors, "duplicate_node");
+  add_to_error_messages(errors, "Node", "duplicate_node");
 
   REQUIRE(errors.size() == 1);
   CHECK(errors[0].find("duplicate_node") != std::string::npos);

@@ -51,6 +51,59 @@ clone_if_absent() {
   done
 }
 
+ensure_bind_dir() {
+  mkdir -p "$@"
+}
+
+# start_socat_relay LABEL KILL_PATTERN LISTEN_SPEC CONNECT_SPEC LOGFILE READY_TEST
+#
+# Start a background socat relay, waiting up to 2 s for it to become ready.
+#
+#   LABEL        - human-readable name for log messages
+#   KILL_PATTERN - argument to pkill -f to stop any existing relay
+#   LISTEN_SPEC  - socat first address (the listening side)
+#   CONNECT_SPEC - socat second address (the connecting side)
+#   LOGFILE      - path for socat stdout/stderr
+#   READY_TEST   - shell command whose exit code indicates readiness
+#
+# Returns 0 if the relay is ready, 1 otherwise.
+start_socat_relay() {
+  local label="$1"
+  local kill_pattern="$2"
+  local listen_spec="$3"
+  local connect_spec="$4"
+  local logfile="$5"
+  local ready_test="$6"
+
+  if ! command -v socat >/dev/null 2>&1; then
+    echo "WARNING: socat not found; cannot start ${label} relay" >&2
+    return 1
+  fi
+
+  # Stop any pre-existing relay process.
+  pkill -f "${kill_pattern}" 2>/dev/null || true
+  sleep 0.2
+
+  echo "Starting ${label} relay: ${listen_spec} -> ${connect_spec} ..."
+  nohup setsid socat "${listen_spec}" "${connect_spec}" > "${logfile}" 2>&1 &
+
+  # Wait up to 2 s for the relay to become ready.
+  local i=0
+  while [ "${i}" -lt 20 ]; do
+    eval "${ready_test}" 2>/dev/null && break
+    sleep 0.1
+    i=$(( i + 1 ))
+  done
+
+  if eval "${ready_test}" 2>/dev/null; then
+    echo "${label} relay ready"
+    return 0
+  else
+    echo "WARNING: ${label} relay did not become ready in time" >&2
+    return 1
+  fi
+}
+
 clone_if_absent phlex-design
 clone_if_absent phlex-examples
 clone_if_absent phlex-coding-guidelines
@@ -68,35 +121,16 @@ PODMAN_REAL_SOCKET="${XDG_RUNTIME_DIR:-/run/user/${USER_ID}}/podman/podman.sock"
 PROXY_DIR="${HOME}/.podman-proxy"
 PROXY_SOCKET="${PROXY_DIR}/podman.sock"
 
-# Kill any existing socat proxy for this socket
-pkill -f "socat UNIX-LISTEN:${PROXY_SOCKET}" || true
-# Wait for old process to die and socket to be removed
-sleep 0.2
-mkdir -p "${PROXY_DIR}"
-chmod 700 "${PROXY_DIR}"
-
-mkdir -p "${PROXY_DIR}"
-chmod 700 "${PROXY_DIR}"
+ensure_bind_dir -m 0700 "${PROXY_DIR}"
 
 if [ -S "${PODMAN_REAL_SOCKET}" ]; then
-  if command -v socat >/dev/null 2>&1; then
-    echo "Proxying Podman socket ${PODMAN_REAL_SOCKET} -> ${PROXY_SOCKET} ..."
-    # Use a background socat to proxy the real socket to the proxy socket.
-    # This socket will be bind-mounted at the SAME PATH in the container.
-    nohup setsid socat "UNIX-LISTEN:${PROXY_SOCKET},fork,reuseaddr,unlink-early" "UNIX-CONNECT:${PODMAN_REAL_SOCKET}" > /tmp/socat-podman.log 2>&1 &
-    # Wait for socket to be created
-    i=0
-    while [ $i -lt 20 ] && [ ! -S "${PROXY_SOCKET}" ]; do
-      sleep 0.1
-      i=$((i + 1))
-    done
-    if [ ! -S "${PROXY_SOCKET}" ]; then
-      echo "WARNING: Socket creation timed out; creating placeholder" >&2
-      socat "UNIX-LISTEN:${PROXY_SOCKET},fork,reuseaddr" "UNIX-CONNECT:${PODMAN_REAL_SOCKET}" &
-    fi
-  else
-    echo "WARNING: socat not found on host; act will not work inside the container" >&2
-  fi
+  start_socat_relay \
+    "Podman socket" \
+    "socat UNIX-LISTEN:${PROXY_SOCKET}" \
+    "UNIX-LISTEN:${PROXY_SOCKET},fork,reuseaddr,unlink-early" \
+    "UNIX-CONNECT:${PODMAN_REAL_SOCKET}" \
+    "/tmp/socat-podman.log" \
+    "[ -S '${PROXY_SOCKET}' ]" || true
 else
   echo "WARNING: Podman socket not found at ${PODMAN_REAL_SOCKET}" >&2
   echo "  To use 'act' inside the devcontainer, enable the Podman socket:" >&2
@@ -115,5 +149,45 @@ s = socket.socket(socket.AF_UNIX)
 s.bind('${PROXY_SOCKET}')
 " 2>/dev/null || touch "${PROXY_SOCKET}"
 fi
+
+# --- Headroom Proxy Relay for Devcontainer ---
+#
+# The headroom proxy is an SSH-tunnelled port bound only to 127.0.0.1 on this
+# host.  Rootless Podman uses pasta for container networking, so containers
+# reach the host via host.docker.internal (169.254.1.2) rather than via a
+# bridge interface.  However, pasta maps host.docker.internal to the host's
+# loopback only for ports that are actually listening on all interfaces --
+# headroom's port is bound to 127.0.0.1 only and is therefore unreachable.
+#
+# We relay headroom onto a different port on 0.0.0.0 so that containers can
+# reach it via host.docker.internal:$HEADROOM_RELAY_PORT.  A different port is
+# required because 0.0.0.0:$HEADROOM_PORT would conflict with the existing
+# 127.0.0.1:$HEADROOM_PORT listener.  KILO_CONFIG_CONTENT_DOCKER is passed into the
+# devcontainer and post-create.sh wires it into /root/.bashrc to point at
+# host.docker.internal:$HEADROOM_RELAY_PORT.
+
+HEADROOM_PORT="${HEADROOM_PORT:-9797}"
+HEADROOM_RELAY_PORT=$(( HEADROOM_PORT + 10000 ))
+HEADROOM_LOCAL="127.0.0.1:${HEADROOM_PORT}"
+
+if ss -tlnp 2>/dev/null | grep -q "127.0.0.1:${HEADROOM_PORT}"; then
+  start_socat_relay \
+    "Headroom proxy" \
+    "socat TCP-LISTEN:${HEADROOM_RELAY_PORT}" \
+    "TCP-LISTEN:${HEADROOM_RELAY_PORT},fork,reuseaddr" \
+    "TCP:${HEADROOM_LOCAL}" \
+    "/tmp/socat-headroom.log" \
+    "ss -tlnp 2>/dev/null | grep -q ':${HEADROOM_RELAY_PORT} '" || true
+else
+  echo "WARNING: headroom proxy not detected at ${HEADROOM_LOCAL}; skipping relay" >&2
+  echo "  Ensure the SSH tunnel is active (headroom running on your laptop)" >&2
+fi
+
+# Ensure remaining source bind mount points exist.
+ensure_bind_dir "$HOME/.aws"
+ensure_bind_dir "$HOME/.config/"{gh,kilo}
+ensure_bind_dir "$HOME/.gnupg"
+ensure_bind_dir "$HOME/.kiro"
+ensure_bind_dir "$HOME/.vscode-remote-user-data"
 
 echo "SUCCESS: .devcontainer/ensure-repos.sh completed successfully"

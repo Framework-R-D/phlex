@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           file-type: |
             cpp
@@ -65,12 +65,12 @@ jobs:
           persist-credentials: false
 
       - name: Setup build environment
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        uses: Framework-R-D/action-setup-build-env@780fd75b00a291df6a42d9d2337651330ebdb907 # v1
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
       - name: Configure CMake
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: Framework-R-D/action-configure-cmake@e9abed19c06a2eedfed90c1f39f3a875cf206ec3 # v1
         with:
           preset: clang-tidy
           source-path: ${{ needs.setup.outputs.checkout_path }}
@@ -233,7 +233,7 @@ jobs:
     steps:
       - name: Post Clang-Tidy results
         id: post_results
-        uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@main
+        uses: Framework-R-D/action-post-clang-tidy-results@ebe244ff1f0460b5175b6c9ef17da05164b71b29 # v1
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}
@@ -249,6 +249,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment'
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
         with:
           status: ${{ needs.clang-tidy-check.result }}

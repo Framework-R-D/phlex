@@ -3,6 +3,7 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/core/make_computational_edges.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -69,7 +70,7 @@ namespace phlex::experimental {
   std::size_t framework_graph::seen_cell_count(std::string const& layer_name,
                                                bool const missing_ok) const
   {
-    return hierarchy_.count_for(layer_name, missing_ok);
+    return hierarchy_.count_for(experimental::layer_path(layer_name), missing_ok);
   }
 
   std::size_t framework_graph::execution_count(std::string const& node_name) const
@@ -136,7 +137,7 @@ namespace phlex::experimental {
       return;
     }
     throw std::runtime_error(
-      fmt::format("\nConfiguration errors:\n  - {}", fmt::join(registration_errors_, "\n  - ")));
+      fmt::format("\nConfiguration errors:\n{}", bulleted_list(registration_errors_)));
   }
 
   void framework_graph::make_filter_edges()
@@ -176,7 +177,7 @@ namespace phlex::experimental {
     make_bookkeeping_edges();
 
     auto [provider_input_ports, multilayer_join_index_ports] =
-      make_computational_edges(nodes_, filters_);
+      make_computational_edges(nodes_, filters_, graph_);
 
     if (provider_input_ports.empty()) {
       assert(multilayer_join_index_ports.empty());

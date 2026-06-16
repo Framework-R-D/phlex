@@ -1,5 +1,6 @@
 #include "phlex/core/make_computational_edges.hpp"
 
+#include "fmt/format.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 
@@ -7,6 +8,7 @@
 #include <cassert>
 #include <ranges>
 #include <span>
+#include <stdexcept>
 
 using namespace std::string_literals;
 
@@ -26,33 +28,87 @@ namespace phlex::experimental {
       return nullptr;
     }
 
-    index_router::provider_input_ports_t edges_from_explicit_providers(
-      index_router::head_ports_t head_ports, provider_nodes& explicit_providers)
+    provider_bundles find_matching_implicit_providers(source_map const& sources,
+                                                      product_selector const& input_product)
+    {
+      provider_bundles result;
+      for (auto const& src : sources | std::views::values) {
+        result.append_range(src->create_providers(input_product));
+      }
+      return result;
+    }
+
+    std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
+    edges_from_explicit_providers(index_router::head_ports_t head_ports,
+                                  provider_nodes& explicit_providers)
     {
       assert(!head_ports.empty());
 
-      // FIXME: Should return a list of head ports that cannot be matched to an explicit provider.
-
-      index_router::provider_input_ports_t result;
+      index_router::provider_input_ports_t provider_input_ports;
+      index_router::head_ports_t unconsumed_head_ports;
       for (auto const& [node_name, ports] : head_ports) {
         for (auto const& [input_product, port] : ports) {
           // Find the provider that has the right product name (hidden in the
           // output port) and the right family (hidden in the input port).
           if (auto* matched_provider = find_matching_provider(explicit_providers, input_product)) {
             auto const provider_name = matched_provider->name().to_string();
-            result.try_emplace(provider_name, input_product, matched_provider->input_port());
+            provider_input_ports.try_emplace(
+              provider_name, input_product, matched_provider->input_port());
             spdlog::debug("Connecting provider {} to node {} (product: {})",
                           provider_name,
                           node_name,
                           input_product.to_string());
             make_edge(matched_provider->output_port(), *port);
           } else {
-            throw std::runtime_error("No provider found for product: "s +
-                                     input_product.to_string());
+            unconsumed_head_ports[node_name].push_back({input_product, port});
           }
         }
       }
-      return result;
+      return {std::move(provider_input_ports), std::move(unconsumed_head_ports)};
+    }
+
+    std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
+    edges_from_implicit_providers(index_router::head_ports_t head_ports,
+                                  provider_nodes& providers,
+                                  source_map const& sources,
+                                  tbb::flow::graph& g)
+    {
+      index_router::provider_input_ports_t provider_input_ports;
+      index_router::head_ports_t unconsumed_head_ports;
+      for (auto const& [node_name, ports] : head_ports) {
+        for (auto const& [input_product, port] : ports) {
+          // If we have a source node that can produce this product, use it.
+          auto bundles = find_matching_implicit_providers(sources, input_product);
+          if (bundles.empty()) {
+            unconsumed_head_ports[node_name].push_back({input_product, port});
+            continue;
+          }
+
+          // For now we require only one implicit provider.  This will change in the future.
+          if (bundles.size() > 1ull) {
+            auto error_msg = fmt::format(
+              "Multiple implicit providers found for product '{}', required by node '{}':\n",
+              input_product.to_string(),
+              node_name);
+            throw std::runtime_error(error_msg);
+          }
+
+          auto& bundle = bundles[0];
+          auto const& spec = bundle.spec;
+          auto node = std::make_unique<provider_node>(spec.creator(),
+                                                      bundle.max_concurrency.value,
+                                                      g,
+                                                      std::move(bundle.provider_function),
+                                                      spec,
+                                                      identifier{bundle.layer},
+                                                      identifier{bundle.stage});
+          auto const provider_name = node->name().to_string();
+          provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
+          make_edge(node->output_port(), *port);
+          providers.try_emplace(provider_name, std::move(node));
+        }
+      }
+      return {std::move(provider_input_ports), std::move(unconsumed_head_ports)};
     }
 
     index_router::head_ports_t edges_within_computational_graph(
@@ -111,7 +167,9 @@ namespace phlex::experimental {
   }
 
   std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
-  make_computational_edges(node_catalog& nodes, std::map<std::string, filter>& filters)
+  make_computational_edges(node_catalog& nodes,
+                           std::map<std::string, filter>& filters,
+                           tbb::flow::graph& g)
   {
     auto const producers = nodes.producers();
     auto const consumers = nodes.consumers();
@@ -124,8 +182,27 @@ namespace phlex::experimental {
 
     edges_to_outputs(nodes.providers, producers, nodes.outputs);
 
-    auto provider_input_ports =
+    auto [explicit_provider_input_ports, unconsumed_head_ports] =
       edges_from_explicit_providers(std::move(head_ports), nodes.providers);
+
+    auto [implicit_provider_input_ports, unmatched_head_ports] = edges_from_implicit_providers(
+      std::move(unconsumed_head_ports), nodes.providers, nodes.sources, g);
+
+    if (not unmatched_head_ports.empty()) {
+      std::string error_msg{"No provider found for the following required products:\n"};
+      for (auto const& [node_name, ports] : unmatched_head_ports) {
+        for (auto const& [input_product, _] : ports) {
+          error_msg += fmt::format(
+            "  - Node '{}' requires product '{}'\n", node_name, input_product.to_string());
+        }
+      }
+      throw std::runtime_error(error_msg);
+    }
+
+    // Combine implicit and explicit provider input ports.
+    auto provider_input_ports = std::move(explicit_provider_input_ports);
+    provider_input_ports.merge(std::move(implicit_provider_input_ports));
+
     auto multilayer_join_index_ports = multilayer_ports(consumers);
 
     return std::make_tuple(std::move(provider_input_ports), std::move(multilayer_join_index_ports));

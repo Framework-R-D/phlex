@@ -6,7 +6,7 @@ target_include_directories(algorithm INTERFACE ${PROJECT_SOURCE_DIR})
 target_link_libraries(algorithm INTERFACE timed_busy phlex::module spdlog::spdlog)
 
 add_library(id_provider MODULE id_provider.cpp)
-target_link_libraries(id_provider PRIVATE phlex::module)
+target_link_libraries(id_provider PRIVATE phlex::source)
 
 function(add_module NAME)
   add_library(${NAME} MODULE ${NAME}.cpp)

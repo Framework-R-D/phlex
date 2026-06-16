@@ -167,6 +167,8 @@ outstanding findings before enforcement is tightened.
   type annotations (avoids forward-reference issues; Python >=3.12)
 - Test files: `test_*.py`; do NOT name files after stdlib modules (e.g. `types.py`)
 - PEP 8 naming; `CapWords` for classes, `snake_case` for everything else
+- When using the `read` tool for files, always use integer values for `offset`
+  and `limit` parameters — never float/double values
 
 ### CMake
 

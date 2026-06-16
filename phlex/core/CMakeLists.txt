@@ -66,6 +66,7 @@ install(
     provider_node.hpp
     registrar.hpp
     registration_api.hpp
+    source.hpp
     store_counters.hpp
     upstream_predicates.hpp
   DESTINATION include/phlex/core
