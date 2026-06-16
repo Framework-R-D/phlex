@@ -52,6 +52,11 @@ TEST_CASE("algorithm_name tests", "[model]")
                                        algorithm_name::create("p:a2")};
     CHECK(bulleted_list(ans) == "  - p:a1\n  - p:a2");
   }
+  SECTION("Empty bulleted list")
+  {
+    CHECK(bulleted_list(std::vector<identifier>{}) == "");
+    CHECK(bulleted_list(std::vector<algorithm_name>{}) == "");
+  }
 }
 
 TEST_CASE("consumer tests", "[core]")

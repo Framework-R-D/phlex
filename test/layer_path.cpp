@@ -33,4 +33,11 @@ TEST_CASE("Layer path tests", "[layer_path]")
   CHECK(event_hashes.contains(subrun.hash()));
   CHECK(event_hashes.contains(event.hash()));
   CHECK_FALSE(event_hashes.contains(lumiblock.hash()));
+
+  // Validation
+  CHECK_THROWS(layer_path(""));
+  CHECK_THROWS(layer_path("/notajob/notarun"));
+  CHECK_THROWS(layer_path(std::vector<identifier>{}));
+  CHECK_THROWS(layer_path("/job/run/job"));
+  CHECK_THROWS(layer_path("subrun/job"));
 }
