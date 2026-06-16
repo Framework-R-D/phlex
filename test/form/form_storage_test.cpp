@@ -2,6 +2,15 @@
 
 #include "test/form/test_utils.hpp"
 
+#include "core/placement.hpp"
+#include "form/config.hpp"
+#include "form/technology.hpp"
+#include "root_storage/root_tbranch_write_container.hpp"
+#include "root_storage/root_tfile.hpp"
+#include "root_storage/root_ttree_write_container.hpp"
+#include "storage/storage_write_container.hpp"
+#include "storage/storage_writer.hpp"
+
 #include "TFile.h"
 #include "TTree.h"
 
@@ -9,6 +18,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <numeric>
+#include <string>
 #include <vector>
 
 using namespace form::detail::experimental;
@@ -226,4 +236,165 @@ TEST_CASE("Root TTree write container: fill and commit are not implemented", "[f
   void const* dummy = nullptr;
   CHECK_THROWS_AS(writeAssoc->fill(dummy), std::runtime_error);
   CHECK_THROWS_AS(writeAssoc->commit(), std::runtime_error);
+}
+
+TEST_CASE("Root file open modes and attribute validation", "[form]")
+{
+  std::string const file_name = "testRootTFileModes.root";
+
+  {
+    auto seed = TFile::Open(file_name.c_str(), "RECREATE");
+    REQUIRE(seed != nullptr);
+    seed->Write();
+    seed->Close();
+  }
+
+  SECTION("update mode reopens existing file")
+  {
+    ROOT_TFileImp file(file_name, 'u');
+    REQUIRE(file.getTFile() != nullptr);
+  }
+
+  SECTION("update mode creates file when missing")
+  {
+    std::string const missing_name = "testRootTFileModesMissing.root";
+    ROOT_TFileImp file(missing_name, 'u');
+    REQUIRE(file.getTFile() != nullptr);
+  }
+
+  SECTION("read mode opens file")
+  {
+    ROOT_TFileImp file(file_name, 'r');
+    REQUIRE(file.getTFile() != nullptr);
+  }
+
+  SECTION("unknown compression token keeps ROOT default")
+  {
+    ROOT_TFileImp file(file_name, 'o');
+    CHECK_NOTHROW(file.setAttribute("compression", "NotARealROOTCompressionAlgo"));
+  }
+
+  SECTION("unsupported attribute throws")
+  {
+    ROOT_TFileImp file(file_name, 'o');
+    CHECK_THROWS_AS(file.setAttribute("does_not_exist", "1"), std::runtime_error);
+  }
+
+  SECTION("unsupported file mode throws")
+  {
+    CHECK_THROWS_AS(ROOT_TFileImp(file_name, 'z'), std::runtime_error);
+  }
+}
+
+TEST_CASE("Root TTree write container error paths", "[form]")
+{
+  ROOT_TTree_Write_ContainerImp container("testTree");
+
+  CHECK(container.getEntryCount() == 0);
+  CHECK_THROWS_AS(container.setupWrite(typeid(int)), std::runtime_error);
+
+  std::shared_ptr<IStorage_File> wrong_file(new Storage_File("ttree_error.root", 'o'));
+  CHECK_THROWS_AS(container.setFile(wrong_file), std::runtime_error);
+}
+
+TEST_CASE("Storage write container default attribute rejection", "[form]")
+{
+  Storage_Write_Container container("test/container");
+  CHECK_THROWS_AS(container.setAttribute("auto_flush", "1"), std::runtime_error);
+}
+
+TEST_CASE("Root branch write container rejects unknown attributes", "[form]")
+{
+  ROOT_TBranch_Write_ContainerImp container("test/branch");
+  CHECK_THROWS_AS(container.setAttribute("not_supported", "1"), std::runtime_error);
+}
+
+TEST_CASE("StorageWriter finalize skips IndexRegistry for unparsable index", "[form]")
+{
+  std::string const file_name = "testStorageWriterInvalidIndex.root";
+  StorageWriter writer;
+  form::experimental::config::tech_setting_config settings;
+
+  std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
+  containers.emplace(std::make_unique<Placement>(file_name, "UnitTest/value", technology),
+                     &typeid(std::vector<int>));
+  containers.emplace(std::make_unique<Placement>(file_name, "UnitTest/index", technology),
+                     &typeid(std::string));
+  writer.createContainers(containers, settings);
+
+  Placement payload_placement(file_name, "UnitTest/value", technology);
+  std::vector<int> payload = {1, 2, 3};
+  writer.fillContainer(payload_placement, &payload, typeid(std::vector<int>), "DeclaredProduct");
+
+  Placement index_placement(file_name, "UnitTest/index", technology);
+  std::string bad_index = "EVENT0001";
+  writer.fillContainer(index_placement, &bad_index, typeid(std::string), "UnitTest");
+  writer.commitContainers(index_placement);
+  writer.finalize(settings);
+
+  auto file = TFile::Open(file_name.c_str(), "READ");
+  REQUIRE(file != nullptr);
+  REQUIRE_FALSE(file->IsZombie());
+
+  CHECK(file->Get<TTree>("FileCatalog") != nullptr);
+  CHECK(file->Get<TTree>("ProductRegistry") != nullptr);
+  CHECK(file->Get<TTree>("IndexRegistry") == nullptr);
+
+  file->Close();
+}
+
+TEST_CASE("StorageWriter parses colon indices and honors process_name key", "[form]")
+{
+  std::string const file_name = "testStorageWriterColonIndex.root";
+  StorageWriter writer;
+  form::experimental::config::tech_setting_config settings;
+
+  std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
+  containers.emplace(std::make_unique<Placement>(file_name, "UnitTest/value", technology),
+                     &typeid(std::vector<int>));
+  containers.emplace(std::make_unique<Placement>(file_name, "UnitTest/index", technology),
+                     &typeid(std::string));
+  writer.createContainers(containers, settings);
+
+  Placement payload_placement(file_name, "UnitTest/value", technology);
+  std::vector<int> payload = {10, 20, 30};
+  writer.fillContainer(payload_placement, &payload, typeid(std::vector<int>), "DeclaredProduct");
+
+  Placement index_placement(file_name, "UnitTest/index", technology);
+  std::string index_text = "[EVENT:0000000A;SEG:0000000B]";
+  writer.fillContainer(index_placement, &index_text, typeid(std::string), "UnitTest");
+  writer.commitContainers(index_placement);
+  writer.finalize(settings);
+
+  auto file = TFile::Open(file_name.c_str(), "READ");
+  REQUIRE(file != nullptr);
+  REQUIRE_FALSE(file->IsZombie());
+
+  TTree* registry = file->Get<TTree>("ProductRegistry");
+  REQUIRE(registry != nullptr);
+  REQUIRE(registry->GetEntries() > 0);
+  std::string* process_name = nullptr;
+  registry->SetBranchAddress("ProcessName", &process_name);
+  registry->GetEntry(0);
+  REQUIRE(process_name != nullptr);
+  CHECK(process_name->empty());
+
+  TTree* index_registry = file->Get<TTree>("IndexRegistry");
+  REQUIRE(index_registry != nullptr);
+  REQUIRE(index_registry->GetEntries() > 0);
+
+  unsigned long long event_value = 0;
+  unsigned long long seg_value = 0;
+  std::string* product_id = nullptr;
+  index_registry->SetBranchAddress("EVENT", &event_value);
+  index_registry->SetBranchAddress("SEG", &seg_value);
+  index_registry->SetBranchAddress("ProductID", &product_id);
+  index_registry->GetEntry(0);
+
+  CHECK(event_value == 10ULL);
+  CHECK(seg_value == 11ULL);
+  REQUIRE(product_id != nullptr);
+  CHECK(*product_id == "DeclaredProduct|UnitTest|");
+
+  file->Close();
 }
