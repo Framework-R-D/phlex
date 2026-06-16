@@ -133,8 +133,8 @@ void ROOT_TBranch_Write_ContainerImp::commit()
 
 std::uint64_t ROOT_TBranch_Write_ContainerImp::getEntryCount()
 {
-  if (m_tree == nullptr) {
+  if (m_branch == nullptr) {
     return 0;
   }
-  return m_tree->GetEntries();
+  return m_branch->GetEntries();
 }

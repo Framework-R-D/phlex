@@ -377,8 +377,6 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
     }
   }
 
-  (void)product_name;
-
   cont->second->fill(data);
   return;
 }
@@ -393,8 +391,12 @@ void StorageWriter::commitContainers(Placement const& plcmnt)
 
 static std::string generateUUID()
 {
+#ifdef USE_ROOT_STORAGE
   TUUID uuid;
   return uuid.AsString();
+#else
+#error "ROOT storage is disabled, please provide an alternative UUID generator."
+#endif
 }
 
 void StorageWriter::finalize(form::experimental::config::tech_setting_config const& settings)

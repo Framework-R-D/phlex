@@ -271,7 +271,9 @@ TEST_CASE("Root file open modes and attribute validation", "[form]")
   SECTION("unknown compression token keeps ROOT default")
   {
     ROOT_TFileImp file(file_name, 'o');
+    int default_level = file.getTFile()->GetCompressionLevel();
     CHECK_NOTHROW(file.setAttribute("compression", "NotARealROOTCompressionAlgo"));
+    CHECK(file.getTFile()->GetCompressionLevel() == default_level);
   }
 
   SECTION("unsupported attribute throws")
@@ -286,15 +288,16 @@ TEST_CASE("Root file open modes and attribute validation", "[form]")
   }
 }
 
-TEST_CASE("Root TTree write container error paths", "[form]")
+TEST_CASE("Storage write container error paths", "[form]")
 {
-  ROOT_TTree_Write_ContainerImp container("testTree");
+  auto container = createWriteContainer(technology, "testTree");
+  REQUIRE(container != nullptr);
 
-  CHECK(container.getEntryCount() == 0);
-  CHECK_THROWS_AS(container.setupWrite(typeid(int)), std::runtime_error);
+  CHECK(container->getEntryCount() == 0);
+  CHECK_THROWS_AS(container->setupWrite(typeid(int)), std::runtime_error);
 
-  std::shared_ptr<IStorage_File> wrong_file(new Storage_File("ttree_error.root", 'o'));
-  CHECK_THROWS_AS(container.setFile(wrong_file), std::runtime_error);
+  std::shared_ptr<IStorage_File> wrong_file(new Storage_File("container_error.root", 'o'));
+  CHECK_THROWS_AS(container->setFile(wrong_file), std::runtime_error);
 }
 
 TEST_CASE("Storage write container default attribute rejection", "[form]")
@@ -303,10 +306,12 @@ TEST_CASE("Storage write container default attribute rejection", "[form]")
   CHECK_THROWS_AS(container.setAttribute("auto_flush", "1"), std::runtime_error);
 }
 
-TEST_CASE("Root branch write container rejects unknown attributes", "[form]")
+TEST_CASE("Storage write container rejects unknown attributes", "[form]")
 {
-  ROOT_TBranch_Write_ContainerImp container("test/branch");
-  CHECK_THROWS_AS(container.setAttribute("not_supported", "1"), std::runtime_error);
+  auto container = createWriteContainer(technology, "test/branch");
+  REQUIRE(container != nullptr);
+
+  CHECK_THROWS_AS(container->setAttribute("not_supported", "1"), std::runtime_error);
 }
 
 TEST_CASE("StorageWriter finalize skips IndexRegistry for unparsable index", "[form]")
