@@ -66,6 +66,9 @@ def _api_request(
     except urllib.error.URLError as exc:
         _debug(f"GitHub API URLError for {url}: {exc}")
         raise GitHubAPIError(f"GitHub API {method} {url} failed: {exc}") from exc
+    except TimeoutError as exc:
+        _debug(f"GitHub API TimeoutError for {url}: {exc}")
+        raise GitHubAPIError(f"GitHub API {method} {url} timed out: {exc}") from exc
 
 
 LEVEL_ORDER = {"none": 0, "note": 1, "warning": 2, "error": 3}
