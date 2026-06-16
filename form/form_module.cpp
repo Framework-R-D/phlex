@@ -48,7 +48,7 @@ namespace {
 
       // Explicitly declare ProductNames from user config (products list in jsonnet)
       for (auto const& product : products_to_save) {
-        m_form_interface->declareProductName(product, product);
+        m_form_interface->declare_product_name(product, product);
       }
     }
 
@@ -56,8 +56,15 @@ namespace {
     {
       if (m_form_interface) {
         std::cout << "FormOutputModule destructor: calling finalize() to write metadata\n";
-        m_form_interface->finalize();
-        std::cout << "FormOutputModule destructor: finalize() completed\n";
+        try {
+          m_form_interface->finalize();
+          std::cout << "FormOutputModule destructor: finalize() completed\n";
+        } catch (std::exception const& e) {
+          std::cerr << "ERROR: FormOutputModule destructor: finalize() failed: " << e.what()
+                    << std::endl;
+        } catch (...) {
+          std::cerr << "Unknown error in FormOutputModule destructor during finalize.\n";
+        }
       }
     }
 

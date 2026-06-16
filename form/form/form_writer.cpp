@@ -78,12 +78,19 @@ namespace form::experimental {
     m_pers_writer->commitOutput(creator, segment_id);
   }
 
-  void form_writer_interface::declareProductName(std::string const& routing_label,
-                                                 std::string const& product_name)
+  void form_writer_interface::declare_product_name(std::string const& routing_label,
+                                                   std::string const& product_name)
   {
     m_label_to_product_name[routing_label] = product_name;
   }
 
-  void form_writer_interface::finalize() { m_pers_writer->finalize(); }
+  void form_writer_interface::finalize()
+  {
+    if (m_finalized) {
+      return;
+    }
+    m_finalized = true;
+    m_pers_writer->finalize();
+  }
 
 }

@@ -32,12 +32,13 @@ namespace form::experimental {
 
     // Explicitly declare the logical ProductName for a given routing label.
     // If not called, ProductName defaults to the creator name at write time.
-    void declareProductName(std::string const& routing_label, std::string const& product_name);
+    void declare_product_name(std::string const& routing_label, std::string const& product_name);
 
   private:
     std::unique_ptr<form::detail::experimental::IPersistenceWriter> m_pers_writer;
     std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
     std::map<std::string, std::string> m_label_to_product_name;
+    bool m_finalized = false;
   };
 }
 
