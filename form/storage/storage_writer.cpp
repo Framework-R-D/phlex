@@ -8,9 +8,6 @@
 #include "form/technology.hpp"
 #include "util/factories.hpp"
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <cctype>
 #include <charconv>
 #include <cstdint>
@@ -23,6 +20,7 @@
 #include "TFile.h"
 #include "TObjString.h"
 #include "TTree.h"
+#include <TUUID.h>
 #include "root_storage/root_tfile.hpp"
 #endif
 
@@ -395,8 +393,8 @@ void StorageWriter::commitContainers(Placement const& plcmnt)
 
 static std::string generateUUID()
 {
-  static thread_local boost::uuids::random_generator gen;
-  return boost::uuids::to_string(gen());
+TUUID uuid;
+    return uuid.AsString();
 }
 
 void StorageWriter::finalize(form::experimental::config::tech_setting_config const& settings)
