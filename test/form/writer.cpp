@@ -418,7 +418,8 @@ int main(int argc, char** argv)
   }
   index_registry->SetBranchAddress("PayloadRow", &payload_row);
 
-  int const sample_entries = index_registry->GetEntries() < 8 ? index_registry->GetEntries() : 8;
+  Long64_t const sample_entries =
+    index_registry->GetEntries() < 8 ? index_registry->GetEntries() : 8;
   unsigned long long prev_event = 0;
   unsigned long long prev_seg = 0;
   std::set<std::string> observed_product_ids;

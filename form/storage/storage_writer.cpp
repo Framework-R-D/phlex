@@ -415,14 +415,15 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
 
     // Preserve any existing FileCatalog metadata if reopening the file.
     TObject* existing_catalog_obj = tfile->Get("FileCatalog");
-    TTree* existing_catalog = static_cast<TTree*>(existing_catalog_obj);
+    TTree* existing_catalog = dynamic_cast<TTree*>(existing_catalog_obj);
     if (existing_catalog != nullptr) {
       // Existing FileCatalog already contains the persisted FileUUID.
       continue;
     }
 
     // Create FileCatalog tree for new files.
-    TTree* catalog = new TTree("FileCatalog", "File-level metadata catalog");
+    auto catalog = std::make_unique<TTree>("FileCatalog", "File-level metadata catalog");
+    catalog->SetDirectory(nullptr);
 
     // Determine FileFormatVersion based on technology
     // We need to get technology from somewhere - for now, infer from existing containers
@@ -446,8 +447,7 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
     catalog->Fill();
 
     // Write to file
-    tfile->WriteTObject(catalog);
-    delete catalog;
+    tfile->WriteTObject(catalog.get());
 
     // Create ProductRegistry tree listing logical product names from user/framework config.
     // Use explicit logical product names instead of deriving from container structure.
@@ -456,7 +456,9 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
     auto products_it = m_productsByProducer.find(fileName);
     if (products_it != m_productsByProducer.end() && !products_it->second.empty()) {
       auto const& products_by_producer = products_it->second;
-      TTree* registry = new TTree("ProductRegistry", "Product-level metadata catalog");
+      auto registry = std::make_unique<TTree>("ProductRegistry", "Product-level metadata catalog");
+      registry->SetDirectory(nullptr);
+
       std::string productName;
       std::string processName;
       std::string producer;
@@ -476,8 +478,7 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
           registry->Fill();
         }
       }
-      tfile->WriteTObject(registry);
-      delete registry;
+      tfile->WriteTObject(registry.get());
     }
 
     auto schema_it = m_indexLayerSchemas.find(fileName);
@@ -521,7 +522,10 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
           continue;
         }
 
-        TTree* index_registry = new TTree("IndexRegistry", "Layer index metadata catalog");
+        auto index_registry =
+          std::make_unique<TTree>("IndexRegistry", "Layer index metadata catalog");
+        index_registry->SetDirectory(nullptr);
+
         std::vector<std::string> canonical_schema;
         {
           std::size_t start = 0;
@@ -554,7 +558,11 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
 
         // Keep schema in tree header metadata as ["layer1","layer2",...].
         std::string schema_header = serialize_layer_schema(canonical_schema);
-        index_registry->GetUserInfo()->Add(new TObjString(schema_header.c_str()));
+        TList* userInfo = index_registry->GetUserInfo();
+        if (userInfo) {
+          userInfo->SetOwner(kTRUE);
+          userInfo->Add(new TObjString(schema_header.c_str()));
+        }
 
         for (std::size_t i = 0; i < schemas.size(); ++i) {
           if (schema_key_for_match(schemas[i]) != canonical_schema_key) {
@@ -570,8 +578,7 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
           index_registry->Fill();
         }
 
-        tfile->WriteTObject(index_registry);
-        delete index_registry;
+        tfile->WriteTObject(index_registry.get());
       }
     }
   }
