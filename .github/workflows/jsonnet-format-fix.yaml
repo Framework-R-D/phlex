@@ -100,15 +100,19 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
+      - name: Setup jsonnet
+        id: setup-jsonnet
+        uses: zendesk/setup-jsonnet@74119dac8a540c99167a65f14aa1ee99ff143ec2 # v16
+        with:
+          version: v0.22.0
+          github_token: ${{ github.token }}
+
       - name: Apply Jsonnet formatting
         id: lint
         env:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-        # yamllint disable rule:line-length
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work --user root docker.io/dysnix/jsonnet:latest \
-            sh -c "find \"$CHECKOUT_PATH\" \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i"
-        # yamllint enable
+          find "$CHECKOUT_PATH" \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i
         continue-on-error: true
 
       - name: Handle fix commit
