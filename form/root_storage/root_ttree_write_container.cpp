@@ -57,6 +57,14 @@ void ROOT_TTree_Write_ContainerImp::commit()
 
 TTree* ROOT_TTree_Write_ContainerImp::getTTree() { return m_tree.get(); }
 
+std::uint64_t ROOT_TTree_Write_ContainerImp::getEntryCount()
+{
+  if (m_tree == nullptr) {
+    return 0;
+  }
+  return m_tree->GetEntries();
+}
+
 void ROOT_TTree_Write_ContainerImp::TTreeDeleter::operator()(gsl::owner<TTree*> t) const
 {
   if (t) {

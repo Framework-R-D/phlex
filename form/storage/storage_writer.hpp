@@ -6,11 +6,14 @@
 #include "istorage.hpp"
 #include "storage_utils.hpp"
 
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility> // for std::pair
+#include <vector>
 
 namespace form::detail::experimental {
 
@@ -25,8 +28,10 @@ namespace form::detail::experimental {
       form::experimental::config::tech_setting_config const& settings) override;
     void fillContainer(Placement const& plcmnt,
                        void const* data,
-                       std::type_info const& type) override;
+                       std::type_info const& type,
+                       std::string const& product_name = "") override;
     void commitContainers(Placement const& plcmnt) override;
+    void finalize(form::experimental::config::tech_setting_config const& settings) override;
 
   private:
     std::map<std::string, std::shared_ptr<IStorage_File>> m_files;
@@ -35,6 +40,15 @@ namespace form::detail::experimental {
                        pair_hash>
       m_write_containers;
     std::map<std::string, std::map<std::string, int>> m_indexMaps;
+    std::map<std::string, std::vector<std::vector<std::string>>> m_indexLayerSchemas;
+    std::map<std::string, std::vector<std::vector<std::uint64_t>>> m_indexLayerValues;
+    std::map<std::string, std::vector<std::string>> m_indexProductNames;
+    std::map<std::string, std::vector<std::string>> m_indexProducers;
+    std::map<std::string, std::vector<std::string>> m_indexContainerNames;
+    std::map<std::string, std::vector<std::uint64_t>> m_indexPayloadRows;
+    std::map<std::string, std::map<std::string, std::set<std::string>>> m_productsByProducer;
+    std::map<std::string, std::map<std::string, std::vector<std::string>>>
+      m_pendingProductsByProducer;
   };
 
 } // namespace form::detail::experimental
