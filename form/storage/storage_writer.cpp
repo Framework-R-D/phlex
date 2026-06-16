@@ -20,8 +20,8 @@
 #include "TFile.h"
 #include "TObjString.h"
 #include "TTree.h"
-#include <TUUID.h>
 #include "root_storage/root_tfile.hpp"
+#include <TUUID.h>
 #endif
 
 using namespace form::detail::experimental;
@@ -393,8 +393,8 @@ void StorageWriter::commitContainers(Placement const& plcmnt)
 
 static std::string generateUUID()
 {
-TUUID uuid;
-    return uuid.AsString();
+  TUUID uuid;
+  return uuid.AsString();
 }
 
 void StorageWriter::finalize(form::experimental::config::tech_setting_config const& settings)
