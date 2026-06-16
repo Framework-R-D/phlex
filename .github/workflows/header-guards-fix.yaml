@@ -72,7 +72,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           mode: fix
           ref: ${{ inputs.ref }}
@@ -112,7 +112,7 @@ jobs:
 
       - name: Handle fix commit
         id: handle_commit
-        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
+        uses: Framework-R-D/action-handle-fix-commit@526974d21076e17d4742e55187704c7c036bbb9e # v1
         with:
           tool: header-guards
           working-directory: ${{ needs.setup.outputs.checkout_path }}
@@ -123,6 +123,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment' && !inputs.skip-comment
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
         with:
           status: ${{ job.status }}
