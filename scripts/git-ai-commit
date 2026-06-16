@@ -9,34 +9,41 @@ This tool automatically gathers context from:
   - Staged changes (diff)
   - Git status and recent commit history
   - Repository-level guidance: AGENTS.md, AGENT.md, GEMINI.md, CLAUDE.md,
-    CONTEXT.md, INSTRUCTIONS.md, CONTRIBUTING.md, DEVELOPING.md, HACKING.md,
-    ARCHITECTURE.md, STYLEGUIDE.md, and CLANG_TIDY_CONFIGURATION.md.
-  - Tool-specific rules: .amazonq/rules/, .kiro/rules/, .kiro/steering/,
-    .gemini/rules/, .kilocode/, .cursorrules, .clinerules, .windsurfrules,
-    and q.rules.
+    CONTEXT.md, INSTRUCTIONS.md, CONTRIBUTING.md, HACKING.md,
+    ARCHITECTURE.md, and STYLEGUIDE.md.
+  - Tool-specific rules: .kilo/agent/, .kilo/command/, .amazonq/rules/,
+    .kiro/rules/, .kiro/steering/, .gemini/rules/, .kilocode/, .cursorrules,
+    .clinerules, .windsurfrules, and q.rules.
   - User-level guidance: ~/.config/git-ai-commit/instructions.md
   - Git commit template: (from `git config commit.template`)
 
 Usage
 -----
-  git-ai-commit [OPTIONS]
-  git ai-commit [OPTIONS]
+  git-ai-commit [OPTIONS] [-- GIT-COMMIT-OPTIONS]
+  git ai-commit [OPTIONS] [-- GIT-COMMIT-OPTIONS]
   git ai-commit --amend
   echo "context" | git ai-commit --yes
+  git ai-commit --yes -- --no-verify --signoff
 
 Options
 -------
   --amend              Amend the previous commit, including its message as context
   --context TEXT       Supplemental context/prompt for the AI
-  --backend BACKEND    API backend: kilo (default), github-models, copilot
-  --model   MODEL      Model name (env: GIT_AI_COMMIT_MODEL)
+  --backend BACKEND    API backend: kilo (default), github-models, copilot,
+                       antigravity, agy
+  --model   MODEL      Model name; defaults to azure/claude-haiku-4-5 for the
+                       kilo backend (gpt-4o for others, none for antigravity);
+                       large prompts auto-escalate to qwen/qwen3-coder-next on
+                       kilo unless a model is explicitly set (env:
+                       GIT_AI_COMMIT_MODEL or GIT_AI_COMMIT_KILO_MODEL)
   --api     URL        API base URL override (env: GIT_AI_COMMIT_API)
   --dry-run            Print generated message to stdout; do not commit
   -y/--yes             Commit without interactive confirmation
   -e/--edit            Open generated message in $EDITOR before committing
-  --no-verify          Pass --no-verify to git commit
   --no-instructions    Skip all instruction/context files; use only the diff
   -h/--help            Show this help and exit
+  --                   Pass all remaining arguments verbatim to git commit
+                       (e.g. --no-verify, --signoff, --gpg-sign=<key>)
 
 Backends
 --------
@@ -54,14 +61,22 @@ Backends
                 Default model: gpt-4o.
                 Token: exchanges a GitHub OAuth token for a short-lived Copilot token.
 
+  antigravity / agy
+                Antigravity CLI backend using `agy -p -`.
+                If a model is specified via --model (or GIT_AI_COMMIT_MODEL),
+                it is passed to `agy` as `--model <model>`. Otherwise,
+                `agy` uses its default configured model. No API token or URL
+                resolution is required for this backend.
+
 Environment variables
 ---------------------
   GIT_AI_COMMIT_TOKEN         API token (overrides all other token sources)
   GIT_AI_COMMIT_MODEL         Default model name
   GIT_AI_COMMIT_API           API base URL override
-  GIT_AI_COMMIT_BACKEND       Default backend (kilo, github-models, or copilot)
+  GIT_AI_COMMIT_BACKEND       Default backend (kilo, github-models, copilot, antigravity, or agy)
   GIT_AI_COMMIT_KILO_API      kilo backend base URL (default: https://litellm.fnal.gov/v1)
-  GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5)
+  GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5);
+                              setting this env var suppresses auto-escalation
   GIT_AI_COMMIT_KILO_PROVIDER kilo auth.json provider key (default: fnal-litellm)
 
 Token resolution (kilo backend):
@@ -81,6 +96,7 @@ Token resolution (github-models / copilot backends):
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -88,7 +104,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
-import typing
+from typing import TextIO
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -107,23 +123,40 @@ _KILO_AUTH_JSON = Path.home() / ".local" / "share" / "kilo" / "auth.json"
 # environment variables to adapt to a different LiteLLM instance or model
 # naming convention.
 _DEFAULT_KILO_API = os.environ.get("GIT_AI_COMMIT_KILO_API", "https://litellm.fnal.gov/v1")
-_DEFAULT_MODEL_KILO = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "azure/claude-haiku-4-5")
+_KILO_MODEL_ENV = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "").strip()
+_DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or "azure/claude-haiku-4-5"
+# True when the user has explicitly pinned a kilo model via the environment,
+# which suppresses auto-escalation even if the diff is large.
+_KILO_MODEL_PINNED_BY_ENV = bool(_KILO_MODEL_ENV)
 _DEFAULT_KILO_PROVIDER = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "fnal-litellm")
 _DEFAULT_MODEL_OTHER = "gpt-4o"
 
 _MAX_DIFF_CHARS = 60_000
 
+# When the kilo model was not explicitly chosen and the prompt exceeds this
+# character count, escalate to a free high-context model rather than risk
+# truncation or degraded output with the default (Haiku).  The threshold is
+# set conservatively below _MAX_DIFF_CHARS so that instruction files and log
+# context on top of a near-limit diff still trigger escalation.
+_ESCALATION_THRESHOLD_CHARS = 30_000
+_ESCALATION_MODEL_KILO = "qwen/qwen3-coder-next"
+
 _SYSTEM = textwrap.dedent("""\
     You are an expert software developer writing Git commit messages.
 
-    Rules:
-    - Subject line: imperative mood, ≤72 characters, no trailing period
-    - Separate subject from body with one blank line
-    - Body: explain *what* changed and *why*; use Markdown lists or inline
-      code spans where they genuinely aid clarity (not merely for decoration)
+    CRITICAL — respond with ONLY the commit message, nothing else.
+    Do not write any introduction, explanation, or commentary before or
+    after the message.  Do not wrap the message in a markdown code fence.
+    Your very first character must be the first character of the subject line.
+
+    Message rules:
+    - Subject line: imperative mood, ≤72 characters, no trailing period;
+      must be a complete, self-contained sentence (do not let the subject
+      run past the blank line into the body)
+    - Separate subject from body with exactly one blank line
+    - Body: explain *what* changed and *why*; bullet lists or inline code
+      spans where they genuinely aid clarity, not merely for decoration
     - Do NOT reproduce the diff verbatim or enumerate every changed file
-    - Respond with ONLY the commit message — no preamble, no sign-off
-      trailer, no markdown fence wrapping the entire message
 """)
 
 # ---------------------------------------------------------------------------
@@ -233,7 +266,7 @@ def _get_instructions(root: Path) -> str:
 
     When an AGENTS.md (or AGENT.md) file is present and non-empty it is
     treated as the authoritative summary of all project instructions.  In
-    that case the tool-specific rule directories (.kiro/, .amazonq/,
+    that case the tool-specific rule directories (.kilo/, .kiro/, .amazonq/,
     .kilocode/, .gemini/) and .github/copilot-instructions.md are skipped to
     avoid sending thousands of redundant tokens.
     """
@@ -269,7 +302,8 @@ def _get_instructions(root: Path) -> str:
         root / ".github" / "copilot-instructions.md",
     ]
     # Both .kiro/rules/ (this project's layout) and .kiro/steering/ (used in
-    # some other projects) are checked.
+    # some other projects) are checked.  .kilo/agent/ and .kilo/command/ cover
+    # projects using the modern Kilo config layout without a top-level AGENTS.md.
     tool_dirs = [
         root / ".amazonq" / "rules",
         root / ".amazonq" / "rules" / "memory-bank",
@@ -277,6 +311,8 @@ def _get_instructions(root: Path) -> str:
         root / ".kiro" / "steering",
         root / ".gemini" / "rules",
         root / ".kilocode",
+        root / ".kilo" / "agent",
+        root / ".kilo" / "command",
     ]
 
     # Determine whether an AGENTS.md / AGENT.md is present and non-empty.
@@ -384,6 +420,21 @@ def _gh_cli_token() -> str | None:
     return None
 
 
+def _gh_oauth_token() -> str | None:
+    """Return a GitHub OAuth token from env vars, gh CLI, or hosts file.
+
+    This deliberately ignores GIT_AI_COMMIT_TOKEN because that variable may
+    hold a non-GitHub key (e.g. a LiteLLM API key).  Used when a genuine
+    GitHub OAuth token is required, such as the Copilot token exchange.
+    """
+    for var in ("GITHUB_TOKEN", "GH_TOKEN"):
+        if val := os.environ.get(var, "").strip():
+            return val
+    if tok := _gh_cli_token():
+        return tok
+    return _gh_config_token()
+
+
 def _token(backend: str) -> str:
     """Resolve the best available API token for the given backend."""
     # GIT_AI_COMMIT_TOKEN always wins regardless of backend.
@@ -417,6 +468,72 @@ def _token(backend: str) -> str:
     raise _Error(
         "No API token found. Set GIT_AI_COMMIT_TOKEN, GITHUB_TOKEN, or run 'gh auth login'."
     )
+
+
+# ---------------------------------------------------------------------------
+# Response cleaning
+# ---------------------------------------------------------------------------
+
+
+def _clean_message(text: str) -> str:
+    """Strip model preamble and fenced code blocks from a raw API response.
+
+    Some models ignore the instruction to respond with only the commit message
+    and wrap their output in prose ("Here's the commit message:") and/or a
+    fenced code block.  This function normalises the response to a bare commit
+    message in both cases.
+
+    Strategy:
+    1. If a balanced fenced code block is present, extract the content of the
+       first one (the language tag, if any, is discarded).
+    2. Otherwise strip any lone opening or closing fence markers that appear
+       as the first or last non-empty line (models sometimes emit only a
+       trailing ````` ``` ````` without a matching opener, or vice-versa).
+    3. Drop any leading lines that look like a prose introduction — either a
+       line ending with ':' followed by a blank line, or any leading paragraph
+       whose first line does not look like a commit subject — but only when the
+       text does not itself begin with a conventional-commit subject
+       (e.g. "fix: ...", "feat(scope): ...").  Without that guard a subject
+       such as "fix: broken:\\n\\nbody" would be incorrectly truncated.
+    4. Strip surrounding whitespace.
+    """
+    # Extract the first balanced fenced code block if present.
+    fence_match = re.search(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
+    if fence_match:
+        return fence_match.group(1).strip()
+
+    # Strip a lone closing fence on the last non-empty line (no matching opener
+    # was found above, so the model emitted an unbalanced trailing fence).
+    text = re.sub(r"\n```[^\n]*\s*\Z", "", text)
+    # Strip a lone opening fence on the first non-empty line.
+    text = re.sub(r"\A```[^\n]*\n", "", text)
+
+    # Strip leading prose preamble only when the text does not already start
+    # with a conventional-commit subject (type(scope)!: description).
+    if not re.match(r"^[a-z]+(?:\([^)]+\))?!?:\s", text):
+        # Case 1: leading paragraph ends with ':' followed by a blank line.
+        text = re.sub(r"\A.*?:\s*\n\s*\n", "", text, count=1, flags=re.DOTALL)
+        # Case 2: after the above, the first line still looks like prose (not
+        # a short imperative subject).  Detect by checking whether the first
+        # line is longer than 72 characters or begins with common prose
+        # patterns ("The ", "This ", "I ", sentence fragments, etc.).
+        first_line = text.split("\n", 1)[0].strip()
+        if len(first_line) > 72 or re.match(
+            r"^(?:The |This |These |I |Here |Note:|Below|Above|A |An )", first_line
+        ):
+            # Try to drop everything up to and including the first blank line
+            # to skip the prose introduction and land on the commit message.
+            remainder = re.sub(r"\A.*?\n\s*\n", "", text, count=1, flags=re.DOTALL)
+            if remainder.strip():
+                text = remainder
+            else:
+                # The whole response is a single prose paragraph with no blank
+                # line — nothing useful remains after stripping it, so return
+                # the raw text as-is and let the caller decide (the user will
+                # see it in the preview and can abort).
+                pass
+
+    return text.strip()
 
 
 # ---------------------------------------------------------------------------
@@ -455,7 +572,7 @@ def _chat(
             "model": model,
             "messages": messages,
             "temperature": 0.2,
-            "max_tokens": 1024,
+            "max_tokens": 2048,
         }
     ).encode()
     req = urllib.request.Request(
@@ -471,7 +588,8 @@ def _chat(
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read())
-            return data["choices"][0]["message"]["content"].strip()
+            raw = data["choices"][0]["message"]["content"]
+            return _clean_message(raw)
     except urllib.error.HTTPError as exc:
         body = exc.read().decode(errors="replace")
         raise _APIError(f"HTTP {exc.code}: {body[:500]}", exc.code) from exc
@@ -479,6 +597,50 @@ def _chat(
         raise _APIError(f"Network error: {exc}") from exc
     except (KeyError, IndexError, json.JSONDecodeError) as exc:
         raise _APIError(f"Unexpected API response: {exc}") from exc
+
+
+def _chat_antigravity(model: str, messages: list[dict[str, str]]) -> str:
+    """Send *messages* to the antigravity CLI (agy) and return the reply."""
+    system_content = ""
+    user_content = ""
+    for m in messages:
+        if m["role"] == "system":
+            system_content = m["content"]
+        elif m["role"] == "user":
+            user_content = m["content"]
+
+    if system_content:
+        prompt = f"System Instructions:\n{system_content}\n\n{user_content}"
+    else:
+        prompt = user_content
+
+    cmd = ["agy", "-p", "-"]
+    if model:
+        cmd += ["--model", model]
+
+    try:
+        result = subprocess.run(
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise _APIError("Antigravity CLI (agy) timed out after 60 seconds.", status=0) from exc
+    except FileNotFoundError as exc:
+        raise _Error(
+            "Antigravity CLI (agy) not found in PATH. Ensure it is installed and available."
+        ) from exc
+
+    if result.returncode != 0:
+        raise _APIError(
+            f"Antigravity CLI (agy) failed (exit code {result.returncode}):\n{result.stderr.strip()}",
+            result.returncode,
+        )
+
+    return _clean_message(result.stdout)
 
 
 # ---------------------------------------------------------------------------
@@ -511,7 +673,11 @@ def _build_messages(
         parts.append(f"\n## Agent instructions\n\n{instr}")
     if context:
         parts.append(f"\n## Supplemental context\n\n{context}")
-    parts.append("\n\nWrite a commit message for the staged changes above.")
+    parts.append(
+        "\n\nWrite the commit message for the staged changes above."
+        "  Remember: respond with the commit message text only —"
+        " start directly with the subject line."
+    )
 
     return [
         {"role": "system", "content": _SYSTEM},
@@ -556,23 +722,23 @@ def _edit(text: str) -> str:
 def _confirm(prompt: str) -> bool:
     """Prompt for y/N, opening /dev/tty if stdin is a pipe."""
     try:
-        if sys.stdin.isatty():
-            source = sys.stdin
-        else:
-            source = open("/dev/tty", encoding="utf-8")  # noqa: SIM115 — intentional, closed below
-        try:
+        with contextlib.ExitStack() as stack:
+            if sys.stdin.isatty():
+                source = sys.stdin
+            else:
+                # enter_context registers the file's __exit__ on the stack, so
+                # the file is closed automatically when the `with` block exits.
+                # codeql[py/file-not-closed]
+                source = stack.enter_context(open("/dev/tty", encoding="utf-8"))  # noqa: SIM115
             print(f"{prompt} [y/N] ", end="", flush=True)
             reply = source.readline().strip().lower()
-        finally:
-            if source is not sys.stdin:
-                source.close()
-        return reply in ("y", "yes")
+            return reply in ("y", "yes")
     except (EOFError, KeyboardInterrupt, OSError):
         print()
         return False
 
 
-def _print_rule(msg: str, *, file: typing.TextIO = sys.stderr) -> None:
+def _print_rule(msg: str, *, file: TextIO = sys.stderr) -> None:
     print(f"\n{'─' * 72}\n{msg}\n{'─' * 72}\n", file=file)
 
 
@@ -580,11 +746,13 @@ def _print_rule(msg: str, *, file: typing.TextIO = sys.stderr) -> None:
 # Backend resolution
 # ---------------------------------------------------------------------------
 
-_BACKENDS = ("kilo", "github-models", "copilot")
+_BACKENDS = ("kilo", "github-models", "copilot", "antigravity", "agy")
 
 
 def _resolve_backend_and_api(backend: str, api_override: str) -> tuple[str, str]:
     """Return (backend, api_base) after applying any --api override."""
+    if backend in ("antigravity", "agy"):
+        return backend, ""
     if api_override:
         return backend, api_override
     if backend == "kilo":
@@ -595,6 +763,8 @@ def _resolve_backend_and_api(backend: str, api_override: str) -> tuple[str, str]
 
 
 def _default_model(backend: str) -> str:
+    if backend in ("antigravity", "agy"):
+        return ""
     return _DEFAULT_MODEL_KILO if backend == "kilo" else _DEFAULT_MODEL_OTHER
 
 
@@ -609,6 +779,16 @@ def main() -> None:
     if default_backend not in _BACKENDS:
         default_backend = "kilo"
 
+    # Split argv on the first `--` separator.  Everything after `--` is passed
+    # verbatim to `git commit` without any interpretation by this script.
+    argv = sys.argv[1:]
+    if "--" in argv:
+        sep = argv.index("--")
+        extra_git_args: list[str] = argv[sep + 1 :]
+        argv = argv[:sep]
+    else:
+        extra_git_args = []
+
     ap = argparse.ArgumentParser(
         prog="git-ai-commit",
         description="Commit staged changes with an AI-generated commit message.",
@@ -616,7 +796,9 @@ def main() -> None:
             "Supplemental context can be piped on stdin:\n"
             "  echo 'Fixes #42' | git-ai-commit --yes\n\n"
             "Can also be invoked as a Git subcommand:\n"
-            "  git ai-commit [OPTIONS]"
+            "  git ai-commit [OPTIONS]\n\n"
+            "Options after -- are forwarded verbatim to git commit:\n"
+            "  git ai-commit --yes -- --no-verify --signoff"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -627,7 +809,7 @@ def main() -> None:
         default=default_backend,
         help=(
             "API backend to use: kilo (FNAL LiteLLM, default), "
-            "github-models, or copilot "
+            "github-models, copilot, antigravity, or agy "
             "(env: GIT_AI_COMMIT_BACKEND)"
         ),
     )
@@ -636,9 +818,10 @@ def main() -> None:
         default=os.environ.get("GIT_AI_COMMIT_MODEL", ""),
         metavar="MODEL",
         help=(
-            "Model name — defaults to azure/claude-haiku-4-5 for the kilo "
-            "backend and gpt-4o for others "
-            "(env: GIT_AI_COMMIT_MODEL)"
+            f"Model name — defaults to {_DEFAULT_MODEL_KILO} for the kilo "
+            f"backend and {_DEFAULT_MODEL_OTHER} for others; large prompts "
+            f"auto-escalate to {_ESCALATION_MODEL_KILO} unless a model is "
+            "explicitly set (env: GIT_AI_COMMIT_MODEL)"
         ),
     )
     ap.add_argument(
@@ -651,17 +834,18 @@ def main() -> None:
     ap.add_argument("--amend", action="store_true", help="Amend the previous commit")
     ap.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompt")
     ap.add_argument("-e", "--edit", action="store_true", help="Open message in $EDITOR")
-    ap.add_argument("--no-verify", action="store_true", help="Pass --no-verify to git commit")
     ap.add_argument(
         "--no-instructions",
         action="store_true",
         help="Skip all instruction/context files; send only the diff, status, and log",
     )
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     backend, api_base = _resolve_backend_and_api(args.backend, args.api)
-    model = args.model or _default_model(backend)
-
+    # Track whether the model was explicitly chosen by the user (CLI or env).
+    # An explicit choice suppresses auto-escalation for large prompts.
+    model_explicit = bool(args.model.strip())
+    model = args.model.strip() or _default_model(backend)
     # Collect supplemental context from --context and/or stdin.
     ctx_parts: list[str] = []
     if args.context:
@@ -675,32 +859,72 @@ def main() -> None:
     try:
         root = _git_root()
         diff = _staged_diff(args.amend)
-        if not diff.strip() and not args.amend:
-            print("Nothing staged. Use 'git add' first.", file=sys.stderr)
-            sys.exit(0)
         status = _status()
         log = _recent_log()
         last_msg = _last_commit_message() if args.amend else ""
         instr = "" if args.no_instructions else _get_instructions(root)
-        tok = _token(backend)
+        tok = "" if backend in ("antigravity", "agy") else _token(backend)
     except _Error as exc:
         print(f"git-ai-commit: {exc}", file=sys.stderr)
         sys.exit(1)
 
+    if not diff.strip():
+        if not args.amend:
+            print("Nothing staged. Use 'git add' first.", file=sys.stderr)
+            sys.exit(0)
+        if not last_msg:
+            # --amend with nothing staged and no retrievable prior commit
+            # message would produce a near-empty prompt; abort early.
+            print(
+                "Nothing staged and no prior commit message found. "
+                "Stage changes or ensure HEAD exists before amending.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
     msgs = _build_messages(diff, status, log, context, root, last_msg, instr)
 
-    print(f"Generating commit message using {model} via {backend}…", file=sys.stderr)
+    # Auto-escalate to a free high-context model when the prompt is large and
+    # the user has not explicitly chosen a model.  This avoids degraded output
+    # (or silent truncation) from Haiku on large diffs without spending budget
+    # on azure models unnecessarily.
+    if (
+        backend == "kilo"
+        and not model_explicit
+        and not _KILO_MODEL_PINNED_BY_ENV
+        and sum(len(m["content"]) for m in msgs) > _ESCALATION_THRESHOLD_CHARS
+    ):
+        model = _ESCALATION_MODEL_KILO
+        print(
+            f"Prompt exceeds {_ESCALATION_THRESHOLD_CHARS:,} chars — "
+            f"escalating to {_ESCALATION_MODEL_KILO}.",
+            file=sys.stderr,
+        )
+
+    print(
+        f"Generating commit message using {model if model else '<auto>'} via {backend}…",
+        file=sys.stderr,
+    )
 
     # For the copilot backend, exchange the OAuth token for a short-lived one.
+    # Explicitly resolve a GitHub OAuth token rather than using tok directly —
+    # tok may be a non-GitHub key (e.g. GIT_AI_COMMIT_TOKEN set to a LiteLLM
+    # API key) that cannot be exchanged for a Copilot token.
     if backend == "copilot":
         try:
-            tok = _copilot_token(tok)
+            gh_tok = _gh_oauth_token()
+            if not gh_tok:
+                raise _Error("No GitHub OAuth token found for Copilot backend.")
+            tok = _copilot_token(gh_tok)
         except _Error as exc:
             print(f"git-ai-commit: {exc}", file=sys.stderr)
             sys.exit(1)
 
     try:
-        message = _chat(tok, api_base, model, msgs)
+        if backend in ("antigravity", "agy"):
+            message = _chat_antigravity(model, msgs)
+        else:
+            message = _chat(tok, api_base, model, msgs)
     except _APIError as primary_err:
         # If GitHub Models fails with an auth or connectivity error, retry via
         # the Copilot API.  This fallback is specific to the github-models
@@ -711,7 +935,14 @@ def main() -> None:
                 file=sys.stderr,
             )
             try:
-                copilot_tok = _copilot_token(tok)
+                # The Copilot token exchange requires a GitHub OAuth token.
+                # Re-resolve one explicitly rather than reusing tok, which
+                # may be a non-GitHub key (e.g. GIT_AI_COMMIT_TOKEN set to a
+                # LiteLLM API key).
+                gh_tok = _gh_oauth_token()
+                if not gh_tok:
+                    raise _Error("No GitHub OAuth token found for Copilot fallback.")
+                copilot_tok = _copilot_token(gh_tok)
                 message = _chat(copilot_tok, _COPILOT_API_BASE, model, msgs)
             except _Error as exc:
                 print(f"git-ai-commit: {exc}", file=sys.stderr)
@@ -742,9 +973,12 @@ def main() -> None:
         print("Aborted.", file=sys.stderr)
         sys.exit(0)
 
-    cmd = ["git", "commit"] + (["--amend"] if args.amend else []) + ["-m", message]
-    if args.no_verify:
-        cmd.append("--no-verify")
+    cmd = ["git", "commit"]
+    if args.amend:
+        cmd.append("--amend")
+    cmd += ["-m", message]
+    if extra_git_args:
+        cmd += extra_git_args
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as exc:

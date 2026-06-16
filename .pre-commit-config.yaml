@@ -13,12 +13,12 @@ repos:
       - id: check-executables-have-shebangs
       - id: mixed-line-ending
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.8
+    rev: v0.15.16
     hooks:
       - id: ruff-format
         types_or: [python, pyi]
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.2
+    rev: v22.1.5
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
@@ -39,8 +39,8 @@ repos:
         files: ^scripts/
         types_or: [python]
         pass_filenames: false
-  - repo: https://github.com/BlankSpruce/gersemi
-    rev: 0.26.1
+  - repo: https://github.com/BlankSpruce/gersemi-pre-commit
+    rev: 0.27.7
     hooks:
       - id: gersemi
   - repo: https://github.com/google/go-jsonnet
@@ -52,12 +52,12 @@ repos:
         # We therefore exclude them from linting, but still format them.
         exclude: ^test/max-parallelism
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.8.1
+    rev: v3.8.3
     hooks:
       - id: prettier
         types_or: [yaml]
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.22.0
+    rev: v0.22.1
     hooks:
       - id: markdownlint-cli2
         args: [--fix]
