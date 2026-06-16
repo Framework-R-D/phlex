@@ -28,6 +28,7 @@ namespace form::detail::experimental {
     void commit() override;
 
     TTree* getTTree();
+    std::uint64_t getEntryCount() override;
 
   private:
     // Be absolutely explicit about the ownership semantics of TTree*,
