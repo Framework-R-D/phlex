@@ -8,6 +8,7 @@
 #include "root_storage/root_tbranch_write_container.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
+#include "storage/storage_file.hpp"
 #include "storage/storage_write_container.hpp"
 #include "storage/storage_writer.hpp"
 
@@ -346,6 +347,190 @@ TEST_CASE("StorageWriter finalize skips IndexRegistry for unparsable index", "[f
   CHECK(file->Get<TTree>("IndexRegistry") == nullptr);
 
   file->Close();
+}
+
+TEST_CASE("Storage_Write_Container base class exercises all default methods", "[form]")
+{
+  Storage_Write_Container c("my/container");
+
+  // name() and getEntryCount() on base class
+  CHECK(c.name() == "my/container");
+  CHECK(c.getEntryCount() == 0u);
+
+  // setFile, setupWrite, fill, commit are all no-ops on the base class
+  auto dummy_file = std::make_shared<Storage_File>("dummy_base_test.root", 'o');
+  CHECK_NOTHROW(c.setFile(dummy_file));
+  CHECK_NOTHROW(c.setupWrite(typeid(int)));
+  int val = 99;
+  CHECK_NOTHROW(c.fill(&val));
+  CHECK_NOTHROW(c.commit());
+}
+
+TEST_CASE("StorageWriter fillContainer throws when container is not registered", "[form]")
+{
+  StorageWriter writer;
+  form::experimental::config::tech_setting_config settings;
+  // No createContainers called, so m_write_containers is empty
+  Placement p("ghost.root", "NoSuch/container", technology);
+  int d = 1;
+  CHECK_THROWS_AS(writer.fillContainer(p, &d, typeid(int), ""), std::runtime_error);
+}
+
+TEST_CASE("StorageWriter fillContainer with empty product_name falls back to creator_name",
+          "[form]")
+{
+  std::string const file_name = "testEmptyProductName.root";
+  StorageWriter writer;
+  form::experimental::config::tech_setting_config settings;
+
+  std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
+  containers.emplace(std::make_unique<Placement>(file_name, "Creator/value", technology),
+                     &typeid(std::vector<int>));
+  containers.emplace(std::make_unique<Placement>(file_name, "Creator/index", technology),
+                     &typeid(std::string));
+  writer.createContainers(containers, settings);
+
+  // Empty product_name → logical_product_name falls back to creator_name ("Creator")
+  Placement pp(file_name, "Creator/value", technology);
+  std::vector<int> d = {7};
+  CHECK_NOTHROW(writer.fillContainer(pp, &d, typeid(std::vector<int>), ""));
+
+  Placement ip(file_name, "Creator/index", technology);
+  std::string idx = "[RUN=00000001;EVT=00000002]";
+  writer.fillContainer(ip, &idx, typeid(std::string), "Creator");
+  writer.commitContainers(ip);
+  writer.finalize(settings);
+
+  auto f = TFile::Open(file_name.c_str(), "READ");
+  REQUIRE(f != nullptr);
+  TTree* reg = f->Get<TTree>("ProductRegistry");
+  REQUIRE(reg != nullptr);
+  std::string* prod_name = nullptr;
+  reg->SetBranchAddress("ProductName", &prod_name);
+  reg->GetEntry(0);
+  REQUIRE(prod_name != nullptr);
+  // product_name was empty, so creator_name ("Creator") was used
+  CHECK(*prod_name == "Creator");
+  f->Close();
+}
+
+TEST_CASE("StorageWriter createContainers reuses existing parent TTree", "[form]")
+{
+  std::string const file_name = "testSharedParentTTree.root";
+  StorageWriter writer;
+  form::experimental::config::tech_setting_config settings;
+
+  // First call: creates "SharedTree" parent + "branch1" container
+  {
+    std::map<std::unique_ptr<Placement>, std::type_info const*> c1;
+    c1.emplace(std::make_unique<Placement>(file_name, "SharedTree/branch1", technology),
+               &typeid(std::vector<int>));
+    writer.createContainers(c1, settings);
+  }
+
+  // Second call: "SharedTree" parent already in m_write_containers → hits else branch
+  {
+    std::map<std::unique_ptr<Placement>, std::type_info const*> c2;
+    c2.emplace(std::make_unique<Placement>(file_name, "SharedTree/branch2", technology),
+               &typeid(float));
+    CHECK_NOTHROW(writer.createContainers(c2, settings));
+  }
+
+  // Both branches must be usable without errors
+  std::vector<int> d1 = {1, 2};
+  float d2 = 2.71f;
+  CHECK_NOTHROW(writer.fillContainer(
+    Placement(file_name, "SharedTree/branch1", technology), &d1, typeid(std::vector<int>), "p1"));
+  CHECK_NOTHROW(writer.fillContainer(
+    Placement(file_name, "SharedTree/branch2", technology), &d2, typeid(float), "p2"));
+  CHECK_NOTHROW(writer.finalize(settings));
+}
+
+TEST_CASE("StorageWriter fillContainer index with nullptr data skips index recording", "[form]")
+{
+  std::string const file_name = "testNullIndexData.root";
+  StorageWriter writer;
+  form::experimental::config::tech_setting_config settings;
+
+  std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
+  containers.emplace(std::make_unique<Placement>(file_name, "Prod/index", technology),
+                     &typeid(std::string));
+  writer.createContainers(containers, settings);
+
+  Placement ip(file_name, "Prod/index", technology);
+  // data == nullptr → is_index_container && data != nullptr evaluates false → inner block skipped
+  CHECK_NOTHROW(writer.fillContainer(ip, nullptr, typeid(std::string), "Prod"));
+  writer.commitContainers(ip);
+  writer.finalize(settings);
+
+  auto f = TFile::Open(file_name.c_str(), "READ");
+  REQUIRE(f != nullptr);
+  CHECK(f->Get<TTree>("FileCatalog") != nullptr);
+  // No parsable index recorded → no IndexRegistry
+  CHECK(f->Get<TTree>("IndexRegistry") == nullptr);
+  f->Close();
+}
+
+TEST_CASE(
+  "StorageWriter finalize with no payload: no ProductRegistry; index entry with empty fields",
+  "[form]")
+{
+  std::string const file_name = "testNoPayloadProducts.root";
+  StorageWriter writer;
+  form::experimental::config::tech_setting_config settings;
+
+  // Register only an index container — no payload container
+  std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
+  containers.emplace(std::make_unique<Placement>(file_name, "Anon/index", technology),
+                     &typeid(std::string));
+  writer.createContainers(containers, settings);
+
+  // Fill index with valid parsable data; no payload registered for "Anon"
+  // → products_for_index empty + m_productsByProducer empty → push empty strings into index
+  Placement ip(file_name, "Anon/index", technology);
+  std::string idx = "[RUN=00000001]";
+  writer.fillContainer(ip, &idx, typeid(std::string), "Anon");
+  writer.commitContainers(ip);
+  writer.finalize(settings);
+
+  auto f = TFile::Open(file_name.c_str(), "READ");
+  REQUIRE(f != nullptr);
+  CHECK(f->Get<TTree>("FileCatalog") != nullptr);
+  // m_productsByProducer empty → no ProductRegistry
+  CHECK(f->Get<TTree>("ProductRegistry") == nullptr);
+  // Index data was recorded (with empty product info) → IndexRegistry is written
+  CHECK(f->Get<TTree>("IndexRegistry") != nullptr);
+  f->Close();
+}
+
+TEST_CASE("Root TTree setupWrite finds pre-existing TTree; getEntryCount reflects entries",
+          "[form]")
+{
+  std::string const file_name = "testPreExistingTTree.root";
+
+  // Step 1: create a file with a TTree that has some entries using plain ROOT
+  {
+    auto* seed_file = TFile::Open(file_name.c_str(), "RECREATE");
+    REQUIRE(seed_file != nullptr);
+    auto* tree = new TTree("ExistingTree", "seed");
+    int x = 0;
+    tree->Branch("x", &x, "x/I");
+    for (x = 0; x < 3; ++x) {
+      tree->Fill();
+    }
+    seed_file->Write();
+    seed_file->Close();
+  }
+
+  // Step 2: open in update mode; setupWrite must find the existing TTree
+  auto root_file = std::make_shared<ROOT_TFileImp>(file_name, 'u');
+  ROOT_TTree_Write_ContainerImp container("ExistingTree");
+  container.setFile(root_file);
+  // setupWrite: first m_tree.reset(Get<TTree>()) returns non-null → skips new-tree branch
+  CHECK_NOTHROW(container.setupWrite(typeid(void)));
+  CHECK(container.getTTree() != nullptr);
+  // getEntryCount() where m_tree != nullptr returns m_tree->GetEntries()
+  CHECK(container.getEntryCount() == 3u);
 }
 
 TEST_CASE("StorageWriter parses colon indices and honors process_name key", "[form]")
