@@ -561,6 +561,7 @@ void StorageWriter::finalize(form::experimental::config::tech_setting_config con
         TList* userInfo = index_registry->GetUserInfo();
         if (userInfo) {
           userInfo->SetOwner(kTRUE);
+          // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
           userInfo->Add(new TObjString(schema_header.c_str()));
         }
 
