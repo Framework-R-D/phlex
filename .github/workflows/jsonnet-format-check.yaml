@@ -75,9 +75,6 @@ jobs:
         needs.setup.outputs.has_changes == 'true'
       )
     runs-on: ubuntu-latest
-    container:
-      image: docker.io/dysnix/jsonnet:latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -86,6 +83,12 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
           path: ${{ needs.setup.outputs.checkout_path }}
           persist-credentials: false
+
+      - name: Setup jsonnet
+        id: setup-jsonnet
+        uses: zendesk/setup-jsonnet@74119dac8a540c99167a65f14aa1ee99ff143ec2 # v16
+        with:
+          github_token: ${{ github.token }}
 
       - name: Check Jsonnet formatting
         id: lint
