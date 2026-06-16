@@ -88,6 +88,7 @@ jobs:
         id: setup-jsonnet
         uses: zendesk/setup-jsonnet@74119dac8a540c99167a65f14aa1ee99ff143ec2 # v16
         with:
+          version: v0.22.0
           github_token: ${{ github.token }}
 
       - name: Check Jsonnet formatting
