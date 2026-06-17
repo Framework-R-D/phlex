@@ -110,6 +110,8 @@ namespace phlex::experimental {
       set_ports(std::make_index_sequence<NInputs>{});
     }
 
+    std::size_t emitted_result_count() const { return result_repeater_.emitted_result_count(); }
+
     tbb::flow::receiver<index_message>& partition_port()
     {
       return result_repeater_.partition_port();
@@ -118,7 +120,6 @@ namespace phlex::experimental {
     {
       return tbb::flow::output_port<0>(result_repeater_);
     }
-
     tbb::flow::receiver<std::size_t>& notify_result_repeater_port()
     {
       return input_port<3>(result_repeater_);

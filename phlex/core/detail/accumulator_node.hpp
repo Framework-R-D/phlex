@@ -104,6 +104,7 @@ namespace phlex::experimental::detail {
 
     bool cache_is_empty() const;
     std::size_t cache_size() const;
+    std::size_t emitted_result_count() const;
 
     ~accumulator_node() override;
 
@@ -142,6 +143,7 @@ namespace phlex::experimental::detail {
     identifier partition_layer_;
     result_initializer_t initializer_;
     product_specifications output_;
+    std::atomic<std::size_t> emitted_result_count_{0};
   };
 
   // ==============================================================================
@@ -213,6 +215,12 @@ namespace phlex::experimental::detail {
   std::size_t accumulator_node<Result>::cache_size() const
   {
     return cached_results_.size();
+  }
+
+  template <typename Result>
+  std::size_t accumulator_node<Result>::emitted_result_count() const
+  {
+    return emitted_result_count_.load();
   }
 
   template <typename Result>
@@ -299,6 +307,7 @@ namespace phlex::experimental::detail {
     if (entry->flush_received.test() and entry->counter == 0) {
       output_port<0>(repeater_).try_put(entry->accumulator_msg->release_as_message(
         node_name_, output_, entry->original_message_id));
+      ++emitted_result_count_;
       cached_results_.erase(a);
     }
   }
