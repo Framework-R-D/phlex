@@ -25,6 +25,7 @@ namespace form::detail::experimental {
     void setParent(std::shared_ptr<IStorage_Write_Container> const parent) override;
     void fill(void const* data) override;
     void commit() override;
+    std::uint64_t getEntryCount() override;
 
   private:
     std::shared_ptr<TFile> m_tfile;

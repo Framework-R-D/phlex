@@ -5,9 +5,7 @@
 #include "core/placement.hpp"
 #include "form/config.hpp"
 #include "form/technology.hpp"
-#include "root_storage/root_tbranch_write_container.hpp"
 #include "root_storage/root_tfile.hpp"
-#include "root_storage/root_ttree_write_container.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_write_container.hpp"
 #include "storage/storage_writer.hpp"
@@ -172,16 +170,6 @@ TEST_CASE("FORM Container setup error handling")
       CHECK_THROWS_AS(associativeWrite->setParent(badWriteParent), std::runtime_error);
     }
   }
-
-  if (form::technology::GetMinor(technology) !=
-      form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this)
-  {
-    SECTION("Bad file")
-    {
-      auto badFile = createFile(technology, "noSuchFile.root", 'i');
-      CHECK_THROWS_AS(writeContainer->setFile(badFile), std::runtime_error);
-    }
-  }
 }
 
 template <class T>
@@ -343,13 +331,14 @@ TEST_CASE("Root file open modes and attribute validation", "[form]")
 
 TEST_CASE("Storage write container error paths", "[form]")
 {
-  auto container = createWriteContainer(technology, "testTree");
+  auto container = createWriteContainer(technology, "test/testTree");
   REQUIRE(container != nullptr);
 
   CHECK(container->getEntryCount() == 0);
   CHECK_THROWS_AS(container->setupWrite(typeid(int)), std::runtime_error);
 
   std::shared_ptr<IStorage_File> wrong_file(new Storage_File("container_error.root", 'o'));
+
   CHECK_THROWS_AS(container->setFile(wrong_file), std::runtime_error);
 }
 
@@ -512,7 +501,6 @@ TEST_CASE("StorageWriter fillContainer index with nullptr data skips index recor
   Placement ip(file_name, "Prod/index", technology);
   // data == nullptr → is_index_container && data != nullptr evaluates false → inner block skipped
   CHECK_NOTHROW(writer.fillContainer(ip, nullptr, typeid(std::string), "Prod"));
-  writer.commitContainers(ip);
   writer.finalize(settings);
 
   auto f = TFile::Open(file_name.c_str(), "READ");

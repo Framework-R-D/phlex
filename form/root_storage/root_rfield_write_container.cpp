@@ -32,7 +32,7 @@ namespace form::detail::experimental {
   {
     Storage_Write_Container::setFile(file);
 
-    auto form_root_file = dynamic_cast<ROOT_TFileImp*>(file.get());
+    auto form_root_file = dynamic_pointer_cast<ROOT_TFileImp>(file);
     if (form_root_file) {
       m_tfile = form_root_file->getTFile();
     } else {
@@ -128,5 +128,12 @@ namespace form::detail::experimental {
     }
 
     m_rntuple_parent->m_model->AddField(std::move(field));
+  }
+
+  std::uint64_t ROOT_RField_Write_ContainerImp::getEntryCount()
+  {
+    if(m_rntuple_parent && m_rntuple_parent->m_writer)
+      return m_rntuple_parent->m_writer->GetNEntries();
+    return 0;
   }
 }
