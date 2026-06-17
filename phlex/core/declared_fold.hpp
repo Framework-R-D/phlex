@@ -59,11 +59,13 @@ namespace phlex::detail {
   template <typename FoldResult, typename InitTuple, std::size_t... Is>
   auto make_initializer(InitTuple args, std::index_sequence<Is...>)
   {
-    // The compiler emits a warning if an empty args tuple is captured by reference and then not expanded inside the lambda expression.  We therefore only capture args in the lambda expression if sizeof...(Is) > 0.
+    // The compiler emits a warning if an empty args tuple is captured by reference and then
+    // not expanded inside the lambda expression. We therefore only capture args in the lambda
+    // expression if sizeof...(Is) > 0.
     if constexpr (sizeof...(Is) == 0) {
       return [](data_cell_index const&) { return std::make_unique<FoldResult>(); };
     } else {
-      return [args](data_cell_index const&) {
+      return [args = std::move(args)](data_cell_index const&) {
         return std::make_unique<FoldResult>(std::get<Is>(args)...);
       };
     }
@@ -106,12 +108,13 @@ namespace phlex::detail {
       fold_{g,
             concurrency,
             [this, ft = alg.release_algorithm()](
-              accumulator_with_messages<result_type, num_inputs> const& accum_with_msgs, auto&) {
+              accumulator_with_messages<result_type, num_inputs> const& accum_with_msgs) {
               std::size_t const partition_hash = apply_fold(ft, accum_with_msgs);
 
               ++calls_;
 
               join_.notify_result_repeater_port().try_put(partition_hash);
+              return tbb::flow::continue_msg{};
             }}
     {
       make_edge(join_, fold_);
@@ -131,7 +134,7 @@ namespace phlex::detail {
 
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
-    std::size_t product_count() const final { return product_count_.load(); }
+    std::size_t product_count() const final { return join_.emitted_result_count(); }
 
     std::size_t apply_fold(
       function_t const& ft,
@@ -146,15 +149,13 @@ namespace phlex::detail {
       return accumulator.index->hash();
     }
 
-    InitTuple initializer_;
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     fold_join_node<result_type, num_inputs> join_;
-    tbb::flow::multifunction_node<accumulator_with_messages<result_type, num_inputs>,
-                                  message_tuple<1>>
+    tbb::flow::function_node<accumulator_with_messages<result_type, num_inputs>,
+                             tbb::flow::continue_msg>
       fold_;
     std::atomic<std::size_t> calls_;
-    std::atomic<std::size_t> product_count_;
   };
 }
 

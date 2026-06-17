@@ -36,7 +36,8 @@ namespace phlex::detail::internal {
     auto release_as_product()
     {
       auto result = std::move(accumulator_);
-      if constexpr (requires { send(*result); }) {
+      using phlex::experimental::send;
+      if constexpr (phlex::experimental::has_send<T>) {
         return std::make_unique<product<sendable_t>>(send(*result));
       } else {
         return std::make_unique<product<sendable_t>>(std::move(*result));
@@ -104,6 +105,7 @@ namespace phlex::detail::internal {
 
     bool cache_is_empty() const;
     std::size_t cache_size() const;
+    std::size_t emitted_result_count() const;
 
     ~accumulator_node() override;
 
@@ -142,6 +144,7 @@ namespace phlex::detail::internal {
     phlex::experimental::identifier partition_layer_;
     result_initializer_t initializer_;
     product_specifications output_;
+    std::atomic<std::size_t> emitted_result_count_{0};
   };
 
   // ==============================================================================
@@ -216,6 +219,12 @@ namespace phlex::detail::internal {
   }
 
   template <typename Result>
+  std::size_t accumulator_node<Result>::emitted_result_count() const
+  {
+    return emitted_result_count_.load();
+  }
+
+  template <typename Result>
   accumulator_node<Result>::~accumulator_node()
   {
     if (cached_results_.empty()) {
@@ -260,6 +269,11 @@ namespace phlex::detail::internal {
       .partial_result = std::make_shared<accumulator<Result>>(initializer_(*msg.index))});
     entry->original_message_id = msg.msg_id;
     emit_pending_ids(entry);
+    // Handle the flush-before-partition case: if the flush token already arrived (and
+    // left counter == 0 because no fold inputs flowed under this partition), emit the
+    // initial accumulator value now that we finally have the index and original message
+    // ID needed to construct the output.
+    cleanup_cache_entry(a);
   }
 
   template <typename Result>
@@ -296,9 +310,15 @@ namespace phlex::detail::internal {
   void accumulator_node<Result>::cleanup_cache_entry(accessor& a)
   {
     auto* entry = &a->second;
-    if (entry->flush_received.test() and entry->counter == 0) {
+    // The `accumulator_msg` check guards the flush-before-partition case: a zero-count
+    // flush can establish the cache entry with `flush_received == true` and
+    // `counter == 0` before the partition message has supplied the index and initial
+    // value.  In that case we defer emission until `handle_partition_message` re-enters
+    // cleanup with a populated `accumulator_msg`.
+    if (entry->flush_received.test() and entry->counter == 0 and entry->accumulator_msg) {
       output_port<0>(repeater_).try_put(entry->accumulator_msg->release_as_message(
         node_name_, output_, entry->original_message_id));
+      ++emitted_result_count_;
       cached_results_.erase(a);
     }
   }
