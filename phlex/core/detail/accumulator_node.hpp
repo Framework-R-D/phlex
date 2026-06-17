@@ -305,6 +305,7 @@ namespace phlex::experimental::detail {
   {
     auto* entry = &a->second;
     if (entry->flush_received.test() and entry->counter == 0) {
+      assert(entry->accumulator_msg);
       output_port<0>(repeater_).try_put(entry->accumulator_msg->release_as_message(
         node_name_, output_, entry->original_message_id));
       ++emitted_result_count_;
