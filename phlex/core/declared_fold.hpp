@@ -131,7 +131,7 @@ namespace phlex::detail {
 
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
-    std::size_t product_count() const final { return product_count_.load(); }
+    std::size_t product_count() const final { return join_.emitted_result_count(); }
 
     std::size_t apply_fold(
       function_t const& ft,
@@ -146,7 +146,6 @@ namespace phlex::detail {
       return accumulator.index->hash();
     }
 
-    InitTuple initializer_;
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     fold_join_node<result_type, num_inputs> join_;
@@ -154,7 +153,6 @@ namespace phlex::detail {
                                   message_tuple<1>>
       fold_;
     std::atomic<std::size_t> calls_;
-    std::atomic<std::size_t> product_count_;
   };
 }
 

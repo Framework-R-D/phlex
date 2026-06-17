@@ -102,7 +102,8 @@ namespace {
 
     bool cache_is_empty() const { return accumulator_.cache_is_empty(); }
     std::size_t cache_size() const { return accumulator_.cache_size(); }
-    std::size_t result_count() const { return result_consumer_.received_result_count(); }
+    std::size_t emitted_result_count() const { return accumulator_.emitted_result_count(); }
+    std::size_t received_result_count() const { return result_consumer_.received_result_count(); }
 
     std::pair<int, std::size_t> fold_result(phlex::data_cell_index_ptr const& idx) const
     {
@@ -130,14 +131,16 @@ TEST_CASE("Test accumulator basic functionality", "[multithreading]")
   fixture.wait_for_all();
 
   // Fold is complete but no flush received — result should not be emitted yet
-  CHECK(fixture.result_count() == 0);
+  CHECK(fixture.emitted_result_count() == 0);
+  CHECK(fixture.received_result_count() == 0);
   CHECK(fixture.cache_size() == 1);
 
   fixture.put_flush_token({.index = partition_index, .count = num_data_cells});
   fixture.wait_for_all();
 
   // Exactly one result carrying the accumulated count
-  REQUIRE(fixture.result_count() == 1);
+  CHECK(fixture.emitted_result_count() == 1);
+  REQUIRE(fixture.received_result_count() == 1);
   CHECK(fixture.fold_result(partition_index) ==
         std::pair{num_data_cells,
                   1uz}); // Fold value equals number of data cells, original message ID 1
@@ -166,7 +169,8 @@ TEST_CASE("Test accumulator with multiple partitions", "[multithreading]")
   fixture.wait_for_all();
 
   // One result per partition: run1 accumulates 3 calls, run2 accumulates 2 calls
-  REQUIRE(fixture.result_count() == 2);
+  CHECK(fixture.emitted_result_count() == 2);
+  REQUIRE(fixture.received_result_count() == 2);
   CHECK(fixture.fold_result(run1) == std::pair{3, 1uz}); // 3 fold operations, original message ID 1
   CHECK(fixture.fold_result(run2) == std::pair{2, 2uz}); // 2 fold operations, original message ID 2
   CHECK(fixture.cache_is_empty());
@@ -183,7 +187,8 @@ TEST_CASE("Test accumulator with index messages before partition", "[multithread
   fixture.wait_for_all();
 
   // Cache entry exists but accumulator is not yet created, so no fold operations have run
-  CHECK(fixture.result_count() == 0);
+  CHECK(fixture.emitted_result_count() == 0);
+  CHECK(fixture.received_result_count() == 0);
   CHECK(fixture.cache_size() == 1);
 
   // Partition arrives — pending index messages are dispatched and folds run
@@ -191,12 +196,14 @@ TEST_CASE("Test accumulator with index messages before partition", "[multithread
   fixture.wait_for_all();
 
   // Fold operations are done but no flush received yet
-  CHECK(fixture.result_count() == 0);
+  CHECK(fixture.emitted_result_count() == 0);
+  CHECK(fixture.received_result_count() == 0);
 
   fixture.put_flush_token({.index = partition_index, .count = 2});
   fixture.wait_for_all();
 
-  REQUIRE(fixture.result_count() == 1);
+  CHECK(fixture.emitted_result_count() == 1);
+  REQUIRE(fixture.received_result_count() == 1);
   CHECK(fixture.fold_result(partition_index) ==
         std::pair{2, 3uz}); // 2 fold operations, original message ID 3
   CHECK(fixture.cache_is_empty());
@@ -255,13 +262,15 @@ TEST_CASE("Test accumulator with zero data cells emits initial value", "[multith
   fixture.put_partition({.index = partition_index, .msg_id = 1});
   fixture.wait_for_all();
 
-  CHECK(fixture.result_count() == 0);
+  CHECK(fixture.emitted_result_count() == 0);
+  CHECK(fixture.received_result_count() == 0);
   CHECK(fixture.cache_size() == 1);
 
   fixture.put_flush_token({.index = partition_index, .count = 0});
   fixture.wait_for_all();
 
-  REQUIRE(fixture.result_count() == 1);
+  CHECK(fixture.emitted_result_count() == 1);
+  REQUIRE(fixture.received_result_count() == 1);
   CHECK(fixture.fold_result(partition_index) ==
         std::pair{0, 1uz}); // Initial value, original message ID 1
   CHECK(fixture.cache_is_empty());
