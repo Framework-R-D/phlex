@@ -187,7 +187,7 @@ namespace phlex::experimental {
       if constexpr (requires { send(*result); }) {
         store->add_product(output()[0], send(*result));
       } else {
-        store->add_product(output()[0], std::move(result));
+        store->add_product(output()[0], std::move(*result));
       }
       // Reclaim some memory; it would be better to erase the entire entry from the map,
       // but that is not thread-safe.
