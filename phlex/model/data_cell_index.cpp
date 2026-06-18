@@ -1,13 +1,16 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/hashing.hpp"
 
+#include "boost/algorithm/string.hpp"
 #include "fmt/format.h"
+#include "fmt/ranges.h"
 
 #include <algorithm>
-#include <cassert>
 #include <iterator>
 #include <map>
+#include <numeric>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 
 using namespace std::string_literals;
@@ -59,17 +62,15 @@ namespace phlex {
     return layer_name_;
   }
 
-  experimental::layer_path data_cell_index::layer_path() const
+  std::string data_cell_index::layer_path() const
   {
-    // We know how deep we are so we can pre-allocate and fill in reverse
-    std::vector<experimental::identifier> layers(depth_ + 1);
-    auto const* ptr = this;
-    for (auto& layer : std::views::reverse(layers)) {
-      assert(ptr);
-      layer = ptr->layer_name();
-      ptr = ptr->parent_.get();
+    std::vector layers_in_reverse{std::string_view(layer_name_)};
+    auto next_parent = parent();
+    while (next_parent) {
+      layers_in_reverse.push_back(std::string_view(next_parent->layer_name()));
+      next_parent = next_parent->parent();
     }
-    return experimental::layer_path{std::move(layers)};
+    return fmt::format("/{}", fmt::join(std::views::reverse(layers_in_reverse), "/"));
   }
 
   std::size_t data_cell_index::depth() const noexcept { return depth_; }

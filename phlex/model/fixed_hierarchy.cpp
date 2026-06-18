@@ -14,6 +14,19 @@
 #include <stdexcept>
 
 namespace {
+  // Each path must be non-empty and may only contain "job" as the first element.
+  std::span<std::string const> validated_path(std::vector<std::string> const& path)
+  {
+    if (path.empty()) {
+      throw std::runtime_error("Layer paths cannot be empty.");
+    }
+    auto const rest = std::span{path}.subspan(path[0] == "job" ? 1 : 0);
+    if (std::ranges::contains(rest, "job")) {
+      throw std::runtime_error("Layer paths may only contain 'job' as the first element.");
+    }
+    return rest;
+  }
+
   // Builds the set of cumulative layer hashes that define the fixed hierarchy.
   // For example, if the layer paths are ["job", "run", "subrun"] and ["job", "spill"],
   // the hashes included will correspond to:
@@ -27,30 +40,19 @@ namespace {
   //   - "job/spill"
   //
   // Each path must be non-empty and may only contain "job" as the first element.
-  std::set<std::size_t> build_hashes(
-    std::vector<phlex::experimental::layer_path> const& layer_paths)
+  std::set<std::size_t> build_hashes(std::vector<std::vector<std::string>> const& layer_paths)
   {
     using namespace phlex::experimental;
-    using namespace phlex::experimental::literals;
-    std::set<std::size_t> hashes{"job"_idq.hash};
-    for (layer_path const& path : layer_paths) {
-      // "job" was added explicitly so it doesn't matter whether it does or does not appear in path.hashes()
-      hashes.merge(path.hashes());
+    identifier const job{"job"};
+    std::set<std::size_t> hashes{job.hash()};
+    for (std::vector<std::string> const& path : layer_paths) {
+      std::size_t cumulative_hash = job.hash();
+      for (auto const& name : validated_path(path)) {
+        cumulative_hash = hash(cumulative_hash, identifier{name}.hash());
+        hashes.insert(cumulative_hash);
+      }
     }
     return hashes;
-  }
-
-  std::vector<phlex::experimental::layer_path> convert_vector_vector_string(
-    std::vector<std::vector<std::string>>&& layer_paths)
-  {
-    using namespace phlex::experimental;
-    return std::move(layer_paths) | std::views::transform([](std::vector<std::string>& lp) {
-             auto lp_as_ids =
-               lp | std::views::transform([](auto& str) { return identifier(std::move(str)); }) |
-               std::ranges::to<std::vector>();
-             return layer_path(std::move(lp_as_ids));
-           }) |
-           std::ranges::to<std::vector<layer_path>>();
   }
 }
 
@@ -73,7 +75,7 @@ namespace phlex {
     return data_cell_cursor{child, hierarchy_, driver_};
   }
 
-  experimental::layer_path data_cell_cursor::layer_path() const { return index_->layer_path(); }
+  std::string data_cell_cursor::layer_path() const { return index_->layer_path(); }
 
   // ================================================================================
   // data_cell_yielder implementation
@@ -97,8 +99,7 @@ namespace phlex {
   }
 
   fixed_hierarchy::fixed_hierarchy(std::vector<std::vector<std::string>> layer_paths) :
-    layer_paths_(convert_vector_vector_string(std::move(layer_paths))),
-    layer_hashes_(std::from_range, build_hashes(layer_paths_))
+    layer_paths_(std::move(layer_paths)), layer_hashes_(std::from_range, build_hashes(layer_paths_))
   {
   }
 

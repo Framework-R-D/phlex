@@ -4,6 +4,20 @@
 #include <boost/hash2/xxhash.hpp>
 
 namespace phlex::experimental {
+  identifier_query literals::operator""_idq(char const* lit, std::size_t len)
+  {
+    return {identifier::hash_string(std::string_view(lit, len))};
+  }
+
+  std::uint64_t identifier::hash_string(std::string_view str)
+  {
+    // Hash quality is very important here, since comparisons are done using only the hash
+    using namespace boost::hash2;
+    xxhash_64 h;
+    hash_append(h, {}, str);
+    return h.result();
+  }
+
   identifier::identifier(std::string_view str) : content_(str), hash_(hash_string(content_)) {}
   identifier::identifier(std::string&& str) : content_(std::move(str)), hash_(hash_string(content_))
   {
@@ -36,6 +50,4 @@ namespace phlex::experimental {
   {
     return identifier{std::string_view(lit, len)};
   }
-
-  bool identifier_query::operator()(identifier const& id) const noexcept { return id == (*this); }
 }

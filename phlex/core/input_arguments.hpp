@@ -4,7 +4,6 @@
 #include "phlex/core/message.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/model/handle.hpp"
-#include "phlex/utilities/bulleted_list.hpp"
 
 #include "fmt/format.h"
 
@@ -33,16 +32,18 @@ namespace phlex::experimental {
         std::ranges::to<std::vector>();
       if (products.empty()) {
         throw std::runtime_error(fmt::format(
-          "No products found matching the query {}\n Store (id {} from {}) contains:\n{}",
+          "No products found matching the query {}\n Store (id {} from {}) contains:\n    - {}",
           query,
           store->index()->to_string(),
           store->source().to_string(),
-          bulleted_list(all_products, /*indent=*/4)));
+          fmt::join(all_products | views::transform(&product_specification::to_string),
+                    "\n    - ")));
       }
       if (products.size() > 1) {
-        throw std::runtime_error(fmt::format("Multiple products found matching the query {}:\n{}",
-                                             query,
-                                             bulleted_list(products, /*indent=*/4)));
+        throw std::runtime_error(fmt::format(
+          "Multiple products found matching the query {}:\n    - {}",
+          query,
+          fmt::join(products | views::transform(&product_specification::to_string), "\n    - ")));
       }
       return store->get_handle<handle_arg_t>(products[0]);
     }

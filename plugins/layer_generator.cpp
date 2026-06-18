@@ -133,13 +133,11 @@ namespace phlex::experimental {
 
   index_generator layer_generator::execute(data_cell_index_ptr const cell)
   {
-    // Used in drivers which are close to public API --> easier to stick to strings
-    auto cell_lp = cell->layer_path().to_string();
-    auto it = parent_to_children_.find(cell_lp);
+    auto it = parent_to_children_.find(cell->layer_path());
     assert(it != parent_to_children_.cend());
 
     for (auto const& child : it->second) {
-      auto const full_child_path = fmt::format("{}/{}", cell_lp, child);
+      auto const full_child_path = cell->layer_path() + "/" + child;
       auto const& [_, total_per_parent, starting_value] = layers_.at(full_child_path);
       bool const has_children = parent_to_children_.contains(full_child_path);
       for (unsigned int i : std::views::iota(starting_value, total_per_parent + starting_value)) {

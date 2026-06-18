@@ -56,7 +56,7 @@ namespace phlex::experimental {
     explicit index_router(tbb::flow::graph& g);
     data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes flushes);
 
-    void establish_layers(std::vector<layer_path> const& layer_paths_from_driver,
+    void establish_layers(std::vector<std::vector<std::string>> const& layer_paths_from_driver,
                           std::vector<identifier> unfold_input_layer_names,
                           std::vector<identifier> unfold_output_layer_names);
 
@@ -91,7 +91,7 @@ namespace phlex::experimental {
     // correct for unfold outputs (the only source of unknown hashes) and consistent with
     // index_is_lowest_layer()'s fall-through default.
     bool is_lowest_layer_hash(std::size_t layer_hash) const;
-    detail::index_set_node_ptr index_set_node_for(layer_path const& layer);
+    detail::index_set_node_ptr index_set_node_for(std::string const& layer);
     detail::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<detail::multilayer_slots_ptr, detail::multilayer_slots_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);

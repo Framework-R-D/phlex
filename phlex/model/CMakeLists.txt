@@ -11,7 +11,6 @@ cet_make_library(
   data_layer_hierarchy.cpp
   data_cell_index.cpp
   identifier.cpp
-  layer_path.cpp
   product_matcher.cpp
   product_store.cpp
   products.cpp
@@ -40,7 +39,6 @@ install(
     data_layer_hierarchy.hpp
     data_cell_index.hpp
     identifier.hpp
-    layer_path.hpp
     product_matcher.hpp
     product_specification.hpp
     product_store.hpp

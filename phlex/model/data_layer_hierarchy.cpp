@@ -1,11 +1,9 @@
 #include "phlex/model/data_layer_hierarchy.hpp"
-
-#include "phlex/utilities/bulleted_list.hpp"
+#include "phlex/model/data_cell_index.hpp"
 
 #include "fmt/format.h"
+#include "fmt/std.h"
 #include "spdlog/spdlog.h"
-
-#include <ranges>
 
 namespace {
   std::string const& maybe_name(std::string const& name)
@@ -37,32 +35,32 @@ namespace phlex::experimental {
     ++it->second->count;
   }
 
-  std::size_t data_layer_hierarchy::count_for(layer_path const& layer, bool const missing_ok) const
+  std::size_t data_layer_hierarchy::count_for(std::string const& layer, bool const missing_ok) const
   {
-    // The assumption is that specified layer is a portion of a layer path
-    // sufficient to uniquely identify a layer
+    // The assumption is that specified layer is the component of a layer path
+    std::string search_token = layer;
+    if (not layer.starts_with("/")) {
+      search_token = '/' + layer;
+    }
+
     std::vector<layer_entry const*> candidates;
     for (auto const& [_, entry] : layers_) {
-      if (entry->layer_path.ends_with(layer)) {
+      if (entry->layer_path.ends_with(search_token)) {
         candidates.push_back(entry.get());
       }
     }
 
     if (candidates.empty()) {
       return missing_ok ? 0ull
-                        : throw std::runtime_error(
-                            fmt::format("No layers match the specification {}", layer));
+                        : throw std::runtime_error("No layers match the specification " + layer);
     }
 
     if (candidates.size() > 1ull) {
-      std::string msg =
-        fmt::format("The following data layers match the specification {}:\n\n{}"
-                    "\n\nPlease specify the full layer path to disambiguate between them.",
-                    layer,
-                    bulleted_list(candidates | std::views::transform([](auto const* entry) {
-                                    return entry->layer_path;
-                                  }),
-                                  /*indent=*/0));
+      std::string msg{"The following data layers match the specification " + layer + ":\n"};
+      for (auto const* entry : candidates) {
+        msg += "\n- " + entry->layer_path;
+      }
+      msg += "\n\nPlease specify the full layer path to disambiguate between them.";
       throw std::runtime_error(msg);
     }
 
@@ -88,7 +86,7 @@ namespace phlex::experimental {
       auto child_prefix = !at_end ? indent + " ├ " : indent + " └ ";
       auto const& entry = *layers_.at(child_hash);
       result += "\n" + indent + " │ ";
-      result += fmt::format("\n{}{}: {}", child_prefix, maybe_name(child_name), entry.count.load());
+      result += fmt::format("\n{}{}: {}", child_prefix, maybe_name(child_name), entry.count);
 
       auto new_indent = indent;
       new_indent += at_end ? "   " : " │ ";
