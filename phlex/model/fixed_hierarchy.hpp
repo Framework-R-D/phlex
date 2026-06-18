@@ -4,6 +4,7 @@
 #include "phlex/phlex_model_export.hpp"
 
 #include "phlex/model/fwd.hpp"
+#include "phlex/model/layer_path.hpp"
 
 #include <cstddef>
 #include <initializer_list>
@@ -25,7 +26,7 @@ namespace phlex {
     // data-cell index to the underlying driver, returning a data_cell_cursor for the child.
     data_cell_cursor yield_child(std::string const& layer_name, std::size_t number) const;
 
-    std::string layer_path() const;
+    experimental::layer_path layer_path() const;
 
   private:
     friend class fixed_hierarchy;
@@ -87,7 +88,7 @@ namespace phlex {
     data_cell_yielder yielder(experimental::framework_driver& d) const;
 
   private:
-    std::vector<std::vector<std::string>> layer_paths_;
+    std::vector<experimental::layer_path> layer_paths_;
     std::vector<std::size_t> layer_hashes_;
   };
 
