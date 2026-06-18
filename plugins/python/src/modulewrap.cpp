@@ -1105,13 +1105,26 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   if (!callable)
     return nullptr; // error already set
 
+  // detect numba and extract C function pointer if any, else use default Python
+  // callable dispatcher
+  void* ccallf = nullptr;
+  if (is_numba_cfunc(callable)) {
+    PyObject* pyaddr = PyObject_GetAttrString(callable, "address");
+    if (pyaddr)
+      ccallf = PyLong_AsVoidPtr(pyaddr);
+    if (!ccallf)
+      PyErr_Clear();
+  }
+
   if (!output_types.empty()) {
-    PyErr_Format(PyExc_TypeError, "an observer should not have an output type");
+    PyErr_Format(PyExc_TypeError,
+                 "an observer should not have an output type (got: \"%s\")",
+                 output_types[0].c_str());
     Py_DECREF(callable);
     return nullptr;
   }
 
-  if (!insert_input_converters(mod, cname, input_selectors, input_types, true)) {
+  if (!insert_input_converters(mod, cname, input_selectors, input_types, !ccallf)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1130,8 +1143,17 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
         .creator = identifier(c), .layer = pq.layer, .suffix = identifier(suff)};
     };
 
-    mod->ph_module->observe(cname, py_callback<void, N>{callable}, nconcur)
-      .input_family(make_product_selector(Is)...);
+    auto insert_observe_for_callback = [&](auto& cb) {
+      mod->ph_module->observe(cname, cb, nconcur).input_family(make_product_selector(Is)...);
+    };
+
+    if (ccallf) {
+      jit_callback<void, N> cb{callable, ccallf, "void"};
+      insert_observe_for_callback(cb);
+    } else {
+      py_callback<void, N> cb{callable};
+      insert_observe_for_callback(cb);
+    }
   };
 
   if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_selectors.size(), observe_N_args)) {

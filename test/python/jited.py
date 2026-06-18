@@ -55,7 +55,9 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
                     output_product_suffixes=["sum_"+tn],
                     concurrency=4)
 
-        o = Variant(new_o(res), {"y": t, "return": None}, "observe_" + tn)
-        m.observe(o,
-                  input_family=[{"creator": "add_" + tn, "layer": "event", "suffix": "sum_"+tn}])
+        f_o = nb_dec.cfunc(f"void({tn})", nogil=True, nopython=True, cache=True)(new_o(res))
+        m.observe(f_o,
+                  name="obs_"+tn,
+                  input_family=[{"creator": "add_" + tn, "layer": "event", "suffix": "sum_"+tn}],
+                  concurrency=4)
 

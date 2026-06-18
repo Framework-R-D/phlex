@@ -61,6 +61,7 @@ if has_numba:
         nb_types.Float: "float",
         nb_types.float32: "float",
         nb_types.double: "double",
+        nb_types.void: "None",
     })
 
 # ctypes types that don't map cleanly to intN_t / uintN_t

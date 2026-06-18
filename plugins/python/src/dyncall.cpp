@@ -29,6 +29,8 @@ phlex::experimental::dcarg phlex::experimental::dcarg::from_str(std::string cons
     return dcarg(0.0f);
   else if (stype == "double")
     return dcarg(0.0);
+  else if (stype == "void")
+    return dcarg{};
 
   throw std::invalid_argument("unknown type string: " + stype);
 }
