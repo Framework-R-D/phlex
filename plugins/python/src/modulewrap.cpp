@@ -135,12 +135,29 @@ namespace {
     py_callback_base& operator=(py_callback_base const& pc)
     {
       if (this != &pc) {
-        // Must hold GIL when manipulating reference counts
         PyGILRAII gil;
         Py_INCREF(pc.m_callable);
         Py_DECREF(m_callable);
         m_callable = pc.m_callable;
         m_ccallback = pc.m_ccallback;
+      }
+      return *this;
+    }
+    py_callback_base(py_callback_base&& other) noexcept :
+      m_callable(other.m_callable), m_ccallback(other.m_ccallback)
+    {
+      other.m_callable = nullptr;
+      other.m_ccallback = nullptr;
+    }
+    py_callback_base& operator=(py_callback_base&& other) noexcept
+    {
+      if (this != &other) {
+        PyGILRAII gil;
+        Py_DECREF(m_callable);
+        m_callable = other.m_callable;
+        m_ccallback = other.m_ccallback;
+        other.m_callable = nullptr;
+        other.m_ccallback = nullptr;
       }
       return *this;
     }
@@ -151,8 +168,6 @@ namespace {
       // - TOCTOU race on Py_IsInitialized() without GIL
       // - Module offloading in interpreter cleanup phase 2
     }
-    py_callback_base(py_callback_base&&) = default;
-    py_callback_base& operator=(py_callback_base&&) = default;
   };
 
   // type repeater to automatically instantiate callbacks taking N args
