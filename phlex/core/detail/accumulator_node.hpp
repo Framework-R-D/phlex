@@ -268,6 +268,11 @@ namespace phlex::experimental::detail {
       .partial_result = std::make_shared<accumulator<Result>>(initializer_(*msg.index))});
     entry->original_message_id = msg.msg_id;
     emit_pending_ids(entry);
+    // Handle the flush-before-partition case: if the flush token already arrived (and
+    // left counter == 0 because no fold inputs flowed under this partition), emit the
+    // initial accumulator value now that we finally have the index and original message
+    // ID needed to construct the output.
+    cleanup_cache_entry(a);
   }
 
   template <typename Result>
@@ -304,8 +309,12 @@ namespace phlex::experimental::detail {
   void accumulator_node<Result>::cleanup_cache_entry(accessor& a)
   {
     auto* entry = &a->second;
-    if (entry->flush_received.test() and entry->counter == 0) {
-      assert(entry->accumulator_msg);
+    // The `accumulator_msg` check guards the flush-before-partition case: a zero-count
+    // flush can establish the cache entry with `flush_received == true` and
+    // `counter == 0` before the partition message has supplied the index and initial
+    // value.  In that case we defer emission until `handle_partition_message` re-enters
+    // cleanup with a populated `accumulator_msg`.
+    if (entry->flush_received.test() and entry->counter == 0 and entry->accumulator_msg) {
       output_port<0>(repeater_).try_put(entry->accumulator_msg->release_as_message(
         node_name_, output_, entry->original_message_id));
       ++emitted_result_count_;

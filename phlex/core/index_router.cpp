@@ -258,14 +258,6 @@ namespace phlex::detail {
       [end_token_entries = std::move(end_token_entries)](flush_gate const& fc) {
         for (auto const& entry : *end_token_entries) {
           auto const count = fc.committed_count_for_layer(entry.counting_layer_hash);
-          // A zero count means the gate's committed_counts has no entry at the counting layer for
-          // this descendant path — no cells at that layer flowed under the partition.  No useful
-          // work for the downstream repeater/accumulator to do, and forwarding a zero-count token
-          // can trigger a latent UB in repeater_node when an entry hasn't been populated by data
-          // yet.  Skip.
-          if (count == 0) {
-            continue;
-          }
           entry.flush_port->try_put({.index = fc.index(), .count = static_cast<int>(count)});
         }
       });
