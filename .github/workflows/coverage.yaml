@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           ref: ${{ inputs.ref }}
           repo: ${{ inputs.repo }}
@@ -114,7 +114,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup build environment
-        uses: Framework-R-D/phlex/.github/actions/setup-build-env@main
+        uses: Framework-R-D/action-setup-build-env@780fd75b00a291df6a42d9d2337651330ebdb907 # v1
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -124,7 +124,7 @@ jobs:
       - name: Configure CMake with GCC coverage
         id: configure_gcc
         if: ${{ steps.coverage_options.outputs.compiler == 'gcc' }}
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: Framework-R-D/action-configure-cmake@caba9b42770d8f3ad2d8f294ef82dd88fc2c10c6 # v2
         with:
           cpp-compiler: g++
           preset: coverage-gcc
@@ -136,7 +136,7 @@ jobs:
       - name: Configure CMake with Clang coverage
         id: configure_clang
         if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
-        uses: Framework-R-D/phlex/.github/actions/configure-cmake@main
+        uses: Framework-R-D/action-configure-cmake@caba9b42770d8f3ad2d8f294ef82dd88fc2c10c6 # v2
         with:
           cpp-compiler: clang++
           preset: coverage-clang
@@ -159,7 +159,7 @@ jobs:
 
       - name: Build with coverage instrumentation
         id: build
-        uses: Framework-R-D/phlex/.github/actions/build-cmake@main
+        uses: Framework-R-D/action-build-cmake@30bca0b2d76e90cf1cc9e6e863aed5be505e7e61 # v1
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
 
@@ -481,6 +481,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always()
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
         with:
           status: ${{ needs.coverage.result }}

@@ -68,7 +68,7 @@ jobs:
 
       - name: Post clang-tidy results
         if: steps.locate.outputs.pr_number != '' && steps.locate.outputs.build_path != ''
-        uses: Framework-R-D/phlex/.github/actions/post-clang-tidy-results@main
+        uses: Framework-R-D/action-post-clang-tidy-results@ebe244ff1f0460b5175b6c9ef17da05164b71b29 # v1
         with:
           build-path: ${{ steps.locate.outputs.build_path }}
           pr-number: ${{ steps.locate.outputs.pr_number }}

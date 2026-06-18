@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           file-type: jsonnet
           head-ref: ${{ inputs.pr-head-sha }}
@@ -75,9 +75,6 @@ jobs:
         needs.setup.outputs.has_changes == 'true'
       )
     runs-on: ubuntu-latest
-    container:
-      image: public.ecr.aws/bitnami/jsonnet:latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -86,6 +83,13 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
           path: ${{ needs.setup.outputs.checkout_path }}
           persist-credentials: false
+
+      - name: Setup jsonnet
+        id: setup-jsonnet
+        uses: zendesk/setup-jsonnet@74119dac8a540c99167a65f14aa1ee99ff143ec2 # v16
+        with:
+          version: v0.22.0
+          github_token: ${{ github.token }}
 
       - name: Check Jsonnet formatting
         id: lint

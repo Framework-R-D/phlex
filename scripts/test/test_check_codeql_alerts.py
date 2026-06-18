@@ -805,6 +805,108 @@ class TestPaginateAlertsApi:
 
 
 # ---------------------------------------------------------------------------
+# SHA-1 detection in _paginate_alerts_api
+# ---------------------------------------------------------------------------
+
+
+class TestPaginateAlertsApiShaDetection:
+    """Tests for the SHA-1 vs symbolic-ref detection logic in _paginate_alerts_api.
+
+    A 40-character all-hex string must be sent as ``commit_sha``; everything
+    else must be sent as ``ref``.  Both lower-case and upper-case hex digits
+    are valid SHA-1 representations.
+    """
+
+    _LOWERCASE_SHA = "a" * 40
+    _UPPERCASE_SHA = "A" * 40
+    _MIXED_CASE_SHA = "aAbBcCdDeEfF" + "0123456789aB" + "abcdef012345" + "abcd"  # 40 hex chars
+
+    @patch("check_codeql_alerts._api_request")
+    def test_40_char_lowercase_hex_uses_commit_sha(self, mock_req: MagicMock) -> None:
+        """A 40-character lower-case hex string must be passed as commit_sha."""
+        mock_req.return_value = []
+        list(M._paginate_alerts_api("owner", "repo", ref=self._LOWERCASE_SHA))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["commit_sha"] == self._LOWERCASE_SHA
+        assert "ref" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_40_char_uppercase_hex_uses_commit_sha(self, mock_req: MagicMock) -> None:
+        """A 40-character upper-case hex string must be passed as commit_sha."""
+        mock_req.return_value = []
+        list(M._paginate_alerts_api("owner", "repo", ref=self._UPPERCASE_SHA))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["commit_sha"] == self._UPPERCASE_SHA
+        assert "ref" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_40_char_mixed_case_hex_uses_commit_sha(self, mock_req: MagicMock) -> None:
+        """A 40-character mixed-case hex string must be passed as commit_sha."""
+        mock_req.return_value = []
+        list(M._paginate_alerts_api("owner", "repo", ref=self._MIXED_CASE_SHA))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["commit_sha"] == self._MIXED_CASE_SHA
+        assert "ref" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_symbolic_ref_uses_ref_param(self, mock_req: MagicMock) -> None:
+        """A symbolic ref such as refs/pull/N/merge must be passed as ref, not commit_sha."""
+        mock_req.return_value = []
+        list(M._paginate_alerts_api("owner", "repo", ref="refs/pull/42/merge"))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["ref"] == "refs/pull/42/merge"
+        assert "commit_sha" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_branch_name_uses_ref_param(self, mock_req: MagicMock) -> None:
+        """A branch name uses ref, not commit_sha."""
+        mock_req.return_value = []
+        list(M._paginate_alerts_api("owner", "repo", ref="main"))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["ref"] == "main"
+        assert "commit_sha" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_39_char_hex_uses_ref_param(self, mock_req: MagicMock) -> None:
+        """A 39-character hex string is not a valid full SHA-1 and must use ref."""
+        mock_req.return_value = []
+        short_sha = "a" * 39
+        list(M._paginate_alerts_api("owner", "repo", ref=short_sha))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["ref"] == short_sha
+        assert "commit_sha" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_41_char_hex_uses_ref_param(self, mock_req: MagicMock) -> None:
+        """A 41-character hex string is longer than a SHA-1 and must use ref."""
+        mock_req.return_value = []
+        long_sha = "a" * 41
+        list(M._paginate_alerts_api("owner", "repo", ref=long_sha))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["ref"] == long_sha
+        assert "commit_sha" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_40_char_non_hex_uses_ref_param(self, mock_req: MagicMock) -> None:
+        """A 40-character string containing non-hex characters must use ref, not commit_sha."""
+        mock_req.return_value = []
+        non_hex = "g" * 40  # 'g' is not a hex digit
+        list(M._paginate_alerts_api("owner", "repo", ref=non_hex))
+        _, kwargs = mock_req.call_args
+        assert kwargs["params"]["ref"] == non_hex
+        assert "commit_sha" not in kwargs["params"]
+
+    @patch("check_codeql_alerts._api_request")
+    def test_no_ref_omits_both_params(self, mock_req: MagicMock) -> None:
+        """When ref is None (default), neither commit_sha nor ref is added to params."""
+        mock_req.return_value = []
+        list(M._paginate_alerts_api("owner", "repo"))
+        _, kwargs = mock_req.call_args
+        assert "ref" not in kwargs["params"]
+        assert "commit_sha" not in kwargs["params"]
+
+
+# ---------------------------------------------------------------------------
 # _compare_alerts_via_api
 # ---------------------------------------------------------------------------
 
@@ -1095,7 +1197,7 @@ class TestBuildMultiSectionComment:
         lines = body.splitlines()
         h2_indices = [i for i, ln in enumerate(lines) if ln.startswith("##")]
         assert len(h2_indices) >= 2
-        for a, b in zip(h2_indices, h2_indices[1:], strict=False):
+        for a, b in zip(h2_indices, h2_indices[1:]):  # noqa: B905
             assert b - a > 1, "H2 headings are directly adjacent (no blank line)"
 
     def test_code_scanning_link_present(self, monkeypatch: pytest.MonkeyPatch) -> None:

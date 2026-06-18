@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           mode: fix
 
@@ -98,7 +98,7 @@ jobs:
     steps:
       - name: Collect results
         id: collect
-        uses: Framework-R-D/phlex/.github/actions/collect-format-results@main
+        uses: Framework-R-D/action-collect-format-results@1e3eeee20808b0c8e754955f7633c38ff18a603d # v1
         with:
           results-json: |
             {
@@ -117,7 +117,7 @@ jobs:
           message: ${{ steps.collect.outputs.message }}
 
       - name: Update PR comment reactions
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
         with:
           status: ${{ steps.collect.outputs.has_failures == 'true' && 'failure' || 'success' }}
 

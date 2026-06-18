@@ -45,6 +45,27 @@ namespace {
       // Initialize FORM interface
       m_form_interface =
         std::make_unique<form::experimental::form_writer_interface>(output_cfg, tech_cfg);
+
+      // Explicitly declare ProductNames from user config (products list in jsonnet)
+      for (auto const& product : products_to_save) {
+        m_form_interface->declare_product_name(product, product);
+      }
+    }
+
+    ~FormOutputModule()
+    {
+      if (m_form_interface) {
+        std::cout << "FormOutputModule destructor: calling finalize() to write metadata\n";
+        try {
+          m_form_interface->finalize();
+          std::cout << "FormOutputModule destructor: finalize() completed\n";
+        } catch (std::exception const& e) {
+          std::cerr << "ERROR: FormOutputModule destructor: finalize() failed: " << e.what()
+                    << std::endl;
+        } catch (...) {
+          std::cerr << "Unknown error in FormOutputModule destructor during finalize.\n";
+        }
+      }
     }
 
     // This method is called by Phlex - signature must be: void(product_store const&)

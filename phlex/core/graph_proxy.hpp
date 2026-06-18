@@ -107,6 +107,17 @@ namespace phlex::experimental {
         std::move(name), std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
+    /// @brief Registers a source (used by the framework to create provider nodes)
+    template <std::derived_from<source> Source, typename... Args>
+    void source(std::string name, Args&&... args)
+      requires(not is_bound_object<T>)
+    {
+      // The bound object is created when invoking source<Source>(...), so we explicitly indicate that
+      // no bound object should be used in the create_glue(...) call.
+      return create_glue(false).template source<Source>(std::move(name),
+                                                        std::forward<Args>(args)...);
+    }
+
     /// @brief Registers an output node.
     auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {

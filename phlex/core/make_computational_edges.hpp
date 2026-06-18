@@ -19,6 +19,8 @@
 #include "phlex/core/index_router.hpp"
 #include "phlex/core/node_catalog.hpp"
 
+#include "oneapi/tbb/flow_graph.h"
+
 #include <map>
 #include <string>
 #include <tuple>
@@ -28,7 +30,9 @@ namespace phlex::experimental {
 
   PHLEX_CORE_EXPORT
   std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
-  make_computational_edges(node_catalog& nodes, std::map<std::string, filter>& filters);
+  make_computational_edges(node_catalog& nodes,
+                           std::map<std::string, filter>& filters,
+                           tbb::flow::graph& g);
 
 }
 

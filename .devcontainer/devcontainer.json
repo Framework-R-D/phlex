@@ -1,15 +1,21 @@
 {
     "name": "Phlex CI Dev Container",
     "build": {
-        "dockerfile": "Dockerfile",
-        "options": [
-            "--format=docker"
-        ]
+        "dockerfile": "Dockerfile"
     },
+    "runArgs": [],
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "root",
     "remoteEnv": {
-        "KILO_CONFIG_CONTENT": "${localEnv:KILO_CONFIG_CONTENT}"
+        // KILO_CONFIG_CONTENT_DOCKER rewrites 127.0.0.1:PORT to
+        // host.docker.internal:RELAY_PORT for the socat relay used when
+        // headroom runs as a local proxy.  Passed through here so that
+        // post-create.sh can wire it into the container's .bashrc
+        // conditionally: if non-empty it sets KILO_CONFIG_CONTENT to this
+        // value; otherwise KILO_CONFIG_CONTENT is left unset and Kilo falls
+        // back to ~/.config/kilo/kilo.jsonc (bind-mounted from the host).
+        "KILO_CONFIG_CONTENT_DOCKER": "${localEnv:KILO_CONFIG_CONTENT_DOCKER}",
+        "KILO_API_KEY": "${localEnv:HEADROOM_UPSTREAM_KEY}"
     },
     "containerEnv": {
         "CMAKE_GENERATOR": "Ninja",
@@ -19,17 +25,18 @@
         "GNUPGHOME": "/root/.gnupg"
     },
     "mounts": [
+        "source=${localWorkspaceFolder}/../phlex-coding-guidelines,target=/workspaces/phlex-coding-guidelines,type=bind",
         "source=${localWorkspaceFolder}/../phlex-design,target=/workspaces/phlex-design,type=bind",
         "source=${localWorkspaceFolder}/../phlex-examples,target=/workspaces/phlex-examples,type=bind",
-        "source=${localWorkspaceFolder}/../phlex-coding-guidelines,target=/workspaces/phlex-coding-guidelines,type=bind",
         "source=${localWorkspaceFolder}/../phlex-spack-recipes,target=/workspaces/phlex-spack-recipes,type=bind",
-        "source=${localEnv:HOME}/.vscode-remote-user-data,target=/root/.vscode-server-insiders/data/User,type=bind",
-        "source=${localEnv:HOME}/.podman-proxy/podman.sock,target=/tmp/podman.sock,type=bind",
         "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind",
         "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind,readonly",
         "source=${localEnv:HOME}/.config/kilo,target=/root/.config/kilo,type=bind",
         "source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
-        "source=${localEnv:HOME}/.kiro,target=/root/.kiro,type=bind"
+        "source=${localEnv:HOME}/.kiro,target=/root/.kiro,type=bind",
+        "source=phlex-kilo-data,target=/root/.local/share/kilo,type=volume",
+        "source=${localEnv:HOME}/.podman-proxy/podman.sock,target=/tmp/podman.sock,type=bind",
+        "source=${localEnv:HOME}/.vscode-remote-user-data,target=/root/.vscode-server-insiders/data/User,type=bind"
     ],
     "initializeCommand": "bash .devcontainer/ensure-repos.sh",
     "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
@@ -81,7 +88,8 @@
                     "**/.venv/**": true,
                     "**/py_virtual_env/**": true
                 },
-                "github.copilot-chat.usePreReleaseVersion": false
+                "github.copilot-chat.usePreReleaseVersion": false,
+                "kilocode.new.extraCaCerts": ""
             },
             "extensions": [
                 "charliermarsh.ruff",

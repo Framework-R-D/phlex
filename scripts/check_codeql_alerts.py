@@ -52,7 +52,8 @@ def _api_request(
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         _debug(f"GitHub API request: {method} {url}")
-        with urllib.request.urlopen(req) as resp:
+        # Add a 30-second timeout to prevent hanging in CI
+        with urllib.request.urlopen(req, timeout=30) as resp:
             content = resp.read().decode("utf-8")
             _debug(f"GitHub API response: {method} {url} (len={len(content)})")
             if not content:
@@ -62,6 +63,12 @@ def _api_request(
         body = exc.read().decode("utf-8", errors="replace")
         _debug(f"GitHub API HTTPError {exc.code} for {url}: {body[:200]}")
         raise GitHubAPIError(f"GitHub API {method} {url} failed with {exc.code}: {body}") from exc
+    except urllib.error.URLError as exc:
+        _debug(f"GitHub API URLError for {url}: {exc}")
+        raise GitHubAPIError(f"GitHub API {method} {url} failed: {exc}") from exc
+    except TimeoutError as exc:
+        _debug(f"GitHub API TimeoutError for {url}: {exc}")
+        raise GitHubAPIError(f"GitHub API {method} {url} timed out: {exc}") from exc
 
 
 LEVEL_ORDER = {"none": 0, "note": 1, "warning": 2, "error": 3}
@@ -247,9 +254,13 @@ def _paginate_alerts_api(
     per_page = 100
     page = 1
     while True:
-        params = {"state": state, "per_page": per_page, "page": page}
+        params: dict[str, str | int] = {"state": state, "per_page": per_page, "page": page}
         if ref:
-            params["ref"] = ref
+            # If the ref looks like a SHA-1 hash (40 hex chars), use commit_sha parameter
+            if len(ref) == 40 and all(c in "0123456789abcdefABCDEF" for c in ref):
+                params["commit_sha"] = ref
+            else:
+                params["ref"] = ref
         result = _api_request("GET", f"/repos/{owner}/{repo}/code-scanning/alerts", params=params)
         if not isinstance(result, list):
             raise GitHubAPIError("Unexpected response when listing alerts (expected list).")
@@ -901,6 +912,7 @@ def _compare_alerts_via_api(
     prev_commit_ref: str | None = None
     base_sha: str | None = None
     base_alerts_raw: list[dict] = []
+    prev_alerts_raw: list[dict] = []
     if ref.startswith("refs/pull/"):
         try:
             pr_num = int(ref.split("/")[2])
@@ -918,19 +930,24 @@ def _compare_alerts_via_api(
             prev_commit_ref = None
 
         if base_ref or base_sha:
-            # prefer base SHA if available
-            base_target = base_sha or base_ref
-            base_alerts_raw = list(
-                _paginate_alerts_api(owner, repo, state="open", ref=base_target)
-            )
-            _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
+            try:
+                # prefer base SHA if available
+                base_target = base_sha or base_ref
+                base_alerts_raw = list(
+                    _paginate_alerts_api(owner, repo, state="open", ref=base_target)
+                )
+                _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
+            except GitHubAPIError as exc:
+                _debug(f"Failed to fetch base alerts ({base_target}): {exc}")
 
-    prev_alerts_raw: list[dict] = []
-    if prev_commit_ref:
-        prev_alerts_raw = list(
-            _paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref)
-        )
-        _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
+        if prev_commit_ref:
+            try:
+                prev_alerts_raw = list(
+                    _paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref)
+                )
+                _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
+            except GitHubAPIError as exc:
+                _debug(f"Failed to fetch previous-commit alerts ({prev_commit_ref}): {exc}")
 
     def alert_key(a: Alert) -> tuple[str, str]:
         # Prefer alert number as it is the stable, per-alert unique identifier in
@@ -962,18 +979,18 @@ def _compare_alerts_via_api(
     # Matching statistics
     pr_total = len(pr_keys)
     main_total = len(main_keys)
-    pr_ak_count = sum(1 for k in pr_keys if k[0] == "ak")
-    main_ak_count = sum(1 for k in main_keys if k[0] == "ak")
-    pr_rl_count = pr_total - pr_ak_count
-    main_rl_count = main_total - main_ak_count
+    pr_num_count = sum(1 for k in pr_keys if k[0] == "num")
+    main_num_count = sum(1 for k in main_keys if k[0] == "num")
+    pr_rl_count = pr_total - pr_num_count
+    main_rl_count = main_total - main_num_count
 
     matched_keys = pr_keys & main_keys
-    matched_by_ak = sum(1 for k in matched_keys if k[0] == "ak")
+    matched_by_num = sum(1 for k in matched_keys if k[0] == "num")
     matched_by_rl = sum(1 for k in matched_keys if k[0] == "rl")
 
-    _debug(f"PR alerts: total={pr_total}, ak={pr_ak_count}, rl={pr_rl_count}")
-    _debug(f"Main alerts: total={main_total}, ak={main_ak_count}, rl={main_rl_count}")
-    _debug(f"Matched: by_ak={matched_by_ak}, by_rl={matched_by_rl}")
+    _debug(f"PR alerts: total={pr_total}, num={pr_num_count}, rl={pr_rl_count}")
+    _debug(f"Main alerts: total={main_total}, num={main_num_count}, rl={main_rl_count}")
+    _debug(f"Matched: by_num={matched_by_num}, by_rl={matched_by_rl}")
 
     # Build comparisons against previous PR commit and branch point if available
     prev_alerts: dict[tuple[str, str], Alert] = {}
@@ -995,10 +1012,12 @@ def _compare_alerts_via_api(
         new_vs_prev = [pr_alerts[rid] for rid in sorted(new_vs_prev_ids)]
         fixed_vs_prev = [prev_alerts[rid] for rid in sorted(fixed_vs_prev_ids)]
 
-    # Changes vs branch point (base)
+    # Changes vs branch point (base); skip if base is the same commit as
+    # prev_commit_ref to avoid duplicating the previous-commit section.
     new_vs_base: list[Alert] = []
     fixed_vs_base: list[Alert] = []
-    if base_alerts:
+    base_same_as_prev = base_sha is not None and base_sha == prev_commit_ref
+    if base_alerts and not base_same_as_prev:
         new_vs_base_ids = set(pr_alerts) - set(base_alerts)
         fixed_vs_base_ids = set(base_alerts) - set(pr_alerts)
         new_vs_base = [pr_alerts[rid] for rid in sorted(new_vs_base_ids)]

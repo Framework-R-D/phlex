@@ -1,0 +1,266 @@
+.\" git-ai-commit(1) — commit staged changes with an AI-generated message.
+.\" To make this page available via `git help ai-commit`, add the directory
+.\" containing this file's parent (scripts/man) to MANPATH:
+.\"   export MANPATH="$MANPATH:/path/to/phlex/scripts/man"
+.\" or symlink/copy it to $(git --man-path)/man1/git-ai-commit.1.
+.TH GIT\-AI\-COMMIT 1 "" "phlex" "Git AI Tools"
+.SH NAME
+git\-ai\-commit \- commit staged changes with an AI\-generated message
+.SH SYNOPSIS
+.nf
+\fBgit\-ai\-commit\fR [\fIOPTIONS\fR] [\fB\-\-\fR \fIGIT\-COMMIT\-OPTIONS\fR]
+\fBgit ai\-commit\fR [\fIOPTIONS\fR] [\fB\-\-\fR \fIGIT\-COMMIT\-OPTIONS\fR]
+\fBecho\fR \fI"context"\fR | \fBgit ai\-commit\fR \fB\-\-yes\fR
+.fi
+.SH DESCRIPTION
+\fBgit\-ai\-commit\fR analyses the Git index of the current repository and
+generates a detailed, informative commit message using a language model.
+It then optionally runs \fBgit commit\fR with the generated message.
+.PP
+The tool follows the git subcommand plugin convention: because the script is
+named \fBgit\-ai\-commit\fR and resides on \fBPATH\fR, Git recognises it as
+\fBgit ai\-commit\fR.
+.PP
+Supplemental context can be piped on standard input:
+.PP
+.RS 4
+.nf
+echo "Fixes #42" | git ai\-commit \-\-yes
+.fi
+.RE
+.SH CONTEXT SOURCES
+The following sources are read automatically and included in the prompt
+sent to the language model.  Pass \fB\-\-no\-instructions\fR to suppress all
+sources except the diff, status, and log.
+.TP
+\fBStaged diff\fR
+Output of \fBgit diff \-\-cached \-\-stat \-p\fR.
+.TP
+\fBGit status\fR
+Output of \fBgit status \-\-short\fR.
+.TP
+\fBRecent commits\fR
+Output of \fBgit log \-\-oneline \-10\fR.
+.TP
+\fBRepository guidance\fR
+\fBAGENTS.md\fR, \fBAGENT.md\fR, \fBGEMINI.md\fR, \fBCLAUDE.md\fR, \fBCONTEXT.md\fR,
+\fBINSTRUCTIONS.md\fR, \fBCONTRIBUTING.md\fR, \fBHACKING.md\fR, \fBARCHITECTURE.md\fR,
+\fBSTYLEGUIDE.md\fR, \fB.cursorrules\fR, \fB.clinerules\fR, \fB.windsurfrules\fR,
+\fBq.rules\fR, \fB.kilocoderules\fR, \fB.gemini\-rules\fR.
+.TP
+\fBTool\-specific rules\fR
+\fB.kilo/agent/\fR, \fB.kilo/command/\fR, \fB.amazonq/rules/\fR, \fB.kiro/rules/\fR,
+\fB.kiro/steering/\fR, \fB.gemini/rules/\fR, \fB.kilocode/\fR,
+\fB.github/copilot\-instructions.md\fR.
+These are skipped when \fBAGENTS.md\fR or \fBAGENT.md\fR is present and
+non\-empty, since those files are intended to synthesise the tool\-specific
+rules.
+.TP
+\fBUser\-level instructions\fR
+\fB~/.config/git\-ai\-commit/instructions.md\fR (primary),
+\fB~/.config/copilot/instructions.md\fR (fallback).
+.TP
+\fBGit commit template\fR
+The file referenced by \fBgit config commit.template\fR, if set.
+.SH OPTIONS
+.TP
+\fB\-\-amend\fR
+Amend the previous commit.  The prior commit message is included as
+context so the model can revise it based on the newly staged changes.
+Mutually exclusive with \fB\-\-dry\-run\fR in effect (the generated message is
+still shown for confirmation).
+.TP
+\fB\-\-context\fR \fITEXT\fR
+Additional context or instructions to append to the prompt.  Useful for
+noting issue numbers, rationale, or constraints the model should consider.
+Context provided on standard input is appended after any \fB\-\-context\fR text.
+.TP
+\fB\-\-backend\fR \fIBACKEND\fR
+API backend to use.  One of \fBkilo\fR (default), \fBgithub\-models\fR,
+\fBcopilot\fR, \fBantigravity\fR, or \fBagy\fR.  See \fBBACKENDS\fR below.
+Overridden by the \fBGIT_AI_COMMIT_BACKEND\fR environment variable.
+.TP
+\fB\-\-model\fR \fIMODEL\fR
+Model name to use.  Defaults to \fBazure/claude\-haiku\-4\-5\fR for the
+\fBkilo\fR backend, \fBgpt\-4o\fR for other backends, and none for the
+\fBantigravity\fR backend (which lets the CLI use its default model).
+When the \fBkilo\fR backend is selected and the model was not explicitly
+specified (neither via \fB\-\-model\fR nor via \fBGIT_AI_COMMIT_KILO_MODEL\fR /
+\fBGIT_AI_COMMIT_MODEL\fR), large prompts (>\~30,000 characters) are
+automatically escalated to \fBqwen/qwen3\-coder\-next\fR to avoid silent
+truncation.
+Overridden by the \fBGIT_AI_COMMIT_MODEL\fR environment variable.
+.TP
+\fB\-\-api\fR \fIURL\fR
+Override the API base URL.  Useful when pointing at a local or
+alternative LiteLLM proxy.
+Overridden by the \fBGIT_AI_COMMIT_API\fR environment variable.
+.TP
+\fB\-\-dry\-run\fR
+Generate the commit message and print it to standard output without
+running \fBgit commit\fR.  Useful for scripting or inspection.
+.TP
+\fB\-y\fR, \fB\-\-yes\fR
+Skip the interactive confirmation prompt and commit immediately.
+.TP
+\fB\-e\fR, \fB\-\-edit\fR
+Open the generated message in \fB$EDITOR\fR (falling back to \fB$VISUAL\fR,
+then \fBvi\fR) before committing.  Lines beginning with \fB#\fR are stripped.
+An empty message aborts the commit.
+.TP
+\fB\-\-no\-instructions\fR
+Skip all instruction and context files; include only the diff, status,
+and recent log in the prompt.  Reduces token usage and latency.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a short usage summary and exit.
+.TP
+\fB\-\-\fR \fIGIT\-COMMIT\-OPTIONS\fR
+Everything after the \fB\-\-\fR separator is forwarded verbatim to
+\fBgit commit\fR without interpretation.  Use this to pass options that
+\fBgit\-ai\-commit\fR does not handle directly, for example:
+.RS 8
+.nf
+git ai\-commit \-\-yes \-\- \-\-no\-verify \-\-signoff
+git ai\-commit \-\-yes \-\- \-\-gpg\-sign=KEYID
+.fi
+.RE
+.SH BACKENDS
+.TP
+\fBkilo\fR
+LiteLLM\-compatible endpoint using kilo credentials.  The default
+endpoint and model are tuned for the FNAL deployment; override via
+environment variables (see \fBENVIRONMENT\fR below).
+Token resolution order:
+.RS 8
+.IP "1." 4
+\fBGIT_AI_COMMIT_TOKEN\fR
+.IP "2." 4
+\fB~/.local/share/kilo/auth.json\fR (\fIfnal\-litellm\fR key)
+.IP "3." 4
+\fBGITHUB_TOKEN\fR / \fBGH_TOKEN\fR
+.IP "4." 4
+\fBgh auth token\fR
+.IP "5." 4
+\fB~/.config/gh/hosts.yml\fR
+.RE
+.TP
+\fBgithub\-models\fR
+GitHub Models inference API (\fIhttps://models.inference.ai.azure.com\fR).
+Default model: \fBgpt\-4o\fR.
+Falls back to the \fBcopilot\fR backend on HTTP 401 or 403.
+Token resolution order:
+.RS 8
+.IP "1." 4
+\fBGIT_AI_COMMIT_TOKEN\fR
+.IP "2." 4
+\fBGITHUB_TOKEN\fR / \fBGH_TOKEN\fR
+.IP "3." 4
+\fBgh auth token\fR
+.IP "4." 4
+\fB~/.config/gh/hosts.yml\fR
+.RE
+.TP
+\fBcopilot\fR
+GitHub Copilot API (\fIhttps://api.githubcopilot.com\fR).  Exchanges a
+GitHub OAuth token for a short\-lived Copilot bearer token before each
+request.  Default model: \fBgpt\-4o\fR.
+Token resolution order: same as \fBgithub\-models\fR.
+.TP
+\fBantigravity\fR (or \fBagy\fR)
+Antigravity CLI (\fBagy\fR). Runs the prompt non\-interactively via
+\fBagy \-p \-\fR. If a model is specified via \fB\-\-model\fR, it is forwarded
+as \fB\-\-model\fR to \fBagy\fR. Otherwise, \fBagy\fR uses its default
+configured model. No API token or URL resolution is required for this
+backend.
+.SH ENVIRONMENT
+.TP
+\fBGIT_AI_COMMIT_TOKEN\fR
+API token.  Takes precedence over all other token sources for all
+backends.
+.TP
+\fBGIT_AI_COMMIT_MODEL\fR
+Default model name.  Overrides the backend default and suppresses
+auto\-escalation.
+.TP
+\fBGIT_AI_COMMIT_API\fR
+API base URL override.  Applied before the backend default.
+.TP
+\fBGIT_AI_COMMIT_BACKEND\fR
+Default backend (\fBkilo\fR, \fBgithub\-models\fR, \fBcopilot\fR, \fBantigravity\fR, or \fBagy\fR).
+.TP
+\fBGIT_AI_COMMIT_KILO_API\fR
+Base URL for the \fBkilo\fR backend.  Default: \fIhttps://litellm.fnal.gov/v1\fR.
+.TP
+\fBGIT_AI_COMMIT_KILO_MODEL\fR
+Default model for the \fBkilo\fR backend.  Default: \fBazure/claude\-haiku\-4\-5\fR.
+Setting this variable suppresses auto\-escalation even for large prompts.
+.TP
+\fBGIT_AI_COMMIT_KILO_PROVIDER\fR
+Provider key in \fB~/.local/share/kilo/auth.json\fR.  Default: \fBfnal\-litellm\fR.
+.TP
+\fBEDITOR\fR, \fBVISUAL\fR
+Editor invoked by \fB\-\-edit\fR.  Checked in order; \fBvi\fR is the final fallback.
+.SH EXAMPLES
+Stage all changes and commit with a generated message, confirming interactively:
+.PP
+.RS 4
+.nf
+git add \-p
+git ai\-commit
+.fi
+.RE
+.PP
+Amend the last commit with an updated message reflecting new staged changes:
+.PP
+.RS 4
+.nf
+git add \-u
+git ai\-commit \-\-amend \-\-yes
+.fi
+.RE
+.PP
+Preview the generated message without committing:
+.PP
+.RS 4
+.nf
+git ai\-commit \-\-dry\-run
+.fi
+.RE
+.PP
+Commit immediately, skipping pre\-commit hooks, using the copilot backend:
+.PP
+.RS 4
+.nf
+git ai\-commit \-\-backend copilot \-\-yes \-\- \-\-no\-verify
+.fi
+.RE
+.PP
+Provide extra context from stdin:
+.PP
+.RS 4
+.nf
+echo "Closes #1234; keep message terse" | git ai\-commit \-\-yes
+.fi
+.RE
+.SH FILES
+.TP
+\fB~/.local/share/kilo/auth.json\fR
+Kilo credentials file; read for the \fBfnal\-litellm\fR provider key.
+.TP
+\fB~/.config/git\-ai\-commit/instructions.md\fR
+User\-level instructions included in every prompt.
+.TP
+\fBscripts/man/man1/git\-ai\-commit.1\fR
+This man page.  To make it available via \fBgit help ai\-commit\fR, add
+\fBscripts/man\fR to \fBMANPATH\fR:
+.RS 8
+.nf
+export MANPATH="$MANPATH:$(git rev\-parse \-\-show\-toplevel)/scripts/man"
+.fi
+.RE
+.SH SEE ALSO
+\fBgit\-commit\fR(1), \fBgit\-add\fR(1), \fBgit\-diff\fR(1)
+.SH AUTHORS
+Developed as part of the Phlex project
+(\fIhttps://github.com/Framework\-R\-D/phlex\fR).

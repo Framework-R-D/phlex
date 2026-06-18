@@ -95,7 +95,7 @@ namespace phlex {
     }
     std::string_view suffix() const noexcept { return std::string_view(suffix_); }
     std::string_view layer() const noexcept { return std::string_view(id_->layer_name()); }
-    std::string layer_path() const { return id_->layer_path(); }
+    std::string layer_path() const { return id_->layer_path().to_string(); }
 
     template <typename U>
     friend class handle;

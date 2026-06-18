@@ -1,4 +1,5 @@
 #include "phlex/core/producer_catalog.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -75,9 +76,9 @@ namespace phlex::experimental {
     }
 
     if (candidates.size() > 1ull) {
-      std::string msg = fmt::format("More than one candidate matches the query {}: \n - {}\n",
+      std::string msg = fmt::format("More than one candidate matches the query {}: \n{}\n",
                                     query.to_string(),
-                                    fmt::join(std::views::keys(candidates), "\n - "));
+                                    bulleted_list(std::views::keys(candidates), /*indent=*/1));
       throw std::runtime_error(msg);
     }
 

@@ -72,7 +72,7 @@ jobs:
     steps:
       - name: Workflow setup
         id: setup
-        uses: Framework-R-D/phlex/.github/actions/workflow-setup@main
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
         with:
           mode: fix
           ref: ${{ inputs.ref }}
@@ -100,20 +100,24 @@ jobs:
           repository: ${{ needs.setup.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
 
+      - name: Setup jsonnet
+        id: setup-jsonnet
+        uses: zendesk/setup-jsonnet@74119dac8a540c99167a65f14aa1ee99ff143ec2 # v16
+        with:
+          version: v0.22.0
+          github_token: ${{ github.token }}
+
       - name: Apply Jsonnet formatting
         id: lint
         env:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-        # yamllint disable rule:line-length
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work --user root public.ecr.aws/bitnami/jsonnet:latest \
-            sh -c "find \"$CHECKOUT_PATH\" \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i"
-        # yamllint enable
+          find "$CHECKOUT_PATH" \( -name '*.jsonnet' -o -name '*.libsonnet' \) -print0 | xargs -0 -r jsonnetfmt -i
         continue-on-error: true
 
       - name: Handle fix commit
         id: handle_commit
-        uses: Framework-R-D/phlex/.github/actions/handle-fix-commit@main
+        uses: Framework-R-D/action-handle-fix-commit@526974d21076e17d4742e55187704c7c036bbb9e # v1
         with:
           tool: jsonnetfmt
           working-directory: ${{ needs.setup.outputs.checkout_path }}
@@ -124,6 +128,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment' && !inputs.skip-comment
-        uses: Framework-R-D/phlex/.github/actions/complete-pr-comment@main
+        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
         with:
           status: ${{ job.status }}
