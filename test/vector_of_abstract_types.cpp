@@ -39,10 +39,11 @@ namespace {
 
 TEST_CASE("Test vector of abstract types")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 1u, 1u});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 1u, 1u});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
     .output_product("dummy", "thing", "event");
   g.transform("read_thing", read_abstract)

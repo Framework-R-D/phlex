@@ -91,10 +91,11 @@ TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
 
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", index_limit});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", index_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
     .output_product("input", "max_number", "event");
@@ -158,10 +159,11 @@ TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
 {
   constexpr auto index_limit = 2u;
 
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", index_limit});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", index_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
     .output_product("input", "max_number", "event");

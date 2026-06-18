@@ -22,7 +22,7 @@ namespace phlex::experimental {
   RUN_PHLEX_EXPORT void load_source(framework_graph& g,
                                     std::string const& label,
                                     boost::json::object config);
-  RUN_PHLEX_EXPORT driver_bundle load_driver(boost::json::object const& config);
+  RUN_PHLEX_EXPORT void load_driver(framework_graph& g, boost::json::object const& config);
 }
 
 #endif // PHLEX_APP_LOAD_MODULE_HPP

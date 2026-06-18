@@ -45,12 +45,13 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   tracker.total_expected = n_spills * apas_per_spill;
 
   // Create data layers using layer generator
-  experimental::layer_generator gen;
-  gen.add_layer("run", {"job", n_runs});
-  gen.add_layer("subrun", {"run", n_subruns});
-  gen.add_layer("spill", {"subrun", n_spills});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {"job", n_runs});
+  gen->add_layer("subrun", {"run", n_subruns});
+  gen->add_layer("spill", {"subrun", n_spills});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
 
   g.provide("provide_wgen",
             [](data_cell_index const& spill_index) {

@@ -60,11 +60,12 @@ TEST_CASE("Different data layers of fold", "[graph]")
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  experimental::layer_generator gen;
-  gen.add_layer("run", {"job", index_limit});
-  gen.add_layer("event", {"run", number_limit});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {"job", index_limit});
+  gen->add_layer("event", {"run", number_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product("input", "number", "event");
@@ -103,11 +104,12 @@ TEST_CASE("Fold output without send consumed downstream", "[graph]")
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
 
-  experimental::layer_generator gen;
-  gen.add_layer("run", {"job", index_limit});
-  gen.add_layer("event", {"run", number_limit});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {"job", index_limit});
+  gen->add_layer("event", {"run", number_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
     .output_product("input", "number", "event");

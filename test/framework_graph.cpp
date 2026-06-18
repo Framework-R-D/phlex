@@ -8,26 +8,30 @@
 #include <stdexcept>
 
 using namespace phlex;
+using phlex::experimental::driver_bundle;
 using phlex::experimental::framework_driver;
 
 TEST_CASE("Catch STL exceptions", "[graph]")
 {
-  experimental::framework_graph g{[](framework_driver&) { throw std::runtime_error("STL error"); }};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(driver_bundle{[](framework_driver&) { throw std::runtime_error("STL error"); }, {}});
   CHECK_THROWS_AS(g.execute(), std::exception);
 }
 
 TEST_CASE("Catch other exceptions", "[graph]")
 {
-  experimental::framework_graph g{[](framework_driver&) { throw 2.5; }};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(driver_bundle{[](framework_driver&) { throw 2.5; }, {}});
   CHECK_THROWS_AS(g.execute(), double);
 }
 
 TEST_CASE("Make progress with one thread", "[graph]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("spill", {"job", 1000});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", 1000});
 
-  experimental::framework_graph g{driver_for_test(gen), 1};
+  auto g = experimental::framework_graph::with_deferred_driver(1);
+  g.add_driver(gen);
   g.provide(
      "provide_number",
      [](data_cell_index const& index) -> unsigned int { return index.number(); },
@@ -38,17 +42,18 @@ TEST_CASE("Make progress with one thread", "[graph]")
     .input_family(product_selector{.creator = "input", .layer = "spill", .suffix = "number"});
   g.execute();
 
-  CHECK(gen.emitted_cell_count("/job/spill") == 1000);
+  CHECK(gen->emitted_cell_count("/job/spill") == 1000);
   CHECK(g.execution_count("provide_number") == 1000);
   CHECK(g.execution_count("observe_number") == 1000);
 }
 
 TEST_CASE("Stop driver when workflow throws exception", "[graph]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("spill", {"job", 1000});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", 1000});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide(
      "throw_exception",
      [](data_cell_index const&) -> unsigned int {
@@ -71,7 +76,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
   // "/job/spill" data layer before the job ends.  In that case, the "/job/spill" layer
   // will not have been recorded, and we therefore allow it to be "missing", which is what
   // the 'true' argument allows for.
-  CHECK(gen.emitted_cell_count("/job/spill") >= g.seen_cell_count("/job/spill", true));
+  CHECK(gen->emitted_cell_count("/job/spill") >= g.seen_cell_count("/job/spill", true));
 
   // A node has not "executed" until it has returned successfully.  For that reason,
   // neither the "throw_exception" provider nor the "downstream_of_exception" observer
@@ -82,10 +87,11 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
 
 TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 1, 1});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 1, 1});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide(
      "provide_num",
      [](data_cell_index const& id) -> unsigned int { return id.number(); },
@@ -105,7 +111,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
 
 TEST_CASE("Throw on duplicate node registration", "[graph]")
 {
-  experimental::framework_graph g;
+  auto g = experimental::framework_graph::with_default_driver();
 
   g.observe(
      "duplicate_name", [](unsigned int const) {}, concurrency::unlimited)
@@ -117,4 +123,45 @@ TEST_CASE("Throw on duplicate node registration", "[graph]")
   CHECK_THROWS_WITH(g.execute(),
                     Catch::Matchers::ContainsSubstring("Configuration errors") &&
                       Catch::Matchers::ContainsSubstring("duplicate_name"));
+}
+
+TEST_CASE("Throw when no driver configured", "[graph]")
+{
+  auto g = experimental::framework_graph::with_deferred_driver();
+  CHECK_THROWS_WITH(g.execute(),
+                    Catch::Matchers::ContainsSubstring("No driver configured for framework_graph"));
+}
+
+TEST_CASE("Allow late driver configuration", "[graph]")
+{
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", 3});
+
+  auto g = experimental::framework_graph::with_deferred_driver();
+
+  g.provide(
+     "provide_number",
+     [](data_cell_index const& index) -> unsigned int { return index.number(); },
+     concurrency::unlimited)
+    .output_product("input", "number", "spill");
+  g.observe(
+     "observe_number", [](unsigned int const /*number*/) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "input", .layer = "spill", .suffix = "number"});
+
+  g.add_driver(gen);
+  g.execute();
+
+  CHECK(g.execution_count("provide_number") == 3);
+  CHECK(g.execution_count("observe_number") == 3);
+}
+
+TEST_CASE("Throw when configuring driver twice", "[graph]")
+{
+  auto gen = experimental::layer_generator::make();
+  auto g = experimental::framework_graph::with_deferred_driver();
+
+  g.add_driver(gen);
+  CHECK_THROWS_WITH(
+    g.add_driver(gen),
+    Catch::Matchers::ContainsSubstring("Driver has already been configured for framework_graph"));
 }

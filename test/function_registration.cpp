@@ -62,7 +62,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::array const product_suffixes = {"onumber"s, "otemperature"s, "oname"s};
   std::array const result{"result"s};
 
-  experimental::framework_graph g;
+  auto g = experimental::framework_graph::with_default_driver();
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)

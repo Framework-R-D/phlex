@@ -113,16 +113,17 @@ namespace phlex::experimental {
     creator(g.source_proxy(config), config);
   }
 
-  driver_bundle load_driver(boost::json::object const& raw_config)
+  void load_driver(framework_graph& g, boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
+    auto const required_sources = config.get<std::vector<std::string>>("uses_sources", {});
     // False positive: clang-analyzer cannot trace ownership through Boost's is_any_of<char>
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
     create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
     driver_bundle result;
-    create_driver(driver_proxy{}, config, &result);
-    return result;
+    create_driver(g.driver_proxy(required_sources), config, &result);
+    g.add_driver(result);
   }
 }

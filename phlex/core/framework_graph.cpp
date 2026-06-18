@@ -15,24 +15,23 @@
 #include <iostream>
 
 namespace phlex::experimental {
-  framework_graph::framework_graph(int const max_parallelism) :
-    framework_graph{[](framework_driver& driver) { driver.yield(data_cell_index::job()); },
-                    max_parallelism}
+  framework_graph framework_graph::with_default_driver(int const max_parallelism)
   {
+    return framework_graph{driver_mode::default_driver, max_parallelism};
   }
 
-  framework_graph::framework_graph(detail::next_index_t next_index, int const max_parallelism) :
-    framework_graph{driver_bundle{std::move(next_index), {}}, max_parallelism}
+  framework_graph framework_graph::with_deferred_driver(int const max_parallelism)
   {
+    return framework_graph{driver_mode::deferred_driver, max_parallelism};
   }
 
-  framework_graph::framework_graph(driver_bundle bundle, int const max_parallelism) :
+  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+  framework_graph::framework_graph(driver_mode const mode, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
-    fixed_hierarchy_{std::move(bundle.hierarchy)},
-    driver_{std::move(bundle.driver)},
     src_{graph_,
          [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
-           if (auto item = driver_()) {
+           assert(driver_);
+           if (auto item = (*driver_)()) {
              return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
                      .index_to_emit = *item};
            }
@@ -51,10 +50,31 @@ namespace phlex::experimental {
                     [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
                       hierarchy_.increment_count(index);
                       return {};
-                    }}
+                    }},
+    driver_mode_{mode}
   {
+    if (driver_mode_ == driver_mode::default_driver) {
+      driver_.emplace([](framework_driver& driver) { driver.yield(data_cell_index::job()); });
+    }
+
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
+  }
+
+  void framework_graph::add_driver(driver_bundle bundle)
+  {
+    if (driver_mode_ != driver_mode::deferred_driver) {
+      throw std::runtime_error(
+        "Cannot configure framework_graph with a driver when not in deferred mode.");
+    }
+    if (driver_) {
+      throw std::runtime_error("Driver has already been configured for framework_graph.");
+    }
+    if (!bundle.driver) {
+      throw std::runtime_error("Cannot configure framework_graph with an empty driver.");
+    }
+    fixed_hierarchy_ = std::move(bundle.hierarchy);
+    driver_.emplace(std::move(bundle.driver));
   }
 
   framework_graph::~framework_graph()
@@ -79,19 +99,26 @@ namespace phlex::experimental {
   }
 
   void framework_graph::execute()
-  try {
-    finalize();
-    run();
-  } catch (std::exception const& e) {
-    driver_.stop();
-    spdlog::error(e.what());
-    shutdown_on_error_ = true;
-    throw;
-  } catch (...) {
-    driver_.stop();
-    spdlog::error("Unknown exception during graph execution");
-    shutdown_on_error_ = true;
-    throw;
+  {
+    if (!driver_) {
+      throw std::runtime_error("No driver configured for framework_graph.");
+    }
+
+    try {
+      finalize();
+      run();
+    } catch (std::exception const& e) {
+      driver_->stop();
+
+      spdlog::error(e.what());
+      shutdown_on_error_ = true;
+      throw;
+    } catch (...) {
+      driver_->stop();
+      spdlog::error("Unknown exception during graph execution");
+      shutdown_on_error_ = true;
+      throw;
+    }
   }
 
   void framework_graph::run()

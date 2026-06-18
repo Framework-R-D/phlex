@@ -34,12 +34,13 @@ namespace {
 
 TEST_CASE("Testing families", "[data model]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("run", {"job", 1});
-  gen.add_layer("subrun", {"run", 1});
-  gen.add_layer("event", {"subrun", 1});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {"job", 1});
+  gen->add_layer("subrun", {"run", 1});
+  gen->add_layer("event", {"subrun", 1});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
 
   // Wire up providers for each level
   g.provide("run_id_provider", provide_index, concurrency::unlimited)

@@ -102,9 +102,10 @@ namespace {
 
 TEST_CASE("Two predicates", "[filtering]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 10, 1});
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 10, 1});
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -128,9 +129,10 @@ TEST_CASE("Two predicates", "[filtering]")
 
 TEST_CASE("Two predicates in series", "[filtering]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 10, 1});
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 10, 1});
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -150,9 +152,10 @@ TEST_CASE("Two predicates in series", "[filtering]")
 
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 10, 1});
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 10, 1});
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
   g.predicate("evens_only", evens_only, concurrency::unlimited)
@@ -180,9 +183,10 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
                                         {.name = "exclude_6_to_7", .begin = 6, .end = 7},
                                         {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 10, 1});
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 10, 1});
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
   for (auto const& [name, b, e] : configs) {
@@ -206,9 +210,10 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 10, 1});
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 10, 1});
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
   g.provide("provide_other_num", give_me_other_nums, concurrency::unlimited)

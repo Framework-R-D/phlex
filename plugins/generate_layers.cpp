@@ -19,13 +19,15 @@
 #include "phlex/driver.hpp"
 #include "plugins/layer_generator.hpp"
 
+#include <memory>
 #include <string>
+#include <utility>
 
 PHLEX_REGISTER_DRIVER(d, config)
 {
   using namespace phlex;
 
-  auto gen = std::make_shared<experimental::layer_generator>();
+  auto gen = experimental::layer_generator::make();
 
   auto const layers = config.get<configuration>("layers", {});
   for (auto const& key : layers.keys()) {
@@ -36,9 +38,5 @@ PHLEX_REGISTER_DRIVER(d, config)
                     .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
   }
 
-  return d.driver(gen->hierarchy(), [gen](data_cell_yielder const yield) {
-    for (data_cell_index_ptr const& index : gen->indices()) {
-      yield(index);
-    }
-  });
+  return d.driver(std::move(gen));
 }

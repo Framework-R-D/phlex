@@ -36,10 +36,11 @@ namespace {
 
 TEST_CASE("Output data products", "[graph]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("spill", {"job", 1u});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", 1u});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(gen);
 
   g.provide("provide_number", [](data_cell_index const&) -> int { return 17; })
     .output_product("input", "number_from_provider", "spill");
