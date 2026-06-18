@@ -564,7 +564,8 @@ TEST_CASE("Root TTree setupWrite finds pre-existing TTree; getEntryCount reflect
 
   // Step 2: open in update mode; setupWrite must find the existing TTree
   auto root_file = std::make_shared<ROOT_TFileImp>(file_name, 'u');
-  ROOT_TTree_Write_ContainerImp container("ExistingTree"); //TODO: use FORM factory functions instead of explicit TTree
+  ROOT_TTree_Write_ContainerImp container(
+    "ExistingTree"); //TODO: use FORM factory functions instead of explicit TTree
   container.setFile(root_file);
   // setupWrite: first m_tree.reset(Get<TTree>()) returns non-null → skips new-tree branch
   CHECK_NOTHROW(container.setupWrite(typeid(void)));

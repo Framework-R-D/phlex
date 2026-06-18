@@ -132,7 +132,7 @@ namespace form::detail::experimental {
 
   std::uint64_t ROOT_RField_Write_ContainerImp::getEntryCount()
   {
-    if(m_rntuple_parent && m_rntuple_parent->m_writer)
+    if (m_rntuple_parent && m_rntuple_parent->m_writer)
       return m_rntuple_parent->m_writer->GetNEntries();
     return 0;
   }
