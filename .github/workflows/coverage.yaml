@@ -124,7 +124,7 @@ jobs:
       - name: Configure CMake with GCC coverage
         id: configure_gcc
         if: ${{ steps.coverage_options.outputs.compiler == 'gcc' }}
-        uses: Framework-R-D/action-configure-cmake@e9abed19c06a2eedfed90c1f39f3a875cf206ec3 # v1
+        uses: Framework-R-D/action-configure-cmake@caba9b42770d8f3ad2d8f294ef82dd88fc2c10c6 # v2
         with:
           cpp-compiler: g++
           preset: coverage-gcc
@@ -136,7 +136,7 @@ jobs:
       - name: Configure CMake with Clang coverage
         id: configure_clang
         if: ${{ steps.coverage_options.outputs.compiler == 'clang' }}
-        uses: Framework-R-D/action-configure-cmake@e9abed19c06a2eedfed90c1f39f3a875cf206ec3 # v1
+        uses: Framework-R-D/action-configure-cmake@caba9b42770d8f3ad2d8f294ef82dd88fc2c10c6 # v2
         with:
           cpp-compiler: clang++
           preset: coverage-clang

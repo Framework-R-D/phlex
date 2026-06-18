@@ -251,7 +251,7 @@ jobs:
 
       - name: Produce compile_commands.json (C++ only)
         if: matrix.language == 'cpp'
-        uses: Framework-R-D/action-configure-cmake@e9abed19c06a2eedfed90c1f39f3a875cf206ec3 # v1
+        uses: Framework-R-D/action-configure-cmake@caba9b42770d8f3ad2d8f294ef82dd88fc2c10c6 # v2
         with:
           build-type: ${{ env.BUILD_TYPE }}
           source-path: ${{ env.local_checkout_path }}
