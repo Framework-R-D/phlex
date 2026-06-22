@@ -43,7 +43,7 @@
 // can cause a performance bottleneck (since all require the GIL).
 
 // This is dumb, but for now, because all templates need to be instantiated, only
-// support up to a fixed compile-timee maximum number of arguments. An alternative
+// support up to a fixed compile-time maximum number of arguments. An alternative
 // would be to collect the arguments, but that currently suffers from needing a
 // "initial" to create the container to collect arguments into. This may all go
 // away once converter nodes have better support in phlex' core
@@ -316,7 +316,7 @@ namespace {
       if (pq.has_value()) {
         cargs.push_back(pq.value());
       } else {
-        // validate_selection will have set a python exception
+        // validate_selector will have set a python exception
         break;
       }
     }
@@ -453,6 +453,7 @@ namespace {
 
         Py_XDECREF(args);
         Py_XDECREF(ret);
+        Py_DECREF(sig);
       } else {
         PyErr_Clear();
         // the callable may be an instance with a __call__ method
@@ -1018,8 +1019,10 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   void* ccallf = nullptr;
   if (is_numba_cfunc(callable)) {
     PyObject* pyaddr = PyObject_GetAttrString(callable, "address");
-    if (pyaddr)
+    if (pyaddr) {
       ccallf = PyLong_AsVoidPtr(pyaddr);
+      Py_DECREF(pyaddr);
+    }
     if (!ccallf)
       PyErr_Clear();
   }
@@ -1125,8 +1128,10 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   void* ccallf = nullptr;
   if (is_numba_cfunc(callable)) {
     PyObject* pyaddr = PyObject_GetAttrString(callable, "address");
-    if (pyaddr)
+    if (pyaddr) {
       ccallf = PyLong_AsVoidPtr(pyaddr);
+      Py_DECREF(pyaddr);
+    }
     if (!ccallf)
       PyErr_Clear();
   }
