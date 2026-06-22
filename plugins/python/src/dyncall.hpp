@@ -75,7 +75,7 @@ namespace phlex::experimental {
 
     // value access to payload
     template <typename T>
-    T get()
+    T get() const
     {
       return std::get<T>(m_value);
     }
@@ -83,7 +83,7 @@ namespace phlex::experimental {
 
   // specialization to simplify a very common case
   template <>
-  inline PyObject* dcarg::get<PyObject*>()
+  inline PyObject* dcarg::get<PyObject*>() const
   {
     return reinterpret_cast<PyObject*>(std::get<void*>(m_value));
   }
