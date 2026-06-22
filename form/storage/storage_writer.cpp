@@ -377,7 +377,9 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
     }
   }
 
-  cont->second->fill(data);
+  if (data != nullptr)
+    cont->second->fill(data);
+  //TODO: decide whether to signal phlex with e.g. an exception if we get nullptr here
   return;
 }
 

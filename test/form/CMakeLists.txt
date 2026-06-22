@@ -9,9 +9,9 @@ if(FORM_USE_ROOT_STORAGE)
   target_include_directories(form_test_utils INTERFACE ${PROJECT_SOURCE_DIR})
 
   list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_TTREE")
-  #if(FORM_USE_RNTUPLE_STORAGE) #Example of what this loop will be used for
-  #  list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_RNTUPLE")
-  #endif()
+  if(FORM_USE_RNTUPLE_STORAGE)
+    list(APPEND FORM_TEST_TECHNOLOGIES "ROOT_RNTUPLE")
+  endif()
 
   foreach(TECH IN LISTS FORM_TEST_TECHNOLOGIES)
     cet_test(
@@ -24,8 +24,8 @@ if(FORM_USE_ROOT_STORAGE)
         form_test_data_products
         form_test_utils
         TEST_ARGS
-        "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
-        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums.txt"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_${TECH}.root"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums_${TECH}.txt"
         ${TECH}
     )
     target_include_directories("WriteVector_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
@@ -39,8 +39,8 @@ if(FORM_USE_ROOT_STORAGE)
         form_test_data_products
         form_test_utils
         TEST_ARGS
-        "${CMAKE_CURRENT_BINARY_DIR}/toy.root"
-        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums.txt"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_${TECH}.root"
+        "${CMAKE_CURRENT_BINARY_DIR}/toy_checksums_${TECH}.txt"
         ${TECH}
         TEST_PROPERTIES
         DEPENDS
@@ -59,7 +59,7 @@ if(FORM_USE_ROOT_STORAGE)
         form_test_data_products
         form_test_utils
         TEST_WORKDIR
-        form_root_schema_test
+        "form_root_schema_test_${TECH}"
         TEST_ARGS
         ${TECH}
     )
@@ -79,7 +79,7 @@ if(FORM_USE_ROOT_STORAGE)
        form_test_utils
        DIRTY_WORKDIR
        TEST_WORKDIR
-       form_root_schema_test
+       "form_root_schema_test_${TECH}"
        REQUIRED_FIXTURES
        "form_root_schema_write_test_${TECH}"
        TEST_ARGS
@@ -98,11 +98,11 @@ if(FORM_USE_ROOT_STORAGE)
       TEST_ARGS
       -E
       compare_files
-      form_root_schema_write_log.txt
-      form_root_schema_read_log.txt
+      "form_root_schema_write_log_${TECH}.txt"
+      "form_root_schema_read_log_${TECH}.txt"
       DIRTY_WORKDIR
       TEST_WORKDIR
-      form_root_schema_test
+      "form_root_schema_test_${TECH}"
       REQUIRED_FIXTURES
       "form_root_schema_write_test_${TECH}"
       "form_root_schema_read_test_${TECH}"
@@ -115,6 +115,9 @@ if(FORM_USE_ROOT_STORAGE)
              TEST_ARGS
              --technology
              ${TECH}
+             TEST_PROPERTIES
+             RESOURCE_LOCK
+             "FORMTestFile.root"
     )
     target_include_directories("form_storage_test_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
   endforeach()
@@ -132,6 +135,21 @@ cet_test(
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
 )
+
+if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
+  cet_test(
+    job:form_module_rntuple
+    HANDBUILT
+    TEST_EXEC
+    phlex::phlex
+    TEST_ARGS
+    -c
+    ${CMAKE_CURRENT_SOURCE_DIR}/form_test_rntuple.jsonnet
+    TEST_PROPERTIES
+    ENVIRONMENT
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  )
+endif()
 
 cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
          form

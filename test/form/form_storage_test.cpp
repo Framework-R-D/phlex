@@ -5,9 +5,7 @@
 #include "core/placement.hpp"
 #include "form/config.hpp"
 #include "form/technology.hpp"
-#include "root_storage/root_tbranch_write_container.hpp"
 #include "root_storage/root_tfile.hpp"
-#include "root_storage/root_ttree_write_container.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_write_container.hpp"
 #include "storage/storage_writer.hpp"
@@ -105,15 +103,48 @@ TEST_CASE("FORM Container setup error handling")
   void const* ptrTestData = &testData;
   auto const& typeInfo = typeid(testData);
 
-  SECTION("fill() before setParent()")
+  SECTION("fill() before setupWrite()")
   {
-    CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
     CHECK_THROWS_AS(writeContainer->fill(ptrTestData), std::runtime_error);
   }
 
-  SECTION("commit() before setParent()")
+  SECTION("commit() before setupWrite()")
   {
     CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+  }
+
+  auto writeAssocContainer =
+    dynamic_pointer_cast<Storage_Associative_Write_Container>(writeContainer);
+  if (writeAssocContainer) {
+    SECTION("fill() before setParent()")
+    {
+      CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
+      CHECK_THROWS_AS(writeContainer->fill(ptrTestData), std::runtime_error);
+    }
+
+    SECTION("commit() before setParent()")
+    {
+      CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+    }
+
+    SECTION("setupWrite() before setParent()")
+    {
+      CHECK_THROWS_AS(writeContainer->setupWrite(typeInfo), std::runtime_error);
+    }
+
+    auto parent = createWriteAssociation(technology, "test");
+    parent->setFile(file);
+    parent->setupWrite(typeInfo);
+    if (form::technology::GetMinor(technology) !=
+        form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this
+    {
+      SECTION("commit() before fill()")
+      {
+        writeAssocContainer->setParent(parent);
+        writeContainer->setupWrite(typeInfo);
+        CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+      }
+    }
   }
 
   auto readContainer = createReadContainer(technology, "test/testData");
@@ -129,6 +160,15 @@ TEST_CASE("FORM Container setup error handling")
       new Storage_File("testContainerErrorHandling.root", 'o'));
     CHECK_THROWS_AS(readContainer->setFile(wrongFile), std::runtime_error);
     CHECK_THROWS_AS(writeContainer->setFile(wrongFile), std::runtime_error);
+  }
+
+  auto associativeWrite = dynamic_pointer_cast<Storage_Associative_Write_Container>(writeContainer);
+  if (associativeWrite) {
+    SECTION("mismatched parent type")
+    {
+      std::shared_ptr<IStorage_Write_Container> badWriteParent(new Storage_Write_Container("bad"));
+      CHECK_THROWS_AS(associativeWrite->setParent(badWriteParent), std::runtime_error);
+    }
   }
 }
 
@@ -291,13 +331,14 @@ TEST_CASE("Root file open modes and attribute validation", "[form]")
 
 TEST_CASE("Storage write container error paths", "[form]")
 {
-  auto container = createWriteContainer(technology, "testTree");
+  auto container = createWriteContainer(technology, "test/testTree");
   REQUIRE(container != nullptr);
 
   CHECK(container->getEntryCount() == 0);
   CHECK_THROWS_AS(container->setupWrite(typeid(int)), std::runtime_error);
 
   std::shared_ptr<IStorage_File> wrong_file(new Storage_File("container_error.root", 'o'));
+
   CHECK_THROWS_AS(container->setFile(wrong_file), std::runtime_error);
 }
 
@@ -460,7 +501,6 @@ TEST_CASE("StorageWriter fillContainer index with nullptr data skips index recor
   Placement ip(file_name, "Prod/index", technology);
   // data == nullptr → is_index_container && data != nullptr evaluates false → inner block skipped
   CHECK_NOTHROW(writer.fillContainer(ip, nullptr, typeid(std::string), "Prod"));
-  writer.commitContainers(ip);
   writer.finalize(settings);
 
   auto f = TFile::Open(file_name.c_str(), "READ");
@@ -524,7 +564,8 @@ TEST_CASE("Root TTree setupWrite finds pre-existing TTree; getEntryCount reflect
 
   // Step 2: open in update mode; setupWrite must find the existing TTree
   auto root_file = std::make_shared<ROOT_TFileImp>(file_name, 'u');
-  ROOT_TTree_Write_ContainerImp container("ExistingTree");
+  ROOT_TTree_Write_ContainerImp container(
+    "ExistingTree"); //TODO: use FORM factory functions instead of explicit TTree
   container.setFile(root_file);
   // setupWrite: first m_tree.reset(Get<TTree>()) returns non-null → skips new-tree branch
   CHECK_NOTHROW(container.setupWrite(typeid(void)));
