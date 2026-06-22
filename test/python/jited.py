@@ -9,8 +9,6 @@ import numba.core.decorators as nb_dec
 import numpy as np
 from adder import add
 
-from phlex import Variant
-
 # arg0 suff, arg1 suff, type, result
 specs = (
     ("i", "j", np.int32, 1),
@@ -27,7 +25,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
 
     Use the standard Phlex `transform` registration to insert a node in the
     execution graph of a Numba-jited Python function that receives two inputs
-    and produces their sum as an ouput.
+    and produces their sum as an output.
 
     Similarly, use the standard Phlex `observe` to add verifier nodes.
 
@@ -58,6 +56,8 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         f_o = nb_dec.cfunc(f"void({tn})", nogil=True, nopython=True, cache=True)(new_o(res))
         m.observe(f_o,
                   name="obs_"+tn,
-                  input_family=[{"creator": "add_" + tn, "layer": "event", "suffix": "sum_"+tn}],
+                  input_family=[
+                      {"creator": "add_" + tn, "layer": "event", "suffix": "sum_"+tn}
+                  ],
                   concurrency=4)
 
