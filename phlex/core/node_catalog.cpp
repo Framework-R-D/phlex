@@ -1,6 +1,7 @@
 #include "phlex/core/node_catalog.hpp"
 
 #include <string>
+#include <vector>
 
 using namespace std::string_literals;
 
@@ -52,5 +53,17 @@ namespace phlex::experimental {
   producer_catalog node_catalog::producers() const
   {
     return producer_catalog{transforms, folds, unfolds};
+  }
+
+  source_vector node_catalog::sources_for(std::vector<std::string> const& keys) const
+  {
+    source_vector result;
+    result.reserve(keys.size());
+    for (auto const& key : keys) {
+      if (auto src = sources.get(key)) {
+        result.push_back(src);
+      }
+    }
+    return result;
   }
 }
