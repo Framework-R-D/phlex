@@ -6,11 +6,11 @@
 #include "phlex/source.hpp"
 
 #include "boost/algorithm/string.hpp"
-#include "boost/dll/import.hpp"
+#include "boost/dll/shared_library.hpp"
 #include "boost/json.hpp"
 
 #include <cstdlib>
-#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -21,17 +21,52 @@ namespace phlex::experimental {
   namespace {
     constexpr std::string_view pymodule_name{"pymodule"};
 
-    // If factory function goes out of scope, then the library is unloaded...and that's
-    // bad.
+    // The shared_library member in each wrapper struct keeps the loaded .so
+    // alive for the lifetime of the wrapper.  If it goes out of scope, the
+    // library is unloaded and the stored function pointer becomes invalid.
+    struct module_plugin {
+      boost::dll::shared_library lib;
+      detail::module_creator_t* fn{};
+
+      void operator()(module_graph_proxy<void_tag> proxy,
+                      configuration const& config) const
+      {
+        fn(std::move(proxy), config);
+      }
+    };
+
+    struct source_plugin {
+      boost::dll::shared_library lib;
+      detail::source_creator_t* fn{};
+
+      void operator()(source_bundle bundle, configuration const& config) const
+      {
+        fn(bundle, config);
+      }
+    };
+
+    struct driver_plugin {
+      boost::dll::shared_library lib;
+      detail::driver_shim_t* fn{};
+
+      void operator()(driver_proxy proxy,
+                      configuration const& config,
+                      driver_bundle* out) const
+      {
+        fn(proxy, config, out);
+      }
+    };
+
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::vector<std::function<detail::module_creator_t>> create_module;
+    std::vector<module_plugin> create_module;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::vector<std::function<detail::source_creator_t>> create_source;
+    std::vector<source_plugin> create_source;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::function<detail::driver_shim_t> create_driver;
+    std::optional<driver_plugin> create_driver;
 
     template <typename creator_t>
-    std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
+    std::pair<boost::dll::shared_library, creator_t*>
+    plugin_loader(std::string const& spec, std::string const& symbol_name)
     {
       // Called during single-threaded graph construction
       char const* plugin_path_ptr =
@@ -51,7 +86,9 @@ namespace phlex::experimental {
           // (e.g., NumPy). Load all other plugins with rtld_local (default) to avoid symbol collisions.
           auto const load_mode = (spec == pymodule_name) ? boost::dll::load_mode::rtld_global
                                                          : boost::dll::load_mode::default_mode;
-          return boost::dll::import_symbol<creator_t>(shared_library_path, symbol_name, load_mode);
+          boost::dll::shared_library lib{shared_library_path, load_mode};
+          auto* fn = &lib.get<creator_t>(symbol_name);
+          return {std::move(lib), fn};
         }
       }
       throw std::runtime_error("Could not locate library with specification '"s + spec +
@@ -88,8 +125,8 @@ namespace phlex::experimental {
     auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
-    auto& creator =
-      create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
+    auto [lib, fn] = plugin_loader<detail::module_creator_t>(spec, "create_module");
+    auto& creator = create_module.emplace_back(module_plugin{std::move(lib), fn});
 
     configuration const config{adjusted_config};
     creator(g.module_proxy(config), config);
@@ -100,8 +137,8 @@ namespace phlex::experimental {
     auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
-    auto& creator =
-      create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
+    auto [lib, fn] = plugin_loader<detail::source_creator_t>(spec, "create_source");
+    auto& creator = create_source.emplace_back(source_plugin{std::move(lib), fn});
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
@@ -119,9 +156,10 @@ namespace phlex::experimental {
     // False positive: clang-analyzer cannot trace ownership through Boost's is_any_of<char>
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
-    create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
+    auto [lib, fn] = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
+    create_driver.emplace(driver_plugin{std::move(lib), fn});
     driver_bundle result;
-    create_driver(driver_proxy{}, config, &result);
+    (*create_driver)(driver_proxy{}, config, &result);
     return result;
   }
 }
