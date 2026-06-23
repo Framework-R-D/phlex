@@ -82,6 +82,14 @@ namespace phlex::experimental {
     // Note: The loaded libraries' factory functions are kept alive for the
     // lifetime of the job so the libraries are not unloaded out from under the
     // registered nodes.
+
+    // Only the framework_graph for an application is intended to have a
+    // node_catalog; it should not get copied or assigned, so we disable copying
+    // and moving to prevent accidental use.
+    node_catalog() = default;
+    node_catalog(node_catalog const&) = delete;
+    node_catalog& operator=(node_catalog const&) = delete;
+
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)
     {
