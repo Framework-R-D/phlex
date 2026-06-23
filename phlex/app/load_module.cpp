@@ -39,9 +39,8 @@ namespace phlex::experimental {
       if (!plugin_path_ptr)
         throw std::runtime_error("PHLEX_PLUGIN_PATH has not been set.");
 
-      using namespace boost;
       std::vector<std::string> subdirs;
-      split(subdirs, plugin_path_ptr, is_any_of(":"));
+      boost::split(subdirs, plugin_path_ptr, boost::is_any_of(":"));
 
       // FIXME: Need to test to ensure that first match wins.
       for (auto const& subdir : subdirs) {
@@ -50,9 +49,9 @@ namespace phlex::experimental {
         if (exists(shared_library_path)) {
           // Load pymodule with rtld_global to make Python symbols available to extension modules
           // (e.g., NumPy). Load all other plugins with rtld_local (default) to avoid symbol collisions.
-          auto const load_mode =
-            (spec == pymodule_name) ? dll::load_mode::rtld_global : dll::load_mode::default_mode;
-          return dll::import_symbol<creator_t>(shared_library_path, symbol_name, load_mode);
+          auto const load_mode = (spec == pymodule_name) ? boost::dll::load_mode::rtld_global
+                                                         : boost::dll::load_mode::default_mode;
+          return boost::dll::import_symbol<creator_t>(shared_library_path, symbol_name, load_mode);
         }
       }
       throw std::runtime_error("Could not locate library with specification '"s + spec +
