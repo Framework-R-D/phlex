@@ -122,6 +122,11 @@ PREP_SPACK_GROUP
 # Configure Spack: add repos, compilers, externals, and cache locations
 
 COPY packages.yaml /tmp/packages.yaml
+COPY upgrade_repos.py /tmp/upgrade_repos.py
+
+ENV GNUPGHOME=/run/gpg
+ENV SPACK_GNUPGHOME=/run/gpg
+
 RUN <<'SPACK_CONFIGURE_DEFAULTS'
 set -euo pipefail
 
@@ -137,15 +142,6 @@ find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
 . /spack/share/spack/setup-env.sh
 
-# Install settings from our copied packages.yaml
-spack config --scope site add -f /tmp/packages.yaml
-rm -f /tmp/packages.yaml
-
-# Recipe repos
-spack repo add --scope site $SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex
-spack repo add --scope site $SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art
-spack repo add --scope site $SPACK_REPO_ROOT/spack-packages/repos/spack_repo/builtin
-
 # Other config settings
 spack config --scope defaults add config:build_stage:/opt/spack-stage
 spack config --scope defaults add config:source_cache:/opt/spack-cache/downloads
@@ -155,16 +151,31 @@ spack config --scope defaults add config:install_tree:padded_length:255
 # Find compilers (destination packages.yaml for Spack >=1.0)
 spack --timestamp compiler find --scope site
 
+# Install settings from our copied packages.yaml
+spack config --scope site add -f /tmp/packages.yaml
+rm -f /tmp/packages.yaml
+
 # Discover externals
 #
 # - Python is excluded because the python provided by the system does
 #   not necessarily include the Python.h header file.  We therefore need
 #   Spack to build Python.
 spack --timestamp external find --exclude python
-SPACK_CONFIGURE_DEFAULTS
 
-ENV GNUPGHOME=/run/gpg
-ENV SPACK_GNUPGHOME=/run/gpg
+# Configure recipe repos
+spack repo add --scope site $SPACK_REPO_ROOT/phlex-spack-recipes/spack_repo/phlex
+spack repo add --scope site $SPACK_REPO_ROOT/fnal_art/spack_repo/fnal_art
+spack repo add --scope site $SPACK_REPO_ROOT/spack-packages/repos/spack_repo/builtin
+
+spack repo list
+chmod +x /tmp/upgrade_repos.py
+spack python /tmp/upgrade_repos.py
+rm -f /tmp/upgrade_repos.py
+spack repo list
+spack clean -m
+spack audit configs
+
+SPACK_CONFIGURE_DEFAULTS
 
 ########################################################################
 # Configure binary mirrors used during installs
@@ -214,9 +225,9 @@ set -euo pipefail
 # Install GCC outside the Phlex development environment.
 . /spack/share/spack/setup-env.sh
 
-spack --timestamp install --fail-fast -j "$(nproc)" -p 1 \
+spack --timestamp install --fail-fast -j "$(nproc)" \
       --no-check-signature \
-      gcc@15.2 target=x86_64_v3 \
+      gcc@15.3 target=x86_64_v3 \
       +binutils+graphite~nvptx+piclibs+strip \
       build_type=Release \
       languages=c,c++,fortran,lto \
@@ -235,7 +246,7 @@ if [ -d "/build-cache" ]; then
 fi
 
 # Make GCC external to simplify concretization
-spack compiler find $(spack location -i gcc@15.2)
+spack compiler find $(spack location -i gcc@15)
 
 spack clean -dfs
 SPACK_INSTALL_GCC
@@ -277,7 +288,12 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-spack --timestamp install --fail-fast -j $(nproc) -p 1 \
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
+
+spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature \
   cmake lcov ninja py-gcovr py-pytest-cov py-pyyaml
 
@@ -331,7 +347,12 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-spack --timestamp install --fail-fast -j $(nproc) -p 1 \
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
+
+spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature llvm
 
 if [ -d "/build-cache" ]; then
@@ -363,7 +384,12 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-spack --timestamp install --fail-fast -j $(nproc) -p 1 \
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
+
+spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature \
   $(spack find -r --no-groups | sed -Ene 's&^ - &&p' | grep -v phlex)
 
@@ -396,7 +422,12 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-spack --timestamp install --fail-fast -j $(nproc) -p 1 \
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
+
+spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --only dependencies --no-check-signature \
   phlex
 
