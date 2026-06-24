@@ -7,6 +7,7 @@
 #include "core/token.hpp"
 #include "form/config.hpp"
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
