@@ -46,8 +46,9 @@ namespace {
 
   void verify_results(int number, double temperature, std::string const& name)
   {
-    auto const expected = std::make_tuple(3, 98.5, "John");
-    CHECK(std::tie(number, temperature, name) == expected);
+    CHECK(number == 3);
+    CHECK(temperature == 98.5);
+    CHECK(name == "John");
   }
 
 }
