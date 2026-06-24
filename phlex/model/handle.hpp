@@ -5,6 +5,7 @@
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/product_specification.hpp"
 
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -59,12 +60,14 @@ namespace phlex {
     // The 'product' parameter is not 'const_reference' to avoid avoid implicit type conversions.
     explicit handle(std::same_as<T> auto const& product,
                     data_cell_index const& id,
-                    experimental::product_specification const& key) :
+                    experimental::product_specification const& key,
+                    std::optional<experimental::identifier> stage = {}) :
       product_{&product},
       id_{&id},
       creator_plugin_{key.plugin()},
       creator_algorithm_{key.algorithm()},
-      suffix_(key.suffix())
+      suffix_(key.suffix()),
+      stage_(std::move(stage))
     {
     }
 
@@ -95,6 +98,13 @@ namespace phlex {
     }
     std::string_view suffix() const noexcept { return std::string_view(suffix_); }
     std::string_view layer() const noexcept { return std::string_view(id_->layer_name()); }
+    std::string_view stage() const noexcept
+    {
+      if (stage_.has_value()) {
+        return std::string_view(stage_.value());
+      }
+      return str_current;
+    }
     std::string layer_path() const { return id_->layer_path().to_string(); }
 
     template <typename U>
@@ -112,10 +122,20 @@ namespace phlex {
     experimental::identifier creator_algorithm_;
     experimental::identifier suffix_;
     experimental::type_id type_;
+    std::optional<experimental::identifier> stage_;
+
+    // Utilities for stage name access until configuration supports these
+    constexpr static std::string_view str_current = "CURRENT";
   };
 
   template <typename T>
   handle(T const&, data_cell_index const&, experimental::product_specification const&) -> handle<T>;
+
+  template <typename T>
+  handle(T const&,
+         data_cell_index const&,
+         experimental::product_specification const&,
+         std::optional<experimental::identifier>) -> handle<T>;
 }
 
 #endif // PHLEX_MODEL_HANDLE_HPP
