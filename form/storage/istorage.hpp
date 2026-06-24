@@ -38,10 +38,8 @@ namespace form::detail::experimental {
       form::experimental::config::tech_setting_config const& settings) = 0;
     virtual void fillContainer(Placement const& plcmnt,
                                void const* data,
-                               std::type_info const& type,
-                               std::string const& product_name = "") = 0;
+                               std::type_info const& type) = 0;
     virtual void commitContainers(Placement const& plcmnt) = 0;
-    virtual void finalize(form::experimental::config::tech_setting_config const& settings) = 0;
   };
 
   class IStorage_File {
@@ -68,7 +66,6 @@ namespace form::detail::experimental {
     virtual void commit() = 0;
 
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
-    virtual std::uint64_t getEntryCount() = 0;
   };
 
   class IStorage_Read_Container {

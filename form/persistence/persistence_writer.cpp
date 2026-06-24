@@ -52,20 +52,17 @@ void PersistenceWriter::createContainers(
 void PersistenceWriter::registerWrite(std::string const& creator,
                                       std::string const& label,
                                       void const* data,
-                                      std::type_info const& type,
-                                      std::string const& product_name)
+                                      std::type_info const& type)
 {
-  m_current_creator = creator; // Cache creator for use in commitOutput
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
-  m_store_writer->fillContainer(*plcmnt, data, type, product_name);
+  m_store_writer->fillContainer(*plcmnt, data, type);
   return;
 }
 
 void PersistenceWriter::commitOutput(std::string const& creator, std::string const& id)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, "index");
-  // Pass m_current_creator as product_name for IndexRegistry
-  m_store_writer->fillContainer(*plcmnt, &id, typeid(std::string), m_current_creator);
+  m_store_writer->fillContainer(*plcmnt, &id, typeid(std::string));
   m_store_writer->commitContainers(*plcmnt);
   return;
 }
@@ -83,5 +80,3 @@ std::unique_ptr<Placement> PersistenceWriter::getPlacement(std::string const& cr
   std::string const full_label = buildFullLabel(creator, label);
   return std::make_unique<Placement>(config_item->file_name, full_label, config_item->technology);
 }
-
-void PersistenceWriter::finalize() { m_store_writer->finalize(m_tech_settings); }

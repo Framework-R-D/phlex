@@ -30,10 +30,8 @@ namespace form::detail::experimental {
     virtual void registerWrite(std::string const& creator,
                                std::string const& label,
                                void const* data,
-                               std::type_info const& type,
-                               std::string const& product_name = "") = 0;
+                               std::type_info const& type) = 0;
     virtual void commitOutput(std::string const& creator, std::string const& id) = 0;
-    virtual void finalize() = 0;
   };
 
   std::unique_ptr<IPersistenceWriter> createPersistenceWriter();
