@@ -1,5 +1,7 @@
 #include "phlex/core/node_catalog.hpp"
 
+#include "fmt/format.h"
+
 #include <string>
 #include <vector>
 
@@ -62,6 +64,8 @@ namespace phlex::experimental {
     for (auto const& key : keys) {
       if (auto src = sources.get(key)) {
         result.push_back(src);
+      } else {
+        throw std::runtime_error(fmt::format("Unknown source with name: {}", key));
       }
     }
     return result;

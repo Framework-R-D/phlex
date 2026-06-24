@@ -109,6 +109,14 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
       "A non-existent filter with the name 'missing_predicate' was specified for observe_num"));
 }
 
+TEST_CASE("Throw when source specified for driver does not exist", "[graph]")
+{
+  auto g = experimental::framework_graph::with_deferred_driver();
+
+  CHECK_THROWS_WITH(g.driver_proxy({"missing_source"}),
+                    Catch::Matchers::ContainsSubstring("Unknown source with name: missing_source"));
+}
+
 TEST_CASE("Throw on duplicate node registration", "[graph]")
 {
   auto g = experimental::framework_graph::with_default_driver();
