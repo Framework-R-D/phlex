@@ -109,12 +109,59 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
       "A non-existent filter with the name 'missing_predicate' was specified for observe_num"));
 }
 
-TEST_CASE("Throw when source specified for driver does not exist", "[graph]")
+TEST_CASE("Throw for invalid deferred driver setup", "[graph]")
 {
   auto g = experimental::framework_graph::with_deferred_driver();
 
-  CHECK_THROWS_WITH(g.driver_proxy({"missing_source"}),
-                    Catch::Matchers::ContainsSubstring("Unknown source with name: missing_source"));
+  SECTION("Throw when source specified for driver does not exist")
+  {
+    CHECK_THROWS_WITH(
+      g.driver_proxy({"missing_source"}),
+      Catch::Matchers::ContainsSubstring("Unknown source with name: missing_source"));
+  }
+
+  SECTION("Throw when no driver configured")
+  {
+    CHECK_THROWS_WITH(
+      g.execute(), Catch::Matchers::ContainsSubstring("No driver configured for framework_graph"));
+  }
+
+  SECTION("Throw when configuring empty driver bundle")
+  {
+    CHECK_THROWS_WITH(
+      g.add_driver(driver_bundle{}),
+      Catch::Matchers::ContainsSubstring("Cannot configure framework_graph with an empty driver."));
+  }
+}
+
+TEST_CASE("Use default driver", "[graph]")
+{
+  auto g = experimental::framework_graph::with_default_driver();
+
+  SECTION("Throw when attempting to add a driver in default mode")
+  {
+    CHECK_THROWS_WITH(
+      g.add_driver(driver_bundle{}),
+      Catch::Matchers::ContainsSubstring(
+        "Cannot configure framework_graph with a driver when not in deferred mode."));
+  }
+
+  SECTION("Ensure default driver executes one job cell")
+  {
+    g.provide(
+       "provide_number",
+       [](data_cell_index const&) -> unsigned int { return 42u; },
+       concurrency::unlimited)
+      .output_product("input", "number", "job");
+    g.observe(
+       "observe_number", [](unsigned int const) {}, concurrency::unlimited)
+      .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "number"});
+
+    g.execute();
+
+    CHECK(g.execution_count("provide_number") == 1);
+    CHECK(g.execution_count("observe_number") == 1);
+  }
 }
 
 TEST_CASE("Throw on duplicate node registration", "[graph]")
@@ -131,13 +178,6 @@ TEST_CASE("Throw on duplicate node registration", "[graph]")
   CHECK_THROWS_WITH(g.execute(),
                     Catch::Matchers::ContainsSubstring("Configuration errors") &&
                       Catch::Matchers::ContainsSubstring("duplicate_name"));
-}
-
-TEST_CASE("Throw when no driver configured", "[graph]")
-{
-  auto g = experimental::framework_graph::with_deferred_driver();
-  CHECK_THROWS_WITH(g.execute(),
-                    Catch::Matchers::ContainsSubstring("No driver configured for framework_graph"));
 }
 
 TEST_CASE("Allow late driver configuration", "[graph]")
@@ -168,7 +208,7 @@ TEST_CASE("Throw when configuring driver twice", "[graph]")
   auto gen = experimental::layer_generator::make();
   auto g = experimental::framework_graph::with_deferred_driver();
 
-  g.add_driver(gen);
+  CHECK_NOTHROW(g.add_driver(gen));
   CHECK_THROWS_WITH(
     g.add_driver(gen),
     Catch::Matchers::ContainsSubstring("Driver has already been configured for framework_graph"));
