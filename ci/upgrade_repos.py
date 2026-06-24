@@ -1,4 +1,7 @@
 #!/usr/bin/env spack python
+"""Utility to upgrade Spack repository API versions and fix legacy package imports."""
+
+from __future__ import annotations
 
 import os
 import re
@@ -6,22 +9,27 @@ from pathlib import Path
 
 # 1. Leverage Spack internal API to dynamically find all active repositories
 import spack.repo
+from spack.repo import Repo
 from spack.vendor.ruamel.yaml import YAML
 
 # Mapping old broken imports to modern Spack equivalents
 # Mapping old variants to modern canonical Spack equivalents
-REPLACEMENTS = {
+REPLACEMENTS: dict[str, str] = {
     # Fixes the 'llnl.util.filesystem' mistake from the previous run
-    r"import\s+llnl\.util\.filesystem\s+as\s+filesystem": "import spack.util.filesystem as filesystem",
+    r"import\s+llnl\.util\.filesystem\s+as\s+filesystem": (
+        "import spack.util.filesystem as filesystem"
+    ),
     r"from\s+llnl\.util\.filesystem\s+import": "from spack.util.filesystem import",
     # Standard catch-alls for any recipes that haven't been touched yet
-    r"from\s+spack\.llnl\.util\s+import\s+filesystem": "import spack.util.filesystem as filesystem",
+    r"from\s+spack\.llnl\.util\s+import\s+filesystem": (
+        "import spack.util.filesystem as filesystem"
+    ),
     r"from\s+spack\.llnl\.util\.filesystem\s+import": "from spack.util.filesystem import",
     r"import\s+spack\.llnl\.util\.filesystem": "import spack.util.filesystem as filesystem",
 }
 
 
-def upgrade_spack_repo_api(repo_obj):
+def upgrade_spack_repo_api(repo_obj: Repo) -> None:
     """Upgrades the repo.yaml api setting using Spack's Repo object."""
     # repo_obj.root gives the base path of the specific repository
     repo_path = Path(repo_obj.root)
@@ -48,7 +56,7 @@ def upgrade_spack_repo_api(repo_obj):
         print(f"Error updating {yaml_file}: {e}")
 
 
-def clean_package_imports(repo_obj):
+def clean_package_imports(repo_obj: Repo) -> None:
     """Scans and fixes package.py files inside the discovered repository."""
     # repo_obj.root handles varied directory structures seamlessly
     packages_path = Path(repo_obj.root) / "packages"
@@ -80,7 +88,8 @@ def clean_package_imports(repo_obj):
 
 
 # --- Execute Refactoring via Spack Context ---
-def main():
+def main() -> None:
+    """Main entry point to upgrade Spack repositories and clean package imports."""
     # Spack's repo.path contains a list of all active Repo instances
     active_repos = spack.repo.PATH.repos
 
