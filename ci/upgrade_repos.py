@@ -44,11 +44,17 @@ def upgrade_spack_repo_api(repo_obj: Repo) -> None:
     try:
         data = yaml.load(yaml_file)
         if "repo" in data:
-            current_api = data["repo"].get("api", "v2.0")
-            # Only upgrade if it's explicitly older than v2.2
-            if current_api != "v2.2":
-                print(f"Upgrading {repo_obj.namespace} from API {current_api} to v2.2...")
-                data["repo"]["api"] = "v2.2"
+            current_api = str(data["repo"].get("api", "v2.0"))
+            target_api = "v2.2"
+            current_version = tuple(
+                int(part) for part in current_api.removeprefix("v").split(".")
+            )
+            target_version = tuple(int(part) for part in target_api.removeprefix("v").split("."))
+            if current_version < target_version:
+                print(
+                    f"Upgrading {repo_obj.namespace} from API {current_api} to {target_api}..."
+                )
+                data["repo"]["api"] = target_api
                 with open(yaml_file, "w") as f:
                     yaml.dump(data, f)
                 print(f"  [FIXED] {yaml_file}")
