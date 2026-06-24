@@ -288,10 +288,6 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-# Recreate the environment view in this layer to avoid cross-layer rename
-# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
-rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
-rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
 spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature \
@@ -347,11 +343,6 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-# Recreate the environment view in this layer to avoid cross-layer rename
-# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
-rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
-rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
-
 spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature llvm
 
@@ -378,11 +369,6 @@ set -euo pipefail
 
 # Install all concretized packages except phlex to share cache
 . /entrypoint.sh
-
-# Recreate the environment view in this layer to avoid cross-layer rename
-# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
-rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
-rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
 # Recreate the environment view in this layer to avoid cross-layer rename
 # failures (EXDEV) when Spack rotates view -> view.old.<hash>.
@@ -416,11 +402,6 @@ set -euo pipefail
 
 # Materialize dependencies needed for CI builds without installing Phlex
 . /entrypoint.sh
-
-# Recreate the environment view in this layer to avoid cross-layer rename
-# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
-rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
-rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
 # Recreate the environment view in this layer to avoid cross-layer rename
 # failures (EXDEV) when Spack rotates view -> view.old.<hash>.
