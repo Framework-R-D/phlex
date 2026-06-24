@@ -1007,7 +1007,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string cname;
   std::vector<product_selector> input_selectors;
   std::vector<std::string> input_types, output_suffixes, output_types;
-  concurrency nconcur;
+  concurrency nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
@@ -1116,7 +1116,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   std::string cname;
   std::vector<product_selector> input_selectors;
   std::vector<std::string> input_types, output_suffixes, output_types;
-  concurrency nconcur;
+  concurrency nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
