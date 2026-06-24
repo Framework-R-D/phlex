@@ -25,12 +25,16 @@ REPLACEMENTS: dict[str, str] = {
         "import spack.util.filesystem as filesystem"
     ),
     r"from\s+spack\.llnl\.util\.filesystem\s+import": "from spack.util.filesystem import",
-    r"import\s+spack\.llnl\.util\.filesystem": "import spack.util.filesystem as filesystem",
+    r"(import\s+)spack\.llnl\.util\.filesystem": r"\1spack.util.filesystem",
 }
 
 
 def upgrade_spack_repo_api(repo_obj: Repo) -> None:
-    """Upgrades the repo.yaml api setting using Spack's Repo object."""
+    """Upgrade the repo.yaml API setting.
+
+    Args:
+        repo_obj: Spack repository to migrate.
+    """
     # repo_obj.root gives the base path of the specific repository
     repo_path = Path(repo_obj.root)
     yaml_file = repo_path / "repo.yaml"
@@ -46,24 +50,24 @@ def upgrade_spack_repo_api(repo_obj: Repo) -> None:
         if "repo" in data:
             current_api = str(data["repo"].get("api", "v2.0"))
             target_api = "v2.2"
-            current_version = tuple(
-                int(part) for part in current_api.removeprefix("v").split(".")
-            )
+            current_version = tuple(int(part) for part in current_api.removeprefix("v").split("."))
             target_version = tuple(int(part) for part in target_api.removeprefix("v").split("."))
             if current_version < target_version:
-                print(
-                    f"Upgrading {repo_obj.namespace} from API {current_api} to {target_api}..."
-                )
+                print(f"Upgrading {repo_obj.namespace} from API {current_api} to {target_api}...")
                 data["repo"]["api"] = target_api
                 with open(yaml_file, "w") as f:
                     yaml.dump(data, f)
                 print(f"  [FIXED] {yaml_file}")
-    except Exception as e:
-        print(f"Error updating {yaml_file}: {e}")
+    except Exception as exc:
+        raise RuntimeError(f"Error updating {yaml_file}") from exc
 
 
 def clean_package_imports(repo_obj: Repo) -> None:
-    """Scans and fixes package.py files inside the discovered repository."""
+    """Scan and fix package.py files inside the discovered repository.
+
+    Args:
+        repo_obj: Spack repository whose recipes should be patched.
+    """
     # repo_obj.root handles varied directory structures seamlessly
     packages_path = Path(repo_obj.root) / "packages"
     if not packages_path.exists():
