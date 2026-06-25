@@ -98,10 +98,15 @@ TEST_CASE("Implicit providers")
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
 
+  g.observe(
+     "verify_implicit_stage", [](toy::VertexCollection const&) {}, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.execute();
 
   CHECK(g.execution_count("vertices_maker") == num_spills);
   CHECK(g.execution_count("passer") == num_spills);
+  CHECK(g.execution_count("verify_implicit_stage") == num_spills);
 }
 
 TEST_CASE("Throw when two sources with the same name are registered")
