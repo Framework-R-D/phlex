@@ -34,4 +34,17 @@ namespace form::experimental {
 
     m_pers_reader->read(creator, pb.label, segment_id, &pb.data, *pb.type);
   }
+
+  void form_reader_interface::prime(std::string const& creator,
+                                    std::string const& product_name,
+                                    std::type_info const& type)
+  {
+    m_pers_reader->prime(creator, product_name, type);
+  }
+
+  std::vector<std::string> form_reader_interface::indices(std::string const& creator,
+                                                          std::string const& product_name)
+  {
+    return m_pers_reader->listIndices(creator, product_name);
+  }
 }

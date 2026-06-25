@@ -155,3 +155,10 @@ cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
          form
 )
 target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
+
+add_library(generate_vector MODULE generate_vector.cpp)
+target_link_libraries(generate_vector PRIVATE phlex::module)
+
+add_library(form_source_extra_types MODULE form_source_extra_types.cpp)
+target_link_libraries(form_source_extra_types PRIVATE phlex::module form)
+target_include_directories(form_source_extra_types PRIVATE ${PROJECT_SOURCE_DIR})

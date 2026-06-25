@@ -25,6 +25,12 @@ namespace form::experimental {
               std::string const& segment_id,
               product_with_name& product);
 
+    void prime(std::string const& creator,
+               std::string const& product_name,
+               std::type_info const& type);
+
+    std::vector<std::string> indices(std::string const& creator, std::string const& product_name);
+
   private:
     std::unique_ptr<form::detail::experimental::IPersistenceReader> m_pers_reader;
     std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
