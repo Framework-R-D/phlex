@@ -1,15 +1,50 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/driver.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_string.hpp"
 
+#include "boost/core/demangle.hpp"
+#include "fmt/format.h"
+
+#include <functional>
 #include <stdexcept>
+#include <typeinfo>
+#include <vector>
 
 using namespace phlex;
 using phlex::experimental::driver_bundle;
 using phlex::experimental::framework_driver;
+
+namespace {
+  struct test_source final : phlex::experimental::source {
+    phlex::experimental::provider_bundles create_providers(product_selector const&) override
+    {
+      return {};
+    }
+    index_generator indices() override { co_return; }
+  };
+
+  struct other_source final : phlex::experimental::source {
+    phlex::experimental::provider_bundles create_providers(product_selector const&) override
+    {
+      return {};
+    }
+    index_generator indices() override { co_return; }
+  };
+
+  struct test_driver_generator {
+    [[nodiscard]] fixed_hierarchy hierarchy() const { return {}; }
+
+    [[nodiscard]] std::function<void(data_cell_yielder const)> driver_function() const
+    {
+      return [](data_cell_yielder const /*yielder*/) {};
+    }
+  };
+}
 
 TEST_CASE("Catch STL exceptions", "[graph]")
 {
@@ -201,6 +236,73 @@ TEST_CASE("Allow late driver configuration", "[graph]")
 
   CHECK(g.execution_count("provide_number") == 3);
   CHECK(g.execution_count("observe_number") == 3);
+}
+
+TEST_CASE("driver_proxy validates sources and generator", "[graph]")
+{
+  std::vector<experimental::source const*> sources{};
+  auto src = std::make_unique<test_source>();
+  sources.push_back(src.get());
+  experimental::driver_proxy proxy{sources};
+
+  SECTION("Throw when source parameter count mismatches")
+  {
+    CHECK_THROWS_WITH(
+      proxy.driver(fixed_hierarchy{}, [](data_cell_cursor) {}),
+      Catch::Matchers::ContainsSubstring(
+        "Number of source parameters of driver function does not match the number of sources ") &&
+        Catch::Matchers::ContainsSubstring("specified in the configuration"));
+  }
+
+  SECTION("Throw when generator is empty")
+  {
+    std::shared_ptr<test_driver_generator> const null_generator{nullptr};
+    CHECK_THROWS_WITH(
+      proxy.driver(null_generator),
+      Catch::Matchers::ContainsSubstring("Cannot configure driver with an empty generator"));
+  }
+
+  SECTION("Configure driver from generator")
+  {
+    auto const generator = std::make_shared<test_driver_generator>();
+    auto const bundle = proxy.driver(generator);
+
+    CHECK(static_cast<bool>(bundle.driver));
+  }
+}
+
+TEST_CASE("Driver function receives registered source", "[graph]")
+{
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.source<test_source>("src");
+
+  test_source const* received_src{nullptr};
+  auto bundle = g.driver_proxy({"src"}).driver(
+    fixed_hierarchy{},
+    [&received_src](data_cell_cursor, test_source const& src) { received_src = &src; });
+  g.add_driver(std::move(bundle));
+  g.execute();
+
+  CHECK(received_src != nullptr);
+}
+
+TEST_CASE("Driver function throws on source type mismatch", "[graph]")
+{
+  // Register other_source but declare test_source const& in the driver function.
+  // The source downcast inside invoke_driver_with_sources throws with context.
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.source<other_source>("src");
+
+  auto bundle = g.driver_proxy({"src"}).driver(fixed_hierarchy{},
+                                               [](data_cell_cursor, test_source const& /*src*/) {});
+  g.add_driver(std::move(bundle));
+
+  auto const expected_msg =
+    fmt::format("Driver source type mismatch at source index 0: expected '{}' but got '{}'.",
+                boost::core::demangle(typeid(test_source).name()),
+                boost::core::demangle(typeid(other_source).name()));
+
+  CHECK_THROWS_WITH(g.execute(), Catch::Matchers::Equals(expected_msg));
 }
 
 TEST_CASE("Throw when configuring driver twice", "[graph]")

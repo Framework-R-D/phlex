@@ -8,14 +8,19 @@
 #include "phlex/model/fixed_hierarchy.hpp"
 #include "phlex/utilities/resumable_driver.hpp"
 
+#include "boost/core/demangle.hpp"
 #include "boost/mp11/algorithm.hpp"
+#include "fmt/format.h"
 
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <functional>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -29,6 +34,24 @@ namespace phlex::experimental {
     // across a C-linkage boundary.
     using driver_shim_t = void(driver_proxy, configuration const&, driver_bundle*);
 
+    template <typename SourceType>
+    std::remove_cvref_t<SourceType> const& as_driver_source(source const* src, std::size_t index)
+    {
+      assert(src != nullptr);
+
+      using expected_source_t = std::remove_cvref_t<SourceType>;
+
+      if (auto const* casted = dynamic_cast<expected_source_t const*>(src)) {
+        return *casted;
+      }
+
+      throw std::runtime_error(
+        fmt::format("Driver source type mismatch at source index {}: expected '{}' but got '{}'.",
+                    index,
+                    boost::core::demangle(typeid(expected_source_t).name()),
+                    boost::core::demangle(typeid(*src).name())));
+    }
+
     template <typename SourceParameters, typename F, typename FirstArg>
     void invoke_driver_with_sources(F& f,
                                     FirstArg&& first_arg,
@@ -36,8 +59,7 @@ namespace phlex::experimental {
     {
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         f(std::forward<FirstArg>(first_arg),
-          dynamic_cast<std::remove_cvref_t<mp11::mp_at_c<SourceParameters, Is>> const&>(
-            *sources[Is])...);
+          as_driver_source<mp11::mp_at_c<SourceParameters, Is>>(sources[Is], Is)...);
       }(std::make_index_sequence<mp11::mp_size<SourceParameters>::value>{});
     }
   };
@@ -68,7 +90,7 @@ namespace phlex::experimental {
   concept is_driver_like_with_yielder = is_driver_like_with_sources<F, data_cell_yielder>;
 
   template <typename T>
-  concept is_driver_generator_like = requires(T& generator, data_cell_yielder const& yielder) {
+  concept is_driver_generator_like = requires(T& generator) {
     { generator.hierarchy() } -> std::same_as<fixed_hierarchy>;
     { generator.driver_function() } -> std::invocable<data_cell_yielder const&>;
   };
