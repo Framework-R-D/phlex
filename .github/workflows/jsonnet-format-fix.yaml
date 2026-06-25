@@ -93,7 +93,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@9c091bb95f68b377484df746e50259b3f3e1b745 # v7.0.0
         with:
           path: ${{ needs.setup.outputs.checkout_path }}
           ref: ${{ needs.setup.outputs.ref }}

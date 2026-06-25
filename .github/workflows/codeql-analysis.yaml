@@ -230,7 +230,7 @@ jobs:
         shell: bash
 
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@9c091bb95f68b377484df746e50259b3f3e1b745 # v7.0.0
         with:
           ref: ${{ needs.setup.outputs.ref }}
           path: ${{ env.local_checkout_path }}
@@ -299,13 +299,13 @@ jobs:
         id: set_log_path
         run: echo "path=$RUNNER_TEMP/codeql-alerts.log" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@9c091bb95f68b377484df746e50259b3f3e1b745 # v7.0.0
         with:
           fetch-depth: 0
 
       - name: Checkout Phlex for scripts
         if: github.event_name == 'workflow_call'
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@9c091bb95f68b377484df746e50259b3f3e1b745 # v7.0.0
         with:
           repository: Framework-R-D/phlex
           path: phlex

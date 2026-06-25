@@ -1305,7 +1305,7 @@ jobs:
   actionlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@${CHECKOUT_SHA} # v4
+      - uses: actions/checkout@9c091bb95f68b377484df746e50259b3f3e1b745 # v7.0.0
       - uses: raven-actions/actionlint@${ACTIONLINT_SHA} # v2
 EOF
 
