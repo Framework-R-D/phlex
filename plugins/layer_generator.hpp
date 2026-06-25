@@ -45,7 +45,9 @@ namespace phlex::experimental {
     std::size_t starting_value = 0;
   };
 
-  class layer_generator {
+  // Inherit enable_shared_from_this so driver_function can capture a shared_ptr to this,
+  // ensuring layer_generator remains alive while the returned driver callable is in use.
+  class layer_generator : public std::enable_shared_from_this<layer_generator> {
   public:
     [[nodiscard]] static std::shared_ptr<layer_generator> make();
     ~layer_generator() = default;

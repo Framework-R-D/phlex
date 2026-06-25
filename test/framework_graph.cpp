@@ -36,7 +36,7 @@ namespace {
     index_generator indices() override { co_return; }
   };
 
-  struct test_driver_generator {
+  struct test_driver_builder {
     [[nodiscard]] fixed_hierarchy hierarchy() const { return {}; }
 
     [[nodiscard]] std::function<void(data_cell_yielder const)> driver_function() const
@@ -254,21 +254,21 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
         Catch::Matchers::ContainsSubstring("specified in the configuration"));
   }
 
-  SECTION("Throw when generator is empty")
+  SECTION("Throw when driver_builder is empty")
   {
-    std::shared_ptr<test_driver_generator> const null_generator{nullptr};
+    std::shared_ptr<test_driver_builder> const null_generator{nullptr};
     CHECK_THROWS_WITH(
       proxy.driver(null_generator),
-      Catch::Matchers::ContainsSubstring("Cannot configure driver with an empty generator"));
+      Catch::Matchers::ContainsSubstring("Cannot configure driver with an empty driver builder"));
   }
+}
 
-  SECTION("Configure driver from generator")
-  {
-    auto const generator = std::make_shared<test_driver_generator>();
-    auto const bundle = proxy.driver(generator);
+TEST_CASE("driver_proxy creates bundle from driver builder", "[graph]")
+{
+  experimental::driver_proxy proxy{{}};
+  auto const bundle = proxy.driver(std::make_shared<test_driver_builder>());
 
-    CHECK(static_cast<bool>(bundle.driver));
-  }
+  CHECK(static_cast<bool>(bundle.driver));
 }
 
 TEST_CASE("Driver function receives registered source", "[graph]")
@@ -302,7 +302,7 @@ TEST_CASE("Driver function throws on source type mismatch", "[graph]")
                 boost::core::demangle(typeid(test_source).name()),
                 boost::core::demangle(typeid(other_source).name()));
 
-  CHECK_THROWS_WITH(g.execute(), Catch::Matchers::Equals(expected_msg));
+  CHECK_THROWS_WITH(g.execute(), expected_msg);
 }
 
 TEST_CASE("Throw when configuring driver twice", "[graph]")

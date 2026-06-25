@@ -89,10 +89,14 @@ namespace phlex::experimental {
   template <typename F>
   concept is_driver_like_with_yielder = is_driver_like_with_sources<F, data_cell_yielder>;
 
+  template <typename F>
+  concept is_driver_like = is_driver_like_with_sources<F, data_cell_cursor> ||
+                           is_driver_like_with_sources<F, data_cell_yielder>;
+
   template <typename T>
-  concept is_driver_generator_like = requires(T& generator) {
-    { generator.hierarchy() } -> std::same_as<fixed_hierarchy>;
-    { generator.driver_function() } -> std::invocable<data_cell_yielder const&>;
+  concept is_driver_builder_like = requires(T& driver_builder) {
+    { driver_builder.hierarchy() } -> std::same_as<fixed_hierarchy>;
+    { driver_builder.driver_function() } -> is_driver_like;
   };
 
   /// @brief Proxy for constructing a driver bundle from a user-supplied driver function.
@@ -131,23 +135,29 @@ namespace phlex::experimental {
         [](fixed_hierarchy const& h, framework_driver& d) { return h.yielder(d); });
     }
 
-    template <typename Generator>
-      requires is_driver_generator_like<Generator>
-    driver_bundle driver(std::shared_ptr<Generator> generator) const
+    template <typename DriverBuilder>
+      requires is_driver_builder_like<DriverBuilder>
+    driver_bundle driver(std::shared_ptr<DriverBuilder> driver_builder) const
     {
-      if (!generator) {
-        throw std::invalid_argument("Cannot configure driver with an empty generator.");
+      if (!driver_builder) {
+        throw std::invalid_argument("Cannot configure driver with an empty driver builder.");
       }
 
-      auto hierarchy = generator->hierarchy();
-      auto generator_driver = generator->driver_function();
+      auto hierarchy = driver_builder->hierarchy();
+      auto driver_function = driver_builder->driver_function();
 
-      return {[generator = std::move(generator),
-               h = hierarchy,
-               generator_driver = std::move(generator_driver)](framework_driver& d) mutable {
-                std::invoke(generator_driver, h.yielder(d));
-              },
-              std::move(hierarchy)};
+      using first_argument_type = std::remove_cvref_t<decltype(driver_function)>;
+      auto first_arg_factory = [hierarchy = hierarchy](fixed_hierarchy const& h,
+                                                       framework_driver& d) {
+        if constexpr (std::is_same_v<first_argument_type, data_cell_cursor>) {
+          return h.yield_job(d);
+        } else {
+          return h.yielder(d);
+        }
+      };
+
+      return make_driver_bundle(
+        std::move(hierarchy), std::move(driver_function), std::move(first_arg_factory));
     }
 
   private:

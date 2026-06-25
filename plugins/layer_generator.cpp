@@ -138,8 +138,8 @@ namespace phlex::experimental {
 
   std::function<void(data_cell_yielder const)> layer_generator::driver_function()
   {
-    return [this](data_cell_yielder const yield) {
-      for (data_cell_index_ptr const& index : indices()) {
+    return [gen = shared_from_this()](data_cell_yielder const yield) {
+      for (data_cell_index_ptr const& index : gen->indices()) {
         yield(index);
       }
     };
