@@ -108,8 +108,7 @@ TEST_CASE("Implicit providers")
 
   auto g = experimental::framework_graph::with_deferred_driver();
   g.add_driver(gen);
-
-  g.source<vertices_source>("vertices_source");
+  g.add_source<vertices_source>("vertices_source");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
@@ -131,8 +130,8 @@ TEST_CASE("Implicit providers")
 TEST_CASE("Throw when two sources with the same name are registered")
 {
   auto g = experimental::framework_graph::with_default_driver();
-  g.source<vertices_source>("vertices_source");
-  g.source<vertices_source>("vertices_source");
+  g.add_source<vertices_source>("vertices_source");
+  g.add_source<vertices_source>("vertices_source");
 
   CHECK_THROWS_WITH(g.execute(),
                     ContainsSubstring("Source with name 'vertices_source' already exists"));
@@ -143,8 +142,8 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
   auto g = experimental::framework_graph::with_default_driver();
 
   // Register two sources that can provide the same product
-  g.source<vertices_source>("vertices_source_1");
-  g.source<vertices_source>("vertices_source_2");
+  g.add_source<vertices_source>("vertices_source_1");
+  g.add_source<vertices_source>("vertices_source_2");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(

@@ -132,9 +132,9 @@ namespace phlex::experimental {
     }
 
     template <std::derived_from<source> Source, typename... Args>
-    void source(std::string name, Args&&... args)
+    void add_source(std::string name, Args&&... args)
     {
-      return make_glue().template source<Source>(std::move(name), std::forward<Args>(args)...);
+      return make_glue().template add_source<Source>(std::move(name), std::forward<Args>(args)...);
     }
 
     template <typename T, typename... Args>

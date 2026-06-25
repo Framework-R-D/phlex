@@ -274,7 +274,7 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
 TEST_CASE("Driver function receives registered source", "[graph]")
 {
   auto g = experimental::framework_graph::with_deferred_driver();
-  g.source<test_source>("src");
+  g.add_source<test_source>("src");
 
   test_source const* received_src{nullptr};
   auto bundle = g.driver_proxy({"src"}).driver(
@@ -291,7 +291,7 @@ TEST_CASE("Driver function throws on source type mismatch", "[graph]")
   // Register other_source but declare test_source const& in the driver function.
   // The source downcast inside invoke_driver_with_sources throws with context.
   auto g = experimental::framework_graph::with_deferred_driver();
-  g.source<other_source>("src");
+  g.add_source<other_source>("src");
 
   auto bundle = g.driver_proxy({"src"}).driver(fixed_hierarchy{},
                                                [](data_cell_cursor, test_source const& /*src*/) {});
@@ -307,9 +307,9 @@ TEST_CASE("Driver function throws on source type mismatch", "[graph]")
 
 TEST_CASE("Throw when configuring driver twice", "[graph]")
 {
-  auto gen = experimental::layer_generator::make();
   auto g = experimental::framework_graph::with_deferred_driver();
 
+  auto gen = experimental::layer_generator::make();
   CHECK_NOTHROW(g.add_driver(gen));
   CHECK_THROWS_WITH(
     g.add_driver(gen),
