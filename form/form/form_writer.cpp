@@ -37,10 +37,7 @@ namespace form::experimental {
     std::map<std::string, std::type_info const*> products = {{pb.label, pb.type}};
     m_pers_writer->createContainers(creator, products);
 
-    auto declared_it = m_label_to_product_name.find(pb.label);
-    std::string const& declared_name =
-      (declared_it != m_label_to_product_name.end()) ? declared_it->second : std::string{};
-    m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type, declared_name);
+    m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type);
 
     m_pers_writer->commitOutput(creator, segment_id);
   }
@@ -69,28 +66,10 @@ namespace form::experimental {
 
     for (auto const& pb : products) {
       // FIXME: We could consider checking id to be identical for all product bases here
-      auto declared_it = m_label_to_product_name.find(pb.label);
-      std::string const& declared_name =
-        (declared_it != m_label_to_product_name.end()) ? declared_it->second : std::string{};
-      m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type, declared_name);
+      m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type);
     }
 
     m_pers_writer->commitOutput(creator, segment_id);
-  }
-
-  void form_writer_interface::declare_product_name(std::string const& routing_label,
-                                                   std::string const& product_name)
-  {
-    m_label_to_product_name[routing_label] = product_name;
-  }
-
-  void form_writer_interface::finalize()
-  {
-    if (m_finalized) {
-      return;
-    }
-    m_finalized = true;
-    m_pers_writer->finalize();
   }
 
 }
