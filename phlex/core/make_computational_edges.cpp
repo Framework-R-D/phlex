@@ -115,7 +115,16 @@ namespace phlex::experimental {
                                                       identifier{bundle.layer},
                                                       identifier{bundle.stage});
           auto const provider_name = node->name().to_string();
-          provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
+          auto [_, inserted] =
+            provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
+          if (!inserted) {
+            throw std::runtime_error(
+              fmt::format("Failed to create implicit provider for product selector '{}'\n"
+                          "Implicit providers not yet supported for creators that created multiple "
+                          "data products",
+                          input_product));
+          }
+
           make_edge(node->output_port(), *port);
           providers.try_emplace(provider_name, std::move(node));
         }

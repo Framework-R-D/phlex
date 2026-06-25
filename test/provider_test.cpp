@@ -53,6 +53,15 @@ namespace {
                                           .layer = layer,
                                           .stage = stage});
       }
+
+      product_specification int_spec{"vertices_maker", "num_happy_vertices", make_type_id<int>()};
+      if (selector.match(int_spec, identifier{layer}, identifier{stage})) {
+        bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
+                                          .max_concurrency = concurrency::unlimited,
+                                          .spec = std::move(int_spec),
+                                          .layer = layer,
+                                          .stage = stage});
+      }
       return bundles;
     }
     index_generator indices() override { co_return; }
@@ -152,4 +161,25 @@ TEST_CASE("Throw when no provider found for required product")
   CHECK_THROWS_WITH(g.execute(),
                     ContainsSubstring("No provider found for the following required products:") &&
                       ContainsSubstring("nonexistent_creator") && ContainsSubstring("job"));
+}
+
+TEST_CASE("Throw when implicit provider insertion fails")
+{
+  experimental::framework_graph g;
+  g.source<vertices_source>("duplicate_vertices_source");
+
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
+  g.observe(
+     "observer", [](int) {}, concurrency::unlimited)
+    .input_family(product_selector{
+      .creator = "vertices_maker", .layer = "spill", .suffix = "num_happy_vertices"});
+
+  CHECK_THROWS_WITH(
+    g.execute(),
+    ContainsSubstring("Failed to create implicit provider for product selector 'vertices_maker/") &&
+      ContainsSubstring("happy_vertices") &&
+      ContainsSubstring(
+        "Implicit providers not yet supported for creators that created multiple data products"));
 }
