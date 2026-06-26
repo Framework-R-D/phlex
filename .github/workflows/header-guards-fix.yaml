@@ -112,7 +112,7 @@ jobs:
 
       - name: Handle fix commit
         id: handle_commit
-        uses: Framework-R-D/action-handle-fix-commit@526974d21076e17d4742e55187704c7c036bbb9e # v1
+        uses: Framework-R-D/action-handle-fix-commit@c01368081dd06cbe5ef47b4a085dc6359a657a7f # v2
         with:
           tool: header-guards
           working-directory: ${{ needs.setup.outputs.checkout_path }}
