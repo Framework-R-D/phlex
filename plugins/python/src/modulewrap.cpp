@@ -1033,6 +1033,12 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     return nullptr;
   }
 
+  if (output_suffixes.empty()) {
+    PyErr_Format(PyExc_TypeError, "transform %s should have an output suffix", cname.c_str());
+    Py_DECREF(callable);
+    return nullptr;
+  }
+
   // TODO: it's not clear what the output layer will be if the input layers are not
   // all the same, so for now, simply raise an error if their is any ambiguity
   auto output_layer = static_cast<identifier>(input_selectors[0].layer);
