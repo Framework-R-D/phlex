@@ -67,7 +67,7 @@ void StorageWriter::createContainers(
           m_files
             .insert({plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')})
             .first;
-           for (auto const& [key, value] :
+        for (auto const& [key, value] :
              get_file_table(settings, plcmnt->technology(), plcmnt->fileName()))
           file->second->setAttribute(key, value);
       }
@@ -92,8 +92,8 @@ void StorageWriter::createContainers(
         }
       }
 
-       for (auto const& [key, value] :
-         get_container_table(settings, plcmnt->technology(), plcmnt->containerName()))
+      for (auto const& [key, value] :
+           get_container_table(settings, plcmnt->technology(), plcmnt->containerName()))
         container->setAttribute(key, value);
       container->setFile(file->second);
       container->setupWrite(*type);

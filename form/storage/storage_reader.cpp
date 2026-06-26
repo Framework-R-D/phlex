@@ -214,15 +214,15 @@ int StorageReader::getIndex(Token const& token,
         file =
           m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
             .first;
-           for (auto const& [key, value] :
+        for (auto const& [key, value] :
              get_file_table(settings, token.technology(), token.fileName()))
           file->second->setAttribute(key, value);
       }
       cont = m_read_containers
                .insert({key, createReadContainer(token.technology(), token.containerName())})
                .first;
-       for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.containerName()))
+      for (auto const& [key, value] :
+           get_container_table(settings, token.technology(), token.containerName()))
         cont->second->setAttribute(key, value);
       cont->second->setFile(file->second);
     }
@@ -270,8 +270,7 @@ int StorageReader::getIndex(Token const& token,
     return 0;
   }
 
-  throw std::runtime_error("Index id not found: " + id + " in container: " +
-                           token.containerName());
+  throw std::runtime_error("Index id not found: " + id + " in container: " + token.containerName());
 }
 
 void StorageReader::prime(Token const& token,
@@ -286,16 +285,16 @@ void StorageReader::prime(Token const& token,
       file =
         m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
           .first;
-       for (auto const& [key, value] :
-         get_file_table(settings, token.technology(), token.fileName()))
+      for (auto const& [key, value] :
+           get_file_table(settings, token.technology(), token.fileName()))
         file->second->setAttribute(key, value);
     }
     cont = m_read_containers
              .insert({key, createReadContainer(token.technology(), token.containerName())})
              .first;
     cont->second->setFile(file->second);
-        for (auto const& [key, value] :
-          get_container_table(settings, token.technology(), token.containerName()))
+    for (auto const& [key, value] :
+         get_container_table(settings, token.technology(), token.containerName()))
       cont->second->setAttribute(key, value);
   }
   cont->second->prime(type);
@@ -313,15 +312,15 @@ std::vector<std::string> StorageReader::listIndices(
         file =
           m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
             .first;
-           for (auto const& [key, value] :
+        for (auto const& [key, value] :
              get_file_table(settings, token.technology(), token.fileName()))
           file->second->setAttribute(key, value);
       }
       cont = m_read_containers
                .insert({key, createReadContainer(token.technology(), token.containerName())})
                .first;
-       for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.containerName()))
+      for (auto const& [key, value] :
+           get_container_table(settings, token.technology(), token.containerName()))
         cont->second->setAttribute(key, value);
       cont->second->setFile(file->second);
     }
@@ -372,16 +371,16 @@ void StorageReader::readContainer(Token const& token,
       file =
         m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
           .first;
-       for (auto const& [key, value] :
-         get_file_table(settings, token.technology(), token.fileName()))
+      for (auto const& [key, value] :
+           get_file_table(settings, token.technology(), token.fileName()))
         file->second->setAttribute(key, value);
     }
     cont = m_read_containers
              .insert({key, createReadContainer(token.technology(), token.containerName())})
              .first;
     cont->second->setFile(file->second);
-        for (auto const& [key, value] :
-          get_container_table(settings, token.technology(), token.containerName()))
+    for (auto const& [key, value] :
+         get_container_table(settings, token.technology(), token.containerName()))
       cont->second->setAttribute(key, value);
   }
   cont->second->read(token.id(), data, type);
