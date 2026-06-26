@@ -374,7 +374,7 @@ jobs:
           retention-days: 30
 
   coverage-upload:
-    needs: coverage
+    needs: [setup, coverage]
     if:
       ${{ needs.coverage.result == 'success' && needs.coverage.outputs.artifact_upload_available == 'true' &&
       github.actor != 'nektos/act' }}
@@ -386,6 +386,8 @@ jobs:
       - name: Check out source code for Codecov mapping
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ needs.setup.outputs.ref }}
+          repository: ${{ needs.setup.outputs.repo }}
           fetch-depth: 0
 
       - name: Download coverage bundle
