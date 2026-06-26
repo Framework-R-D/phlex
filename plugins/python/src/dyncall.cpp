@@ -6,7 +6,6 @@
 
 #include "dyncall.hpp"
 #include <stdexcept>
-#include <string>
 
 #include <ffi.h>
 

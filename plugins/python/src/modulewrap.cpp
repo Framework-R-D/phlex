@@ -47,7 +47,7 @@
 // would be to collect the arguments, but that currently suffers from needing a
 // "initial" to create the container to collect arguments into. This may all go
 // away once converter nodes have better support in phlex' core
-constexpr size_t MAX_SUPPORTED_ARGS = 3;
+constexpr size_t max_supported_args = 3;
 
 using namespace phlex::experimental;
 using namespace phlex;
@@ -1085,7 +1085,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     }
   };
 
-  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_selectors.size(), transform_N_args)) {
+  if (!unroll_switch<max_supported_args>(input_selectors.size(), transform_N_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
@@ -1173,7 +1173,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     }
   };
 
-  if (!unroll_switch<MAX_SUPPORTED_ARGS>(input_selectors.size(), observe_N_args)) {
+  if (!unroll_switch<max_supported_args>(input_selectors.size(), observe_N_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
