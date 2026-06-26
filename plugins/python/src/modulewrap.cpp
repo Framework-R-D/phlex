@@ -143,24 +143,8 @@ namespace {
       }
       return *this;
     }
-    py_callback_base(py_callback_base&& other) noexcept :
-      m_callable(other.m_callable), m_ccallback(other.m_ccallback)
-    {
-      other.m_callable = nullptr;
-      other.m_ccallback = nullptr;
-    }
-    py_callback_base& operator=(py_callback_base&& other) noexcept
-    {
-      if (this != &other) {
-        PyGILRAII gil;
-        Py_DECREF(m_callable);
-        m_callable = other.m_callable;
-        m_ccallback = other.m_ccallback;
-        other.m_callable = nullptr;
-        other.m_ccallback = nullptr;
-      }
-      return *this;
-    }
+    py_callback_base(py_callback_base&& other) = delete;
+    py_callback_base& operator=(py_callback_base&& other) = delete;
     virtual ~py_callback_base()
     {
       // TODO: cleanup deferred to Phlex shutdown hook
