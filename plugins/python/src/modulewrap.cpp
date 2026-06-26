@@ -418,10 +418,13 @@ namespace {
   {
     bool conversion_ok = false;
 
+    // TODO: move to PyObject_GetOptionalAttr and remove PyErr_Clear() in
+    // the series of calls below, once we upgrade to py3.13
     PyObject* sann = PyUnicode_FromString("__annotations__");
     PyObject* annot = PyObject_GetAttr(callable, sann);
     if (!annot) {
       // the callable may be a Numba CFunc and have a declared signature
+      PyErr_Clear();
       PyObject* sig = PyObject_GetAttrString(callable, "_sig");
       if (sig) {
         PyObject* ret = PyObject_GetAttrString(sig, "return_type");
@@ -614,8 +617,10 @@ namespace {
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
                                                                                                    \
-    if (!v)                                                                                        \
-      return dcarg{nullptr};                                                                       \
+    if (!v) {                                                                                      \
+      Py_INCREF(Py_None);                                                                          \
+      return dcarg{Py_None};                                                                       \
+    }                                                                                              \
                                                                                                    \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
@@ -627,8 +632,10 @@ namespace {
                                                   (v->data()) /* raw buffer */                     \
     );                                                                                             \
                                                                                                    \
-    if (!np_view)                                                                                  \
+    if (!np_view) {                                                                                \
+      std::runtime_error("failed to allocate numpy view object");                                  \
       return dcarg{nullptr};                                                                       \
+    }                                                                                              \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
     PyArray_CLEARFLAGS(reinterpret_cast<PyArrayObject*>(np_view), NPY_ARRAY_WRITEABLE);            \
@@ -640,6 +647,7 @@ namespace {
       PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr));                           \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
+      std::runtime_error("failed to allocate lifeline object");                                    \
       return dcarg{nullptr};                                                                       \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
@@ -683,11 +691,13 @@ namespace {
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
         PyObject* item = PyList_GetItem(pyobj, i);                                                 \
-        vec->push_back(static_cast<cpptype>(frompy(item)));                                        \
-        if (PyErr_Occurred()) {                                                                    \
-          PyErr_Clear();                                                                           \
-          break;                                                                                   \
+        cpptype value = static_cast<cpptype>(frompy(item));                                        \
+        std::string msg;                                                                           \
+        if (msg_from_py_error(msg, true)) {                                                        \
+          Py_DECREF(pyobj);                                                                        \
+          throw std::runtime_error("List conversion error for type " #name ": " + msg);            \
         }                                                                                          \
+        vec->push_back(value);                                                                     \
       }                                                                                            \
     } else {                                                                                       \
       std::string msg;                                                                             \
