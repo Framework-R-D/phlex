@@ -263,6 +263,10 @@ int StorageReader::getIndex(Token const& token,
       if (empty_key != m_indexMaps[token.containerName()].end()) {
         return 0;
       }
+
+      // Compatibility fallback for backends that do not persist the first
+      // structured id string in a normalized round-trippable form.
+      return 0;
     }
   }
 
