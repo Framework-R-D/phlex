@@ -1,5 +1,6 @@
 #include "core/token.hpp"
 #include "form/config.hpp"
+#include "form/form_source_type_registry.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
 #include "storage/istorage.hpp"
@@ -13,6 +14,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 using namespace form::detail::experimental;
 
@@ -240,4 +242,35 @@ TEST_CASE("form::experimental::config tests", "[form]")
     CHECK(ctable[0].first == "cattr");
     CHECK(ctable[0].second == "cval");
   }
+}
+
+TEST_CASE("FORM source registry prefers exact type matches", "[form]")
+{
+  struct LocalProduct {
+    int value{};
+  };
+
+  constexpr char const* local_name = "std::vector<LocalProduct>";
+
+  form::experimental::register_form_vector_product_type<LocalProduct>(local_name);
+
+  auto const local_type = phlex::experimental::make_type_id<std::vector<LocalProduct>>();
+  auto const* resolved_name = form::experimental::find_form_product_type_name(local_type);
+
+  REQUIRE(resolved_name != nullptr);
+  CHECK(*resolved_name == local_name);
+
+  auto const* entry = form::experimental::find_form_product_type(*resolved_name);
+  REQUIRE(entry != nullptr);
+  REQUIRE(entry->cpp_type != nullptr);
+  CHECK(*entry->cpp_type == typeid(std::vector<LocalProduct>));
+}
+
+TEST_CASE("FORM source registry keeps builtin mappings", "[form]")
+{
+  auto const bool_type = phlex::experimental::make_type_id<std::vector<bool>>();
+  auto const* resolved_name = form::experimental::find_form_product_type_name(bool_type);
+
+  REQUIRE(resolved_name != nullptr);
+  CHECK(*resolved_name == "std::vector<bool>");
 }

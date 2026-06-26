@@ -162,3 +162,40 @@ target_link_libraries(generate_vector PRIVATE phlex::module)
 add_library(form_source_extra_types MODULE form_source_extra_types.cpp)
 target_link_libraries(form_source_extra_types PRIVATE phlex::module form)
 target_include_directories(form_source_extra_types PRIVATE ${PROJECT_SOURCE_DIR})
+
+add_library(passthrough_vector MODULE passthrough_vector.cpp)
+target_link_libraries(passthrough_vector PRIVATE phlex::module)
+
+cet_test(
+  job:form_source_coverage_write_ttree
+  HANDBUILT
+  TEST_EXEC
+  phlex::phlex
+  TEST_ARGS
+  -c
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_coverage_write_ttree.jsonnet
+  TEST_WORKDIR
+  form_source_coverage_ttree
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
+)
+
+cet_test(
+  job:form_source_coverage_read_ttree
+  HANDBUILT
+  TEST_EXEC
+  phlex::phlex
+  TEST_ARGS
+  -c
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_coverage_read_ttree.jsonnet
+  DIRTY_WORKDIR
+  TEST_WORKDIR
+  form_source_coverage_ttree
+  REQUIRED_FIXTURES
+  job:form_source_coverage_write_ttree
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
+)
+
