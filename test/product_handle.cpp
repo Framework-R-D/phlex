@@ -128,7 +128,7 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
   CHECK(h.stage() == "CURRENT");
 }
 
-TEST_CASE("Retrieve stage rom handle", "[data model]")
+TEST_CASE("Retrieve stage from handle", "[data model]")
 {
   int const number{3};
   spec_t spec("creator/three");
