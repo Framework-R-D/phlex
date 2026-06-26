@@ -63,6 +63,16 @@ namespace form::experimental {
 
     std::lock_guard<std::mutex> lock(form_type_registry_mutex());
     auto const& registry = mutable_form_type_registry();
+
+    // Prefer exact (type_info-based) identity to avoid collisions between
+    // coarse type_id categories (e.g. unsupported class containers).
+    for (auto const& [name, entry] : registry) {
+      if (entry.type_id.exact_compare(type)) {
+        return &name;
+      }
+    }
+
+    // Backward-compatible fallback for existing coarse matching behavior.
     for (auto const& [name, entry] : registry) {
       if (entry.type_id == type) {
         return &name;
