@@ -233,7 +233,7 @@ jobs:
     steps:
       - name: Post Clang-Tidy results
         id: post_results
-        uses: Framework-R-D/action-post-clang-tidy-results@ebe244ff1f0460b5175b6c9ef17da05164b71b29 # v1
+        uses: Framework-R-D/action-post-clang-tidy-results@81c1a8f0b9125c701c8535fb63a05b8fdb6d968e # v2
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}
