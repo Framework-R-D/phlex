@@ -156,10 +156,17 @@ def normalize_type(tp: Any, globalns: Dict | None = None, localns: Dict | None =
     if origin is not None:
         args = typing.get_args(tp)
 
-        if origin is np.ndarray:  # numpy arrays
+        if origin in (np.ndarray, np.typing.NDArray):      # numpy arrays
             dtype_args: tuple[Any, ...] = ()
-            if len(args) >= 2:
+            # origin should point to the original type type, unless it is generic; it's
+            # probably debatable what it should be for numpy.ndarray, but for versions
+            # prior to 2.5, it follows Python builtin types, after it follows generics
+            if len(args) >= 2 and origin is np.ndarray:
+                # typing.List convention
                 dtype_args = typing.get_args(args[1])
+            elif len(args) == 1 and origin is np.typing.NDArray:
+                # generics convention
+                dtype_args = args
             if not dtype_args:
                 raise TypeError(
                     "np.ndarray annotations must supply a dtype, e.g. npt.NDArray[np.float64]"
