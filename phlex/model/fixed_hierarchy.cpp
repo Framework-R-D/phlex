@@ -55,9 +55,10 @@ namespace {
     std::vector<layer_path> layer_paths;
     layer_paths.reserve(layer_path_strings.size());
     for (auto& lp : layer_path_strings) {
-      auto lp_as_ids = lp |
-                       std::views::transform([](auto& str) { return identifier(std::move(str)); }) |
-                       std::ranges::to<std::vector>();
+      auto lp_as_ids =
+        lp | std::views::as_rvalue |
+        std::views::transform([](auto&& str) { return identifier(std::move(str)); }) |
+        std::ranges::to<std::vector>();
       layer_paths.emplace_back(std::move(lp_as_ids));
     }
     return unique_paths(std::move(layer_paths));
