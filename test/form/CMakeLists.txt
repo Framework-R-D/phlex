@@ -173,7 +173,7 @@ cet_test(
   phlex::phlex
   TEST_ARGS
   -c
-  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_coverage_write_ttree.jsonnet
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_write_ttree.jsonnet
   TEST_WORKDIR
   form_source_coverage_ttree
   TEST_PROPERTIES
@@ -188,7 +188,7 @@ cet_test(
   phlex::phlex
   TEST_ARGS
   -c
-  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_coverage_read_ttree.jsonnet
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_read_ttree.jsonnet
   DIRTY_WORKDIR
   TEST_WORKDIR
   form_source_coverage_ttree
