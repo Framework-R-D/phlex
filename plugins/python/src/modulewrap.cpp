@@ -305,6 +305,8 @@ namespace {
       }
     }
 
+    Py_DECREF(coll);
+
     if (PyErr_Occurred())
       cargs.clear(); // error handled through Python
 
