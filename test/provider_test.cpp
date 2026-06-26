@@ -137,6 +137,22 @@ TEST_CASE("Throw when two sources with the same name are registered")
                     ContainsSubstring("Source with name 'vertices_source' already exists"));
 }
 
+TEST_CASE("Throw when no provider found for required product")
+{
+  auto g = experimental::framework_graph::with_default_driver();
+
+  // Register an observer that needs a product from a creator that does not exist in the graph.
+  // Since there is no matching provider, make_computational_edges should throw listing all
+  // unmatched products.
+  g.observe(
+     "observer", [](unsigned int const) {}, concurrency::unlimited)
+    .input_family(product_selector{.creator = "nonexistent_creator", .layer = "job"});
+
+  CHECK_THROWS_WITH(g.execute(),
+                    ContainsSubstring("No provider found for the following required products:") &&
+                      ContainsSubstring("nonexistent_creator") && ContainsSubstring("job"));
+}
+
 TEST_CASE("Throw when two implicit providers are found for the same product")
 {
   auto g = experimental::framework_graph::with_default_driver();
@@ -156,26 +172,14 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
       ContainsSubstring("spill") && ContainsSubstring("passer"));
 }
 
-TEST_CASE("Throw when no provider found for required product")
-{
-  auto g = experimental::framework_graph::with_default_driver();
-
-  // Register an observer that needs a product from a creator that does not exist in the graph.
-  // Since there is no matching provider, make_computational_edges should throw listing all
-  // unmatched products.
-  g.observe(
-     "observer", [](unsigned int const) {}, concurrency::unlimited)
-    .input_family(product_selector{.creator = "nonexistent_creator", .layer = "job"});
-
-  CHECK_THROWS_WITH(g.execute(),
-                    ContainsSubstring("No provider found for the following required products:") &&
-                      ContainsSubstring("nonexistent_creator") && ContainsSubstring("job"));
-}
-
 TEST_CASE("Throw when implicit provider insertion fails")
 {
-  experimental::framework_graph g;
-  g.source<vertices_source>("duplicate_vertices_source");
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", 1u});
+
+  auto g = experimental::framework_graph::with_deferred_driver();
+  g.add_driver(std::move(gen));
+  g.add_source<vertices_source>("duplicate_vertices_source");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
