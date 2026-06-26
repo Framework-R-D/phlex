@@ -605,6 +605,11 @@ namespace {
       dcarg res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */         \
       PyObject* pyres = res.get<PyObject*>();                                                      \
       cpptype cres = frompy(pyres);                                                                \
+      std::string msg;                                                                             \
+      if (msg_from_py_error(msg, true)) {                                                          \
+        Py_DECREF(pyres);                                                                          \
+        throw std::runtime_error("Python provider conversion error for type " #name ": " + msg);   \
+      }                                                                                            \
       Py_DECREF(pyres);                                                                            \
       return cres;                                                                                 \
     }                                                                                              \
