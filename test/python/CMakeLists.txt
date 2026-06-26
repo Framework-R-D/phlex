@@ -85,6 +85,19 @@ else()
   endif()
 endif()
 
+if(HAS_CPPYY)
+  # Export the location of phlex include headers
+  if(DEFINED ENV{PHLEX_INSTALL})
+    set(PYTHON_TEST_PHLEX_INSTALL $ENV{PHLEX_INSTALL})
+  else()
+    set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
+  endif()
+
+  set_property(TEST py:phlex PROPERTY ENVIRONMENT "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}")
+
+  set(PYTHON_TEST_FILES ${PYTHON_TEST_FILES} test_phlex.py)
+endif()
+
 set(ACTIVE_PY_CPHLEX_TESTS "")
 
 # numpy support if installed
@@ -286,17 +299,3 @@ endif()
 # tests of the python support modules
 add_test(NAME py:phlex COMMAND ${PYTEST_COMMAND} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set_tests_properties(py:phlex PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
-
-# additional environment settings if cppyy is available (set after all tests defined)
-if(HAS_CPPYY)
-  # Export the location of phlex include headers
-  if(DEFINED ENV{PHLEX_INSTALL})
-    set(PYTHON_TEST_PHLEX_INSTALL $ENV{PHLEX_INSTALL})
-  else()
-    set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
-  endif()
-
-  set_property(TEST py:phlex PROPERTY ENVIRONMENT "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}")
-
-  set(PYTHON_TEST_FILES ${PYTHON_TEST_FILES} test_phlex.py)
-endif()
