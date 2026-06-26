@@ -1069,6 +1069,35 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string pyoutput = output_suffixes[0] + "_py";
   std::string const& out_type = output_types[0];
 
+  // TODO: the following makes the AI happy, but should be removed shortly once
+  // vector support is added for Numba (WIP; release is cut first)
+  // LCOV_EXCL_START
+  auto is_collection_type = [](std::string const& type) {
+    return type.compare(0, 7, "ndarray") == 0 || type.compare(0, 4, "list") == 0;
+  };
+  if (ccallf) {
+    for (auto const& input_type : input_types) {
+      if (is_collection_type(input_type)) {
+        PyErr_Format(PyExc_TypeError,
+                     "Numba transform %s has unsupported collection input type \"%s\"",
+                     cname.c_str(),
+                     input_type.c_str());
+        Py_DECREF(callable);
+        return nullptr;
+      }
+    }
+    if (is_collection_type(out_type)) {
+      PyErr_Format(PyExc_TypeError,
+                   "Numba transform %s has unsupported collection output type \"%s\"",
+                   cname.c_str(),
+                   out_type.c_str());
+      Py_DECREF(callable);
+      return nullptr;
+    }
+  }
+  // LCOV_EXCL_STOP
+  // end TODO
+
   auto transform_N_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
     constexpr size_t N = sizeof...(Is);
 
