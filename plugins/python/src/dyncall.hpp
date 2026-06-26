@@ -37,21 +37,21 @@ typedef std::uint64_t ph_ulong_t;
 namespace phlex::experimental {
 
   struct dcarg {
-    using ffi_type = std::variant<std::monostate, // void (default)
-                                  void*,
-                                  bool,
-                                  std::int8_t,
-                                  std::uint8_t,
-                                  std::int16_t,
-                                  std::uint16_t,
-                                  std::int32_t,
-                                  std::uint32_t,
-                                  ph_long_t,
-                                  ph_ulong_t,
-                                  float,
-                                  double>;
+    using ffi_variant_type = std::variant<std::monostate, // void (default)
+                                          void*,
+                                          bool,
+                                          std::int8_t,
+                                          std::uint8_t,
+                                          std::int16_t,
+                                          std::uint16_t,
+                                          std::int32_t,
+                                          std::uint32_t,
+                                          ph_long_t,
+                                          ph_ulong_t,
+                                          float,
+                                          double>;
 
-    ffi_type m_value;
+    ffi_variant_type m_value;
 
     // convenience mapper of human-readable string to dcarg
     static dcarg from_str(std::string const& stype);
