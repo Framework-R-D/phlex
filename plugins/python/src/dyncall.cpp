@@ -102,12 +102,12 @@ void phlex::experimental::dyncall(void* fn, dcarg& result, dcargs_t& args, int v
   // because libffi is, and that yields a plethora of warnings from clang-tidy,
   // none of which warrant actual changes.
   // NOLINTBEGIN
-  std::size_t N = (std::size_t)args.size();
+  std::size_t nargs = (std::size_t)args.size();
 
-  auto t = std::make_unique<ffi_type*[]>(N);
-  auto p = std::make_unique<void*[]>(N);
+  auto t = std::make_unique<ffi_type*[]>(nargs);
+  auto p = std::make_unique<void*[]>(nargs);
 
-  for (dcargs_t::size_type i = 0; i < N; ++i) {
+  for (dcargs_t::size_type i = 0; i < nargs; ++i) {
     auto& a = args[i];
     t[i] = get_ffi_type(a);
     p[i] = a.value_ptr();
@@ -116,9 +116,10 @@ void phlex::experimental::dyncall(void* fn, dcarg& result, dcargs_t& args, int v
   ffi_cif cif;
   ffi_status status;
   if (0 < var_offset)
-    status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, var_offset, N, get_ffi_type(result), t.get());
+    status =
+      ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, var_offset, nargs, get_ffi_type(result), t.get());
   else
-    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, N, get_ffi_type(result), t.get());
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, nargs, get_ffi_type(result), t.get());
 
   if (status)
     throw std::runtime_error("ffi prep failed");
