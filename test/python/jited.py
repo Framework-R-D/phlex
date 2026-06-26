@@ -5,7 +5,7 @@ providers to produce data, Numba algorithms to transform them, and Python
 observers for verification.
 """
 
-import numba.core.decorators as nb_dec
+import numba
 import numpy as np
 from adder import add
 
@@ -45,7 +45,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     for arg0, arg1, t, res in specs:
         tn = t.__name__
 
-        f_a = nb_dec.cfunc(f"{tn}({tn}, {tn})", nogil=True, nopython=True, cache=True)(add)
+        f_a = numba.cfunc(f"{tn}({tn}, {tn})", nogil=True, nopython=True, cache=True)(add)
         m.transform(f_a,
                     name="add_"+tn,
                     input_family=[{"creator": "input", "layer": "event", "suffix": arg0},
@@ -53,7 +53,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
                     output_product_suffixes=["sum_"+tn],
                     concurrency=4)
 
-        f_o = nb_dec.cfunc(f"void({tn})", nogil=True, nopython=True, cache=True)(new_o(res))
+        f_o = numba.cfunc(f"void({tn})", nogil=True, nopython=True, cache=True)(new_o(res))
         m.observe(f_o,
                   name="obs_"+tn,
                   input_family=[
