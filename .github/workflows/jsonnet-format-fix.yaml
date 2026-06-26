@@ -128,6 +128,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment' && !inputs.skip-comment
-        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
+        uses: Framework-R-D/action-complete-pr-comment@5d16749c32fbb7b15503f264dde6e3c98b90b4fb # v2
         with:
           status: ${{ job.status }}
