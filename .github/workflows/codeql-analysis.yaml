@@ -110,7 +110,7 @@ jobs:
       - name: Detect C++ changes
         id: detect_cpp
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
+        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -124,7 +124,7 @@ jobs:
       - name: Detect Python changes
         id: detect_python
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
+        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -136,7 +136,7 @@ jobs:
       - name: Detect Actions changes
         id: detect_actions
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
+        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
