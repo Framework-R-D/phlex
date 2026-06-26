@@ -110,7 +110,7 @@ jobs:
       - name: Detect C++ changes
         id: detect_cpp
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
+        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -124,7 +124,7 @@ jobs:
       - name: Detect Python changes
         id: detect_python
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
+        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -136,7 +136,7 @@ jobs:
       - name: Detect Actions changes
         id: detect_actions
         if: steps.should_skip.outputs.skip != 'true'
-        uses: Framework-R-D/action-run-change-detection@c70418d77a03191b165dd7dfebadbe00c443566c # v1
+        uses: Framework-R-D/action-run-change-detection@047250bcbe1be9fb479c8f3ceeb85ac1084ede2e # v2
         with:
           checkout-path: ${{ steps.setup.outputs.checkout_path }}
           ref: ${{ steps.setup.outputs.ref }}
@@ -230,7 +230,7 @@ jobs:
         shell: bash
 
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ needs.setup.outputs.ref }}
           path: ${{ env.local_checkout_path }}
@@ -299,13 +299,13 @@ jobs:
         id: set_log_path
         run: echo "path=$RUNNER_TEMP/codeql-alerts.log" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
       - name: Checkout Phlex for scripts
         if: github.event_name == 'workflow_call'
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: Framework-R-D/phlex
           path: phlex

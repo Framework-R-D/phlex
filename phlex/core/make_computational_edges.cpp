@@ -77,6 +77,18 @@ namespace phlex::experimental {
       index_router::head_ports_t unconsumed_head_ports;
       for (auto const& [node_name, ports] : head_ports) {
         for (auto const& [input_product, port] : ports) {
+          auto existing_provider_it = std::ranges::find_if(
+            provider_input_ports, [&input_product](auto const& provider_entry) {
+              return provider_entry.second.input_product == input_product;
+            });
+
+          if (existing_provider_it != provider_input_ports.end()) {
+            auto provider = providers.get(existing_provider_it->first);
+            assert(provider != nullptr);
+            make_edge(provider->output_port(), *port);
+            continue;
+          }
+
           // If we have a source node that can produce this product, use it.
           auto bundles = find_matching_implicit_providers(sources, input_product);
           if (bundles.empty()) {
@@ -103,7 +115,16 @@ namespace phlex::experimental {
                                                       identifier{bundle.layer},
                                                       identifier{bundle.stage});
           auto const provider_name = node->name().to_string();
-          provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
+          auto [_, inserted] =
+            provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
+          if (!inserted) {
+            throw std::runtime_error(
+              fmt::format("Failed to create implicit provider for product selector '{}'\n"
+                          "Implicit providers not yet supported for creators that created multiple "
+                          "data products",
+                          input_product));
+          }
+
           make_edge(node->output_port(), *port);
           providers.try_emplace(provider_name, std::move(node));
         }
