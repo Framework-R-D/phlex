@@ -735,10 +735,10 @@ namespace {
                         std::string const& name,
                         R (*converter)(Args...),
                         product_selector pq_in,
-                        std::string const& output)
+                        std::string const& output,
+                        concurrency nconcur)
   {
-    mod->ph_module
-      ->transform(name, converter, (concurrency)16) //concurrency::serial)  // TODO!
+    mod->ph_module->transform(name, converter, nconcur)
       .input_family(pq_in)
       .output_product_suffixes(output);
   }
@@ -866,7 +866,8 @@ static bool insert_input_converters(py_phlex_module* mod,
                                     std::string const& cname, // TODO: shared_ptr<PyObject>
                                     std::vector<product_selector> const& input_selectors,
                                     std::vector<std::string> const& input_types,
-                                    bool ispy)
+                                    bool ispy,
+                                    concurrency nc)
 {
   // insert input converter nodes into the graph
   for (auto const [i, inp_pq, inp_type] :
@@ -879,19 +880,19 @@ static bool insert_input_converters(py_phlex_module* mod,
       "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
 
     if (inp_type == "bool")
-      insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output, nc);
     else if (inp_type == "int32_t")
-      insert_converter(mod, pyname, ispy ? int_to_py : int_to_dcarg, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? int_to_py : int_to_dcarg, inp_pq, output, nc);
     else if (inp_type == "uint32_t")
-      insert_converter(mod, pyname, ispy ? uint_to_py : uint_to_dcarg, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? uint_to_py : uint_to_dcarg, inp_pq, output, nc);
     else if (inp_type == "int64_t")
-      insert_converter(mod, pyname, ispy ? long_to_py : long_to_dcarg, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? long_to_py : long_to_dcarg, inp_pq, output, nc);
     else if (inp_type == "uint64_t")
-      insert_converter(mod, pyname, ispy ? ulong_to_py : ulong_to_dcarg, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? ulong_to_py : ulong_to_dcarg, inp_pq, output, nc);
     else if (inp_type == "float")
-      insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output, nc);
     else if (inp_type == "double")
-      insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output);
+      insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output, nc);
     else if (inp_type.compare(0, 7, "ndarray") == 0 || inp_type.compare(0, 4, "list") == 0) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
@@ -902,17 +903,17 @@ static bool insert_input_converters(py_phlex_module* mod,
         return false;
       }
       if (*dtype == "[int32_t]") {
-        insert_converter(mod, pyname, vint_to_py, inp_pq, output);
+        insert_converter(mod, pyname, vint_to_py, inp_pq, output, nc);
       } else if (*dtype == "[uint32_t]") {
-        insert_converter(mod, pyname, vuint_to_py, inp_pq, output);
+        insert_converter(mod, pyname, vuint_to_py, inp_pq, output, nc);
       } else if (*dtype == "[int64_t]") {
-        insert_converter(mod, pyname, vlong_to_py, inp_pq, output);
+        insert_converter(mod, pyname, vlong_to_py, inp_pq, output, nc);
       } else if (*dtype == "[uint64_t]") {
-        insert_converter(mod, pyname, vulong_to_py, inp_pq, output);
+        insert_converter(mod, pyname, vulong_to_py, inp_pq, output, nc);
       } else if (*dtype == "[float]") {
-        insert_converter(mod, pyname, vfloat_to_py, inp_pq, output);
+        insert_converter(mod, pyname, vfloat_to_py, inp_pq, output, nc);
       } else if (*dtype == "[double]") {
-        insert_converter(mod, pyname, vdouble_to_py, inp_pq, output);
+        insert_converter(mod, pyname, vdouble_to_py, inp_pq, output, nc);
       } else {
         PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
         return false;
@@ -931,23 +932,24 @@ static bool insert_output_converter(py_phlex_module* mod,
                                     product_selector const& out_pq,
                                     std::string const& out_type,
                                     std::string const& output,
-                                    bool ispy)
+                                    bool ispy,
+                                    concurrency nc)
 {
   // insert output converter node into the graph
   if (out_type == "bool")
-    insert_converter(mod, cname, ispy ? py_to_bool : dcarg_to_bool, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_bool : dcarg_to_bool, out_pq, output, nc);
   else if (out_type == "int32_t")
-    insert_converter(mod, cname, ispy ? py_to_int : dcarg_to_int, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_int : dcarg_to_int, out_pq, output, nc);
   else if (out_type == "uint32_t")
-    insert_converter(mod, cname, ispy ? py_to_uint : dcarg_to_uint, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_uint : dcarg_to_uint, out_pq, output, nc);
   else if (out_type == "int64_t")
-    insert_converter(mod, cname, ispy ? py_to_long : dcarg_to_long, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_long : dcarg_to_long, out_pq, output, nc);
   else if (out_type == "uint64_t")
-    insert_converter(mod, cname, ispy ? py_to_ulong : dcarg_to_ulong, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_ulong : dcarg_to_ulong, out_pq, output, nc);
   else if (out_type == "float")
-    insert_converter(mod, cname, ispy ? py_to_float : dcarg_to_float, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_float : dcarg_to_float, out_pq, output, nc);
   else if (out_type == "double")
-    insert_converter(mod, cname, ispy ? py_to_double : dcarg_to_double, out_pq, output);
+    insert_converter(mod, cname, ispy ? py_to_double : dcarg_to_double, out_pq, output, nc);
   else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
@@ -957,17 +959,17 @@ static bool insert_output_converter(py_phlex_module* mod,
       return false;
     }
     if (*dtype == "[int32_t]") {
-      insert_converter(mod, cname, py_to_vint, out_pq, output);
+      insert_converter(mod, cname, py_to_vint, out_pq, output, nc);
     } else if (*dtype == "[uint32_t]") {
-      insert_converter(mod, cname, py_to_vuint, out_pq, output);
+      insert_converter(mod, cname, py_to_vuint, out_pq, output, nc);
     } else if (*dtype == "[int64_t]") {
-      insert_converter(mod, cname, py_to_vlong, out_pq, output);
+      insert_converter(mod, cname, py_to_vlong, out_pq, output, nc);
     } else if (*dtype == "[uint64_t]") {
-      insert_converter(mod, cname, py_to_vulong, out_pq, output);
+      insert_converter(mod, cname, py_to_vulong, out_pq, output, nc);
     } else if (*dtype == "[float]") {
-      insert_converter(mod, cname, py_to_vfloat, out_pq, output);
+      insert_converter(mod, cname, py_to_vfloat, out_pq, output, nc);
     } else if (*dtype == "[double]") {
-      insert_converter(mod, cname, py_to_vdouble, out_pq, output);
+      insert_converter(mod, cname, py_to_vdouble, out_pq, output, nc);
     } else {
       PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
       return false;
@@ -1052,7 +1054,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     }
   }
 
-  if (!insert_input_converters(mod, cname, input_selectors, input_types, !ccallf)) {
+  if (!insert_input_converters(mod, cname, input_selectors, input_types, !ccallf, nconcur)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1105,7 +1107,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
                                  .layer = identifier(output_layer),
                                  .suffix = identifier(pyoutput)};
   std::string const& output = output_suffixes[0];
-  if (!insert_output_converter(mod, cname, out_pq, out_type, output, !ccallf)) {
+  if (!insert_output_converter(mod, cname, out_pq, out_type, output, !ccallf, nconcur)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1150,7 +1152,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     return nullptr;
   }
 
-  if (!insert_input_converters(mod, cname, input_selectors, input_types, !ccallf)) {
+  if (!insert_input_converters(mod, cname, input_selectors, input_types, !ccallf, nconcur)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
