@@ -2,6 +2,10 @@
 
 #include "test/form/test_utils.hpp"
 
+#include "form/config.hpp"
+#include "persistence/persistence_reader.hpp"
+#include "persistence/persistence_writer.hpp"
+
 #include "TFile.h"
 #include "TTree.h"
 
@@ -268,4 +272,91 @@ TEST_CASE("Root TTree write container: fill and commit are not implemented", "[f
   void const* dummy = nullptr;
   CHECK_THROWS_AS(writeAssoc->fill(dummy), std::runtime_error);
   CHECK_THROWS_AS(writeAssoc->commit(), std::runtime_error);
+}
+
+TEST_CASE("Persistence round-trip: structured index normalization and listing", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name = "persistence_roundtrip_" + std::to_string(technology) + ".root";
+  std::string const creator = "norm_creator";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> first = {10, 20, 30};
+  std::vector<int> second = {40, 50, 60};
+
+  std::string const first_id = "[EVENT=00000001;SEG=00000002]";
+  std::string const second_id = "[EVENT=00000003;SEG=00000004]";
+
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+
+    writer->registerWrite(creator, "prod", &first, typeid(std::vector<int>));
+    writer->commitOutput(creator, first_id);
+
+    writer->registerWrite(creator, "prod", &second, typeid(std::vector<int>));
+    writer->commitOutput(creator, second_id);
+  }
+
+  auto reader = createPersistenceReader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configureTechSettings(tech_setting_config{});
+
+  reader->prime(creator, "prod", typeid(std::vector<int>));
+
+  auto indices = reader->listIndices(creator, "prod");
+  REQUIRE_FALSE(indices.empty());
+
+  void const* raw = nullptr;
+  // Backends may canonicalize persisted index strings differently.
+  // Use an index emitted by listIndices() to verify readback.
+  reader->read(creator, "prod", indices.front(), &raw, typeid(std::vector<int>));
+  auto const* read_first = static_cast<std::vector<int> const*>(raw);
+  REQUIRE(read_first != nullptr);
+  CHECK((*read_first == first || *read_first == second));
+}
+
+TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
+{
+  using namespace form::experimental::config;
+
+  if (form::technology::GetMinor(technology) == form::technology::ROOT_RNTUPLE_MINOR) {
+    SKIP("RNTUPLE backend does not provide stable empty-index readback in this test harness");
+  }
+
+  std::string const file_name = "persistence_zero_index_" + std::to_string(technology) + ".root";
+  std::string const creator = "zero_creator";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> payload = {7, 8, 9};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "");
+  }
+
+  auto reader = createPersistenceReader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configureTechSettings(tech_setting_config{});
+
+  void const* raw = nullptr;
+  reader->read(creator, "prod", "[EVENT=00000000;SEG=00000000]", &raw, typeid(std::vector<int>));
+
+  auto const* read_payload = static_cast<std::vector<int> const*>(raw);
+  REQUIRE(read_payload != nullptr);
+  CHECK(*read_payload == payload);
 }

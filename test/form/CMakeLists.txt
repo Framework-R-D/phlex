@@ -111,6 +111,8 @@ if(FORM_USE_ROOT_STORAGE)
     cet_test("form_storage_test_${TECH}" USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
              root_storage
              storage
+             persistence
+             form
              form_test_utils
              TEST_ARGS
              --technology

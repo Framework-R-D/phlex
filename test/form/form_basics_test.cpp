@@ -1,6 +1,7 @@
 #include "core/token.hpp"
 #include "form/config.hpp"
 #include "form/form_source_type_registry.hpp"
+#include "form/technology.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
 #include "storage/istorage.hpp"
