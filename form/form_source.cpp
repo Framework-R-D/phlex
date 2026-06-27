@@ -156,14 +156,10 @@ PHLEX_REGISTER_SOURCE(s, config)
   auto const products = config.get<std::vector<std::string>>("products");
 
   std::string actual_creator = advertised_creator;
-  try {
-    std::string const algorithm = config.get<std::string>("algorithm");
-    std::string const plugin = config.get<std::string>("plugin");
-    if (!algorithm.empty() && !plugin.empty()) {
-      actual_creator = plugin + ":" + algorithm;
-    }
-  } catch (...) {
-    // Keep advertised creator when algorithm/plugin are not provided.
+  auto const algorithm = config.get_if_present<std::string>("algorithm");
+  auto const plugin = config.get_if_present<std::string>("plugin");
+  if (algorithm && plugin && !algorithm->empty() && !plugin->empty()) {
+    actual_creator = *plugin + ":" + *algorithm;
   }
 
   std::unordered_map<std::string_view, int> const tech_lookup = {

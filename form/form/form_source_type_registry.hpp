@@ -25,8 +25,8 @@ namespace form::experimental {
 
   struct form_source_type_entry {
     phlex::experimental::type_id type_id;
-    std::type_info const* cpp_type;
-    form_source_reader_fn reader_fn;
+    std::type_info const* cpp_type{nullptr};
+    form_source_reader_fn reader_fn{};
   };
 
   void register_form_product_type(std::string product_type,
