@@ -32,7 +32,8 @@ namespace phlex::experimental {
                 // produced per input index.
                 products new_products{1uz};
                 new_products.add(output_, std::move(new_product));
-                auto store = std::make_shared<product_store>(index, name_, std::move(new_products));
+                auto store =
+                  std::make_shared<product_store>(index, name_, std::move(new_products), stage_);
 
                 return {.store = std::move(store), .id = msg_id};
               }}

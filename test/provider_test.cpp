@@ -85,11 +85,17 @@ TEST_CASE("Explicit providers")
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
-
+  g.observe(
+     "verify_explicit_stage",
+     [](handle<toy::VertexCollection> h) { CHECK(h.stage() == "CURRENT"); },
+     concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.execute();
 
   CHECK(g.execution_count("passer") == num_spills);
   CHECK(g.execution_count("my_name_here") == num_spills);
+  CHECK(g.execution_count("verify_explicit_stage") == num_spills);
 }
 
 TEST_CASE("Implicit providers")
@@ -108,7 +114,9 @@ TEST_CASE("Implicit providers")
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
 
   g.observe(
-     "verify_implicit_stage", [](toy::VertexCollection const&) {}, concurrency::unlimited)
+     "verify_implicit_stage",
+     [](handle<toy::VertexCollection> h) { CHECK(h.stage() == "previous_process"); },
+     concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.execute();

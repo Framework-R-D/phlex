@@ -124,7 +124,6 @@ namespace phlex::experimental {
                           "data products",
                           input_product));
           }
-
           make_edge(node->output_port(), *port);
           providers.try_emplace(provider_name, std::move(node));
         }
