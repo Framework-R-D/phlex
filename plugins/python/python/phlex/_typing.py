@@ -14,11 +14,18 @@ from typing import Any, Dict, Union
 
 import numpy as np
 
+try:
+    import numba.core.types as nb_types
+    has_numba = True
+except ImportError:
+    has_numba = False
+
 __all__ = [
     "normalize_type",
 ]
 
-# ctypes and numpy types are likely candidates for use in annotations
+# ctypes and numpy types are likely candidates for use in annotations; Numba
+# types may appear from callback signatures
 # TODO: should users be allowed to add to these?
 _PY2CPP: dict[type, str] = {
     # numpy types
@@ -39,6 +46,23 @@ _PY2CPP: dict[type, str] = {
     # np.intp:              "ptrdiff_t",
     # np.uintp:             "size_t",
 }
+
+if has_numba:
+    _PY2CPP.update({
+        nb_types.bool: "bool",
+        nb_types.int8: "int8_t",
+        nb_types.int16: "int16_t",
+        nb_types.int32: "int32_t",
+        nb_types.int64: "int64_t",
+        nb_types.uint8: "uint8_t",
+        nb_types.uint16: "uint16_t",
+        nb_types.uint32: "uint32_t",
+        nb_types.uint64: "uint64_t",
+        nb_types.Float: "float",
+        nb_types.float32: "float",
+        nb_types.double: "double",
+        nb_types.void: "None",
+    })
 
 # ctypes types that don't map cleanly to intN_t / uintN_t
 _CTYPES_SPECIAL: dict[type, str] = {}
@@ -96,8 +120,11 @@ _C2C: dict[str, str] = {
     "unsigned int": _PY2CPP[ctypes.c_uint],
     "long": _PY2CPP[ctypes.c_long],
     "unsigned long": _PY2CPP[ctypes.c_ulong],
+    # special cases; not necessarily correct but as expected on major platforms
     "long long": "int64_t",
     "unsigned long long": "uint64_t",
+    "float32": "float",
+    "float64": "double",
 }
 
 
