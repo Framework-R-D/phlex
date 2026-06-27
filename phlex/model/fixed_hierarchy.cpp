@@ -57,7 +57,7 @@ namespace {
     for (auto& lp : layer_path_strings) {
       auto lp_as_ids =
         lp | std::views::as_rvalue |
-        std::views::transform([](auto&& str) { return identifier(std::move(str)); }) |
+        std::views::transform([](std::string&& str) { return identifier(std::move(str)); }) |
         std::ranges::to<std::vector>();
       layer_paths.emplace_back(std::move(lp_as_ids));
     }
