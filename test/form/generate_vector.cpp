@@ -2,8 +2,11 @@
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
 
+#include <cassert>
 #include <chrono>
+#include <cstddef>
 #include <random>
+#include <vector>
 
 using namespace phlex;
 

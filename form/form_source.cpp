@@ -39,11 +39,21 @@ namespace {
       }
       auto const trimmed = component.substr(first, component.find_last_not_of(' ') - first + 1);
       auto const colon = trimmed.find(':');
-      if (colon == std::string::npos) {
+      if (colon == std::string::npos || colon == 0 || colon == trimmed.size() - 1) {
         throw std::runtime_error("Unsupported FORM index component: " + trimmed);
       }
       std::string const layer = trimmed.substr(0, colon);
-      std::size_t const number = std::stoull(trimmed.substr(colon + 1));
+      std::string const number_str = trimmed.substr(colon + 1);
+      std::size_t number = 0;
+      try {
+        std::size_t pos = 0;
+        number = std::stoull(number_str, &pos);
+        if (pos != number_str.size()) {
+          throw std::runtime_error("Unsupported FORM index component: " + trimmed);
+        }
+      } catch (std::exception const&) {
+        throw std::runtime_error("Unsupported FORM index component: " + trimmed);
+      }
       current = current->make_child(layer, number);
     }
     return current;
@@ -113,6 +123,7 @@ namespace {
       return bundles;
     }
 
+    // TODO: replace with per-container index lookup driven by metadata payload.
     phlex::index_generator indices() override
     {
       if (products_.empty()) {

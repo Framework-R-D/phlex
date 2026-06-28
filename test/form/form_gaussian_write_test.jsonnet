@@ -1,4 +1,4 @@
-local wire_size = 1024;  // ~600MB file in afew seconds with 4 threads on a GPVM
+local wire_size = 1024;  // ~600MB file in a few seconds with 4 threads on a GPVM
 
 {
   driver: {

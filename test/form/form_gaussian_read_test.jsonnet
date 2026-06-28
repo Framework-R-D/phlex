@@ -13,7 +13,6 @@
       plugin: 'add_standard_and_offset_wires',
       products: ['sums'],
       creator: 'add_standard_and_offset_wires',
-      //advertised_creator: 'add_standard_and_offset_wires', // new form source
     },
     form_standard_and_wider_source: {
       cpp: 'form_source',
@@ -22,7 +21,6 @@
       plugin: 'add_standard_and_wider_wires',
       products: ['sums'],
       creator: 'add_standard_and_wider_wires',
-      //advertised_creator: 'add_standard_and_wider_wires', // new form source
     },
   },
   modules: {

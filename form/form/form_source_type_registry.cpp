@@ -3,6 +3,9 @@
 #include "form_source_type_registry.hpp"
 
 #include <mutex>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 #include <unordered_map>
 
 namespace {
@@ -39,6 +42,8 @@ namespace form::experimental {
       form_source_type_entry{std::move(type), &cpp_type, std::move(reader_fn)};
   }
 
+  // Returns a pointer to the registry entry. The registry is is immutable after the first call to this function.
+  // Caller must not hold the returned pointer across calls that might modify the registry.
   form_source_type_entry const* find_form_product_type(std::string const& product_type)
   {
     ensure_builtin_form_product_types_registered();
