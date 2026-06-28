@@ -1,5 +1,6 @@
 #include "core/token.hpp"
 #include "form/config.hpp"
+#include "form/form_reader.hpp"
 #include "form/form_source_type_registry.hpp"
 #include "form/technology.hpp"
 #include "persistence/persistence_reader.hpp"
@@ -56,6 +57,8 @@ TEST_CASE("Storage_Read_Container basics", "[form]")
 
   void const* data = nullptr;
   CHECK_FALSE(c.read(1, &data, typeid(int)));
+  c.prime(typeid(int));
+  CHECK(c.entries() == 0);
 
   CHECK_THROWS_AS(c.setAttribute("key", "value"), std::runtime_error);
 
@@ -274,6 +277,52 @@ TEST_CASE("FORM source registry keeps builtin mappings", "[form]")
 
   REQUIRE(resolved_name != nullptr);
   CHECK(*resolved_name == "std::vector<bool>");
+}
+
+TEST_CASE("PersistenceReader: throws for missing product in config", "[form]")
+{
+  using namespace form::experimental::config;
+
+  auto reader = form::detail::experimental::createPersistenceReader();
+  REQUIRE(reader != nullptr);
+  reader->configure(ItemConfig{});
+  reader->configureTechSettings(tech_setting_config{});
+
+  CHECK_THROWS_AS(reader->prime("creator", "nonexistent", typeid(int)), std::runtime_error);
+  CHECK_THROWS_AS(reader->listIndices("creator", "nonexistent"), std::runtime_error);
+}
+
+TEST_CASE("form_reader_interface::indices exercises persistence listIndices path", "[form]")
+{
+  using namespace form::experimental::config;
+
+  ItemConfig cfg;
+  cfg.addItem("prod", "dummy_reader_test.root", 0);
+  form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
+
+  // indices() calls persistence listIndices; with tech=0 the index container is
+  // always empty, so it throws -- but the call itself covers form_reader.cpp L48.
+  CHECK_THROWS_AS(reader.indices("creator", "prod"), std::runtime_error);
+}
+
+TEST_CASE("form_source_type_registry reader_fn throws when reader returns null data", "[form]")
+{
+  using namespace form::experimental;
+  using namespace form::experimental::config;
+
+  ensure_builtin_form_product_types_registered();
+  auto const* entry = find_form_product_type("std::vector<int>");
+  REQUIRE(entry != nullptr);
+  REQUIRE(entry->reader_fn != nullptr);
+
+  // With tech=0 the default Storage_Read_Container::read() never writes *data,
+  // so pb.data stays nullptr and the reader_fn throws at form_source_type_registry.hpp L56-57.
+  ItemConfig cfg;
+  cfg.addItem("prod", "dummy_reader_fn_test.root", 0);
+  form_reader_interface reader{cfg, tech_setting_config{}};
+
+  CHECK_THROWS_AS(entry->reader_fn(reader, "creator", "prod", "[]", "std::vector<int>"),
+                  std::runtime_error);
 }
 
 TEST_CASE("FORM source registry: unregistered type returns nullptr", "[form]")
