@@ -68,18 +68,14 @@ namespace {
       return std::nullopt;
     }
 
-    bool looks_hex = false;
     for (char ch : value) {
-      if (!std::isxdigit(static_cast<unsigned char>(ch))) {
+      if (!std::isdigit(static_cast<unsigned char>(ch))) {
         return std::nullopt;
-      }
-      if (std::isalpha(static_cast<unsigned char>(ch))) {
-        looks_hex = true;
       }
     }
 
     try {
-      return std::stoll(value, nullptr, looks_hex ? 16 : 10);
+      return std::stoll(value, nullptr, 10);
     } catch (...) {
       return std::nullopt;
     }
