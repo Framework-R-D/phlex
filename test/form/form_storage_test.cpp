@@ -5,6 +5,7 @@
 #include "form/config.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
+#include "storage/storage_reader.hpp"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -359,4 +360,143 @@ TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
   auto const* read_payload = static_cast<std::vector<int> const*>(raw);
   REQUIRE(read_payload != nullptr);
   CHECK(*read_payload == payload);
+}
+
+TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "storage_reader_index_branches_" + std::to_string(technology) + ".root";
+  std::string const creator = "storage_reader_creator";
+  std::string const index_container = creator + "/index";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> payload = {1, 2, 3};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[EVENT=00000001;SEG=00000002]");
+  }
+
+  StorageReader reader;
+  Token const index_token{file_name, index_container, technology};
+  tech_setting_config const settings{};
+
+  CHECK(reader.getIndex(index_token, "[]", settings) == 1);
+  CHECK(reader.getIndex(index_token, "plain-text-id", settings) == 0);
+
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=00000001]", settings),
+                  std::runtime_error);
+  CHECK_THROWS_AS(
+    reader.getIndex(index_token, "[EVENT=99999999999999999999999999999999]", settings),
+    std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT=00000001,SEG=00000002]", settings),
+                  std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[=00000001]", settings), std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT]", settings), std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[    ]", settings), std::runtime_error);
+}
+
+TEST_CASE("StorageReader getIndex: empty container and tech-table branches", "[form]")
+{
+  using namespace form::experimental::config;
+
+  StorageReader reader;
+  Token const token{"storage_reader_hdf5_get_index.root", "creator/index", form::technology::HDF5};
+
+  tech_setting_config empty_settings;
+  CHECK_THROWS_AS(reader.getIndex(token, "[EVENT=00000001;SEG=00000001]", empty_settings),
+                  std::runtime_error);
+
+  tech_setting_config tech_only_settings;
+  tech_only_settings.file_settings[form::technology::HDF5]["different_file"] = {};
+  tech_only_settings.container_settings[form::technology::HDF5]["different_container"] = {};
+  CHECK_THROWS_AS(reader.getIndex(token, "[EVENT=00000001;SEG=00000001]", tech_only_settings),
+                  std::runtime_error);
+
+  std::string const file_name =
+    "storage_reader_getindex_attr_" + std::to_string(technology) + ".root";
+  std::string const creator = "storage_reader_getindex_attr_creator";
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+  std::vector<int> payload = {5, 6, 7};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[EVENT=00000005;SEG=00000006]");
+  }
+
+  tech_setting_config attr_settings;
+  attr_settings.file_settings[technology][file_name] = {{"compression", "1"}};
+  CHECK(reader.getIndex(
+          Token{file_name, creator + "/index", technology}, "missing-id", attr_settings) == 0);
+
+  tech_setting_config container_attr_settings;
+  container_attr_settings.container_settings[technology][creator + "/index"] = {{"split", "0"}};
+  CHECK_NOTHROW(reader.getIndex(
+    Token{file_name, creator + "/index", technology}, "missing-id", container_attr_settings));
+}
+
+TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error branches", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name = "storage_reader_misc_attr_" + std::to_string(technology) + ".root";
+  std::string const creator = "storage_reader_misc_creator";
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+  std::vector<int> payload = {9, 8, 7};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[EVENT=00000009;SEG=00000008]");
+  }
+
+  StorageReader reader;
+  Token const index_token{file_name, creator + "/index", technology};
+
+  tech_setting_config file_attr_settings;
+  file_attr_settings.file_settings[technology][file_name] = {{"compression", "1"}};
+
+  CHECK_NOTHROW(reader.prime(index_token, typeid(std::string), file_attr_settings));
+
+  void const* raw = nullptr;
+  CHECK_NOTHROW(reader.readContainer(Token{file_name, creator + "/prod", technology, 0},
+                                     &raw,
+                                     typeid(std::vector<int>),
+                                     file_attr_settings));
+
+  tech_setting_config empty_settings;
+  CHECK_THROWS_AS(reader.listIndices(
+                    Token{"storage_reader_hdf5_misc.root", "creator/index", form::technology::HDF5},
+                    empty_settings),
+                  std::runtime_error);
+
+  tech_setting_config container_attr_settings;
+  container_attr_settings.container_settings[technology][creator + "/index"] = {{"split", "0"}};
+
+  if (form::technology::GetMinor(technology) == form::technology::ROOT_RNTUPLE_MINOR) {
+    CHECK_THROWS_AS(reader.listIndices(index_token, container_attr_settings), std::runtime_error);
+  } else {
+    CHECK_NOTHROW(reader.listIndices(index_token, container_attr_settings));
+  }
+  CHECK_NOTHROW(reader.readContainer(Token{file_name, creator + "/prod", technology, 0},
+                                     &raw,
+                                     typeid(std::vector<int>),
+                                     container_attr_settings));
 }

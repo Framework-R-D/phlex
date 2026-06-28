@@ -275,3 +275,45 @@ TEST_CASE("FORM source registry keeps builtin mappings", "[form]")
   REQUIRE(resolved_name != nullptr);
   CHECK(*resolved_name == "std::vector<bool>");
 }
+
+TEST_CASE("FORM source registry: unregistered type returns nullptr", "[form]")
+{
+  // find_form_product_type_name returns nullptr for a type never registered.
+  // Exercises the null-return path form_source::create_providers checks at L76-77.
+  struct NeverRegistered {};
+  auto const unknown_type = phlex::experimental::make_type_id<NeverRegistered>();
+  CHECK(form::experimental::find_form_product_type_name(unknown_type) == nullptr);
+}
+
+TEST_CASE("FORM source registry: unknown name returns nullptr entry", "[form]")
+{
+  // find_form_product_type returns nullptr for an unregistered name.
+  // Exercises the null-entry path form_source::create_providers checks at L80-82.
+  CHECK(form::experimental::find_form_product_type("__nonexistent_product_type__") == nullptr);
+}
+
+TEST_CASE("FORM source registry: registration error paths", "[form]")
+{
+  using phlex::experimental::make_type_id;
+
+  SECTION("empty product type name throws")
+  {
+    CHECK_THROWS_AS(form::experimental::register_form_product_type(
+                      "",
+                      make_type_id<int>(),
+                      typeid(int),
+                      [](auto&, auto const&, auto const&, auto const&, auto const&)
+                        -> phlex::experimental::product_ptr { return nullptr; }),
+                    std::runtime_error);
+  }
+
+  SECTION("null reader function throws")
+  {
+    CHECK_THROWS_AS(
+      form::experimental::register_form_product_type("some_new_type_for_error_test",
+                                                     make_type_id<double>(),
+                                                     typeid(double),
+                                                     form::experimental::form_source_reader_fn{}),
+      std::runtime_error);
+  }
+}
