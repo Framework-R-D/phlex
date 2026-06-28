@@ -5,14 +5,14 @@
 # Component(s) in the package:
 add_library(form SHARED form_reader.cpp form_writer.cpp config.cpp form_source_type_registry.cpp)
 
-target_link_libraries(form PRIVATE persistence phlex::model)
+target_link_libraries(form PRIVATE persistence PUBLIC phlex::model)
 
 target_include_directories(
-	form
-	PUBLIC
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/form>
-		$<INSTALL_INTERFACE:include/phlex>
+  form
+  PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/form>
+    $<INSTALL_INTERFACE:include/phlex>
 )
 
 add_library(phlex::form ALIAS form)
