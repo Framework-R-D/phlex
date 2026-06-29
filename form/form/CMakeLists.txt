@@ -17,6 +17,7 @@ target_include_directories(
 
 add_library(phlex::form ALIAS form)
 set_target_properties(form PROPERTIES EXPORT_NAME form)
+set_target_properties(form PROPERTIES OUTPUT_NAME phlex_form)
 
 install(TARGETS form EXPORT phlex LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
-install(FILES form_source_type_registry.hpp DESTINATION include/phlex/form/form)
+install(FILES form_source_type_registry.hpp DESTINATION include/phlex/form)

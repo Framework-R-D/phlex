@@ -142,8 +142,10 @@ namespace {
     {
       form::experimental::form_source_type_entry const* entry =
         form::experimental::find_form_product_type(product_type);
-      if (entry && entry->reader_fn) {
-        return entry->reader_fn(*reader_, creator, product_name, index_str, product_type);
+      if (entry && entry->cpp_type && entry->product_from_data_fn) {
+        form::experimental::product_with_name pb{product_name, nullptr, entry->cpp_type};
+        reader_->read(creator, index_str, pb);
+        return entry->product_from_data_fn(pb.data, product_name, index_str);
       }
       throw std::runtime_error("Unsupported FORM product type: " + product_type);
     }
