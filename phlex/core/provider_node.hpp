@@ -48,7 +48,7 @@ namespace phlex::experimental {
   };
 
   using provider_node_ptr = std::unique_ptr<provider_node>;
-  using provider_nodes = simple_ptr_map<provider_node_ptr>;
+  using provider_nodes = phlex::detail::simple_ptr_map<provider_node_ptr>;
 }
 
 #endif // PHLEX_CORE_PROVIDER_NODE_HPP

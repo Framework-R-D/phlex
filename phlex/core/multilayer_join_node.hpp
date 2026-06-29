@@ -3,6 +3,7 @@
 
 #include "phlex/core/detail/repeater_node.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -61,7 +62,7 @@ namespace phlex::experimental {
       // all ports are forwarded together as one tuple, ensuring that each output contains
       // exactly the messages that belong to the same data unit.
       return tbb::flow::join_node<args_t, tbb::flow::tag_matching>{
-        g, type_t<message_matcher, Is>{}...};
+        g, phlex::detail::type_t<message_matcher, Is>{}...};
     }
 
   public:

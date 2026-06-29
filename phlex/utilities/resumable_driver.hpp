@@ -29,7 +29,7 @@
 #include <thread>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   template <typename RT>
   class resumable_driver {

@@ -58,7 +58,8 @@ namespace phlex::experimental {
     }
 
     spdlog::cfg::load_env_levels();
-    spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
+    spdlog::info("Number of worker threads: {}",
+                 phlex::detail::max_allowed_parallelism::active_value());
   }
 
   void framework_graph::add_driver(driver_bundle bundle)
@@ -163,8 +164,8 @@ namespace phlex::experimental {
     if (registration_errors_.empty()) {
       return;
     }
-    throw std::runtime_error(
-      fmt::format("\nConfiguration errors:\n{}", bulleted_list(registration_errors_)));
+    throw std::runtime_error(fmt::format("\nConfiguration errors:\n{}",
+                                         phlex::detail::bulleted_list(registration_errors_)));
   }
 
   void framework_graph::make_filter_edges()

@@ -13,6 +13,7 @@
 
 TEST_CASE("algorithm_name tests", "[model]")
 {
+  using namespace phlex::detail;
   using namespace phlex::experimental;
 
   SECTION("Default constructor")

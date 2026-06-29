@@ -190,8 +190,8 @@ namespace phlex::experimental {
     enum class driver_mode { default_driver, deferred_driver };
     explicit framework_graph(driver_mode mode, int max_parallelism);
 
-    resource_usage graph_resource_usage_{};
-    max_allowed_parallelism parallelism_limit_;
+    phlex::detail::resource_usage graph_resource_usage_{};
+    phlex::detail::max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
     data_layer_hierarchy hierarchy_{};
     node_catalog nodes_{};

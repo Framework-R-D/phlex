@@ -45,7 +45,7 @@ namespace phlex::experimental {
   };
 
   using declared_predicate_ptr = std::unique_ptr<declared_predicate>;
-  using declared_predicates = simple_ptr_map<declared_predicate_ptr>;
+  using declared_predicates = phlex::detail::simple_ptr_map<declared_predicate_ptr>;
 
   // =====================================================================================
 

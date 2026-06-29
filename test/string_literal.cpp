@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 using namespace std::string_view_literals;
 
 int main()

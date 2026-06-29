@@ -41,7 +41,7 @@ namespace phlex::experimental {
   };
 
   using declared_observer_ptr = std::unique_ptr<declared_observer>;
-  using declared_observers = simple_ptr_map<declared_observer_ptr>;
+  using declared_observers = phlex::detail::simple_ptr_map<declared_observer_ptr>;
 
   // =====================================================================================
 

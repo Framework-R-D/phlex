@@ -51,7 +51,7 @@ namespace phlex::experimental {
   };
 
   template <std::size_t N>
-  using message_tuple = sized_tuple<message, N>;
+  using message_tuple = phlex::detail::sized_tuple<message, N>;
 
   template <std::size_t N>
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;

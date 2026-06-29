@@ -8,7 +8,7 @@
 #include <atomic>
 #include <vector>
 
-using phlex::experimental::thread_counter;
+using phlex::detail::thread_counter;
 using namespace oneapi::tbb;
 
 namespace {

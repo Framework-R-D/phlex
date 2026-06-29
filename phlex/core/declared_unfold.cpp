@@ -13,7 +13,8 @@ namespace phlex::experimental {
     parent_{std::const_pointer_cast<product_store>(parent)},
     node_name_{std::move(node_name)},
     child_layer_name_{child_layer_name},
-    child_layer_hash_{hash(parent->index()->layer_hash(), identifier{child_layer_name_}.hash())}
+    child_layer_hash_{
+      phlex::detail::hash(parent->index()->layer_hash(), identifier{child_layer_name_}.hash())}
   {
   }
 

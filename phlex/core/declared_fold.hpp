@@ -50,7 +50,7 @@ namespace phlex::experimental {
   };
 
   using declared_fold_ptr = std::unique_ptr<declared_fold>;
-  using declared_folds = simple_ptr_map<declared_fold_ptr>;
+  using declared_folds = phlex::detail::simple_ptr_map<declared_fold_ptr>;
 
   // =====================================================================================
 

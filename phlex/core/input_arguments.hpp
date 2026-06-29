@@ -37,12 +37,12 @@ namespace phlex::experimental {
           query,
           store->index()->to_string(),
           store->source().to_string(),
-          bulleted_list(all_products, /*indent=*/4)));
+          phlex::detail::bulleted_list(all_products, /*indent=*/4)));
       }
       if (products.size() > 1) {
         throw std::runtime_error(fmt::format("Multiple products found matching the query {}:\n{}",
                                              query,
-                                             bulleted_list(products, /*indent=*/4)));
+                                             phlex::detail::bulleted_list(products, /*indent=*/4)));
       }
       return store->get_handle<handle_arg_t>(products[0]);
     }

@@ -55,14 +55,13 @@ namespace phlex::experimental {
     }
 
     if (candidates.size() > 1ull) {
-      std::string msg =
-        fmt::format("The following data layers match the specification {}:\n\n{}"
-                    "\n\nPlease specify the full layer path to disambiguate between them.",
-                    layer,
-                    bulleted_list(candidates | std::views::transform([](auto const* entry) {
-                                    return entry->layer_path;
-                                  }),
-                                  /*indent=*/0));
+      std::string msg = fmt::format(
+        "The following data layers match the specification {}:\n\n{}"
+        "\n\nPlease specify the full layer path to disambiguate between them.",
+        layer,
+        phlex::detail::bulleted_list(
+          candidates | std::views::transform([](auto const* entry) { return entry->layer_path; }),
+          /*indent=*/0));
       throw std::runtime_error(msg);
     }
 

@@ -39,7 +39,7 @@ namespace phlex::experimental {
   };
 
   using declared_output_ptr = std::unique_ptr<declared_output>;
-  using declared_outputs = simple_ptr_map<declared_output_ptr>;
+  using declared_outputs = phlex::detail::simple_ptr_map<declared_output_ptr>;
 }
 
 #endif // PHLEX_CORE_DECLARED_OUTPUT_HPP

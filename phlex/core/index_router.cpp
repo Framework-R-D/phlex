@@ -246,10 +246,11 @@ namespace phlex::experimental {
       return nullptr;
     }
 
-    std::string msg = fmt::format(
-      "Multiple layers match specification {}:\n{}",
-      layer_path,
-      bulleted_list(candidates | std::views::transform([](auto const& it) { return it->first; })));
+    std::string msg =
+      fmt::format("Multiple layers match specification {}:\n{}",
+                  layer_path,
+                  phlex::detail::bulleted_list(
+                    candidates | std::views::transform([](auto const& it) { return it->first; })));
     throw std::runtime_error(msg);
   }
 

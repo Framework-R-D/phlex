@@ -42,7 +42,7 @@ namespace phlex::detail {
   };
 
   using source_ptr = std::unique_ptr<source>;
-  using source_map = experimental::simple_ptr_map<source_ptr>;
+  using source_map = phlex::detail::simple_ptr_map<source_ptr>;
   using source_vector = std::vector<source const*>;
 }
 

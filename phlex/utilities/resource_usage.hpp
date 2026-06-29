@@ -10,7 +10,7 @@
 
 #include <chrono>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_UTILITIES_EXPORT resource_usage {
   public:
     resource_usage() noexcept;

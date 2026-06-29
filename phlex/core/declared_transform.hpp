@@ -51,7 +51,7 @@ namespace phlex::experimental {
   };
 
   using declared_transform_ptr = std::unique_ptr<declared_transform>;
-  using declared_transforms = simple_ptr_map<declared_transform_ptr>;
+  using declared_transforms = phlex::detail::simple_ptr_map<declared_transform_ptr>;
 
   // =====================================================================================
 

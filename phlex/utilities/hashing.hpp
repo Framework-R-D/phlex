@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   PHLEX_UTILITIES_EXPORT std::size_t hash(std::string const& str);
   PHLEX_UTILITIES_EXPORT std::size_t hash(std::size_t i) noexcept;
   PHLEX_UTILITIES_EXPORT std::size_t hash(std::size_t i, std::size_t j);

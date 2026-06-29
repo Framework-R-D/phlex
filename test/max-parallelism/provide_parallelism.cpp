@@ -12,6 +12,7 @@ namespace {
       phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
+      using namespace phlex::detail;
       phlex::detail::provider_bundles bundles;
       std::string const layer = "job";
       std::string const stage = "CURRENT";
