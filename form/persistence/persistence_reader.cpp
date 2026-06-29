@@ -74,7 +74,6 @@ std::vector<std::string> PersistenceReader::listIndices(std::string const& creat
                              " from creator: " + creator);
   }
 
-  (void)label;
   std::string const full_label = buildFullLabel(creator, "index");
   return m_store_reader->listIndices(
     Token{config_item->file_name, full_label, config_item->technology}, m_tech_settings);

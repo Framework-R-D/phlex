@@ -305,24 +305,16 @@ TEST_CASE("form_reader_interface::indices exercises persistence listIndices path
   CHECK_THROWS_AS(reader.indices("creator", "prod"), std::runtime_error);
 }
 
-TEST_CASE("form_source_type_registry reader_fn throws when reader returns null data", "[form]")
+TEST_CASE("form_source_type_registry product_from_data_fn throws on null data", "[form]")
 {
   using namespace form::experimental;
-  using namespace form::experimental::config;
 
   ensure_builtin_form_product_types_registered();
   auto const* entry = find_form_product_type("std::vector<int>");
   REQUIRE(entry != nullptr);
-  REQUIRE(entry->reader_fn != nullptr);
+  REQUIRE(entry->product_from_data_fn != nullptr);
 
-  // With tech=0 the default Storage_Read_Container::read() never writes *data,
-  // so pb.data stays nullptr and the reader_fn throws at form_source_type_registry.hpp L56-57.
-  ItemConfig cfg;
-  cfg.addItem("prod", "dummy_reader_fn_test.root", 0);
-  form_reader_interface reader{cfg, tech_setting_config{}};
-
-  CHECK_THROWS_AS(entry->reader_fn(reader, "creator", "prod", "[]", "std::vector<int>"),
-                  std::runtime_error);
+  CHECK_THROWS_AS(entry->product_from_data_fn(nullptr, "prod", "[]"), std::runtime_error);
 }
 
 TEST_CASE("FORM source registry: unregistered type returns nullptr", "[form]")
@@ -351,18 +343,18 @@ TEST_CASE("FORM source registry: registration error paths", "[form]")
                       "",
                       make_type_id<int>(),
                       typeid(int),
-                      [](auto&, auto const&, auto const&, auto const&, auto const&)
+                      [](void const*, std::string const&, std::string const&)
                         -> phlex::experimental::product_ptr { return nullptr; }),
                     std::runtime_error);
   }
 
-  SECTION("null reader function throws")
+  SECTION("null conversion function throws")
   {
-    CHECK_THROWS_AS(
-      form::experimental::register_form_product_type("some_new_type_for_error_test",
-                                                     make_type_id<double>(),
-                                                     typeid(double),
-                                                     form::experimental::form_source_reader_fn{}),
-      std::runtime_error);
+    CHECK_THROWS_AS(form::experimental::register_form_product_type(
+                      "some_new_type_for_error_test",
+                      make_type_id<double>(),
+                      typeid(double),
+                      form::experimental::form_source_product_from_data_fn{}),
+                    std::runtime_error);
   }
 }

@@ -10,6 +10,15 @@
 #include "TFile.h"
 
 #include <exception>
+#include <mutex>
+
+namespace {
+  std::mutex& root_rfield_read_mutex()
+  {
+    static std::mutex m;
+    return m;
+  }
+}
 
 namespace form::detail::experimental {
   ROOT_RField_Read_ContainerImp::ROOT_RField_Read_ContainerImp(std::string const& name) :
@@ -42,6 +51,8 @@ namespace form::detail::experimental {
 
   void ROOT_RField_Read_ContainerImp::prime(std::type_info const& type)
   {
+    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+
     if (!m_tfile) {
       throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime No file loaded");
     }
@@ -57,6 +68,8 @@ namespace form::detail::experimental {
 
   bool ROOT_RField_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
   {
+    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+
     //Connect to file at the last possible moment at the cost of a little run-time branching
     if (!m_view) {
       if (!m_reader) { //First time this RNTuple is read this job
@@ -111,6 +124,8 @@ namespace form::detail::experimental {
 
   int ROOT_RField_Read_ContainerImp::entries()
   {
+    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+
     if (!m_reader) {
       if (!m_tfile) {
         throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries No file loaded");

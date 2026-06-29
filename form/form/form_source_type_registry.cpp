@@ -28,18 +28,18 @@ namespace form::experimental {
   void register_form_product_type(std::string product_type,
                                   phlex::experimental::type_id type,
                                   std::type_info const& cpp_type,
-                                  form_source_reader_fn reader_fn)
+                                  form_source_product_from_data_fn product_from_data_fn)
   {
     if (product_type.empty()) {
       throw std::runtime_error("Cannot register empty FORM product type name");
     }
-    if (!reader_fn) {
-      throw std::runtime_error("Cannot register FORM product type with empty reader function");
+    if (!product_from_data_fn) {
+      throw std::runtime_error("Cannot register FORM product type with empty conversion function");
     }
 
     std::lock_guard<std::mutex> lock(form_type_registry_mutex());
     mutable_form_type_registry()[std::move(product_type)] =
-      form_source_type_entry{std::move(type), &cpp_type, std::move(reader_fn)};
+      form_source_type_entry{std::move(type), &cpp_type, std::move(product_from_data_fn)};
   }
 
   // Returns a pointer to the registry entry. The registry is is immutable after the first call to this function.
@@ -63,6 +63,16 @@ namespace form::experimental {
 
     std::lock_guard<std::mutex> lock(form_type_registry_mutex());
     auto const& registry = mutable_form_type_registry();
+
+    // Prefer exact (type_info-based) identity to avoid collisions between
+    // coarse type_id categories (e.g. unsupported class containers).
+    for (auto const& [name, entry] : registry) {
+      if (entry.type_id.exact_compare(type)) {
+        return &name;
+      }
+    }
+
+    // Backward-compatible fallback for existing coarse matching behavior.
     for (auto const& [name, entry] : registry) {
       if (entry.type_id == type) {
         return &name;
