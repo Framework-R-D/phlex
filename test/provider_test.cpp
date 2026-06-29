@@ -77,7 +77,7 @@ TEST_CASE("Explicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", num_spills, 1u});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
@@ -106,7 +106,7 @@ TEST_CASE("Implicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", num_spills, 1u});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
   g.add_source<vertices_source>("vertices_source");
 
@@ -177,7 +177,7 @@ TEST_CASE("Throw when implicit provider insertion fails")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", 1u});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(std::move(gen));
   g.add_source<vertices_source>("duplicate_vertices_source");
 

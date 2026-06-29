@@ -82,7 +82,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   gen->add_layer("run", {"job", index_limit});
   gen->add_layer("event", {"run", number_limit});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("provide_time",

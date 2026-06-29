@@ -46,7 +46,7 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {"job", 10, 1});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
 
   // Register providers

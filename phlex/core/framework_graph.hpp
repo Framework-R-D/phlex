@@ -41,7 +41,7 @@ namespace phlex::experimental {
   public:
     [[nodiscard]] static framework_graph with_default_driver(
       int max_parallelism = oneapi::tbb::info::default_concurrency());
-    [[nodiscard]] static framework_graph with_deferred_driver(
+    [[nodiscard]] static framework_graph without_driver(
       int max_parallelism = oneapi::tbb::info::default_concurrency());
 
     ~framework_graph();

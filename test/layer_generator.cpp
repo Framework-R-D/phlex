@@ -11,7 +11,7 @@ TEST_CASE("Only job layer", "[layer-generation]")
 {
   auto gen = layer_generator::make();
 
-  auto g = framework_graph::with_deferred_driver();
+  auto g = framework_graph::without_driver();
   g.add_driver(gen);
   g.execute();
 
@@ -24,7 +24,7 @@ TEST_CASE("One non-job layer", "[layer-generation]")
   auto gen = layer_generator::make();
   gen->add_layer("spill", {"job", 16});
 
-  auto g = framework_graph::with_deferred_driver();
+  auto g = framework_graph::without_driver();
   g.add_driver(gen);
   g.execute();
 
@@ -39,7 +39,7 @@ TEST_CASE("Two non-job layers", "[layer-generation]")
   gen->add_layer("spill", {"job", 16});
   gen->add_layer("APA", {"spill", 16});
 
-  auto g = framework_graph::with_deferred_driver();
+  auto g = framework_graph::without_driver();
   g.add_driver(gen);
   g.execute();
 
@@ -55,7 +55,7 @@ TEST_CASE("Test rebasing layers", "[layer-generation]")
   gen->add_layer("APA", {"spill", 16});
   gen->add_layer("spill", {"job", 16});
 
-  auto g = framework_graph::with_deferred_driver();
+  auto g = framework_graph::without_driver();
   g.add_driver(gen);
   g.execute();
 
@@ -87,7 +87,7 @@ TEST_CASE("Avoid ambiguous layers", "[layer-generation]")
   gen->add_layer("spill", {"job", 16});
   gen->add_layer("APA", {"/run/spill", 16}); // More complete parent path used to disambiguate
 
-  auto g = framework_graph::with_deferred_driver();
+  auto g = framework_graph::without_driver();
   g.add_driver(gen);
   g.execute();
 

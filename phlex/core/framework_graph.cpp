@@ -20,7 +20,7 @@ namespace phlex::experimental {
     return framework_graph{driver_mode::default_driver, max_parallelism};
   }
 
-  framework_graph framework_graph::with_deferred_driver(int const max_parallelism)
+  framework_graph framework_graph::without_driver(int const max_parallelism)
   {
     return framework_graph{driver_mode::deferred_driver, max_parallelism};
   }

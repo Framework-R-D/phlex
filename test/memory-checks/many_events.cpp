@@ -17,7 +17,7 @@ try {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {"job", max_events, 1u});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("provide_number", [](data_cell_index const& id) -> unsigned { return id.number(); })

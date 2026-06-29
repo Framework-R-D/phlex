@@ -94,7 +94,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {"job", index_limit});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
@@ -162,7 +162,7 @@ TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {"job", index_limit});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("provide_max_number", provide_max_number, concurrency::unlimited)

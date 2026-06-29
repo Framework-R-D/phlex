@@ -48,14 +48,14 @@ namespace {
 
 TEST_CASE("Catch STL exceptions", "[graph]")
 {
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(driver_bundle{[](framework_driver&) { throw std::runtime_error("STL error"); }, {}});
   CHECK_THROWS_AS(g.execute(), std::exception);
 }
 
 TEST_CASE("Catch other exceptions", "[graph]")
 {
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(driver_bundle{[](framework_driver&) { throw 2.5; }, {}});
   CHECK_THROWS_AS(g.execute(), double);
 }
@@ -65,7 +65,7 @@ TEST_CASE("Make progress with one thread", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", 1000});
 
-  auto g = experimental::framework_graph::with_deferred_driver(1);
+  auto g = experimental::framework_graph::without_driver(1);
   g.add_driver(gen);
   g.provide(
      "provide_number",
@@ -87,7 +87,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", 1000});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide(
      "throw_exception",
@@ -125,7 +125,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {"job", 1, 1});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide(
      "provide_num",
@@ -146,7 +146,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
 
 TEST_CASE("Throw for invalid deferred driver setup", "[graph]")
 {
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
 
   SECTION("Throw when source specified for driver does not exist")
   {
@@ -220,7 +220,7 @@ TEST_CASE("Allow late driver configuration", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", 3});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
 
   g.provide(
      "provide_number",
@@ -273,7 +273,7 @@ TEST_CASE("driver_proxy creates bundle from driver builder", "[graph]")
 
 TEST_CASE("Driver function receives registered source", "[graph]")
 {
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_source<test_source>("src");
 
   test_source const* received_src{nullptr};
@@ -290,7 +290,7 @@ TEST_CASE("Driver function throws on source type mismatch", "[graph]")
 {
   // Register other_source but declare test_source const& in the driver function.
   // The source downcast inside invoke_driver_with_sources throws with context.
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_source<other_source>("src");
 
   auto bundle = g.driver_proxy({"src"}).driver(fixed_hierarchy{},
@@ -307,7 +307,7 @@ TEST_CASE("Driver function throws on source type mismatch", "[graph]")
 
 TEST_CASE("Throw when configuring driver twice", "[graph]")
 {
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
 
   auto gen = experimental::layer_generator::make();
   CHECK_NOTHROW(g.add_driver(gen));

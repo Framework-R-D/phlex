@@ -39,7 +39,7 @@ TEST_CASE("Output data products", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", 1u});
 
-  auto g = experimental::framework_graph::with_deferred_driver();
+  auto g = experimental::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("provide_number", [](data_cell_index const&) -> int { return 17; })
