@@ -28,7 +28,7 @@ namespace phlex::experimental {
       return registrar{ptr_map_for<Ptr>(), errors};
     }
 
-    source_vector sources_for(std::vector<std::string> const& keys) const;
+    phlex::detail::source_vector sources_for(std::vector<std::string> const& keys) const;
 
     std::size_t execution_count(std::string const& node_name) const;
     std::vector<products_consumer*> consumers() const;
@@ -41,7 +41,7 @@ namespace phlex::experimental {
     simple_ptr_map<declared_unfold_ptr> unfolds{};
     simple_ptr_map<declared_transform_ptr> transforms{};
     simple_ptr_map<provider_node_ptr> providers{};
-    simple_ptr_map<source_ptr> sources{};
+    simple_ptr_map<phlex::detail::source_ptr> sources{};
 
   private:
     template <typename>
@@ -65,7 +65,7 @@ namespace phlex::experimental {
         return transforms;
       } else if constexpr (std::is_same_v<Ptr, provider_node_ptr>) {
         return providers;
-      } else if constexpr (std::is_same_v<Ptr, source_ptr>) {
+      } else if constexpr (std::is_same_v<Ptr, phlex::detail::source_ptr>) {
         return sources;
       } else {
         static_assert(unknown_ptr_type_v<Ptr>, "Unsupported node pointer type");

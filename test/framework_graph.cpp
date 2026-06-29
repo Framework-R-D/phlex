@@ -20,16 +20,16 @@ using phlex::experimental::driver_bundle;
 using phlex::experimental::framework_driver;
 
 namespace {
-  struct test_source final : phlex::experimental::source {
-    phlex::experimental::provider_bundles create_providers(product_selector const&) override
+  struct test_source final : phlex::source {
+    phlex::detail::provider_bundles create_providers(product_selector const&) override
     {
       return {};
     }
     index_generator indices() override { co_return; }
   };
 
-  struct other_source final : phlex::experimental::source {
-    phlex::experimental::provider_bundles create_providers(product_selector const&) override
+  struct other_source final : phlex::source {
+    phlex::detail::provider_bundles create_providers(product_selector const&) override
     {
       return {};
     }
@@ -240,7 +240,7 @@ TEST_CASE("Allow late driver configuration", "[graph]")
 
 TEST_CASE("driver_proxy validates sources and generator", "[graph]")
 {
-  std::vector<experimental::source const*> sources{};
+  std::vector<phlex::source const*> sources{};
   auto src = std::make_unique<test_source>();
   sources.push_back(src.get());
   experimental::driver_proxy proxy{sources};

@@ -4,6 +4,7 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/graph_proxy.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/detail/plugin_macros.hpp"
 
 #include <utility>

@@ -28,10 +28,10 @@ namespace phlex::experimental {
       return nullptr;
     }
 
-    provider_bundles find_matching_implicit_providers(source_map const& sources,
-                                                      product_selector const& input_product)
+    phlex::detail::provider_bundles find_matching_implicit_providers(
+      phlex::detail::source_map const& sources, product_selector const& input_product)
     {
-      provider_bundles result;
+      phlex::detail::provider_bundles result;
       for (auto const& src : sources | std::views::values) {
         result.append_range(src->create_providers(input_product));
       }
@@ -70,7 +70,7 @@ namespace phlex::experimental {
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
     edges_from_implicit_providers(index_router::head_ports_t head_ports,
                                   provider_nodes& providers,
-                                  source_map const& sources,
+                                  phlex::detail::source_map const& sources,
                                   tbb::flow::graph& g)
     {
       index_router::provider_input_ports_t provider_input_ports;

@@ -1,4 +1,3 @@
-#include "phlex/core/source.hpp"
 #include "phlex/source.hpp"
 #include "phlex/utilities/max_allowed_parallelism.hpp"
 
@@ -7,27 +6,27 @@
 #include <utility>
 
 namespace {
-  class max_parallelism_source : public phlex::experimental::source {
+  class max_parallelism_source : public phlex::source {
   public:
-    phlex::experimental::provider_bundles create_providers(
+    phlex::detail::provider_bundles create_providers(
       phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
-      provider_bundles bundles;
+      phlex::detail::provider_bundles bundles;
       std::string const layer = "job";
       std::string const stage = "CURRENT";
       product_specification spec{"input", "max_parallelism", make_type_id<std::size_t>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(provider_bundle{.provider_function =
-                                            [](phlex::data_cell_index const&) {
-                                              return product_for(
-                                                max_allowed_parallelism::active_value());
-                                            },
-                                          .max_concurrency = phlex::concurrency::unlimited,
-                                          .spec = std::move(spec),
-                                          .layer = layer,
-                                          .stage = stage});
+        bundles.push_back(phlex::detail::provider_bundle{
+          .provider_function =
+            [](phlex::data_cell_index const&) {
+              return product_for(max_allowed_parallelism::active_value());
+            },
+          .max_concurrency = phlex::concurrency::unlimited,
+          .spec = std::move(spec),
+          .layer = layer,
+          .stage = stage});
       }
       return bundles;
     }

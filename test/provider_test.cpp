@@ -1,6 +1,6 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/core/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/source.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -35,32 +35,34 @@ namespace {
   }
 
   // Vertices source for implicit provider test
-  class vertices_source : public experimental::source {
+  class vertices_source : public phlex::source {
   public:
-    experimental::provider_bundles create_providers(product_selector const& selector) override
+    phlex::detail::provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental;
-      provider_bundles bundles;
+      phlex::detail::provider_bundles bundles;
       std::string const layer = "spill";
       std::string const stage = "previous_process";
       product_specification spec{
         "vertices_maker", "happy_vertices", make_type_id<toy::VertexCollection>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
-                                          .max_concurrency = concurrency::unlimited,
-                                          .spec = std::move(spec),
-                                          .layer = layer,
-                                          .stage = stage});
+        bundles.push_back(
+          phlex::detail::provider_bundle{.provider_function = give_me_vertices_erased,
+                                         .max_concurrency = concurrency::unlimited,
+                                         .spec = std::move(spec),
+                                         .layer = layer,
+                                         .stage = stage});
       }
 
       product_specification int_spec{"vertices_maker", "num_happy_vertices", make_type_id<int>()};
       if (selector.match(int_spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
-                                          .max_concurrency = concurrency::unlimited,
-                                          .spec = std::move(int_spec),
-                                          .layer = layer,
-                                          .stage = stage});
+        bundles.push_back(
+          phlex::detail::provider_bundle{.provider_function = give_me_vertices_erased,
+                                         .max_concurrency = concurrency::unlimited,
+                                         .spec = std::move(int_spec),
+                                         .layer = layer,
+                                         .stage = stage});
       }
       return bundles;
     }

@@ -59,7 +59,7 @@ namespace {
     return current;
   }
 
-  class FormInputSource : public phlex::experimental::source {
+  class FormInputSource : public phlex::source {
   public:
     FormInputSource(form::experimental::config::ItemConfig const& input_cfg,
                     form::experimental::config::tech_setting_config const& tech_cfg,
@@ -75,11 +75,11 @@ namespace {
       form::experimental::ensure_builtin_form_product_types_registered();
     }
 
-    phlex::experimental::provider_bundles create_providers(
+    phlex::detail::provider_bundles create_providers(
       phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
-      provider_bundles bundles;
+      phlex::detail::provider_bundles bundles;
 
       std::string const* product_type_name =
         form::experimental::find_form_product_type_name(selector.type);
@@ -112,12 +112,12 @@ namespace {
           return this->read_product_from_form(actual_creator_, name, id.to_string(), product_type);
         };
 
-        bundles.push_back(
-          provider_bundle{.provider_function = std::function<provider_function_t>(provider_func),
-                          .max_concurrency = phlex::concurrency::serial,
-                          .spec = std::move(spec),
-                          .layer = std::string(selector_layer.trans_get_string()),
-                          .stage = std::string(selector_stage.trans_get_string())});
+        bundles.push_back(phlex::detail::provider_bundle{
+          .provider_function = std::function<phlex::detail::provider_function_t>(provider_func),
+          .max_concurrency = phlex::concurrency::serial,
+          .spec = std::move(spec),
+          .layer = std::string(selector_layer.trans_get_string()),
+          .stage = std::string(selector_stage.trans_get_string())});
       }
 
       return bundles;

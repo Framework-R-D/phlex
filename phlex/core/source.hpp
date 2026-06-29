@@ -16,17 +16,17 @@
 #include <memory>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   // ==============================================================================
 
   // Function type for type-erased data-product types (used by implicit providers)
-  using provider_function_t = product_ptr(data_cell_index const&);
+  using provider_function_t = experimental::product_ptr(data_cell_index const&);
 
   struct PHLEX_CORE_EXPORT provider_bundle {
     std::function<provider_function_t> provider_function;
     concurrency max_concurrency;
-    product_specification spec;
+    experimental::product_specification spec;
     std::string layer;
     std::string stage;
   };
@@ -42,8 +42,12 @@ namespace phlex::experimental {
   };
 
   using source_ptr = std::unique_ptr<source>;
-  using source_map = simple_ptr_map<source_ptr>;
+  using source_map = experimental::simple_ptr_map<source_ptr>;
   using source_vector = std::vector<source const*>;
+}
+
+namespace phlex {
+  using source = detail::source;
 }
 
 #endif // PHLEX_CORE_SOURCE_HPP

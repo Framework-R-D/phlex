@@ -57,9 +57,9 @@ namespace phlex::experimental {
     return producer_catalog{transforms, folds, unfolds};
   }
 
-  source_vector node_catalog::sources_for(std::vector<std::string> const& keys) const
+  phlex::detail::source_vector node_catalog::sources_for(std::vector<std::string> const& keys) const
   {
-    source_vector result;
+    phlex::detail::source_vector result;
     result.reserve(keys.size());
     for (auto const& key : keys) {
       if (auto src = sources.get(key)) {
