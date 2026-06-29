@@ -28,7 +28,6 @@ cet_make_library(
   provider_node.cpp
   registrar.cpp
   registration_api.cpp
-  store_counters.cpp
   LIBRARIES
   PUBLIC
   TBB::tbb
@@ -67,7 +66,6 @@ install(
     registrar.hpp
     registration_api.hpp
     source.hpp
-    store_counters.hpp
     upstream_predicates.hpp
   DESTINATION include/phlex/core
 )

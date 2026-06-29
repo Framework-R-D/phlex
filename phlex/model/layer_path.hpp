@@ -44,6 +44,9 @@ namespace phlex::experimental {
     /// Return hash of this path and every parent path
     std::set<std::size_t> hashes() const;
 
+    /// Return the number of layer names in the path
+    std::size_t depth() const noexcept;
+
   private:
     std::vector<identifier> layer_path_;
     void validate() const;

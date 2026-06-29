@@ -10,7 +10,6 @@
 #include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
-#include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"

@@ -159,8 +159,7 @@ namespace phlex::experimental::detail {
 
     auto* entry = &a->second;
     if (!cache_enabled_) {
-      if (entry->counter == 0) {
-        assert(entry->data_msg);
+      if (entry->counter == 0 and entry->data_msg) {
         output_port<0>(repeater_).try_put(*entry->data_msg);
       }
       cached_products_.erase(a);

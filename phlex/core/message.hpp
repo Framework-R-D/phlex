@@ -28,16 +28,9 @@ namespace phlex::experimental {
     bool cache{true};
   };
 
-  // FIXME: Do we need both indexed_end_token and flush_message?
   struct indexed_end_token {
     data_cell_index_ptr index;
     int count;
-  };
-
-  struct flush_message {
-    data_cell_index_ptr index;
-    data_cell_counts_const_ptr counts;
-    std::size_t original_id{}; // FIXME: Used only by folds
   };
 
   struct message {
@@ -56,8 +49,29 @@ namespace phlex::experimental {
   template <std::size_t N>
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
 
+  // A named_index_port describes one input slot of a multi-layer join node from the
+  // perspective of the index router.  Two distinct layer concepts are carried:
+  //
+  //  - `layer`           — the *routing* layer.  The router decides whether a routed index
+  //                        feeds this slot's `index_port` (and whether the slot should
+  //                        receive a flush token) using this layer name via
+  //                        `matches_exactly` / `is_parent_of` checks.
+  //
+  //  - `counting_layer`  — the *counting* layer.  When a flush gate fires at the routing
+  //                        layer, the count carried in the resulting `indexed_end_token` is
+  //                        the sum of `committed_counts_` entries whose path-aware layer
+  //                        hash corresponds to the `counting_layer` name *under* the routed
+  //                        partition path.  For most slots `counting_layer == layer` (the
+  //                        slot's repeater both routes and counts at the same layer).  For
+  //                        a fold's partition slot, however, the routing layer is the
+  //                        partition (e.g. "job") while the counting layer is the fold's
+  //                        most-derived input data layer (e.g. "event"): the accumulator
+  //                        is incremented once per fold-input-layer cell, so the flush
+  //                        token must balance against the count at that input layer rather
+  //                        than the partition layer.
   struct named_index_port {
     identifier layer;
+    identifier counting_layer;
     tbb::flow::receiver<indexed_end_token>* token_port;
     tbb::flow::receiver<index_message>* index_port;
   };
