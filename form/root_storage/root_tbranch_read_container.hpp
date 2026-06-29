@@ -20,8 +20,10 @@ namespace form::detail::experimental {
     ~ROOT_TBranch_Read_ContainerImp() override = default;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
+    void prime(std::type_info const& type) override;
 
     bool read(int id, void const** data, std::type_info const& type) override;
+    int entries() override;
 
   private:
     std::shared_ptr<TFile> m_tfile;

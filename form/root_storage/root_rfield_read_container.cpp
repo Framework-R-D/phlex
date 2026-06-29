@@ -40,6 +40,21 @@ namespace form::detail::experimental {
     return;
   }
 
+  void ROOT_RField_Read_ContainerImp::prime(std::type_info const& type)
+  {
+    if (!m_tfile) {
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime No file loaded");
+    }
+
+    if (!m_reader) {
+      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+    }
+
+    if (!TDictionary::GetDictionary(type)) {
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime unsupported type");
+    }
+  }
+
   bool ROOT_RField_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
   {
     //Connect to file at the last possible moment at the cost of a little run-time branching
@@ -92,5 +107,16 @@ namespace form::detail::experimental {
     //Any framework using FORM must free this memory.  FORM holds no reference to it.
 
     return true;
+  }
+
+  int ROOT_RField_Read_ContainerImp::entries()
+  {
+    if (!m_reader) {
+      if (!m_tfile) {
+        throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries No file loaded");
+      }
+      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+    }
+    return static_cast<int>(m_reader->GetNEntries());
   }
 }

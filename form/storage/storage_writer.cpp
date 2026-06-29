@@ -9,6 +9,40 @@
 
 using namespace form::detail::experimental;
 
+namespace {
+  form::experimental::config::tech_setting_config::table_t get_file_table(
+    form::experimental::config::tech_setting_config const& settings,
+    int technology,
+    std::string const& file_name)
+  {
+    auto const per_tech = settings.file_settings.find(technology);
+    if (per_tech == settings.file_settings.end()) {
+      return {};
+    }
+    auto const per_file = per_tech->second.find(file_name);
+    if (per_file == per_tech->second.end()) {
+      return {};
+    }
+    return per_file->second;
+  }
+
+  form::experimental::config::tech_setting_config::table_t get_container_table(
+    form::experimental::config::tech_setting_config const& settings,
+    int technology,
+    std::string const& container_name)
+  {
+    auto const per_tech = settings.container_settings.find(technology);
+    if (per_tech == settings.container_settings.end()) {
+      return {};
+    }
+    auto const per_container = per_tech->second.find(container_name);
+    if (per_container == per_tech->second.end()) {
+      return {};
+    }
+    return per_container->second;
+  }
+}
+
 // Factory function implementation
 namespace form::detail::experimental {
   std::unique_ptr<IStorageWriter> createStorageWriter()
@@ -34,7 +68,7 @@ void StorageWriter::createContainers(
             .insert({plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')})
             .first;
         for (auto const& [key, value] :
-             settings.getFileTable(plcmnt->technology(), plcmnt->fileName()))
+             get_file_table(settings, plcmnt->technology(), plcmnt->fileName()))
           file->second->setAttribute(key, value);
       }
       // Create and bind container to file
@@ -59,7 +93,7 @@ void StorageWriter::createContainers(
       }
 
       for (auto const& [key, value] :
-           settings.getContainerTable(plcmnt->technology(), plcmnt->containerName()))
+           get_container_table(settings, plcmnt->technology(), plcmnt->containerName()))
         container->setAttribute(key, value);
       container->setFile(file->second);
       container->setupWrite(*type);

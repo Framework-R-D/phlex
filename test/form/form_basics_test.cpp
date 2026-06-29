@@ -1,5 +1,8 @@
 #include "core/token.hpp"
 #include "form/config.hpp"
+#include "form/form_reader.hpp"
+#include "form/form_source_type_registry.hpp"
+#include "form/technology.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
 #include "storage/istorage.hpp"
@@ -13,6 +16,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 using namespace form::detail::experimental;
 
@@ -53,6 +57,8 @@ TEST_CASE("Storage_Read_Container basics", "[form]")
 
   void const* data = nullptr;
   CHECK_FALSE(c.read(1, &data, typeid(int)));
+  c.prime(typeid(int));
+  CHECK(c.entries() == 0);
 
   CHECK_THROWS_AS(c.setAttribute("key", "value"), std::runtime_error);
 
@@ -239,5 +245,124 @@ TEST_CASE("form::experimental::config tests", "[form]")
     REQUIRE(ctable.size() == 1);
     CHECK(ctable[0].first == "cattr");
     CHECK(ctable[0].second == "cval");
+  }
+}
+
+TEST_CASE("FORM source registry prefers exact type matches", "[form]")
+{
+  struct LocalProduct {
+    int value{};
+  };
+
+  constexpr char const* local_name = "std::vector<LocalProduct>";
+
+  form::experimental::register_form_vector_product_type<LocalProduct>(local_name);
+
+  auto const local_type = phlex::experimental::make_type_id<std::vector<LocalProduct>>();
+  auto const* resolved_name = form::experimental::find_form_product_type_name(local_type);
+
+  REQUIRE(resolved_name != nullptr);
+  CHECK(*resolved_name == local_name);
+
+  auto const* entry = form::experimental::find_form_product_type(*resolved_name);
+  REQUIRE(entry != nullptr);
+  REQUIRE(entry->cpp_type != nullptr);
+  CHECK(*entry->cpp_type == typeid(std::vector<LocalProduct>));
+}
+
+TEST_CASE("FORM source registry keeps builtin mappings", "[form]")
+{
+  auto const bool_type = phlex::experimental::make_type_id<std::vector<bool>>();
+  auto const* resolved_name = form::experimental::find_form_product_type_name(bool_type);
+
+  REQUIRE(resolved_name != nullptr);
+  CHECK(*resolved_name == "std::vector<bool>");
+}
+
+TEST_CASE("PersistenceReader: throws for missing product in config", "[form]")
+{
+  using namespace form::experimental::config;
+
+  auto reader = form::detail::experimental::createPersistenceReader();
+  REQUIRE(reader != nullptr);
+  reader->configure(ItemConfig{});
+  reader->configureTechSettings(tech_setting_config{});
+
+  CHECK_THROWS_AS(reader->prime("creator", "nonexistent", typeid(int)), std::runtime_error);
+  CHECK_THROWS_AS(reader->listIndices("creator", "nonexistent"), std::runtime_error);
+}
+
+TEST_CASE("form_reader_interface::indices exercises persistence listIndices path", "[form]")
+{
+  using namespace form::experimental::config;
+
+  ItemConfig cfg;
+  cfg.addItem("prod", "dummy_reader_test.root", 0);
+  form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
+
+  // indices() calls persistence listIndices; with tech=0 the index container is
+  // always empty, so it throws -- but the call itself covers form_reader.cpp L48.
+  CHECK_THROWS_AS(reader.indices("creator", "prod"), std::runtime_error);
+}
+
+TEST_CASE("form_source_type_registry reader_fn throws when reader returns null data", "[form]")
+{
+  using namespace form::experimental;
+  using namespace form::experimental::config;
+
+  ensure_builtin_form_product_types_registered();
+  auto const* entry = find_form_product_type("std::vector<int>");
+  REQUIRE(entry != nullptr);
+  REQUIRE(entry->reader_fn != nullptr);
+
+  // With tech=0 the default Storage_Read_Container::read() never writes *data,
+  // so pb.data stays nullptr and the reader_fn throws at form_source_type_registry.hpp L56-57.
+  ItemConfig cfg;
+  cfg.addItem("prod", "dummy_reader_fn_test.root", 0);
+  form_reader_interface reader{cfg, tech_setting_config{}};
+
+  CHECK_THROWS_AS(entry->reader_fn(reader, "creator", "prod", "[]", "std::vector<int>"),
+                  std::runtime_error);
+}
+
+TEST_CASE("FORM source registry: unregistered type returns nullptr", "[form]")
+{
+  // find_form_product_type_name returns nullptr for a type never registered.
+  // Exercises the null-return path form_source::create_providers checks at L76-77.
+  struct NeverRegistered {};
+  auto const unknown_type = phlex::experimental::make_type_id<NeverRegistered>();
+  CHECK(form::experimental::find_form_product_type_name(unknown_type) == nullptr);
+}
+
+TEST_CASE("FORM source registry: unknown name returns nullptr entry", "[form]")
+{
+  // find_form_product_type returns nullptr for an unregistered name.
+  // Exercises the null-entry path form_source::create_providers checks at L80-82.
+  CHECK(form::experimental::find_form_product_type("__nonexistent_product_type__") == nullptr);
+}
+
+TEST_CASE("FORM source registry: registration error paths", "[form]")
+{
+  using phlex::experimental::make_type_id;
+
+  SECTION("empty product type name throws")
+  {
+    CHECK_THROWS_AS(form::experimental::register_form_product_type(
+                      "",
+                      make_type_id<int>(),
+                      typeid(int),
+                      [](auto&, auto const&, auto const&, auto const&, auto const&)
+                        -> phlex::experimental::product_ptr { return nullptr; }),
+                    std::runtime_error);
+  }
+
+  SECTION("null reader function throws")
+  {
+    CHECK_THROWS_AS(
+      form::experimental::register_form_product_type("some_new_type_for_error_test",
+                                                     make_type_id<double>(),
+                                                     typeid(double),
+                                                     form::experimental::form_source_reader_fn{}),
+      std::runtime_error);
   }
 }
