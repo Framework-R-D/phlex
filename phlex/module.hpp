@@ -12,7 +12,7 @@ namespace phlex::experimental {
   /// @brief Proxy for registering module algorithm nodes.
   ///
   /// Passed to @c PHLEX_REGISTER_ALGORITHMS plugin entry points. Provides
-  /// access to fold, observe, predicate, transform, and unfold registration.
+  /// access to fold, observe, output, predicate, transform, and unfold registration.
   /// Users never construct this type directly.
   template <typename T>
   class module_graph_proxy : graph_proxy<T> {
