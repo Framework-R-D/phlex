@@ -11,6 +11,11 @@
 
 namespace phlex::experimental {
 
+  std::shared_ptr<layer_generator> layer_generator::make()
+  {
+    return std::shared_ptr<layer_generator>(new layer_generator{});
+  }
+
   layer_generator::layer_generator()
   {
     // Always seed the "job" in case only the job is desired
@@ -129,6 +134,15 @@ namespace phlex::experimental {
     for (auto const& generated_cell : execute(job)) {
       co_yield generated_cell;
     }
+  }
+
+  std::function<void(data_cell_yielder const)> layer_generator::driver_function()
+  {
+    return [gen = shared_from_this()](data_cell_yielder const yield) {
+      for (data_cell_index_ptr const& index : gen->indices()) {
+        yield(index);
+      }
+    };
   }
 
   index_generator layer_generator::execute(data_cell_index_ptr const cell)

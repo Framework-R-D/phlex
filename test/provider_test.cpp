@@ -74,10 +74,11 @@ TEST_CASE("Explicit providers")
 {
   constexpr auto num_spills{3u};
 
-  experimental::layer_generator gen;
-  gen.add_layer("spill", {"job", num_spills, 1u});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", num_spills, 1u});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::without_driver();
+  g.add_driver(gen);
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
     .output_product("vertices_maker", "happy_vertices", "spill");
@@ -102,12 +103,12 @@ TEST_CASE("Implicit providers")
 {
   constexpr auto num_spills{3u};
 
-  experimental::layer_generator gen;
-  gen.add_layer("spill", {"job", num_spills, 1u});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", num_spills, 1u});
 
-  experimental::framework_graph g{driver_for_test(gen)};
-
-  g.source<vertices_source>("vertices_source");
+  auto g = experimental::framework_graph::without_driver();
+  g.add_driver(gen);
+  g.add_source<vertices_source>("vertices_source");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(
@@ -128,36 +129,17 @@ TEST_CASE("Implicit providers")
 
 TEST_CASE("Throw when two sources with the same name are registered")
 {
-  experimental::framework_graph g;
-  g.source<vertices_source>("vertices_source");
-  g.source<vertices_source>("vertices_source");
+  auto g = experimental::framework_graph::with_default_driver();
+  g.add_source<vertices_source>("vertices_source");
+  g.add_source<vertices_source>("vertices_source");
 
   CHECK_THROWS_WITH(g.execute(),
                     ContainsSubstring("Source with name 'vertices_source' already exists"));
 }
 
-TEST_CASE("Throw when two implicit providers are found for the same product")
-{
-  experimental::framework_graph g;
-
-  // Register two sources that can provide the same product
-  g.source<vertices_source>("vertices_source_1");
-  g.source<vertices_source>("vertices_source_2");
-
-  g.transform("passer", pass_on, concurrency::unlimited)
-    .input_family(
-      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
-
-  CHECK_THROWS_WITH(
-    g.execute(),
-    ContainsSubstring(
-      "Multiple implicit providers found for product 'vertices_maker/happy_vertices") &&
-      ContainsSubstring("spill") && ContainsSubstring("passer"));
-}
-
 TEST_CASE("Throw when no provider found for required product")
 {
-  experimental::framework_graph g;
+  auto g = experimental::framework_graph::with_default_driver();
 
   // Register an observer that needs a product from a creator that does not exist in the graph.
   // Since there is no matching provider, make_computational_edges should throw listing all
@@ -171,10 +153,33 @@ TEST_CASE("Throw when no provider found for required product")
                       ContainsSubstring("nonexistent_creator") && ContainsSubstring("job"));
 }
 
+TEST_CASE("Throw when two implicit providers are found for the same product")
+{
+  auto g = experimental::framework_graph::with_default_driver();
+
+  // Register two sources that can provide the same product
+  g.add_source<vertices_source>("vertices_source_1");
+  g.add_source<vertices_source>("vertices_source_2");
+
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
+
+  CHECK_THROWS_WITH(
+    g.execute(),
+    ContainsSubstring(
+      "Multiple implicit providers found for product 'vertices_maker/happy_vertices") &&
+      ContainsSubstring("spill") && ContainsSubstring("passer"));
+}
+
 TEST_CASE("Throw when implicit provider insertion fails")
 {
-  experimental::framework_graph g;
-  g.source<vertices_source>("duplicate_vertices_source");
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("spill", {"job", 1u});
+
+  auto g = experimental::framework_graph::without_driver();
+  g.add_driver(std::move(gen));
+  g.add_source<vertices_source>("duplicate_vertices_source");
 
   g.transform("passer", pass_on, concurrency::unlimited)
     .input_family(

@@ -28,6 +28,8 @@ namespace phlex::experimental {
       return registrar{ptr_map_for<Ptr>(), errors};
     }
 
+    source_vector sources_for(std::vector<std::string> const& keys) const;
+
     std::size_t execution_count(std::string const& node_name) const;
     std::vector<products_consumer*> consumers() const;
     producer_catalog producers() const;

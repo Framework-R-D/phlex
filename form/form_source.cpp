@@ -191,7 +191,7 @@ PHLEX_REGISTER_SOURCE(s, config)
   }
 
   // Register the source object with Phlex
-  s.source<FormInputSource>(
+  s.add_source<FormInputSource>(
     module_label, input_cfg, tech_cfg, actual_creator, advertised_creator, products);
 
   std::cout << "FORM input source registered successfully\n";

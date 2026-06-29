@@ -62,7 +62,7 @@ namespace phlex::experimental {
     }
 
     // Only source(...) should be accessible
-    using base::source;
+    using base::add_source;
   };
 
   namespace detail {

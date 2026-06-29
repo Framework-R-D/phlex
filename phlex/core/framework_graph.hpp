@@ -26,6 +26,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -38,16 +39,27 @@ namespace phlex {
 namespace phlex::experimental {
   class PHLEX_CORE_EXPORT framework_graph {
   public:
-    explicit framework_graph(int max_parallelism = oneapi::tbb::info::default_concurrency());
-    explicit framework_graph(detail::next_index_t next_index,
-                             int max_parallelism = oneapi::tbb::info::default_concurrency());
-    explicit framework_graph(driver_bundle bundle,
-                             int max_parallelism = oneapi::tbb::info::default_concurrency());
+    [[nodiscard]] static framework_graph with_default_driver(
+      int max_parallelism = oneapi::tbb::info::default_concurrency());
+    [[nodiscard]] static framework_graph without_driver(
+      int max_parallelism = oneapi::tbb::info::default_concurrency());
+
     ~framework_graph();
     framework_graph(framework_graph const&) = delete;
     framework_graph& operator=(framework_graph const&) = delete;
     framework_graph(framework_graph&&) = delete;
     framework_graph& operator=(framework_graph&&) = delete;
+
+    void add_driver(driver_bundle bundle);
+
+    template <typename Generator>
+      requires requires(std::shared_ptr<Generator> generator, std::vector<source const*> sources) {
+        { experimental::driver_proxy{sources}.driver(generator) } -> std::same_as<driver_bundle>;
+      }
+    void add_driver(std::shared_ptr<Generator> generator)
+    {
+      add_driver(driver_proxy().driver(std::move(generator)));
+    }
 
     void execute();
 
@@ -62,6 +74,11 @@ namespace phlex::experimental {
     source_bundle source_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
+    }
+
+    experimental::driver_proxy driver_proxy(std::vector<std::string> strings = {})
+    {
+      return experimental::driver_proxy(nodes_.sources_for(strings));
     }
 
     // Framework function registrations
@@ -115,9 +132,9 @@ namespace phlex::experimental {
     }
 
     template <std::derived_from<source> Source, typename... Args>
-    void source(std::string name, Args&&... args)
+    void add_source(std::string name, Args&&... args)
     {
-      return make_glue().template source<Source>(std::move(name), std::forward<Args>(args)...);
+      return make_glue().template add_source<Source>(std::move(name), std::forward<Args>(args)...);
     }
 
     template <typename T, typename... Args>
@@ -170,6 +187,9 @@ namespace phlex::experimental {
     void finalize_router(index_router::provider_input_ports_t provider_input_ports,
                          std::map<std::string, named_index_ports> multilayer_join_index_ports);
 
+    enum class driver_mode { default_driver, deferred_driver };
+    explicit framework_graph(driver_mode mode, int max_parallelism);
+
     resource_usage graph_resource_usage_{};
     max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
@@ -178,7 +198,7 @@ namespace phlex::experimental {
     std::map<std::string, filter> filters_{};
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
-    framework_driver driver_;
+    std::optional<framework_driver> driver_{};
     std::vector<std::string> registration_errors_{};
     data_cell_tracker cell_tracker_{};
     tbb::flow::input_node<ready_flushes_then_emit> src_;
@@ -187,6 +207,7 @@ namespace phlex::experimental {
       index_receiver_;
     tbb::flow::function_node<data_cell_index_ptr, tbb::flow::continue_msg, tbb::flow::lightweight>
       hierarchy_node_;
+    driver_mode driver_mode_{driver_mode::default_driver};
     bool shutdown_on_error_{false};
   };
 }

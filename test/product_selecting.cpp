@@ -28,9 +28,10 @@ namespace {
 TEST_CASE("Querying products in different ways", "[graph]")
 {
   constexpr int num_events = 25;
-  experimental::layer_generator gen;
-  gen.add_layer("event", {.parent_layer_name = "job", .total_per_parent_data_cell = num_events});
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {.parent_layer_name = "job", .total_per_parent_data_cell = num_events});
+  auto g = experimental::framework_graph::without_driver();
+  g.add_driver(gen);
 
   // Register providers
   g.provide("provide_number_in_job", provide_number, concurrency::unlimited)

@@ -78,11 +78,12 @@ namespace {
 
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("run", {"job", index_limit});
-  gen.add_layer("event", {"run", number_limit});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {"job", index_limit});
+  gen->add_layer("event", {"run", number_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::without_driver();
+  g.add_driver(gen);
 
   g.provide("provide_time",
             [](data_cell_index const& index) {

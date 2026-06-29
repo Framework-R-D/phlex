@@ -16,12 +16,12 @@
 //
 // To create the above tree of layers, the following function calls could be made:
 //
-//   layer_generator gen;
-//   gen.add_layer("spill", {"job", 16});     // 16 spill data cells with job as parent
-//   gen.add_layer("CRU",  {"spill", 256});   // 256 CRU data cells per spill parent
-//   gen.add_layer("run", {"job", 16});       // 16 run data cells with job as parent
-//   gen.add_layer("APA",  {"run", 150, 1});  // 150 APA data cells per run parent
-//                                            // with first APA data cell number starting at 1
+//   auto gen = layer_generator::make();
+//   gen->add_layer("spill", {"job", 16});     // 16 spill data cells with job as parent
+//   gen->add_layer("CRU",  {"spill", 256});   // 256 CRU data cells per spill parent
+//   gen->add_layer("run", {"job", 16});       // 16 run data cells with job as parent
+//   gen->add_layer("APA",  {"run", 150, 1});  // 150 APA data cells per run parent
+//                                             // with first APA data cell number starting at 1
 //
 // ----------------------------------------------------------------------------------------------
 // N.B. The layer generator can create data-layer hierarchies that are trees, and not
@@ -34,6 +34,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -44,9 +45,11 @@ namespace phlex::experimental {
     std::size_t starting_value = 0;
   };
 
-  class layer_generator {
+  // Inherit enable_shared_from_this so driver_function can capture a shared_ptr to this,
+  // ensuring layer_generator remains alive while the returned driver callable is in use.
+  class layer_generator : public std::enable_shared_from_this<layer_generator> {
   public:
-    layer_generator();
+    [[nodiscard]] static std::shared_ptr<layer_generator> make();
     ~layer_generator() = default;
 
     layer_generator(layer_generator const&) = delete;
@@ -57,11 +60,14 @@ namespace phlex::experimental {
     void add_layer(std::string layer_name, layer_spec lspec);
 
     index_generator indices();
+    std::function<void(data_cell_yielder const)> driver_function();
 
     fixed_hierarchy hierarchy() const;
     std::size_t emitted_cell_count(std::string layer_path = {}) const;
 
   private:
+    layer_generator();
+
     index_generator execute(data_cell_index_ptr const cell);
     std::string parent_path(std::string const& layer_name,
                             std::string const& parent_layer_spec) const;
@@ -75,17 +81,6 @@ namespace phlex::experimental {
     using reverse_map_t = std::map<std::string, std::vector<std::string>>;
     reverse_map_t parent_to_children_;
   };
-
-  // N.B. The layer_generator object must outlive whatever uses it.
-  inline driver_bundle driver_for_test(layer_generator& generator)
-  {
-    driver_proxy const proxy{};
-    return proxy.driver(generator.hierarchy(), [&generator](data_cell_yielder const yield) {
-      for (data_cell_index_ptr const& index : generator.indices()) {
-        yield(index);
-      }
-    });
-  }
 }
 
 #endif // PLUGINS_LAYER_GENERATOR_HPP

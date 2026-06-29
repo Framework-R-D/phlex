@@ -43,10 +43,11 @@ namespace {
 
 TEST_CASE("Distinguish products with same name and different types", "[programming model]")
 {
-  experimental::layer_generator gen;
-  gen.add_layer("event", {"job", 10, 1});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", 10, 1});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::without_driver();
+  g.add_driver(gen);
 
   // Register providers
   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
