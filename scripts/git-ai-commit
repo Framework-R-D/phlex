@@ -149,13 +149,15 @@ _SYSTEM = textwrap.dedent("""\
     after the message.  Do not wrap the message in a markdown code fence.
     Your very first character must be the first character of the subject line.
 
-    Message rules:
-    - Subject line: imperative mood, ≤72 characters, no trailing period;
-      must be a complete, self-contained sentence (do not let the subject
-      run past the blank line into the body)
-    - Separate subject from body with exactly one blank line
-    - Body: explain *what* changed and *why*; bullet lists or inline code
-      spans where they genuinely aid clarity, not merely for decoration
+    Format: Follow Conventional Commits v1.0.0: <type>[optional scope]: <description>
+    - Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+    - Breaking changes: append '!' to type/scope or start body with 'BREAKING CHANGE: '
+    - Subject: imperative mood, ≤72 characters, no trailing period.
+    - Body: optional but recommended, wrapped at 72 characters, explain *what* changed and *why*.
+    - Separate subject from body with a single blank line.
+    - Use blank lines to separate paragraphs or sections (e.g., Motivation, Implementation).
+    - Footer lines (e.g., "Closes #123", "BREAKING CHANGE: …") go after the body, separated by a blank line.
+    - Use bullet points for lists; avoid decorative formatting.
     - Do NOT reproduce the diff verbatim or enumerate every changed file
 """)
 
