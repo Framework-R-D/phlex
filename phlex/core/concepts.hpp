@@ -19,7 +19,7 @@ namespace phlex::detail {
 
   template <typename T>
   concept sendable = std::move_constructible<T> || requires(T& t) {
-    { phlex::experimental::send(t) } -> std::move_constructible;
+    { send(t) } -> std::move_constructible;
   };
 
   template <typename T, std::size_t N>
