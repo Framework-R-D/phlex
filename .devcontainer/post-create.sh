@@ -17,15 +17,6 @@ EOF
 # installation on every rebuild.
 rm -f /root/.vscode-server-insiders/data/Machine/.installExtensionsMarker
 
-# Set KILO_CONFIG_CONTENT for interactive shells.  When KILO_CONFIG_CONTENT_DOCKER
-# is non-empty (headroom local proxy via socat relay), use it so that the baseURL
-# points at host.docker.internal rather than 127.0.0.1.  Otherwise leave
-# KILO_CONFIG_CONTENT unset so Kilo falls back to ~/.config/kilo/kilo.jsonc,
-# which is bind-mounted from the host and may point at an external provider.
-if [ -n "${KILO_CONFIG_CONTENT_DOCKER:-}" ]; then
-  printf 'export KILO_CONFIG_CONTENT=%q\n' "${KILO_CONFIG_CONTENT_DOCKER}" >> /root/.bashrc
-fi
-
 # Seed the Kilo Code auth token into the container-private data volume.
 # The volume is not shared with the host to avoid SQLite conflicts between
 # the Remote-SSH and devcontainer Kilo Code instances.  The API key is
@@ -106,6 +97,3 @@ if command -v prek >/dev/null 2>&1; then
 elif command -v pre-commit >/dev/null 2>&1; then
   pre-commit install || true
 fi
-
-# Install kiro-cli and set up shell integrations.
-curl -fsSL https://cli.kiro.dev/install | bash
