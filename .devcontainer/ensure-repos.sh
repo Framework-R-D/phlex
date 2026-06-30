@@ -169,7 +169,6 @@ fi
 HEADROOM_PORT="${HEADROOM_PORT:-9797}"
 HEADROOM_RELAY_PORT=$(( HEADROOM_PORT + 10000 ))
 HEADROOM_LOCAL="127.0.0.1:${HEADROOM_PORT}"
-
 if ss -tlnp 2>/dev/null | grep -q "127.0.0.1:${HEADROOM_PORT}"; then
   start_socat_relay \
     "Headroom proxy" \
@@ -184,10 +183,19 @@ else
 fi
 
 # Ensure remaining source bind mount points exist.
-ensure_bind_dir "$HOME/.aws"
 ensure_bind_dir "$HOME/.config/"{gh,kilo}
 ensure_bind_dir "$HOME/.gnupg"
-ensure_bind_dir "$HOME/.kiro"
-ensure_bind_dir "$HOME/.vscode-remote-user-data"
+
+# Generate .env file for the devcontainer to provide KILO_CONFIG_CONTENT
+# to the VS Code plugin. This must be done on the host because the plugin
+# needs this environment variable at server startup.
+if [ -f "${HOME}/.config/kilo/kilo.jsonc" ]; then
+  # Replace the baseURL for fnal-litellm specifically.
+  # The range /"fnal-litellm"/,/baseURL/ ensures we only modify the correct provider.
+  # We avoid stripping comments with sed to prevent corrupting URLs (https://),
+  # as the Kilo plugin's JSONC parser handles comments correctly.
+  KILO_CONFIG_CONTENT="$(perl -0777 -pe 's|("fnal-litellm".*?)"baseURL":\s*"[^"]*"|$1"baseURL": "http://host.docker.internal:'${HEADROOM_RELAY_PORT}'"|s; s/"[^"]*"(*SKIP)(*F)|\/\/.*//g; s/^\s+//gm; s/\n//g' "${HOME}/.config/kilo/kilo.jsonc")"
+  echo "KILO_CONFIG_CONTENT='${KILO_CONFIG_CONTENT}'" > "${HOME}/.phlex-kilo.env"
+fi
 
 echo "SUCCESS: .devcontainer/ensure-repos.sh completed successfully"
