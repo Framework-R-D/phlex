@@ -1,47 +1,17 @@
 {
     "name": "Phlex CI Dev Container",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "runArgs": [],
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "phlex-dev",
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "root",
     "remoteEnv": {
-        // KILO_CONFIG_CONTENT_DOCKER rewrites 127.0.0.1:PORT to
-        // host.docker.internal:RELAY_PORT for the socat relay used when
-        // headroom runs as a local proxy.  Passed through here so that
-        // post-create.sh can wire it into the container's .bashrc
-        // conditionally: if non-empty it sets KILO_CONFIG_CONTENT to this
-        // value; otherwise KILO_CONFIG_CONTENT is left unset and Kilo falls
-        // back to ~/.config/kilo/kilo.jsonc (bind-mounted from the host).
-        "KILO_CONFIG_CONTENT_DOCKER": "${localEnv:KILO_CONFIG_CONTENT_DOCKER}",
         "KILO_API_KEY": "${localEnv:HEADROOM_UPSTREAM_KEY}"
     },
-    "containerEnv": {
-        "CMAKE_GENERATOR": "Ninja",
-        "GH_CONFIG_DIR": "/root/.config/gh",
-        "DOCKER_HOST": "unix:///tmp/podman.sock",
-        "CONTAINER_HOST": "unix:///tmp/podman.sock",
-        "GNUPGHOME": "/root/.gnupg"
-    },
-    "mounts": [
-        "source=${localWorkspaceFolder}/../phlex-coding-guidelines,target=/workspaces/phlex-coding-guidelines,type=bind",
-        "source=${localWorkspaceFolder}/../phlex-design,target=/workspaces/phlex-design,type=bind",
-        "source=${localWorkspaceFolder}/../phlex-examples,target=/workspaces/phlex-examples,type=bind",
-        "source=${localWorkspaceFolder}/../phlex-spack-recipes,target=/workspaces/phlex-spack-recipes,type=bind",
-        "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind",
-        "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind,readonly",
-        "source=${localEnv:HOME}/.config/kilo,target=/root/.config/kilo,type=bind",
-        "source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
-        "source=${localEnv:HOME}/.kiro,target=/root/.kiro,type=bind",
-        "source=phlex-kilo-data,target=/root/.local/share/kilo,type=volume",
-        "source=${localEnv:HOME}/.podman-proxy/podman.sock,target=/tmp/podman.sock,type=bind",
-        "source=${localEnv:HOME}/.vscode-remote-user-data,target=/root/.vscode-server-insiders/data/User,type=bind"
-    ],
     "initializeCommand": "bash .devcontainer/ensure-repos.sh",
     "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
     "postCreateCommand": "bash -lc 'bash .devcontainer/post-create.sh'",
     "customizations": {
+
         "vscode": {
             "settings": {
                 "terminal.integrated.defaultProfile.linux": "bash",
@@ -88,7 +58,6 @@
                     "**/.venv/**": true,
                     "**/py_virtual_env/**": true
                 },
-                "github.copilot-chat.usePreReleaseVersion": false,
                 "kilocode.new.extraCaCerts": ""
             },
             "extensions": [
@@ -99,7 +68,6 @@
                 "donjayamanne.githistory",
                 "dotjoshjohnson.xml",
                 "eamodio.gitlens",
-                "github.copilot-chat",
                 "github.vscode-github-actions",
                 "github.vscode-pull-request-github",
                 "jebbs.plantuml",
@@ -114,13 +82,11 @@
                 "ms-python.vscode-pylance",
                 "ms-python.vscode-python-envs",
                 "ms-vscode.cmake-tools",
-                "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
                 "ms-vscode.cpptools-themes",
                 "ms-vscode.hexeditor",
                 "ms-vscode.live-server",
                 "ms-vscode.makefile-tools",
-                "ms-vscode.vscode-websearchforcopilot",
                 "redhat.vscode-yaml",
                 "shd101wyy.markdown-preview-enhanced",
                 "swyddfa.esbonio",

@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  phlex-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/phlex
+      - ../../phlex-coding-guidelines:/workspaces/phlex-coding-guidelines
+      - ../../phlex-design:/workspaces/phlex-design
+      - ../../phlex-examples:/workspaces/phlex-examples
+      - ../../phlex-spack-recipes:/workspaces/phlex-spack-recipes
+      - ${HOME}/.config/gh:/root/.config/gh:ro
+      - ${HOME}/.config/kilo:/root/.config/kilo
+      - ${HOME}/.gnupg:/root/.gnupg
+      - ${HOME}/.podman-proxy/podman.sock:/tmp/podman.sock
+      - phlex-kilo-data:/root/.local/share/kilo
+      - phlex-vscode-user-data:/root/.vscode-server-insiders/data/User
+    env_file:
+      - ${HOME}/.phlex-kilo.env
+    environment:
+      - CMAKE_GENERATOR=Ninja
+      - GH_CONFIG_DIR=/root/.config/gh
+      - DOCKER_HOST=unix:///tmp/podman.sock
+      - CONTAINER_HOST=unix:///tmp/podman.sock
+      - GNUPGHOME=/root/.gnupg
+    user: root
+    tty: true
+    stdin_open: true
+
+volumes:
+  phlex-kilo-data:
+  phlex-vscode-user-data:
