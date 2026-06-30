@@ -105,7 +105,7 @@ namespace phlex::detail {
     return fields_number_ctor<T, Ns..., sizeof...(Ns)>(0);
   }
 
-  // This is a helper to turn a ctor into a tuple type.  Usage is: phlex::detail::as_tuple<data_t>
+  // This is a helper to turn a ctor into a tuple type.  Usage is: as_tuple<data_t>
   template <typename T, typename U>
   struct loophole_tuple;
 

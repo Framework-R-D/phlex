@@ -9,7 +9,7 @@
 
 namespace phlex::detail {
 
-  void store_counter::set_flush_value(phlex::detail::data_cell_counts_const_ptr counts,
+  void store_counter::set_flush_value(data_cell_counts_const_ptr counts,
                                       std::size_t const original_message_id)
   {
     if (not counts) {

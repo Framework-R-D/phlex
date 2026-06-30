@@ -36,7 +36,7 @@ namespace phlex::detail {
 
   struct flush_message {
     data_cell_index_ptr index;
-    phlex::detail::data_cell_counts_const_ptr counts;
+    data_cell_counts_const_ptr counts;
     std::size_t original_id{}; // FIXME: Used only by folds
   };
 
@@ -51,7 +51,7 @@ namespace phlex::detail {
   };
 
   template <std::size_t N>
-  using message_tuple = phlex::detail::sized_tuple<message, N>;
+  using message_tuple = sized_tuple<message, N>;
 
   template <std::size_t N>
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;

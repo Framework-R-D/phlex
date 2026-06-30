@@ -28,20 +28,20 @@ namespace phlex::detail {
       return registrar{ptr_map_for<Ptr>(), errors};
     }
 
-    phlex::detail::source_vector sources_for(std::vector<std::string> const& keys) const;
+    source_vector sources_for(std::vector<std::string> const& keys) const;
 
     std::size_t execution_count(std::string const& node_name) const;
     std::vector<products_consumer*> consumers() const;
     producer_catalog producers() const;
 
-    phlex::detail::simple_ptr_map<declared_predicate_ptr> predicates{};
-    phlex::detail::simple_ptr_map<declared_observer_ptr> observers{};
-    phlex::detail::simple_ptr_map<declared_output_ptr> outputs{};
-    phlex::detail::simple_ptr_map<declared_fold_ptr> folds{};
-    phlex::detail::simple_ptr_map<declared_unfold_ptr> unfolds{};
-    phlex::detail::simple_ptr_map<declared_transform_ptr> transforms{};
-    phlex::detail::simple_ptr_map<provider_node_ptr> providers{};
-    phlex::detail::simple_ptr_map<phlex::detail::source_ptr> sources{};
+    simple_ptr_map<declared_predicate_ptr> predicates{};
+    simple_ptr_map<declared_observer_ptr> observers{};
+    simple_ptr_map<declared_output_ptr> outputs{};
+    simple_ptr_map<declared_fold_ptr> folds{};
+    simple_ptr_map<declared_unfold_ptr> unfolds{};
+    simple_ptr_map<declared_transform_ptr> transforms{};
+    simple_ptr_map<provider_node_ptr> providers{};
+    simple_ptr_map<source_ptr> sources{};
 
   private:
     template <typename>
@@ -65,7 +65,7 @@ namespace phlex::detail {
         return transforms;
       } else if constexpr (std::is_same_v<Ptr, provider_node_ptr>) {
         return providers;
-      } else if constexpr (std::is_same_v<Ptr, phlex::detail::source_ptr>) {
+      } else if constexpr (std::is_same_v<Ptr, source_ptr>) {
         return sources;
       } else {
         static_assert(unknown_ptr_type_v<Ptr>, "Unsupported node pointer type");

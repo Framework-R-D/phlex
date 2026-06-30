@@ -19,8 +19,7 @@ namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT provider_node {
   public:
-    using provider_function =
-      std::function<phlex::detail::product_ptr(phlex::data_cell_index const&)>;
+    using provider_function = std::function<product_ptr(data_cell_index const&)>;
 
     provider_node(phlex::experimental::algorithm_name algo_name,
                   std::size_t concurrency,
@@ -41,7 +40,7 @@ namespace phlex::detail {
 
   private:
     phlex::experimental::algorithm_name name_;
-    phlex::detail::product_specification output_;
+    product_specification output_;
     phlex::experimental::identifier layer_;
     phlex::experimental::identifier stage_;
     tbb::flow::function_node<index_message, message> provider_;
@@ -49,7 +48,7 @@ namespace phlex::detail {
   };
 
   using provider_node_ptr = std::unique_ptr<provider_node>;
-  using provider_nodes = phlex::detail::simple_ptr_map<provider_node_ptr>;
+  using provider_nodes = simple_ptr_map<provider_node_ptr>;
 }
 
 #endif // PHLEX_CORE_PROVIDER_NODE_HPP

@@ -30,7 +30,7 @@ namespace phlex::detail {
                 // The constructor argument 1uz specifies how many slots to reserve in the
                 // underlying product container.  For providers, only one data product is
                 // produced per input index.
-                phlex::detail::products new_products{1uz};
+                products new_products{1uz};
                 new_products.add(output_, std::move(new_product));
                 auto store = std::make_shared<phlex::experimental::product_store>(
                   index, name_, std::move(new_products), stage_);

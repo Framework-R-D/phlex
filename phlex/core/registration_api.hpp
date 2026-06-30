@@ -44,7 +44,7 @@ namespace phlex::detail {
                      node_catalog& nodes,
                      std::vector<std::string>& errors) :
       config_{config},
-      name_{experimental::internal::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -126,7 +126,7 @@ namespace phlex::detail {
                  node_catalog& nodes,
                  std::vector<std::string>& errors) :
       config_{config},
-      name_{experimental::internal::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -139,12 +139,12 @@ namespace phlex::detail {
                         phlex::experimental::identifier output_layer,
                         phlex::experimental::identifier stage = "CURRENT"_id)
     {
-      using return_type = phlex::detail::return_type<typename AlgorithmBits::algorithm_type>;
-      phlex::detail::product_specification output_spec(
-        std::move(creator), std::move(suffix), phlex::detail::make_type_id<return_type>());
+      using return_type_t = return_type<typename AlgorithmBits::algorithm_type>;
+      product_specification output_spec(
+        std::move(creator), std::move(suffix), make_type_id<return_type_t>());
 
-      auto type_erased_alg = [alg = alg_.release_algorithm()](phlex::data_cell_index const& index) {
-        return phlex::detail::product_for(std::invoke(alg, index));
+      auto type_erased_alg = [alg = alg_.release_algorithm()](data_cell_index const& index) {
+        return product_for(std::invoke(alg, index));
       };
 
       registrar_.set_creator(
@@ -179,8 +179,7 @@ namespace phlex::detail {
   template <typename AlgorithmBits, typename... InitArgs>
   class fold_api {
     using init_tuple = std::tuple<InitArgs...>;
-    using input_parameter_types =
-      phlex::detail::skip_first_type<typename AlgorithmBits::input_parameter_types>;
+    using input_parameter_types = skip_first_type<typename AlgorithmBits::input_parameter_types>;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = 1; // For now
@@ -196,7 +195,7 @@ namespace phlex::detail {
              std::string partition,
              InitArgs&&... init_args) :
       config_{config},
-      name_{experimental::internal::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -251,10 +250,10 @@ namespace phlex::detail {
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_api {
-    using input_parameter_types = phlex::detail::constructor_parameter_types<Object>;
+    using input_parameter_types = constructor_parameter_types<Object>;
 
     static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
-    static constexpr std::size_t num_outputs = phlex::detail::number_output_objects<Unfold>;
+    static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
 
     // FIXME: Should maybe use some type of static assert, but not in a way that
     //        constrains the arguments of the Predicate and the Unfold to be the same.

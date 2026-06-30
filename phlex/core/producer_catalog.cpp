@@ -78,8 +78,8 @@ namespace phlex::detail {
     if (candidates.size() > 1ull) {
       std::string msg = fmt::format("More than one candidate matches the query {}: \n{}\n",
                                     query.to_string(),
-                                    phlex::detail::bulleted_list(std::views::keys(candidates),
-                                                                 /*indent=*/1));
+                                    bulleted_list(std::views::keys(candidates),
+                                                  /*indent=*/1));
       throw std::runtime_error(msg);
     }
 

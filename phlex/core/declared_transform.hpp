@@ -46,12 +46,12 @@ namespace phlex::detail {
     ~declared_transform() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
-    virtual phlex::detail::product_specifications const& output() const = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
   using declared_transform_ptr = std::unique_ptr<declared_transform>;
-  using declared_transforms = phlex::detail::simple_ptr_map<declared_transform_ptr>;
+  using declared_transforms = simple_ptr_map<declared_transform_ptr>;
 
   // =====================================================================================
 
@@ -61,7 +61,7 @@ namespace phlex::detail {
     using input_parameter_types = typename AlgorithmBits::input_parameter_types;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
-    static constexpr auto num_outputs = phlex::detail::number_output_objects<function_t>;
+    static constexpr auto num_outputs = number_output_objects<function_t>;
 
   public:
     using node_ptr_type = declared_transform_ptr;
@@ -90,7 +90,7 @@ namespace phlex::detail {
           ++calls_;
           ++product_count_[store->index()->layer_hash()];
 
-          phlex::detail::products new_products{num_outputs};
+          products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
           auto new_store = std::make_shared<phlex::experimental::product_store>(
             store->index(), name(), std::move(new_products));
@@ -118,7 +118,7 @@ namespace phlex::detail {
     {
       return tbb::flow::output_port<0>(transform_);
     }
-    phlex::detail::product_specifications const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     auto call(function_t const& ft,
@@ -144,7 +144,7 @@ namespace phlex::detail {
     }
 
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    phlex::detail::product_specifications output_;
+    product_specifications output_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1u>> transform_;
     std::atomic<std::size_t> calls_;

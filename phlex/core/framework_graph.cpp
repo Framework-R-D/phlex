@@ -29,7 +29,7 @@ namespace phlex::detail {
   framework_graph::framework_graph(driver_mode const mode, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
-         [this](tbb::flow_control& fc) mutable -> phlex::detail::ready_flushes_then_emit {
+         [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
            assert(driver_);
            if (auto item = (*driver_)()) {
              return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
@@ -39,30 +39,26 @@ namespace phlex::detail {
            return {};
          }},
     index_router_{graph_},
-    index_receiver_{
-      graph_,
-      tbb::flow::unlimited,
-      [this](phlex::detail::ready_flushes_then_emit const& input) -> phlex::data_cell_index_ptr {
-        auto&& [ready_flushes, index_to_emit] = input;
-        return index_router_.route(index_to_emit, std::move(ready_flushes));
-      }},
+    index_receiver_{graph_,
+                    tbb::flow::unlimited,
+                    [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
+                      auto&& [ready_flushes, index_to_emit] = input;
+                      return index_router_.route(index_to_emit, std::move(ready_flushes));
+                    }},
     hierarchy_node_{graph_,
                     tbb::flow::unlimited,
-                    [this](phlex::data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
+                    [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
                       hierarchy_.increment_count(index);
                       return {};
                     }},
     driver_mode_{mode}
   {
     if (driver_mode_ == driver_mode::default_driver) {
-      driver_.emplace([](phlex::detail::framework_driver& driver) {
-        driver.yield(phlex::data_cell_index::job());
-      });
+      driver_.emplace([](framework_driver& driver) { driver.yield(data_cell_index::job()); });
     }
 
     spdlog::cfg::load_env_levels();
-    spdlog::info("Number of worker threads: {}",
-                 phlex::detail::max_allowed_parallelism::active_value());
+    spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
   }
 
   void framework_graph::add_driver(driver_bundle bundle)
@@ -94,7 +90,7 @@ namespace phlex::detail {
   std::size_t framework_graph::seen_cell_count(std::string const& layer_name,
                                                bool const missing_ok) const
   {
-    return hierarchy_.count_for(experimental::layer_path(layer_name), missing_ok);
+    return hierarchy_.count_for(phlex::experimental::layer_path(layer_name), missing_ok);
   }
 
   std::size_t framework_graph::execution_count(std::string const& node_name) const
@@ -167,8 +163,8 @@ namespace phlex::detail {
     if (registration_errors_.empty()) {
       return;
     }
-    throw std::runtime_error(fmt::format("\nConfiguration errors:\n{}",
-                                         phlex::detail::bulleted_list(registration_errors_)));
+    throw std::runtime_error(
+      fmt::format("\nConfiguration errors:\n{}", bulleted_list(registration_errors_)));
   }
 
   void framework_graph::make_filter_edges()

@@ -43,8 +43,7 @@ namespace phlex::detail {
 
     std::size_t child_layer_hash() const { return child_layer_hash_; }
     std::size_t child_count() const { return child_counts_; }
-    phlex::experimental::product_store_const_ptr make_child(std::size_t i,
-                                                            phlex::detail::products new_products);
+    phlex::experimental::product_store_const_ptr make_child(std::size_t i, products new_products);
 
   private:
     phlex::experimental::product_store_ptr parent_;
@@ -66,8 +65,8 @@ namespace phlex::detail {
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::sender<index_message>& output_index_port() = 0;
-    virtual tbb::flow::sender<phlex::detail::unfold_flush>& flush_sender() = 0;
-    virtual phlex::detail::product_specifications const& output() const = 0;
+    virtual tbb::flow::sender<unfold_flush>& flush_sender() = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
 
     std::string const& child_layer() const noexcept { return child_layer_; }
@@ -77,15 +76,15 @@ namespace phlex::detail {
   };
 
   using declared_unfold_ptr = std::unique_ptr<declared_unfold>;
-  using declared_unfolds = phlex::detail::simple_ptr_map<declared_unfold_ptr>;
+  using declared_unfolds = simple_ptr_map<declared_unfold_ptr>;
 
   // =====================================================================================
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_node : public declared_unfold {
-    using input_args = phlex::detail::constructor_parameter_types<Object>;
+    using input_args = constructor_parameter_types<Object>;
     static constexpr std::size_t num_inputs = std::tuple_size_v<input_args>;
-    static constexpr std::size_t num_outputs = phlex::detail::number_output_objects<Unfold>;
+    static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
 
   public:
     unfold_node(phlex::experimental::algorithm_name algo_name,
@@ -101,11 +100,9 @@ namespace phlex::detail {
                       std::move(predicates),
                       std::move(input_products),
                       std::move(child_layer_name)},
-      output_{to_product_specifications(
-        name(),
-        std::move(output_product_suffixes),
-        phlex::detail::make_type_ids<
-          phlex::detail::skip_first_type<phlex::detail::return_type<Unfold>>>())},
+      output_{to_product_specifications(name(),
+                                        std::move(output_product_suffixes),
+                                        make_type_ids<skip_first_type<return_type<Unfold>>>())},
       join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       unfold_{g,
               concurrency,
@@ -145,11 +142,11 @@ namespace phlex::detail {
     {
       return tbb::flow::output_port<1>(unfold_);
     }
-    tbb::flow::sender<phlex::detail::unfold_flush>& flush_sender() override
+    tbb::flow::sender<unfold_flush>& flush_sender() override
     {
       return tbb::flow::output_port<2>(unfold_);
     }
-    phlex::detail::product_specifications const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,

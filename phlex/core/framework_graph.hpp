@@ -203,9 +203,8 @@ namespace phlex::detail {
     data_cell_tracker cell_tracker_{};
     tbb::flow::input_node<ready_flushes_then_emit> src_;
     index_router index_router_;
-    tbb::flow::
-      function_node<ready_flushes_then_emit, phlex::data_cell_index_ptr, tbb::flow::lightweight>
-        index_receiver_;
+    tbb::flow::function_node<ready_flushes_then_emit, data_cell_index_ptr, tbb::flow::lightweight>
+      index_receiver_;
     tbb::flow::function_node<data_cell_index_ptr, tbb::flow::continue_msg, tbb::flow::lightweight>
       hierarchy_node_;
     driver_mode driver_mode_{driver_mode::default_driver};

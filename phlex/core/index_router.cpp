@@ -28,7 +28,7 @@ namespace phlex::detail {
                       tbb::flow::receiver<index_message>* input_port);
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
-      void put_end_token(data_cell_index_ptr const& index, phlex::detail::flush_gate const& fc);
+      void put_end_token(data_cell_index_ptr const& index, flush_gate const& fc);
 
       bool matches_exactly(phlex::experimental::layer_path const& layer_path) const;
       bool is_parent_of(data_cell_index_ptr const& index) const;
@@ -59,8 +59,7 @@ namespace phlex::detail {
       broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
     }
 
-    void multilayer_slot::put_end_token(data_cell_index_ptr const& index,
-                                        phlex::detail::flush_gate const& fg)
+    void multilayer_slot::put_end_token(data_cell_index_ptr const& index, flush_gate const& fg)
     {
       // We're going to have to be a little more careful about this.  The committed total count may
       // not be enough granularity for some downstream nodes.
@@ -90,7 +89,7 @@ namespace phlex::detail {
                            }},
     unfold_flush_receiver_{g,
                            tbb::flow::unlimited,
-                           [this](phlex::detail::unfold_flush input) -> tbb::flow::continue_msg {
+                           [this](unfold_flush input) -> tbb::flow::continue_msg {
                              auto&& [index, layer_hash, count] = input;
                              apply_expected_count(*gate_for(index), layer_hash, count);
                              flush_if_done(index);
@@ -148,8 +147,7 @@ namespace phlex::detail {
     }
   }
 
-  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index,
-                                          phlex::detail::index_flushes flushes)
+  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index, index_flushes flushes)
   {
     update_flush_counts(std::move(flushes));
     return route(index, index_is_lowest_layer(index), received_indices_.fetch_add(1));
@@ -177,7 +175,7 @@ namespace phlex::detail {
 
     gate_for(index)->set_flush_callback(
       [this, end_token_slots = std::move(end_token_slots), index, message_id](
-        phlex::detail::flush_gate const& fc) {
+        flush_gate const& fc) {
         for (auto const& slot : *end_token_slots) {
           slot->put_end_token(index, fc);
         }
@@ -251,11 +249,10 @@ namespace phlex::detail {
       return nullptr;
     }
 
-    std::string msg =
-      fmt::format("Multiple layers match specification {}:\n{}",
-                  layer_path,
-                  phlex::detail::bulleted_list(
-                    candidates | std::views::transform([](auto const& it) { return it->first; })));
+    std::string msg = fmt::format(
+      "Multiple layers match specification {}:\n{}",
+      layer_path,
+      bulleted_list(candidates | std::views::transform([](auto const& it) { return it->first; })));
     throw std::runtime_error(msg);
   }
 

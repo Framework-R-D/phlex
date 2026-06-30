@@ -54,8 +54,7 @@ namespace phlex::detail {
     using provider_input_ports_t = std::map<std::string, provider_input_port_t>;
 
     explicit index_router(tbb::flow::graph& g);
-    data_cell_index_ptr route(data_cell_index_ptr const& index,
-                              phlex::detail::index_flushes flushes);
+    data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes flushes);
 
     void establish_layers(
       std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
@@ -71,14 +70,14 @@ namespace phlex::detail {
     void finalize(tbb::flow::graph& g,
                   provider_input_ports_t provider_input_ports,
                   std::map<std::string, named_index_ports> multilayer_join_ports);
-    void drain(phlex::detail::index_flushes flushes);
+    void drain(index_flushes flushes);
     flusher_t& flusher() { return flusher_; }
 
     tbb::flow::function_node<index_message, data_cell_index_ptr>& unfold_index_receiver()
     {
       return unfold_index_receiver_;
     }
-    tbb::flow::function_node<phlex::detail::unfold_flush>& unfold_flush_receiver()
+    tbb::flow::function_node<unfold_flush>& unfold_flush_receiver()
     {
       return unfold_flush_receiver_;
     }
@@ -98,15 +97,15 @@ namespace phlex::detail {
     internal::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<internal::multilayer_slots_ptr, internal::multilayer_slots_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);
-    void update_flush_counts(phlex::detail::index_flushes flushes);
-    void apply_expected_count(phlex::detail::flush_gate& gate,
+    void update_flush_counts(index_flushes flushes);
+    void apply_expected_count(flush_gate& gate,
                               data_cell_index::hash_type child_layer_hash,
                               std::size_t count);
-    phlex::detail::flush_gate_ptr gate_for(data_cell_index_ptr const& index);
+    flush_gate_ptr gate_for(data_cell_index_ptr const& index);
     void flush_if_done(data_cell_index_ptr index);
 
     tbb::flow::function_node<index_message, data_cell_index_ptr> unfold_index_receiver_;
-    tbb::flow::function_node<phlex::detail::unfold_flush> unfold_flush_receiver_;
+    tbb::flow::function_node<unfold_flush> unfold_flush_receiver_;
     std::atomic<std::size_t> received_indices_{};
     flusher_t flusher_;
     tbb::concurrent_unordered_map<std::size_t, bool> is_lowest_layer_hashes_;

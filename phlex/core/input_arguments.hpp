@@ -19,7 +19,7 @@
 namespace phlex::detail {
   template <typename T>
   struct retriever {
-    using handle_arg_t = phlex::detail::internal::handle_value_type<T>;
+    using handle_arg_t = internal::handle_value_type<T>;
     product_selector query;
     auto retrieve(message const& msg) const
     {
@@ -27,23 +27,22 @@ namespace phlex::detail {
       auto const& store = msg.store;
       // TODO: This needs to be replaced with a properly engineered solution
       auto all_products = std::ranges::subrange(store->begin(), store->end()) | views::keys;
-      auto products = all_products |
-                      views::filter([this](phlex::detail::product_specification const& spec) {
-                        return query.match(spec);
-                      }) |
-                      std::ranges::to<std::vector>();
+      auto products =
+        all_products |
+        views::filter([this](product_specification const& spec) { return query.match(spec); }) |
+        std::ranges::to<std::vector>();
       if (products.empty()) {
         throw std::runtime_error(fmt::format(
           "No products found matching the query {}\n Store (id {} from {}) contains:\n{}",
           query,
           store->index()->to_string(),
           store->source().to_string(),
-          phlex::detail::bulleted_list(all_products, /*indent=*/4)));
+          bulleted_list(all_products, /*indent=*/4)));
       }
       if (products.size() > 1) {
         throw std::runtime_error(fmt::format("Multiple products found matching the query {}:\n{}",
                                              query,
-                                             phlex::detail::bulleted_list(products, /*indent=*/4)));
+                                             bulleted_list(products, /*indent=*/4)));
       }
       return store->get_handle<handle_arg_t>(products[0]);
     }

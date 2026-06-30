@@ -59,7 +59,7 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return fold_api{config_,
                       std::move(name),
-                      phlex::detail::algorithm_bits(bound_obj_, std::move(f)),
+                      algorithm_bits(bound_obj_, std::move(f)),
                       c,
                       graph_,
                       nodes_,
@@ -72,14 +72,13 @@ namespace phlex::detail {
     auto observe(std::string name, FT f, concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<observer_node>(
-        config_,
-        std::move(name),
-        phlex::detail::algorithm_bits{bound_obj_, std::move(f)},
-        c,
-        graph_,
-        nodes_,
-        errors_);
+      return make_registration<observer_node>(config_,
+                                              std::move(name),
+                                              algorithm_bits{bound_obj_, std::move(f)},
+                                              c,
+                                              graph_,
+                                              nodes_,
+                                              errors_);
     }
 
     template <typename FT>
@@ -88,7 +87,7 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return provider_api{config_,
                           std::move(name),
-                          phlex::detail::algorithm_bits{bound_obj_, std::move(f)},
+                          algorithm_bits{bound_obj_, std::move(f)},
                           c,
                           graph_,
                           nodes_,
@@ -99,28 +98,26 @@ namespace phlex::detail {
     auto transform(std::string name, FT f, concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<transform_node>(
-        config_,
-        std::move(name),
-        phlex::detail::algorithm_bits{bound_obj_, std::move(f)},
-        c,
-        graph_,
-        nodes_,
-        errors_);
+      return make_registration<transform_node>(config_,
+                                               std::move(name),
+                                               algorithm_bits{bound_obj_, std::move(f)},
+                                               c,
+                                               graph_,
+                                               nodes_,
+                                               errors_);
     }
 
     template <typename FT>
     auto predicate(std::string name, FT f, concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<predicate_node>(
-        config_,
-        std::move(name),
-        phlex::detail::algorithm_bits{bound_obj_, std::move(f)},
-        c,
-        graph_,
-        nodes_,
-        errors_);
+      return make_registration<predicate_node>(config_,
+                                               std::move(name),
+                                               algorithm_bits{bound_obj_, std::move(f)},
+                                               c,
+                                               graph_,
+                                               nodes_,
+                                               errors_);
     }
 
     auto unfold(std::string name,
@@ -149,7 +146,7 @@ namespace phlex::detail {
                         config_,
                         std::move(name),
                         graph_,
-                        phlex::detail::delegate(bound_obj_, f),
+                        delegate(bound_obj_, f),
                         c};
     }
 

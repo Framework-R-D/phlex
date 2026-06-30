@@ -17,8 +17,7 @@
 namespace phlex::detail {
   class PHLEX_CORE_EXPORT store_counter {
   public:
-    void set_flush_value(phlex::detail::data_cell_counts_const_ptr counts,
-                         std::size_t original_message_id);
+    void set_flush_value(data_cell_counts_const_ptr counts, std::size_t original_message_id);
     void increment(data_cell_index::hash_type layer_hash);
     bool is_complete();
     unsigned int original_message_id() const noexcept;
@@ -29,9 +28,9 @@ namespace phlex::detail {
 
     counts_t counts_{};
 #ifdef __cpp_lib_atomic_shared_ptr
-    std::atomic<phlex::detail::data_cell_counts_const_ptr> flush_counts_{nullptr};
+    std::atomic<data_cell_counts_const_ptr> flush_counts_{nullptr};
 #else
-    phlex::detail::data_cell_counts_const_ptr flush_counts_{nullptr};
+    data_cell_counts_const_ptr flush_counts_{nullptr};
 #endif
     unsigned int original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
     std::atomic<bool> ready_to_flush_{true};
