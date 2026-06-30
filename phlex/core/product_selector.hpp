@@ -109,7 +109,7 @@ namespace phlex {
     // C is a container of product_selectors
     template <typename C, typename T>
       requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_selector> &&
-               phlex::experimental::is_tuple<T>::value
+               phlex::detail::is_tuple<T>::value
     class product_selectors_type_setter {};
     template <typename C, typename... Ts>
     class product_selectors_type_setter<C, std::tuple<Ts...>> {
@@ -134,7 +134,7 @@ namespace phlex {
 
   template <typename Tup, typename C>
     requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_selector> &&
-             phlex::experimental::is_tuple<Tup>::value
+             phlex::detail::is_tuple<Tup>::value
   void populate_types(C& container)
   {
     detail::product_selectors_type_setter<decltype(container), Tup> populate_types{};

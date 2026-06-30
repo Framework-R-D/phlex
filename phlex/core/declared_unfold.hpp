@@ -82,9 +82,9 @@ namespace phlex::experimental {
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_node : public declared_unfold {
-    using input_args = constructor_parameter_types<Object>;
+    using input_args = phlex::detail::constructor_parameter_types<Object>;
     static constexpr std::size_t num_inputs = std::tuple_size_v<input_args>;
-    static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
+    static constexpr std::size_t num_outputs = phlex::detail::number_output_objects<Unfold>;
 
   public:
     unfold_node(algorithm_name algo_name,
@@ -103,7 +103,8 @@ namespace phlex::experimental {
       output_{to_product_specifications(
         name(),
         std::move(output_product_suffixes),
-        phlex::detail::make_type_ids<skip_first_type<return_type<Unfold>>>())},
+        phlex::detail::make_type_ids<
+          phlex::detail::skip_first_type<phlex::detail::return_type<Unfold>>>())},
       join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       unfold_{g,
               concurrency,

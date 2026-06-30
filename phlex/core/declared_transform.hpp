@@ -61,7 +61,7 @@ namespace phlex::experimental {
     using input_parameter_types = typename AlgorithmBits::input_parameter_types;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
-    static constexpr auto num_outputs = number_output_objects<function_t>;
+    static constexpr auto num_outputs = phlex::detail::number_output_objects<function_t>;
 
   public:
     using node_ptr_type = declared_transform_ptr;

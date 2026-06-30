@@ -164,8 +164,8 @@ namespace phlex::detail {
       static consteval auto get_tuple(std::index_sequence<Is...>) -> auto
       {
         // Atomics are why we can't just use boost::pfr::structure_to_tuple
-        return std::tuple<phlex::experimental::remove_atomic_t<
-          std::remove_cvref_t<boost::pfr::tuple_element_t<Is, A>>>...>{};
+        return std::tuple<
+          remove_atomic_t<std::remove_cvref_t<boost::pfr::tuple_element_t<Is, A>>>...>{};
       }
 
     public:
@@ -195,8 +195,7 @@ namespace phlex::detail {
     }
 
     type_id result{};
-    using basic =
-      phlex::experimental::remove_atomic_t<std::remove_cvref_t<std::remove_pointer_t<T>>>;
+    using basic = remove_atomic_t<std::remove_cvref_t<std::remove_pointer_t<T>>>;
     if constexpr (std::is_fundamental_v<basic>) {
       result.id_ = internal::make_type_id_helper_fundamental<basic>();
     }
@@ -209,7 +208,7 @@ namespace phlex::detail {
 
     // classes (both containers and "simple" aggregates)
     else if constexpr (std::is_class_v<basic>) {
-      if constexpr (phlex::experimental::contiguous_container<basic>) {
+      if constexpr (contiguous_container<basic>) {
         result = make_type_id<typename basic::value_type>();
         result.id_ |= 0x20;
       } else if constexpr (std::is_aggregate_v<basic>) {
@@ -272,7 +271,7 @@ namespace phlex::detail {
   template <typename F>
   type_ids make_output_type_ids()
   {
-    return make_type_ids<phlex::experimental::return_type<F>>();
+    return make_type_ids<return_type<F>>();
   }
 
   inline std::size_t hash_value(type_id const& id)

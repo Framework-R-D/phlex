@@ -139,7 +139,7 @@ namespace phlex::experimental {
                         identifier output_layer,
                         identifier stage = "CURRENT"_id)
     {
-      using return_type = return_type<typename AlgorithmBits::algorithm_type>;
+      using return_type = phlex::detail::return_type<typename AlgorithmBits::algorithm_type>;
       phlex::detail::product_specification output_spec(
         std::move(creator), std::move(suffix), phlex::detail::make_type_id<return_type>());
 
@@ -179,7 +179,8 @@ namespace phlex::experimental {
   template <typename AlgorithmBits, typename... InitArgs>
   class fold_api {
     using init_tuple = std::tuple<InitArgs...>;
-    using input_parameter_types = skip_first_type<typename AlgorithmBits::input_parameter_types>;
+    using input_parameter_types =
+      phlex::detail::skip_first_type<typename AlgorithmBits::input_parameter_types>;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = 1; // For now
@@ -250,10 +251,10 @@ namespace phlex::experimental {
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_api {
-    using input_parameter_types = constructor_parameter_types<Object>;
+    using input_parameter_types = phlex::detail::constructor_parameter_types<Object>;
 
     static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
-    static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
+    static constexpr std::size_t num_outputs = phlex::detail::number_output_objects<Unfold>;
 
     // FIXME: Should maybe use some type of static assert, but not in a way that
     //        constrains the arguments of the Predicate and the Unfold to be the same.

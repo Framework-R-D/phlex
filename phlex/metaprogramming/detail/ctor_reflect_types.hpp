@@ -27,7 +27,7 @@
 // * https://www.youtube.com/watch?v=UlNUNxLtBI0
 //   Better C++14 reflections - Antony Polukhin - Meeting C++ 2018
 
-namespace refl {
+namespace phlex::detail {
 
   // tag<T, N> generates friend declarations and helps with overload resolution.  There
   // are two types: one with the auto return type, which is the way we read types later.
@@ -105,7 +105,7 @@ namespace refl {
     return fields_number_ctor<T, Ns..., sizeof...(Ns)>(0);
   }
 
-  // This is a helper to turn a ctor into a tuple type.  Usage is: refl::as_tuple<data_t>
+  // This is a helper to turn a ctor into a tuple type.  Usage is: phlex::detail::as_tuple<data_t>
   template <typename T, typename U>
   struct loophole_tuple;
 
@@ -118,7 +118,7 @@ namespace refl {
   using as_tuple =
     typename loophole_tuple<T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
 
-} // namespace refl
+} // namespace phlex::detail
 
 // ===========================================================================
 // End Alexandr code

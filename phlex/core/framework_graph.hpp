@@ -66,7 +66,7 @@ namespace phlex::experimental {
     std::size_t seen_cell_count(std::string const& layer_name, bool missing_ok = false) const;
     std::size_t execution_count(std::string const& node_name) const;
 
-    module_graph_proxy<void_tag> module_proxy(configuration const& config)
+    module_graph_proxy<phlex::detail::void_tag> module_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
     }
@@ -169,7 +169,7 @@ namespace phlex::experimental {
      * - Optional instance of T (if not void_tag)
      * - Registration error collection
      */
-    template <typename T = void_tag, bool Construct = true, typename... Args>
+    template <typename T = phlex::detail::void_tag, bool Construct = true, typename... Args>
     glue<T> make_glue(Args&&... args)
     {
       std::shared_ptr<T> bound_object{nullptr};

@@ -13,10 +13,10 @@
 #define PHLEX_DETAIL_NARGS(...) BOOST_PP_DEC(BOOST_PP_VARIADIC_SIZE(__VA_OPT__(, ) __VA_ARGS__))
 
 #define PHLEX_DETAIL_CREATE_1ARG(token_type, func_name, m)                                         \
-  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const&)
+  void func_name(token_type<phlex::detail::void_tag> m, phlex::configuration const&)
 
 #define PHLEX_DETAIL_CREATE_2ARGS(token_type, func_name, m, cfg)                                   \
-  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const& cfg)
+  void func_name(token_type<phlex::detail::void_tag> m, phlex::configuration const& cfg)
 
 #define PHLEX_DETAIL_SELECT_SIGNATURE(token_type, func_name, ...)                                  \
   BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
@@ -41,10 +41,10 @@
 //      and calls the user's implementation.
 //   3. Open the user's implementation definition for the body that follows the macro.
 #define PHLEX_DETAIL_CREATE_SOURCE_1ARG(token_type, func_name, m)                                  \
-  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const&)
+  void func_name(token_type<phlex::detail::void_tag> m, phlex::configuration const&)
 
 #define PHLEX_DETAIL_CREATE_SOURCE_2ARGS(token_type, func_name, m, cfg)                            \
-  void func_name(token_type<phlex::experimental::void_tag> m, phlex::configuration const& cfg)
+  void func_name(token_type<phlex::detail::void_tag> m, phlex::configuration const& cfg)
 
 #define PHLEX_DETAIL_SELECT_SOURCE_SIGNATURE(token_type, func_name, ...)                           \
   BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
@@ -57,7 +57,7 @@
   extern "C" void dll_alias(phlex::experimental::source_bundle __phlex_bundle,                     \
                             phlex::configuration const& __phlex_config)                            \
   {                                                                                                \
-    func_name(token_type<phlex::experimental::void_tag>{__phlex_bundle}, __phlex_config);          \
+    func_name(token_type<phlex::detail::void_tag>{__phlex_bundle}, __phlex_config);                \
   }                                                                                                \
   PHLEX_DETAIL_SELECT_SOURCE_SIGNATURE(token_type, func_name, __VA_ARGS__)
 

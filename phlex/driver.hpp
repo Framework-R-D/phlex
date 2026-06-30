@@ -59,8 +59,8 @@ namespace phlex::experimental {
     {
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         f(std::forward<FirstArg>(first_arg),
-          as_driver_source<mp11::mp_at_c<SourceParameters, Is>>(sources[Is], Is)...);
-      }(std::make_index_sequence<mp11::mp_size<SourceParameters>::value>{});
+          as_driver_source<boost::mp11::mp_at_c<SourceParameters, Is>>(sources[Is], Is)...);
+      }(std::make_index_sequence<boost::mp11::mp_size<SourceParameters>::value>{});
     }
   };
 
@@ -75,11 +75,13 @@ namespace phlex::experimental {
 
   template <typename F, typename FirstArg>
   concept is_driver_like_with_sources =
-    check_parameters<F, FirstArg>::value &&
-    mp11::mp_all_of<skip_first_type<function_parameter_types<F>>, is_derived_from_source>::value;
+    phlex::detail::check_parameters<F, FirstArg>::value &&
+    boost::mp11::mp_all_of<
+      phlex::detail::skip_first_type<phlex::detail::function_parameter_types<F>>,
+      is_derived_from_source>::value;
 
   template <typename Tuple>
-  using source_parameter_types = skip_first_type<Tuple>;
+  using source_parameter_types = phlex::detail::skip_first_type<Tuple>;
 }
 
 namespace phlex::experimental {
@@ -165,7 +167,7 @@ namespace phlex::experimental {
     template <typename SourceParameters>
     void verify_source_parameter_count() const
     {
-      if (mp11::mp_size<SourceParameters>::value != sources_.size()) {
+      if (boost::mp11::mp_size<SourceParameters>::value != sources_.size()) {
         throw std::invalid_argument("Number of source parameters of driver function does not match "
                                     "the number of sources specified in the configuration.");
       }
@@ -178,7 +180,7 @@ namespace phlex::experimental {
     {
       using driver_function_t = std::remove_cvref_t<DriverFunction>;
       using source_parameters_t =
-        source_parameter_types<function_parameter_types<driver_function_t>>;
+        source_parameter_types<phlex::detail::function_parameter_types<driver_function_t>>;
 
       verify_source_parameter_count<source_parameters_t>();
 

@@ -1,6 +1,6 @@
 #include "phlex/metaprogramming/type_deduction.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 namespace {
   int transform [[maybe_unused]] (double&) { return 1; };

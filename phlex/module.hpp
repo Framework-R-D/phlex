@@ -37,7 +37,8 @@ namespace phlex::experimental {
   };
 
   namespace detail {
-    using module_creator_t = void(module_graph_proxy<void_tag>, configuration const&);
+    using module_creator_t = void(module_graph_proxy<phlex::detail::void_tag>,
+                                  configuration const&);
   }
 }
 
