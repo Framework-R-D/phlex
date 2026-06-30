@@ -11,7 +11,7 @@
 
 #include <cassert>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   struct predicate_result {
     std::size_t msg_id;
     bool result;
@@ -53,7 +53,8 @@ namespace phlex::experimental {
 
   class PHLEX_CORE_EXPORT data_map {
     using stores_t =
-      oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_const_ptr>>;
+      oneapi::tbb::concurrent_hash_map<std::size_t,
+                                       std::vector<phlex::experimental::product_store_const_ptr>>;
 
   public:
     struct for_output_t {};
@@ -63,12 +64,14 @@ namespace phlex::experimental {
 
     bool is_complete(std::size_t const msg_id) const;
 
-    void update(std::size_t const msg_id, product_store_const_ptr const& store);
-    std::vector<product_store_const_ptr> release_data(std::size_t const msg_id);
+    void update(std::size_t const msg_id,
+                phlex::experimental::product_store_const_ptr const& store);
+    std::vector<phlex::experimental::product_store_const_ptr> release_data(
+      std::size_t const msg_id);
 
   private:
     stores_t stores_;
-    std::vector<product_selector> const* input_products_;
+    product_selectors const* input_products_;
     std::size_t nargs_;
   };
 }

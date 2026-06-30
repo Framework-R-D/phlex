@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace phlex::experimental::detail {
+namespace phlex::detail::internal {
   void verify_name(std::string const& name, configuration const* config)
   {
     if (not name.empty()) {

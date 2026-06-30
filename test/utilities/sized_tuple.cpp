@@ -4,7 +4,7 @@
 #include <tuple>
 
 using namespace std;
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 int main()
 {

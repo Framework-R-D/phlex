@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   struct PHLEX_MODEL_EXPORT product_base {
     virtual ~product_base() = default;

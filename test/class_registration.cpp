@@ -66,7 +66,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
     product_selector{.creator = "input", .layer = "job", .suffix = "name"}};
   std::array const product_suffixes{"onumber"s, "otemperature"s, "oname"s};
 
-  auto g = experimental::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver();
 
   // Register providers for the input products
   g.provide("provide_number", provide_number, concurrency::unlimited)

@@ -15,7 +15,8 @@
 #include <vector>
 
 using namespace oneapi;
-using namespace phlex::experimental;
+using namespace phlex::detail;
+using phlex::experimental::product_store;
 
 namespace {
   auto make_run_index(int run_number)
@@ -90,7 +91,7 @@ namespace {
 
   private:
     tbb::flow::graph g_;
-    detail::repeater_node repeater_;
+    internal::repeater_node repeater_;
     message_collector consumer_;
   };
 }
@@ -295,7 +296,7 @@ TEST_CASE("Test warning message if there are cached messages", "[multithreading]
   // new scope, we create the repeater_nopde as a unique_ptr and then reset it at the end of
   // the test, which will invoke the destructor.
   tbb::flow::graph g;
-  auto repeater = std::make_unique<detail::repeater_node>(
+  auto repeater = std::make_unique<internal::repeater_node>(
     g, "test_repeater_warning_on_cached_messages", "run"_id);
 
   SECTION("Cached data product")

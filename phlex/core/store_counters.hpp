@@ -14,7 +14,7 @@
 #include <memory>
 #include <version>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT store_counter {
   public:
     void set_flush_value(data_cell_counts_const_ptr counts, std::size_t original_message_id);

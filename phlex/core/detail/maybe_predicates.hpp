@@ -14,7 +14,7 @@ namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental::detail {
+namespace phlex::detail::internal {
   PHLEX_CORE_EXPORT std::optional<std::vector<std::string>> maybe_predicates(
     configuration const* config);
 }

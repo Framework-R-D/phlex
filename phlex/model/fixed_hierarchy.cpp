@@ -38,7 +38,6 @@ namespace {
   // Each path must be non-empty and may only contain "job" as the first element.
   std::set<std::size_t> build_hashes(std::vector<layer_path> const& layer_paths)
   {
-    using namespace phlex::experimental;
     using namespace phlex::experimental::literals;
     std::set<std::size_t> hashes{"job"_idq.hash};
     for (layer_path const& path : layer_paths) {
@@ -51,14 +50,13 @@ namespace {
   std::vector<layer_path> convert_vector_vector_string(
     std::vector<std::vector<std::string>>&& layer_path_strings)
   {
-    using namespace phlex::experimental;
     std::vector<layer_path> layer_paths;
     layer_paths.reserve(layer_path_strings.size());
     for (auto& lp : layer_path_strings) {
-      auto lp_as_ids =
-        lp | std::views::as_rvalue |
-        std::views::transform([](std::string&& str) { return identifier(std::move(str)); }) |
-        std::ranges::to<std::vector>();
+      auto lp_as_ids = lp | std::views::as_rvalue | std::views::transform([](std::string&& str) {
+                         return phlex::experimental::identifier(std::move(str));
+                       }) |
+                       std::ranges::to<std::vector>();
       layer_paths.emplace_back(std::move(lp_as_ids));
     }
     return unique_paths(std::move(layer_paths));
@@ -70,7 +68,7 @@ namespace phlex {
   // data_cell_cursor implementation
   data_cell_cursor::data_cell_cursor(data_cell_index_ptr index,
                                      fixed_hierarchy const& h,
-                                     experimental::framework_driver& d) :
+                                     detail::framework_driver& d) :
     index_{std::move(index)}, hierarchy_{h}, driver_{d}
   {
   }
@@ -88,8 +86,7 @@ namespace phlex {
 
   // ================================================================================
   // data_cell_yielder implementation
-  data_cell_yielder::data_cell_yielder(fixed_hierarchy const& h,
-                                       experimental::framework_driver& d) :
+  data_cell_yielder::data_cell_yielder(fixed_hierarchy const& h, detail::framework_driver& d) :
     hierarchy_{h}, driver_{d}
   {
   }
@@ -134,14 +131,14 @@ namespace phlex {
       fmt::format("Layer {} is not part of the fixed hierarchy.", index->layer_path()));
   }
 
-  data_cell_cursor fixed_hierarchy::yield_job(experimental::framework_driver& d) const
+  data_cell_cursor fixed_hierarchy::yield_job(detail::framework_driver& d) const
   {
     auto job = data_cell_index::job();
     d.yield(job);
     return data_cell_cursor{job, *this, d};
   }
 
-  data_cell_yielder fixed_hierarchy::yielder(experimental::framework_driver& d) const
+  data_cell_yielder fixed_hierarchy::yielder(detail::framework_driver& d) const
   {
     return data_cell_yielder{*this, d};
   }

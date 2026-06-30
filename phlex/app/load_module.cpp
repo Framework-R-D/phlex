@@ -16,7 +16,7 @@
 
 using namespace std::string_literals;
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   namespace {
     constexpr std::string_view pymodule_name{"pymodule"};
@@ -24,11 +24,11 @@ namespace phlex::experimental {
     // If factory function goes out of scope, then the library is unloaded...and that's
     // bad.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::vector<std::function<detail::module_creator_t>> create_module;
+    std::vector<std::function<internal::module_creator_t>> create_module;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::vector<std::function<detail::source_creator_t>> create_source;
+    std::vector<std::function<internal::source_creator_t>> create_source;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::function<detail::driver_shim_t> create_driver;
+    std::function<internal::driver_shim_t> create_driver;
 
     template <typename creator_t>
     std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
@@ -60,7 +60,7 @@ namespace phlex::experimental {
     }
   }
 
-  namespace detail {
+  namespace internal {
     boost::json::object adjust_config(std::string const& label, boost::json::object raw_config)
     {
       raw_config["module_label"] = label;
@@ -86,11 +86,11 @@ namespace phlex::experimental {
 
   void load_module(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
+    auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto& creator =
-      create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
+      create_module.emplace_back(plugin_loader<internal::module_creator_t>(spec, "create_module"));
 
     configuration const config{adjusted_config};
     creator(g.module_proxy(config), config);
@@ -98,11 +98,11 @@ namespace phlex::experimental {
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
+    auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto& creator =
-      create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
+      create_source.emplace_back(plugin_loader<internal::source_creator_t>(spec, "create_source"));
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
@@ -121,7 +121,7 @@ namespace phlex::experimental {
     // False positive: clang-analyzer cannot trace ownership through Boost's is_any_of<char>
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
-    create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
+    create_driver = plugin_loader<internal::driver_shim_t>(spec, "create_driver");
     driver_bundle result;
     create_driver(g.driver_proxy(required_sources), config, &result);
     g.add_driver(result);

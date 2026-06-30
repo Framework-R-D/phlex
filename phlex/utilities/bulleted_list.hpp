@@ -7,8 +7,8 @@
 #include <ranges>
 #include <string>
 
-namespace phlex::experimental {
-  namespace detail {
+namespace phlex::detail {
+  namespace internal {
     template <typename R>
     concept range_of_formattable = fmt::formattable<std::ranges::range_value_t<R>>;
 
@@ -18,7 +18,7 @@ namespace phlex::experimental {
     };
   }
 
-  template <detail::range_of_formattable R>
+  template <internal::range_of_formattable R>
   std::string bulleted_list(R const& rng, std::size_t indent = 2)
   {
     if (std::ranges::empty(rng)) {
@@ -30,8 +30,8 @@ namespace phlex::experimental {
     return fmt::format("{}{}", prefix, fmt::join(rng, prefix_with_newline));
   }
 
-  template <detail::range_of_to_stringable R>
-    requires(!detail::range_of_formattable<R>)
+  template <internal::range_of_to_stringable R>
+    requires(!internal::range_of_formattable<R>)
   std::string bulleted_list(R const& rng, std::size_t indent = 2)
   {
     if (std::ranges::empty(rng)) {

@@ -32,7 +32,7 @@ namespace {
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   resource_usage::resource_usage() noexcept :
     begin_wall_{steady_clock::now()}, begin_cpu_{get_rusage().elapsed_time}
   {

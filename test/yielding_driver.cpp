@@ -31,7 +31,7 @@ namespace {
     }
   }
 
-  void cells_to_process(experimental::resumable_driver<data_cell_index_ptr>& d)
+  void cells_to_process(detail::resumable_driver<data_cell_index_ptr>& d)
   {
     for (auto const& index : make_indices(2, 2, 3)) {
       d.yield(index);
@@ -41,7 +41,7 @@ namespace {
 
 TEST_CASE("Resumable driver with TBB flow graph", "[resumable_driver]")
 {
-  experimental::resumable_driver<data_cell_index_ptr> drive{cells_to_process};
+  detail::resumable_driver<data_cell_index_ptr> drive{cells_to_process};
   std::vector<std::string> received_indices;
 
   tbb::flow::graph g{};

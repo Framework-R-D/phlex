@@ -24,11 +24,11 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class driver_proxy;
   struct driver_bundle;
 
-  namespace detail {
+  namespace internal {
     using next_index_t = std::function<void(framework_driver&)>;
     // Shim type for the extern "C" entry-point: out-parameter avoids returning a C++ type
     // across a C-linkage boundary.
@@ -59,15 +59,15 @@ namespace phlex::experimental {
     {
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         f(std::forward<FirstArg>(first_arg),
-          as_driver_source<mp11::mp_at_c<SourceParameters, Is>>(sources[Is], Is)...);
-      }(std::make_index_sequence<mp11::mp_size<SourceParameters>::value>{});
+          as_driver_source<boost::mp11::mp_at_c<SourceParameters, Is>>(sources[Is], Is)...);
+      }(std::make_index_sequence<boost::mp11::mp_size<SourceParameters>::value>{});
     }
-  };
+  }
 
   /// @brief Bundles the driver function and data hierarchy for the framework.
   struct driver_bundle {
-    detail::next_index_t driver; ///< Driver function that advances data cells.
-    fixed_hierarchy hierarchy;   ///< Data hierarchy traversed by the driver.
+    internal::next_index_t driver; ///< Driver function that advances data cells.
+    fixed_hierarchy hierarchy;     ///< Data hierarchy traversed by the driver.
   };
 
   template <typename T>
@@ -76,13 +76,12 @@ namespace phlex::experimental {
   template <typename F, typename FirstArg>
   concept is_driver_like_with_sources =
     check_parameters<F, FirstArg>::value &&
-    mp11::mp_all_of<skip_first_type<function_parameter_types<F>>, is_derived_from_source>::value;
+    boost::mp11::mp_all_of<skip_first_type<function_parameter_types<F>>,
+                           is_derived_from_source>::value;
 
   template <typename Tuple>
   using source_parameter_types = skip_first_type<Tuple>;
-}
 
-namespace phlex::experimental {
   template <typename F>
   concept is_driver_like_with_cursor = is_driver_like_with_sources<F, data_cell_cursor>;
 
@@ -164,7 +163,7 @@ namespace phlex::experimental {
     template <typename SourceParameters>
     void verify_source_parameter_count() const
     {
-      if (mp11::mp_size<SourceParameters>::value != sources_.size()) {
+      if (boost::mp11::mp_size<SourceParameters>::value != sources_.size()) {
         throw std::invalid_argument("Number of source parameters of driver function does not match "
                                     "the number of sources specified in the configuration.");
       }
@@ -186,7 +185,7 @@ namespace phlex::experimental {
                h = std::move(h),
                srcs = std::move(sources_),
                first_arg_factory = std::move(first_arg_factory)](framework_driver& d) mutable {
-                detail::invoke_driver_with_sources<source_parameters_t>(
+                internal::invoke_driver_with_sources<source_parameters_t>(
                   f, first_arg_factory(h, d), srcs);
               },
               std::move(hierarchy)};

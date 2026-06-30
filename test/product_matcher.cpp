@@ -5,7 +5,7 @@
 #include <iostream>
 #include <regex>
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 namespace {
 

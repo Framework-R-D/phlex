@@ -10,7 +10,7 @@
 
 using namespace phlex;
 using namespace phlex::experimental::literals;
-using spec_t = experimental::product_specification;
+using spec_t = detail::product_specification;
 using opt_id_t = std::optional<experimental::identifier>;
 
 namespace {
@@ -21,7 +21,7 @@ namespace {
 
 TEST_CASE("Handle type conversions (compile-time checks)", "[data model]")
 {
-  using experimental::detail::handle_value_type;
+  using detail::internal::handle_value_type;
   static_assert(std::same_as<handle_value_type<int>, int>);
   static_assert(std::same_as<handle_value_type<int const>, int>);
   static_assert(std::same_as<handle_value_type<int const&>, int>);

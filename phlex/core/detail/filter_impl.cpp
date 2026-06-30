@@ -14,7 +14,7 @@ namespace {
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   decision_map::decision_map(unsigned int total_decisions) : total_decisions_{total_decisions} {}
 
   void decision_map::update(predicate_result result)
@@ -63,7 +63,8 @@ namespace phlex::experimental {
 
   data_map::data_map(for_output_t) : data_map{for_output_only()} {}
 
-  void data_map::update(std::size_t const msg_id, product_store_const_ptr const& store)
+  void data_map::update(std::size_t const msg_id,
+                        phlex::experimental::product_store_const_ptr const& store)
   {
     decltype(stores_)::accessor a;
     if (stores_.insert(a, msg_id)) {
@@ -98,9 +99,10 @@ namespace phlex::experimental {
     return false;
   }
 
-  std::vector<product_store_const_ptr> data_map::release_data(std::size_t const msg_id)
+  std::vector<phlex::experimental::product_store_const_ptr> data_map::release_data(
+    std::size_t const msg_id)
   {
-    std::vector<product_store_const_ptr> result;
+    std::vector<phlex::experimental::product_store_const_ptr> result;
     if (decltype(stores_)::accessor a; stores_.find(a, msg_id)) {
       result = std::move(a->second);
       stores_.erase(a);

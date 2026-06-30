@@ -39,7 +39,7 @@ namespace {
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   product_matcher::product_matcher(std::string matcher_spec) :
     product_matcher{tokenize(std::move(matcher_spec))}
   {
