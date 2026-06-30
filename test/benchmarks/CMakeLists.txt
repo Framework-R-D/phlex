@@ -49,6 +49,6 @@ foreach(
       ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet
       TEST_PROPERTIES
       ENVIRONMENT
-      PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}
+      PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}
   )
 endforeach()
