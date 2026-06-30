@@ -1,3 +1,4 @@
+include(CetMakeLibrary)
 cet_register_export_set(SET_NAME phlex NAMESPACE phlex SET_DEFAULT)
 
 add_subdirectory(metaprogramming)
