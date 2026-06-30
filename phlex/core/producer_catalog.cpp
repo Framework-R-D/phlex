@@ -6,9 +6,9 @@
 #include "spdlog/spdlog.h"
 #include <ranges>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   producer_catalog::named_output_port const* producer_catalog::find_producer(
-    product_selector const& query, algorithm_name const& consumer_name) const
+    product_selector const& query, phlex::experimental::algorithm_name const& consumer_name) const
   {
     if (producers_.empty()) {
       spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",

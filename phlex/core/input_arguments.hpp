@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <typename T>
   struct retriever {
     using handle_arg_t = phlex::detail::internal::handle_value_type<T>;

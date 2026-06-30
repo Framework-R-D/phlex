@@ -13,34 +13,34 @@
 #include <ranges>
 #include <stdexcept>
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   //========================================================================================
   // multilayer_slot implementation
-  namespace detail {
+  namespace internal {
     class multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
-                      identifier layer,
+                      phlex::experimental::identifier layer,
                       tbb::flow::receiver<indexed_end_token>* flush_port,
                       tbb::flow::receiver<index_message>* input_port);
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
       void put_end_token(data_cell_index_ptr const& index, phlex::detail::flush_gate const& fc);
 
-      bool matches_exactly(layer_path const& layer_path) const;
+      bool matches_exactly(phlex::experimental::layer_path const& layer_path) const;
       bool is_parent_of(data_cell_index_ptr const& index) const;
 
     private:
-      identifier layer_;
+      phlex::experimental::identifier layer_;
       index_set_node broadcaster_;
       flush_node flusher_;
     };
 
     multilayer_slot::multilayer_slot(tbb::flow::graph& g,
-                                     identifier layer,
+                                     phlex::experimental::identifier layer,
                                      tbb::flow::receiver<indexed_end_token>* flush_port,
                                      tbb::flow::receiver<index_message>* input_port) :
       layer_{std::move(layer)}, broadcaster_{g}, flusher_{g}
@@ -67,7 +67,7 @@ namespace phlex::experimental {
       flusher_.try_put({.index = index, .count = static_cast<int>(fg.committed_total_count())});
     }
 
-    bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
+    bool multilayer_slot::matches_exactly(phlex::experimental::layer_path const& layer_path) const
     {
       return layer_path.ends_with(layer_);
     }
@@ -100,9 +100,10 @@ namespace phlex::experimental {
   {
   }
 
-  void index_router::establish_layers(std::vector<layer_path> const& layer_paths_from_driver,
-                                      std::vector<identifier> unfold_input_layer_names,
-                                      std::vector<identifier> unfold_output_layer_names)
+  void index_router::establish_layers(
+    std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
+    std::vector<phlex::experimental::identifier> unfold_input_layer_names,
+    std::vector<phlex::experimental::identifier> unfold_output_layer_names)
   {
     auto sorted_layer_paths = layer_paths_from_driver;
     std::ranges::sort(sorted_layer_paths);
@@ -130,20 +131,20 @@ namespace phlex::experimental {
 
     // Create the index-set broadcast nodes for providers
     for (auto& [input_product, provider_port] : provider_input_ports | std::views::values) {
-      auto [it, _] =
-        index_set_nodes_.emplace(input_product.layer, std::make_shared<detail::index_set_node>(g));
+      auto [it, _] = index_set_nodes_.emplace(input_product.layer,
+                                              std::make_shared<internal::index_set_node>(g));
       make_edge(*it->second, *provider_port);
     }
 
     for (auto const& [node_name, join_ports] : multilayer_join_ports) {
       spdlog::trace("Making multilayer slots for {}", node_name);
-      detail::multilayer_slots slots;
+      internal::multilayer_slots slots;
       slots.reserve(join_ports.size());
       for (auto const& [layer, flush_port, input_port] : join_ports) {
-        auto slot = std::make_shared<detail::multilayer_slot>(g, layer, flush_port, input_port);
+        auto slot = std::make_shared<internal::multilayer_slot>(g, layer, flush_port, input_port);
         slots.push_back(slot);
       }
-      multilayer_join_slots_.emplace(identifier{node_name}, std::move(slots));
+      multilayer_join_slots_.emplace(phlex::experimental::identifier{node_name}, std::move(slots));
     }
   }
 
@@ -190,12 +191,10 @@ namespace phlex::experimental {
     return index;
   }
 
-  void index_router::drain(phlex::detail::index_flushes flushes)
-  {
-    update_flush_counts(std::move(flushes));
-  }
+  void index_router::drain(index_flushes flushes) { update_flush_counts(std::move(flushes)); }
 
-  void index_router::register_unfold_count_per_input_layer(std::map<identifier, std::size_t> counts)
+  void index_router::register_unfold_count_per_input_layer(
+    std::map<phlex::experimental::identifier, std::size_t> counts)
   {
     // Called once during finalize(), before any indices are routed, so no concurrent access.
     unfold_count_per_input_layer_ = std::move(counts);
@@ -221,20 +220,21 @@ namespace phlex::experimental {
     return is_lowest_layer_hashes_.emplace(index->layer_hash(), true).first->second;
   }
 
-  detail::index_set_node_ptr index_router::index_set_node_for(data_cell_index_ptr const& index)
+  internal::index_set_node_ptr index_router::index_set_node_for(data_cell_index_ptr const& index)
   {
     auto const layer_hash = index->layer_hash();
     if (auto it = index_set_node_cache_.find(layer_hash); it != index_set_node_cache_.end()) {
       return it->second;
     }
 
-    layer_path const layerish_path{{index->layer_name()}};
+    phlex::experimental::layer_path const layerish_path{{index->layer_name()}};
     auto broadcaster = index_set_node_for(layerish_path);
     index_set_node_cache_.insert({layer_hash, broadcaster});
     return broadcaster;
   }
 
-  auto index_router::index_set_node_for(layer_path const& layer_path) -> detail::index_set_node_ptr
+  auto index_router::index_set_node_for(phlex::experimental::layer_path const& layer_path)
+    -> internal::index_set_node_ptr
   {
     std::vector<decltype(index_set_nodes_.begin())> candidates;
     for (auto it = index_set_nodes_.begin(), e = index_set_nodes_.end(); it != e; ++it) {
@@ -259,7 +259,7 @@ namespace phlex::experimental {
     throw std::runtime_error(msg);
   }
 
-  std::pair<detail::multilayer_slots_ptr, detail::multilayer_slots_ptr>
+  std::pair<internal::multilayer_slots_ptr, internal::multilayer_slots_ptr>
   index_router::multilayer_slots_for(data_cell_index_ptr const& index)
   {
     auto const layer_hash = index->layer_hash();
@@ -280,8 +280,8 @@ namespace phlex::experimental {
     }
 
     auto const layer_path = index->layer_path();
-    detail::multilayer_slots message_slots;
-    detail::multilayer_slots end_token_slots;
+    internal::multilayer_slots message_slots;
+    internal::multilayer_slots end_token_slots;
 
     // For each multi-layer join node, determine which slots are relevant to this index.
     // Message entries: All slots from a node are added if (1) at least one slot exactly
@@ -289,7 +289,7 @@ namespace phlex::experimental {
     //                  or are parent layers of the current index.
     // End-token entries: Only slots that exactly match the current layer are added.
     for (auto& [node_name, slots] : multilayer_join_slots_) {
-      detail::multilayer_slots matching_slots;
+      internal::multilayer_slots matching_slots;
       matching_slots.reserve(slots.size());
 
       bool has_exact_match = false;
@@ -317,13 +317,13 @@ namespace phlex::experimental {
     }
 
     acc->second.message_slots =
-      std::make_shared<detail::multilayer_slots const>(std::move(message_slots));
+      std::make_shared<internal::multilayer_slots const>(std::move(message_slots));
     acc->second.end_token_slots =
-      std::make_shared<detail::multilayer_slots const>(std::move(end_token_slots));
+      std::make_shared<internal::multilayer_slots const>(std::move(end_token_slots));
     return {acc->second.message_slots, acc->second.end_token_slots};
   }
 
-  void index_router::update_flush_counts(phlex::detail::index_flushes flushes)
+  void index_router::update_flush_counts(index_flushes flushes)
   {
     for (auto const& [index, flush_counts] : flushes) {
       auto gate = gate_for(index);
@@ -334,7 +334,7 @@ namespace phlex::experimental {
     }
   }
 
-  void index_router::apply_expected_count(phlex::detail::flush_gate& gate,
+  void index_router::apply_expected_count(flush_gate& gate,
                                           data_cell_index::hash_type const child_layer_hash,
                                           std::size_t const count)
   {
@@ -360,7 +360,7 @@ namespace phlex::experimental {
     return it != is_lowest_layer_hashes_.end() ? it->second : true;
   }
 
-  phlex::detail::flush_gate_ptr index_router::gate_for(data_cell_index_ptr const& index)
+  flush_gate_ptr index_router::gate_for(data_cell_index_ptr const& index)
   {
     // Fast path: entry already exists — read under shared lock to avoid serializing threads.
     const_accessor ca;
@@ -380,7 +380,7 @@ namespace phlex::experimental {
         auto it = unfold_count_per_input_layer_.find(index->layer_name());
         return it != unfold_count_per_input_layer_.end() ? it->second : 0;
       }();
-      a->second = std::make_shared<phlex::detail::flush_gate>(index, expected_flush_count);
+      a->second = std::make_shared<flush_gate>(index, expected_flush_count);
     }
     return a->second;
   }
@@ -394,7 +394,7 @@ namespace phlex::experimental {
       // calling send_flush().  The erase claims exclusive ownership of this gate —
       // any concurrent flush_if_done call for the same index will fail to find the entry
       // and return immediately, preventing double-flush.
-      phlex::detail::flush_gate_ptr gate;
+      flush_gate_ptr gate;
       {
         accessor a;
         if (not flush_gates_.find(a, index->hash())) {

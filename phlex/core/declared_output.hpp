@@ -18,17 +18,17 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
-  namespace detail {
-    using output_function_t = std::function<void(product_store const&)>;
+namespace phlex::detail {
+  namespace internal {
+    using output_function_t = std::function<void(phlex::experimental::product_store const&)>;
   }
   class PHLEX_CORE_EXPORT declared_output : public consumer {
   public:
-    declared_output(algorithm_name name,
+    declared_output(phlex::experimental::algorithm_name name,
                     std::size_t concurrency,
                     std::vector<std::string> predicates,
                     tbb::flow::graph& g,
-                    detail::output_function_t&& ft);
+                    internal::output_function_t&& ft);
 
     tbb::flow::receiver<message>& port() noexcept;
     std::size_t num_calls() const { return calls_; }
@@ -39,7 +39,7 @@ namespace phlex::experimental {
   };
 
   using declared_output_ptr = std::unique_ptr<declared_output>;
-  using declared_outputs = phlex::detail::simple_ptr_map<declared_output_ptr>;
+  using declared_outputs = simple_ptr_map<declared_output_ptr>;
 }
 
 #endif // PHLEX_CORE_DECLARED_OUTPUT_HPP

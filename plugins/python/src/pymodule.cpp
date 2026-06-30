@@ -18,6 +18,7 @@
 
 using namespace phlex::experimental;
 using namespace phlex;
+using phlex::detail::framework_graph;
 
 static bool initialize();
 

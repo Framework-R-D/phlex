@@ -22,10 +22,9 @@ namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   struct node_catalog;
-
-  namespace detail {
+  namespace internal {
     PHLEX_CORE_EXPORT void verify_name(std::string const& name, configuration const* config);
   }
 
@@ -57,7 +56,7 @@ namespace phlex::experimental {
     auto fold(
       std::string name, auto f, concurrency c, std::string partition, InitArgs&&... init_args)
     {
-      detail::verify_name(name, config_);
+      internal::verify_name(name, config_);
       return fold_api{config_,
                       std::move(name),
                       phlex::detail::algorithm_bits(bound_obj_, std::move(f)),
@@ -72,7 +71,7 @@ namespace phlex::experimental {
     template <typename FT>
     auto observe(std::string name, FT f, concurrency c)
     {
-      detail::verify_name(name, config_);
+      internal::verify_name(name, config_);
       return make_registration<observer_node>(
         config_,
         std::move(name),
@@ -86,7 +85,7 @@ namespace phlex::experimental {
     template <typename FT>
     auto provide(std::string name, FT f, concurrency c)
     {
-      detail::verify_name(name, config_);
+      internal::verify_name(name, config_);
       return provider_api{config_,
                           std::move(name),
                           phlex::detail::algorithm_bits{bound_obj_, std::move(f)},
@@ -99,7 +98,7 @@ namespace phlex::experimental {
     template <typename FT>
     auto transform(std::string name, FT f, concurrency c)
     {
-      detail::verify_name(name, config_);
+      internal::verify_name(name, config_);
       return make_registration<transform_node>(
         config_,
         std::move(name),
@@ -113,7 +112,7 @@ namespace phlex::experimental {
     template <typename FT>
     auto predicate(std::string name, FT f, concurrency c)
     {
-      detail::verify_name(name, config_);
+      internal::verify_name(name, config_);
       return make_registration<predicate_node>(
         config_,
         std::move(name),
@@ -131,7 +130,7 @@ namespace phlex::experimental {
                 std::string destination_data_layer)
     {
       assert(!bound_obj_);
-      detail::verify_name(name, config_);
+      internal::verify_name(name, config_);
       return unfold_api<T, decltype(predicate), decltype(unfold)>{
         config_,
         std::move(name),
@@ -160,7 +159,7 @@ namespace phlex::experimental {
       auto [_, inserted] =
         nodes_.sources.try_emplace(name, std::make_unique<Source>(std::forward<Args>(args)...));
       if (not inserted) {
-        detail::add_to_error_messages(errors_, "Source", name); // From registrar.hpp
+        internal::add_to_error_messages(errors_, "Source", name); // From registrar.hpp
       }
     }
 

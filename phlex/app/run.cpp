@@ -17,7 +17,7 @@ namespace {
 namespace phlex::experimental {
   void run(boost::json::object const& configurations, int const max_parallelism)
   {
-    auto g = framework_graph::without_driver(max_parallelism);
+    auto g = phlex::detail::framework_graph::without_driver(max_parallelism);
 
     // It is allowed for users to not specify any modules
     boost::json::object module_configs;

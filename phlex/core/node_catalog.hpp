@@ -20,7 +20,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   struct PHLEX_CORE_EXPORT node_catalog {
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)

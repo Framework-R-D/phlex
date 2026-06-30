@@ -16,7 +16,7 @@ namespace phlex::experimental {
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     configuration const& config;
     tbb::flow::graph& graph;
-    node_catalog& nodes;
+    phlex::detail::node_catalog& nodes;
     std::vector<std::string>& registration_errors;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
@@ -26,8 +26,8 @@ namespace phlex::experimental {
   /// Passed to @c PHLEX_REGISTER_PROVIDERS plugin entry points. Only provide
   /// registration is accessible. Users never construct this type directly.
   template <typename T>
-  class providers_graph_proxy : graph_proxy<T> {
-    using base = graph_proxy<T>;
+  class providers_graph_proxy : phlex::detail::graph_proxy<T> {
+    using base = phlex::detail::graph_proxy<T>;
 
   public:
     providers_graph_proxy(source_bundle bundle) :
@@ -39,7 +39,7 @@ namespace phlex::experimental {
 
     template <typename U, typename... Args>
     providers_graph_proxy<U> make(Args&&... args)
-      requires(not is_bound_object<T>)
+      requires(not phlex::detail::is_bound_object<T>)
     {
       return this->template bind_to<providers_graph_proxy, U>(std::forward<Args>(args)...);
     }
@@ -53,8 +53,8 @@ namespace phlex::experimental {
   /// Passed to @c PHLEX_REGISTER_SOURCE plugin entry points. Only source
   /// registration is accessible. Users never construct this type directly.
   template <typename T>
-  class source_graph_proxy : graph_proxy<T> {
-    using base = graph_proxy<T>;
+  class source_graph_proxy : phlex::detail::graph_proxy<T> {
+    using base = phlex::detail::graph_proxy<T>;
 
   public:
     source_graph_proxy(source_bundle bundle) :

@@ -57,9 +57,9 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
-  namespace detail {
+  namespace internal {
     PHLEX_CORE_EXPORT void add_to_error_messages(std::vector<std::string>& errors,
                                                  std::string const& entity,
                                                  std::string const& name);
@@ -116,7 +116,7 @@ namespace phlex::experimental {
       auto name = ptr->name().to_string();
       auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
       if (not inserted) {
-        detail::add_to_error_messages(*errors_, "Node", name);
+        internal::add_to_error_messages(*errors_, "Node", name);
       }
     }
 

@@ -36,7 +36,7 @@ namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT framework_graph {
   public:
     [[nodiscard]] static framework_graph with_default_driver(
@@ -50,11 +50,13 @@ namespace phlex::experimental {
     framework_graph(framework_graph&&) = delete;
     framework_graph& operator=(framework_graph&&) = delete;
 
-    void add_driver(driver_bundle bundle);
+    void add_driver(phlex::experimental::driver_bundle bundle);
 
     template <typename Generator>
       requires requires(std::shared_ptr<Generator> generator, std::vector<source const*> sources) {
-        { experimental::driver_proxy{sources}.driver(generator) } -> std::same_as<driver_bundle>;
+        {
+          experimental::driver_proxy{sources}.driver(generator)
+        } -> std::same_as<phlex::experimental::driver_bundle>;
       }
     void add_driver(std::shared_ptr<Generator> generator)
     {
@@ -66,12 +68,12 @@ namespace phlex::experimental {
     std::size_t seen_cell_count(std::string const& layer_name, bool missing_ok = false) const;
     std::size_t execution_count(std::string const& node_name) const;
 
-    module_graph_proxy<phlex::detail::void_tag> module_proxy(configuration const& config)
+    experimental::module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
     }
 
-    source_bundle source_proxy(configuration const& config)
+    experimental::source_bundle source_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
     }

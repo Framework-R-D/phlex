@@ -14,8 +14,8 @@
 #include <ranges>
 #include <string>
 
-namespace phlex::experimental {
-  using product_suffix_t = identifier;
+namespace phlex::detail {
+  using product_suffix_t = phlex::experimental::identifier;
 
   class PHLEX_CORE_EXPORT producer_catalog {
   public:
@@ -23,13 +23,14 @@ namespace phlex::experimental {
     explicit producer_catalog(Args const&... producers);
 
     struct named_output_port {
-      algorithm_name node;
+      phlex::experimental::algorithm_name node;
       tbb::flow::sender<message>* output_port;
-      phlex::detail::type_id type;
+      type_id type;
     };
 
-    named_output_port const* find_producer(product_selector const& query,
-                                           algorithm_name const& consumer_name) const;
+    named_output_port const* find_producer(
+      product_selector const& query,
+      phlex::experimental::algorithm_name const& consumer_name) const;
     auto values() const { return producers_ | std::views::values; }
 
   private:

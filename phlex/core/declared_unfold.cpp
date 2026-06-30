@@ -5,28 +5,29 @@
 #include "fmt/std.h"
 #include "spdlog/spdlog.h"
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
-  generator::generator(product_store_const_ptr const& parent,
-                       algorithm_name node_name,
+  generator::generator(phlex::experimental::product_store_const_ptr const& parent,
+                       phlex::experimental::algorithm_name node_name,
                        std::string const& child_layer_name) :
-    parent_{std::const_pointer_cast<product_store>(parent)},
+    parent_{std::const_pointer_cast<phlex::experimental::product_store>(parent)},
     node_name_{std::move(node_name)},
     child_layer_name_{child_layer_name},
-    child_layer_hash_{
-      phlex::detail::hash(parent->index()->layer_hash(), identifier{child_layer_name_}.hash())}
+    child_layer_hash_{hash(parent->index()->layer_hash(),
+                           phlex::experimental::identifier{child_layer_name_}.hash())}
   {
   }
 
-  product_store_const_ptr generator::make_child(std::size_t const i,
-                                                phlex::detail::products new_products)
+  phlex::experimental::product_store_const_ptr generator::make_child(std::size_t const i,
+                                                                     products new_products)
   {
     auto child_index = parent_->index()->make_child(child_layer_name_, i);
     ++child_counts_;
-    return std::make_shared<product_store>(child_index, node_name_, std::move(new_products));
+    return std::make_shared<phlex::experimental::product_store>(
+      child_index, node_name_, std::move(new_products));
   }
 
-  declared_unfold::declared_unfold(algorithm_name name,
+  declared_unfold::declared_unfold(phlex::experimental::algorithm_name name,
                                    std::vector<std::string> predicates,
                                    product_selectors input_products,
                                    std::string child_layer) :

@@ -84,7 +84,9 @@ namespace phlex::experimental {
     }
   }
 
-  void load_module(framework_graph& g, std::string const& label, boost::json::object raw_config)
+  void load_module(phlex::detail::framework_graph& g,
+                   std::string const& label,
+                   boost::json::object raw_config)
   {
     auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
 
@@ -96,7 +98,9 @@ namespace phlex::experimental {
     creator(g.module_proxy(config), config);
   }
 
-  void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
+  void load_source(phlex::detail::framework_graph& g,
+                   std::string const& label,
+                   boost::json::object raw_config)
   {
     auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
 
@@ -113,7 +117,7 @@ namespace phlex::experimental {
     creator(g.source_proxy(config), config);
   }
 
-  void load_driver(framework_graph& g, boost::json::object const& raw_config)
+  void load_driver(phlex::detail::framework_graph& g, boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");

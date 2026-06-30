@@ -21,7 +21,7 @@ namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   // ====================================================================================
   // Registration API
@@ -44,7 +44,7 @@ namespace phlex::experimental {
                      node_catalog& nodes,
                      std::vector<std::string>& errors) :
       config_{config},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{experimental::internal::make_algorithm_name(config, std::move(name))},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -91,7 +91,7 @@ namespace phlex::experimental {
 
   private:
     configuration const* config_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -126,7 +126,7 @@ namespace phlex::experimental {
                  node_catalog& nodes,
                  std::vector<std::string>& errors) :
       config_{config},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{experimental::internal::make_algorithm_name(config, std::move(name))},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -134,10 +134,10 @@ namespace phlex::experimental {
     {
     }
 
-    auto output_product(algorithm_name creator,
-                        identifier suffix,
-                        identifier output_layer,
-                        identifier stage = "CURRENT"_id)
+    auto output_product(phlex::experimental::algorithm_name creator,
+                        phlex::experimental::identifier suffix,
+                        phlex::experimental::identifier output_layer,
+                        phlex::experimental::identifier stage = "CURRENT"_id)
     {
       using return_type = phlex::detail::return_type<typename AlgorithmBits::algorithm_type>;
       phlex::detail::product_specification output_spec(
@@ -165,7 +165,7 @@ namespace phlex::experimental {
 
   private:
     configuration const* config_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -196,7 +196,7 @@ namespace phlex::experimental {
              std::string partition,
              InitArgs&&... init_args) :
       config_{config},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{experimental::internal::make_algorithm_name(config, std::move(name))},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -236,7 +236,7 @@ namespace phlex::experimental {
 
   private:
     configuration const* config_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -274,7 +274,7 @@ namespace phlex::experimental {
                std::string destination_data_layer) :
       config_{config},
       registrar_{nodes.registrar_for<declared_unfold_ptr>(errors)},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
       concurrency_{c.value},
       graph_{g},
       predicate_{std::move(predicate)},
@@ -314,7 +314,7 @@ namespace phlex::experimental {
   private:
     configuration const* config_;
     registrar<declared_unfold_ptr> registrar_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     std::size_t concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -332,7 +332,7 @@ namespace phlex::experimental {
                configuration const* config,
                std::string name,
                tbb::flow::graph& g,
-               detail::output_function_t&& f,
+               internal::output_function_t&& f,
                concurrency c);
 
     void experimental_when(std::vector<std::string> predicates);
@@ -343,10 +343,10 @@ namespace phlex::experimental {
     }
 
   private:
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    detail::output_function_t ft_;
+    internal::output_function_t ft_;
     concurrency concurrency_;
     registrar<declared_output_ptr> reg_;
   };

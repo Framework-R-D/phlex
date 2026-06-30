@@ -5,7 +5,7 @@
 
 #include "oneapi/tbb/flow_graph.h"
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class consumer;
   class declared_output;
   class generator;

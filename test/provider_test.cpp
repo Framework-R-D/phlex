@@ -80,7 +80,7 @@ TEST_CASE("Explicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", num_spills, 1u});
 
-  auto g = experimental::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
@@ -109,7 +109,7 @@ TEST_CASE("Implicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", num_spills, 1u});
 
-  auto g = experimental::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
   g.add_source<vertices_source>("vertices_source");
 
@@ -132,7 +132,7 @@ TEST_CASE("Implicit providers")
 
 TEST_CASE("Throw when two sources with the same name are registered")
 {
-  auto g = experimental::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver();
   g.add_source<vertices_source>("vertices_source");
   g.add_source<vertices_source>("vertices_source");
 
@@ -142,7 +142,7 @@ TEST_CASE("Throw when two sources with the same name are registered")
 
 TEST_CASE("Throw when no provider found for required product")
 {
-  auto g = experimental::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver();
 
   // Register an observer that needs a product from a creator that does not exist in the graph.
   // Since there is no matching provider, make_computational_edges should throw listing all
@@ -158,7 +158,7 @@ TEST_CASE("Throw when no provider found for required product")
 
 TEST_CASE("Throw when two implicit providers are found for the same product")
 {
-  auto g = experimental::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver();
 
   // Register two sources that can provide the same product
   g.add_source<vertices_source>("vertices_source_1");
@@ -180,7 +180,7 @@ TEST_CASE("Throw when implicit provider insertion fails")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {"job", 1u});
 
-  auto g = experimental::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(std::move(gen));
   g.add_source<vertices_source>("duplicate_vertices_source");
 

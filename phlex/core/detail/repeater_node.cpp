@@ -4,9 +4,11 @@
 
 #include <cassert>
 
-namespace phlex::experimental::detail {
+namespace phlex::detail::internal {
 
-  repeater_node::repeater_node(tbb::flow::graph& g, std::string node_name, identifier layer_name) :
+  repeater_node::repeater_node(tbb::flow::graph& g,
+                               std::string node_name,
+                               phlex::experimental::identifier layer_name) :
     base_t{g},
     indexer_{g},
     repeater_{g,

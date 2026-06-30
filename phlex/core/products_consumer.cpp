@@ -12,9 +12,9 @@ namespace {
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
-  products_consumer::products_consumer(algorithm_name name,
+  products_consumer::products_consumer(phlex::experimental::algorithm_name name,
                                        std::vector<std::string> predicates,
                                        product_selectors input_products) :
     consumer{std::move(name), std::move(predicates)},
@@ -33,5 +33,8 @@ namespace phlex::experimental {
   }
 
   product_selectors const& products_consumer::input() const noexcept { return input_products_; }
-  std::vector<identifier> const& products_consumer::layers() const noexcept { return layers_; }
+  std::vector<phlex::experimental::identifier> const& products_consumer::layers() const noexcept
+  {
+    return layers_;
+  }
 }

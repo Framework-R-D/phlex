@@ -62,31 +62,41 @@ namespace phlex::experimental {
     std::optional<identifier> stage_; // No value means current stage
   };
 
-  PHLEX_MODEL_EXPORT product_store_ptr const& more_derived(product_store_ptr const& a,
-                                                           product_store_ptr const& b);
+  namespace detail {
+    PHLEX_MODEL_EXPORT product_store_ptr const& more_derived(product_store_ptr const& a,
+                                                             product_store_ptr const& b);
+    PHLEX_MODEL_EXPORT product_store_const_ptr const& more_derived(
+      product_store_const_ptr const& a, product_store_const_ptr const& b);
 
-  // Non-template overload for single product_store_ptr case
-  inline product_store_ptr const& most_derived(product_store_ptr const& store)
-  {
-    return store; // NOLINT(bugprone-return-const-ref-from-parameter)
-  }
-
-  // Generic most_derived for tuples
-  template <std::size_t I, typename Tuple>
-  auto const& get_most_derived(Tuple const& tup, std::tuple_element_t<I - 1, Tuple> const& element)
-  {
-    constexpr auto num_inputs = std::tuple_size_v<Tuple>;
-    if constexpr (I == num_inputs - 1) {
-      return more_derived(element, std::get<I>(tup));
-    } else {
-      return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
+    // Non-template overload for single product_store_ptr case
+    inline product_store_ptr const& most_derived(product_store_ptr const& store)
+    {
+      return store; // NOLINT(bugprone-return-const-ref-from-parameter)
     }
-  }
 
-  template <typename T, typename U, typename... Ts>
-  auto const& most_derived(std::tuple<T, U, Ts...> const& elements)
-  {
-    return get_most_derived<1ull>(elements, std::get<0>(elements));
+    inline product_store_const_ptr const& most_derived(product_store_const_ptr const& store)
+    {
+      return store; // NOLINT(bugprone-return-const-ref-from-parameter)
+    }
+
+    // Generic most_derived for tuples
+    template <std::size_t I, typename Tuple>
+    auto const& get_most_derived(Tuple const& tup,
+                                 std::tuple_element_t<I - 1, Tuple> const& element)
+    {
+      constexpr auto num_inputs = std::tuple_size_v<Tuple>;
+      if constexpr (I == num_inputs - 1) {
+        return more_derived(element, std::get<I>(tup));
+      } else {
+        return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
+      }
+    }
+
+    template <typename T, typename U, typename... Ts>
+    auto const& most_derived(std::tuple<T, U, Ts...> const& elements)
+    {
+      return get_most_derived<1ull>(elements, std::get<0>(elements));
+    }
   }
 
   // Implementation details

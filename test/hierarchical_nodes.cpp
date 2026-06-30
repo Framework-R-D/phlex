@@ -51,7 +51,7 @@ namespace {
 
   data_for_rms send(threadsafe_data_for_rms const& data)
   {
-    return {phlex::experimental::send(data.total), phlex::experimental::send(data.number)};
+    return {experimental::send(data.total), experimental::send(data.number)};
   }
 
   void add(threadsafe_data_for_rms& redata, unsigned squared_number)
@@ -82,7 +82,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   gen->add_layer("run", {"job", index_limit});
   gen->add_layer("event", {"run", number_limit});
 
-  auto g = experimental::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("provide_time",

@@ -33,21 +33,22 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT generator {
   public:
-    explicit generator(product_store_const_ptr const& parent,
-                       algorithm_name node_name,
+    explicit generator(phlex::experimental::product_store_const_ptr const& parent,
+                       phlex::experimental::algorithm_name node_name,
                        std::string const& child_layer_name);
 
     std::size_t child_layer_hash() const { return child_layer_hash_; }
     std::size_t child_count() const { return child_counts_; }
-    product_store_const_ptr make_child(std::size_t i, phlex::detail::products new_products);
+    phlex::experimental::product_store_const_ptr make_child(std::size_t i,
+                                                            phlex::detail::products new_products);
 
   private:
-    product_store_ptr parent_;
-    algorithm_name node_name_;
+    phlex::experimental::product_store_ptr parent_;
+    phlex::experimental::algorithm_name node_name_;
     // References declared_unfold::child_layer_, which outlives this short-lived object.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
@@ -57,7 +58,7 @@ namespace phlex::experimental {
 
   class PHLEX_CORE_EXPORT declared_unfold : public products_consumer {
   public:
-    declared_unfold(algorithm_name name,
+    declared_unfold(phlex::experimental::algorithm_name name,
                     std::vector<std::string> predicates,
                     product_selectors input_products,
                     std::string child_layer);
@@ -87,7 +88,7 @@ namespace phlex::experimental {
     static constexpr std::size_t num_outputs = phlex::detail::number_output_objects<Unfold>;
 
   public:
-    unfold_node(algorithm_name algo_name,
+    unfold_node(phlex::experimental::algorithm_name algo_name,
                 std::size_t concurrency,
                 std::vector<std::string> predicates,
                 tbb::flow::graph& g,
@@ -169,7 +170,7 @@ namespace phlex::experimental {
       std::size_t counter = 0;
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
-        phlex::detail::products new_products{num_outputs};
+        products new_products{num_outputs};
         auto new_id = unfolded_id->make_child(child_layer(), counter);
         if constexpr (requires { std::invoke(unfold, obj, running_value, *new_id); }) {
           auto [next_value, prods] = std::invoke(unfold, obj, running_value, *new_id);
@@ -194,10 +195,10 @@ namespace phlex::experimental {
     std::size_t product_count() const final { return product_count_.load(); }
 
     input_retriever_types<input_args> input_{input_arguments<input_args>()};
-    phlex::detail::product_specifications output_;
+    product_specifications output_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>,
-                                  std::tuple<message, index_message, phlex::detail::unfold_flush>>
+                                  std::tuple<message, index_message, unfold_flush>>
       unfold_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};

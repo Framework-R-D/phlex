@@ -8,18 +8,18 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT consumer {
   public:
-    consumer(algorithm_name name, std::vector<std::string> predicates);
+    consumer(phlex::experimental::algorithm_name name, std::vector<std::string> predicates);
 
-    algorithm_name const& name() const noexcept;
-    identifier const& plugin() const noexcept;
-    identifier const& algorithm() const noexcept;
+    phlex::experimental::algorithm_name const& name() const noexcept;
+    phlex::experimental::identifier const& plugin() const noexcept;
+    phlex::experimental::identifier const& algorithm() const noexcept;
     std::vector<std::string> const& when() const noexcept;
 
   private:
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     std::vector<std::string> predicates_;
   };
 }

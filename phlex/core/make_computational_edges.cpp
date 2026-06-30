@@ -12,7 +12,7 @@
 
 using namespace std::string_literals;
 
-namespace phlex::experimental {
+namespace phlex::detail {
   namespace {
     provider_node* find_matching_provider(provider_nodes& providers,
                                           product_selector const& input_product)
@@ -28,10 +28,10 @@ namespace phlex::experimental {
       return nullptr;
     }
 
-    phlex::detail::provider_bundles find_matching_implicit_providers(
-      phlex::detail::source_map const& sources, product_selector const& input_product)
+    provider_bundles find_matching_implicit_providers(source_map const& sources,
+                                                      product_selector const& input_product)
     {
-      phlex::detail::provider_bundles result;
+      provider_bundles result;
       for (auto const& src : sources | std::views::values) {
         result.append_range(src->create_providers(input_product));
       }
@@ -70,7 +70,7 @@ namespace phlex::experimental {
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
     edges_from_implicit_providers(index_router::head_ports_t head_ports,
                                   provider_nodes& providers,
-                                  phlex::detail::source_map const& sources,
+                                  source_map const& sources,
                                   tbb::flow::graph& g)
     {
       index_router::provider_input_ports_t provider_input_ports;
@@ -107,13 +107,14 @@ namespace phlex::experimental {
 
           auto& bundle = bundles[0];
           auto const& spec = bundle.spec;
-          auto node = std::make_unique<provider_node>(spec.creator(),
-                                                      bundle.max_concurrency.value,
-                                                      g,
-                                                      std::move(bundle.provider_function),
-                                                      spec,
-                                                      identifier{bundle.layer},
-                                                      identifier{bundle.stage});
+          auto node =
+            std::make_unique<provider_node>(spec.creator(),
+                                            bundle.max_concurrency.value,
+                                            g,
+                                            std::move(bundle.provider_function),
+                                            spec,
+                                            phlex::experimental::identifier{bundle.layer},
+                                            phlex::experimental::identifier{bundle.stage});
           auto const provider_name = node->name().to_string();
           auto [_, inserted] =
             provider_input_ports.try_emplace(provider_name, input_product, node->input_port());

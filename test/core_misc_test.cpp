@@ -62,10 +62,9 @@ TEST_CASE("algorithm_name tests", "[model]")
 
 TEST_CASE("consumer tests", "[core]")
 {
-  using namespace phlex::experimental;
   using namespace phlex::experimental::literals;
-  algorithm_name an = algorithm_name::create("p:a");
-  consumer c(an, {"pred1"});
+  auto an = phlex::experimental::algorithm_name::create("p:a");
+  phlex::detail::consumer c(an, {"pred1"});
 
   CHECK(c.name().to_string() == "p:a");
   CHECK(c.plugin() == "p"_idq);
@@ -75,7 +74,7 @@ TEST_CASE("consumer tests", "[core]")
 
 TEST_CASE("verify_name tests", "[core]")
 {
-  using namespace phlex::experimental::detail;
+  using namespace phlex::detail::internal;
 
   SECTION("non-empty name does nothing") { CHECK_NOTHROW(verify_name("valid_name", nullptr)); }
 
@@ -99,7 +98,7 @@ TEST_CASE("verify_name tests", "[core]")
 
 TEST_CASE("add_to_error_messages tests", "[core]")
 {
-  using namespace phlex::experimental::detail;
+  using namespace phlex::detail::internal;
 
   std::vector<std::string> errors;
   add_to_error_messages(errors, "Node", "duplicate_node");

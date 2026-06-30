@@ -20,7 +20,7 @@ namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   // ==============================================================================
   // Registering user functions
 

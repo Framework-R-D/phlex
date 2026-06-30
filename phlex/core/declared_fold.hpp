@@ -35,30 +35,29 @@
 #include <type_traits>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT declared_fold : public products_consumer {
   public:
-    declared_fold(algorithm_name name,
+    declared_fold(phlex::experimental::algorithm_name name,
                   std::vector<std::string> predicates,
                   product_selectors input_products);
     ~declared_fold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
-    virtual phlex::detail::product_specifications const& output() const = 0;
+    virtual product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
   using declared_fold_ptr = std::unique_ptr<declared_fold>;
-  using declared_folds = phlex::detail::simple_ptr_map<declared_fold_ptr>;
+  using declared_folds = simple_ptr_map<declared_fold_ptr>;
 
   // =====================================================================================
 
   template <typename AlgorithmBits, typename InitTuple>
   class fold_node : public declared_fold, private count_stores {
     using all_parameter_types = typename AlgorithmBits::input_parameter_types;
-    using input_parameter_types =
-      phlex::detail::skip_first_type<all_parameter_types>; // Skip fold object
+    using input_parameter_types = skip_first_type<all_parameter_types>; // Skip fold object
     static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
     using result_type = std::decay_t<std::tuple_element_t<0, all_parameter_types>>;
 
@@ -66,7 +65,7 @@ namespace phlex::experimental {
     using function_t = typename AlgorithmBits::bound_type;
 
   public:
-    fold_node(algorithm_name algo_name,
+    fold_node(phlex::experimental::algorithm_name algo_name,
               std::size_t concurrency,
               std::vector<std::string> predicates,
               tbb::flow::graph& g,
@@ -77,8 +76,7 @@ namespace phlex::experimental {
               std::string partition) :
       declared_fold{std::move(algo_name), std::move(predicates), std::move(input_products)},
       initializer_{std::move(initializer)},
-      output_{to_product_specifications(
-        name(), std::move(output), phlex::detail::make_type_ids<result_type>())},
+      output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       partition_{std::move(partition)},
       flush_receiver_{g,
                       tbb::flow::unlimited,
@@ -127,7 +125,7 @@ namespace phlex::experimental {
     void emit_and_evict_if_done(data_cell_index_ptr const& fold_index)
     {
       if (auto counter = done_with(fold_index->hash())) {
-        auto parent = std::make_shared<product_store>(fold_index, name());
+        auto parent = std::make_shared<phlex::experimental::product_store>(fold_index, name());
         commit(parent);
         ++product_count_;
         tbb::flow::output_port<0>(fold_).try_put(
@@ -147,7 +145,7 @@ namespace phlex::experimental {
 
     tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& output_port() override { return tbb::flow::output_port<0>(fold_); }
-    phlex::detail::product_specifications const& output() const override { return output_; }
+    product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(function_t const& ft,
@@ -183,9 +181,10 @@ namespace phlex::experimental {
       return std::unique_ptr<result_type>(new result_type{std::get<Is>(init)...});
     }
 
-    auto commit(product_store_ptr& store)
+    auto commit(phlex::experimental::product_store_ptr& store)
     {
       auto& result = results_.at(store->index()->hash());
+      using phlex::experimental::send;
       if constexpr (requires { send(*result); }) {
         store->add_product(output()[0], send(*result));
       } else {
@@ -198,8 +197,8 @@ namespace phlex::experimental {
 
     InitTuple initializer_;
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    phlex::detail::product_specifications output_;
-    identifier partition_;
+    product_specifications output_;
+    phlex::experimental::identifier partition_;
     tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1>> fold_;

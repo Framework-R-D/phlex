@@ -3,6 +3,7 @@
 
 #include "phlex/core/detail/repeater_node.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -14,7 +15,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <typename Input>
   using multilayer_join_node_base_t = tbb::flow::composite_node<Input, std::tuple<Input>>;
 
@@ -68,7 +69,7 @@ namespace phlex::experimental {
   public:
     multilayer_join_node(tbb::flow::graph& g,
                          std::string const& node_name,
-                         std::vector<identifier> layer_names) :
+                         std::vector<phlex::experimental::identifier> layer_names) :
       base_t{g},
       join_{make_join(g, std::make_index_sequence<NInputs>{})},
       name_{node_name},
@@ -85,7 +86,7 @@ namespace phlex::experimental {
       if (collapsed_layers.size() > 1) {
         repeaters_.reserve(NInputs);
         for (auto const& layer : layers_) {
-          repeaters_.push_back(std::make_unique<detail::repeater_node>(g, name_, layer));
+          repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
         }
       }
 
@@ -118,16 +119,16 @@ namespace phlex::experimental {
     }
 
   private:
-    std::vector<std::unique_ptr<detail::repeater_node>> repeaters_;
+    std::vector<std::unique_ptr<internal::repeater_node>> repeaters_;
     tbb::flow::join_node<args_t, tbb::flow::tag_matching> join_;
     // Immutable after construction; tbb::flow::join_node is already non-movable.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const name_;
-    std::vector<identifier> const layers_;
+    std::vector<phlex::experimental::identifier> const layers_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
-  namespace detail {
+  namespace internal {
     // Stateless placeholder used instead of multilayer_join_node when a node has only a
     // single input (no joining is required).
     struct no_join {
@@ -149,18 +150,18 @@ namespace phlex::experimental {
 
   // Resolves to multilayer_join_node<N> for N > 1 and to no_join for N == 1.
   template <std::size_t N>
-  using join_or_none_t = typename detail::pre_node<N>::type;
+  using join_or_none_t = typename internal::pre_node<N>::type;
 
   // Constructs a multilayer_join_node when N > 1, or a no_join when N == 1.
   template <std::size_t N>
   join_or_none_t<N> make_join_or_none(tbb::flow::graph& g,
                                       std::string const& node_name,
-                                      std::vector<identifier> const& layers)
+                                      std::vector<phlex::experimental::identifier> const& layers)
   {
     if constexpr (N > 1ull) {
       return multilayer_join_node<N>{g, node_name, layers};
     } else {
-      return detail::no_join{};
+      return internal::no_join{};
     }
   }
 
@@ -179,7 +180,7 @@ namespace phlex::experimental {
     throw std::runtime_error("Should never get here");
   }
 
-  namespace detail {
+  namespace internal {
     // Returns pointers to all N input ports of the join node.  Only valid for N > 1;
     // callers with a single input should use the node directly.
     template <std::size_t N>
@@ -213,7 +214,7 @@ namespace phlex::experimental {
     if constexpr (N == 1ull) {
       return {&node};
     } else {
-      return detail::input_ports<N>(join);
+      return internal::input_ports<N>(join);
     }
   }
 
@@ -229,7 +230,7 @@ namespace phlex::experimental {
     if constexpr (N == 1ull) {
       return node;
     } else {
-      return detail::receiver_for<N>(join, input_products, input_product);
+      return internal::receiver_for<N>(join, input_products, input_product);
     }
   }
 }
