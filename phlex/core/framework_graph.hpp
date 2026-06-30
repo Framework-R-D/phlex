@@ -50,13 +50,11 @@ namespace phlex::detail {
     framework_graph(framework_graph&&) = delete;
     framework_graph& operator=(framework_graph&&) = delete;
 
-    void add_driver(phlex::experimental::driver_bundle bundle);
+    void add_driver(driver_bundle bundle);
 
     template <typename Generator>
       requires requires(std::shared_ptr<Generator> generator, std::vector<source const*> sources) {
-        {
-          experimental::driver_proxy{sources}.driver(generator)
-        } -> std::same_as<phlex::experimental::driver_bundle>;
+        { driver_proxy{sources}.driver(generator) } -> std::same_as<driver_bundle>;
       }
     void add_driver(std::shared_ptr<Generator> generator)
     {
@@ -68,19 +66,19 @@ namespace phlex::detail {
     std::size_t seen_cell_count(std::string const& layer_name, bool missing_ok = false) const;
     std::size_t execution_count(std::string const& node_name) const;
 
-    experimental::module_graph_proxy<void_tag> module_proxy(configuration const& config)
+    module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
     }
 
-    experimental::source_bundle source_proxy(configuration const& config)
+    source_bundle source_proxy(configuration const& config)
     {
       return {config, graph_, nodes_, registration_errors_};
     }
 
-    experimental::driver_proxy driver_proxy(std::vector<std::string> strings = {})
+    detail::driver_proxy driver_proxy(std::vector<std::string> strings = {})
     {
-      return experimental::driver_proxy(nodes_.sources_for(strings));
+      return detail::driver_proxy{nodes_.sources_for(strings)};
     }
 
     // Framework function registrations
@@ -171,7 +169,7 @@ namespace phlex::detail {
      * - Optional instance of T (if not void_tag)
      * - Registration error collection
      */
-    template <typename T = phlex::detail::void_tag, bool Construct = true, typename... Args>
+    template <typename T = void_tag, bool Construct = true, typename... Args>
     glue<T> make_glue(Args&&... args)
     {
       std::shared_ptr<T> bound_object{nullptr};
@@ -192,23 +190,22 @@ namespace phlex::detail {
     enum class driver_mode { default_driver, deferred_driver };
     explicit framework_graph(driver_mode mode, int max_parallelism);
 
-    phlex::detail::resource_usage graph_resource_usage_{};
-    phlex::detail::max_allowed_parallelism parallelism_limit_;
+    resource_usage graph_resource_usage_{};
+    max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
-    phlex::detail::data_layer_hierarchy hierarchy_{};
+    data_layer_hierarchy hierarchy_{};
     node_catalog nodes_{};
     std::map<std::string, filter> filters_{};
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
-    std::optional<phlex::detail::framework_driver> driver_{};
+    std::optional<framework_driver> driver_{};
     std::vector<std::string> registration_errors_{};
-    phlex::detail::data_cell_tracker cell_tracker_{};
-    tbb::flow::input_node<phlex::detail::ready_flushes_then_emit> src_;
+    data_cell_tracker cell_tracker_{};
+    tbb::flow::input_node<ready_flushes_then_emit> src_;
     index_router index_router_;
-    tbb::flow::function_node<phlex::detail::ready_flushes_then_emit,
-                             phlex::data_cell_index_ptr,
-                             tbb::flow::lightweight>
-      index_receiver_;
+    tbb::flow::
+      function_node<ready_flushes_then_emit, phlex::data_cell_index_ptr, tbb::flow::lightweight>
+        index_receiver_;
     tbb::flow::function_node<data_cell_index_ptr, tbb::flow::continue_msg, tbb::flow::lightweight>
       hierarchy_node_;
     driver_mode driver_mode_{driver_mode::default_driver};

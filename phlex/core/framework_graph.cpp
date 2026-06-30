@@ -65,7 +65,7 @@ namespace phlex::detail {
                  phlex::detail::max_allowed_parallelism::active_value());
   }
 
-  void framework_graph::add_driver(phlex::experimental::driver_bundle bundle)
+  void framework_graph::add_driver(driver_bundle bundle)
   {
     if (driver_mode_ != driver_mode::deferred_driver) {
       throw std::runtime_error(

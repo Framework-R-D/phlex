@@ -54,7 +54,7 @@
 
 #define PHLEX_DETAIL_REGISTER_SOURCE_PLUGIN(token_type, func_name, dll_alias, ...)                 \
   static PHLEX_DETAIL_SELECT_SOURCE_SIGNATURE(token_type, func_name, __VA_ARGS__);                 \
-  extern "C" void dll_alias(phlex::experimental::source_bundle __phlex_bundle,                     \
+  extern "C" void dll_alias(phlex::detail::source_bundle __phlex_bundle,                           \
                             phlex::configuration const& __phlex_config)                            \
   {                                                                                                \
     func_name(token_type<phlex::detail::void_tag>{__phlex_bundle}, __phlex_config);                \
@@ -64,12 +64,11 @@
 // ================================================================================================
 // Driver registration plugin macros
 #define PHLEX_DETAIL_CREATE_DRIVER_1ARG(func_name, d)                                              \
-  phlex::experimental::driver_bundle func_name(phlex::experimental::driver_proxy d,                \
-                                               phlex::configuration const&)
+  phlex::detail::driver_bundle func_name(phlex::detail::driver_proxy d, phlex::configuration const&)
 
 #define PHLEX_DETAIL_CREATE_DRIVER_2ARGS(func_name, d, cfg)                                        \
-  phlex::experimental::driver_bundle func_name(phlex::experimental::driver_proxy d,                \
-                                               phlex::configuration const& cfg)
+  phlex::detail::driver_bundle func_name(phlex::detail::driver_proxy d,                            \
+                                         phlex::configuration const& cfg)
 
 #define PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, ...)                                       \
   BOOST_PP_IF(BOOST_PP_EQUAL(PHLEX_DETAIL_NARGS(__VA_ARGS__), 1),                                  \
@@ -83,9 +82,9 @@
 // linkage), and then open the user's implementation definition for the body that follows.
 #define PHLEX_DETAIL_REGISTER_DRIVER_PLUGIN(func_name, dll_alias, ...)                             \
   static PHLEX_DETAIL_SELECT_DRIVER_SIGNATURE(func_name, __VA_ARGS__);                             \
-  extern "C" void dll_alias(phlex::experimental::driver_proxy __phlex_proxy,                       \
+  extern "C" void dll_alias(phlex::detail::driver_proxy __phlex_proxy,                             \
                             phlex::configuration const& __phlex_config,                            \
-                            phlex::experimental::driver_bundle* __phlex_out)                       \
+                            phlex::detail::driver_bundle* __phlex_out)                             \
   {                                                                                                \
     *__phlex_out = func_name(__phlex_proxy, __phlex_config);                                       \
   }                                                                                                \

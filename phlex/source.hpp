@@ -9,14 +9,14 @@
 
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   struct source_bundle {
     // Non-owning references to framework-owned resources; source_bundle is a short-lived struct.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     configuration const& config;
     tbb::flow::graph& graph;
-    phlex::detail::node_catalog& nodes;
+    node_catalog& nodes;
     std::vector<std::string>& registration_errors;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
@@ -26,8 +26,8 @@ namespace phlex::experimental {
   /// Passed to @c PHLEX_REGISTER_PROVIDERS plugin entry points. Only provide
   /// registration is accessible. Users never construct this type directly.
   template <typename T>
-  class providers_graph_proxy : phlex::detail::graph_proxy<T> {
-    using base = phlex::detail::graph_proxy<T>;
+  class providers_graph_proxy : graph_proxy<T> {
+    using base = graph_proxy<T>;
 
   public:
     providers_graph_proxy(source_bundle bundle) :
@@ -39,7 +39,7 @@ namespace phlex::experimental {
 
     template <typename U, typename... Args>
     providers_graph_proxy<U> make(Args&&... args)
-      requires(not phlex::detail::is_bound_object<T>)
+      requires(not is_bound_object<T>)
     {
       return this->template bind_to<providers_graph_proxy, U>(std::forward<Args>(args)...);
     }
@@ -53,8 +53,8 @@ namespace phlex::experimental {
   /// Passed to @c PHLEX_REGISTER_SOURCE plugin entry points. Only source
   /// registration is accessible. Users never construct this type directly.
   template <typename T>
-  class source_graph_proxy : phlex::detail::graph_proxy<T> {
-    using base = phlex::detail::graph_proxy<T>;
+  class source_graph_proxy : graph_proxy<T> {
+    using base = graph_proxy<T>;
 
   public:
     source_graph_proxy(source_bundle bundle) :
@@ -66,17 +66,17 @@ namespace phlex::experimental {
     using base::add_source;
   };
 
-  namespace detail {
+  namespace internal {
     using source_creator_t = void(source_bundle, configuration const&);
   }
 }
 
 #define PHLEX_REGISTER_PROVIDERS(...)                                                              \
   PHLEX_DETAIL_REGISTER_SOURCE_PLUGIN(                                                             \
-    phlex::experimental::providers_graph_proxy, create, create_source, __VA_ARGS__)
+    phlex::detail::providers_graph_proxy, create, create_source, __VA_ARGS__)
 
 #define PHLEX_REGISTER_SOURCE(...)                                                                 \
   PHLEX_DETAIL_REGISTER_SOURCE_PLUGIN(                                                             \
-    phlex::experimental::source_graph_proxy, create, create_source, __VA_ARGS__)
+    phlex::detail::source_graph_proxy, create, create_source, __VA_ARGS__)
 
 #endif // PHLEX_SOURCE_HPP

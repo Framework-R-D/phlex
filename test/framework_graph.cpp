@@ -16,8 +16,8 @@
 #include <vector>
 
 using namespace phlex;
+using phlex::detail::driver_bundle;
 using phlex::detail::framework_driver;
-using phlex::experimental::driver_bundle;
 
 namespace {
   struct test_source final : phlex::source {
@@ -243,7 +243,7 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
   std::vector<phlex::source const*> sources{};
   auto src = std::make_unique<test_source>();
   sources.push_back(src.get());
-  experimental::driver_proxy proxy{sources};
+  detail::driver_proxy proxy{sources};
 
   SECTION("Throw when source parameter count mismatches")
   {
@@ -265,7 +265,7 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
 
 TEST_CASE("driver_proxy creates bundle from driver builder", "[graph]")
 {
-  experimental::driver_proxy proxy{{}};
+  detail::driver_proxy proxy{{}};
   auto const bundle = proxy.driver(std::make_shared<test_driver_builder>());
 
   CHECK(static_cast<bool>(bundle.driver));
