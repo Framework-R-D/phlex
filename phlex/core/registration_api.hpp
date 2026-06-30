@@ -140,11 +140,11 @@ namespace phlex::experimental {
                         identifier stage = "CURRENT"_id)
     {
       using return_type = return_type<typename AlgorithmBits::algorithm_type>;
-      product_specification output_spec(
-        std::move(creator), std::move(suffix), make_type_id<return_type>());
+      phlex::detail::product_specification output_spec(
+        std::move(creator), std::move(suffix), phlex::detail::make_type_id<return_type>());
 
-      auto type_erased_alg = [alg = alg_.release_algorithm()](data_cell_index const& index) {
-        return product_for(std::invoke(alg, index));
+      auto type_erased_alg = [alg = alg_.release_algorithm()](phlex::data_cell_index const& index) {
+        return phlex::detail::product_for(std::invoke(alg, index));
       };
 
       registrar_.set_creator(

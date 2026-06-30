@@ -8,7 +8,7 @@
 #include <ranges>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   flush_gate::flush_gate(data_cell_index_ptr index, std::size_t expected_flush_count) :
     index_{std::move(index)},
@@ -97,4 +97,4 @@ namespace phlex::experimental {
     // destroyed soon after commit() is called.
   }
 
-} // namespace phlex::experimental
+} // namespace phlex::detail

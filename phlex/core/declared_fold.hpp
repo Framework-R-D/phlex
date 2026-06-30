@@ -45,7 +45,7 @@ namespace phlex::experimental {
 
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::receiver<flush_message>& flush_port() = 0;
-    virtual product_specifications const& output() const = 0;
+    virtual phlex::detail::product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
@@ -76,7 +76,8 @@ namespace phlex::experimental {
               std::string partition) :
       declared_fold{std::move(algo_name), std::move(predicates), std::move(input_products)},
       initializer_{std::move(initializer)},
-      output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
+      output_{to_product_specifications(
+        name(), std::move(output), phlex::detail::make_type_ids<result_type>())},
       partition_{std::move(partition)},
       flush_receiver_{g,
                       tbb::flow::unlimited,
@@ -145,7 +146,7 @@ namespace phlex::experimental {
 
     tbb::flow::receiver<flush_message>& flush_port() override { return flush_receiver_; }
     tbb::flow::sender<message>& output_port() override { return tbb::flow::output_port<0>(fold_); }
-    product_specifications const& output() const override { return output_; }
+    phlex::detail::product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(function_t const& ft,
@@ -196,7 +197,7 @@ namespace phlex::experimental {
 
     InitTuple initializer_;
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    product_specifications output_;
+    phlex::detail::product_specifications output_;
     identifier partition_;
     tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<num_inputs> join_;

@@ -8,7 +8,7 @@ namespace phlex::experimental {
 
   product_store::product_store(data_cell_index_ptr id,
                                algorithm_name source,
-                               products new_products,
+                               detail::products new_products,
                                std::optional<identifier> stage) :
     products_{std::move(new_products)},
     id_{std::move(id)},

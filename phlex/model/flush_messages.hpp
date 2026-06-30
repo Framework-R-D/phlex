@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   struct PHLEX_MODEL_EXPORT index_flush {
     data_cell_index_ptr index;
     // Ideally, the counts field should be a `data_cell_counts_const_ptr` to ensure immutability.

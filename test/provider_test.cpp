@@ -27,10 +27,10 @@ namespace {
   }
 
   // Type-erased provider function
-  experimental::product_ptr give_me_vertices_erased(data_cell_index const& id)
+  detail::product_ptr give_me_vertices_erased(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices_erased: {}", id.number());
-    return std::make_unique<experimental::product<toy::VertexCollection>>(
+    return std::make_unique<detail::product<toy::VertexCollection>>(
       toy::make_collection(id.number()));
   }
 
@@ -40,7 +40,8 @@ namespace {
     phlex::detail::provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental;
-      phlex::detail::provider_bundles bundles;
+      using namespace phlex::detail;
+      provider_bundles bundles;
       std::string const layer = "spill";
       std::string const stage = "previous_process";
       product_specification spec{

@@ -81,16 +81,16 @@ namespace phlex {
     detail::required_layer_name<experimental::identifier> layer;
     std::optional<experimental::identifier> suffix;
     std::optional<experimental::identifier> stage;
-    experimental::type_id type;
+    detail::type_id type;
 
     // Check that all products selected by /other/ would satisfy this query
     bool match(product_selector const& other) const;
 
     // Check if a product_specification satisfies this query
-    bool match(experimental::product_specification const& spec) const;
+    bool match(detail::product_specification const& spec) const;
 
     // Check if a product_specification, layer, and stage together satisfies this query
-    bool match(experimental::product_specification const& spec,
+    bool match(detail::product_specification const& spec,
                experimental::identifier const& layer,
                experimental::identifier const& stage) const;
 
@@ -109,7 +109,7 @@ namespace phlex {
     // C is a container of product_selectors
     template <typename C, typename T>
       requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_selector> &&
-               experimental::is_tuple<T>::value
+               phlex::experimental::is_tuple<T>::value
     class product_selectors_type_setter {};
     template <typename C, typename... Ts>
     class product_selectors_type_setter<C, std::tuple<Ts...>> {
@@ -119,7 +119,7 @@ namespace phlex {
       template <typename T>
       void set_type(C& container)
       {
-        container.at(index_).type = experimental::make_type_id<T>();
+        container.at(index_).type = detail::make_type_id<T>();
         ++index_;
       }
 
@@ -134,7 +134,7 @@ namespace phlex {
 
   template <typename Tup, typename C>
     requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_selector> &&
-             experimental::is_tuple<Tup>::value
+             phlex::experimental::is_tuple<Tup>::value
   void populate_types(C& container)
   {
     detail::product_selectors_type_setter<decltype(container), Tup> populate_types{};
@@ -143,7 +143,7 @@ namespace phlex {
 
   // This lives here rather than as a member-function of product_store because product_store is in model
   // and product_selector in core, with core depending on model.
-  PHLEX_CORE_EXPORT experimental::product_specification const* resolve_in_store(
+  PHLEX_CORE_EXPORT detail::product_specification const* resolve_in_store(
     product_selector const& query, experimental::product_store const& store);
 }
 

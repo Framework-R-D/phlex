@@ -16,8 +16,8 @@
 #include <vector>
 
 using namespace phlex;
+using phlex::detail::framework_driver;
 using phlex::experimental::driver_bundle;
-using phlex::experimental::framework_driver;
 
 namespace {
   struct test_source final : phlex::source {

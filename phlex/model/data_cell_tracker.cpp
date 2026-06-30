@@ -9,13 +9,13 @@
 namespace {
   auto make_data_cell_counts(phlex::data_cell_index_ptr const& index)
   {
-    auto result = std::make_shared<phlex::experimental::data_cell_counts>();
+    auto result = std::make_shared<phlex::detail::data_cell_counts>();
     result->emplace(index->layer_hash(), 1);
     return result;
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   data_cell_tracker::~data_cell_tracker()
   {
     if (pending_flushes_.empty()) {

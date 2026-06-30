@@ -22,7 +22,7 @@ namespace phlex::experimental {
   public:
     explicit product_store(data_cell_index_ptr id,
                            algorithm_name source = default_source(),
-                           products new_products = {},
+                           phlex::detail::products new_products = {},
                            std::optional<identifier> stage = {});
     ~product_store();
     static product_store_ptr base(algorithm_name base_name = default_source());
@@ -38,23 +38,24 @@ namespace phlex::experimental {
 
     // Product interface
     template <typename T>
-    T const& get_product(product_specification const& key) const;
+    T const& get_product(phlex::detail::product_specification const& key) const;
 
     template <typename T>
-    handle<T> get_handle(product_specification const& key) const;
+    handle<T> get_handle(phlex::detail::product_specification const& key) const;
 
     // Thread-unsafe operations
     template <typename T>
-    void add_product(product_specification const& key, T&& t);
+    void add_product(phlex::detail::product_specification const& key, T&& t);
 
     template <typename T>
-    void add_product(product_specification const& key, std::unique_ptr<product<T>>&& t);
+    void add_product(phlex::detail::product_specification const& key,
+                     std::unique_ptr<phlex::detail::product<T>>&& t);
 
     // default Source identifier
-    static algorithm_name default_source();
+    static experimental::algorithm_name default_source();
 
   private:
-    products products_{};
+    phlex::detail::products products_{};
     data_cell_index_ptr id_;
     algorithm_name
       source_; // FIXME: Should not have to copy (the source should outlive the product store)
@@ -90,25 +91,29 @@ namespace phlex::experimental {
 
   // Implementation details
   template <typename T>
-  void product_store::add_product(product_specification const& key, T&& t)
+  void product_store::add_product(phlex::detail::product_specification const& key, T&& t)
   {
-    add_product(key, std::make_unique<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
+    add_product(
+      key, std::make_unique<phlex::detail::product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
   }
 
   template <typename T>
-  void product_store::add_product(product_specification const& key, std::unique_ptr<product<T>>&& t)
+  void product_store::add_product(phlex::detail::product_specification const& key,
+                                  std::unique_ptr<phlex::detail::product<T>>&& t)
   {
     products_.add(key, std::move(t));
   }
 
   template <typename T>
-  [[nodiscard]] handle<T> product_store::get_handle(product_specification const& key) const
+  [[nodiscard]] handle<T> product_store::get_handle(
+    phlex::detail::product_specification const& key) const
   {
     return handle<T>{products_.get<T>(key), *id_, key, stage_};
   }
 
   template <typename T>
-  [[nodiscard]] T const& product_store::get_product(product_specification const& key) const
+  [[nodiscard]] T const& product_store::get_product(
+    phlex::detail::product_specification const& key) const
   {
     return *get_handle<T>(key);
   }

@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   product_specification::product_specification() = default;
 
   product_specification::product_specification(char const* name) :
@@ -19,8 +19,8 @@ namespace phlex::experimental {
   }
   product_specification::product_specification(std::string_view name) { *this = create(name); }
 
-  product_specification::product_specification(algorithm_name creator,
-                                               identifier suffix,
+  product_specification::product_specification(experimental::algorithm_name creator,
+                                               experimental::identifier suffix,
                                                type_id type) :
     creator_{std::move(creator)}, suffix_{std::move(suffix)}, type_id_{std::move(type)}
   {
@@ -43,14 +43,14 @@ namespace phlex::experimental {
   {
     auto forward_slash = s.find('/');
     if (forward_slash != std::string_view::npos) {
-      return {algorithm_name::create(s.substr(0, forward_slash)),
-              identifier(s.substr(forward_slash + 1)),
+      return {experimental::algorithm_name::create(s.substr(0, forward_slash)),
+              experimental::identifier(s.substr(forward_slash + 1)),
               type_id{}};
     }
-    return {algorithm_name::create(""), identifier(s), type_id{}};
+    return {experimental::algorithm_name::create(""), experimental::identifier(s), type_id{}};
   }
 
-  product_specifications to_product_specifications(algorithm_name const& algo_name,
+  product_specifications to_product_specifications(experimental::algorithm_name const& algo_name,
                                                    std::vector<std::string> output_suffixes,
                                                    std::vector<type_id> output_types)
   {
@@ -70,7 +70,8 @@ namespace phlex::experimental {
     // We can use std::views::zip_transform once the AppleClang C++ STL supports it.
     return std::views::zip(output_suffixes, output_types) |
            std::views::transform([&algo_name](auto const& p) {
-             return product_specification{algo_name, identifier(std::get<0>(p)), std::get<1>(p)};
+             return product_specification{
+               algo_name, experimental::identifier(std::get<0>(p)), std::get<1>(p)};
            }) |
            std::ranges::to<product_specifications>();
   }

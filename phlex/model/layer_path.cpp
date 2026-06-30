@@ -13,11 +13,11 @@ using namespace phlex::experimental::literals;
 
 namespace phlex::experimental {
   layer_path::layer_path(std::string_view path) :
-    layer_path_{
-      std::from_range,
-      path | std::views::split('/') |
-        std::views::filter([](auto const& sr) { return not sr.empty(); }) |
-        std::views::transform([](auto const& sr) { return identifier(std::string_view(sr)); })}
+    layer_path_{std::from_range,
+                path | std::views::split('/') |
+                  std::views::filter([](auto const& sr) { return not sr.empty(); }) |
+                  std::views::transform(
+                    [](auto const& sr) { return experimental::identifier(std::string_view(sr)); })}
   {
     if (layer_path_.empty()) {
       throw std::runtime_error("Layer paths cannot be empty.");
@@ -67,7 +67,7 @@ namespace phlex::experimental {
     return other_it == rev_other_layer_path.end();
   }
 
-  bool layer_path::ends_with(identifier const& name) const noexcept
+  bool layer_path::ends_with(experimental::identifier const& name) const noexcept
   {
     return layer_path_.back() == name;
   }

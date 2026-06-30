@@ -15,7 +15,7 @@ namespace {
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   data_layer_hierarchy::~data_layer_hierarchy() { print(); }
 
@@ -37,7 +37,8 @@ namespace phlex::experimental {
     ++it->second->count;
   }
 
-  std::size_t data_layer_hierarchy::count_for(layer_path const& layer, bool const missing_ok) const
+  std::size_t data_layer_hierarchy::count_for(phlex::experimental::layer_path const& layer,
+                                              bool const missing_ok) const
   {
     // The assumption is that specified layer is a portion of a layer path
     // sufficient to uniquely identify a layer

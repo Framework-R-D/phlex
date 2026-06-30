@@ -12,7 +12,7 @@ namespace phlex::experimental {
                                std::size_t concurrency,
                                tbb::flow::graph& g,
                                provider_function provider_func,
-                               product_specification output_spec,
+                               phlex::detail::product_specification output_spec,
                                identifier output_layer,
                                identifier stage) :
     name_{std::move(algo_name)},
@@ -30,7 +30,7 @@ namespace phlex::experimental {
                 // The constructor argument 1uz specifies how many slots to reserve in the
                 // underlying product container.  For providers, only one data product is
                 // produced per input index.
-                products new_products{1uz};
+                phlex::detail::products new_products{1uz};
                 new_products.add(output_, std::move(new_product));
                 auto store =
                   std::make_shared<product_store>(index, name_, std::move(new_products), stage_);
@@ -46,7 +46,10 @@ namespace phlex::experimental {
 
   algorithm_name const& provider_node::name() const noexcept { return name_; }
 
-  product_specification const& provider_node::output_product() const noexcept { return output_; }
+  phlex::detail::product_specification const& provider_node::output_product() const noexcept
+  {
+    return output_;
+  }
 
   identifier const& provider_node::layer() const noexcept { return layer_; }
 

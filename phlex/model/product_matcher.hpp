@@ -16,11 +16,11 @@
 #include <array>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_MODEL_EXPORT product_matcher {
   public:
     explicit product_matcher(std::string matcher_spec);
-    bool matches(product_store_const_ptr const& store) const;
+    bool matches(experimental::product_store_const_ptr const& store) const;
     std::string const& layer_path() const noexcept { return layer_path_; }
     std::string const& module_name() const noexcept { return module_name_; }
     std::string const& node_name() const noexcept { return node_name_; }

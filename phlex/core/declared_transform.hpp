@@ -46,7 +46,7 @@ namespace phlex::experimental {
     ~declared_transform() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
-    virtual product_specifications const& output() const = 0;
+    virtual phlex::detail::product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
@@ -75,8 +75,8 @@ namespace phlex::experimental {
                    product_selectors input_products,
                    std::vector<std::string> output) :
       declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products)},
-      output_{
-        to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
+      output_{to_product_specifications(
+        name(), std::move(output), phlex::detail::make_output_type_ids<function_t>())},
       join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       transform_{
         g,
@@ -89,7 +89,7 @@ namespace phlex::experimental {
           ++calls_;
           ++product_count_[store->index()->layer_hash()];
 
-          products new_products{num_outputs};
+          phlex::detail::products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
           auto new_store =
             std::make_shared<product_store>(store->index(), name(), std::move(new_products));
@@ -117,7 +117,7 @@ namespace phlex::experimental {
     {
       return tbb::flow::output_port<0>(transform_);
     }
-    product_specifications const& output() const override { return output_; }
+    phlex::detail::product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     auto call(function_t const& ft,
@@ -143,7 +143,7 @@ namespace phlex::experimental {
     }
 
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    product_specifications output_;
+    phlex::detail::product_specifications output_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1u>> transform_;
     std::atomic<std::size_t> calls_;

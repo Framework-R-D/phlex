@@ -29,7 +29,7 @@ namespace phlex::experimental {
   framework_graph::framework_graph(driver_mode const mode, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
-         [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
+         [this](tbb::flow_control& fc) mutable -> phlex::detail::ready_flushes_then_emit {
            assert(driver_);
            if (auto item = (*driver_)()) {
              return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
@@ -39,22 +39,25 @@ namespace phlex::experimental {
            return {};
          }},
     index_router_{graph_},
-    index_receiver_{graph_,
-                    tbb::flow::unlimited,
-                    [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
-                      auto&& [ready_flushes, index_to_emit] = input;
-                      return index_router_.route(index_to_emit, std::move(ready_flushes));
-                    }},
+    index_receiver_{
+      graph_,
+      tbb::flow::unlimited,
+      [this](phlex::detail::ready_flushes_then_emit const& input) -> phlex::data_cell_index_ptr {
+        auto&& [ready_flushes, index_to_emit] = input;
+        return index_router_.route(index_to_emit, std::move(ready_flushes));
+      }},
     hierarchy_node_{graph_,
                     tbb::flow::unlimited,
-                    [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
+                    [this](phlex::data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
                       hierarchy_.increment_count(index);
                       return {};
                     }},
     driver_mode_{mode}
   {
     if (driver_mode_ == driver_mode::default_driver) {
-      driver_.emplace([](framework_driver& driver) { driver.yield(data_cell_index::job()); });
+      driver_.emplace([](phlex::detail::framework_driver& driver) {
+        driver.yield(phlex::data_cell_index::job());
+      });
     }
 
     spdlog::cfg::load_env_levels();

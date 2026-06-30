@@ -8,7 +8,7 @@
 
 #include <map>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_MODEL_EXPORT data_cell_tracker {
   public:
     data_cell_tracker() = default;

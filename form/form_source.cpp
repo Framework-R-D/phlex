@@ -79,6 +79,7 @@ namespace {
       phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
+      using namespace phlex::detail;
       phlex::detail::provider_bundles bundles;
 
       std::string const* product_type_name =
@@ -106,9 +107,8 @@ namespace {
 
         reader_->prime(actual_creator_, name, *selected_entry->cpp_type);
 
-        auto provider_func =
-          [this, name, product_type = *product_type_name](
-            phlex::data_cell_index const& id) -> phlex::experimental::product_ptr {
+        auto provider_func = [this, name, product_type = *product_type_name](
+                               phlex::data_cell_index const& id) -> phlex::detail::product_ptr {
           return this->read_product_from_form(actual_creator_, name, id.to_string(), product_type);
         };
 
@@ -135,10 +135,10 @@ namespace {
       }
     }
 
-    phlex::experimental::product_ptr read_product_from_form(std::string const& creator,
-                                                            std::string const& product_name,
-                                                            std::string const& index_str,
-                                                            std::string const& product_type)
+    phlex::detail::product_ptr read_product_from_form(std::string const& creator,
+                                                      std::string const& product_name,
+                                                      std::string const& index_str,
+                                                      std::string const& product_type)
     {
       form::experimental::form_source_type_entry const* entry =
         form::experimental::find_form_product_type(product_type);

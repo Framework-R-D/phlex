@@ -18,7 +18,7 @@
 
 // This is a type_id class to store the "product concept"
 // Using our own class means we can treat, for example, all "List"s the same
-namespace phlex::experimental {
+namespace phlex::detail {
   class type_id {
   public:
     // Least significant nibble will store the fundamental type
@@ -96,7 +96,7 @@ namespace phlex::experimental {
 
   using type_ids = std::vector<type_id>;
 
-  namespace detail {
+  namespace internal {
     template <typename T>
     consteval unsigned char make_type_id_helper_integral()
     {
@@ -164,8 +164,8 @@ namespace phlex::experimental {
       static consteval auto get_tuple(std::index_sequence<Is...>) -> auto
       {
         // Atomics are why we can't just use boost::pfr::structure_to_tuple
-        return std::tuple<
-          remove_atomic_t<std::remove_cvref_t<boost::pfr::tuple_element_t<Is, A>>>...>{};
+        return std::tuple<phlex::experimental::remove_atomic_t<
+          std::remove_cvref_t<boost::pfr::tuple_element_t<Is, A>>>...>{};
       }
 
     public:
@@ -179,7 +179,7 @@ namespace phlex::experimental {
     class is_handle : public std::false_type {};
 
     template <typename T>
-    class is_handle<handle<T>> : public std::true_type {};
+    class is_handle<phlex::handle<T>> : public std::true_type {};
   }
 
   // Forward declaration
@@ -190,14 +190,15 @@ namespace phlex::experimental {
   constexpr type_id make_type_id()
   {
     // First deal with handles
-    if constexpr (detail::is_handle<T>::value) {
+    if constexpr (internal::is_handle<T>::value) {
       return make_type_id<typename T::value_type>();
     }
 
     type_id result{};
-    using basic = remove_atomic_t<std::remove_cvref_t<std::remove_pointer_t<T>>>;
+    using basic =
+      phlex::experimental::remove_atomic_t<std::remove_cvref_t<std::remove_pointer_t<T>>>;
     if constexpr (std::is_fundamental_v<basic>) {
-      result.id_ = detail::make_type_id_helper_fundamental<basic>();
+      result.id_ = internal::make_type_id_helper_fundamental<basic>();
     }
 
     // builtin arrays
@@ -208,12 +209,12 @@ namespace phlex::experimental {
 
     // classes (both containers and "simple" aggregates)
     else if constexpr (std::is_class_v<basic>) {
-      if constexpr (contiguous_container<basic>) {
+      if constexpr (phlex::experimental::contiguous_container<basic>) {
         result = make_type_id<typename basic::value_type>();
         result.id_ |= 0x20;
       } else if constexpr (std::is_aggregate_v<basic>) {
         // This case isn't evaluable at compile time because vector uses operator new
-        using child_tuple = detail::aggregate_to_plain_tuple_t<basic>;
+        using child_tuple = internal::aggregate_to_plain_tuple_t<basic>;
         result.id_ = 0x40; // has_children
         result.children_ = make_type_ids<child_tuple>();
       } else {
@@ -238,7 +239,7 @@ namespace phlex::experimental {
     return result;
   }
 
-  namespace detail {
+  namespace internal {
     template <typename T>
     class tuple_type_ids {
     public:
@@ -262,7 +263,7 @@ namespace phlex::experimental {
   type_ids make_type_ids()
   {
     if constexpr (sizeof...(Ts) == 0) {
-      return detail::tuple_type_ids<T1>::get();
+      return internal::tuple_type_ids<T1>::get();
     } else {
       return type_ids{make_type_id<T1>(), make_type_id<Ts>()...};
     }
@@ -271,7 +272,7 @@ namespace phlex::experimental {
   template <typename F>
   type_ids make_output_type_ids()
   {
-    return make_type_ids<return_type<F>>();
+    return make_type_ids<phlex::experimental::return_type<F>>();
   }
 
   inline std::size_t hash_value(type_id const& id)
@@ -285,11 +286,11 @@ namespace phlex::experimental {
 }
 
 template <>
-struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
-  auto format(phlex::experimental::type_id type, format_context& ctx) const
+struct fmt::formatter<phlex::detail::type_id> : formatter<std::string> {
+  auto format(phlex::detail::type_id type, format_context& ctx) const
   {
     using namespace std::string_literals;
-    using namespace phlex::experimental;
+    using namespace phlex::detail;
     if (!type.valid()) {
       return fmt::formatter<std::string>::format("INVALID / EMPTY"s, ctx);
     }

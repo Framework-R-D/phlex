@@ -29,7 +29,7 @@
 #include <ranges>
 
 using namespace phlex;
-using namespace phlex::experimental;
+using namespace phlex::detail;
 using namespace phlex::experimental::literals;
 
 namespace {

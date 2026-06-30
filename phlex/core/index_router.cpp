@@ -28,7 +28,7 @@ namespace phlex::experimental {
                       tbb::flow::receiver<index_message>* input_port);
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
-      void put_end_token(data_cell_index_ptr const& index, flush_gate const& fc);
+      void put_end_token(data_cell_index_ptr const& index, phlex::detail::flush_gate const& fc);
 
       bool matches_exactly(layer_path const& layer_path) const;
       bool is_parent_of(data_cell_index_ptr const& index) const;
@@ -59,11 +59,12 @@ namespace phlex::experimental {
       broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
     }
 
-    void multilayer_slot::put_end_token(data_cell_index_ptr const& index, flush_gate const& fc)
+    void multilayer_slot::put_end_token(data_cell_index_ptr const& index,
+                                        phlex::detail::flush_gate const& fg)
     {
       // We're going to have to be a little more careful about this.  The committed total count may
       // not be enough granularity for some downstream nodes.
-      flusher_.try_put({.index = index, .count = static_cast<int>(fc.committed_total_count())});
+      flusher_.try_put({.index = index, .count = static_cast<int>(fg.committed_total_count())});
     }
 
     bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
@@ -89,7 +90,7 @@ namespace phlex::experimental {
                            }},
     unfold_flush_receiver_{g,
                            tbb::flow::unlimited,
-                           [this](unfold_flush input) -> tbb::flow::continue_msg {
+                           [this](phlex::detail::unfold_flush input) -> tbb::flow::continue_msg {
                              auto&& [index, layer_hash, count] = input;
                              apply_expected_count(*gate_for(index), layer_hash, count);
                              flush_if_done(index);
@@ -146,7 +147,8 @@ namespace phlex::experimental {
     }
   }
 
-  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index, index_flushes flushes)
+  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index,
+                                          phlex::detail::index_flushes flushes)
   {
     update_flush_counts(std::move(flushes));
     return route(index, index_is_lowest_layer(index), received_indices_.fetch_add(1));
@@ -174,7 +176,7 @@ namespace phlex::experimental {
 
     gate_for(index)->set_flush_callback(
       [this, end_token_slots = std::move(end_token_slots), index, message_id](
-        flush_gate const& fc) {
+        phlex::detail::flush_gate const& fc) {
         for (auto const& slot : *end_token_slots) {
           slot->put_end_token(index, fc);
         }
@@ -188,7 +190,10 @@ namespace phlex::experimental {
     return index;
   }
 
-  void index_router::drain(index_flushes flushes) { update_flush_counts(std::move(flushes)); }
+  void index_router::drain(phlex::detail::index_flushes flushes)
+  {
+    update_flush_counts(std::move(flushes));
+  }
 
   void index_router::register_unfold_count_per_input_layer(std::map<identifier, std::size_t> counts)
   {
@@ -318,7 +323,7 @@ namespace phlex::experimental {
     return {acc->second.message_slots, acc->second.end_token_slots};
   }
 
-  void index_router::update_flush_counts(index_flushes flushes)
+  void index_router::update_flush_counts(phlex::detail::index_flushes flushes)
   {
     for (auto const& [index, flush_counts] : flushes) {
       auto gate = gate_for(index);
@@ -329,7 +334,7 @@ namespace phlex::experimental {
     }
   }
 
-  void index_router::apply_expected_count(flush_gate& gate,
+  void index_router::apply_expected_count(phlex::detail::flush_gate& gate,
                                           data_cell_index::hash_type const child_layer_hash,
                                           std::size_t const count)
   {
@@ -355,7 +360,7 @@ namespace phlex::experimental {
     return it != is_lowest_layer_hashes_.end() ? it->second : true;
   }
 
-  flush_gate_ptr index_router::gate_for(data_cell_index_ptr const& index)
+  phlex::detail::flush_gate_ptr index_router::gate_for(data_cell_index_ptr const& index)
   {
     // Fast path: entry already exists — read under shared lock to avoid serializing threads.
     const_accessor ca;
@@ -375,7 +380,7 @@ namespace phlex::experimental {
         auto it = unfold_count_per_input_layer_.find(index->layer_name());
         return it != unfold_count_per_input_layer_.end() ? it->second : 0;
       }();
-      a->second = std::make_shared<flush_gate>(index, expected_flush_count);
+      a->second = std::make_shared<phlex::detail::flush_gate>(index, expected_flush_count);
     }
     return a->second;
   }
@@ -389,7 +394,7 @@ namespace phlex::experimental {
       // calling send_flush().  The erase claims exclusive ownership of this gate —
       // any concurrent flush_if_done call for the same index will fail to find the entry
       // and return immediately, preventing double-flush.
-      flush_gate_ptr gate;
+      phlex::detail::flush_gate_ptr gate;
       {
         accessor a;
         if (not flush_gates_.find(a, index->hash())) {

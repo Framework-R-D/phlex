@@ -19,18 +19,19 @@ namespace phlex::experimental {
 
   class PHLEX_CORE_EXPORT provider_node {
   public:
-    using provider_function = std::function<product_ptr(data_cell_index const&)>;
+    using provider_function =
+      std::function<phlex::detail::product_ptr(phlex::data_cell_index const&)>;
 
     provider_node(algorithm_name algo_name,
                   std::size_t concurrency,
                   tbb::flow::graph& g,
                   provider_function provider_func,
-                  product_specification output_spec,
+                  phlex::detail::product_specification output_spec,
                   identifier output_layer,
                   identifier stage);
 
     algorithm_name const& name() const noexcept;
-    product_specification const& output_product() const noexcept;
+    phlex::detail::product_specification const& output_product() const noexcept;
     identifier const& layer() const noexcept;
     identifier const& stage() const noexcept;
 
@@ -40,7 +41,7 @@ namespace phlex::experimental {
 
   private:
     algorithm_name name_;
-    product_specification output_;
+    phlex::detail::product_specification output_;
     identifier layer_;
     identifier stage_;
     tbb::flow::function_node<index_message, message> provider_;

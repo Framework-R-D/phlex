@@ -29,7 +29,7 @@ namespace phlex::experimental {
   struct driver_bundle;
 
   namespace detail {
-    using next_index_t = std::function<void(framework_driver&)>;
+    using next_index_t = std::function<void(phlex::detail::framework_driver&)>;
     // Shim type for the extern "C" entry-point: out-parameter avoids returning a C++ type
     // across a C-linkage boundary.
     using driver_shim_t = void(driver_proxy, configuration const&, driver_bundle*);
@@ -115,10 +115,11 @@ namespace phlex::experimental {
     driver_bundle driver(fixed_hierarchy hierarchy,
                          is_driver_like_with_cursor auto driver_function) const
     {
-      return make_driver_bundle(
-        std::move(hierarchy),
-        std::move(driver_function),
-        [](fixed_hierarchy const& h, framework_driver& d) { return h.yield_job(d); });
+      return make_driver_bundle(std::move(hierarchy),
+                                std::move(driver_function),
+                                [](fixed_hierarchy const& h, phlex::detail::framework_driver& d) {
+                                  return h.yield_job(d);
+                                });
     }
 
     /// @brief Creates a driver_bundle from a hierarchy and a user-supplied driver function.
@@ -132,7 +133,7 @@ namespace phlex::experimental {
       return make_driver_bundle(
         std::move(hierarchy),
         std::move(driver_function),
-        [](fixed_hierarchy const& h, framework_driver& d) { return h.yielder(d); });
+        [](fixed_hierarchy const& h, phlex::detail::framework_driver& d) { return h.yielder(d); });
     }
 
     template <typename DriverBuilder>
@@ -148,7 +149,7 @@ namespace phlex::experimental {
 
       using first_argument_type = std::remove_cvref_t<decltype(driver_function)>;
       auto first_arg_factory = [hierarchy = hierarchy](fixed_hierarchy const& h,
-                                                       framework_driver& d) {
+                                                       phlex::detail::framework_driver& d) {
         if constexpr (std::is_same_v<first_argument_type, data_cell_cursor>) {
           return h.yield_job(d);
         } else {
@@ -185,7 +186,8 @@ namespace phlex::experimental {
       return {[f = std::move(driver_function),
                h = std::move(h),
                srcs = std::move(sources_),
-               first_arg_factory = std::move(first_arg_factory)](framework_driver& d) mutable {
+               first_arg_factory =
+                 std::move(first_arg_factory)](phlex::detail::framework_driver& d) mutable {
                 detail::invoke_driver_with_sources<source_parameters_t>(
                   f, first_arg_factory(h, d), srcs);
               },
