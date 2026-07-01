@@ -149,7 +149,10 @@ _SYSTEM = textwrap.dedent("""\
     after the message.  Do not wrap the message in a markdown code fence.
     Your very first character must be the first character of the subject line.
 
-    Format: Follow Conventional Commits v1.0.0: <type>[optional scope]: <description>
+    ## Conventional Commits v1.0.0 Guidelines
+    Specification: https://www.conventionalcommits.org/en/v1.0.0/
+
+    Format: <type>[optional scope]: <description>
     - Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
     - Breaking changes: append '!' to type/scope or start body with 'BREAKING CHANGE: '
     - Subject: imperative mood, ≤72 characters, no trailing period.
@@ -658,8 +661,13 @@ def _build_messages(
     root: Path,
     last_msg: str = "",
     instr: str = "",
+    amend_no_diff: bool = False,
 ) -> list[dict[str, str]]:
-    """Build the system + user message list for the chat completion request."""
+    """Build the system + user message list for the chat completion request.
+
+    If `amend_no_diff` is True, there are no staged changes; the model should rewrite
+    the previous commit message to conform to Conventional Commits guidelines.
+    """
     if len(diff) > _MAX_DIFF_CHARS:
         diff = diff[:_MAX_DIFF_CHARS] + "\n\n[diff truncated — too large to show in full]"
 
@@ -671,15 +679,26 @@ def _build_messages(
     ]
     if last_msg:
         parts.append(f"\n## Previous commit message\n\n```\n{last_msg}\n```")
+    if amend_no_diff:
+        parts.append(
+            "\n## Note\n\nNo staged changes are present. Rewrite the above previous commit "
+            "message to follow the Conventional Commits format and improve its wording."
+        )
     if instr:
         parts.append(f"\n## Agent instructions\n\n{instr}")
     if context:
         parts.append(f"\n## Supplemental context\n\n{context}")
-    parts.append(
-        "\n\nWrite the commit message for the staged changes above."
-        "  Remember: respond with the commit message text only —"
-        " start directly with the subject line."
-    )
+    if amend_no_diff:
+        parts.append(
+            "\n\nRewrite the previous commit message to follow Conventional Commits guidelines.  Do not simply repeat it; provide an improved version that complies with the format and uses clearer wording."
+            "  Respond with only the revised commit message, starting with the subject line."
+        )
+    else:
+        parts.append(
+            "\n\nWrite the commit message for the staged changes above."
+            "  Remember: respond with the commit message text only —"
+            " start directly with the subject line."
+        )
 
     return [
         {"role": "system", "content": _SYSTEM},
@@ -870,6 +889,7 @@ def main() -> None:
         print(f"git-ai-commit: {exc}", file=sys.stderr)
         sys.exit(1)
 
+    amend_no_diff = False
     if not diff.strip():
         if not args.amend:
             print("Nothing staged. Use 'git add' first.", file=sys.stderr)
@@ -883,8 +903,10 @@ def main() -> None:
                 file=sys.stderr,
             )
             sys.exit(1)
+        # No staged changes but we have a prior commit message; rewrite it.
+        amend_no_diff = True
 
-    msgs = _build_messages(diff, status, log, context, root, last_msg, instr)
+    msgs = _build_messages(diff, status, log, context, root, last_msg, instr, amend_no_diff)
 
     # Auto-escalate to a free high-context model when the prompt is large and
     # the user has not explicitly chosen a model.  This avoids degraded output
