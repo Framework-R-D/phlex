@@ -676,3 +676,193 @@ class TestAntigravityBackend:
             # Check the second call (git commit)
             git_cmd = mock_run.call_args_list[1][0][0]
             assert git_cmd == ["git", "commit", "-m", "feat: mock commit message"]
+
+
+# ===========================================================================
+# _truncate_diff
+# ===========================================================================
+
+
+class TestTruncateDiff:
+    """Tests for _truncate_diff, the hunk-aware diff truncation helper."""
+
+    def test_under_budget_returns_unchanged(self) -> None:
+        """Diff shorter than max_chars is returned unchanged."""
+        diff = "diff --git a/foo.py b/foo.py\n+new line\n"
+        result = _M._truncate_diff(diff, 1000)
+        assert result == diff
+
+    def test_over_budget_cuts_on_file_boundary(self) -> None:
+        """Diff with multiple files is cut on file boundary; omission marker present."""
+        # Diff with two file sections; first will fit, second will not
+        stat_block = " git diff --cached --stat -p\n\n"
+        file1 = "diff --git a/aaa.py b/aaa.py\nnew file mode 100644\n+line 1\n+line 2\n"
+        file2 = "diff --git a/bbb.py b/bbb.py\nnew file mode 100644\n+line a\n+line b\n"
+        diff = stat_block + file1 + file2
+        # Budget that fits stat + file1 exactly, but not file2 on top
+        budget = len(stat_block) + len(file1)
+        result = _M._truncate_diff(diff, budget)
+
+        # stat + file1 should be present
+        assert stat_block in result
+        assert "aaa.py" in result
+        assert "line 1" in result
+        # file2 should be omitted
+        assert "bbb.py" not in result
+        assert "line a" not in result
+        # marker should be present
+        assert "files omitted to fit context budget" in result
+
+    def test_single_oversized_file_line_boundary(self) -> None:
+        """Single file section larger than budget is truncated at line boundary."""
+        stat_block = " git diff --cached --stat -p\n\n"
+        # Build a large file section with many lines
+        lines = [f"+line {i}\n" for i in range(100)]
+        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n".join(lines)
+        diff = stat_block + file_section
+
+        # Budget: enough for stat block + the header line + a couple of content lines,
+        # but far less than the full file section.
+        budget = (
+            len(stat_block)
+            + len("diff --git a/large.py b/large.py\n")
+            + len("+line 0\n")
+            + len("+line 1\n")
+        )
+        result = _M._truncate_diff(diff, budget)
+
+        # Result should be shorter than the original diff (truncation occurred)
+        assert len(result) < len(diff)
+        # Should contain the truncation marker even for a single-file fallback cut
+        assert "files omitted to fit context budget" in result
+        # All content lines (non-marker) should be from the original diff (no mid-line cuts)
+        marker = "[diff truncated:"
+        for line in result.split("\n"):
+            if line and marker not in line:
+                assert line in diff
+
+    def test_omission_marker_text(self) -> None:
+        """Marker text contains expected description."""
+        stat_block = " git diff --cached --stat -p\n\n"
+        file1 = "diff --git a/a.py b/a.py\n+1\n"
+        file2 = "diff --git a/b.py b/b.py\n+2\n"
+        file3 = "diff --git a/c.py b/c.py\n+3\n"
+        diff = stat_block + file1 + file2 + file3
+
+        # Budget fits stat + file1 exactly; file2 and file3 are dropped (2 of 3 omitted)
+        budget = len(stat_block) + len(file1)
+        result = _M._truncate_diff(diff, budget)
+
+        assert "files omitted to fit context budget" in result
+        # Check the marker format: 2 of 3 files omitted
+        assert "2 of 3 files omitted to fit context budget" in result
+
+
+# ===========================================================================
+# _skip_binary_and_generated
+# ===========================================================================
+
+
+class TestSkipBinaryAndGenerated:
+    """Tests for _skip_binary_and_generated, the binary/generated file filter."""
+
+    def test_binary_section_replaced_with_note(self) -> None:
+        """Binary file section replaced with [skipped binary/generated file: ...]."""
+        diff = (
+            "git diff --cached --stat -p\n\n"
+            "Binary files a/img.png and b/img.png differ\n"
+            "diff --git a/text.txt b/text.txt\n+hello\n"
+        )
+        result = _M._skip_binary_and_generated(diff)
+
+        # Should contain the skip note with filename
+        assert "[skipped binary/generated file: b/img.png]" in result
+        # Should NOT contain the original binary diff line
+        assert "Binary files" not in result
+        # Normal section should pass through
+        assert "text.txt" in result
+        assert "hello" in result
+
+    def test_generated_file_replaced_with_note(self) -> None:
+        """Generated file section (matching _GENERATED_FILE_GLOBS) is replaced."""
+        diff = (
+            "git diff --cached --stat -p\n\n"
+            "diff --git a/foo.pb.h b/foo.pb.h\n"
+            "new file mode 100644\n"
+            "+// Generated by protoc\n"
+            "+class Foo {}\n"
+            "diff --git a/normal.cpp b/normal.cpp\n+int main() {}\n"
+        )
+        result = _M._skip_binary_and_generated(diff)
+
+        # foo.pb.h is in _GENERATED_FILE_GLOBS (path stored without b/ prefix)
+        assert "[skipped binary/generated file: foo.pb.h]" in result
+        # Generated file hunk body should be absent
+        assert "Generated by protoc" not in result
+        assert "class Foo {}" not in result
+        # Normal file should pass through
+        assert "normal.cpp" in result
+        assert "int main()" in result
+
+    def test_normal_file_section_kept(self) -> None:
+        """Plain .py file section passes through unchanged."""
+        diff = (
+            "git diff --cached --stat -p\n\n"
+            "diff --git a/program.py b/program.py\n+print('hello')\n"
+        )
+        result = _M._skip_binary_and_generated(diff)
+
+        assert result == diff
+        assert "print('hello')" in result
+
+
+# ===========================================================================
+# _build_messages max_diff_chars parameter
+# ===========================================================================
+
+
+class TestBuildMessagesMaxDiffChars:
+    """Tests for _build_messages with the max_diff_chars parameter."""
+
+    def test_default_cap_truncates_large_diff(self, tmp_path: Path) -> None:
+        """Large diff (> 60 000 chars) is truncated with default max_diff_chars."""
+        stat_block = " git diff --cached --stat -p\n\n"
+        # Build a diff larger than 60 000 chars
+        lines = [f"+line {i} with some padding to make it longer\n" for i in range(1500)]
+        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n".join(lines)
+        diff = stat_block + file_section
+        assert len(diff) > 60_000
+
+        msgs = _build_messages(diff, "", "", "", tmp_path)
+        user_content = msgs[1]["content"]
+
+        # Should contain truncation marker
+        assert "files omitted to fit context budget" in user_content
+
+    def test_escalated_cap_keeps_large_diff(self, tmp_path: Path) -> None:
+        """Large diff fits within _MAX_DIFF_CHARS_ESCALATED (400 000)."""
+        stat_block = " git diff --cached --stat -p\n\n"
+        # Build a diff larger than 60 000 but smaller than 400 000
+        lines = [f"+line {i} with some padding to make it longer\n" for i in range(1500)]
+        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n".join(lines)
+        diff = stat_block + file_section
+        assert 60_000 < len(diff) < 400_000
+
+        msgs = _build_messages(
+            diff, "", "", "", tmp_path, max_diff_chars=_M._MAX_DIFF_CHARS_ESCALATED
+        )
+        user_content = msgs[1]["content"]
+
+        # No truncation marker should be present
+        assert "files omitted to fit context budget" not in user_content
+        # Content should be present
+        assert "large.py" in user_content
+        assert "line 0" in user_content
+
+    def test_default_arg_unchanged(self) -> None:
+        """_build_messages signature has _MAX_DIFF_CHARS_DEFAULT as max_diff_chars default."""
+        import inspect
+
+        sig = inspect.signature(_build_messages)
+        param = sig.parameters["max_diff_chars"]
+        assert param.default == _M._MAX_DIFF_CHARS_DEFAULT
