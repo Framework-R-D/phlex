@@ -710,6 +710,36 @@ def _format_section(
     return lines
 
 
+# Sections with more items than this are wrapped in a collapsible <details>
+# block so that PR comments with many alerts stay scannable by default.
+_FOLD_THRESHOLD = 10
+
+
+def _render_section(
+    alerts: collections.abc.Sequence[Alert],
+    *,
+    max_results: int,
+    bullet_prefix: str,
+    label: str,
+) -> list[str]:
+    """Formats a section's alert bullets, folding long lists behind <details>.
+
+    Args:
+        alerts: The alerts to render.
+        max_results: The maximum number of results to include.
+        bullet_prefix: The emoji/text prefix for each bullet line.
+        label: The `<summary>` text shown for a folded section.
+
+    Returns:
+        The formatted lines, wrapped in a `<details>` block when *alerts*
+        has more than `_FOLD_THRESHOLD` entries.
+    """
+    lines = _format_section(alerts, max_results=max_results, bullet_prefix=bullet_prefix)
+    if len(alerts) <= _FOLD_THRESHOLD:
+        return lines
+    return ["<details>", f"<summary>{label}</summary>", "", *lines, "", "</details>"]
+
+
 def build_comment(
     *,
     new_alerts: collections.abc.Sequence[Alert],
@@ -748,7 +778,14 @@ def build_comment(
             f"## ❌ {len(new_alerts)} new CodeQL alert"
             f"{'s' if len(new_alerts) != 1 else ''} (level ≥ {threshold}){sev_note}"
         )
-        lines.extend(_format_section(new_alerts, max_results=max_results, bullet_prefix=":x:"))
+        lines.extend(
+            _render_section(
+                new_alerts,
+                max_results=max_results,
+                bullet_prefix=":x:",
+                label=f"{len(new_alerts)} new alert{'s' if len(new_alerts) != 1 else ''}",
+            )
+        )
         lines.append("")
 
     if fixed_alerts:
@@ -757,8 +794,11 @@ def build_comment(
             f"{'s' if len(fixed_alerts) != 1 else ''} resolved since the previous run"
         )
         lines.extend(
-            _format_section(
-                fixed_alerts, max_results=max_results, bullet_prefix=":white_check_mark:"
+            _render_section(
+                fixed_alerts,
+                max_results=max_results,
+                bullet_prefix=":white_check_mark:",
+                label=f"{len(fixed_alerts)} resolved alert{'s' if len(fixed_alerts) != 1 else ''}",
             )
         )
         lines.append("")
@@ -1074,7 +1114,13 @@ def _build_multi_section_comment(
             "since the previous PR commit"
         )
         lines.extend(
-            _format_section(api_comp.new_vs_prev, max_results=max_results, bullet_prefix=":x:")
+            _render_section(
+                api_comp.new_vs_prev,
+                max_results=max_results,
+                bullet_prefix=":x:",
+                label=f"{len(api_comp.new_vs_prev)} new alert"
+                f"{'s' if len(api_comp.new_vs_prev) != 1 else ''}",
+            )
         )
         lines.append("")
     if api_comp.fixed_vs_prev:
@@ -1084,8 +1130,12 @@ def _build_multi_section_comment(
             "resolved since the previous PR commit"
         )
         lines.extend(
-            _format_section(
-                api_comp.fixed_vs_prev, max_results=max_results, bullet_prefix=":white_check_mark:"
+            _render_section(
+                api_comp.fixed_vs_prev,
+                max_results=max_results,
+                bullet_prefix=":white_check_mark:",
+                label=f"{len(api_comp.fixed_vs_prev)} resolved alert"
+                f"{'s' if len(api_comp.fixed_vs_prev) != 1 else ''}",
             )
         )
         lines.append("")
@@ -1097,7 +1147,13 @@ def _build_multi_section_comment(
             f"{'s' if len(api_comp.new_vs_base) != 1 else ''} since the branch point"
         )
         lines.extend(
-            _format_section(api_comp.new_vs_base, max_results=max_results, bullet_prefix=":x:")
+            _render_section(
+                api_comp.new_vs_base,
+                max_results=max_results,
+                bullet_prefix=":x:",
+                label=f"{len(api_comp.new_vs_base)} new alert"
+                f"{'s' if len(api_comp.new_vs_base) != 1 else ''}",
+            )
         )
         lines.append("")
     if api_comp.fixed_vs_base:
@@ -1106,8 +1162,12 @@ def _build_multi_section_comment(
             f"{'s' if len(api_comp.fixed_vs_base) != 1 else ''} resolved since the branch point"
         )
         lines.extend(
-            _format_section(
-                api_comp.fixed_vs_base, max_results=max_results, bullet_prefix=":white_check_mark:"
+            _render_section(
+                api_comp.fixed_vs_base,
+                max_results=max_results,
+                bullet_prefix=":white_check_mark:",
+                label=f"{len(api_comp.fixed_vs_base)} resolved alert"
+                f"{'s' if len(api_comp.fixed_vs_base) != 1 else ''}",
             )
         )
         lines.append("")
@@ -1127,7 +1187,13 @@ def _build_multi_section_comment(
                 f"{'s' if len(api_comp.new_alerts) != 1 else ''} compared to main"
             )
             lines.extend(
-                _format_section(api_comp.new_alerts, max_results=max_results, bullet_prefix=":x:")
+                _render_section(
+                    api_comp.new_alerts,
+                    max_results=max_results,
+                    bullet_prefix=":x:",
+                    label=f"{len(api_comp.new_alerts)} new alert"
+                    f"{'s' if len(api_comp.new_alerts) != 1 else ''}",
+                )
             )
             lines.append("")
         if api_comp.fixed_alerts:
@@ -1136,10 +1202,12 @@ def _build_multi_section_comment(
                 f"{'s' if len(api_comp.fixed_alerts) != 1 else ''} resolved compared to main"
             )
             lines.extend(
-                _format_section(
+                _render_section(
                     api_comp.fixed_alerts,
                     max_results=max_results,
                     bullet_prefix=":white_check_mark:",
+                    label=f"{len(api_comp.fixed_alerts)} resolved alert"
+                    f"{'s' if len(api_comp.fixed_alerts) != 1 else ''}",
                 )
             )
             lines.append("")

@@ -532,6 +532,52 @@ class TestFormatSection:
 
 
 # ---------------------------------------------------------------------------
+# _render_section
+# ---------------------------------------------------------------------------
+
+
+class TestRenderSection:
+    """Tests for TestRenderSection."""
+
+    def _alert(self, n: int) -> M.Alert:
+        return M.Alert(
+            number=n,
+            html_url=f"https://example.com/{n}",
+            rule_id="py/r",
+            level="error",
+            message="msg",
+            location=f"src/app.py:{n}",
+        )
+
+    def test_short_list_not_folded(self) -> None:
+        """A list at or below the fold threshold is rendered unwrapped."""
+        alerts = [self._alert(i) for i in range(M._FOLD_THRESHOLD)]
+        lines = M._render_section(alerts, max_results=100, bullet_prefix=":x:", label="N alerts")
+        assert "<details>" not in lines
+        assert len(lines) == M._FOLD_THRESHOLD
+
+    def test_long_list_folded_with_details(self) -> None:
+        """A list above the fold threshold is wrapped in a <details> block."""
+        alerts = [self._alert(i) for i in range(M._FOLD_THRESHOLD + 1)]
+        lines = M._render_section(alerts, max_results=100, bullet_prefix=":x:", label="11 alerts")
+        assert lines[0] == "<details>"
+        assert lines[1] == "<summary>11 alerts</summary>"
+        assert lines[-1] == "</details>"
+        # A blank line must separate the <summary> tag and the closing tag
+        # from the bullet list per GFM's requirement for a blank line after
+        # <summary> to render Markdown inside <details>.
+        assert lines[2] == ""
+        assert lines[-2] == ""
+
+    def test_folded_output_contains_all_bullets(self) -> None:
+        """Folding must not drop any bullet lines."""
+        alerts = [self._alert(i) for i in range(M._FOLD_THRESHOLD + 3)]
+        lines = M._render_section(alerts, max_results=100, bullet_prefix=":x:", label="label")
+        bullet_lines = [ln for ln in lines if ln.startswith("- :x:")]
+        assert len(bullet_lines) == len(alerts)
+
+
+# ---------------------------------------------------------------------------
 # build_comment
 # ---------------------------------------------------------------------------
 
@@ -664,6 +710,31 @@ class TestBuildComment:
             threshold="warning",
         )
         assert "Error" in body  # highest severity title
+
+    def test_long_new_alert_list_is_folded(self) -> None:
+        """A new-alerts section above the fold threshold is collapsed."""
+        alerts = [self._alert() for _ in range(M._FOLD_THRESHOLD + 1)]
+        body = M.build_comment(
+            new_alerts=alerts,
+            fixed_alerts=[],
+            repo=None,
+            max_results=100,
+            threshold="warning",
+        )
+        assert "<details>" in body
+        assert "<summary>" in body
+
+    def test_short_new_alert_list_is_not_folded(self) -> None:
+        """A new-alerts section at or below the fold threshold is not collapsed."""
+        alerts = [self._alert() for _ in range(M._FOLD_THRESHOLD)]
+        body = M.build_comment(
+            new_alerts=alerts,
+            fixed_alerts=[],
+            repo=None,
+            max_results=100,
+            threshold="warning",
+        )
+        assert "<details>" not in body
 
 
 # ---------------------------------------------------------------------------
@@ -1145,6 +1216,21 @@ class TestBuildMultiSectionComment:
         body = M._build_multi_section_comment(comp, max_results=10)
         assert "since the branch point" in body
         assert "abc1234" in body
+
+    def test_long_new_vs_base_list_is_folded(self) -> None:
+        """A new_vs_base section above the fold threshold is collapsed."""
+        alerts = [self._alert(number=i) for i in range(M._FOLD_THRESHOLD + 1)]
+        comp = self._comp(new_vs_base=alerts, base_sha="abc1234")
+        body = M._build_multi_section_comment(comp, max_results=100)
+        assert "<details>" in body
+        assert "<summary>" in body
+
+    def test_short_new_vs_base_list_is_not_folded(self) -> None:
+        """A new_vs_base section at or below the fold threshold is not collapsed."""
+        alerts = [self._alert(number=i) for i in range(M._FOLD_THRESHOLD)]
+        comp = self._comp(new_vs_base=alerts, base_sha="abc1234")
+        body = M._build_multi_section_comment(comp, max_results=100)
+        assert "<details>" not in body
 
     def test_fixed_vs_prev_rendered(self) -> None:
         """Fixed vs prev rendered."""
