@@ -11,7 +11,7 @@
 #include <string_view>
 #include <tuple>
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 using namespace oneapi::tbb;
 
 namespace {

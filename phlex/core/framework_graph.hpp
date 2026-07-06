@@ -36,7 +36,7 @@ namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT framework_graph {
   public:
     [[nodiscard]] static framework_graph with_default_driver(
@@ -54,7 +54,7 @@ namespace phlex::experimental {
 
     template <typename Generator>
       requires requires(std::shared_ptr<Generator> generator, std::vector<source const*> sources) {
-        { experimental::driver_proxy{sources}.driver(generator) } -> std::same_as<driver_bundle>;
+        { driver_proxy{sources}.driver(generator) } -> std::same_as<driver_bundle>;
       }
     void add_driver(std::shared_ptr<Generator> generator)
     {
@@ -76,9 +76,9 @@ namespace phlex::experimental {
       return {config, graph_, nodes_, registration_errors_};
     }
 
-    experimental::driver_proxy driver_proxy(std::vector<std::string> strings = {})
+    detail::driver_proxy driver_proxy(std::vector<std::string> strings = {})
     {
-      return experimental::driver_proxy(nodes_.sources_for(strings));
+      return detail::driver_proxy{nodes_.sources_for(strings)};
     }
 
     // Framework function registrations

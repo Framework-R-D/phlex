@@ -9,7 +9,7 @@
 
 #include "oneapi/tbb/flow_graph.h"
 
-namespace phlex::experimental {
+namespace phlex::detail {
   using filter_base =
     oneapi::tbb::flow::composite_node<std::tuple<message, predicate_result>,
                                       std::tuple<oneapi::tbb::flow::continue_msg>>;

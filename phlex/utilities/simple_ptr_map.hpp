@@ -21,7 +21,7 @@
 #include <memory>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <typename T>
   class simple_ptr_map;
 

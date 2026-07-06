@@ -36,11 +36,11 @@
 #include <type_traits>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT declared_transform : public products_consumer {
   public:
-    declared_transform(algorithm_name name,
+    declared_transform(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
                        product_selectors input_products);
     ~declared_transform() override;
@@ -67,7 +67,7 @@ namespace phlex::experimental {
     using node_ptr_type = declared_transform_ptr;
     static constexpr auto number_output_products = num_outputs;
 
-    transform_node(algorithm_name algo_name,
+    transform_node(phlex::experimental::algorithm_name algo_name,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
@@ -82,6 +82,7 @@ namespace phlex::experimental {
         g,
         concurrency,
         [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto& output) {
+          using namespace phlex::experimental::detail;
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
@@ -91,8 +92,8 @@ namespace phlex::experimental {
 
           products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
-          auto new_store =
-            std::make_shared<product_store>(store->index(), name(), std::move(new_products));
+          auto new_store = std::make_shared<phlex::experimental::product_store>(
+            store->index(), name(), std::move(new_products));
 
           std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
         }}

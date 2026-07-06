@@ -20,7 +20,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   struct index_message {
     data_cell_index_ptr index;
@@ -42,7 +42,7 @@ namespace phlex::experimental {
 
   struct message {
     // FIXME: Maybe consider adding an 'index' data member?
-    product_store_const_ptr store;
+    phlex::experimental::product_store_const_ptr store;
     std::size_t id{};
   };
 
@@ -57,7 +57,7 @@ namespace phlex::experimental {
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
 
   struct named_index_port {
-    identifier layer;
+    phlex::experimental::identifier layer;
     tbb::flow::receiver<indexed_end_token>* token_port;
     tbb::flow::receiver<index_message>* index_port;
   };
@@ -70,6 +70,24 @@ namespace phlex::experimental {
   inline message const& most_derived(message const& msg)
   {
     return msg; // NOLINT(bugprone-return-const-ref-from-parameter)
+  }
+
+  // Generic most_derived for message tuples
+  template <std::size_t I, typename Tuple>
+  auto const& get_most_derived(Tuple const& tup, std::tuple_element_t<I - 1, Tuple> const& element)
+  {
+    constexpr auto num_inputs = std::tuple_size_v<Tuple>;
+    if constexpr (I == num_inputs - 1) {
+      return more_derived(element, std::get<I>(tup));
+    } else {
+      return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
+    }
+  }
+
+  template <typename T, typename U, typename... Ts>
+  auto const& most_derived(std::tuple<T, U, Ts...> const& elements)
+  {
+    return get_most_derived<1ull>(elements, std::get<0>(elements));
   }
 
   PHLEX_CORE_EXPORT std::size_t port_index_for(product_selectors const& input_products,

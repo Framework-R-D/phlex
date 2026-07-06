@@ -14,7 +14,7 @@ namespace {
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   void run(boost::json::object const& configurations, int const max_parallelism)
   {
     auto g = framework_graph::without_driver(max_parallelism);

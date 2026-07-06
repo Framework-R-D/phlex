@@ -16,7 +16,7 @@
 #include <memory>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   // ==============================================================================
 
@@ -44,6 +44,10 @@ namespace phlex::experimental {
   using source_ptr = std::unique_ptr<source>;
   using source_map = simple_ptr_map<source_ptr>;
   using source_vector = std::vector<source const*>;
+}
+
+namespace phlex {
+  using source = detail::source;
 }
 
 #endif // PHLEX_CORE_SOURCE_HPP

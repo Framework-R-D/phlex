@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <typename Ptr, std::size_t NumberOutputProducts>
   class upstream_predicates {
   public:
@@ -20,7 +20,7 @@ namespace phlex::experimental {
       if (!config) {
         return;
       }
-      registrar_.set_predicates(detail::maybe_predicates(config));
+      registrar_.set_predicates(internal::maybe_predicates(config));
     }
 
     auto& experimental_when(std::vector<std::string> predicates)

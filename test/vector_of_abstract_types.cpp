@@ -42,7 +42,7 @@ TEST_CASE("Test vector of abstract types")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {"job", 1u, 1u});
 
-  auto g = experimental::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide("provide_thing", [](data_cell_index const&) { return make_derived_as_abstract(); })
     .output_product("dummy", "thing", "event");

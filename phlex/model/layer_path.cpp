@@ -13,11 +13,11 @@ using namespace phlex::experimental::literals;
 
 namespace phlex::experimental {
   layer_path::layer_path(std::string_view path) :
-    layer_path_{
-      std::from_range,
-      path | std::views::split('/') |
-        std::views::filter([](auto const& sr) { return not sr.empty(); }) |
-        std::views::transform([](auto const& sr) { return identifier(std::string_view(sr)); })}
+    layer_path_{std::from_range,
+                path | std::views::split('/') |
+                  std::views::filter([](auto const& sr) { return not sr.empty(); }) |
+                  std::views::transform(
+                    [](auto const& sr) { return experimental::identifier(std::string_view(sr)); })}
   {
     if (layer_path_.empty()) {
       throw std::runtime_error("Layer paths cannot be empty.");
@@ -67,7 +67,7 @@ namespace phlex::experimental {
     return other_it == rev_other_layer_path.end();
   }
 
-  bool layer_path::ends_with(identifier const& name) const noexcept
+  bool layer_path::ends_with(experimental::identifier const& name) const noexcept
   {
     return layer_path_.back() == name;
   }
@@ -82,7 +82,7 @@ namespace phlex::experimental {
     // incomplete paths have an implied "job" root in this calculation
     // Need the experimental:: so it isn't confused for this function
     std::size_t seed =
-      is_complete() ? "job"_idq.hash : experimental::hash("job"_idq.hash, layer_path_[0].hash());
+      is_complete() ? "job"_idq.hash : phlex::detail::hash("job"_idq.hash, layer_path_[0].hash());
     boost::hash_range(seed, layer_path_.begin() + 1, layer_path_.end());
     return seed;
   }
@@ -92,10 +92,10 @@ namespace phlex::experimental {
     std::set<std::size_t> hashes;
     // Add the appropriate first hash
     std::size_t cumulative_hash =
-      is_complete() ? "job"_idq.hash : experimental::hash("job"_idq.hash, layer_path_[0].hash());
+      is_complete() ? "job"_idq.hash : phlex::detail::hash("job"_idq.hash, layer_path_[0].hash());
     hashes.insert(cumulative_hash);
     for (auto const& name : layer_path_ | std::views::drop(1)) {
-      cumulative_hash = experimental::hash(cumulative_hash, name.hash());
+      cumulative_hash = phlex::detail::hash(cumulative_hash, name.hash());
       hashes.insert(cumulative_hash);
     }
     return hashes;

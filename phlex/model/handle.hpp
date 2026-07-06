@@ -11,7 +11,7 @@
 #include <variant>
 
 namespace phlex {
-  namespace experimental::detail {
+  namespace detail::internal {
     template <typename T>
     struct handle_value_type_impl {
       using type = std::remove_const_t<T>;
@@ -45,7 +45,7 @@ namespace phlex {
   template <typename T>
   class handle {
   public:
-    static_assert(std::same_as<T, experimental::detail::handle_value_type<T>>,
+    static_assert(std::same_as<T, detail::internal::handle_value_type<T>>,
                   "Cannot create a handle with a template argument that is const-qualified, a "
                   "reference type, or a pointer type.");
     using value_type = T;
@@ -60,7 +60,7 @@ namespace phlex {
     // The 'product' parameter is not 'const_reference' to avoid avoid implicit type conversions.
     explicit handle(std::same_as<T> auto const& product,
                     data_cell_index const& id,
-                    experimental::product_specification const& key,
+                    detail::product_specification const& key,
                     std::optional<experimental::identifier> stage = {}) :
       product_{&product},
       id_{&id},
@@ -121,7 +121,7 @@ namespace phlex {
     experimental::identifier creator_plugin_;
     experimental::identifier creator_algorithm_;
     experimental::identifier suffix_;
-    experimental::type_id type_;
+    detail::type_id type_;
     std::optional<experimental::identifier> stage_;
 
     // Utilities for stage name access until configuration supports these
@@ -129,12 +129,12 @@ namespace phlex {
   };
 
   template <typename T>
-  handle(T const&, data_cell_index const&, experimental::product_specification const&) -> handle<T>;
+  handle(T const&, data_cell_index const&, detail::product_specification const&) -> handle<T>;
 
   template <typename T>
   handle(T const&,
          data_cell_index const&,
-         experimental::product_specification const&,
+         detail::product_specification const&,
          std::optional<experimental::identifier>) -> handle<T>;
 }
 

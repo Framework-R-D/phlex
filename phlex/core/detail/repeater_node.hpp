@@ -13,14 +13,16 @@
 #include <memory>
 #include <string>
 
-namespace phlex::experimental::detail {
+namespace phlex::detail::internal {
 
   using repeater_node_input = std::tuple<message, indexed_end_token, index_message>;
 
   class PHLEX_CORE_EXPORT repeater_node :
     public tbb::flow::composite_node<repeater_node_input, message_tuple<1>> {
   public:
-    repeater_node(tbb::flow::graph& g, std::string node_name, identifier layer_name);
+    repeater_node(tbb::flow::graph& g,
+                  std::string node_name,
+                  phlex::experimental::identifier layer_name);
 
     tbb::flow::receiver<message>& data_port();
     tbb::flow::receiver<indexed_end_token>& flush_port();
@@ -62,7 +64,7 @@ namespace phlex::experimental::detail {
     cache_t cached_products_;
     std::atomic<bool> cache_enabled_{true};
     std::string node_name_;
-    identifier layer_;
+    phlex::experimental::identifier layer_;
   };
 }
 

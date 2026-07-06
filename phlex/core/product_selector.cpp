@@ -26,7 +26,7 @@ namespace phlex {
   }
 
   // Check if a product_specification satisfies this query
-  bool product_selector::match(experimental::product_specification const& spec) const
+  bool product_selector::match(detail::product_specification const& spec) const
   {
     if (!creator_match(spec.creator())) {
       return false;
@@ -43,7 +43,7 @@ namespace phlex {
   }
 
   // Check if a product_specification, layer, and stage together satisfies this query
-  bool product_selector::match(experimental::product_specification const& spec,
+  bool product_selector::match(detail::product_specification const& spec,
                                experimental::identifier const& layer,
                                experimental::identifier const& stage) const
   {
@@ -94,8 +94,8 @@ namespace phlex {
                     rhs.stage);
   }
 
-  experimental::product_specification const* resolve_in_store(
-    product_selector const& query, experimental::product_store const& store)
+  detail::product_specification const* resolve_in_store(product_selector const& query,
+                                                        experimental::product_store const& store)
   {
     for (auto const& [spec, _] : store) {
       if (query.match(spec)) {

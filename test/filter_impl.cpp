@@ -3,7 +3,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 TEST_CASE("Filter values", "[filtering]")
 {
@@ -45,6 +45,7 @@ TEST_CASE("Filter decision", "[filtering]")
 
 TEST_CASE("Filter data map", "[filtering]")
 {
+  using namespace phlex::experimental;
   using phlex::product_selector;
   std::vector const data_products_to_cache{
     product_selector{.creator = "input", .layer = "spill", .suffix = "a"},
@@ -69,6 +70,8 @@ TEST_CASE("Filter data map", "[filtering]")
 
 TEST_CASE("Data map for output only", "[filtering]")
 {
+  using namespace phlex::experimental;
+
   // Exercises data_map(for_output_t) which uses the output-only product query
   data_map data{data_map::for_output};
 

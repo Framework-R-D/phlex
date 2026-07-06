@@ -6,7 +6,7 @@
 #include <functional>
 #include <memory>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <typename FT>
   auto delegate(std::shared_ptr<void_tag>, FT f) // Used for lambda closures
   {

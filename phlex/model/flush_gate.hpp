@@ -41,7 +41,7 @@
 #include <memory>
 #include <mutex>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_MODEL_EXPORT flush_gate {
     using flush_callback_t = std::function<void(flush_gate const&)>;
@@ -103,6 +103,6 @@ namespace phlex::experimental {
 
   using flush_gate_ptr = std::shared_ptr<flush_gate>;
 
-} // namespace phlex::experimental
+} // namespace phlex::detail
 
 #endif // PHLEX_MODEL_FLUSH_GATE_HPP

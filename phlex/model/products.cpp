@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   products::products(std::size_t number_known_products)
   {
     products_.reserve(number_known_products);

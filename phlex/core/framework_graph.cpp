@@ -14,7 +14,7 @@
 #include <format>
 #include <iostream>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   framework_graph framework_graph::with_default_driver(int const max_parallelism)
   {
     return framework_graph{driver_mode::default_driver, max_parallelism};
@@ -90,7 +90,7 @@ namespace phlex::experimental {
   std::size_t framework_graph::seen_cell_count(std::string const& layer_name,
                                                bool const missing_ok) const
   {
-    return hierarchy_.count_for(experimental::layer_path(layer_name), missing_ok);
+    return hierarchy_.count_for(phlex::experimental::layer_path(layer_name), missing_ok);
   }
 
   std::size_t framework_graph::execution_count(std::string const& node_name) const
@@ -221,22 +221,22 @@ namespace phlex::experimental {
     index_router::provider_input_ports_t provider_input_ports,
     std::map<std::string, named_index_ports> multilayer_join_index_ports)
   {
-    std::set<identifier> unfold_input_layer_names;
+    std::set<phlex::experimental::identifier> unfold_input_layer_names;
 
     // Count how many distinct unfold nodes consume each input layer.  When that count is
     // greater than one, the flush_gate for an index in that layer must collect a flush
     // message from every unfold before it knows the total number of children it will see.
-    std::map<identifier, std::size_t> unfold_count_per_input_layer;
+    std::map<phlex::experimental::identifier, std::size_t> unfold_count_per_input_layer;
     for (auto const& n : nodes_.unfolds | std::views::values) {
       for (auto const& input : n->input()) {
-        if (!static_cast<identifier const&>(input.layer).empty()) {
+        if (!static_cast<phlex::experimental::identifier const&>(input.layer).empty()) {
           unfold_input_layer_names.insert(input.layer);
-          ++unfold_count_per_input_layer[identifier{input.layer}];
+          ++unfold_count_per_input_layer[phlex::experimental::identifier{input.layer}];
         }
       }
     }
 
-    std::vector<identifier> unfold_output_layer_names;
+    std::vector<phlex::experimental::identifier> unfold_output_layer_names;
     for (auto const& n : nodes_.unfolds | std::views::values) {
       unfold_output_layer_names.emplace_back(n->child_layer());
     }
@@ -244,7 +244,8 @@ namespace phlex::experimental {
     // FIXME: All of this should be collapsed into one call to index_router::finalize()
     index_router_.establish_layers(
       fixed_hierarchy_.layer_paths(),
-      std::vector<identifier>(unfold_input_layer_names.begin(), unfold_input_layer_names.end()),
+      std::vector<phlex::experimental::identifier>(unfold_input_layer_names.begin(),
+                                                   unfold_input_layer_names.end()),
       unfold_output_layer_names);
     index_router_.register_unfold_count_per_input_layer(std::move(unfold_count_per_input_layer));
     index_router_.finalize(

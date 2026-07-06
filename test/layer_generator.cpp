@@ -5,6 +5,7 @@
 #include "catch2/matchers/catch_matchers_string.hpp"
 
 using namespace phlex::experimental;
+using phlex::detail::framework_graph;
 using namespace Catch::Matchers;
 
 TEST_CASE("Only job layer", "[layer-generation]")

@@ -7,7 +7,7 @@
 
 using namespace std::string_literals;
 
-namespace phlex::experimental {
+namespace phlex::detail {
   std::vector<products_consumer*> node_catalog::consumers() const
   {
     auto as_product_consumers = [](auto const& nodes) {

@@ -26,7 +26,7 @@ namespace {
 namespace form::experimental {
 
   void register_form_product_type(std::string product_type,
-                                  phlex::experimental::type_id type,
+                                  phlex::detail::type_id type,
                                   std::type_info const& cpp_type,
                                   form_source_product_from_data_fn product_from_data_fn)
   {
@@ -57,7 +57,7 @@ namespace form::experimental {
     return &it->second;
   }
 
-  std::string const* find_form_product_type_name(phlex::experimental::type_id const& type)
+  std::string const* find_form_product_type_name(phlex::detail::type_id const& type)
   {
     ensure_builtin_form_product_types_registered();
 

@@ -1,6 +1,6 @@
 #include "phlex/app/version.hpp"
 
-namespace phlex::experimental {
+namespace phlex::detail {
   // clang-format off
   char const* version() { return "@CMAKE_PROJECT_VERSION@"; }
   // clang-format on

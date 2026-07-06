@@ -19,8 +19,8 @@
 #include <string>
 #include <utility>
 
-namespace phlex::experimental {
-  namespace detail {
+namespace phlex::detail {
+  namespace internal {
     using index_set_node = tbb::flow::broadcast_node<index_message>;
     using index_set_node_ptr = std::shared_ptr<index_set_node>;
     using flush_node = tbb::flow::broadcast_node<indexed_end_token>;
@@ -56,14 +56,16 @@ namespace phlex::experimental {
     explicit index_router(tbb::flow::graph& g);
     data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes flushes);
 
-    void establish_layers(std::vector<layer_path> const& layer_paths_from_driver,
-                          std::vector<identifier> unfold_input_layer_names,
-                          std::vector<identifier> unfold_output_layer_names);
+    void establish_layers(
+      std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
+      std::vector<phlex::experimental::identifier> unfold_input_layer_names,
+      std::vector<phlex::experimental::identifier> unfold_output_layer_names);
 
     // Registers how many unfolds produce children from each input layer.  Must be called
     // before execution so that flush_gates are initialized with the correct expected
     // child count when they are first created.
-    void register_unfold_count_per_input_layer(std::map<identifier, std::size_t> counts);
+    void register_unfold_count_per_input_layer(
+      std::map<phlex::experimental::identifier, std::size_t> counts);
 
     void finalize(tbb::flow::graph& g,
                   provider_input_ports_t provider_input_ports,
@@ -91,9 +93,9 @@ namespace phlex::experimental {
     // correct for unfold outputs (the only source of unknown hashes) and consistent with
     // index_is_lowest_layer()'s fall-through default.
     bool is_lowest_layer_hash(std::size_t layer_hash) const;
-    detail::index_set_node_ptr index_set_node_for(layer_path const& layer);
-    detail::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
-    std::pair<detail::multilayer_slots_ptr, detail::multilayer_slots_ptr> multilayer_slots_for(
+    internal::index_set_node_ptr index_set_node_for(phlex::experimental::layer_path const& layer);
+    internal::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
+    std::pair<internal::multilayer_slots_ptr, internal::multilayer_slots_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);
     void update_flush_counts(index_flushes flushes);
     void apply_expected_count(flush_gate& gate,
@@ -107,28 +109,30 @@ namespace phlex::experimental {
     std::atomic<std::size_t> received_indices_{};
     flusher_t flusher_;
     tbb::concurrent_unordered_map<std::size_t, bool> is_lowest_layer_hashes_;
-    std::vector<identifier> unfold_input_layer_names_;
-    std::vector<identifier> unfold_output_layer_names_;
+    std::vector<phlex::experimental::identifier> unfold_input_layer_names_;
+    std::vector<phlex::experimental::identifier> unfold_output_layer_names_;
 
     // ==========================================================================================
     // Routing to provider nodes
     // The following maps are used to route data-cell indices to provider nodes.
     // The first map is from layer name to the corresponding index-set node.
-    tbb::concurrent_unordered_map<identifier, detail::index_set_node_ptr> index_set_nodes_;
+    tbb::concurrent_unordered_map<phlex::experimental::identifier, internal::index_set_node_ptr>
+      index_set_nodes_;
     // The second map is a cache from a layer hash to an index-set node, to avoid
     // repeated lookups for the same layer.
-    tbb::concurrent_unordered_map<std::size_t, detail::index_set_node_ptr> index_set_node_cache_;
+    tbb::concurrent_unordered_map<std::size_t, internal::index_set_node_ptr> index_set_node_cache_;
 
     // ==========================================================================================
     // Routing to multi-layer join nodes
     // Maps from join-node name to the multilayer slots for that node.
-    tbb::concurrent_unordered_map<identifier, detail::multilayer_slots> multilayer_join_slots_;
+    tbb::concurrent_unordered_map<phlex::experimental::identifier, internal::multilayer_slots>
+      multilayer_join_slots_;
 
     // This struct lets get_multilayer_slots return message and end-token slots together,
     // instead of passing concurrent_hash_map accessors as output parameters.
     struct multilayer_slot_cache_entry {
-      detail::multilayer_slots_ptr message_slots;
-      detail::multilayer_slots_ptr end_token_slots;
+      internal::multilayer_slots_ptr message_slots;
+      internal::multilayer_slots_ptr end_token_slots;
     };
     // Cache from layer hash to matched message/end-token slots for that layer.
     using multilayer_slot_cache_t =
@@ -146,7 +150,7 @@ namespace phlex::experimental {
 
     // Number of unfolds that will send flush messages for each input layer.  Used to
     // initialize flush_gates with the correct expected child count.
-    std::map<identifier, std::size_t> unfold_count_per_input_layer_;
+    std::map<phlex::experimental::identifier, std::size_t> unfold_count_per_input_layer_;
   };
 }
 

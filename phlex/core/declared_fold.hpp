@@ -35,10 +35,10 @@
 #include <type_traits>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT declared_fold : public products_consumer {
   public:
-    declared_fold(algorithm_name name,
+    declared_fold(phlex::experimental::algorithm_name name,
                   std::vector<std::string> predicates,
                   product_selectors input_products);
     ~declared_fold() override;
@@ -65,7 +65,7 @@ namespace phlex::experimental {
     using function_t = typename AlgorithmBits::bound_type;
 
   public:
-    fold_node(algorithm_name algo_name,
+    fold_node(phlex::experimental::algorithm_name algo_name,
               std::size_t concurrency,
               std::vector<std::string> predicates,
               tbb::flow::graph& g,
@@ -125,7 +125,7 @@ namespace phlex::experimental {
     void emit_and_evict_if_done(data_cell_index_ptr const& fold_index)
     {
       if (auto counter = done_with(fold_index->hash())) {
-        auto parent = std::make_shared<product_store>(fold_index, name());
+        auto parent = std::make_shared<phlex::experimental::product_store>(fold_index, name());
         commit(parent);
         ++product_count_;
         tbb::flow::output_port<0>(fold_).try_put(
@@ -181,9 +181,10 @@ namespace phlex::experimental {
       return std::unique_ptr<result_type>(new result_type{std::get<Is>(init)...});
     }
 
-    auto commit(product_store_ptr& store)
+    auto commit(phlex::experimental::product_store_ptr& store)
     {
       auto& result = results_.at(store->index()->hash());
+      using phlex::experimental::send;
       if constexpr (requires { send(*result); }) {
         store->add_product(output()[0], send(*result));
       } else {
@@ -197,7 +198,7 @@ namespace phlex::experimental {
     InitTuple initializer_;
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
-    identifier partition_;
+    phlex::experimental::identifier partition_;
     tbb::flow::function_node<flush_message> flush_receiver_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1>> fold_;

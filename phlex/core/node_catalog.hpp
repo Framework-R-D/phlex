@@ -20,7 +20,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   // A node_catalog is the framework_graph's registry of all the algorithm nodes
   // that make up a Phlex data-processing application.  It holds every kind of
   // node the framework knows about (predicates, observers, outputs, folds,
@@ -30,7 +30,7 @@ namespace phlex::experimental {
 
   // The externally visible entry point for plugin modules, with the signature:
   //   extern "C" void create_module(
-  //     phlex::experimental::module_graph_proxy<phlex::experimental::void_tag> m,
+  //     phlex::detail::module_graph_proxy<phlex::detail::void_tag> m,
   //     phlex::configuration const& config)
   //
   // User plugins define this function via the PHLEX_REGISTER_ALGORITHMS macro,

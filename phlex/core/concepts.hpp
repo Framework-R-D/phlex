@@ -1,6 +1,7 @@
 #ifndef PHLEX_CORE_CONCEPTS_HPP
 #define PHLEX_CORE_CONCEPTS_HPP
 
+#include "phlex/core/fold/send.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/fwd.hpp"
@@ -8,7 +9,7 @@
 #include <concepts>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   template <typename T>
   concept not_void = !std::same_as<T, void>;
@@ -56,8 +57,9 @@ namespace phlex::experimental {
   concept is_observer_like = at_least_one_input_parameter<T> && returns<T, void>;
 
   template <typename T>
-  concept is_output_like = std::is_member_function_pointer_v<T> &&
-                           expects_input_parameters<T, product_store const&> && returns<T, void>;
+  concept is_output_like =
+    std::is_member_function_pointer_v<T> &&
+    expects_input_parameters<T, phlex::experimental::product_store const&> && returns<T, void>;
 
   template <typename T>
   concept is_provider_like =

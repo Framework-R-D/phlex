@@ -5,7 +5,7 @@
 #include <array>
 #include <string_view>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <std::size_t N>
   struct string_literal {
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
@@ -15,7 +15,7 @@ namespace phlex::experimental {
     char value[N]{};
   };
 
-  namespace detail {
+  namespace internal {
     template <string_literal... Resources>
     consteval bool unique()
     {
@@ -27,7 +27,7 @@ namespace phlex::experimental {
   }
 
   template <string_literal... Resources>
-  concept are_unique = detail::unique<Resources...>();
+  concept are_unique = internal::unique<Resources...>();
 }
 
 #endif // PHLEX_UTILITIES_STRING_LITERAL_HPP

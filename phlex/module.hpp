@@ -8,7 +8,7 @@
 
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   /// @brief Proxy for registering module algorithm nodes.
   ///
   /// Passed to @c PHLEX_REGISTER_ALGORITHMS plugin entry points. Provides
@@ -36,13 +36,13 @@ namespace phlex::experimental {
     using base::unfold;
   };
 
-  namespace detail {
+  namespace internal {
     using module_creator_t = void(module_graph_proxy<void_tag>, configuration const&);
   }
 }
 
 #define PHLEX_REGISTER_ALGORITHMS(...)                                                             \
   PHLEX_DETAIL_REGISTER_PLUGIN(                                                                    \
-    phlex::experimental::module_graph_proxy, create, create_module, __VA_ARGS__)
+    phlex::detail::module_graph_proxy, create, create_module, __VA_ARGS__)
 
 #endif // PHLEX_MODULE_HPP

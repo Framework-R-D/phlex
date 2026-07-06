@@ -30,11 +30,11 @@
 #include <type_traits>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT declared_observer : public products_consumer {
   public:
-    declared_observer(algorithm_name name,
+    declared_observer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
                       product_selectors input_products);
     ~declared_observer() override;
@@ -55,7 +55,7 @@ namespace phlex::experimental {
     static constexpr auto number_output_products = 0;
     using node_ptr_type = declared_observer_ptr;
 
-    observer_node(algorithm_name algo_name,
+    observer_node(phlex::experimental::algorithm_name algo_name,
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,

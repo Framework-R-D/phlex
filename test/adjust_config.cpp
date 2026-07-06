@@ -5,7 +5,7 @@
 
 #include "boost/json.hpp"
 
-using namespace phlex::experimental::detail;
+using namespace phlex::detail::internal;
 
 TEST_CASE("Adjust empty config", "[config]")
 {
