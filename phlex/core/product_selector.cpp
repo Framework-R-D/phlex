@@ -71,10 +71,23 @@ namespace phlex {
 
   std::string product_selector::to_string() const
   {
-    if (suffix) {
-      return fmt::format("{}/{} ϵ {}", creator, *suffix, layer);
+    // Will generate [<suffix>][::<concept>][ by <creator>[ (of <stage>)]][ in <layer>]
+    // where square brackets indicate optional sections. If stage is specified but not creator,
+    // creator will be [ANY]
+    using experimental::identifier;
+    std::string_view suffix_str =
+      suffix.transform(&identifier::operator std::string_view).value_or("");
+    std::string type_str =
+      this->type.valid() ? fmt::format("::{}", this->type) : ""; // will later be concept
+    std::string layer_str = fmt::format(" in {}", identifier(layer));
+    std::string creator_str; // depends on whether /stage/ is specified
+    if (stage.has_value()) {
+      creator_str = fmt::format(" by {} of {}", creator, stage.value());
+    } else {
+      creator_str = creator ? fmt::format(" by {}", creator) : "";
     }
-    return fmt::format("{} ϵ {}", creator, layer);
+
+    return fmt::format("{}{}{}{}", suffix_str, type_str, creator_str, layer_str);
   }
 
   bool product_selector::operator==(product_selector const& rhs) const
