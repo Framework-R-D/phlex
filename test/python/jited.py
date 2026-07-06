@@ -15,8 +15,8 @@ specs = (
     ("u1", "u2", np.uint32, 1),
     ("l1", "l2", np.int64, 1),
     ("ul1", "ul2", np.uint64, 100),
-    ("f1", "f2", np.float32, 1.),
-    ("d1", "d2", np.float64, 1.),
+    ("f1", "f2", np.float32, 1.0),
+    ("d1", "d2", np.float64, 1.0),
 )
 
 
@@ -40,24 +40,28 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     def new_o(x):
         def o(y):
             assert y == x
+
         return o
 
     for arg0, arg1, t, res in specs:
         tn = t.__name__
 
         f_a = numba.cfunc(f"{tn}({tn}, {tn})", nogil=True, nopython=True, cache=True)(add)
-        m.transform(f_a,
-                    name="add_"+tn,
-                    input_family=[{"creator": "input", "layer": "event", "suffix": arg0},
-                                  {"creator": "input", "layer": "event", "suffix": arg1}],
-                    output_product_suffixes=["sum_"+tn],
-                    concurrency=4)
+        m.transform(
+            f_a,
+            name="add_" + tn,
+            input_family=[
+                {"creator": "input", "layer": "event", "suffix": arg0},
+                {"creator": "input", "layer": "event", "suffix": arg1},
+            ],
+            output_product_suffixes=["sum_" + tn],
+            concurrency=4,
+        )
 
         f_o = numba.cfunc(f"void({tn})", nogil=True, nopython=True, cache=True)(new_o(res))
-        m.observe(f_o,
-                  name="obs_"+tn,
-                  input_family=[
-                      {"creator": "add_" + tn, "layer": "event", "suffix": "sum_"+tn}
-                  ],
-                  concurrency=4)
-
+        m.observe(
+            f_o,
+            name="obs_" + tn,
+            input_family=[{"creator": "add_" + tn, "layer": "event", "suffix": "sum_" + tn}],
+            concurrency=4,
+        )

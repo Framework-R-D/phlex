@@ -57,14 +57,12 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
 
     try:
-      # intentional failure to check error path of missing output suffix
-      m.transform(int_adder, input_family=config["input"])
+        # intentional failure to check error path of missing output suffix
+        m.transform(int_adder, input_family=config["input"])
     except TypeError as e:
-      assert "should have an output suffix" in str(e)
+        assert "should have an output suffix" in str(e)
     else:
-      raise AssertionError(
-          "m.transform() should reject registrations without an output suffix"
-      )
+        raise AssertionError("m.transform() should reject registrations without an output suffix")
 
     # functional transform registration
     m.transform(int_adder, input_family=config["input"], output_product_suffixes=config["output"])
