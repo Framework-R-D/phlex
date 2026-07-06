@@ -24,11 +24,13 @@ namespace phlex::detail {
   // A node_catalog is the framework_graph's registry of all the algorithm nodes
   // that make up a Phlex data-processing application.  It holds every kind of
   // node the framework knows about (predicates, observers, outputs, folds,
-  // unfolds, transforms, providers, and sources), grouped by type, and serves
+  // unfolds, transforms, and providers), grouped by type, and serves
   // as the single source of node information used to build and run the flow
-  // graph.
+  // graph. It also holds the sources, which are factories for creating provider
+  // nodes.
 
-  // The externally visible entry point for plugin modules, with the signature:
+  // The externally visible entry point for plugin modules is create_module,
+  // with the signature:
   //   extern "C" void create_module(
   //     phlex::detail::module_graph_proxy<phlex::detail::void_tag> m,
   //     phlex::configuration const& config)
@@ -36,7 +38,7 @@ namespace phlex::detail {
   // User plugins define this function via the PHLEX_REGISTER_ALGORITHMS macro,
   // which expands to the extern "C" entry point.  The body invokes module methods
   // like transform(), predicate(), fold(), unfold(), observe(), and output() on
-  // the 'm' argument, which add nodes to this node_catalog.
+  // the 'm' argument. These methods add nodes to this node_catalog.
   //
   // During application initialization, the framework loads each configured
   // plugin shared library (PHLEX_PLUGIN_PATH), resolves the create_module entry
@@ -55,7 +57,7 @@ namespace phlex::detail {
     //      unfold, provide, output):  Each declaration creates a short-lived
     //      *_api builder holding a registrar bound to the appropriate map (see
     //      registrar_for()).  For all but output nodes, the registrar's
-    //      destructor creates the node and inserts in at the end of the
+    //      destructor creates the node and inserts it at the end of the
     //      registration statement. For output nodes, an explicit call does
     //      this.
     //   2. Sources: glue::source() inserts directly into `sources`, bypassing
@@ -84,10 +86,13 @@ namespace phlex::detail {
 
     // Only the framework_graph for an application is intended to have a
     // node_catalog; it should not get copied or assigned, so we disable copying
-    // and moving to prevent accidental use.
+    // and assignment to prevent accidental use.
     node_catalog() = default;
     node_catalog(node_catalog const&) = delete;
+    node_catalog(node_catalog &&) = delete;
     node_catalog& operator=(node_catalog const&) = delete;
+    node_catalog& operator=(node_catalog &&) = delete;
+    ~node_catalog() = default;
 
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)
