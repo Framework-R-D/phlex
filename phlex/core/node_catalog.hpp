@@ -89,9 +89,9 @@ namespace phlex::detail {
     // and assignment to prevent accidental use.
     node_catalog() = default;
     node_catalog(node_catalog const&) = delete;
-    node_catalog(node_catalog &&) = delete;
+    node_catalog(node_catalog&&) = delete;
     node_catalog& operator=(node_catalog const&) = delete;
-    node_catalog& operator=(node_catalog &&) = delete;
+    node_catalog& operator=(node_catalog&&) = delete;
     ~node_catalog() = default;
 
     template <typename Ptr>
