@@ -130,11 +130,3 @@ void ROOT_TBranch_Write_ContainerImp::commit()
   m_tree->SetEntries(m_branch->GetEntries());
   return;
 }
-
-std::uint64_t ROOT_TBranch_Write_ContainerImp::getEntryCount()
-{
-  if (m_branch == nullptr) {
-    return 0;
-  }
-  return m_branch->GetEntries();
-}

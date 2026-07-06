@@ -106,7 +106,7 @@ jobs:
         # yamllint enable
 
       - name: Check out source code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
@@ -374,7 +374,7 @@ jobs:
           retention-days: 30
 
   coverage-upload:
-    needs: coverage
+    needs: [setup, coverage]
     if:
       ${{ needs.coverage.result == 'success' && needs.coverage.outputs.artifact_upload_available == 'true' &&
       github.actor != 'nektos/act' }}
@@ -384,8 +384,10 @@ jobs:
 
     steps:
       - name: Check out source code for Codecov mapping
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ needs.setup.outputs.ref }}
+          repository: ${{ needs.setup.outputs.repo }}
           fetch-depth: 0
 
       - name: Download coverage bundle
@@ -481,6 +483,6 @@ jobs:
 
       - name: Update PR comment reactions
         if: always()
-        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
+        uses: Framework-R-D/action-complete-pr-comment@5d16749c32fbb7b15503f264dde6e3c98b90b4fb # v2
         with:
           status: ${{ needs.coverage.result }}

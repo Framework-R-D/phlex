@@ -52,8 +52,9 @@ namespace {
 
   void verify_results(int number, double temperature, std::string const& name)
   {
-    auto const expected = std::make_tuple(3, 98.5, "John");
-    CHECK(std::tie(number, temperature, name) == expected);
+    CHECK(number == 3);
+    CHECK(temperature == 98.5);
+    CHECK(name == "John");
   }
 }
 
@@ -65,7 +66,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
     product_selector{.creator = "input", .layer = "job", .suffix = "name"}};
   std::array const product_suffixes{"onumber"s, "otemperature"s, "oname"s};
 
-  experimental::framework_graph g;
+  auto g = experimental::framework_graph::with_default_driver();
 
   // Register providers for the input products
   g.provide("provide_number", provide_number, concurrency::unlimited)

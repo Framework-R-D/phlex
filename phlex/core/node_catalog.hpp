@@ -16,9 +16,8 @@
 #include "phlex/core/source.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "boost/pfr.hpp"
-
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace phlex::experimental {
@@ -93,8 +92,10 @@ namespace phlex::experimental {
     template <typename Ptr>
     auto registrar_for(std::vector<std::string>& errors)
     {
-      return registrar{boost::pfr::get<simple_ptr_map<Ptr>>(*this), errors};
+      return registrar{ptr_map_for<Ptr>(), errors};
     }
+
+    source_vector sources_for(std::vector<std::string> const& keys) const;
 
     std::size_t execution_count(std::string const& node_name) const;
     std::vector<products_consumer*> consumers() const;
@@ -108,6 +109,35 @@ namespace phlex::experimental {
     simple_ptr_map<declared_transform_ptr> transforms{};
     simple_ptr_map<provider_node_ptr> providers{};
     simple_ptr_map<source_ptr> sources{};
+
+  private:
+    template <typename>
+    static constexpr bool unknown_ptr_type_v{false};
+
+    template <typename Ptr>
+    auto& ptr_map_for()
+    {
+      // Note: We can eventually revert to boost::pfr::get once we move beyond LLVM 20.
+      if constexpr (std::is_same_v<Ptr, declared_predicate_ptr>) {
+        return predicates;
+      } else if constexpr (std::is_same_v<Ptr, declared_observer_ptr>) {
+        return observers;
+      } else if constexpr (std::is_same_v<Ptr, declared_output_ptr>) {
+        return outputs;
+      } else if constexpr (std::is_same_v<Ptr, declared_fold_ptr>) {
+        return folds;
+      } else if constexpr (std::is_same_v<Ptr, declared_unfold_ptr>) {
+        return unfolds;
+      } else if constexpr (std::is_same_v<Ptr, declared_transform_ptr>) {
+        return transforms;
+      } else if constexpr (std::is_same_v<Ptr, provider_node_ptr>) {
+        return providers;
+      } else if constexpr (std::is_same_v<Ptr, source_ptr>) {
+        return sources;
+      } else {
+        static_assert(unknown_ptr_type_v<Ptr>, "Unsupported node pointer type");
+      }
+    }
   };
 }
 

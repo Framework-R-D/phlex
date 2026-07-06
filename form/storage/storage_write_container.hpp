@@ -24,7 +24,6 @@ namespace form::detail::experimental {
     void commit() override;
 
     void setAttribute(std::string const& name, std::string const& value) override;
-    std::uint64_t getEntryCount() override;
 
   private:
     std::string m_name;

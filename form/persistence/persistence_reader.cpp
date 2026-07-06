@@ -48,6 +48,37 @@ void PersistenceReader::read(std::string const& creator,
   return;
 }
 
+void PersistenceReader::prime(std::string const& creator,
+                              std::string const& label,
+                              std::type_info const& type)
+{
+  auto const config_item = findConfigItem(m_config_items, label);
+
+  if (!config_item) {
+    throw std::runtime_error("No configuration found for product: " + label +
+                             " from creator: " + creator);
+  }
+
+  std::string const full_label = buildFullLabel(creator, label);
+  m_store_reader->prime(
+    Token{config_item->file_name, full_label, config_item->technology}, type, m_tech_settings);
+}
+
+std::vector<std::string> PersistenceReader::listIndices(std::string const& creator,
+                                                        std::string const& label)
+{
+  auto const config_item = findConfigItem(m_config_items, label);
+
+  if (!config_item) {
+    throw std::runtime_error("No configuration found for product: " + label +
+                             " from creator: " + creator);
+  }
+
+  std::string const full_label = buildFullLabel(creator, "index");
+  return m_store_reader->listIndices(
+    Token{config_item->file_name, full_label, config_item->technology}, m_tech_settings);
+}
+
 std::unique_ptr<Token> PersistenceReader::getToken(std::string const& creator,
                                                    std::string const& label,
                                                    std::string const& id)

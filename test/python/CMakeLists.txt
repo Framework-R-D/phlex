@@ -86,15 +86,6 @@ else()
 endif()
 
 if(HAS_CPPYY)
-  # Export the location of phlex include headers
-  if(DEFINED ENV{PHLEX_INSTALL})
-    set(PYTHON_TEST_PHLEX_INSTALL $ENV{PHLEX_INSTALL})
-  else()
-    set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
-  endif()
-
-  set_property(TEST py:phlex PROPERTY ENVIRONMENT "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}")
-
   set(PYTHON_TEST_FILES ${PYTHON_TEST_FILES} test_phlex.py)
 endif()
 
@@ -191,6 +182,13 @@ list(APPEND ACTIVE_PY_CPHLEX_TESTS py:reduce)
 
 add_test(NAME py:coverage COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pycoverage.jsonnet)
 list(APPEND ACTIVE_PY_CPHLEX_TESTS py:coverage)
+
+# numba tests if installed
+if(HAS_NUMBA)
+  # phlex-based tests that require numpy support
+  add_test(NAME py:jited COMMAND phlex::phlex -c ${CMAKE_CURRENT_SOURCE_DIR}/pyjited.jsonnet)
+  list(APPEND ACTIVE_PY_CPHLEX_TESTS py:jited)
+endif()
 
 add_test(
   NAME py:mismatch
@@ -292,3 +290,14 @@ endif()
 # tests of the python support modules
 add_test(NAME py:phlex COMMAND ${PYTEST_COMMAND} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set_tests_properties(py:phlex PROPERTIES ENVIRONMENT "${PYTHON_TEST_ENVIRONMENT}")
+
+if(HAS_CPPYY)
+  # Export the location of phlex include headers
+  if(DEFINED ENV{PHLEX_INSTALL})
+    set(PYTHON_TEST_PHLEX_INSTALL $ENV{PHLEX_INSTALL})
+  else()
+    set(PYTHON_TEST_PHLEX_INSTALL ${CMAKE_SOURCE_DIR})
+  endif()
+
+  set_property(TEST py:phlex PROPERTY ENVIRONMENT "PHLEX_INSTALL=${PYTHON_TEST_PHLEX_INSTALL}")
+endif()

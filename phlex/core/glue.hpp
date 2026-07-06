@@ -152,7 +152,7 @@ namespace phlex::experimental {
     }
 
     template <std::derived_from<source> Source, typename... Args>
-    void source(std::string name, Args&&... args)
+    void add_source(std::string name, Args&&... args)
     {
       auto [_, inserted] =
         nodes_.sources.try_emplace(name, std::make_unique<Source>(std::forward<Args>(args)...));

@@ -52,12 +52,13 @@ TEST_CASE("Cached function calls", "[data model]")
   constexpr unsigned int n_subruns{2u};
   constexpr unsigned int n_events{5000u};
 
-  experimental::layer_generator gen;
-  gen.add_layer("run", {"job", n_runs});
-  gen.add_layer("subrun", {"run", n_subruns});
-  gen.add_layer("event", {"subrun", n_events});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {"job", n_runs});
+  gen->add_layer("subrun", {"run", n_subruns});
+  gen->add_layer("event", {"subrun", n_events});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = experimental::framework_graph::without_driver();
+  g.add_driver(gen);
 
   // Register providers
   g.provide("provide_number", provide_number, concurrency::unlimited)

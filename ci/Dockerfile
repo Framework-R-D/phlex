@@ -217,7 +217,7 @@ set -euo pipefail
 spack --timestamp install --fail-fast -j "$(nproc)" -p 1 \
       --no-check-signature \
       gcc@15.2 target=x86_64_v3 \
-      +binutils+bootstrap+graphite~nvptx+piclibs+profiled+strip \
+      +binutils+graphite~nvptx+piclibs+strip \
       build_type=Release \
       languages=c,c++,fortran,lto \
       %c,cxx=gcc@13.3.0 # % must be LAST (along with ^ dependencies)
@@ -272,6 +272,11 @@ set -euo pipefail
 # Install core build utilities through Spack for both images
 . /entrypoint.sh
 
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
+
 spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
   cmake lcov ninja py-gcovr py-pytest-cov py-pyyaml
@@ -321,6 +326,11 @@ set -euo pipefail
 # Install LLVM in its own layer to improve cache reuse
 . /entrypoint.sh
 
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
+
 spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature llvm
 
@@ -347,6 +357,11 @@ set -euo pipefail
 
 # Install all concretized packages except phlex to share cache
 . /entrypoint.sh
+
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
 spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --no-check-signature \
@@ -375,6 +390,11 @@ set -euo pipefail
 
 # Materialize dependencies needed for CI builds without installing Phlex
 . /entrypoint.sh
+
+# Recreate the environment view in this layer to avoid cross-layer rename
+# failures (EXDEV) when Spack rotates view -> view.old.<hash>.
+rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
+rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
 spack --timestamp install --fail-fast -j $(nproc) -p 1 \
   --no-add --only-concrete --only dependencies --no-check-signature \

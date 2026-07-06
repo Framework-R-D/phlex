@@ -38,5 +38,5 @@ namespace {
 
 PHLEX_REGISTER_SOURCE(s, config)
 {
-  s.source<max_parallelism_source>(config.get<std::string>("module_label"));
+  s.add_source<max_parallelism_source>(config.get<std::string>("module_label"));
 }

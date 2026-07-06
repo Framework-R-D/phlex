@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -21,7 +22,8 @@ namespace phlex::experimental {
   public:
     explicit product_store(data_cell_index_ptr id,
                            algorithm_name source = default_source(),
-                           products new_products = {});
+                           products new_products = {},
+                           std::optional<identifier> stage = {});
     ~product_store();
     static product_store_ptr base(algorithm_name base_name = default_source());
 
@@ -56,6 +58,7 @@ namespace phlex::experimental {
     data_cell_index_ptr id_;
     algorithm_name
       source_; // FIXME: Should not have to copy (the source should outlive the product store)
+    std::optional<identifier> stage_; // No value means current stage
   };
 
   PHLEX_MODEL_EXPORT product_store_ptr const& more_derived(product_store_ptr const& a,
@@ -101,7 +104,7 @@ namespace phlex::experimental {
   template <typename T>
   [[nodiscard]] handle<T> product_store::get_handle(product_specification const& key) const
   {
-    return handle<T>{products_.get<T>(key), *id_, key};
+    return handle<T>{products_.get<T>(key), *id_, key, stage_};
   }
 
   template <typename T>

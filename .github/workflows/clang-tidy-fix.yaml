@@ -77,7 +77,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: ${{ needs.setup.outputs.checkout_path }}
           ref: ${{ needs.setup.outputs.ref }}
@@ -218,7 +218,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Handle fix commit
-        uses: Framework-R-D/action-handle-fix-commit@526974d21076e17d4742e55187704c7c036bbb9e # v1
+        uses: Framework-R-D/action-handle-fix-commit@c01368081dd06cbe5ef47b4a085dc6359a657a7f # v2
         with:
           tool: clang-tidy
           working-directory: ${{ needs.setup.outputs.checkout_path }}
@@ -235,12 +235,12 @@ jobs:
       issues: write
     steps:
       - name: Post Clang-Tidy results
-        uses: Framework-R-D/action-post-clang-tidy-results@ebe244ff1f0460b5175b6c9ef17da05164b71b29 # v1
+        uses: Framework-R-D/action-post-clang-tidy-results@81c1a8f0b9125c701c8535fb63a05b8fdb6d968e # v2
         with:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}
 
       - name: Update PR comment reactions
-        uses: Framework-R-D/action-complete-pr-comment@b018afa43e5bf24dc76000e9c9f831ad60dea5ad # v1
+        uses: Framework-R-D/action-complete-pr-comment@5d16749c32fbb7b15503f264dde6e3c98b90b4fb # v2
         with:
           status: ${{ needs.apply_tidy_fixes.result }}

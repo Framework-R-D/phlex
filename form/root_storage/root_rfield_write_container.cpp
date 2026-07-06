@@ -130,10 +130,4 @@ namespace form::detail::experimental {
     m_rntuple_parent->m_model->AddField(std::move(field));
   }
 
-  std::uint64_t ROOT_RField_Write_ContainerImp::getEntryCount()
-  {
-    if (m_rntuple_parent && m_rntuple_parent->m_writer)
-      return m_rntuple_parent->m_writer->GetNEntries();
-    return 0;
-  }
 }

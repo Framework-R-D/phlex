@@ -80,7 +80,7 @@ namespace phlex::experimental {
 
     /// @brief Registers a source (used by the framework to create provider nodes)
     template <std::derived_from<source> Source, typename... Args>
-    void source(std::string name, Args&&... args)
+    void add_source(std::string name, Args&&... args)
       requires(not is_bound_object<T>);
 
     /// @brief Registers an output node.
@@ -178,12 +178,13 @@ namespace phlex::experimental {
 
   template <typename T>
   template <std::derived_from<source> Source, typename... Args>
-  void graph_proxy<T>::source(std::string name, Args&&... args)
+  void graph_proxy<T>::add_source(std::string name, Args&&... args)
     requires(not is_bound_object<T>)
   {
-    // The bound object is created when invoking source<Source>(...), so we explicitly indicate that
+    // The bound object is created when invoking add_source<Source>(...), so we explicitly indicate that
     // no bound object should be used in the create_glue(...) call.
-    return create_glue(false).template source<Source>(std::move(name), std::forward<Args>(args)...);
+    return create_glue(false).template add_source<Source>(std::move(name),
+                                                          std::forward<Args>(args)...);
   }
 
   template <typename T>

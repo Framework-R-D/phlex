@@ -13,7 +13,16 @@
 #include <span>
 #include <stdexcept>
 
+using phlex::experimental::layer_path;
+
 namespace {
+  // Removes duplicate paths from the provided list.
+  std::vector<layer_path> unique_paths(std::vector<layer_path> paths)
+  {
+    std::set<layer_path> const unique{std::from_range, std::move(paths)};
+    return {std::from_range, std::move(unique)};
+  }
+
   // Builds the set of cumulative layer hashes that define the fixed hierarchy.
   // For example, if the layer paths are ["job", "run", "subrun"] and ["job", "spill"],
   // the hashes included will correspond to:
@@ -27,8 +36,7 @@ namespace {
   //   - "job/spill"
   //
   // Each path must be non-empty and may only contain "job" as the first element.
-  std::set<std::size_t> build_hashes(
-    std::vector<phlex::experimental::layer_path> const& layer_paths)
+  std::set<std::size_t> build_hashes(std::vector<layer_path> const& layer_paths)
   {
     using namespace phlex::experimental;
     using namespace phlex::experimental::literals;
@@ -40,17 +48,20 @@ namespace {
     return hashes;
   }
 
-  std::vector<phlex::experimental::layer_path> convert_vector_vector_string(
-    std::vector<std::vector<std::string>>&& layer_paths)
+  std::vector<layer_path> convert_vector_vector_string(
+    std::vector<std::vector<std::string>>&& layer_path_strings)
   {
     using namespace phlex::experimental;
-    return std::move(layer_paths) | std::views::transform([](std::vector<std::string>& lp) {
-             auto lp_as_ids =
-               lp | std::views::transform([](auto& str) { return identifier(std::move(str)); }) |
-               std::ranges::to<std::vector>();
-             return layer_path(std::move(lp_as_ids));
-           }) |
-           std::ranges::to<std::vector<layer_path>>();
+    std::vector<layer_path> layer_paths;
+    layer_paths.reserve(layer_path_strings.size());
+    for (auto& lp : layer_path_strings) {
+      auto lp_as_ids =
+        lp | std::views::as_rvalue |
+        std::views::transform([](std::string&& str) { return identifier(std::move(str)); }) |
+        std::ranges::to<std::vector>();
+      layer_paths.emplace_back(std::move(lp_as_ids));
+    }
+    return unique_paths(std::move(layer_paths));
   }
 }
 
@@ -100,6 +111,15 @@ namespace phlex {
     layer_paths_(convert_vector_vector_string(std::move(layer_paths))),
     layer_hashes_(std::from_range, build_hashes(layer_paths_))
   {
+  }
+
+  void fixed_hierarchy::update(std::vector<layer_path> layer_paths)
+  {
+    std::set<layer_path> merged{std::from_range, std::move(layer_paths_)};
+    merged.insert_range(std::move(layer_paths));
+
+    layer_paths_.assign_range(merged);
+    layer_hashes_.assign_range(build_hashes(layer_paths_));
   }
 
   void fixed_hierarchy::validate(data_cell_index_ptr const& index) const

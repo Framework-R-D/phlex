@@ -28,8 +28,7 @@ namespace phlex::experimental {
       boost::dll::shared_library lib;
       detail::module_creator_t* fn{};
 
-      void operator()(module_graph_proxy<void_tag> proxy,
-                      configuration const& config) const
+      void operator()(module_graph_proxy<void_tag> proxy, configuration const& config) const
       {
         fn(std::move(proxy), config);
       }
@@ -49,9 +48,7 @@ namespace phlex::experimental {
       boost::dll::shared_library lib;
       detail::driver_shim_t* fn{};
 
-      void operator()(driver_proxy proxy,
-                      configuration const& config,
-                      driver_bundle* out) const
+      void operator()(driver_proxy proxy, configuration const& config, driver_bundle* out) const
       {
         fn(proxy, config, out);
       }
@@ -65,8 +62,8 @@ namespace phlex::experimental {
     std::optional<driver_plugin> create_driver;
 
     template <typename creator_t>
-    std::pair<boost::dll::shared_library, creator_t*>
-    plugin_loader(std::string const& spec, std::string const& symbol_name)
+    std::pair<boost::dll::shared_library, creator_t*> plugin_loader(std::string const& spec,
+                                                                    std::string const& symbol_name)
     {
       // Called during single-threaded graph construction
       char const* plugin_path_ptr =
@@ -149,17 +146,18 @@ namespace phlex::experimental {
     creator(g.source_proxy(config), config);
   }
 
-  driver_bundle load_driver(boost::json::object const& raw_config)
+  void load_driver(framework_graph& g, boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
+    auto const required_sources = config.get<std::vector<std::string>>("uses_sources", {});
     // False positive: clang-analyzer cannot trace ownership through Boost's is_any_of<char>
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
     auto [lib, fn] = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
     create_driver.emplace(driver_plugin{std::move(lib), fn});
     driver_bundle result;
-    (*create_driver)(driver_proxy{}, config, &result);
-    return result;
+    (*create_driver)(g.driver_proxy(required_sources), config, &result);
+    g.add_driver(result);
   }
 }

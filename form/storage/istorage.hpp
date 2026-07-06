@@ -22,6 +22,11 @@ namespace form::detail::experimental {
     virtual int getIndex(Token const& token,
                          std::string const& id,
                          form::experimental::config::tech_setting_config const& settings) = 0;
+    virtual void prime(Token const& token,
+                       std::type_info const& type,
+                       form::experimental::config::tech_setting_config const& settings) = 0;
+    virtual std::vector<std::string> listIndices(
+      Token const& token, form::experimental::config::tech_setting_config const& settings) = 0;
     virtual void readContainer(Token const& token,
                                void const** data,
                                std::type_info const& type,
@@ -38,10 +43,8 @@ namespace form::detail::experimental {
       form::experimental::config::tech_setting_config const& settings) = 0;
     virtual void fillContainer(Placement const& plcmnt,
                                void const* data,
-                               std::type_info const& type,
-                               std::string const& product_name = "") = 0;
+                               std::type_info const& type) = 0;
     virtual void commitContainers(Placement const& plcmnt) = 0;
-    virtual void finalize(form::experimental::config::tech_setting_config const& settings) = 0;
   };
 
   class IStorage_File {
@@ -68,7 +71,6 @@ namespace form::detail::experimental {
     virtual void commit() = 0;
 
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
-    virtual std::uint64_t getEntryCount() = 0;
   };
 
   class IStorage_Read_Container {
@@ -79,7 +81,9 @@ namespace form::detail::experimental {
     virtual std::string const& name() = 0;
 
     virtual void setFile(std::shared_ptr<IStorage_File> file) = 0;
+    virtual void prime(std::type_info const& type) = 0;
     virtual bool read(int id, void const** data, std::type_info const& type) = 0;
+    virtual int entries() = 0;
 
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
   };
