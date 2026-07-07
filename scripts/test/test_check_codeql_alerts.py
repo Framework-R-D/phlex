@@ -537,7 +537,7 @@ class TestFormatSection:
 
 
 class TestRenderSection:
-    """Tests for TestRenderSection."""
+    """Tests for _render_section()."""
 
     def _alert(self, n: int) -> M.Alert:
         return M.Alert(
