@@ -34,13 +34,14 @@ sent to the language model.  Pass \fB\-\-no\-instructions\fR to suppress all
 sources except the diff, status, and log.
 .TP
 \fBStaged diff\fR
-Output of \fBgit diff \-\-cached \-\-stat \-p\fR.
+Output of \fBgit diff \-\-cached \-\-stat \-p\fR, with hunk\-aware truncation
+applied to whole file sections and binary/generated files skipped.
 .TP
 \fBGit status\fR
 Output of \fBgit status \-\-short\fR.
 .TP
 \fBRecent commits\fR
-Output of \fBgit log \-\-oneline \-10\fR.
+Output of \fBgit log \-\-oneline \-5\fR.
 .TP
 \fBRepository guidance\fR
 \fBAGENTS.md\fR, \fBAGENT.md\fR, \fBGEMINI.md\fR, \fBCLAUDE.md\fR, \fBCONTEXT.md\fR,
@@ -87,8 +88,8 @@ Model name to use.  Defaults to \fBazure/claude\-haiku\-4\-5\fR for the
 When the \fBkilo\fR backend is selected and the model was not explicitly
 specified (neither via \fB\-\-model\fR nor via \fBGIT_AI_COMMIT_KILO_MODEL\fR /
 \fBGIT_AI_COMMIT_MODEL\fR), large prompts (>\~30,000 characters) are
-automatically escalated to \fBqwen/qwen3\-coder\-next\fR to avoid silent
-truncation.
+automatically escalated to \fBqwen/qwen3\-coder\-next\fR; binary and
+generated files are skipped.
 Overridden by the \fBGIT_AI_COMMIT_MODEL\fR environment variable.
 .TP
 \fB\-\-api\fR \fIURL\fR
@@ -197,7 +198,10 @@ Default model for the \fBkilo\fR backend.  Default: \fBazure/claude\-haiku\-4\-5
 Setting this variable suppresses auto\-escalation even for large prompts.
 .TP
 \fBGIT_AI_COMMIT_KILO_PROVIDER\fR
-Provider key in \fB~/.local/share/kilo/auth.json\fR.  Default: \fBfnal\-litellm\fR.
+Provider key in \fB~/.local/share/kilo/auth.json\fR.  When unset, the split
+FNAL providers are tried in order: \fBfnal\-azure\fR, then \fBfnal\-ow\fR, then
+the retired \fBfnal\-litellm\fR.  These share the same upstream gateway token,
+so the first key present is used.
 .TP
 \fBEDITOR\fR, \fBVISUAL\fR
 Editor invoked by \fB\-\-edit\fR.  Checked in order; \fBvi\fR is the final fallback.
@@ -246,7 +250,8 @@ echo "Closes #1234; keep message terse" | git ai\-commit \-\-yes
 .SH FILES
 .TP
 \fB~/.local/share/kilo/auth.json\fR
-Kilo credentials file; read for the \fBfnal\-litellm\fR provider key.
+Kilo credentials file; read for the \fBfnal\-azure\fR / \fBfnal\-ow\fR provider
+key (legacy \fBfnal\-litellm\fR still honored if present).
 .TP
 \fB~/.config/git\-ai\-commit/instructions.md\fR
 User\-level instructions included in every prompt.
