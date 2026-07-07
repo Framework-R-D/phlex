@@ -107,7 +107,7 @@ if: >
   (
     github.event_name == 'issue_comment' &&
     github.event.issue.pull_request &&
-    contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.comment.author_association) &&
+    contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) &&
     startsWith(github.event.comment.body, format('@{0}bot <name>', github.event.repository.name))
   )
 ```
