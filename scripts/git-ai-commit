@@ -138,7 +138,6 @@ _KILO_MODEL_PINNED_BY_ENV = bool(_KILO_MODEL_ENV)
 # the LiteLLM gateway directly, so the provider key only selects the auth
 # token — model names remain bare (e.g. "azure/...", "qwen/...").
 _KILO_PROVIDER_ENV = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "").strip()
-_DEFAULT_KILO_PROVIDER = _KILO_PROVIDER_ENV or "fnal-azure"
 _KILO_PROVIDER_FALLBACKS = (
     [_KILO_PROVIDER_ENV] if _KILO_PROVIDER_ENV else ["fnal-azure", "fnal-ow", "fnal-litellm"]
 )
