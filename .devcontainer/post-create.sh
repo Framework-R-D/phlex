@@ -39,10 +39,17 @@ import json
 import os
 from pathlib import Path
 
+# The single fnal-litellm provider was split into fnal-azure (optimized) and
+# fnal-ow (passthrough); both share the same upstream gateway key.  Seed both
+# provider keys so Kilo resolves whichever provider a model is routed through.
+key = os.environ["KILO_API_KEY"]
 p = Path("/root/.local/share/kilo/auth.json")
 p.write_text(
     json.dumps(
-        {"fnal-litellm": {"type": "api", "key": os.environ["KILO_API_KEY"]}},
+        {
+            "fnal-azure": {"type": "api", "key": key},
+            "fnal-ow": {"type": "api", "key": key},
+        },
         indent=2,
     )
     + "\n",

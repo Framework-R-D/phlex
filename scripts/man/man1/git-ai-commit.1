@@ -136,7 +136,7 @@ Token resolution order:
 .IP "1." 4
 \fBGIT_AI_COMMIT_TOKEN\fR
 .IP "2." 4
-\fB~/.local/share/kilo/auth.json\fR (\fIfnal\-litellm\fR key)
+\fB~/.local/share/kilo/auth.json\fR (\fIfnal\-azure\fR / \fIfnal\-ow\fR key)
 .IP "3." 4
 \fBGITHUB_TOKEN\fR / \fBGH_TOKEN\fR
 .IP "4." 4
@@ -197,7 +197,10 @@ Default model for the \fBkilo\fR backend.  Default: \fBazure/claude\-haiku\-4\-5
 Setting this variable suppresses auto\-escalation even for large prompts.
 .TP
 \fBGIT_AI_COMMIT_KILO_PROVIDER\fR
-Provider key in \fB~/.local/share/kilo/auth.json\fR.  Default: \fBfnal\-litellm\fR.
+Provider key in \fB~/.local/share/kilo/auth.json\fR.  When unset, the split
+FNAL providers are tried in order: \fBfnal\-azure\fR, then \fBfnal\-ow\fR, then
+the retired \fBfnal\-litellm\fR.  These share the same upstream gateway token,
+so the first key present is used.
 .TP
 \fBEDITOR\fR, \fBVISUAL\fR
 Editor invoked by \fB\-\-edit\fR.  Checked in order; \fBvi\fR is the final fallback.
@@ -246,7 +249,8 @@ echo "Closes #1234; keep message terse" | git ai\-commit \-\-yes
 .SH FILES
 .TP
 \fB~/.local/share/kilo/auth.json\fR
-Kilo credentials file; read for the \fBfnal\-litellm\fR provider key.
+Kilo credentials file; read for the \fBfnal\-azure\fR / \fBfnal\-ow\fR provider
+key (legacy \fBfnal\-litellm\fR still honored if present).
 .TP
 \fB~/.config/git\-ai\-commit/instructions.md\fR
 User\-level instructions included in every prompt.

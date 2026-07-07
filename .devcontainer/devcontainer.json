@@ -7,9 +7,10 @@
     "workspaceFolder": "/workspaces/phlex",
     "remoteUser": "root",
     "remoteEnv": {
-        // KILO_CONFIG_CONTENT_DOCKER rewrites 127.0.0.1:PORT to
-        // host.docker.internal:RELAY_PORT for the socat relay used when
-        // headroom runs as a local proxy.  Passed through here so that
+        // KILO_CONFIG_CONTENT_DOCKER rewrites both 127.0.0.1 headroom ports
+        // (azure :9797, ow :9798) to their host.docker.internal:RELAY_PORT
+        // (port+10000) for the socat relays used when headroom runs as a local
+        // split proxy pair.  Passed through here so that
         // post-create.sh can wire it into the container's .bashrc
         // conditionally: if non-empty it sets KILO_CONFIG_CONTENT to this
         // value; otherwise KILO_CONFIG_CONTENT is left unset and Kilo falls
