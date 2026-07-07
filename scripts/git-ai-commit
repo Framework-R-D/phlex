@@ -177,7 +177,6 @@ def _skip_binary_and_generated(diff: str) -> str:
     The placeholder format is ``"[skipped binary/generated file: <path>]"``.
     """
     import fnmatch
-    import re
 
     # Split diff into sections starting with "diff --git".
     sections = re.split(r"(?=^diff --git )", diff, flags=re.MULTILINE)
