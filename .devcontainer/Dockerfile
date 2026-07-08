@@ -95,7 +95,7 @@ set -euo pipefail
 apt-get update
 apt-get install -y --no-install-recommends jq podman ssh socat tree yq
 apt purge nodejs npm -y && apt autoremove -y || true
-sudo apt-get install -y curl
+apt-get install -y curl --no-install-recommends --autoremove
 curl -fsSL https://deb.nodesource.com/setup_26.x | bash -
 apt-get install -y nodejs
 apt-get clean
