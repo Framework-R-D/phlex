@@ -862,13 +862,16 @@ class TestSkipBinaryAndGenerated:
 class TestBuildMessagesMaxDiffChars:
     """Tests for _build_messages with the max_diff_chars parameter."""
 
+    def _make_large_diff(self, *, num_lines: int = 1500) -> str:
+        """Construct a large diff with approximately `num_lines` added lines."""
+        stat_block = " git diff --cached --stat -p\n\n"
+        lines = [f"+line {i} with some padding to make it longer\n" for i in range(num_lines)]
+        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n".join(lines)
+        return stat_block + file_section
+
     def test_default_cap_truncates_large_diff(self, tmp_path: Path) -> None:
         """Large diff (> 60 000 chars) is truncated with default max_diff_chars."""
-        stat_block = " git diff --cached --stat -p\n\n"
-        # Build a diff larger than 60 000 chars
-        lines = [f"+line {i} with some padding to make it longer\n" for i in range(1500)]
-        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n".join(lines)
-        diff = stat_block + file_section
+        diff = self._make_large_diff()
         assert len(diff) > 60_000
 
         msgs = _build_messages(diff, "", "", "", tmp_path)
@@ -879,11 +882,7 @@ class TestBuildMessagesMaxDiffChars:
 
     def test_escalated_cap_keeps_large_diff(self, tmp_path: Path) -> None:
         """Large diff fits within _MAX_DIFF_CHARS_ESCALATED (400 000)."""
-        stat_block = " git diff --cached --stat -p\n\n"
-        # Build a diff larger than 60 000 but smaller than 400 000
-        lines = [f"+line {i} with some padding to make it longer\n" for i in range(1500)]
-        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n".join(lines)
-        diff = stat_block + file_section
+        diff = self._make_large_diff()
         assert 60_000 < len(diff) < 400_000
 
         msgs = _build_messages(
