@@ -99,4 +99,23 @@ TEST_CASE("Querying products in different ways", "[graph]")
     g.execute();
     CHECK(g.execution_count("creator_and_layer_after_transform") == num_events);
   }
+
+  SECTION("Products from this job, using layer only")
+  {
+    // create a product to be found
+    g.fold(
+       "duplicate_temperature",
+       [](std::atomic<double>& summary, double temp) { summary += temp; },
+       concurrency::unlimited,
+       "job")
+      .input_family(product_selector{.creator = "input", .layer = "event"})
+      .output_product_suffixes("temperature");
+
+    // Find it
+    g.transform("layer_only", [](double const& d) { return d; })
+      .input_family(product_selector{.layer = "job"})
+      .output_product_suffixes("job_temp");
+    g.execute();
+    CHECK(g.execution_count("layer_only") == 1); // 1 job
+  }
 }

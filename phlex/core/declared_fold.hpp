@@ -114,7 +114,8 @@ namespace phlex::detail {
               counter_for(index_hash_for_counter).increment(index->layer_hash());
 
               emit_and_evict_if_done(fold_index);
-            }}
+            }},
+      graph_{g}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, fold_);
@@ -206,6 +207,8 @@ namespace phlex::detail {
       results_;
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;
+    tbb::flow::graph& graph() const override { return graph_; }
+    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 

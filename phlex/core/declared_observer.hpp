@@ -70,7 +70,8 @@ namespace phlex::detail {
                   call(ft, messages, std::make_index_sequence<num_inputs>{});
                   ++calls_;
                   return {};
-                }}
+                }},
+      graph_{g}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, observer_);
@@ -107,6 +108,8 @@ namespace phlex::detail {
     join_or_none_t<num_inputs> join_;
     tbb::flow::function_node<messages_t<num_inputs>> observer_;
     std::atomic<std::size_t> calls_;
+    tbb::flow::graph& graph() const override { return graph_; }
+    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 
