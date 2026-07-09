@@ -170,8 +170,8 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
 
   CHECK_THROWS_WITH(
     g.execute(),
-    ContainsSubstring("Multiple implicit providers found for product '<happy_vertices") &&
-      ContainsSubstring("by vertices_maker") && ContainsSubstring("in spill") &&
+    ContainsSubstring("Multiple implicit providers found for product '<suffix happy_vertices") &&
+      ContainsSubstring("by creator vertices_maker") && ContainsSubstring("in layer spill") &&
       ContainsSubstring("node 'passer'"));
 }
 
@@ -194,8 +194,9 @@ TEST_CASE("Throw when implicit provider insertion fails")
 
   CHECK_THROWS_WITH(
     g.execute(),
-    ContainsSubstring("Failed to create implicit provider for product selector '<happy_vertices") &&
-      ContainsSubstring("by vertices_maker") &&
+    ContainsSubstring(
+      "Failed to create implicit provider for product selector '<suffix happy_vertices") &&
+      ContainsSubstring("by creator vertices_maker") &&
       ContainsSubstring(
         "Implicit providers not yet supported for creators that created multiple data products"));
 }
