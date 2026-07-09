@@ -185,10 +185,10 @@ def _skip_binary_and_generated(diff: str) -> str:
         if not sec.strip():
             continue
         # Binary detection.
-        if "Binary files" in sec and "differ" in sec:
+        m = re.search(r"^Binary files ([^ \n]+) and ([^ \n]+) differ", sec, flags=re.MULTILINE)
+        if m:
             # Extract path from the line, e.g., "Binary files a/foo.bin and b/foo.bin differ"
-            m = re.search(r"Binary files ([^ \n]+) and ([^ \n]+) differ", sec)
-            path = m.group(2) if m else "<unknown>"
+            path = m.group(2)
             kept_sections.append(f"[skipped binary/generated file: {path}]\n")
             continue
         # Generated file detection via header line.
@@ -551,7 +551,7 @@ def _max_tokens_for_prompt(prompt_size: int, model: str) -> int:
     if model:
         model_lower = model.lower()
         if any(kw in model_lower for kw in ("reasoning", "4-5", "qwen3-coder-next", "gemma4-31b")):
-            return 8912
+            return 8192
 
     # Scale with prompt size to avoid truncated responses
     if prompt_size > 50_000:
@@ -743,7 +743,7 @@ def _chat(
     if model:
         model_lower = model.lower()
         if any(kw in model_lower for kw in ("reasoning", "4-5", "qwen3-coder-next", "gemma4-31b")):
-            max_tokens = 8912
+            max_tokens = 8192
         elif prompt_size > 50_000:
             max_tokens = 4096
         elif prompt_size > 25_000:
