@@ -96,7 +96,8 @@ namespace phlex::detail {
             store->index(), name(), std::move(new_products));
 
           std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
-        }}
+        }},
+      graph_{g}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, transform_);
@@ -149,6 +150,9 @@ namespace phlex::detail {
     tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1u>> transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
+
+    tbb::flow::graph& graph() const override { return graph_; }
+    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 
 }

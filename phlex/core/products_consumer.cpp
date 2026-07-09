@@ -1,4 +1,5 @@
 #include "phlex/core/products_consumer.hpp"
+#include <spdlog/spdlog.h>
 
 namespace {
   std::vector<phlex::experimental::identifier> layers_from(phlex::product_selectors const& queries)
@@ -29,7 +30,20 @@ namespace phlex::detail {
 
   tbb::flow::receiver<message>& products_consumer::port(product_selector const& input_product)
   {
-    return port_for(input_product);
+    // Everything has a layer for now, so everything needs this
+    auto& next = port_for(input_product);
+
+    auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
+      graph(),
+      tbb::flow::unlimited,
+      [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
+        message const& msg, auto& output) {
+        if (msg.store->layer_name() == layer) {
+          std::get<0>(output).try_put(msg);
+        }
+      }));
+    make_edge(tbb::flow::output_port<0>(*layer_check), next);
+    return *layer_check;
   }
 
   product_selectors const& products_consumer::input() const noexcept { return input_products_; }

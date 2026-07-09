@@ -18,6 +18,8 @@
 
 namespace phlex::detail {
   class PHLEX_CORE_EXPORT products_consumer : public consumer {
+    using layer_check_node_t = tbb::flow::multifunction_node<message, message_tuple<1UZ>>;
+
   public:
     products_consumer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
@@ -44,9 +46,10 @@ namespace phlex::detail {
 
   private:
     virtual tbb::flow::receiver<message>& port_for(product_selector const& input_product) = 0;
-
+    virtual tbb::flow::graph& graph() const = 0;
     product_selectors input_products_;
     std::vector<phlex::experimental::identifier> layers_;
+    std::vector<std::unique_ptr<layer_check_node_t>> layer_checkers_;
   };
 }
 
