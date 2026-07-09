@@ -115,7 +115,8 @@ namespace phlex::detail {
 
               join_.notify_result_repeater_port().try_put(partition_hash);
               return tbb::flow::continue_msg{};
-            }}
+            }},
+      graph_{g}
     {
       make_edge(join_, fold_);
     }
@@ -156,6 +157,8 @@ namespace phlex::detail {
                              tbb::flow::continue_msg>
       fold_;
     std::atomic<std::size_t> calls_;
+    tbb::flow::graph& graph() const override { return graph_; }
+    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 
