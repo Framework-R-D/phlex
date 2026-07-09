@@ -170,6 +170,8 @@ namespace phlex::detail {
     fold_join_node<result_type, num_input_products> join_;
     node_t fold_;
     std::atomic<std::size_t> calls_;
+    tbb::flow::graph& graph() const override { return graph_; }
+    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 

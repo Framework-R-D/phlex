@@ -89,7 +89,6 @@ namespace phlex::detail {
             call(ft, messages, std::make_index_sequence<num_products>{}, resource_tokens...);
           ++calls_;
           return {message_id, rc};
-        })}
     {
       if constexpr (num_products > 1ull) {
         make_edge(join_, predicate_);
@@ -132,6 +131,8 @@ namespace phlex::detail {
     join_or_none_t<num_products> join_;
     node_t predicate_;
     std::atomic<std::size_t> calls_;
+    tbb::flow::graph& graph() const override { return graph_; }
+    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 
 }
