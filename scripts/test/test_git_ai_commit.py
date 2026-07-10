@@ -754,9 +754,10 @@ class TestTruncateDiff:
     def test_single_oversized_file_line_boundary(self) -> None:
         """Single file section larger than budget is truncated at line boundary."""
         stat_block = " git diff --cached --stat -p\n\n"
-        # Build a large file section with many lines
+        # Build a large file section with many lines - this should create one large section
         lines = [f"+line {i}\n" for i in range(100)]
-        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n".join(lines)
+        # Create a single large file section with all the lines
+        file_section = "diff --git a/large.py b/large.py\nnew file mode 100644\n" + "".join(lines)
         diff = stat_block + file_section
 
         # Budget: enough for stat block + the header line + a couple of content lines,

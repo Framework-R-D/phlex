@@ -196,7 +196,7 @@ def _skip_binary_and_generated(diff: str) -> str:
         if not sec.strip():
             continue
         # Binary detection.
-        m = re.search(r"^Binary files ([^ \n]+) and ([^ \n]+) differ", sec, flags=re.MULTILINE)
+        m = re.search(r"^Binary files ([^ \n]+) and ([^ \n]+) differ$", sec, flags=re.MULTILINE)
         if m:
             # Extract path from the line, e.g., "Binary files a/foo.bin and b/foo.bin differ"
             path = m.group(2)
@@ -232,9 +232,7 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
 
     # Split the diff into stat block + individual file sections.
     # Use a zero-width lookahead so each file section retains its "diff --git " prefix.
-    import re as _re
-
-    raw_sections = _re.split(r"(?=^diff --git )", diff, flags=_re.MULTILINE)
+    raw_sections = re.split(r"(?=^diff --git )", diff, flags=re.MULTILINE)
     # First element is the leading diffstat block (may be empty for a bare diff).
     stat_block = raw_sections[0]
     file_sections = raw_sections[1:]  # each starts with "diff --git "
@@ -265,7 +263,12 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
 
     omitted = total_files - len(kept_sections)
     final = stat_block + "".join(kept_sections)
-    if omitted or line_boundary_cut:
+    if line_boundary_cut:
+        final += (
+            f"\n\n[diff truncated: first file shown partially; "
+            f"{total_files - 1} of {total_files} files omitted to fit context budget]"
+        )
+    elif omitted:
         final += (
             f"\n\n[diff truncated: {omitted} of {total_files} files omitted to fit context budget]"
         )
