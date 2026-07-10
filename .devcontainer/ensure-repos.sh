@@ -200,10 +200,10 @@ relay_headroom_port azure "${HEADROOM_AZURE_PORT}"
 relay_headroom_port ow "${HEADROOM_OW_PORT}"
 
 # Ensure remaining source bind mount points exist.
-ensure_bind_dir "$HOME/.aws"
 ensure_bind_dir "$HOME/.config/"{gh,kilo}
-ensure_bind_dir "$HOME/.gnupg"
-ensure_bind_dir "$HOME/.kiro"
-ensure_bind_dir "$HOME/.vscode-remote-user-data"
+ensure_bind_dir -m 0700 "$HOME/.gnupg"
+ensure_bind_dir -m 0700 "$HOME/.vscode-remote-user-data"
+ensure_bind_dir -m 0700 "$HOME/.local/share/kilo"
+ensure_bind_dir -m 0700 "$HOME/.phlex-devcontainer-tmp"
 
 echo "SUCCESS: .devcontainer/ensure-repos.sh completed successfully"

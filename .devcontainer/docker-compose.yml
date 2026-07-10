@@ -15,10 +15,8 @@ services:
       - ${HOME}/.config/kilo:/root/.config/kilo
       - ${HOME}/.gnupg:/root/.gnupg
       - ${HOME}/.podman-proxy/podman.sock:/tmp/podman.sock
-      - phlex-kilo-data:/root/.local/share/kilo
+      - ${HOME}/.local/share/kilo:/root/.local/share/kilo:ro
       - phlex-vscode-user-data:/root/.vscode-server-insiders/data/User
-    env_file:
-      - ${HOME}/.phlex-kilo.env
     environment:
       - CMAKE_GENERATOR=Ninja
       - GH_CONFIG_DIR=/root/.config/gh
@@ -30,5 +28,4 @@ services:
     stdin_open: true
 
 volumes:
-  phlex-kilo-data:
   phlex-vscode-user-data:
