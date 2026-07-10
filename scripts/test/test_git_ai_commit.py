@@ -461,7 +461,7 @@ class TestEmptyStagedChanges:
         monkeypatch.setattr(_M, "_status", lambda: "")
         monkeypatch.setattr(_M, "_recent_log", lambda: "")
         monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
-        monkeypatch.setattr(_M, "_token", lambda _backend: "tok")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
         # Simulate a non-tty (pipe) stdin with no content so the stdin-read
         # branch is exercised without touching pytest's capture machinery.
         monkeypatch.setattr(sys, "stdin", io.StringIO(""))

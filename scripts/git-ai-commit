@@ -32,11 +32,12 @@ Options
   --context TEXT       Supplemental context/prompt for the AI
   --backend BACKEND    API backend: kilo (default), github-models, copilot,
                        antigravity, agy
-   --model   MODEL      Model name; defaults to azure/claude-haiku-4-5 for the
-                        kilo backend (gpt-4o for others, none for antigravity);
-                        large prompts auto-escalate to qwen/qwen3-coder-next;
-                        binary and generated files are skipped (env:
-                        GIT_AI_COMMIT_MODEL or GIT_AI_COMMIT_KILO_MODEL)
+    --model   MODEL      Model name; defaults to qwen/qwen3-coder-next for the
+                         kilo backend (gpt-4o for others, none for antigravity);
+                         large prompts auto-escalate to qwen/qwen3-coder-next
+                         (unless model is explicitly set); binary and generated
+                         files are skipped (env: GIT_AI_COMMIT_MODEL or
+                         GIT_AI_COMMIT_KILO_MODEL)
   --api     URL        API base URL override (env: GIT_AI_COMMIT_API)
   --dry-run            Print generated message to stdout; do not commit
   -y/--yes             Commit without interactive confirmation
@@ -126,22 +127,32 @@ _KILO_AUTH_JSON = Path.home() / ".local" / "share" / "kilo" / "auth.json"
 # naming convention.
 _DEFAULT_KILO_API = os.environ.get("GIT_AI_COMMIT_KILO_API", "https://litellm.fnal.gov/v1")
 _KILO_MODEL_ENV = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "").strip()
-_DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or "azure/claude-haiku-4-5"
+# Default model for kilo backend: use an open-weight model that has no cost
+# and unlimited budget via the fnal-ow provider. This avoids hitting budget
+# limits common with Azure/azure models. Override via GIT_AI_COMMIT_MODEL.
+_DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or "qwen/qwen3-coder-next"
 # True when the user has explicitly pinned a kilo model via the environment,
 # which suppresses auto-escalation even if the diff is large.
 _KILO_MODEL_PINNED_BY_ENV = bool(_KILO_MODEL_ENV)
 # auth.json provider key(s) that hold the FNAL gateway API token.  The former
 # single "fnal-litellm" provider was split into "fnal-azure" and "fnal-ow",
 # which share the same upstream key; "fnal-litellm" is retired.  When the user
-# does not pin GIT_AI_COMMIT_KILO_PROVIDER, try the new keys in order (and the
-# retired name last, for any un-migrated auth.json).  git-ai-commit talks to
-# the LiteLLM gateway directly, so the provider key only selects the auth
-# token — model names remain bare (e.g. "azure/...", "qwen/...").
+# does not pin GIT_AI_COMMIT_KILO_PROVIDER, select the provider based on the
+# model name: open-weight models (qwen/*, google/*) use fnal-ow; other models
+# use fnal-azure.  git-ai-commit talks to the LiteLLM gateway directly, so
+# the provider key only selects the auth token — model names remain bare.
 _KILO_PROVIDER_ENV = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "").strip()
-_KILO_PROVIDER_FALLBACKS = (
-    [_KILO_PROVIDER_ENV] if _KILO_PROVIDER_ENV else ["fnal-azure", "fnal-ow", "fnal-litellm"]
-)
 _DEFAULT_MODEL_OTHER = "gpt-4o"
+
+# Open-weight model prefix patterns that should use the fnal-ow provider.
+# These models have no cost and unlimited budget in the FNAL deployment.
+_OPEN_WEIGHT_MODEL_PREFIXES = ("qwen/", "google/", "nvidia/", "BAAI/")
+
+# Default fallback providers, used when user has not pinned a provider via
+# GIT_AI_COMMIT_KILO_PROVIDER, and for backward compatibility with tests.
+# When model-based selection is used, the _determine_kilo_provider function
+# will select the appropriate provider first.
+_KILO_PROVIDER_FALLBACKS = ["fnal-azure", "fnal-ow", "fnal-litellm"]
 
 _MAX_DIFF_CHARS_DEFAULT = 60_000
 _MAX_DIFF_CHARS_ESCALATED = 400_000  # Large ceiling for escalated path
@@ -501,14 +512,10 @@ def _get_instructions(root: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _kilo_auth_token() -> str | None:
-    """Read the kilo provider API key from kilo's auth.json, if present.
+def _kilo_auth_token_for_providers(providers: list[str]) -> str | None:
+    """Read the kilo provider API key from kilo's auth.json for the given providers.
 
-    The provider name(s) come from GIT_AI_COMMIT_KILO_PROVIDER when set;
-    otherwise the split FNAL providers are tried in order
-    ("fnal-azure", "fnal-ow", then the retired "fnal-litellm").  These share
-    the same upstream gateway token, so the first present key wins.  The names
-    match the provider keys in ~/.config/kilo/kilo.jsonc.
+    Returns the first valid API key found for any of the specified providers.
     """
     if not _KILO_AUTH_JSON.exists():
         return None
@@ -518,7 +525,7 @@ def _kilo_auth_token() -> str | None:
         return None
     if not isinstance(data, dict):
         return None
-    for provider_name in _KILO_PROVIDER_FALLBACKS:
+    for provider_name in providers:
         provider = data.get(provider_name)
         if not isinstance(provider, dict):
             continue
@@ -526,6 +533,18 @@ def _kilo_auth_token() -> str | None:
         if isinstance(key, str) and key.strip():
             return key.strip()
     return None
+
+
+def _kilo_auth_token() -> str | None:
+    """Read the kilo provider API key from kilo's auth.json, if present.
+
+    The provider name(s) come from GIT_AI_COMMIT_KILO_PROVIDER when set;
+    otherwise the split FNAL providers are tried in order
+    ("fnal-azure", "fnal-ow", then the retired "fnal-litellm").  These share
+    the same upstream gateway token, so the first present key wins.  The names
+    match the provider keys in ~/.config/kilo/kilo.jsonc.
+    """
+    return _kilo_auth_token_for_providers(_KILO_PROVIDER_FALLBACKS)
 
 
 def _max_tokens_for_prompt(prompt_size: int, model: str) -> int:
@@ -605,16 +624,34 @@ def _gh_oauth_token() -> str | None:
     return _gh_config_token()
 
 
-def _token(backend: str) -> str:
-    """Resolve the best available API token for the given backend."""
+def _determine_kilo_provider(model: str) -> str:
+    """Select the appropriate FNAL LiteLLM provider based on model name.
+
+    Open-weight models (qwen/*, google/, nvidia/, BAAI/) should use fnal-ow
+    which has no cost and unlimited budget. Other models use fnal-azure.
+    """
+    if model:
+        model_lower = model.lower()
+        if any(model_lower.startswith(prefix) for prefix in _OPEN_WEIGHT_MODEL_PREFIXES):
+            return "fnal-ow"
+    return "fnal-azure"
+
+
+def _token(backend: str, model: str = "") -> str:
+    """Resolve the best available API token for the given backend and model."""
     # GIT_AI_COMMIT_TOKEN always wins regardless of backend.
     if val := os.environ.get("GIT_AI_COMMIT_TOKEN", "").strip():
         return val
 
     if backend == "kilo":
-        # Prefer the kilo-stored FNAL key; fall through to GH tokens so that
-        # the script still works if the kilo extension is not installed.
-        if tok := _kilo_auth_token():
+        # Select provider based on model name, or use environment hint
+        # if explicitly set via GIT_AI_COMMIT_KILO_PROVIDER.
+        if _KILO_PROVIDER_ENV:
+            providers = [_KILO_PROVIDER_ENV]
+        else:
+            providers = [_determine_kilo_provider(model), "fnal-ow", "fnal-azure", "fnal-litellm"]
+
+        if tok := _kilo_auth_token_for_providers(providers):
             return tok
 
     for var in ("GITHUB_TOKEN", "GH_TOKEN"):
@@ -1073,7 +1110,7 @@ def main() -> None:
         log = _recent_log()
         last_msg = _last_commit_message() if args.amend else ""
         instr = "" if args.no_instructions else _get_instructions(root)
-        tok = "" if backend in ("antigravity", "agy") else _token(backend)
+        tok = "" if backend in ("antigravity", "agy") else _token(backend, model)
     except _Error as exc:
         print(f"git-ai-commit: {exc}", file=sys.stderr)
         sys.exit(1)
