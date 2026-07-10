@@ -11,6 +11,13 @@ namespace phlex::detail {
   std::vector<producer_catalog::named_output_port const*> producer_catalog::find_producers(
     product_selector const& query, phlex::experimental::algorithm_name const& consumer_name) const
   {
+    // Will need an update when we have a way to set the current stage name
+    if (query.stage.has_value() && query.stage.value() != "CURRENT"_idq) {
+      spdlog::debug(
+        "{} requires a stage other than the current one. Assuming it comes from a provider.",
+        query.to_string());
+      return {};
+    }
     if (producers_.empty()) {
       spdlog::debug("No producers found. Skipping and assuming {} comes from a provider.",
                     query.to_string());
