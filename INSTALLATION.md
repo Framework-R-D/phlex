@@ -103,7 +103,7 @@ To guide the creation of the environment, download the environment configuration
 ```bash
 spack env create my-phlex-environment
 spack env activate my-phlex-environment
-spack add phlex@0.3.0 %%gcc@15
+spack add phlex@0.3.1 %%gcc@15
 spack concretize
 ```
 
