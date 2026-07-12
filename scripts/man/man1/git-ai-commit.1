@@ -81,16 +81,21 @@ API backend to use.  One of \fBkilo\fR (default), \fBgithub\-models\fR,
 \fBcopilot\fR, \fBantigravity\fR, or \fBagy\fR.  See \fBBACKENDS\fR below.
 Overridden by the \fBGIT_AI_COMMIT_BACKEND\fR environment variable.
 .TP
-\fB\-\-model\fR \fIMODEL\fR
-Model name to use.  Defaults to \fBqwen/qwen3\-coder\-next\fR for the
-\fBkilo\fR backend, \fBgpt\-4o\fR for other backends, and none for the
-\fBantigravity\fR backend (which lets the CLI use its default model).
-Binary and generated files are skipped.
-Overridden by the \fBGIT_AI_COMMIT_MODEL\fR environment variable.
+\fB--model\fR \fIMODEL\fR
+Model name to use.  For the \fBkilo\fR backend, the default is
+\fBqwen/qwen3\-coder\-next\fR (resolved via the model name or with provider
+prefix).  If a model name without a provider prefix is provided (e.g.,
+\fBqwen3\-coder\-next\fR), \fBgit\-ai\-commit\fR looks up the model in
+\fB~/.config/kilo/kilo.jsonc\fR to add the appropriate provider prefix
+(e.g., \fBqwen/qwen3\-coder\-next\fR).  For other backends, the defaults are:
+\fBgpt\-4o\fR for github\-models and copilot, none for antigravity/agy.
+Binary and generated files are skipped.  Overridden by the
+\fBGIT_AI_COMMIT_MODEL\fR environment variable.
 .TP
 \fB\-\-api\fR \fIURL\fR
-Override the API base URL.  Useful when pointing at a local or
-alternative LiteLLM proxy.
+Override the API base URL.  For the \fBkilo\fR backend, this is required
+(either via environment variable \fBGIT_AI_COMMIT_API\fR or the \fB--api\fR
+option) unless using another backend with a default URL.
 Overridden by the \fBGIT_AI_COMMIT_API\fR environment variable.
 .TP
 \fB\-\-dry\-run\fR
@@ -125,22 +130,17 @@ git ai\-commit \-\-yes \-\- \-\-gpg\-sign=KEYID
 .SH BACKENDS
 .TP
 \fBkilo\fR
-LiteLLM\-compatible endpoint using kilo credentials.  The default
-endpoint and model are tuned for the FNAL deployment; override via
-environment variables (see \fBENVIRONMENT\fR below).
-Token resolution order:
-.RS 8
-.IP "1." 4
-\fBGIT_AI_COMMIT_TOKEN\fR
-.IP "2." 4
-\fB~/.local/share/kilo/auth.json\fR (\fIfnal\-azure\fR / \fIfnal\-ow\fR / \fIfnal\-litellm\fR keys; see \fBGIT_AI_COMMIT_KILO_PROVIDER\fR)
-.IP "3." 4
-\fBGITHUB_TOKEN\fR / \fBGH_TOKEN\fR
-.IP "4." 4
-\fBgh auth token\fR
-.IP "5." 4
-\fB~/.config/gh/hosts.yml\fR
-.RE
+LiteLLM\-compatible endpoint via the \fBkilo\fR CLI (\fBkilo run --agent=code\fR).
+The kilo backend reads its configuration from \fB~/.config/kilo/kilo.jsonc\fR.
+Model names without a provider prefix are auto\-resolved by looking up the
+model in the kilo config.  The \fB--agent=code\fR option is always passed to
+the kilo CLI.
+.PP
+Token is taken from \fBGIT_AI_COMMIT_TOKEN\fR and passed to the kilo CLI via
+the \fBKILO_SERVER_PASSWORD\fR environment variable.  If unset, no token is
+sent to the API.  The API base URL can be overridden via \fBGIT_AI_COMMIT_API\fR
+or passed as \fBKILO_SERVER_URL\fR.
+.TP
 .TP
 \fBgithub\-models\fR
 GitHub Models inference API (\fIhttps://models.inference.ai.azure.com\fR).
@@ -173,29 +173,33 @@ backend.
 .SH ENVIRONMENT
 .TP
 \fBGIT_AI_COMMIT_TOKEN\fR
-API token.  Takes precedence over all other token sources for all
-backends.
+API token.  For the kilo backend, this is optional; if unset, no token
+is sent to the API.  For other backends, this takes precedence over
+all other token sources.
 .TP
 \fBGIT_AI_COMMIT_MODEL\fR
 Default model name.  Overrides the backend default.
 .TP
 \fBGIT_AI_COMMIT_API\fR
-API base URL override.  Applied before the backend default.
+API base URL override.  Required for the kilo backend.
 .TP
 \fBGIT_AI_COMMIT_BACKEND\fR
 Default backend (\fBkilo\fR, \fBgithub\-models\fR, \fBcopilot\fR, \fBantigravity\fR, or \fBagy\fR).
 .TP
 \fBGIT_AI_COMMIT_KILO_API\fR
-Base URL for the \fBkilo\fR backend.  Default: \fIhttps://litellm.fnal.gov/v1\fR.
+Deprecated.  Use \fBGIT_AI_COMMIT_API\fR instead.
 .TP
 \fBGIT_AI_COMMIT_KILO_MODEL\fR
-Default model for the \fBkilo\fR backend.  Default: \fBazure/claude\-haiku\-4\-5\fR.
+Deprecated.  Use \fBGIT_AI_COMMIT_MODEL\fR instead.
 .TP
-\fBGIT_AI_COMMIT_KILO_PROVIDER\fR
-Provider key in \fB~/.local/share/kilo/auth.json\fR.  When unset, the split
-FNAL providers are tried in order: \fBfnal\-azure\fR, then \fBfnal\-ow\fR, then
-the retired \fBfnal\-litellm\fR.  These share the same upstream gateway token,
-so the first key present is used.
+\fBGIT_AI_COMMIT_API\fR
+API base URL override.  For the \fBkilo\fR backend, this is passed to
+the kilo CLI via \fBKILO_SERVER_URL\fR.
+.TP
+\fBGIT_AI_COMMIT_MODEL\fR
+Default model name for the kilo backend.  Defaults to \fBqwen/qwen3\-coder\-next\fR.
+If a model name without a provider prefix is provided, it is auto\-resolved
+by looking up the model in \fB~/.config/kilo/kilo.jsonc\fR.
 .TP
 \fBEDITOR\fR, \fBVISUAL\fR
 Editor invoked by \fB\-\-edit\fR.  Checked in order; \fBvi\fR is the final fallback.
@@ -242,10 +246,6 @@ echo "Closes #1234; keep message terse" | git ai\-commit \-\-yes
 .fi
 .RE
 .SH FILES
-.TP
-\fB~/.local/share/kilo/auth.json\fR
-Kilo credentials file; read for the \fBfnal\-azure\fR / \fBfnal\-ow\fR provider
-key (legacy \fBfnal\-litellm\fR still honored if present).
 .TP
 \fB~/.config/git\-ai\-commit/instructions.md\fR
 User\-level instructions included in every prompt.

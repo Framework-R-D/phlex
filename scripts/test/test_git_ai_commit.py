@@ -2,16 +2,15 @@
 
 git-ai-commit follows the git subcommand plugin convention: placing a script
 named git-<cmd> on PATH makes it available as `git <cmd>`.  The hyphen and
-the absence of a .py extension are intentional, so the module is loaded via
+the absence of a .py extension is intentional, so the module is loaded via
 importlib.machinery.SourceFileLoader rather than a normal import statement.
 
-Coverage focuses on the three functions that received error-handling changes:
+Coverage focuses on functions that received error-handling changes:
 
-- _kilo_auth_token  isinstance-based JSON structure validation
 - _gh_cli_token     explicit return None for non-zero / missing gh exit
 - _edit             FileNotFoundError and CalledProcessError surfaced as _Error
 
-Plus new tests for staged changes:
+Plus tests for:
 
 - _gh_oauth_token   returns GitHub OAuth token (not LiteLLM keys)
 - _clean_message    strips model preamble and fenced code blocks
@@ -23,7 +22,6 @@ from __future__ import annotations
 import importlib.machinery
 import importlib.util
 import io
-import json
 import subprocess
 import sys
 from collections.abc import Callable
@@ -47,7 +45,6 @@ _loader.exec_module(_M)
 # Typed aliases so static analysis can reason about call sites instead of
 # treating these as Unknown (the module was loaded dynamically via importlib).
 # pylint: disable=protected-access
-_kilo_auth_token: Callable[[], str | None] = _M._kilo_auth_token  # type: ignore[attr-defined]
 _gh_cli_token: Callable[[], str | None] = _M._gh_cli_token  # type: ignore[attr-defined]
 _gh_oauth_token: Callable[[], str | None] = _M._gh_oauth_token  # type: ignore[attr-defined]
 _clean_message: Callable[[str], str] = _M._clean_message  # type: ignore[attr-defined]
@@ -56,159 +53,6 @@ _chat_antigravity: Callable[[str, list[dict[str, str]]], str] = _M._chat_antigra
 _Error: type[Exception] = _M._Error  # type: ignore[attr-defined]
 _APIError: type[Exception] = _M._APIError  # type: ignore[attr-defined]
 # pylint: enable=protected-access
-
-
-# ===========================================================================
-# _kilo_auth_token
-# ===========================================================================
-
-
-class TestKiloAuthToken:
-    """_kilo_auth_token validates the kilo credentials file before reading."""
-
-    _PROVIDER = "fnal-azure"
-
-    def _write(self, path: Path, obj: object) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(obj), encoding="utf-8")
-
-    def _setup(self, monkeypatch: pytest.MonkeyPatch, path: Path) -> None:
-        monkeypatch.setattr(_M, "_KILO_AUTH_JSON", path)
-        # _kilo_auth_token iterates _KILO_PROVIDER_FALLBACKS; pin it to a single
-        # provider for the single-provider test cases below.
-        monkeypatch.setattr(_M, "_KILO_PROVIDER_FALLBACKS", [self._PROVIDER])
-
-    def test_file_missing_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """No auth.json → None without raising."""
-        self._setup(monkeypatch, tmp_path / "absent.json")
-        assert _kilo_auth_token() is None
-
-    def test_invalid_json_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Malformed JSON content → None."""
-        p = tmp_path / "auth.json"
-        p.write_text("{not valid json", encoding="utf-8")
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() is None
-
-    def test_oserror_on_read_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """OSError while reading the file → None."""
-        p = tmp_path / "auth.json"
-        p.write_text("{}", encoding="utf-8")
-        self._setup(monkeypatch, p)
-        with patch("pathlib.Path.read_text", side_effect=OSError("permission denied")):
-            assert _kilo_auth_token() is None
-
-    def test_top_level_not_dict_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """JSON root is a list, not an object → None."""
-        p = tmp_path / "auth.json"
-        p.write_text("[1, 2, 3]", encoding="utf-8")
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() is None
-
-    def test_provider_absent_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Provider key missing from the JSON object → None."""
-        p = tmp_path / "auth.json"
-        self._write(p, {"other-provider": {"key": "abc"}})
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() is None
-
-    def test_provider_not_dict_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Provider entry is a bare string, not an object → None."""
-        p = tmp_path / "auth.json"
-        self._write(p, {self._PROVIDER: "just-a-string"})
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() is None
-
-    def test_key_not_string_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """'key' field is an integer, not a string → None."""
-        p = tmp_path / "auth.json"
-        self._write(p, {self._PROVIDER: {"key": 12345}})
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() is None
-
-    def test_key_empty_returns_none(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Empty 'key' string → None."""
-        p = tmp_path / "auth.json"
-        self._write(p, {self._PROVIDER: {"key": ""}})
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() is None
-
-    def test_key_whitespace_only_returns_none(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Whitespace-only 'key' string → None."""
-        p = tmp_path / "auth.json"
-        self._write(p, {self._PROVIDER: {"key": "   "}})
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() is None
-
-    def test_valid_key_stripped_and_returned(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Valid key with surrounding whitespace is stripped and returned."""
-        p = tmp_path / "auth.json"
-        self._write(p, {self._PROVIDER: {"key": "  my-secret-token  "}})
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() == "my-secret-token"
-
-    def test_valid_key_no_whitespace(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Valid key without surrounding whitespace is returned as-is."""
-        p = tmp_path / "auth.json"
-        self._write(p, {self._PROVIDER: {"key": "tok123"}})
-        self._setup(monkeypatch, p)
-        assert _kilo_auth_token() == "tok123"
-
-    def test_provider_fallback_order(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """First present provider in the fallback list wins.
-
-        The retired fnal-litellm provider was split into fnal-azure and
-        fnal-ow; _kilo_auth_token tries the list in order and returns the first
-        provider that has a usable key, skipping absent earlier entries.
-        """
-        p = tmp_path / "auth.json"
-        # fnal-azure absent; fnal-ow present -> fnal-ow key is used.
-        self._write(p, {"fnal-ow": {"key": "ow-token"}})
-        monkeypatch.setattr(_M, "_KILO_AUTH_JSON", p)
-        monkeypatch.setattr(
-            _M, "_KILO_PROVIDER_FALLBACKS", ["fnal-azure", "fnal-ow", "fnal-litellm"]
-        )
-        assert _kilo_auth_token() == "ow-token"
-
-    def test_provider_fallback_prefers_earlier(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """When multiple providers are present, the earliest in the list wins."""
-        p = tmp_path / "auth.json"
-        self._write(
-            p,
-            {
-                "fnal-azure": {"key": "azure-token"},
-                "fnal-ow": {"key": "ow-token"},
-            },
-        )
-        monkeypatch.setattr(_M, "_KILO_AUTH_JSON", p)
-        monkeypatch.setattr(
-            _M, "_KILO_PROVIDER_FALLBACKS", ["fnal-azure", "fnal-ow", "fnal-litellm"]
-        )
-        assert _kilo_auth_token() == "azure-token"
 
 
 # ===========================================================================
@@ -873,3 +717,348 @@ class TestBuildMessagesMaxDiffChars:
         sig = inspect.signature(_build_messages)
         param = sig.parameters["max_diff_chars"]
         assert param.default == _M._MAX_DIFF_CHARS_DEFAULT
+
+
+# ===========================================================================
+# Kilo config and model resolution tests
+# ===========================================================================
+
+
+class TestKiloConfig:
+    """Tests for kilo config loading and model resolution."""
+
+    def test_kilo_config_path(self) -> None:
+        """_KILO_CONFIG_PATH points to ~/.config/kilo/kilo.jsonc."""
+        from pathlib import Path
+
+        expected = Path.home() / ".config" / "kilo" / "kilo.jsonc"
+        assert _M._KILO_CONFIG_PATH == expected
+
+    def test_load_kilo_config_missing_file_returns_empty(self, tmp_path: Path) -> None:
+        """_load_kilo_config returns empty config when file doesn't exist."""
+        # Use a temp path that doesn't exist
+        non_existent = tmp_path / "nonexistent" / "kilo.jsonc"
+        original = _M._KILO_CONFIG_PATH
+        try:
+            _M._KILO_CONFIG_PATH = non_existent
+            result = _M._load_kilo_config()
+            assert result == {"disabled_providers": [], "provider": {}}
+        finally:
+            _M._KILO_CONFIG_PATH = original
+
+    def test_load_kilo_config_with_models_maps_providers(self) -> None:
+        """_load_kilo_config_with_models returns provider-to-models mapping."""
+        # Mock the config to have fnal-ow and fnal-azure providers with test models
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-ow": {
+                    "models": {
+                        "qwen/qwen3-coder-next": {"temperature": 0.7},
+                        "qwen/qwen2.5-32b": {},
+                    }
+                },
+                "fnal-azure": {
+                    "models": {
+                        "azure/gpt-5-nano": {"temperature": 0.9},
+                        "azure/claude-3-5-sonnet": {},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config
+        _M._load_kilo_config = lambda: mock_config
+        try:
+            mapping = _M._load_kilo_config_with_models()
+            # fnal-ow should be a provider in the mapping
+            assert "fnal-ow" in mapping
+            assert "fnal-azure" in mapping
+            # mapping[provider] = models_dict (models are directly in the dict)
+            assert "qwen/qwen3-coder-next" in mapping["fnal-ow"]
+            assert "qwen/qwen2.5-32b" in mapping["fnal-ow"]
+            assert "azure/gpt-5-nano" in mapping["fnal-azure"]
+        finally:
+            _M._load_kilo_config = original_load
+
+    def test_resolve_kilo_model_with_known_provider_prefix(self) -> None:
+        """_resolve_kilo_model returns model unchanged if provider prefix is known."""
+        # When the prefix (fnal-ow) is a known provider, model is passed as-is
+        result = _M._resolve_kilo_model("fnal-ow/qwen3-coder-next")
+        assert result == "fnal-ow/qwen3-coder-next"
+
+    def test_resolve_kilo_model_unknown_provider_prefix_looks_up_model(
+        self,
+    ) -> None:
+        """Model with unknown prefix (qwen/) is looked up in config."""
+        # qwen is NOT a known provider, so "qwen/qwen3-coder-next" is looked up
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-ow": {
+                    "models": {
+                        "qwen/qwen3-coder-next": {},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config
+        _M._load_kilo_config = lambda: mock_config
+        try:
+            result = _M._resolve_kilo_model("qwen/qwen3-coder-next")
+            assert result == "fnal-ow/qwen/qwen3-coder-next"
+        finally:
+            _M._load_kilo_config = original_load
+
+    def test_resolve_kilo_model_without_provider_prefix_looks_up(self) -> None:
+        """_resolve_kilo_model adds provider prefix when missing."""
+        # "qwen3-coder-next" (short name) is looked up and found under fnal-ow
+        # as "fnal-ow/qwen/qwen3-coder-next" (full name), so result is:
+        # fnal-ow/qwen/qwen3-coder-next
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-ow": {
+                    "models": {
+                        "qwen/qwen3-coder-next": {},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config
+        _M._load_kilo_config = lambda: mock_config
+        try:
+            result = _M._resolve_kilo_model("qwen3-coder-next")
+            assert result == "fnal-ow/qwen/qwen3-coder-next"
+        finally:
+            _M._load_kilo_config = original_load
+
+    def test_resolve_kilo_model_unknown_model(self) -> None:
+        """_resolve_kilo_model returns unknown model unchanged."""
+        result = _M._resolve_kilo_model("unknown-model-name")
+        assert result == "unknown-model-name"
+
+    def test_resolve_kilo_model_ambiguous_looks_up_raises_error(self) -> None:
+        """_resolve_kilo_model raises _Error for ambiguous model lookups."""
+        # Model exists under multiple providers
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-ow": {
+                    "models": {
+                        "qwen/qwen3-coder-next": {},
+                    }
+                },
+                "fnal-azure": {
+                    "models": {
+                        "qwen/qwen3-coder-next": {},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config
+        _M._load_kilo_config = lambda: mock_config
+        try:
+            with pytest.raises(_M._Error, match="is ambiguous"):
+                _M._resolve_kilo_model("qwen3-coder-next")
+        finally:
+            _M._load_kilo_config = original_load
+
+    def test_resolve_kilo_model_model_prefix_not_known_provider(
+        self,
+    ) -> None:
+        """Model with non-provider prefix is looked up and prefix added."""
+        # "unknown-ow" is not a known provider, so model name
+        # "unknown-ow/qwen3-coder-next" is looked up in config
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-ow": {
+                    "models": {
+                        "unknown-ow/qwen3-coder-next": {},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config
+        _M._load_kilo_config = lambda: mock_config
+        try:
+            result = _M._resolve_kilo_model("unknown-ow/qwen3-coder-next")
+            assert result == "fnal-ow/unknown-ow/qwen3-coder-next"
+        finally:
+            _M._load_kilo_config = original_load
+
+    def test_default_model_kilo_uses_qwen3_coder_next(self) -> None:
+        """_DEFAULT_MODEL_KILO defaults to qwen/qwen3-coder-next."""
+        assert _M._DEFAULT_MODEL_KILO == "qwen/qwen3-coder-next"
+
+
+class TestKiloBackend:
+    """Tests for the kilo backend functionality."""
+
+    def test_resolve_backend_and_api_kilo(self) -> None:
+        """_resolve_backend_and_api returns correct api for kilo backend."""
+        backend, api = _M._resolve_backend_and_api("kilo", "")
+        assert backend == "kilo"
+        # API should be empty or from env var (not default)
+        assert api == "" or api is not None  # api_base from env var or empty
+
+    def test_default_model_kilo(self) -> None:
+        """_default_model returns qwen/qwen3-coder-next for kilo backend."""
+        assert _M._default_model("kilo") == "qwen/qwen3-coder-next"
+
+    def test_chat_kilo_uses_agent_code(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """_chat_kilo always passes --agent=code to kilo run."""
+        messages = [{"role": "user", "content": "test message"}]
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+
+        mock_completed = subprocess.CompletedProcess(
+            args=["kilo", "run", "--agent=code"],
+            returncode=0,
+            stdout="Generated Commit Message\n",
+            stderr="",
+        )
+
+        with patch("subprocess.run", return_value=mock_completed) as mock_run:
+            res = _M._chat_kilo("qwen3-coder-next", messages, "test_token", "")
+            assert res == "Generated Commit Message"
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            # call_args[0] is the positional args tuple (args,), call_args[1] is kwargs
+            cmd_list = call_args[0][0]  # First positional arg is the command list
+            # Model is resolved to include provider prefix: fnal-ow/qwen/qwen3-coder-next
+            assert cmd_list == [
+                "kilo",
+                "run",
+                "--agent=code",
+                "-m",
+                "fnal-ow/qwen/qwen3-coder-next",
+            ]
+
+    def test_chat_kilo_resolves_model_name(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """_chat_kilo resolves model name (adds provider prefix) before invoking kilo."""
+        messages = [{"role": "user", "content": "test message"}]
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+
+        mock_completed = subprocess.CompletedProcess(
+            args=["kilo", "run", "--agent=code", "-m", "fnal-ow/qwen/qwen3-coder-next"],
+            returncode=0,
+            stdout="Generated Commit Message\n",
+            stderr="",
+        )
+
+        with patch("subprocess.run", return_value=mock_completed) as mock_run:
+            # Pass model without provider prefix
+            res = _M._chat_kilo("qwen3-coder-next", messages, "test_token", "")
+            assert res == "Generated Commit Message"
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            cmd_list = call_args[0][0]  # First positional arg is the command list
+            # Verify the model was resolved with provider prefix
+            assert "-m" in cmd_list
+            model_idx = cmd_list.index("-m")
+            assert cmd_list[model_idx + 1] == "fnal-ow/qwen/qwen3-coder-next"
+
+    def test_chat_kilo_passes_token_as_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """_chat_kilo passes token via KILO_SERVER_PASSWORD env var."""
+        messages = [{"role": "user", "content": "test message"}]
+
+        mock_completed = subprocess.CompletedProcess(
+            args=["kilo", "run", "--agent=code"],
+            returncode=0,
+            stdout="Generated Commit Message\n",
+            stderr="",
+        )
+
+        with patch("subprocess.run", return_value=mock_completed) as mock_run:
+            res = _M._chat_kilo("qwen/qwen3-coder-next", messages, "my_secret_token", "")
+            assert res == "Generated Commit Message"
+            mock_run.assert_called_once()
+            cmd, kwargs = mock_run.call_args
+            assert "env" in kwargs
+            assert kwargs["env"]["KILO_SERVER_PASSWORD"] == "my_secret_token"
+
+    def test_chat_kilo_passes_api_url_as_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """_chat_kilo passes api_base via KILO_SERVER_URL env var."""
+        messages = [{"role": "user", "content": "test message"}]
+        api_url = "http://localhost:9798/v1"
+
+        mock_completed = subprocess.CompletedProcess(
+            args=["kilo", "run", "--agent=code"],
+            returncode=0,
+            stdout="Generated Commit Message\n",
+            stderr="",
+        )
+
+        with patch("subprocess.run", return_value=mock_completed) as mock_run:
+            res = _M._chat_kilo("qwen/qwen3-coder-next", messages, "token", api_url)
+            assert res == "Generated Commit Message"
+            mock_run.assert_called_once()
+            cmd, kwargs = mock_run.call_args
+            assert "env" in kwargs
+            assert kwargs["env"]["KILO_SERVER_URL"] == api_url
+
+    def test_chat_kilo_file_not_found(self) -> None:
+        """_chat_kilo raises _Error if kilo CLI is not found."""
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            with pytest.raises(_Error, match="kilo CLI not found"):
+                _M._chat_kilo("qwen/qwen3-coder-next", [], "", "")
+
+    def test_chat_kilo_nonzero_exit(self) -> None:
+        """_chat_kilo raises _APIError if kilo run fails."""
+        mock_completed = subprocess.CompletedProcess(
+            args=["kilo", "run", "--agent=code"],
+            returncode=1,
+            stdout="",
+            stderr="invalid model name",
+        )
+        with patch("subprocess.run", return_value=mock_completed):
+            with pytest.raises(_APIError, match="failed \\(exit code 1\\)"):
+                _M._chat_kilo("qwen/qwen3-coder-next", [], "", "")
+
+    def test_chat_kilo_timeout(self) -> None:
+        """_chat_kilo raises _APIError if kilo run times out."""
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(60, "kilo run")):
+            with pytest.raises(_APIError, match="timed out after 60 seconds"):
+                _M._chat_kilo("qwen/qwen3-coder-next", [], "", "")
+
+    def test_main_with_kilo_backend(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """Main runs successfully with kilo backend."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "some diff")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        # Simulate a non-tty (pipe) stdin with no content.
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+
+        mock_completed = subprocess.CompletedProcess(
+            args=["kilo", "run", "--agent=code"],
+            returncode=0,
+            stdout="feat: mock commit message\n",
+            stderr="",
+        )
+
+        with patch(
+            "subprocess.run",
+            side_effect=[mock_completed, subprocess.CompletedProcess([], 0)],
+        ) as mock_run:
+            _M.main()
+
+            # The first call should be to 'kilo' to generate the commit message.
+            # The second call should be 'git commit' with the message.
+            assert mock_run.call_count == 2
+
+            # Check the first call (kilo run)
+            kilo_cmd = mock_run.call_args_list[0][0][0]
+            assert "kilo" in kilo_cmd
+            assert "--agent=code" in kilo_cmd
+
+            # Check the second call (git commit)
+            git_cmd = mock_run.call_args_list[1][0][0]
+            assert git_cmd == ["git", "commit", "-m", "feat: mock commit message"]

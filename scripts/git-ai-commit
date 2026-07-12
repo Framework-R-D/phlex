@@ -18,6 +18,10 @@ This tool automatically gathers context from:
   - User-level guidance: ~/.config/git-ai-commit/instructions.md
   - Git commit template: (from `git config commit.template`)
 
+The kilo backend uses the kilo CLI (`kilo run`) with the `--agent=code` option
+and resolves model names by reading the kilo configuration file (~/.config/kilo/kilo.jsonc)
+to determine the provider prefix if not provided.
+
 Usage
 -----
   git-ai-commit [OPTIONS] [-- GIT-COMMIT-OPTIONS]
@@ -30,13 +34,13 @@ Options
 -------
   --amend              Amend the previous commit, including its message as context
   --context TEXT       Supplemental context/prompt for the AI
-  --backend BACKEND    API backend: kilo (default), github-models, copilot,
-                       antigravity, agy
-    --model   MODEL      Model name; defaults to qwen/qwen3-coder-next for the
-                         kilo backend (gpt-4o for others, none for antigravity);
-                         binary and generated files are skipped (env:
-                         GIT_AI_COMMIT_MODEL or GIT_AI_COMMIT_KILO_MODEL)
-  --api     URL        API base URL override (env: GIT_AI_COMMIT_API)
+   --backend BACKEND    API backend: kilo (default), github-models, copilot,
+                        antigravity, agy
+     --model   MODEL      Model name (env: GIT_AI_COMMIT_MODEL or GIT_AI_COMMIT_KILO_MODEL;
+                         for kilo backend, model is resolved against kilo config
+                         ~/.config/kilo/kilo.jsonc to add provider prefix if needed;
+                         default: qwen/qwen3-coder-next)
+     --api     URL        API base URL override (env: GIT_AI_COMMIT_API)
   --dry-run            Print generated message to stdout; do not commit
   -y/--yes             Commit without interactive confirmation
   -e/--edit            Open generated message in $EDITOR before committing
@@ -47,10 +51,15 @@ Options
 
 Backends
 --------
-  kilo          LiteLLM-compatible endpoint via kilo credentials.
-                Default URL/model/provider: FNAL values; override via
-                GIT_AI_COMMIT_KILO_API / _MODEL / _PROVIDER env vars.
-                Token: kilo auth.json → GIT_AI_COMMIT_TOKEN → GITHUB_TOKEN/GH_TOKEN.
+    kilo          LiteLLM-compatible endpoint via kilo CLI (`kilo run --agent=code`).
+                  Model names are resolved against the kilo configuration file
+                  (~/.config/kilo/kilo.jsonc); if a model name lacks a provider prefix,
+                  the prefix is automatically added by looking up the model in the config.
+                  The token is read from `GIT_AI_COMMIT_TOKEN` and passed to the kilo CLI
+                  via the `KILO_SERVER_PASSWORD` environment variable.
+                  The API base URL can be overridden via `GIT_AI_COMMIT_API` (passed to kilo
+                  CLI as `KILO_SERVER_URL`) or `--api` option.
+                  Note: The `kilo` CLI must be installed and available in PATH.
 
   github-models GitHub Models inference API (https://models.inference.ai.azure.com).
                 Default model: gpt-4o.
@@ -70,21 +79,26 @@ Backends
 
 Environment variables
 ---------------------
-  GIT_AI_COMMIT_TOKEN         API token (overrides all other token sources)
-  GIT_AI_COMMIT_MODEL         Default model name
-  GIT_AI_COMMIT_API           API base URL override
-  GIT_AI_COMMIT_BACKEND       Default backend (kilo, github-models, copilot, antigravity, or agy)
-  GIT_AI_COMMIT_KILO_API      kilo backend base URL (default: https://litellm.fnal.gov/v1)
-  GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5)
-   GIT_AI_COMMIT_KILO_PROVIDER kilo auth.json provider key.  When unset, the
-   split FNAL providers are tried in order (fnal-azure, fnal-ow, fnal-litellm).
+    GIT_AI_COMMIT_TOKEN         API token for backends. For kilo backend: passed to
+                                kilo CLI via KILO_SERVER_PASSWORD environment variable.
+    GIT_AI_COMMIT_MODEL         Default model name
+    GIT_AI_COMMIT_API           API base URL; for kilo backend: passed to kilo CLI via
+                                KILO_SERVER_URL environment variable
+    GIT_AI_COMMIT_BACKEND       Default backend (kilo, github-models, copilot, antigravity, or agy)
+    GIT_AI_COMMIT_KILO_API      kilo backend base URL (deprecated; use GIT_AI_COMMIT_API)
+    GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (deprecated; use GIT_AI_COMMIT_MODEL)
+
+    KILO_SERVER_URL             API base URL for kilo backend (overrides config)
+    KILO_SERVER_PASSWORD        API token for kilo backend (overrides config)
 
 Token resolution (kilo backend):
-  1. GIT_AI_COMMIT_TOKEN
-  2. ~/.local/share/kilo/auth.json  (fnal-azure, fnal-ow, or fnal-litellm key)
-  3. GITHUB_TOKEN / GH_TOKEN
-  4. `gh auth token`
-  5. ~/.config/gh/hosts.yml
+    1. GIT_AI_COMMIT_TOKEN → KILO_SERVER_PASSWORD (if not set, no token is sent to the API)
+
+Token resolution (github-models / copilot backends):
+   1. GIT_AI_COMMIT_TOKEN
+   2. GITHUB_TOKEN / GH_TOKEN
+   3. `gh auth token`
+   4. ~/.config/gh/hosts.yml
 
 Token resolution (github-models / copilot backends):
   1. GIT_AI_COMMIT_TOKEN
@@ -117,36 +131,43 @@ _GITHUB_MODELS_BASE = "https://models.inference.ai.azure.com"
 _COPILOT_API_BASE = "https://api.githubcopilot.com"
 _COPILOT_TOKEN_URL = "https://api.github.com/copilot_internal/v2/token"
 
-_KILO_AUTH_JSON = Path.home() / ".local" / "share" / "kilo" / "auth.json"
+# Defaults for kilo backend - only apply when user specifies them via env vars.
+# No defaults are used unless explicitly set by the user.
+# Support deprecated GIT_AI_COMMIT_KILO_* vars as fallback to GIT_AI_COMMIT_*
+_KILO_API_ENV = os.environ.get("GIT_AI_COMMIT_API", "").strip()
+if not _KILO_API_ENV:
+    deprecated = os.environ.get("GIT_AI_COMMIT_KILO_API", "").strip()
+    if deprecated:
+        import warnings
 
-# These defaults are appropriate for the FNAL kilo deployment.  Override via
-# environment variables to adapt to a different LiteLLM instance or model
-# naming convention.
-_DEFAULT_KILO_API = os.environ.get("GIT_AI_COMMIT_KILO_API", "https://litellm.fnal.gov/v1")
-_KILO_MODEL_ENV = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "").strip()
-# Default model for kilo backend: use an open-weight model that has no cost
-# and unlimited budget via the fnal-ow provider. This avoids hitting budget
-# limits common with Azure/azure models. Override via GIT_AI_COMMIT_MODEL.
-_DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or "qwen/qwen3-coder-next"
-# auth.json provider key(s) that hold the FNAL gateway API token.  The former
-# single "fnal-litellm" provider was split into "fnal-azure" and "fnal-ow",
-# which share the same upstream key; "fnal-litellm" is retired.  When the user
-# does not pin GIT_AI_COMMIT_KILO_PROVIDER, select the provider based on the
-# model name: open-weight models (qwen/*, google/*) use fnal-ow; other models
-# use fnal-azure.  git-ai-commit talks to the LiteLLM gateway directly, so
-# the provider key only selects the auth token — model names remain bare.
-_KILO_PROVIDER_ENV = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "").strip()
+        warnings.warn(
+            "GIT_AI_COMMIT_KILO_API is deprecated; use GIT_AI_COMMIT_API instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        _KILO_API_ENV = deprecated
+_DEFAULT_KILO_API = _KILO_API_ENV
+
+_KILO_MODEL_ENV = os.environ.get("GIT_AI_COMMIT_MODEL", "").strip()
+if not _KILO_MODEL_ENV:
+    deprecated = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "").strip()
+    if deprecated:
+        import warnings
+
+        warnings.warn(
+            "GIT_AI_COMMIT_KILO_MODEL is deprecated; use GIT_AI_COMMIT_MODEL instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        _KILO_MODEL_ENV = deprecated
+# Default model for kilo backend - uses qwen/qwen3-coder-next from fnal-ow provider
+_KILO_DEFAULT_MODEL = "qwen/qwen3-coder-next"
+_DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or _KILO_DEFAULT_MODEL
 _DEFAULT_MODEL_OTHER = "gpt-4o"
 
-# Open-weight model prefix patterns that should use the fnal-ow provider.
-# These models have no cost and unlimited budget in the FNAL deployment.
-_OPEN_WEIGHT_MODEL_PREFIXES = ("qwen/", "google/", "nvidia/", "BAAI/")
+# Path to kilo config file
+_KILO_CONFIG_PATH = Path.home() / ".config" / "kilo" / "kilo.jsonc"
 
-# Default fallback providers, used when user has not pinned a provider via
-# GIT_AI_COMMIT_KILO_PROVIDER, and for backward compatibility with tests.
-# When model-based selection is used, the _determine_kilo_provider function
-# will select the appropriate provider first.
-_KILO_PROVIDER_FALLBACKS = ["fnal-azure", "fnal-ow", "fnal-litellm"]
 
 _MAX_DIFF_CHARS_DEFAULT = 60_000
 
@@ -163,6 +184,138 @@ _GENERATED_FILE_GLOBS = [
     "*.generated.cpp",
     "*.generated.h",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Kilo config functions
+# ---------------------------------------------------------------------------
+
+
+def _load_kilo_config() -> dict:
+    """Load and parse the kilo configuration file.
+
+    Returns a dict with 'disabled_providers' and 'provider' keys.
+    'provider' maps provider names to provider configs, each containing a 'models' dict.
+    """
+    if not _KILO_CONFIG_PATH.exists():
+        return {"disabled_providers": [], "provider": {}}
+    try:
+        # Use json.loads after removing comments (kilo.jsonc supports comments)
+        content = _KILO_CONFIG_PATH.read_text(encoding="utf-8")
+        # Remove single-line comments (//) only when preceded by whitespace
+        # or at start of line, to avoid matching URLs like https://
+        content = re.sub(r"(?<!\S)//.*$", "", content, flags=re.MULTILINE)
+        # Also remove // at start of line (common for comment headers)
+        content = re.sub(r"^\s*//.*$", "", content, flags=re.MULTILINE)
+        content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
+        return json.loads(content)
+    except (OSError, json.JSONDecodeError):
+        return {"disabled_providers": [], "provider": {}}
+
+
+def _load_kilo_config_with_models() -> dict[str, dict[str, str]]:
+    """Load kilo config and return a mapping of provider names to model dicts.
+
+    Returns a dict mapping Kilo config provider names to dicts of model keys.
+    For example: {"fnal-ow": {"qwen/qwen3-coder-next": {...}, ...}}
+    """
+    config = _load_kilo_config()
+    provider_config = config.get("provider", {})
+    mapping: dict[str, dict[str, str]] = {}
+
+    for provider_name, provider_data in provider_config.items():
+        if not isinstance(provider_data, dict):
+            continue
+        models = provider_data.get("models", {})
+        if not isinstance(models, dict):
+            continue
+        mapping[provider_name] = models
+
+    return mapping
+
+
+def _get_kilo_provider_names() -> list[str]:
+    """Return the list of known Kilo config provider names."""
+    config = _load_kilo_config()
+    provider_config = config.get("provider", {})
+    return list(provider_config.keys())
+
+
+def _resolve_kilo_model(model: str) -> str:
+    """Resolve a kilo model name, adding provider prefix if needed.
+
+    Logic:
+    1. If model contains "/" (e.g., "qwen/"), check if the prefix is a known
+       provider in the Kilo config.
+    2a. If the prefix IS a known provider, the model is passed to kilo as-is.
+    2b. If the prefix is NOT a known provider, the full model (including prefix)
+        is treated as the model name and looked up in the config.
+    3. If model has no prefix, it is looked up directly in the config.
+    4. If the lookup is ambiguous (multiple providers have the model), raise an error.
+
+    Returns the fully-qualified model name in format "provider/model".
+    Raises _Error if the model lookup is ambiguous.
+    """
+    provider_models = _load_kilo_config_with_models()
+    known_providers = set(_get_kilo_provider_names())
+
+    # If model has a prefix (contains "/"), check if it's a known provider
+    if "/" in model:
+        prefix, rest = model.split("/", 1)
+        if prefix in known_providers:
+            # The prefix is a known provider - pass model as-is to kilo
+            return model
+
+        # The prefix is NOT a known provider - treat full model as model name
+        # and look it up in config
+        candidate_providers = []
+        for provider_name, models in provider_models.items():
+            if model in models:
+                candidate_providers.append(provider_name)
+
+        if len(candidate_providers) == 0:
+            # Model not found in config; return as-is
+            return model
+        elif len(candidate_providers) == 1:
+            # Unambiguous lookup
+            return f"{candidate_providers[0]}/{model}"
+        else:
+            # Ambiguous lookup - raise error with available providers
+            raise _Error(
+                f"Model '{model}' is ambiguous: found under providers "
+                f"{', '.join(candidate_providers)}. "
+                "Please disambiguate by specifying one of these providers as a prefix."
+            )
+
+    # Model has no prefix - look it up directly in config
+    candidate_providers = []
+    candidate_full_names: dict[str, str] = {}  # provider -> full_name
+
+    for provider_name, models in provider_models.items():
+        for full_name in models.keys():
+            # Extract short name (after first "/")
+            if "/" in full_name:
+                short_name = full_name.split("/", 1)[1]
+            else:
+                short_name = full_name
+
+            if short_name == model:
+                candidate_providers.append(provider_name)
+                candidate_full_names[provider_name] = full_name
+
+    if len(candidate_providers) == 0:
+        # Model not found in config; return as-is
+        return model
+    elif len(candidate_providers) == 1:
+        # Unambiguous lookup
+        return f"{candidate_providers[0]}/{candidate_full_names[candidate_providers[0]]}"
+    else:
+        # Ambiguous lookup - raise error with available providers
+        raise _Error(
+            f"Model '{model}' is ambiguous: found under providers "
+            f"{', '.join(candidate_providers)}. "
+            "Please disambiguate by specifying one of these providers as a prefix."
+        )
 
 
 def _skip_binary_and_generated(diff: str) -> str:
@@ -500,41 +653,6 @@ def _get_instructions(root: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _kilo_auth_token_for_providers(providers: list[str]) -> str | None:
-    """Read the kilo provider API key from kilo's auth.json for the given providers.
-
-    Returns the first valid API key found for any of the specified providers.
-    """
-    if not _KILO_AUTH_JSON.exists():
-        return None
-    try:
-        data = json.loads(_KILO_AUTH_JSON.read_text())
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(data, dict):
-        return None
-    for provider_name in providers:
-        provider = data.get(provider_name)
-        if not isinstance(provider, dict):
-            continue
-        key = provider.get("key", "")
-        if isinstance(key, str) and key.strip():
-            return key.strip()
-    return None
-
-
-def _kilo_auth_token() -> str | None:
-    """Read the kilo provider API key from kilo's auth.json, if present.
-
-    The provider name(s) come from GIT_AI_COMMIT_KILO_PROVIDER when set;
-    otherwise the split FNAL providers are tried in order
-    ("fnal-azure", "fnal-ow", then the retired "fnal-litellm").  These share
-    the same upstream gateway token, so the first present key wins.  The names
-    match the provider keys in ~/.config/kilo/kilo.jsonc.
-    """
-    return _kilo_auth_token_for_providers(_KILO_PROVIDER_FALLBACKS)
-
-
 def _max_tokens_for_prompt(prompt_size: int, model: str) -> int:
     """Return max_tokens based on prompt size and model capabilities.
 
@@ -612,19 +730,6 @@ def _gh_oauth_token() -> str | None:
     return _gh_config_token()
 
 
-def _determine_kilo_provider(model: str) -> str:
-    """Select the appropriate FNAL LiteLLM provider based on model name.
-
-    Open-weight models (qwen/*, google/, nvidia/, BAAI/) should use fnal-ow
-    which has no cost and unlimited budget. Other models use fnal-azure.
-    """
-    if model:
-        model_lower = model.lower()
-        if any(model_lower.startswith(prefix) for prefix in _OPEN_WEIGHT_MODEL_PREFIXES):
-            return "fnal-ow"
-    return "fnal-azure"
-
-
 def _token(backend: str, model: str = "") -> str:
     """Resolve the best available API token for the given backend and model."""
     # GIT_AI_COMMIT_TOKEN always wins regardless of backend.
@@ -632,15 +737,10 @@ def _token(backend: str, model: str = "") -> str:
         return val
 
     if backend == "kilo":
-        # Select provider based on model name, or use environment hint
-        # if explicitly set via GIT_AI_COMMIT_KILO_PROVIDER.
-        if _KILO_PROVIDER_ENV:
-            providers = [_KILO_PROVIDER_ENV]
-        else:
-            providers = [_determine_kilo_provider(model), "fnal-ow", "fnal-azure", "fnal-litellm"]
-
-        if tok := _kilo_auth_token_for_providers(providers):
-            return tok
+        # For the kilo backend, only use GIT_AI_COMMIT_TOKEN.
+        # No fallback to GITHUB_TOKEN, GH_TOKEN, gh CLI, or hosts.yml.
+        # If no token is set, return empty string - let the API handle it.
+        return ""
 
     for var in ("GITHUB_TOKEN", "GH_TOKEN"):
         if val := os.environ.get(var, "").strip():
@@ -654,12 +754,6 @@ def _token(backend: str, model: str = "") -> str:
     if tok := _gh_config_token():
         return tok
 
-    if backend == "kilo":
-        raise _Error(
-            "No FNAL LiteLLM token found. "
-            "Ensure kilo is configured with the fnal-azure or fnal-ow "
-            "provider, or set GIT_AI_COMMIT_TOKEN."
-        )
     raise _Error(
         "No API token found. Set GIT_AI_COMMIT_TOKEN, GITHUB_TOKEN, or run 'gh auth login'."
     )
@@ -755,11 +849,71 @@ def _copilot_token(oauth: str) -> str:
         raise _APIError(f"Copilot token exchange failed: {exc}") from exc
 
 
+def _chat_kilo(model: str, messages: list[dict[str, str]], token: str, api_base: str) -> str:
+    """Send *messages* via the kilo CLI and return the reply.
+
+    The kilo backend always uses --agent=code and resolves model names
+    against the kilo config to add provider prefixes if needed.
+    """
+    # Build the prompt from messages
+    system_content = ""
+    user_content = ""
+    for m in messages:
+        if m["role"] == "system":
+            system_content = m["content"]
+        elif m["role"] == "user":
+            user_content = m["content"]
+
+    if system_content:
+        prompt = f"System Instructions:\n{system_content}\n\n{user_content}"
+    else:
+        prompt = user_content
+
+    # Resolve model name against kilo config (add provider prefix if needed)
+    resolved_model = _resolve_kilo_model(model or _KILO_DEFAULT_MODEL)
+
+    # Build kilo run command with --agent=code
+    cmd = ["kilo", "run", "--agent=code"]
+    if resolved_model:
+        cmd += ["-m", resolved_model]
+
+    # Use environment variables for authentication and API URL
+    env = os.environ.copy()
+    if token:
+        env["KILO_SERVER_PASSWORD"] = token
+    if api_base:
+        env["KILO_SERVER_URL"] = api_base
+
+    try:
+        result = subprocess.run(
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise _APIError("kilo run timed out after 60 seconds.", status=0) from exc
+    except FileNotFoundError as exc:
+        raise _Error("kilo CLI not found in PATH. Ensure it is installed and available.") from exc
+
+    if result.returncode != 0:
+        raise _APIError(
+            (f"kilo run failed (exit code {result.returncode}):\n{result.stderr.strip()}"),
+            result.returncode,
+        )
+
+    return _clean_message(result.stdout)
+
+
 def _chat(
     token: str,
     api_base: str,
     model: str,
     messages: list[dict[str, str]],
+    backend: str = "kilo",
 ) -> str:
     """Send *messages* to the chat completions endpoint and return the reply."""
     # Scale max_tokens with prompt size to avoid truncated responses.
@@ -777,6 +931,10 @@ def _chat(
             max_tokens = 2048
     else:
         max_tokens = 2048
+
+    # Use kilo CLI for the kilo backend
+    if backend == "kilo":
+        return _chat_kilo(model, messages, token, api_base)
 
     payload = json.dumps(
         {
@@ -989,6 +1147,8 @@ def _resolve_backend_and_api(backend: str, api_override: str) -> tuple[str, str]
     if api_override:
         return backend, api_override
     if backend == "kilo":
+        # For kilo backend, only use API URL if explicitly set via env var.
+        # No default URL - user must set GIT_AI_COMMIT_API or use --api.
         return backend, _DEFAULT_KILO_API
     if backend == "copilot":
         return backend, _COPILOT_API_BASE
@@ -1053,7 +1213,7 @@ def main() -> None:
         help=(
             f"Model name — defaults to {_DEFAULT_MODEL_KILO} for the kilo "
             f"backend and {_DEFAULT_MODEL_OTHER} for others "
-            "(env: GIT_AI_COMMIT_MODEL)"
+            "(env: GIT_AI_COMMIT_MODEL, GIT_AI_COMMIT_KILO_MODEL)"
         ),
     )
     ap.add_argument(
@@ -1074,7 +1234,12 @@ def main() -> None:
     args = ap.parse_args(argv)
 
     backend, api_base = _resolve_backend_and_api(args.backend, args.api)
-    model = args.model.strip() or _default_model(backend)
+    if backend == "kilo":
+        # For kilo backend, ensure model has provider prefix by looking it up in config
+        model_name = args.model.strip() or _default_model(backend)
+        model = _resolve_kilo_model(model_name)
+    else:
+        model = args.model.strip() or _default_model(backend)
     # Collect supplemental context from --context and/or stdin.
     ctx_parts: list[str] = []
     if args.context:
@@ -1152,7 +1317,7 @@ def main() -> None:
         if backend in ("antigravity", "agy"):
             message = _chat_antigravity(model, msgs)
         else:
-            message = _chat(tok, api_base, model, msgs)
+            message = _chat(tok, api_base, model, msgs, backend)
     except _APIError as primary_err:
         # If GitHub Models fails with an auth or connectivity error, retry via
         # the Copilot API.  This fallback is specific to the github-models
@@ -1171,7 +1336,7 @@ def main() -> None:
                 if not gh_tok:
                     raise _Error("No GitHub OAuth token found for Copilot fallback.")
                 copilot_tok = _copilot_token(gh_tok)
-                message = _chat(copilot_tok, _COPILOT_API_BASE, model, msgs)
+                message = _chat(copilot_tok, _COPILOT_API_BASE, model, msgs, "copilot")
             except _Error as exc:
                 print(f"git-ai-commit: {exc}", file=sys.stderr)
                 sys.exit(1)
