@@ -15,7 +15,6 @@ Plus new tests for staged changes:
 
 - _gh_oauth_token   returns GitHub OAuth token (not LiteLLM keys)
 - _clean_message    strips model preamble and fenced code blocks
-- _KILO_MODEL_PINNED_BY_ENV, _ESCALATION_* constants
 - Empty staged change handling
 """
 
@@ -410,20 +409,6 @@ class TestCleanMessage:
         """A breaking-change (!) conventional-commit subject is not treated as preamble."""
         raw = "refactor!: rename all the things\n\nOld names were confusing."
         assert _clean_message(raw) == raw
-
-
-# ===========================================================================
-# _KILO_MODEL_PINNED_BY_ENV constant
-# ===========================================================================
-
-
-class TestKiloModelPinnedByEnv:
-    """_KILO_MODEL_PINNED_BY_ENV is evaluated at import time."""
-
-    def test_constant_exists(self) -> None:
-        """_KILO_MODEL_PINNED_BY_ENV constant exists."""
-        assert hasattr(_M, "_KILO_MODEL_PINNED_BY_ENV")
-        assert isinstance(_M._KILO_MODEL_PINNED_BY_ENV, bool)
 
 
 # ===========================================================================
@@ -880,22 +865,6 @@ class TestBuildMessagesMaxDiffChars:
 
         # Should contain truncation marker
         assert "files omitted to fit context budget" in user_content
-
-    def test_escalated_cap_keeps_large_diff(self, tmp_path: Path) -> None:
-        """Large diff fits within _MAX_DIFF_CHARS_ESCALATED (400 000)."""
-        diff = self._make_large_diff()
-        assert 60_000 < len(diff) < 400_000
-
-        msgs = _build_messages(
-            diff, "", "", "", tmp_path, max_diff_chars=_M._MAX_DIFF_CHARS_ESCALATED
-        )
-        user_content = msgs[1]["content"]
-
-        # No truncation marker should be present
-        assert "files omitted to fit context budget" not in user_content
-        # Content should be present
-        assert "large.py" in user_content
-        assert "line 0" in user_content
 
     def test_default_arg_unchanged(self) -> None:
         """_build_messages signature has _MAX_DIFF_CHARS_DEFAULT as max_diff_chars default."""

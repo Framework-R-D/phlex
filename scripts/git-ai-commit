@@ -34,10 +34,8 @@ Options
                        antigravity, agy
     --model   MODEL      Model name; defaults to qwen/qwen3-coder-next for the
                          kilo backend (gpt-4o for others, none for antigravity);
-                         large prompts auto-escalate to qwen/qwen3-coder-next
-                         (unless model is explicitly set); binary and generated
-                         files are skipped (env: GIT_AI_COMMIT_MODEL or
-                         GIT_AI_COMMIT_KILO_MODEL)
+                         binary and generated files are skipped (env:
+                         GIT_AI_COMMIT_MODEL or GIT_AI_COMMIT_KILO_MODEL)
   --api     URL        API base URL override (env: GIT_AI_COMMIT_API)
   --dry-run            Print generated message to stdout; do not commit
   -y/--yes             Commit without interactive confirmation
@@ -77,8 +75,7 @@ Environment variables
   GIT_AI_COMMIT_API           API base URL override
   GIT_AI_COMMIT_BACKEND       Default backend (kilo, github-models, copilot, antigravity, or agy)
   GIT_AI_COMMIT_KILO_API      kilo backend base URL (default: https://litellm.fnal.gov/v1)
-  GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5);
-                              setting this env var suppresses auto-escalation
+  GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5)
    GIT_AI_COMMIT_KILO_PROVIDER kilo auth.json provider key.  When unset, the
    split FNAL providers are tried in order (fnal-azure, fnal-ow, fnal-litellm).
 
@@ -131,9 +128,6 @@ _KILO_MODEL_ENV = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "").strip()
 # and unlimited budget via the fnal-ow provider. This avoids hitting budget
 # limits common with Azure/azure models. Override via GIT_AI_COMMIT_MODEL.
 _DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or "qwen/qwen3-coder-next"
-# True when the user has explicitly pinned a kilo model via the environment,
-# which suppresses auto-escalation even if the diff is large.
-_KILO_MODEL_PINNED_BY_ENV = bool(_KILO_MODEL_ENV)
 # auth.json provider key(s) that hold the FNAL gateway API token.  The former
 # single "fnal-litellm" provider was split into "fnal-azure" and "fnal-ow",
 # which share the same upstream key; "fnal-litellm" is retired.  When the user
@@ -155,15 +149,6 @@ _OPEN_WEIGHT_MODEL_PREFIXES = ("qwen/", "google/", "nvidia/", "BAAI/")
 _KILO_PROVIDER_FALLBACKS = ["fnal-azure", "fnal-ow", "fnal-litellm"]
 
 _MAX_DIFF_CHARS_DEFAULT = 60_000
-_MAX_DIFF_CHARS_ESCALATED = 400_000  # Large ceiling for escalated path
-
-# When the kilo model was not explicitly chosen and the prompt exceeds this
-# character count, escalate to a free high-context model rather than risk
-# truncation or degraded output with the default (Haiku).  The threshold is
-# set conservatively below _MAX_DIFF_CHARS so that instruction files and log
-# context on top of a near-limit diff still trigger escalation.
-_ESCALATION_THRESHOLD_CHARS = 30_000
-_ESCALATION_MODEL_KILO = "qwen/qwen3-coder-next"
 
 # Hunk-aware diff truncation helper
 
@@ -1067,9 +1052,8 @@ def main() -> None:
         metavar="MODEL",
         help=(
             f"Model name — defaults to {_DEFAULT_MODEL_KILO} for the kilo "
-            f"backend and {_DEFAULT_MODEL_OTHER} for others; large prompts "
-            f"auto-escalate to {_ESCALATION_MODEL_KILO} unless a model is "
-            "explicitly set (env: GIT_AI_COMMIT_MODEL)"
+            f"backend and {_DEFAULT_MODEL_OTHER} for others "
+            "(env: GIT_AI_COMMIT_MODEL)"
         ),
     )
     ap.add_argument(
@@ -1090,9 +1074,6 @@ def main() -> None:
     args = ap.parse_args(argv)
 
     backend, api_base = _resolve_backend_and_api(args.backend, args.api)
-    # Track whether the model was explicitly chosen by the user (CLI or env).
-    # An explicit choice suppresses auto-escalation for large prompts.
-    model_explicit = bool(args.model.strip())
     model = args.model.strip() or _default_model(backend)
     # Collect supplemental context from --context and/or stdin.
     ctx_parts: list[str] = []
@@ -1135,22 +1116,7 @@ def main() -> None:
         # No staged changes but we have a prior commit message; rewrite it.
         amend_no_diff = True
 
-    # Compute raw prompt length before any truncation for escalation decision.
-    raw_len = (
-        len(_SYSTEM)
-        + len(f"Repository: {root}\n")
-        + len(diff)
-        + len(status)
-        + len(log)
-        + len(context)
-        + len(instr)
-        + len(last_msg)
-    )
-    # Determine max diff chars based on model and escalation.
-    if backend == "kilo" and (model == _ESCALATION_MODEL_KILO or model_explicit):
-        max_diff_chars = _MAX_DIFF_CHARS_ESCALATED
-    else:
-        max_diff_chars = _MAX_DIFF_CHARS_DEFAULT
+    max_diff_chars = _MAX_DIFF_CHARS_DEFAULT
     msgs = _build_messages(
         diff,
         status,
@@ -1162,37 +1128,6 @@ def main() -> None:
         amend_no_diff,
         max_diff_chars=max_diff_chars,
     )
-
-    # Auto-escalate to a free high-context model when the raw (pre-truncation)
-    # prompt is large and the user has not explicitly chosen a model.  Using the
-    # raw length avoids the circular dependency where truncation hides the true
-    # diff size from the escalation heuristic.
-    if (
-        backend == "kilo"
-        and not model_explicit
-        and not _KILO_MODEL_PINNED_BY_ENV
-        and raw_len > _ESCALATION_THRESHOLD_CHARS
-    ):
-        model = _ESCALATION_MODEL_KILO
-        # Upgrade the diff cap now that we know we are on the escalated model.
-        max_diff_chars = _MAX_DIFF_CHARS_ESCALATED
-        # Rebuild messages with the larger cap.
-        msgs = _build_messages(
-            diff,
-            status,
-            log,
-            context,
-            root,
-            last_msg,
-            instr,
-            amend_no_diff,
-            max_diff_chars=max_diff_chars,
-        )
-        print(
-            f"Prompt exceeds {_ESCALATION_THRESHOLD_CHARS:,} chars — "
-            f"escalating to {_ESCALATION_MODEL_KILO}.",
-            file=sys.stderr,
-        )
 
     print(
         f"Generating commit message using {model if model else '<auto>'} via {backend}…",

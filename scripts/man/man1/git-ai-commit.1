@@ -85,11 +85,7 @@ Overridden by the \fBGIT_AI_COMMIT_BACKEND\fR environment variable.
 Model name to use.  Defaults to \fBqwen/qwen3\-coder\-next\fR for the
 \fBkilo\fR backend, \fBgpt\-4o\fR for other backends, and none for the
 \fBantigravity\fR backend (which lets the CLI use its default model).
-When the \fBkilo\fR backend is selected and the model was not explicitly
-specified (neither via \fB\-\-model\fR nor via \fBGIT_AI_COMMIT_KILO_MODEL\fR /
-\fBGIT_AI_COMMIT_MODEL\fR), large prompts (>\~30,000 characters) are
-automatically escalated to \fBqwen/qwen3\-coder\-next\fR; binary and
-generated files are skipped.
+Binary and generated files are skipped.
 Overridden by the \fBGIT_AI_COMMIT_MODEL\fR environment variable.
 .TP
 \fB\-\-api\fR \fIURL\fR
@@ -181,8 +177,7 @@ API token.  Takes precedence over all other token sources for all
 backends.
 .TP
 \fBGIT_AI_COMMIT_MODEL\fR
-Default model name.  Overrides the backend default and suppresses
-auto\-escalation.
+Default model name.  Overrides the backend default.
 .TP
 \fBGIT_AI_COMMIT_API\fR
 API base URL override.  Applied before the backend default.
@@ -195,7 +190,6 @@ Base URL for the \fBkilo\fR backend.  Default: \fIhttps://litellm.fnal.gov/v1\fR
 .TP
 \fBGIT_AI_COMMIT_KILO_MODEL\fR
 Default model for the \fBkilo\fR backend.  Default: \fBazure/claude\-haiku\-4\-5\fR.
-Setting this variable suppresses auto\-escalation even for large prompts.
 .TP
 \fBGIT_AI_COMMIT_KILO_PROVIDER\fR
 Provider key in \fB~/.local/share/kilo/auth.json\fR.  When unset, the split
