@@ -16,12 +16,12 @@
 #include <memory>
 #include <string>
 
-namespace phlex::experimental::detail {
+namespace phlex::detail::internal {
 
   template <typename T>
   class accumulator {
   public:
-    using sendable_t = sendable_type<T>;
+    using sendable_t = phlex::experimental::sendable_type<T>;
 
     explicit accumulator(std::unique_ptr<T> initial_value) : accumulator_(std::move(initial_value))
     {
@@ -62,7 +62,7 @@ namespace phlex::experimental::detail {
                                product_specifications const& output,
                                std::size_t original_id)
     {
-      auto store = std::make_shared<product_store>(index, node_name);
+      auto store = std::make_shared<phlex::experimental::product_store>(index, node_name);
       // FIXME: Only read the first output specification, which is a temporary limitation until
       // we support multiple outputs from folds.
       store->add_product(output.front(), partial_result->release_as_product());
@@ -89,7 +89,7 @@ namespace phlex::experimental::detail {
   public:
     accumulator_node(tbb::flow::graph& g,
                      std::string node_name,
-                     identifier partition_layer_name,
+                     phlex::experimental::identifier partition_layer_name,
                      product_specifications output,
                      result_initializer_t initializer);
 
@@ -140,7 +140,7 @@ namespace phlex::experimental::detail {
     multifunction_node_t repeater_;
     cache_t cached_results_;
     std::string node_name_;
-    identifier partition_layer_;
+    phlex::experimental::identifier partition_layer_;
     result_initializer_t initializer_;
     product_specifications output_;
     std::atomic<std::size_t> emitted_result_count_{0};
@@ -152,7 +152,7 @@ namespace phlex::experimental::detail {
   template <typename Result>
   accumulator_node<Result>::accumulator_node(tbb::flow::graph& g,
                                              std::string node_name,
-                                             identifier partition_layer_name,
+                                             phlex::experimental::identifier partition_layer_name,
                                              product_specifications output,
                                              result_initializer_t initializer) :
     base_t{g},

@@ -118,7 +118,7 @@ namespace phlex::detail {
     };
 
     void finalize(tbb::flow::graph& g,
-                  std::vector<layer_path> const& layer_paths_from_driver,
+                  std::vector<phlex::experimental::layer_path> const& layer_paths_from_driver,
                   unfold_data unfolds,
                   provider_input_ports_t provider_input_ports,
                   fold_partition_ports_t fold_partition_ports,

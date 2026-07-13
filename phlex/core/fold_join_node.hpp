@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   // A fold_join_node is a TBB composite flow-graph node that synchronises a
   // partition-level fold accumulator with N data-input streams.  For each data
@@ -44,7 +44,7 @@ namespace phlex::experimental {
 
   template <typename FoldResult, std::size_t NInputs>
   using accumulator_with_messages = decltype(std::tuple_cat(
-    std::tuple<detail::accumulator_message<FoldResult>>{}, message_tuple<NInputs>{}));
+    std::tuple<internal::accumulator_message<FoldResult>>{}, message_tuple<NInputs>{}));
 
   template <typename FoldResult, std::size_t NInputs>
   using fold_join_node_base_t =
@@ -69,15 +69,15 @@ namespace phlex::experimental {
       // exactly the messages that belong to the same data unit.
       return tbb::flow::join_node<join_args_t, tbb::flow::tag_matching>{
         g,
-        [](detail::accumulator_message<FoldResult> const& msg) { return msg.id; },
+        [](internal::accumulator_message<FoldResult> const& msg) { return msg.id; },
         type_t<message_matcher, Is>{}...};
     }
 
   public:
     fold_join_node(tbb::flow::graph& g,
                    std::string const& node_name,
-                   identifier partition_layer_name,
-                   std::vector<identifier> layer_names,
+                   phlex::experimental::identifier partition_layer_name,
+                   std::vector<phlex::experimental::identifier> layer_names,
                    product_specifications output,
                    result_initializer_t result_initializer) :
       base_t{g},
@@ -95,7 +95,7 @@ namespace phlex::experimental {
       // that serve as input to the fold operation.
       repeaters_.reserve(NInputs);
       for (auto const& layer : layers_) {
-        repeaters_.push_back(std::make_unique<detail::repeater_node>(g, name_, layer));
+        repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
       }
 
       make_edge(tbb::flow::output_port<1>(result_repeater_), input_port<0>(join_));
@@ -146,7 +146,7 @@ namespace phlex::experimental {
     {
       std::vector<named_index_port> result;
       result.reserve(1 + repeaters_.size()); // +1 for the result repeater
-      identifier const counting_layer_for_partition =
+      phlex::experimental::identifier const counting_layer_for_partition =
         layers_.empty() ? partition_layer_ : layers_[0];
       result.emplace_back(partition_layer_,
                           counting_layer_for_partition,
@@ -160,14 +160,14 @@ namespace phlex::experimental {
     }
 
   private:
-    detail::accumulator_node<FoldResult> result_repeater_;
-    std::vector<std::unique_ptr<detail::repeater_node>> repeaters_;
+    internal::accumulator_node<FoldResult> result_repeater_;
+    std::vector<std::unique_ptr<internal::repeater_node>> repeaters_;
     tbb::flow::join_node<join_args_t, tbb::flow::tag_matching> join_;
     // Immutable after construction; tbb::flow::join_node is already non-movable.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const name_;
-    identifier const partition_layer_;
-    std::vector<identifier> const layers_;
+    phlex::experimental::identifier const partition_layer_;
+    std::vector<phlex::experimental::identifier> const layers_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 

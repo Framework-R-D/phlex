@@ -13,7 +13,8 @@
 #include <ranges>
 #include <stdexcept>
 
-using namespace phlex::detail;
+using phlex::experimental::identifier;
+using phlex::experimental::layer_path;
 
 namespace phlex::detail {
 
@@ -34,23 +35,23 @@ namespace phlex::detail {
     class multilayer_slot {
     public:
       multilayer_slot(tbb::flow::graph& g,
-                      phlex::experimental::identifier layer,
+                      identifier layer,
                       tbb::flow::receiver<index_message>* input_port);
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
 
-      bool matches_exactly(phlex::experimental::layer_path const& layer_path) const;
+      bool matches_exactly(layer_path const& path) const;
       bool is_parent_of(data_cell_index_ptr const& index) const;
 
       identifier const& layer() const { return layer_; }
 
     private:
-      phlex::experimental::identifier layer_;
+      identifier layer_;
       index_set_node broadcaster_;
     };
 
     multilayer_slot::multilayer_slot(tbb::flow::graph& g,
-                                     phlex::experimentla::identifier layer,
+                                     identifier layer,
                                      tbb::flow::receiver<index_message>* input_port) :
       layer_{std::move(layer)}, broadcaster_{g}
     {
@@ -67,7 +68,7 @@ namespace phlex::detail {
       broadcaster_.try_put({.index = index->parent(layer_), .msg_id = message_id});
     }
 
-    bool multilayer_slot::matches_exactly(phlex::experimental::layer_path const& layer_path) const
+    bool multilayer_slot::matches_exactly(layer_path const& layer_path) const
     {
       return layer_path.ends_with(layer_);
     }
@@ -182,7 +183,7 @@ namespace phlex::detail {
     for (auto& [fold_node_name, partition_port] : fold_partition_ports) {
       auto const& [layer, port] = partition_port;
       auto [it, _] = index_set_nodes_.emplace(static_cast<identifier const&>(layer),
-                                              std::make_shared<detail::index_set_node>(g));
+                                              std::make_shared<internal::index_set_node>(g));
       make_edge(*it->second, *port);
     }
   }
@@ -206,26 +207,25 @@ namespace phlex::detail {
       // (the "use my routing layer" default) gets the node's deepest layer instead.  Slots that
       // explicitly chose a different counting layer (e.g. fold_join_node's partition slot, which
       // selects the fold's data input layer) are left untouched.
-      std::vector<phlex::experimental::identifier> slot_layers;
+      std::vector<identifier> slot_layers;
       slot_layers.reserve(join_ports.size());
       for (auto const& port : join_ports) {
         slot_layers.push_back(port.layer);
       }
-      phlex::experimental::identifier const node_deepest_layer = deepest_layer_name(slot_layers);
+      identifier const node_deepest_layer = deepest_layer_name(slot_layers);
 
       internal::join_node_slots node_slots;
       node_slots.slots.reserve(join_ports.size());
       node_slots.flush_specs.reserve(join_ports.size());
       for (auto const& [layer, counting_layer, flush_port, input_port] : join_ports) {
-        phlex::experimental::identifier const effective_counting_layer =
+        identifier const effective_counting_layer =
           (counting_layer == layer) ? node_deepest_layer : counting_layer;
         node_slots.slots.push_back(
           std::make_shared<internal::multilayer_slot>(g, layer, input_port));
         node_slots.flush_specs.push_back(
           {.counting_layer = effective_counting_layer, .flush_port = flush_port});
       }
-      multilayer_join_slots_.emplace(phlex::experimental::identifier{node_name},
-                                     std::move(node_slots));
+      multilayer_join_slots_.emplace(identifier{node_name}, std::move(node_slots));
     }
   }
 
@@ -291,13 +291,13 @@ namespace phlex::detail {
       return it->second;
     }
 
-    phlex::experimental::layer_path const layerish_path{{index->layer_name()}};
+    layer_path const layerish_path{{index->layer_name()}};
     auto broadcaster = index_set_node_for(layerish_path);
     index_set_node_cache_.insert({layer_hash, broadcaster});
     return broadcaster;
   }
 
-  auto index_router::index_set_node_for(phlex::experimental::layer_path const& layer_path)
+  auto index_router::index_set_node_for(layer_path const& layer_path)
     -> internal::index_set_node_ptr
   {
     std::vector<decltype(index_set_nodes_.begin())> candidates;
@@ -413,7 +413,7 @@ namespace phlex::detail {
   }
 
   std::vector<std::size_t> index_router::counting_layer_hashes_under(
-                                                                     phlex::experimental::layer_path const& partition_layer_path, phlex::experimental::identifier const& counting_layer_name) const
+    layer_path const& partition_layer_path, identifier const& counting_layer_name) const
   {
     std::vector<std::size_t> result;
     for (auto const& candidate : sorted_layer_paths_) {
@@ -430,7 +430,7 @@ namespace phlex::detail {
     return result;
   }
 
-  phlex::experimental::identifier index_router::deepest_layer_name(std::vector<phlex::experimental::identifier> const& layer_names) const
+  identifier index_router::deepest_layer_name(std::vector<identifier> const& layer_names) const
   {
     // Compute the maximum depth (= max path length) of any registered path whose trailing segment
     // matches each layer name.  The layer name with the greatest such depth is the most-derived

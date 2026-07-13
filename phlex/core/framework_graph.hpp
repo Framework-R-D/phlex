@@ -76,9 +76,9 @@ namespace phlex::detail {
       return {config, graph_, nodes_, registration_errors_};
     }
 
-    detail::driver_proxy driver_proxy(std::vector<std::string> strings = {})
+    phlex::detail::driver_proxy driver_proxy(std::vector<std::string> strings = {})
     {
-      return detail::driver_proxy{nodes_.sources_for(strings)};
+      return phlex::detail::driver_proxy{nodes_.sources_for(strings)};
     }
 
     // Framework function registrations

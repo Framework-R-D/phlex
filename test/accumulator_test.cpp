@@ -29,7 +29,7 @@ namespace Catch {
 }
 
 using namespace oneapi;
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 namespace {
   auto make_run_index(int run_number)
@@ -68,7 +68,7 @@ namespace {
 
   // Fold function: increments the accumulator by 1 per call. The accumulated value thus equals
   // the number of data cells processed.
-  auto count_fold(detail::accumulator_message<int> const& msg) -> std::size_t
+  auto count_fold(internal::accumulator_message<int> const& msg) -> std::size_t
   {
     msg.partial_result->call([](int& acc) {
       // The count_fold function may be called concurrently for the same accumulator, so we use
@@ -112,8 +112,8 @@ namespace {
 
   private:
     tbb::flow::graph g_;
-    detail::accumulator_node<int> accumulator_;
-    tbb::flow::function_node<detail::accumulator_message<int>, std::size_t> fold_op_;
+    internal::accumulator_node<int> accumulator_;
+    tbb::flow::function_node<internal::accumulator_message<int>, std::size_t> fold_op_;
     message_collector result_consumer_;
   };
 }
@@ -215,7 +215,7 @@ TEST_CASE("Test accumulator warning message if cache is not flushed", "[multithr
   use_ostream_logger(oss);
 
   tbb::flow::graph g;
-  auto accumulator = std::make_unique<detail::accumulator_node<int>>(
+  auto accumulator = std::make_unique<internal::accumulator_node<int>>(
     g,
     "test_accumulator_warning",
     "run"_id,

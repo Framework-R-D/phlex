@@ -47,10 +47,10 @@ namespace phlex::detail {
     virtual product_specifications const& output() const = 0;
     virtual tbb::flow::receiver<index_message>& partition_port() = 0;
     virtual std::size_t product_count() const = 0;
-    identifier const& partition_layer() const { return partition_layer_; }
+    phlex::experimental::identifier const& partition_layer() const { return partition_layer_; }
 
   private:
-    identifier partition_layer_;
+    phlex::experimental::identifier partition_layer_;
   };
 
   using declared_fold_ptr = std::unique_ptr<declared_fold>;

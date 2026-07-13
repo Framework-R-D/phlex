@@ -62,9 +62,10 @@ namespace phlex::detail {
     {
       index_router::unfold_data result;
       for (auto const& n : unfolds | std::views::values) {
-        identifier const child_layer{n->child_layer()};
+        phlex::experimental::identifier const child_layer{n->child_layer()};
         for (auto const& input : n->input()) {
-          auto const& input_layer = static_cast<identifier const&>(input.layer);
+          auto const& input_layer =
+            static_cast<phlex::experimental::identifier const&>(input.layer);
           if (input_layer.empty()) {
             continue;
           }
