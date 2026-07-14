@@ -81,7 +81,7 @@ namespace phlex::detail {
       transform_{
         g,
         concurrency,
-        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto& output) {
+        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages) -> message {
           using namespace phlex::experimental::detail;
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
@@ -95,7 +95,7 @@ namespace phlex::detail {
           auto new_store = std::make_shared<phlex::experimental::product_store>(
             store->index(), name(), std::move(new_products));
 
-          std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
+          return {.store = std::move(new_store), .id = message_id};
         }}
     {
       if constexpr (num_inputs > 1ull) {
@@ -114,10 +114,7 @@ namespace phlex::detail {
       return input_ports<num_inputs>(join_, transform_);
     }
 
-    tbb::flow::sender<message>& output_port() override
-    {
-      return tbb::flow::output_port<0>(transform_);
-    }
+    tbb::flow::sender<message>& output_port() override { return transform_; }
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
@@ -146,7 +143,7 @@ namespace phlex::detail {
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     join_or_none_t<num_inputs> join_;
-    tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1u>> transform_;
+    tbb::flow::function_node<messages_t<num_inputs>, message> transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };
