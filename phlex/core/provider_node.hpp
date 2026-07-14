@@ -3,6 +3,7 @@
 
 #include "phlex/phlex_core_export.hpp"
 
+#include "phlex/concurrency.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
@@ -14,12 +15,27 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace phlex::detail {
 
+  // Function type for type-erased data-product types (used by implicit providers)
+  using provider_function = std::function<product_ptr(data_cell_index const&)>;
+
+  struct PHLEX_CORE_EXPORT provider_bundle {
+    phlex::detail::provider_function provider_function;
+    concurrency max_concurrency;
+    product_specification spec;
+    std::string layer;
+    std::string stage;
+  };
+
+  using provider_bundles = std::vector<provider_bundle>;
+
   class PHLEX_CORE_EXPORT provider_node {
   public:
-    using provider_function = std::function<product_ptr(data_cell_index const&)>;
+    provider_node(tbb::flow::graph& g, provider_bundle bundle);
 
     provider_node(phlex::experimental::algorithm_name algo_name,
                   std::size_t concurrency,

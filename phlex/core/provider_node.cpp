@@ -8,6 +8,17 @@
 #include <utility>
 
 namespace phlex::detail {
+  provider_node::provider_node(tbb::flow::graph& g, provider_bundle bundle) :
+    provider_node{bundle.spec.creator(),
+                  bundle.max_concurrency.value,
+                  g,
+                  std::move(bundle.provider_function),
+                  bundle.spec, // copied to avoid potential error reading from moved-from bundle
+                  phlex::experimental::identifier{bundle.layer},
+                  phlex::experimental::identifier{bundle.stage}}
+  {
+  }
+
   provider_node::provider_node(phlex::experimental::algorithm_name algo_name,
                                std::size_t concurrency,
                                tbb::flow::graph& g,
