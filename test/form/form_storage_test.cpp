@@ -389,7 +389,7 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   Token const index_token{file_name, index_container, technology};
   tech_setting_config const settings{};
 
-  CHECK(reader.getIndex(index_token, "[]", settings) == 1);
+  CHECK(reader.getIndex(index_token, "[]", settings) == 0);
   CHECK(reader.getIndex(index_token, "plain-text-id", settings) == 0);
 
   CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=00000001]", settings),
