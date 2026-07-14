@@ -44,8 +44,9 @@ namespace form::experimental {
         throw std::runtime_error("FORM Error: Failed to retrieve product [" + product_name +
                                  "] for " + index_str);
       }
-      std::unique_ptr<product_type_t const> dataWithType(static_cast<product_type_t const*>(data));
-      return phlex::detail::product_for(std::move(*dataWithType));
+
+      auto ptr = std::unique_ptr<product_type_t const>(static_cast<product_type_t const*>(data));
+      return phlex::detail::product_for(*ptr);
     };
 
     register_form_product_type(std::move(product_type),
