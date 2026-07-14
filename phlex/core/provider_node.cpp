@@ -13,7 +13,7 @@ namespace phlex::detail {
                   bundle.max_concurrency.value,
                   g,
                   std::move(bundle.provider_function),
-                  bundle.spec, // copied to avoid potential error reading from moved-from bundle
+                  std::move(bundle.spec), // safe: brace-init arguments are evaluated left-to-right
                   phlex::experimental::identifier{bundle.layer},
                   phlex::experimental::identifier{bundle.stage}}
   {
