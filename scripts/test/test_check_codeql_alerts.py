@@ -1237,7 +1237,7 @@ class TestBuildMultiSectionComment:
         """
         tester = TestBuildMultiSectionComment()
         alerts = [tester._alert(number=i) for i in range(count)]
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         # Populate the appropriate field based on the section name.
         if section == "new_vs_prev":
             kwargs["new_vs_prev"] = alerts
