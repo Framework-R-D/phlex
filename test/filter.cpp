@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "phlex/core/framework_graph.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
@@ -47,7 +49,7 @@ namespace {
     ~collect_numbers()
     {
       std::vector<unsigned int> sorted_actual(std::begin(actual), std::end(actual));
-      std::sort(begin(sorted_actual), end(sorted_actual));
+      std::ranges::sort(sorted_actual);
       CHECK(expected == sorted_actual);
     }
     collect_numbers(collect_numbers const&) = delete;
