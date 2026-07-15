@@ -724,6 +724,19 @@ class TestBuildComment:
         assert "<details>" in body
         assert "<summary>" in body
 
+    def test_long_fixed_alert_list_is_folded(self) -> None:
+        """A fixed-alerts section above the fold threshold is collapsed."""
+        alerts = [self._alert() for _ in range(M._FOLD_THRESHOLD + 1)]
+        body = M.build_comment(
+            new_alerts=[],
+            fixed_alerts=alerts,
+            repo=None,
+            max_results=100,
+            threshold="warning",
+        )
+        assert "<details>" in body
+        assert "<summary>" in body
+
     def test_short_new_alert_list_is_not_folded(self) -> None:
         """A new-alerts section at or below the fold threshold is not collapsed."""
         alerts = [self._alert() for _ in range(M._FOLD_THRESHOLD)]
