@@ -1199,7 +1199,67 @@ class TestCompareAlertsViaApi:
 # ---------------------------------------------------------------------------
 
 
+"""Tests for check_codeql_alerts.py.
+
+This module contains unit tests for the multi‑section comment building logic.
+"""
+
+
 class TestBuildMultiSectionComment:
+    """Tests for the _build_multi_section_comment function.
+
+    Includes folding behavior checks across all comparison sections.
+    """
+
+    @pytest.mark.parametrize(
+        "section,count,expect_fold",
+        [
+            ("new_vs_prev", M._FOLD_THRESHOLD + 1, True),
+            ("new_vs_prev", M._FOLD_THRESHOLD, False),
+            ("fixed_vs_prev", M._FOLD_THRESHOLD + 1, True),
+            ("fixed_vs_prev", M._FOLD_THRESHOLD, False),
+            ("new_vs_base", M._FOLD_THRESHOLD + 1, True),
+            ("new_vs_base", M._FOLD_THRESHOLD, False),
+            ("fixed_vs_base", M._FOLD_THRESHOLD + 1, True),
+            ("fixed_vs_base", M._FOLD_THRESHOLD, False),
+            ("new_alerts", M._FOLD_THRESHOLD + 1, True),
+            ("new_alerts", M._FOLD_THRESHOLD, False),
+            ("fixed_alerts", M._FOLD_THRESHOLD + 1, True),
+            ("fixed_alerts", M._FOLD_THRESHOLD, False),
+        ],
+    )
+    def test_render_section_folding(self, section: str, count: int, expect_fold: bool) -> None:
+        """Parametrized test for folding behavior across all sections.
+
+        It builds an APIAlertComparison with the specified section populated
+        with *count* alerts and verifies that the generated comment folds the
+        section when *count* exceeds ``M._FOLD_THRESHOLD``.
+        """
+        tester = TestBuildMultiSectionComment()
+        alerts = [tester._alert(number=i) for i in range(count)]
+        kwargs = {}
+        # Populate the appropriate field based on the section name.
+        if section == "new_vs_prev":
+            kwargs["new_vs_prev"] = alerts
+        elif section == "fixed_vs_prev":
+            kwargs["fixed_vs_prev"] = alerts
+        elif section == "new_vs_base":
+            kwargs["new_vs_base"] = alerts
+            kwargs["base_sha"] = "abc1234"
+        elif section == "fixed_vs_base":
+            kwargs["fixed_vs_base"] = alerts
+            kwargs["base_sha"] = "abc1234"
+        elif section == "new_alerts":
+            kwargs["new_alerts"] = alerts
+        elif section == "fixed_alerts":
+            kwargs["fixed_alerts"] = alerts
+        comp = tester._comp(**kwargs)
+        body = M._build_multi_section_comment(comp, max_results=100)
+        if expect_fold:
+            assert "<details>" in body
+        else:
+            assert "<details>" not in body
+
     """Tests for TestBuildMultiSectionComment."""
 
     def _alert(self, level: str = "error", number: int = 1) -> M.Alert:
@@ -1236,21 +1296,6 @@ class TestBuildMultiSectionComment:
         body = M._build_multi_section_comment(comp, max_results=10)
         assert "since the branch point" in body
         assert "abc1234" in body
-
-    def test_long_new_vs_base_list_is_folded(self) -> None:
-        """A new_vs_base section above the fold threshold is collapsed."""
-        alerts = [self._alert(number=i) for i in range(M._FOLD_THRESHOLD + 1)]
-        comp = self._comp(new_vs_base=alerts, base_sha="abc1234")
-        body = M._build_multi_section_comment(comp, max_results=100)
-        assert "<details>" in body
-        assert "<summary>" in body
-
-    def test_short_new_vs_base_list_is_not_folded(self) -> None:
-        """A new_vs_base section at or below the fold threshold is not collapsed."""
-        alerts = [self._alert(number=i) for i in range(M._FOLD_THRESHOLD)]
-        comp = self._comp(new_vs_base=alerts, base_sha="abc1234")
-        body = M._build_multi_section_comment(comp, max_results=100)
-        assert "<details>" not in body
 
     def test_fixed_vs_prev_rendered(self) -> None:
         """Fixed vs prev rendered."""
