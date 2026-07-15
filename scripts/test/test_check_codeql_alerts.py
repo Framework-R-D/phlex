@@ -922,15 +922,21 @@ class TestCompareAlertsViaApi:
 
         return MagicMock(side_effect=_paginate)
 
+    HEAD_SHA = "deadbeef" * 5  # 40-char hex head SHA used by all PR tests
+
     def _pr_info(self, base_ref: str = "main", base_sha: str = "abc1234") -> dict:
-        return {"base": {"ref": base_ref, "sha": base_sha}}
+        return {
+            "base": {"ref": base_ref, "sha": base_sha},
+            "head": {"sha": self.HEAD_SHA},
+        }
 
     @patch("check_codeql_alerts._api_request")
     @patch("check_codeql_alerts._paginate_alerts_api")
     def test_new_alert_detected(self, mock_pag: MagicMock, mock_req: MagicMock) -> None:
         """New alert detected."""
         pr_alert = _make_api_alert(number=1, analysis_key="ak:1")
-        mock_pag.side_effect = self._mock_paginate({"refs/pull/7/merge": [pr_alert], None: []})
+        # PR alerts are fetched by head SHA, not the merge ref
+        mock_pag.side_effect = self._mock_paginate({self.HEAD_SHA: [pr_alert], None: []})
         mock_req.side_effect = [
             self._pr_info(),  # pulls/{n}
             [{"sha": "prev000"}],  # pulls/{n}/commits (only 1 commit → no prev)
@@ -944,7 +950,7 @@ class TestCompareAlertsViaApi:
     def test_fixed_alert_detected(self, mock_pag: MagicMock, mock_req: MagicMock) -> None:
         """Fixed alert detected."""
         main_alert = _make_api_alert(number=2, analysis_key="ak:2")
-        mock_pag.side_effect = self._mock_paginate({"refs/pull/7/merge": [], None: [main_alert]})
+        mock_pag.side_effect = self._mock_paginate({self.HEAD_SHA: [], None: [main_alert]})
         mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
         result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge")
         assert len(result.fixed_alerts) == 1
@@ -955,7 +961,7 @@ class TestCompareAlertsViaApi:
     def test_matched_alert(self, mock_pag: MagicMock, mock_req: MagicMock) -> None:
         """Matched alert."""
         alert = _make_api_alert(number=3, analysis_key="ak:3")
-        mock_pag.side_effect = self._mock_paginate({"refs/pull/7/merge": [alert], None: [alert]})
+        mock_pag.side_effect = self._mock_paginate({self.HEAD_SHA: [alert], None: [alert]})
         mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
         result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge")
         assert len(result.new_alerts) == 0
@@ -967,7 +973,7 @@ class TestCompareAlertsViaApi:
     def test_min_level_filters_new_alerts(self, mock_pag: MagicMock, mock_req: MagicMock) -> None:
         """Min level filters new alerts."""
         note_alert = _make_api_alert(number=5, severity="note", analysis_key="ak:5")
-        mock_pag.side_effect = self._mock_paginate({"refs/pull/7/merge": [note_alert], None: []})
+        mock_pag.side_effect = self._mock_paginate({self.HEAD_SHA: [note_alert], None: []})
         mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
         result = M._compare_alerts_via_api(
             "owner", "repo", "refs/pull/7/merge", min_level="warning"
@@ -979,7 +985,7 @@ class TestCompareAlertsViaApi:
     def test_min_level_none_includes_notes(self, mock_pag: MagicMock, mock_req: MagicMock) -> None:
         """Min level none includes notes."""
         note_alert = _make_api_alert(number=5, severity="note", analysis_key="ak:5")
-        mock_pag.side_effect = self._mock_paginate({"refs/pull/7/merge": [note_alert], None: []})
+        mock_pag.side_effect = self._mock_paginate({self.HEAD_SHA: [note_alert], None: []})
         mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
         result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge", min_level="none")
         assert len(result.new_alerts) == 1
@@ -993,14 +999,14 @@ class TestCompareAlertsViaApi:
         # The script uses commits[-2]["sha"], so with [older, prev] that is "older_sha".
         mock_pag.side_effect = self._mock_paginate(
             {
-                "refs/pull/7/merge": [pr_only],
+                self.HEAD_SHA: [pr_only],  # PR alerts fetched by head SHA
                 None: [],
                 "older_sha": [prev_only],  # key must match commits[-2]["sha"]
             }
         )
         mock_req.side_effect = [
             self._pr_info(),
-            [{"sha": "older_sha"}, {"sha": "head_sha"}],  # 2 commits; [-2] = "older_sha"
+            [{"sha": "older_sha"}, {"sha": self.HEAD_SHA}],  # 2 commits; [-2] = "older_sha"
         ]
         result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge")
         assert len(result.new_vs_prev) == 1
@@ -1016,7 +1022,7 @@ class TestCompareAlertsViaApi:
         pr_only = _make_api_alert(number=21, analysis_key="ak:21")
         mock_pag.side_effect = self._mock_paginate(
             {
-                "refs/pull/7/merge": [pr_only],
+                self.HEAD_SHA: [pr_only],  # PR alerts fetched by head SHA
                 None: [],
                 "abc1234": [base_only],  # base_sha from _pr_info
             }
@@ -1038,6 +1044,7 @@ class TestCompareAlertsViaApi:
         self, mock_pag: MagicMock, mock_req: MagicMock
     ) -> None:
         """Api error on pr info is handled."""
+        # When PR info fetch fails, head_sha is None so the merge ref is used as fallback
         mock_pag.side_effect = self._mock_paginate({"refs/pull/7/merge": [], None: []})
         mock_req.side_effect = M.GitHubAPIError("404 not found")
         result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge")
@@ -1069,7 +1076,7 @@ class TestCompareAlertsViaApi:
         """
         note_alert = _make_api_alert(number=6, severity="note", analysis_key="ak:6")
         # note_alert exists on main but not on the PR → it is "fixed"
-        mock_pag.side_effect = self._mock_paginate({"refs/pull/7/merge": [], None: [note_alert]})
+        mock_pag.side_effect = self._mock_paginate({self.HEAD_SHA: [], None: [note_alert]})
         mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
         result = M._compare_alerts_via_api(
             "owner", "repo", "refs/pull/7/merge", min_level="warning"
@@ -1096,7 +1103,7 @@ class TestCompareAlertsViaApi:
         main_alert_c = _make_api_alert(number=12, analysis_key=shared_ak)
         # PR fixes all three
         mock_pag.side_effect = self._mock_paginate(
-            {"refs/pull/7/merge": [], None: [main_alert_a, main_alert_b, main_alert_c]}
+            {self.HEAD_SHA: [], None: [main_alert_a, main_alert_b, main_alert_c]}
         )
         mock_req.side_effect = [self._pr_info(), [{"sha": "prev000"}]]
         result = M._compare_alerts_via_api("owner", "repo", "refs/pull/7/merge")

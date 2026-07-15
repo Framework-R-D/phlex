@@ -869,6 +869,8 @@ def set_outputs(
     new_alerts: collections.abc.Sequence[Alert],
     fixed_alerts: collections.abc.Sequence[Alert],
     comment_path: Path | None,
+    new_vs_base: collections.abc.Sequence[Alert] | None = None,
+    fixed_vs_base: collections.abc.Sequence[Alert] | None = None,
 ) -> None:
     """Sets the GitHub action outputs.
 
@@ -876,6 +878,8 @@ def set_outputs(
         new_alerts: A list of new alerts.
         fixed_alerts: A list of fixed alerts.
         comment_path: The path to the comment file.
+        new_vs_base: Alerts newly introduced since PR base, if available.
+        fixed_vs_base: Alerts fixed since PR base, if available.
     """
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
@@ -885,6 +889,10 @@ def set_outputs(
         handle.write(f"alert_count={len(new_alerts)}\n")
         handle.write(f"fixed_alerts={'true' if fixed_alerts else 'false'}\n")
         handle.write(f"fixed_count={len(fixed_alerts)}\n")
+        handle.write(f"new_vs_base={'true' if new_vs_base else 'false'}\n")
+        handle.write(f"new_vs_base_count={len(new_vs_base or [])}\n")
+        handle.write(f"fixed_vs_base={'true' if fixed_vs_base else 'false'}\n")
+        handle.write(f"fixed_vs_base_count={len(fixed_vs_base or [])}\n")
         if comment_path:
             handle.write(f"comment_path={comment_path}\n")
         else:
@@ -901,16 +909,14 @@ def _compare_alerts_via_api(
     owner: str, repo: str, ref: str, *, min_level: str = "warning"
 ) -> APIAlertComparison:
     """Compare alerts between a ref and the main branch using the GitHub API."""
-    # Fetch alerts for the PR merge ref (fixed) and for the repo default state (open)
-    pr_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=ref))
-    _debug(f"Fetched {len(pr_alerts_raw)} alerts for ref={ref}")
-    main_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=None))
-    _debug(f"Fetched {len(main_alerts_raw)} alerts for repo (main)")
-
-    # Also fetch alerts at the PR base (branch point) when possible
+    # Fetch PR metadata first so we can use the head SHA when querying PR alerts.
+    # The Code Scanning API does not support synthetic merge refs such as
+    # refs/pull/N/merge; using that ref returns zero results.  The head SHA is
+    # the correct stable identifier for the alerts recorded against the PR.
     base_ref: str | None = None
     prev_commit_ref: str | None = None
     base_sha: str | None = None
+    head_sha: str | None = None
     base_alerts_raw: list[dict] = []
     prev_alerts_raw: list[dict] = []
     if ref.startswith("refs/pull/"):
@@ -919,6 +925,7 @@ def _compare_alerts_via_api(
             pr_info = _api_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_num}")
             base_ref = pr_info.get("base", {}).get("ref")
             base_sha = pr_info.get("base", {}).get("sha")
+            head_sha = pr_info.get("head", {}).get("sha")
             # Determine previous commit on PR if available
             commits = _api_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_num}/commits") or []
             if isinstance(commits, list) and len(commits) >= 2:
@@ -929,25 +936,33 @@ def _compare_alerts_via_api(
             base_ref = None
             prev_commit_ref = None
 
-        if base_ref or base_sha:
-            try:
-                # prefer base SHA if available
-                base_target = base_sha or base_ref
-                base_alerts_raw = list(
-                    _paginate_alerts_api(owner, repo, state="open", ref=base_target)
-                )
-                _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
-            except GitHubAPIError as exc:
-                _debug(f"Failed to fetch base alerts ({base_target}): {exc}")
+    # Use the head SHA to query open alerts for the PR; fall back to the
+    # original ref only when head_sha could not be determined.
+    pr_ref = head_sha or ref
+    pr_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=pr_ref))
+    _debug(f"Fetched {len(pr_alerts_raw)} alerts for ref={pr_ref}")
+    main_alerts_raw = list(_paginate_alerts_api(owner, repo, state="open", ref=None))
+    _debug(f"Fetched {len(main_alerts_raw)} alerts for repo (main)")
 
-        if prev_commit_ref:
-            try:
-                prev_alerts_raw = list(
-                    _paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref)
-                )
-                _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
-            except GitHubAPIError as exc:
-                _debug(f"Failed to fetch previous-commit alerts ({prev_commit_ref}): {exc}")
+    if base_ref or base_sha:
+        try:
+            # prefer base SHA if available
+            base_target = base_sha or base_ref
+            base_alerts_raw = list(
+                _paginate_alerts_api(owner, repo, state="open", ref=base_target)
+            )
+            _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
+        except GitHubAPIError as exc:
+            _debug(f"Failed to fetch base alerts ({base_target}): {exc}")
+
+    if prev_commit_ref:
+        try:
+            prev_alerts_raw = list(
+                _paginate_alerts_api(owner, repo, state="open", ref=prev_commit_ref)
+            )
+            _debug(f"Fetched {len(prev_alerts_raw)} alerts for prev commit {prev_commit_ref}")
+        except GitHubAPIError as exc:
+            _debug(f"Failed to fetch previous-commit alerts ({prev_commit_ref}): {exc}")
 
     def alert_key(a: Alert) -> tuple[str, str]:
         # Prefer alert number as it is the stable, per-alert unique identifier in
@@ -1290,12 +1305,20 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
             max_results=args.max_results,
             threshold=min_level,
         )
-        set_outputs(new_alerts=new_alerts, fixed_alerts=fixed_alerts, comment_path=comment_path)
+        set_outputs(
+            new_alerts=new_alerts,
+            fixed_alerts=fixed_alerts,
+            comment_path=comment_path,
+            new_vs_base=(api_comp.new_vs_base if api_comp else []),
+            fixed_vs_base=(api_comp.fixed_vs_base if api_comp else []),
+        )
         print(comment_body)
         return 0
 
     print("No new or resolved CodeQL alerts past the configured threshold.")
-    set_outputs(new_alerts=[], fixed_alerts=[], comment_path=None)
+    set_outputs(
+        new_alerts=[], fixed_alerts=[], comment_path=None, new_vs_base=[], fixed_vs_base=[]
+    )
     return 0
 
 
