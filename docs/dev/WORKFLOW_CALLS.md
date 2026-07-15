@@ -1,606 +1,460 @@
 # Reusable GitHub Actions Workflows
 
-This document describes all reusable GitHub Actions workflows in the phlex repository. These workflows have `workflow_call` triggers and can be invoked by other workflows.
+This document consolidates all information about reusable GitHub Actions workflows in the **phlex** repository. The workflows are defined under `.github/workflows/` and can be invoked via:
 
-## Trigger Model for Fix Workflows
+* `workflow_call` from another workflow (the primary reuse model)
+* `workflow_dispatch` for manual runs via the **Actions** tab
+* Bot commands in PR comments (e.g. `@phlexbot clang-fix`)
 
-The `*-fix` workflows (`clang-format-fix`, `clang-tidy-fix`, `cmake-format-fix`, `header-guards-fix`, `jsonnet-format-fix`, `markdown-fix`, `python-fix`, `yaml-fix`) follow a specific trigger model:
+The same workflows are also automatically triggered by CI events such as `pull_request` and `push` where appropriate.
 
-- **Triggers**: `issue_comment` (gated to OWNER/COLLABORATOR/MEMBER), `workflow_dispatch`, and `workflow_call`
-- **NOT triggered by**: `pull_request` events
+## Table of Contents
 
-These workflows always run in the base-repo context to ensure they have write access to push fixes back to branches.
+* [General Usage Model](#general-usage-model)
+* [Manual Runs (`workflow_dispatch`)](#manual-runs-workflow_dispatch)
+* [Working on a Fork](#working-on-a-fork)
+* [Relevance-Check Bypass (`skip-relevance-check`)](#relevance-check-bypass-skip-relevance-check)
+* [Canonical Base-Input Contract](#canonical-base-input-contract)
+* [Common Invocation Template](#common-invocation-template)
+* [Check Workflows](#check-workflows)
+* [Fix Workflows](#fix-workflows)
+* [Fix Workflow Outputs](#fix-workflow-outputs)
+* [Composite Workflow](#composite-workflow)
+* [Non-Reusable Internal Workflows](#non-reusable-internal-workflows)
+* [Bot Command Summary](#bot-command-summary)
+* [Usage Guidelines](#usage-guidelines)
 
-### Why WORKFLOW_PAT is Required
+---
 
-Commits pushed to re-trigger CI cannot use `GITHUB_TOKEN` because GitHub suppresses workflow runs triggered by `GITHUB_TOKEN` pushes to prevent infinite recursion loops. The `WORKFLOW_PAT` (a personal access token with repository scope) is required to push commits and trigger subsequent CI runs.
+## General Usage Model
+
+1. **Calling a reusable workflow** – In a consumer workflow file you reference a workflow on the phlex repo:
+
+```yaml
+jobs:
+  my_job:
+    uses: Framework-R-D/phlex/.github/workflows/<workflow_file>.yaml@<commit_sha>
+    with:
+      # workflow-specific inputs
+    secrets:
+      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+```
+
+   *Prefer pinning to a specific commit SHA* rather than `@main` to avoid unintentionally pulling breaking changes.
+
+1. **Trigger types**
+   * **Check workflows** – `pull_request`, `push`, `workflow_dispatch`, `workflow_call`. They only analyze code.
+   * **Fix workflows** – `issue_comment` (gated to OWNER/COLLABORATOR/MEMBER), `workflow_dispatch`, `workflow_call`. They modify code and push commits.
+
+2. **Why `WORKFLOW_PAT` is required**
+   Commits pushed using the default `GITHUB_TOKEN` do not trigger further workflows (GitHub suppresses them to prevent recursion). A personal access token with write permissions (`WORKFLOW_PAT`) is required for fix workflows to push changes and re-trigger CI.
+
+---
+
+## Manual Runs (`workflow_dispatch`)
+
+Most workflows expose a `workflow_dispatch` trigger. To run one manually:
+
+1. Open the **Actions** tab of the repository (or your fork).
+2. Select the desired workflow on the left.
+3. Click **Run workflow** and choose a branch/tag/commit.
+4. Fill any additional inputs (e.g. `build-combinations` for `cmake-build`).
+5. Click **Run workflow**.
+
+### Example (cmake-build)
+
+```yaml
+uses: ./.github/workflows/cmake-build.yaml
+with:
+  build-combinations: "gcc/asan clang/tsan"
+  ref: refs/heads/main
+```
+
+---
+
+## Working on a Fork
+
+If you develop on a fork of `Framework-R-D/phlex`:
+
+* **Enable Actions** on the fork (click the *I understand my workflows…* button on the **Actions** tab).
+* **Create a Personal Access Token** with `repo` scope (both `Contents` and `Pull requests` write permissions) and add it as a secret named `WORKFLOW_PAT` in the fork’s repository settings.
+* Bot commands use the fork-derived bot name (e.g. `@my-phlexbot clang-fix`).
+
+### Creating a PAT
+
+1. Follow GitHub’s guide to create a fine-grained PAT.
+2. Grant **Contents: Read & write** and **Pull requests: Read & write**.
+3. Add the token as a repository secret `WORKFLOW_PAT` (`Settings → Secrets and variables → Actions`).
+
+### Authorization Model
+
+Comment-triggered workflows (e.g. `@phlexbot clang-fix`) perform an explicit authorization check. Only comment authors with one of the following association types are allowed to trigger the workflow:
+
+* `OWNER`
+* `COLLABORATOR`
+* `MEMBER`
+
+This protects against malicious users posting bot commands. See the detailed analysis in `AUTHORIZATION_ANALYSIS.md` for the exact security model.
+
+---
+
+## Relevance-Check Bypass (`skip-relevance-check`)
+
+When a reusable workflow is invoked from another workflow you may want it to run unconditionally (e.g. for a manual `workflow_dispatch`). Pass the following input:
+
+```yaml
+with:
+  skip-relevance-check: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment' }}
+```
+
+---
 
 ## Canonical Base-Input Contract
 
-All check and fix workflows share a common base-input contract passed through the `Framework-R-D/action-workflow-setup` action:
+All check and fix workflows share these common inputs, provided by the `Framework-R-D/action-workflow-setup` action:
 
 | Input | Type | Required | Description |
 | ------- | ------ | ---------- | ------------- |
 | `checkout-path` | string | No | Path to check out code to |
-| `skip-relevance-check` | boolean | No | Bypass relevance check (default: `false`) |
-| `ref` | string | No | The branch, ref, or SHA to checkout |
-| `repo` | string | No | The repository to checkout from |
+| `skip-relevance-check` | boolean | No | Bypass relevance detection (default `false`) |
+| `ref` | string | No | Branch, ref, or SHA to checkout |
+| `repo` | string | No | Repository to check out from |
 | `pr-base-sha` | string | No | Base SHA of the PR for relevance check |
 | `pr-head-sha` | string | No | Head SHA of the PR for relevance check |
 
+---
+
+## Common Invocation Template
+
+Below is a minimal reusable-workflow job snippet that can be copied into any consumer workflow. It supplies the shared inputs and the required `WORKFLOW_PAT` secret for fix workflows. Adjust the `uses:` line and any workflow-specific inputs as needed.
+
+```yaml
+jobs:
+  <job_name>:
+    uses: Framework-R-D/phlex/.github/workflows/<workflow_file>.yaml@<commit_sha>
+    with:
+      checkout-path: .
+      # Optional: set skip-relevance-check to true for unconditional runs
+      # skip-relevance-check: true
+      # Add workflow-specific inputs here (e.g. build-combinations, language-matrix)
+    secrets:
+      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+```
+
+*Replace `<job_name>`, `<workflow_file>`, and `<commit_sha>` with the appropriate values for the workflow you are invoking.*
+
+All check and fix workflows share these common inputs, provided by the `Framework-R-D/action-workflow-setup` action:
+
+| Input | Type | Required | Description |
+| ------- | ------ | ---------- | ------------- |
+| `checkout-path` | string | No | Path to check out code to |
+| `skip-relevance-check` | boolean | No | Bypass relevance detection (default `false`) |
+| `ref` | string | No | Branch, ref, or SHA to checkout |
+| `repo` | string | No | Repository to check out from |
+| `pr-base-sha` | string | No | Base SHA of the PR for relevance check |
+| `pr-head-sha` | string | No | Head SHA of the PR for relevance check |
+
+---
+
 ## Check Workflows
 
-Check workflows are triggered by `pull_request`, `push`, `workflow_dispatch`, and `workflow_call`. They analyze code without making changes.
+Check workflows analyze code without making changes. They are triggered by `pull_request`, `push`, `workflow_dispatch`, and `workflow_call`.
 
 ### Actionlint Check
 
-**File**: `.github/workflows/actionlint-check.yaml`
-
-Validates GitHub Actions workflow files using actionlint.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/actionlint-check.yaml
-with:
-  checkout-path: .
-  skip-relevance-check: false
-  ref: refs/heads/main
-```
+*File:* `.github/workflows/actionlint-check.yaml`
+*Inputs:* `checkout-path`, `skip-relevance-check`, `ref`, `repo`, `pr-base-sha`, `pr-head-sha`
 
 ### Clang-Format Check
 
-**File**: `.github/workflows/clang-format-check.yaml`
-
-Checks C++ source files for formatting compliance using clang-format 20.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/clang-format-check.yaml
-with:
-  checkout-path: .
-  skip-relevance-check: false
-```
+*File:* `.github/workflows/clang-format-check.yaml`
+*Inputs:* same as above.
 
 ### CMake Format Check
 
-**File**: `.github/workflows/cmake-format-check.yaml`
+*File:* `.github/workflows/cmake-format-check.yaml`
+*Inputs:* same as above.
 
-Checks CMake files for formatting compliance using gersemi.
+### Header-Guards Check
 
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/cmake-format-check.yaml
-with:
-  checkout-path: .
-```
-
-### Header Guards Check
-
-**File**: `.github/workflows/header-guards-check.yaml`
-
-Checks C++ header files for proper include guard patterns.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/header-guards-check.yaml
-with:
-  checkout-path: .
-```
+*File:* `.github/workflows/header-guards-check.yaml`
+*Inputs:* same as above.
 
 ### Jsonnet Format Check
 
-**File**: `.github/workflows/jsonnet-format-check.yaml`
-
-Checks Jsonnet files for formatting compliance using jsonnetfmt v0.22.0.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/jsonnet-format-check.yaml
-with:
-  checkout-path: .
-```
+*File:* `.github/workflows/jsonnet-format-check.yaml`
+*Inputs:* same as above.
 
 ### Markdown Check
 
-**File**: `.github/workflows/markdown-check.yaml`
-
-Validates Markdown files using markdownlint-cli2, excluding CHANGELOG.md.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/markdown-check.yaml
-with:
-  checkout-path: .
-```
+*File:* `.github/workflows/markdown-check.yaml`
+*Inputs:* same as above.
 
 ### Python Check
 
-**File**: `.github/workflows/python-check.yaml`
-
-Runs ruff for linting and formatting checks, and MyPy for type checking.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/python-check.yaml
-with:
-  checkout-path: .
-```
+*File:* `.github/workflows/python-check.yaml`
+*Inputs:* same as above.
 
 ### YAML Check
 
-**File**: `.github/workflows/yaml-check.yaml`
-
-Validates YAML files using yamllint.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/yaml-check.yaml
-with:
-  checkout-path: .
-```
+*File:* `.github/workflows/yaml-check.yaml`
+*Inputs:* same as above.
 
 ### Clang-Tidy Check
 
-**File**: `.github/workflows/clang-tidy-check.yaml`
+*File:* `.github/workflows/clang-tidy-check.yaml`
+*Trigger:* `issue_comment`, `pull_request`, `push`, `workflow_dispatch` (no `workflow_call` inputs).
 
-Runs clang-tidy on C++ source files. Also accepts `issue_comment` triggers.
+### CodeQL Analysis
 
-#### Inputs
+*File:* `.github/workflows/codeql-analysis.yaml`
+*Inputs:* includes `language-matrix`, `pr-number`, repository-related inputs, and relevance-check fields.
 
-This workflow does not expose inputs via `workflow_call`. It is triggered by `issue_comment`, `pull_request`, `push`, or `workflow_dispatch`.
+---
 
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/clang-tidy-check.yaml
-with:
-  # Uses issue_comment to trigger via: @reponamebot tidy-check
-```
+## Build Workflows
 
 ### CMake Build
 
-**File**: `.github/workflows/cmake-build.yaml`
-
-Configures and builds the project with CMake, then runs tests.
-
-#### Inputs
+*File:* `.github/workflows/cmake-build.yaml`
+*Purpose:* Configures the project with CMake, builds it, and runs the test suite.
+*Typical triggers:* `pull_request`, `push`, `workflow_dispatch`, `workflow_call`.
+*Inputs:*
 
 | Input | Type | Required | Default | Description |
 | ------- | ------ | ---------- | --------- | ------------- |
 | `checkout-path` | string | No | N/A | Path to check out code to |
 | `build-path` | string | No | N/A | Path for build artifacts |
-| `skip-relevance-check` | boolean | No | `false` | Bypass relevance check |
-| `build-combinations` | string | No | N/A | Space- or comma-separated list of build combinations to run |
-| `ref` | string | No | N/A | The branch, ref, or SHA to checkout |
-| `repo` | string | No | N/A | The repository to checkout from |
-| `pr-base-sha` | string | No | N/A | Base SHA of the PR for relevance check |
-| `pr-head-sha` | string | No | N/A | Head SHA of the PR for relevance check |
+| `skip-relevance-check` | boolean | No | `false` | Bypass relevance detection |
+| `build-combinations` | string | No | N/A | Space- or comma-separated list of `<compiler>/<sanitizer>` combos (e.g. `gcc/asan clang/tsan`). `all` runs every matrix entry; `+<combo>` adds extra combos. |
+| `ref` | string | No | N/A | Branch, ref, or SHA to checkout |
+| `repo` | string | No | N/A | Repository to checkout from |
+| `pr-base-sha` | string | No | N/A | Base SHA for relevance check |
+| `pr-head-sha` | string | No | N/A | Head SHA for relevance check |
 
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/cmake-build.yaml
-with:
-  checkout-path: .
-  build-path: build
-  build-combinations: "gcc/none clang/asan"
-```
-
-### Coverage
-
-**File**: `.github/workflows/coverage.yaml`
-
-Generates code coverage reports using GCC or Clang.
-
-#### Inputs
-
-This workflow does not expose inputs via `workflow_call`. It is triggered by `issue_comment`, `pull_request`, `push`, `schedule`, or `workflow_dispatch`.
-
-#### Example Invocation
+### Example Invocation (cmake-build)
 
 ```yaml
-uses: ./.github/workflows/coverage.yaml
-with:
-  # Uses issue_comment to trigger via: @reponamebot coverage
+jobs:
+  build_and_test:
+    uses: Framework-R-D/phlex/.github/workflows/cmake-build.yaml@<commit_sha>
+    with:
+      build-combinations: "gcc/asan clang/tsan"
+      ref: ${{ github.sha }}
 ```
+
+---
+
+Check workflows analyze code without making changes.
+
+### Actionlint Check
+
+*File:* `.github/workflows/actionlint-check.yaml`
+*Inputs:* `checkout-path`, `skip-relevance-check`, `ref`, `repo`, `pr-base-sha`, `pr-head-sha`
+
+### Clang-Format Check
+
+*File:* `.github/workflows/clang-format-check.yaml`
+*Inputs:* same as above.
+
+### CMake Format Check
+
+*File:* `.github/workflows/cmake-format-check.yaml`
+*Inputs:* same as above.
+
+### Header-Guards Check
+
+*File:* `.github/workflows/header-guards-check.yaml`
+*Inputs:* same as above.
+
+### Jsonnet Format Check
+
+*File:* `.github/workflows/jsonnet-format-check.yaml`
+*Inputs:* same as above.
+
+### Markdown Check
+
+*File:* `.github/workflows/markdown-check.yaml`
+*Inputs:* same as above.
+
+### Python Check
+
+*File:* `.github/workflows/python-check.yaml`
+*Inputs:* same as above.
+
+### YAML Check
+
+*File:* `.github/workflows/yaml-check.yaml`
+*Inputs:* same as above.
+
+### Clang-Tidy Check
+
+*File:* `.github/workflows/clang-tidy-check.yaml`
+*Trigger:* `issue_comment`, `pull_request`, `push`, `workflow_dispatch` (no `workflow_call` inputs).
+
+### CodeQL Analysis
+
+*File:* `.github/workflows/codeql-analysis.yaml`
+*Inputs:* includes `language-matrix`, `pr-number`, repository-related inputs, and relevance-check fields.
+
+**Description:** Performs static analysis using GitHub CodeQL. It automatically detects which languages have changed in a PR and runs analysis only for those languages, reducing CI time. Manual runs (`workflow_dispatch`) and scheduled runs always analyze all configured languages.
+
+### Key Inputs
+
+| Input | Type | Required | Default | Description |
+| ------- | ------ | ---------- | --------- | ------------- |
+| `checkout-path` | string | No | N/A | Path to check out code to |
+| `build-path` | string | No | N/A | Path for build artifacts |
+| `language-matrix` | string | No | `['cpp','python','actions']` | JSON array of languages to analyze; overrides automatic detection |
+| `pr-number` | string | No | N/A | PR number if run in PR context |
+| `pr-base-repo` | string | No | N/A | Full name of PR base repo |
+| `pr-head-repo` | string | No | N/A | Full name of PR head repo |
+| `pr-base-sha` | string | No | N/A | Base SHA for relevance check |
+| `pr-head-sha` | string | No | N/A | Head SHA for relevance check |
+| `ref` | string | No | N/A | Branch, ref, or SHA to checkout |
+| `repo` | string | No | N/A | Repository to checkout from |
+
+### Example Invocation (codeql-analysis)
+
+```yaml
+jobs:
+  codeql:
+    uses: Framework-R-D/phlex/.github/workflows/codeql-analysis.yaml@<commit_sha>
+    with:
+      language-matrix: "['cpp','python']"
+      ref: ${{ github.sha }}
+    secrets:
+      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+```
+
+---
 
 ## Fix Workflows
 
-Fix workflows are triggered by `issue_comment`, `workflow_dispatch`, or `workflow_call`. They modify code and push changes back to branches.
+Fix workflows modify code and push commits. They require `WORKFLOW_PAT`.
 
 ### Clang-Format Fix
 
-**File**: `.github/workflows/clang-format-fix.yaml`
-
-Applies clang-format 20 to C++ source files.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `ref` | string | Yes | N/A | The branch name to checkout and push fixes to |
-| `repo` | string | Yes | N/A | The repository to checkout from |
-| `skip-comment` | boolean | No | `false` | Skip posting PR comments |
-
-#### Outputs
-
-| Output | Description |
-| -------- | ------------- |
-| `changes` | Whether any fixes were applied |
-| `pushed` | Whether the fixes were pushed to the remote branch |
-| `commit_sha` | The full commit SHA of the applied fixes |
-| `commit_sha_short` | The short commit SHA of the applied fixes |
-| `patch_name` | Name of the patch file if fixes could not be pushed |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/clang-format-fix.yaml
-with:
-  checkout-path: .
-  ref: refs/heads/my-feature
-  repo: ${{ github.repository }}
-  skip-comment: false
-```
+*File:* `.github/workflows/clang-format-fix.yaml`
+*Required inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`
 
 ### CMake Format Fix
 
-**File**: `.github/workflows/cmake-format-fix.yaml`
+*File:* `.github/workflows/cmake-format-fix.yaml`
+*Required inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`
 
-Applies gersemi formatting to CMake files.
+### Header-Guards Fix
 
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `ref` | string | Yes | N/A | The branch name to checkout and push fixes to |
-| `repo` | string | Yes | N/A | The repository to checkout from |
-| `skip-comment` | boolean | No | `false` | Skip posting PR comments |
-
-#### Outputs
-
-| Output | Description |
-| -------- | ------------- |
-| `changes` | Whether any fixes were applied |
-| `pushed` | Whether the fixes were pushed to the remote branch |
-| `commit_sha` | The full commit SHA of the applied fixes |
-| `commit_sha_short` | The short commit SHA of the applied fixes |
-| `patch_name` | Name of the patch file if fixes could not be pushed |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/cmake-format-fix.yaml
-with:
-  checkout-path: .
-  ref: refs/heads/my-feature
-  repo: ${{ github.repository }}
-```
-
-### Header Guards Fix
-
-**File**: `.github/workflows/header-guards-fix.yaml`
-
-Applies header guard fixes to C++ header files.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `ref` | string | Yes | N/A | The branch name to checkout and push fixes to |
-| `repo` | string | Yes | N/A | The repository to checkout from |
-| `skip-comment` | boolean | No | `false` | Skip posting PR comments |
-
-#### Outputs
-
-| Output | Description |
-| -------- | ------------- |
-| `changes` | Whether any fixes were applied |
-| `pushed` | Whether the fixes were pushed to the remote branch |
-| `commit_sha` | The full commit SHA of the applied fixes |
-| `commit_sha_short` | The short commit SHA of the applied fixes |
-| `patch_name` | Name of the patch file if fixes could not be pushed |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/header-guards-fix.yaml
-with:
-  checkout-path: .
-  ref: refs/heads/my-feature
-  repo: ${{ github.repository }}
-```
+*File:* `.github/workflows/header-guards-fix.yaml`
+*Required inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`
 
 ### Jsonnet Format Fix
 
-**File**: `.github/workflows/jsonnet-format-fix.yaml`
-
-Applies jsonnetfmt formatting to Jsonnet files.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `ref` | string | Yes | N/A | The branch name to checkout and push fixes to |
-| `repo` | string | Yes | N/A | The repository to checkout from |
-| `skip-comment` | boolean | No | `false` | Skip posting PR comments |
-
-#### Outputs
-
-| Output | Description |
-| -------- | ------------- |
-| `changes` | Whether any fixes were applied |
-| `pushed` | Whether the fixes were pushed to the remote branch |
-| `commit_sha` | The full commit SHA of the applied fixes |
-| `commit_sha_short` | The short commit SHA of the applied fixes |
-| `patch_name` | Name of the patch file if fixes could not be pushed |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/jsonnet-format-fix.yaml
-with:
-  checkout-path: .
-  ref: refs/heads/my-feature
-  repo: ${{ github.repository }}
-```
+*File:* `.github/workflows/jsonnet-format-fix.yaml`
+*Required inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`
 
 ### Markdown Fix
 
-**File**: `.github/workflows/markdown-fix.yaml`
-
-Applies markdownlint-cli2 formatting fixes to Markdown files.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `ref` | string | Yes | N/A | The branch name to checkout and push fixes to |
-| `repo` | string | Yes | N/A | The repository to checkout from |
-| `skip-comment` | boolean | No | `false` | Skip posting PR comments |
-
-#### Outputs
-
-| Output | Description |
-| -------- | ------------- |
-| `changes` | Whether any fixes were applied |
-| `pushed` | Whether the fixes were pushed to the remote branch |
-| `commit_sha` | The full commit SHA of the applied fixes |
-| `commit_sha_short` | The short commit SHA of the applied fixes |
-| `patch_name` | Name of the patch file if fixes could not be pushed |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/markdown-fix.yaml
-with:
-  checkout-path: .
-  ref: refs/heads/my-feature
-  repo: ${{ github.repository }}
-```
+*File:* `.github/workflows/markdown-fix.yaml`
+*Required inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`
 
 ### Python Fix
 
-**File**: `.github/workflows/python-fix.yaml`
-
-Applies ruff formatting and lint fixes to Python files.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `ref` | string | Yes | N/A | The branch name to checkout and push fixes to |
-| `repo` | string | Yes | N/A | The repository to checkout from |
-| `skip-comment` | boolean | No | `false` | Skip posting PR comments |
-
-#### Outputs
-
-| Output | Description |
-| -------- | ------------- |
-| `changes` | Whether any fixes were applied |
-| `pushed` | Whether the fixes were pushed to the remote branch |
-| `commit_sha` | The full commit SHA of the applied fixes |
-| `commit_sha_short` | The short commit SHA of the applied fixes |
-| `patch_name` | Name of the patch file if fixes could not be pushed |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/python-fix.yaml
-with:
-  checkout-path: .
-  ref: refs/heads/my-feature
-  repo: ${{ github.repository }}
-```
+*File:* `.github/workflows/python-fix.yaml`
+*Required inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`
 
 ### YAML Fix
 
-**File**: `.github/workflows/yaml-fix.yaml`
-
-Applies prettier formatting to YAML files.
-
-#### Inputs
-
-| Input | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `checkout-path` | string | No | N/A | Path to check out code to |
-| `ref` | string | Yes | N/A | The branch name to checkout and push fixes to |
-| `repo` | string | Yes | N/A | The repository to checkout from |
-| `skip-comment` | boolean | No | `false` | Skip posting PR comments |
-
-#### Outputs
-
-| Output | Description |
-| -------- | ------------- |
-| `changes` | Whether any fixes were applied |
-| `pushed` | Whether the fixes were pushed to the remote branch |
-| `commit_sha` | The full commit SHA of the applied fixes |
-| `commit_sha_short` | The short commit SHA of the applied fixes |
-| `patch_name` | Name of the patch file if fixes could not be pushed |
-
-#### Example Invocation
-
-```yaml
-uses: ./.github/workflows/yaml-fix.yaml
-with:
-  checkout-path: .
-  ref: refs/heads/my-feature
-  repo: ${{ github.repository }}
-```
+*File:* `.github/workflows/yaml-fix.yaml`
+*Required inputs:* `ref`, `repo`
+*Optional:* `checkout-path`, `skip-comment`
 
 ### Clang-Tidy Fix
 
-**File**: `.github/workflows/clang-tidy-fix.yaml`
+*File:* `.github/workflows/clang-tidy-fix.yaml`
+*Trigger:* `issue_comment` or `workflow_dispatch` (no explicit inputs via `workflow_call`).
 
-Applies clang-tidy fixes via clang-apply-replacements. Accepts an optional comma-separated list of checks to apply.
+---
 
-#### Inputs
+## Fix Workflow Outputs
 
-This workflow does not expose inputs via `workflow_call`. It is triggered by `issue_comment` or `workflow_dispatch`.
+All `*-fix` workflows emit a standard set of outputs that can be used by downstream jobs:
 
-#### Example Invocation
+| Output | Description |
+| -------- | ------------- |
+| `changes` | `true` if any files were modified by the formatter/fixer, otherwise `false` |
+| `pushed` | `true` if the changes were successfully pushed back to the repository, otherwise `false` |
+| `commit_sha` | Full SHA of the commit created (if any) |
+| `commit_sha_short` | Short (7-char) SHA of the commit |
+| `patch_name` | Filename of an attached patch when the workflow could not push automatically |
 
-```yaml
-uses: ./.github/workflows/clang-tidy-fix.yaml
-with:
-  # Uses issue_comment to trigger via: @reponamebot tidy-fix
-  # Or workflow_dispatch with inputs for ref and tidy-checks
-```
+These outputs are available via `${{ steps.<step_id>.outputs.<output> }}` in a consuming workflow.
 
-## Composite Workflows
+---
 
-### Format All
+## Composite Workflow
 
-**File**: `.github/workflows/format-all.yaml`
+### Format-All
 
-Calls all individual formatter workflows (`clang-format-fix`, `cmake-format-fix`, `header-guards-fix`, `jsonnet-format-fix`, `markdown-fix`, `python-fix`, `yaml-fix`) in sequence and aggregates the results into a single PR comment.
+*File:* `.github/workflows/format-all.yaml`
+Calls all individual formatter fix workflows in parallel and posts a single combined PR comment. Triggered only by `issue_comment` (`@phlexbot format`).
 
-This workflow is triggered only by `issue_comment` (gated to OWNER/COLLABORATOR/MEMBER).
+---
 
-#### Example Invocation
+## Non-Reusable Internal Workflows
 
-```yaml
-uses: ./.github/workflows/format-all.yaml
-with:
-  # Triggered via issue_comment: @reponamebot format
-```
+The repository also contains several workflows that are **not** intended for `workflow_call` reuse. They are used internally by the CI pipeline or for special purposes:
+
+* `clang-tidy-check.yaml` – runs clang-tidy analysis; only triggered by `issue_comment`, `pull_request`, `push`, `workflow_dispatch`.
+* `clang-tidy-fix.yaml` – applies clang-tidy fixes; triggered by `issue_comment` or `workflow_dispatch`.
+* `clang-tidy-report.yaml` – posts clang-tidy results as PR comments; internal companion to the check workflow.
+* `codeql-comment.yaml` – posts CodeQL findings as PR comments; used by `codeql-analysis.yaml`.
+* `coverage.yaml` – generates code coverage reports; triggers via `issue_comment` and `workflow_dispatch`. It is **not** reusable via `workflow_call`.
+
+  **Key Inputs**
+
+  | Input | Type | Required | Default | Description |
+  | ------- | ------ | ---------- | --------- | ------------- |
+  | `ref` | string | No | repository default | Branch, ref, or SHA to checkout |
+  | `repo` | string | No | current repo | Repository to checkout |
+  | `pr-base-sha` | string | No | N/A | Base SHA for relevance check |
+  | `phlex-coverage-compiler` | string | No | `clang` | Compiler for coverage build (`gcc` or `clang`) |
+  | `phlex-enable-form` | string | No | `ON` | Enable FORM integration (`ON`/`OFF`) |
+
+* `dependabot-auto-merge.yaml` – automates Dependabot PR merges; internal automation.
+* `add-issues.yaml` – creates GitHub issues based on repository events; internal automation.
+
+## Bot Command Summary
+
+| Command | Description |
+| --------- | ------------- |
+| `@phlexbot clang-fix` | Run the Clang-Format fix workflow on the PR head branch. |
+| `@phlexbot clang-tidy-fix` | Run the Clang-Tidy fix workflow. |
+| `@phlexbot cmake-fix` | Run the CMake-Format fix workflow. |
+| `@phlexbot header-guards-fix` | Run the Header-Guards fix workflow. |
+| `@phlexbot jsonnet-fix` | Run the Jsonnet-Format fix workflow. |
+| `@phlexbot markdown-fix` | Run the Markdown-Fix workflow. |
+| `@phlexbot python-fix` | Run the Python-Fix workflow. |
+| `@phlexbot yaml-fix` | Run the YAML-Fix workflow. |
+| `@phlexbot format` | Run **all** formatter fix workflows (calls `format-all.yaml`). |
+| `@phlexbot tidy-check` | Run the Clang-Tidy **check** workflow. |
+| `@phlexbot codeql-check` | Run the CodeQL analysis workflow. |
+| `@phlexbot coverage` | Generate coverage reports. |
 
 ## Usage Guidelines
 
-1. **Check workflows**: Use `workflow_call` to invoke check workflows from other workflows. They are also triggered automatically on `pull_request` and `push` events.
+1. **Check workflows** – invoke via `workflow_call` from other workflows or rely on automatic CI triggers.
+2. **Fix workflows** – invoke via `workflow_call` (set `skip-comment: true` when called from another workflow) or use bot commands in PR comments.
+3. **Always provide `ref`, `repo`, and `checkout-path`** when calling a reusable workflow.
+4. **Prefer pinning to a commit SHA** for stability; use `@main` only for experimental runs.
+5. **When manually dispatching** (`workflow_dispatch`), you may set `skip-relevance-check: true` to run the workflow on all files.
 
-2. **Fix workflows**: Use `workflow_call` to invoke fix workflows programmatically, or use the bot commands in PR comments:
-   - `@reponamebot clang-fix`
-   - `@reponamebot cmake-fix`
-   - `@reponamebot header-guards-fix`
-   - `@reponamebot jsonnet-fix`
-   - `@reponamebot markdown-fix`
-   - `@reponamebot python-fix`
-   - `@reponamebot yaml-fix`
-   - `@reponamebot format` (runs all formatters)
+---
 
-3. **When invoking via `workflow_call`**: Always pass `ref`, `repo`, and `checkout-path`. Set `skip-comment: true` when calling from another fixed workflow to avoid duplicate comments.
-
-4. **Triggering fix workflows**: Use `workflow_dispatch` for manual triggering, or use the `issue_comment` trigger via bot commands in PRs.
+*This document supersedes `.github/REUSABLE_WORKFLOWS.md`. The older file has been removed.*
