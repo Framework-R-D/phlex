@@ -22,7 +22,7 @@ namespace form::experimental {
 
     void write(std::string const& creator,
                std::string const& segment_id,
-               product_with_name const& product);
+               product_with_name const& pb);
 
     void write(std::string const& creator,
                std::string const& segment_id,

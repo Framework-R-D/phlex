@@ -11,7 +11,7 @@ namespace demo {
   Waveforms clampWaveforms(Waveforms const& input);
 
   // This is the fold operator that will accumulate a SummedClampedWaveforms object.
-  void accumulateSCW(SummedClampedWaveforms& scw, Waveforms const& wf);
+  void accumulateSCW(SummedClampedWaveforms& accumulator, Waveforms const& wf);
 } // namespace demo
 
 #endif // TEST_DEMO_GIANTDATA_USER_ALGORITHMS_HPP

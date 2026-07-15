@@ -21,9 +21,7 @@ namespace form::experimental {
                           config::tech_setting_config const& tech_config);
     ~form_reader_interface() = default;
 
-    void read(std::string const& creator,
-              std::string const& segment_id,
-              product_with_name& product);
+    void read(std::string const& creator, std::string const& segment_id, product_with_name& pb);
 
     void prime(std::string const& creator,
                std::string const& product_name,
