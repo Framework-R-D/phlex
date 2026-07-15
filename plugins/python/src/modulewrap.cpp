@@ -573,7 +573,7 @@ namespace {
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
-    cpptype i = static_cast<cpptype>(frompy(pyobj));                                               \
+    auto i = static_cast<cpptype>(frompy(pyobj));                                                  \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
       Py_DECREF(pyobj);                                                                            \
@@ -683,7 +683,7 @@ namespace {
         total *= static_cast<size_t>(dims[i]);                                                     \
                                                                                                    \
       /* copy the array info; note that this assumes C continuity */                               \
-      cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                     \
+      auto* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                        \
       vec->reserve(total);                                                                         \
       vec->insert(vec->end(), raw, raw + total);                                                   \
     } else if (PyList_Check(pyobj)) {                                                              \
@@ -691,7 +691,7 @@ namespace {
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
         PyObject* item = PyList_GetItem(pyobj, i);                                                 \
-        cpptype value = static_cast<cpptype>(frompy(item));                                        \
+        auto value = static_cast<cpptype>(frompy(item));                                           \
         std::string msg;                                                                           \
         if (msg_from_py_error(msg, true)) {                                                        \
           Py_DECREF(pyobj);                                                                        \
@@ -1010,7 +1010,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::string cname;
   std::vector<product_selector> input_selectors;
   std::vector<std::string> input_types, output_suffixes, output_types;
-  concurrency nconcur = (concurrency)-1;
+  auto nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
@@ -1154,7 +1154,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   std::string cname;
   std::vector<product_selector> input_selectors;
   std::vector<std::string> input_types, output_suffixes, output_types;
-  concurrency nconcur = (concurrency)-1;
+  auto nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
