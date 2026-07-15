@@ -48,8 +48,6 @@ _loader.exec_module(_M)
 _gh_cli_token: Callable[[], str | None] = _M._gh_cli_token  # type: ignore[attr-defined]
 _gh_oauth_token: Callable[[], str | None] = _M._gh_oauth_token  # type: ignore[attr-defined]
 _clean_message: Callable[[str], str] = _M._clean_message  # type: ignore[attr-defined]
-_KILO_CONFIG_PATH: Path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
-_load_kilo_config: Callable[[], dict] = _M._load_kilo_config  # type: ignore[attr-defined]
 
 _edit: Callable[[str], str] = _M._edit  # type: ignore[attr-defined]
 _chat_antigravity: Callable[[str, list[dict[str, str]]], str] = _M._chat_antigravity  # type: ignore[attr-defined]
