@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Verify that the shared if-gating blocks are present and consistent across
-# GitHub Actions workflows.  Exits 1 if any required phrase is missing.
+# Verify that the shared if-gating blocks contain the required phrases across
+# GitHub Actions workflows. Exits 1 if any required phrase is missing.
 #
 # Two gating-block families are checked:
 #
