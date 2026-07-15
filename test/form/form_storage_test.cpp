@@ -75,7 +75,7 @@ TEST_CASE("Storage_Container multiple containers in Association", "[form]")
 {
   std::vector<float> piData(10, 3.1415927);
   std::vector<int> magicData(17);
-  std::iota(magicData.begin(), magicData.end(), 42);
+  std::ranges::iota(magicData, 42);
   std::string indexData = "[EVENT=00000001;SEG=00000001]";
 
   form::test::write(technology, piData, magicData, indexData);
