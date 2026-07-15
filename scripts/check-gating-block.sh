@@ -56,6 +56,16 @@ BUILD_WORKFLOWS=(
   "cmake-build.yaml"
 )
 
+# Coverage workflow uses its own gating logic.
+COVERAGE_WORKFLOWS=(
+  "coverage.yaml"
+)
+
+# Clang-tidy-fix workflow has its own gating logic (no workflow_call).
+CLANG_TIDY_FIX_WORKFLOWS=(
+  "clang-tidy-fix.yaml"
+)
+
 # Required phrases for the lint/check job in *-check workflows.
 CHECK_JOB_PHRASES=(
   "always()"
@@ -83,6 +93,28 @@ FIX_PHRASES=(
   "github.event.issue.pull_request"
   "fromJSON('[\"OWNER\", \"COLLABORATOR\", \"MEMBER\"]')"
   "github.event.comment.author_association"
+)
+
+# Required phrases for coverage workflow setup job (custom gating).
+COVERAGE_PHRASES=(
+  "github.event_name == 'workflow_dispatch'"
+  "github.event_name == 'pull_request'"
+  "github.event_name == 'push'"
+  "github.event_name == 'issue_comment'"
+  "github.event.issue.pull_request"
+  "fromJSON('[\"OWNER\", \"COLLABORATOR\", \"MEMBER\"]')"
+  "github.event.comment.author_association"
+  "startsWith(github.event.comment.body, format('@{0}bot coverage', github.event.repository.name))"
+)
+
+# Required phrases for clang-tidy-fix workflow setup job (custom gating).
+CLANG_TIDY_FIX_PHRASES=(
+  "github.event_name == 'workflow_dispatch'"
+  "github.event_name == 'issue_comment'"
+  "github.event.issue.pull_request"
+  "fromJSON('[\"OWNER\", \"COLLABORATOR\", \"MEMBER\"]')"
+  "github.event.comment.author_association"
+  "startsWith(github.event.comment.body, format('@{0}bot tidy-fix', github.event.repository.name))"
 )
 
 # Required phrases for cmake-build (full event-list gating on setup job).
@@ -150,6 +182,22 @@ echo "Fix workflows (workflow_call-capable, inputs.ref gate)"
 echo "======================================================="
 for wf in "${FIX_WORKFLOWS[@]}"; do
   check_workflow "$WORKFLOWS_DIR/$wf" "$wf" "${FIX_PHRASES[@]}"
+done
+
+# Coverage workflow checks
+echo ""
+echo "Coverage workflow (custom gating on setup job)"
+echo "==================================================="
+for wf in "${COVERAGE_WORKFLOWS[@]}"; do
+  check_workflow "$WORKFLOWS_DIR/$wf" "$wf" "${COVERAGE_PHRASES[@]}"
+done
+
+# Clang-tidy-fix workflow checks
+echo ""
+echo "Clang-tidy-fix workflow (custom gating on setup job)"
+echo "==================================================="
+for wf in "${CLANG_TIDY_FIX_WORKFLOWS[@]}"; do
+  check_workflow "$WORKFLOWS_DIR/$wf" "$wf" "${CLANG_TIDY_FIX_PHRASES[@]}"
 done
 
 echo ""
