@@ -357,8 +357,8 @@ jobs:
 
       - name: Prepare PR comment data
         if: >-
-          github.event_name == 'pull_request' && (steps.check_codeql.outputs.new_alerts == 'true' ||
-          steps.check_codeql.outputs.fixed_alerts == 'true') && steps.check_codeql.outputs.comment_path != ''
+          github.event_name == 'pull_request' && (steps.check_codeql.outputs.new_vs_base == 'true' ||
+          steps.check_codeql.outputs.fixed_vs_base == 'true') && steps.check_codeql.outputs.comment_path != ''
         env:
           COMMENT_PATH: ${{ steps.check_codeql.outputs.comment_path }}
         run: |
@@ -368,8 +368,8 @@ jobs:
 
       - name: Upload PR comment data
         if: >-
-          github.event_name == 'pull_request' && (steps.check_codeql.outputs.new_alerts == 'true' ||
-          steps.check_codeql.outputs.fixed_alerts == 'true') && steps.check_codeql.outputs.comment_path != ''
+          github.event_name == 'pull_request' && (steps.check_codeql.outputs.new_vs_base == 'true' ||
+          steps.check_codeql.outputs.fixed_vs_base == 'true') && steps.check_codeql.outputs.comment_path != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: codeql-pr-data

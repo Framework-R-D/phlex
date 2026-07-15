@@ -869,6 +869,8 @@ def set_outputs(
     new_alerts: collections.abc.Sequence[Alert],
     fixed_alerts: collections.abc.Sequence[Alert],
     comment_path: Path | None,
+    new_vs_base: collections.abc.Sequence[Alert] | None = None,
+    fixed_vs_base: collections.abc.Sequence[Alert] | None = None,
 ) -> None:
     """Sets the GitHub action outputs.
 
@@ -876,6 +878,8 @@ def set_outputs(
         new_alerts: A list of new alerts.
         fixed_alerts: A list of fixed alerts.
         comment_path: The path to the comment file.
+        new_vs_base: Alerts newly introduced since PR base, if available.
+        fixed_vs_base: Alerts fixed since PR base, if available.
     """
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
@@ -885,6 +889,10 @@ def set_outputs(
         handle.write(f"alert_count={len(new_alerts)}\n")
         handle.write(f"fixed_alerts={'true' if fixed_alerts else 'false'}\n")
         handle.write(f"fixed_count={len(fixed_alerts)}\n")
+        handle.write(f"new_vs_base={'true' if new_vs_base else 'false'}\n")
+        handle.write(f"new_vs_base_count={len(new_vs_base or [])}\n")
+        handle.write(f"fixed_vs_base={'true' if fixed_vs_base else 'false'}\n")
+        handle.write(f"fixed_vs_base_count={len(fixed_vs_base or [])}\n")
         if comment_path:
             handle.write(f"comment_path={comment_path}\n")
         else:
@@ -1290,12 +1298,20 @@ def main(argv: collections.abc.Sequence[str] | None = None) -> int:
             max_results=args.max_results,
             threshold=min_level,
         )
-        set_outputs(new_alerts=new_alerts, fixed_alerts=fixed_alerts, comment_path=comment_path)
+        set_outputs(
+            new_alerts=new_alerts,
+            fixed_alerts=fixed_alerts,
+            comment_path=comment_path,
+            new_vs_base=(api_comp.new_vs_base if api_comp else []),
+            fixed_vs_base=(api_comp.fixed_vs_base if api_comp else []),
+        )
         print(comment_body)
         return 0
 
     print("No new or resolved CodeQL alerts past the configured threshold.")
-    set_outputs(new_alerts=[], fixed_alerts=[], comment_path=None)
+    set_outputs(
+        new_alerts=[], fixed_alerts=[], comment_path=None, new_vs_base=[], fixed_vs_base=[]
+    )
     return 0
 
 
