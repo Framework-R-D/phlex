@@ -48,6 +48,9 @@ _loader.exec_module(_M)
 _gh_cli_token: Callable[[], str | None] = _M._gh_cli_token  # type: ignore[attr-defined]
 _gh_oauth_token: Callable[[], str | None] = _M._gh_oauth_token  # type: ignore[attr-defined]
 _clean_message: Callable[[str], str] = _M._clean_message  # type: ignore[attr-defined]
+_KILO_CONFIG_PATH: Path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
+_load_kilo_config: Callable[[], dict] = _M._load_kilo_config  # type: ignore[attr-defined]
+
 _edit: Callable[[str], str] = _M._edit  # type: ignore[attr-defined]
 _chat_antigravity: Callable[[str, list[dict[str, str]]], str] = _M._chat_antigravity  # type: ignore[attr-defined]
 _Error: type[Exception] = _M._Error  # type: ignore[attr-defined]
@@ -732,19 +735,19 @@ class TestKiloConfig:
         from pathlib import Path
 
         expected = Path.home() / ".config" / "kilo" / "kilo.jsonc"
-        assert _M._KILO_CONFIG_PATH == expected
+        assert _M._KILO_CONFIG_PATH == expected  # type: ignore[attr-defined]
 
     def test_load_kilo_config_missing_file_returns_empty(self, tmp_path: Path) -> None:
         """_load_kilo_config returns empty config when file doesn't exist."""
         # Use a temp path that doesn't exist
         non_existent = tmp_path / "nonexistent" / "kilo.jsonc"
-        original = _M._KILO_CONFIG_PATH
+        original = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
         try:
-            _M._KILO_CONFIG_PATH = non_existent
-            result = _M._load_kilo_config()
+            _M._KILO_CONFIG_PATH = non_existent  # type: ignore[attr-defined]
+            result = _M._load_kilo_config()  # type: ignore[attr-defined]
             assert result == {"disabled_providers": [], "provider": {}}
         finally:
-            _M._KILO_CONFIG_PATH = original
+            _M._KILO_CONFIG_PATH = original  # type: ignore[attr-defined]
 
     def test_load_kilo_config_with_models_maps_providers(self) -> None:
         """_load_kilo_config_with_models returns provider-to-models mapping."""
@@ -766,8 +769,8 @@ class TestKiloConfig:
                 },
             },
         }
-        original_load = _M._load_kilo_config
-        _M._load_kilo_config = lambda: mock_config
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             mapping = _M._load_kilo_config_with_models()
             # fnal-ow should be a provider in the mapping
@@ -778,7 +781,7 @@ class TestKiloConfig:
             assert "qwen/qwen2.5-32b" in mapping["fnal-ow"]
             assert "azure/gpt-5-nano" in mapping["fnal-azure"]
         finally:
-            _M._load_kilo_config = original_load
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_with_known_provider_prefix(self) -> None:
         """_resolve_kilo_model returns model unchanged if provider prefix is known."""
@@ -801,13 +804,13 @@ class TestKiloConfig:
                 },
             },
         }
-        original_load = _M._load_kilo_config
-        _M._load_kilo_config = lambda: mock_config
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("qwen/qwen3-coder-next")
             assert result == "fnal-ow/qwen/qwen3-coder-next"
         finally:
-            _M._load_kilo_config = original_load
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_without_provider_prefix_looks_up(self) -> None:
         """_resolve_kilo_model adds provider prefix when missing."""
@@ -824,13 +827,13 @@ class TestKiloConfig:
                 },
             },
         }
-        original_load = _M._load_kilo_config
-        _M._load_kilo_config = lambda: mock_config
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("qwen3-coder-next")
             assert result == "fnal-ow/qwen/qwen3-coder-next"
         finally:
-            _M._load_kilo_config = original_load
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_unknown_model(self) -> None:
         """_resolve_kilo_model returns unknown model unchanged."""
@@ -855,13 +858,13 @@ class TestKiloConfig:
                 },
             },
         }
-        original_load = _M._load_kilo_config
-        _M._load_kilo_config = lambda: mock_config
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             with pytest.raises(_M._Error, match="is ambiguous"):
                 _M._resolve_kilo_model("qwen3-coder-next")
         finally:
-            _M._load_kilo_config = original_load
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_model_prefix_not_known_provider(
         self,
@@ -879,13 +882,13 @@ class TestKiloConfig:
                 },
             },
         }
-        original_load = _M._load_kilo_config
-        _M._load_kilo_config = lambda: mock_config
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("unknown-ow/qwen3-coder-next")
             assert result == "fnal-ow/unknown-ow/qwen3-coder-next"
         finally:
-            _M._load_kilo_config = original_load
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_default_model_kilo_uses_qwen3_coder_next(self) -> None:
         """_DEFAULT_MODEL_KILO defaults to qwen/qwen3-coder-next."""
@@ -1017,7 +1020,10 @@ class TestKiloBackend:
 
     def test_chat_kilo_timeout(self) -> None:
         """_chat_kilo raises _APIError if kilo run times out."""
-        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(60, "kilo run")):
+        with patch(
+            "subprocess.run",
+            side_effect=subprocess.TimeoutExpired(["kilo", "run"], 60, "kilo run"),
+        ):
             with pytest.raises(_APIError, match="timed out after 60 seconds"):
                 _M._chat_kilo("qwen/qwen3-coder-next", [], "", "")
 

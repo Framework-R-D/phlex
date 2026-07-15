@@ -919,18 +919,7 @@ def _chat(
     # Scale max_tokens with prompt size to avoid truncated responses.
     # This applies to all models, not just reasoning ones.
     prompt_size = sum(len(m["content"]) for m in messages)
-    if model:
-        model_lower = model.lower()
-        if any(kw in model_lower for kw in ("reasoning", "4-5", "qwen3-coder-next", "gemma4-31b")):
-            max_tokens = 8192
-        elif prompt_size > 50_000:
-            max_tokens = 4096
-        elif prompt_size > 25_000:
-            max_tokens = 3072
-        else:
-            max_tokens = 2048
-    else:
-        max_tokens = 2048
+    max_tokens = _max_tokens_for_prompt(prompt_size, model)
 
     # Use kilo CLI for the kilo backend
     if backend == "kilo":
