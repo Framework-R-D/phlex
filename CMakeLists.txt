@@ -78,7 +78,7 @@ find_package(cetmodules 4.01.01 REQUIRED)
 
 # ##############################################################################
 # Main project declaration
-project(phlex VERSION 0.3.1 LANGUAGES CXX)
+project(phlex VERSION 0.3.2 LANGUAGES CXX)
 
 include(CetCMakeEnv)
 cet_cmake_env()
