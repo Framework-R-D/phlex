@@ -36,7 +36,7 @@ static void ll_dealloc(py_lifeline_t* pyobj)
   // collector does not traverse a partially torn-down object during dealloc.
   PyObject_GC_UnTrack(pyobj);
   Py_CLEAR(pyobj->m_view);
-  typedef std::shared_ptr<void> generic_shared_t;
+  using generic_shared_t = std::shared_ptr<void>;
   pyobj->m_source.~generic_shared_t();
   // Use tp_free to pair with tp_alloc for GC-tracked Python objects.
   Py_TYPE(pyobj)->tp_free(reinterpret_cast<PyObject*>(pyobj));
