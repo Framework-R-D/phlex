@@ -535,10 +535,6 @@ TEST_CASE("Root branch prime: error paths", "[form]")
 
 TEST_CASE("Root branch entries: success and error paths", "[form]")
 {
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) {
-    SKIP("entries() only tested for ROOT_TTREE backend");
-  }
-
   SECTION("no file attached throws")
   {
     auto container = createReadContainer(technology, "SomeTree/branch");
@@ -563,30 +559,6 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
     auto container = createReadContainer(
       technology, std::string(form::test::testTreeName) + "/NonExistentBranchForEntries");
     container->setFile(file);
-    CHECK_THROWS_AS(container->entries(), std::runtime_error);
-  }
-
-  SECTION("valid container returns entry count")
-  {
-    std::vector<int> data = {10, 20, 30};
-    form::test::write(technology, data);
-    auto file = createFile(technology, form::test::testFileName, 'i');
-    auto container =
-      createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
-    container->setFile(file);
-    CHECK(container->entries() == 1);
-  }
-}
-
-TEST_CASE("Root RField entries: success and error paths", "[form]")
-{
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_RNTUPLE_MINOR) {
-    SKIP("entries() only tested for ROOT_RNTUPLE backend");
-  }
-
-  SECTION("no file attached throws")
-  {
-    auto container = createReadContainer(technology, "ntuple/field");
     CHECK_THROWS_AS(container->entries(), std::runtime_error);
   }
 

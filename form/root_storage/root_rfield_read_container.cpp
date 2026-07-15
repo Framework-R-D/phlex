@@ -110,6 +110,11 @@ namespace form::detail::experimental {
       }
       m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
     }
+
+    if(!m_view && (m_reader->GetDescriptor().FindFieldId(col_name()) == ROOT::kInvalidDescriptorId)) {
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries field " + col_name() + " does not exist");
+    }
+
     return static_cast<int>(m_reader->GetNEntries());
   }
 
