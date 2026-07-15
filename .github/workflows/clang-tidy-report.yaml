@@ -73,3 +73,30 @@ jobs:
           build-path: ${{ steps.locate.outputs.build_path }}
           pr-number: ${{ steps.locate.outputs.pr_number }}
           post-summary: "true"
+
+      - name: Cleanup old clang-tidy comments
+        if: steps.locate.outputs.pr_number != ''
+        uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ steps.locate.outputs.pr_number }}
+        with:
+          script: |
+            const titleMarker = '## Clang-Tidy Check Results\n\n';
+            const pr = parseInt(process.env.PR_NUMBER, 10);
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr
+            });
+            // Identify comment IDs that have replies
+            const repliedIds = new Set(comments.filter(c => c.in_reply_to).map(c => c.in_reply_to));
+            for (const c of comments) {
+              if (c.body && c.body.startsWith(titleMarker) && !repliedIds.has(c.id)) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: c.id
+                });
+                console.log(`Deleted old comment ${c.id}`);
+              }
+            }

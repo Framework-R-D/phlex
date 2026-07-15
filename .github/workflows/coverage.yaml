@@ -467,6 +467,34 @@ jobs:
       issues: write
 
     steps:
+      - name: Cleanup old coverage comments
+        if: always()
+        uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          MARKER: "<!-- coverage-comment -->"
+        with:
+          script: |
+            const marker = process.env.MARKER;
+            const pr = parseInt(process.env.PR_NUMBER, 10);
+            if (isNaN(pr)) { console.log('No PR number, skipping cleanup'); process.exit(0); }
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr
+            });
+            const repliedIds = new Set(comments.filter(c => c.in_reply_to).map(c => c.in_reply_to));
+            for (const c of comments) {
+              if (c.body && c.body.includes(marker) && !repliedIds.has(c.id)) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: c.id
+                });
+                console.log(`Deleted old comment ${c.id}`);
+              }
+            }
+
       - name: Comment on coverage completion
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
@@ -480,6 +508,8 @@ jobs:
               || format('ℹ️ Coverage completed with status: {0}.', needs.coverage.result) }}
 
             See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.
+
+            <!-- coverage-comment -->
 
       - name: Update PR comment reactions
         if: always()
