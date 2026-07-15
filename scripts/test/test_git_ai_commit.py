@@ -912,6 +912,12 @@ class TestKiloBackend:
         messages = [{"role": "user", "content": "test message"}]
         monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
 
+        # Mock kilo config to ensure consistent model resolution
+        mock_config: dict[str, object] = {
+            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}}
+        }
+        monkeypatch.setattr(_M, "_load_kilo_config", lambda: mock_config)
+
         mock_completed = subprocess.CompletedProcess(
             args=["kilo", "run", "--agent=code"],
             returncode=0,
@@ -939,6 +945,12 @@ class TestKiloBackend:
         """_chat_kilo resolves model name (adds provider prefix) before invoking kilo."""
         messages = [{"role": "user", "content": "test message"}]
         monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+
+        # Mock kilo config to ensure consistent model resolution
+        mock_config: dict[str, object] = {
+            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}}
+        }
+        monkeypatch.setattr(_M, "_load_kilo_config", lambda: mock_config)
 
         mock_completed = subprocess.CompletedProcess(
             args=["kilo", "run", "--agent=code", "-m", "fnal-ow/qwen/qwen3-coder-next"],
