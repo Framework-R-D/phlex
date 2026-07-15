@@ -328,10 +328,6 @@ TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
 {
   using namespace form::experimental::config;
 
-  if (form::technology::GetMinor(technology) == form::technology::ROOT_RNTUPLE_MINOR) {
-    SKIP("RNTUPLE backend does not provide stable empty-index readback in this test harness");
-  }
-
   std::string const file_name = "persistence_zero_index_" + std::to_string(technology) + ".root";
   std::string const creator = "zero_creator";
 
