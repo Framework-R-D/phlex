@@ -1223,12 +1223,6 @@ def main() -> None:
     args = ap.parse_args(argv)
 
     backend, api_base = _resolve_backend_and_api(args.backend, args.api)
-    if backend == "kilo":
-        # For kilo backend, ensure model has provider prefix by looking it up in config
-        model_name = args.model.strip() or _default_model(backend)
-        model = _resolve_kilo_model(model_name)
-    else:
-        model = args.model.strip() or _default_model(backend)
     # Collect supplemental context from --context and/or stdin.
     ctx_parts: list[str] = []
     if args.context:
@@ -1240,6 +1234,13 @@ def main() -> None:
     context = "\n\n".join(ctx_parts)
 
     try:
+        if backend == "kilo":
+            # For kilo backend, ensure model has provider prefix by looking it up in config
+            model_name = args.model.strip() or _default_model(backend)
+            model = _resolve_kilo_model(model_name)
+        else:
+            model = args.model.strip() or _default_model(backend)
+
         root = _git_root()
         diff = _staged_diff(args.amend)
         # Skip binary and generated file sections before any truncation.

@@ -81,7 +81,7 @@ API backend to use.  One of \fBkilo\fR (default), \fBgithub\-models\fR,
 \fBcopilot\fR, \fBantigravity\fR, or \fBagy\fR.  See \fBBACKENDS\fR below.
 Overridden by the \fBGIT_AI_COMMIT_BACKEND\fR environment variable.
 .TP
-\fB--model\fR \fIMODEL\fR
+\fB\-\-model\fR \fIMODEL\fR
 Model name to use.  For the \fBkilo\fR backend, the default is
 \fBqwen/qwen3\-coder\-next\fR (resolved via the model name or with provider
 prefix).  If a model name without a provider prefix is provided (e.g.,
@@ -89,7 +89,7 @@ prefix).  If a model name without a provider prefix is provided (e.g.,
 \fB~/.config/kilo/kilo.jsonc\fR to add the appropriate provider prefix
 (e.g., \fBqwen/qwen3\-coder\-next\fR).  For other backends, the defaults are:
 \fBgpt\-4o\fR for github\-models and copilot, none for antigravity/agy.
-Binary and generated files are skipped.  Overridden by the
+Overridden by the
 \fBGIT_AI_COMMIT_MODEL\fR environment variable.
 .TP
 \fB\-\-api\fR \fIURL\fR
@@ -191,15 +191,6 @@ Deprecated.  Use \fBGIT_AI_COMMIT_API\fR instead.
 .TP
 \fBGIT_AI_COMMIT_KILO_MODEL\fR
 Deprecated.  Use \fBGIT_AI_COMMIT_MODEL\fR instead.
-.TP
-\fBGIT_AI_COMMIT_API\fR
-API base URL override.  For the \fBkilo\fR backend, this is passed to
-the kilo CLI via \fBKILO_SERVER_URL\fR.
-.TP
-\fBGIT_AI_COMMIT_MODEL\fR
-Default model name for the kilo backend.  Defaults to \fBqwen/qwen3\-coder\-next\fR.
-If a model name without a provider prefix is provided, it is auto\-resolved
-by looking up the model in \fB~/.config/kilo/kilo.jsonc\fR.
 .TP
 \fBEDITOR\fR, \fBVISUAL\fR
 Editor invoked by \fB\-\-edit\fR.  Checked in order; \fBvi\fR is the final fallback.
