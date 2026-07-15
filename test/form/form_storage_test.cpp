@@ -493,17 +493,13 @@ TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error br
 
 TEST_CASE("Root branch prime: error paths", "[form]")
 {
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) {
-    SKIP("prime() error paths only tested for ROOT_TTREE backend");
-  }
-
   SECTION("no file attached throws")
   {
     auto container = createReadContainer(technology, "SomeTree/branch");
     CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
   }
 
-  SECTION("tree not found throws")
+  SECTION("container name not found throws")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
@@ -579,31 +575,6 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
       createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
     container->setFile(file);
     CHECK(container->entries() == 1);
-  }
-}
-
-TEST_CASE("Root RField prime: error paths", "[form]")
-{
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_RNTUPLE_MINOR) {
-    SKIP("prime() error paths only tested for ROOT_RNTUPLE backend");
-  }
-
-  SECTION("no file attached throws")
-  {
-    auto container = createReadContainer(technology, "ntuple/field");
-    CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
-  }
-
-  SECTION("unsupported type throws")
-  {
-    struct LocalRFieldPrimeType {};
-    std::vector<int> data = {1};
-    form::test::write(technology, data);
-    auto file = createFile(technology, form::test::testFileName, 'i');
-    auto container =
-      createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
-    container->setFile(file);
-    CHECK_THROWS_AS(container->prime(typeid(LocalRFieldPrimeType)), std::runtime_error);
   }
 }
 
