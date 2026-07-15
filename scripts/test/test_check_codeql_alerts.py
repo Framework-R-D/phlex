@@ -1199,12 +1199,6 @@ class TestCompareAlertsViaApi:
 # ---------------------------------------------------------------------------
 
 
-"""Tests for check_codeql_alerts.py.
-
-This module contains unit tests for the multi‑section comment building logic.
-"""
-
-
 class TestBuildMultiSectionComment:
     """Tests for the _build_multi_section_comment function.
 
@@ -1259,8 +1253,6 @@ class TestBuildMultiSectionComment:
             assert "<details>" in body
         else:
             assert "<details>" not in body
-
-    """Tests for TestBuildMultiSectionComment."""
 
     def _alert(self, level: str = "error", number: int = 1) -> M.Alert:
         return M.Alert(

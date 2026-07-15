@@ -228,10 +228,8 @@ jobs:
         if: matrix.sanitizer == 'perfetto'
         working-directory: ${{ needs.setup.outputs.build_path }}
         env:
-          PERFETTO_HEAP_PROFILE: ${{ github.event.inputs.perfetto_heap_profile || 'false' }}
-          PERFETTO_CPU_PROFILE:
-            ${{ (github.event.inputs.perfetto_cpu_profile != null && github.event.inputs.perfetto_cpu_profile) || true
-            }}
+          PERFETTO_HEAP_PROFILE: ${{ github.event.inputs.perfetto_heap_profile }}
+          PERFETTO_CPU_PROFILE: ${{ github.event.inputs.perfetto_cpu_profile }}
         run: |
           . /entrypoint.sh
 

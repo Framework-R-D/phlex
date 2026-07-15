@@ -94,14 +94,19 @@ jobs:
 
       - name: Cleanup old CodeQL comments
         if: success() && hashFiles('pr_comment_data/pr_number.txt') != ''
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          PR_NUMBER: ${{ steps.pr_number.outputs.pr_number || '' }}
           MARKER: "<!-- codeql-alerts -->"
         with:
           script: |
+            const fs = require('fs');
             const marker = process.env.MARKER;
-            const pr = parseInt(process.env.PR_NUMBER, 10);
+            const prNumberPath = 'pr_comment_data/pr_number.txt';
+            if (!fs.existsSync(prNumberPath)) {
+              console.log('pr_number.txt artifact not found, skipping cleanup');
+              process.exit(0);
+            }
+            const pr = parseInt(fs.readFileSync(prNumberPath, 'utf8').trim(), 10);
             if (isNaN(pr)) { console.log('No PR number, skipping cleanup'); process.exit(0); }
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
