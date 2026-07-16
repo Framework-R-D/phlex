@@ -13,10 +13,8 @@ name: Dependabot auto-merge
     types: [completed]
 
 permissions:
-  actions: write
   contents: write
   pull-requests: write
-  repository-projects: write # Required if the token needs to modify repository settings via API
 
 jobs:
   dependabot:
@@ -65,7 +63,7 @@ jobs:
         shell: bash
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Replaced WORKFLOW_PAT with GITHUB_TOKEN
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
         # yamllint disable rule:line-length
         run: |
           set -o pipefail
