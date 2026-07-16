@@ -104,10 +104,10 @@ import subprocess
 import sys
 import tempfile
 import textwrap
-from typing import TextIO
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import TextIO
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -476,7 +476,7 @@ def _token(backend: str) -> str:
 
 
 def _clean_message(text: str) -> str:
-    """Strip model preamble and fenced code blocks from a raw API response.
+    r"""Strip model preamble and fenced code blocks from a raw API response.
 
     Some models ignore the instruction to respond with only the commit message
     and wrap their output in prose ("Here's the commit message:") and/or a
@@ -636,7 +636,10 @@ def _chat_antigravity(model: str, messages: list[dict[str, str]]) -> str:
 
     if result.returncode != 0:
         raise _APIError(
-            f"Antigravity CLI (agy) failed (exit code {result.returncode}):\n{result.stderr.strip()}",
+            (
+                "Antigravity CLI (agy) failed "
+                f"(exit code {result.returncode}):\n{result.stderr.strip()}"
+            ),
             result.returncode,
         )
 

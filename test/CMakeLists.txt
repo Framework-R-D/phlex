@@ -188,9 +188,6 @@ cet_test(flush_gate USE_CATCH2_MAIN SOURCE flush_gate_test.cpp LIBRARIES
 cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
          phlex::core_internal
 )
-cet_test(product_matcher USE_CATCH2_MAIN SOURCE product_matcher.cpp LIBRARIES
-         phlex::model_internal
-)
 cet_test(product_store USE_CATCH2_MAIN SOURCE product_store.cpp LIBRARIES
          phlex::core_internal
 )

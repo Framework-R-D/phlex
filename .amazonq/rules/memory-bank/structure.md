@@ -24,7 +24,7 @@ The main framework implementation containing the execution engine and core abstr
 
 - **`model/`**: Data model and type system
   - `product_store.cpp/hpp`: Central data product storage
-  - `product_specification.cpp/hpp`, `product_matcher.cpp/hpp`: Product identification
+  - `product_specification.cpp/hpp`: Product identification
   - `products.cpp/hpp`: Product collections
   - `data_layer_hierarchy.cpp/hpp`: Hierarchical data organization
   - `data_cell_index.cpp/hpp`, `data_cell_counter.cpp/hpp`: Data cell management

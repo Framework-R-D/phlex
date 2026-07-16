@@ -16,6 +16,7 @@ import numpy as np
 
 try:
     import numba.core.types as nb_types
+
     has_numba = True
 except ImportError:
     has_numba = False
@@ -48,21 +49,23 @@ _PY2CPP: dict[type, str] = {
 }
 
 if has_numba:
-    _PY2CPP.update({
-        nb_types.bool: "bool",
-        nb_types.int8: "int8_t",
-        nb_types.int16: "int16_t",
-        nb_types.int32: "int32_t",
-        nb_types.int64: "int64_t",
-        nb_types.uint8: "uint8_t",
-        nb_types.uint16: "uint16_t",
-        nb_types.uint32: "uint32_t",
-        nb_types.uint64: "uint64_t",
-        nb_types.Float: "float",
-        nb_types.float32: "float",
-        nb_types.double: "double",
-        nb_types.void: "None",
-    })
+    _PY2CPP.update(
+        {
+            nb_types.bool: "bool",
+            nb_types.int8: "int8_t",
+            nb_types.int16: "int16_t",
+            nb_types.int32: "int32_t",
+            nb_types.int64: "int64_t",
+            nb_types.uint8: "uint8_t",
+            nb_types.uint16: "uint16_t",
+            nb_types.uint32: "uint32_t",
+            nb_types.uint64: "uint64_t",
+            nb_types.Float: "float",
+            nb_types.float32: "float",
+            nb_types.double: "double",
+            nb_types.void: "None",
+        }
+    )
 
 # ctypes types that don't map cleanly to intN_t / uintN_t
 _CTYPES_SPECIAL: dict[type, str] = {}
@@ -183,7 +186,7 @@ def normalize_type(tp: Any, globalns: Dict | None = None, localns: Dict | None =
     if origin is not None:
         args = typing.get_args(tp)
 
-        if origin in (np.ndarray, np.typing.NDArray):      # numpy arrays
+        if origin in (np.ndarray, np.typing.NDArray):  # numpy arrays
             dtype_args: tuple[Any, ...] = ()
             # origin should point to the original type type, unless it is generic; it's
             # probably debatable what it should be for numpy.ndarray, but for versions

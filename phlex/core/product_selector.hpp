@@ -67,6 +67,7 @@ namespace phlex {
 
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       operator T const&() const noexcept { return content_; }
+      explicit operator std::string_view() const noexcept { return std::string_view(content_); }
       bool operator==(required_layer_name const&) const noexcept = default;
 
     private:

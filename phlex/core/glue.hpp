@@ -35,7 +35,7 @@ namespace phlex::detail {
  *
  * The glue class acts as a registration helper that allows binding user-defined functions and algorithms
  * to nodes in a TBB flow graph. It provides methods to create different types of processing nodes like
- * fold, transform, observe, predicate etc.
+ * fold, observe, output, predicate, transform, and unfold.
  *
  * @tparam T The type of the object that contains the user-defined functions/algorithms to be registered.
  *           This object is stored as a shared pointer and its methods are bound to the created nodes.
