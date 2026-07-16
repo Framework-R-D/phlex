@@ -30,7 +30,7 @@ TARGET_VERSION=""
 
 # Iterate through version headers in CHANGELOG.md in order of appearance
 while read -r line; do
-  VERSION=$(echo "$line" | sed 's/^## //; s/ --- .*//')
+  VERSION=$(echo "$line" | awk '{print $2}')
 
   # A version is pending if:
   # 1. The tag doesn't exist yet.
