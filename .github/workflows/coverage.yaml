@@ -3,9 +3,9 @@ name: Code Coverage
 run-name: "${{ github.actor }} running code coverage"
 
 "on":
-  #  push:
-  #    branches: [main, "release/*"]
-  #  pull_request:
+  push:
+    branches: [main, "release/*"]
+  pull_request:
   issue_comment:
     types: [created]
   workflow_dispatch:
