@@ -18,7 +18,7 @@ git checkout main -q
 git pull --ff-only upstream main -q
 
 # Ensure CHANGELOG.md is committed before tagging
-if ! git diff --quiet CHANGELOG.md; then
+if ! git diff HEAD --quiet CHANGELOG.md; then
   echo "❌ ERROR: Uncommitted changes detected in CHANGELOG.md."
   echo "Please commit your changelog updates before running the release script."
   exit 1
