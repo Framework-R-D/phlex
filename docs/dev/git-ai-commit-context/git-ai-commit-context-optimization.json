@@ -1,5 +1,5 @@
 {
-  "goal": "Implement applicable recommendations from docs/dev/git_ai_commit_context_guidelines.md to maximize commit-message quality while minimizing prompt/context bloat in scripts/git-ai-commit, per the resolved decisions in .kilo/plans/1782915491660-git-ai-commit-context-optimization.md (hunk-aware truncation, two-tier caps, raw-length escalation, binary/generated skipping, reduced history depth, prompt trims, tests, and docs).",
+  "goal": "Implement applicable recommendations from docs/dev/git-ai-commit-context/git_ai_commit_context_guidelines.md to maximize commit-message quality while minimizing prompt/context bloat in scripts/git-ai-commit, per the resolved decisions in .kilo/plans/1782915491660-git-ai-commit-context-optimization.md (hunk-aware truncation, two-tier caps, raw-length escalation, binary/generated skipping, reduced history depth, prompt trims, tests, and docs).",
   "idempotent": false,
   "steps": [
     {

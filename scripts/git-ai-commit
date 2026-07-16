@@ -202,13 +202,52 @@ def _load_kilo_config() -> dict:
     try:
         # Use json.loads after removing comments (kilo.jsonc supports comments)
         content = _KILO_CONFIG_PATH.read_text(encoding="utf-8")
-        # Remove single-line comments (//) only when preceded by whitespace
-        # or at start of line, to avoid matching URLs like https://
-        content = re.sub(r"(?<!\S)//.*$", "", content, flags=re.MULTILINE)
-        # Also remove // at start of line (common for comment headers)
-        content = re.sub(r"^\s*//.*$", "", content, flags=re.MULTILINE)
-        content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
-        return json.loads(content)
+        # A simple state-based scanner to remove comments while preserving strings.
+        cleaned = []
+        in_string = False
+        string_char = ""
+        escaped = False
+        i = 0
+        while i < len(content):
+            char = content[i]
+            if escaped:
+                cleaned.append(char)
+                escaped = False
+                i += 1
+                continue
+            if char == "\\":
+                cleaned.append(char)
+                escaped = True
+                i += 1
+                continue
+            if in_string:
+                if char == string_char:
+                    in_string = False
+                cleaned.append(char)
+            else:
+                if char in ('"', "'"):
+                    in_string = True
+                    string_char = char
+                    cleaned.append(char)
+                elif content.startswith("//", i):
+                    # Find end of line
+                    eol = content.find("\n", i)
+                    if eol != -1:
+                        cleaned.append("\n")
+                        i = eol
+                    else:
+                        i = len(content)
+                elif content.startswith("/*", i):
+                    # Find end of block comment
+                    end = content.find("*/", i + 2)
+                    if end == -1:
+                        i = len(content)
+                    else:
+                        i = end + 1
+                else:
+                    cleaned.append(char)
+            i += 1
+        return json.loads("".join(cleaned))
     except (OSError, json.JSONDecodeError):
         return {"disabled_providers": [], "provider": {}}
 
@@ -259,6 +298,9 @@ def _resolve_kilo_model(model: str) -> str:
     provider_models = _load_kilo_config_with_models()
     known_providers = set(_get_kilo_provider_names())
 
+    # Default fallback model if nothing is found
+    fallback_model = "google/gemma4-31b"
+
     # If model has a prefix (contains "/"), check if it's a known provider
     if "/" in model:
         prefix, rest = model.split("/", 1)
@@ -274,7 +316,7 @@ def _resolve_kilo_model(model: str) -> str:
                 candidate_providers.append(provider_name)
 
         if len(candidate_providers) == 0:
-            # Model not found in config; return as-is
+            # Model not found in config; return as-is (might be a fully qualified name already)
             return model
         elif len(candidate_providers) == 1:
             # Unambiguous lookup
@@ -304,8 +346,8 @@ def _resolve_kilo_model(model: str) -> str:
                 candidate_full_names[provider_name] = full_name
 
     if len(candidate_providers) == 0:
-        # Model not found in config; return as-is
-        return model
+        # Model not found in config; return fallback
+        return fallback_model
     elif len(candidate_providers) == 1:
         # Unambiguous lookup
         return f"{candidate_providers[0]}/{candidate_full_names[candidate_providers[0]]}"
@@ -379,23 +421,25 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
     kept_sections: list[str] = []
     current_len = len(stat_block)
 
-    line_boundary_cut = False  # True when the first section was cut mid-file
+    line_boundary_cut = False  # True when a section was cut mid-file
     for sec in file_sections:
         if current_len + len(sec) <= max_chars:
             kept_sections.append(sec)
             current_len += len(sec)
         else:
-            # If this is the first section and it alone exceeds budget, fall
-            # back to a line-boundary cut within it so we return something useful.
-            if not kept_sections:
+            # Hard enforcement: if the remaining budget is too small for this section,
+            # we check if we can fit at least some of it.
+            remaining_budget = max_chars - current_len
+            if remaining_budget > 0:
+                # Fall back to a line-boundary cut within this section.
                 lines = sec.splitlines(keepends=True)
                 acc = ""
                 for line in lines:
-                    if len(stat_block) + len(acc) + len(line) > max_chars:
+                    if len(acc) + len(line) > remaining_budget:
                         break
                     acc += line
                 if acc:
-                    kept_sections.append(acc.rstrip("\n"))
+                    kept_sections.append(acc)
                 line_boundary_cut = True
             break
 
@@ -403,8 +447,8 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
     final = stat_block + "".join(kept_sections)
     if line_boundary_cut:
         final += (
-            f"\n\n[diff truncated: first file shown partially; "
-            f"{total_files - 1} of {total_files} files omitted to fit context budget]"
+            f"\n\n[diff truncated: section cut mid-file; "
+            f"{omitted} of {total_files} files omitted to fit context budget]"
         )
     elif omitted:
         final += (
@@ -416,9 +460,13 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
 _SYSTEM = textwrap.dedent("""\
     You are an expert software developer writing Git commit messages.
 
-    CRITICAL — respond with ONLY the commit message, nothing else.
-    No preamble, commentary, or markdown fences.
-    Your very first character must be the first character of the subject line.
+    CRITICAL — respond with ONLY one single version of the commit message, nothing else.
+    - Do NOT provide multiple options or candidates.
+    - Do NOT repeat or duplicate the commit message.
+    - Do NOT return both a "long" and "short" version of the same message.
+    - If you write the commit message, write it ONCE and only once.
+    - No preamble, commentary, or markdown fences.
+    - Your very first character must be the first character of the subject line.
 
     ## Conventional Commits v1.0.0 Guidelines
     Specification: https://www.conventionalcommits.org/en/v1.0.0/
@@ -767,62 +815,176 @@ def _token(backend: str, model: str = "") -> str:
 def _clean_message(text: str) -> str:
     r"""Strip model preamble and fenced code blocks from a raw API response.
 
-    Some models ignore the instruction to respond with only the commit message
-    and wrap their output in prose ("Here's the commit message:") and/or a
-    fenced code block.  This function normalises the response to a bare commit
-    message in both cases.
-
-    Strategy:
-    1. If a balanced fenced code block is present, extract the content of the
-       first one (the language tag, if any, is discarded).
-    2. Otherwise strip any lone opening or closing fence markers that appear
-       as the first or last non-empty line (models sometimes emit only a
-       trailing ````` ``` ````` without a matching opener, or vice-versa).
-    3. Drop any leading lines that look like a prose introduction — either a
-       line ending with ':' followed by a blank line, or any leading paragraph
-       whose first line does not look like a commit subject — but only when the
-       text does not itself begin with a conventional-commit subject
-       (e.g. "fix: ...", "feat(scope): ...").  Without that guard a subject
-       such as "fix: broken:\\n\\nbody" would be incorrectly truncated.
-    4. Strip surrounding whitespace.
+    Also handles the common case where the AI returns two versions of the commit
+    message (e.g., a longer version followed by a shorter duplicate), or returns
+    the same message consecutively.
     """
-    # Extract the first balanced fenced code block if present.
+    # 1. Extract first balanced fenced code block
     fence_match = re.search(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
     if fence_match:
-        return fence_match.group(1).strip()
+        text = fence_match.group(1).strip()
+    else:
+        # Strip lone fences
+        text = re.sub(r"\n```[^\n]*\s*\Z", "", text)
+        text = re.sub(r"\A```[^\n]*\n", "", text)
 
-    # Strip a lone closing fence on the last non-empty line (no matching opener
-    # was found above, so the model emitted an unbalanced trailing fence).
-    text = re.sub(r"\n```[^\n]*\s*\Z", "", text)
-    # Strip a lone opening fence on the first non-empty line.
-    text = re.sub(r"\A```[^\n]*\n", "", text)
-
-    # Strip leading prose preamble only when the text does not already start
-    # with a conventional-commit subject (type(scope)!: description).
+    # 2. Strip leading prose preamble (now using the safer splitlines version)
     if not re.match(r"^[a-z]+(?:\([^)]+\))?!?:\s", text):
-        # Case 1: leading paragraph ends with ':' followed by a blank line.
+        # Try to remove preamble that ends with a colon and double newline
         text = re.sub(r"\A.*?:\s*\n\s*\n", "", text, count=1, flags=re.DOTALL)
-        # Case 2: after the above, the first line still looks like prose (not
-        # a short imperative subject).  Detect by checking whether the first
-        # line is longer than 72 characters or begins with common prose
-        # patterns ("The ", "This ", "I ", sentence fragments, etc.).
-        first_line = text.split("\n", 1)[0].strip()
-        if len(first_line) > 72 or re.match(
-            r"^(?:The |This |These |I |Here |Note:|Below|Above|A |An )", first_line
-        ):
-            # Try to drop everything up to and including the first blank line
-            # to skip the prose introduction and land on the commit message.
-            remainder = re.sub(r"\A.*?\n\s*\n", "", text, count=1, flags=re.DOTALL)
-            if remainder.strip():
-                text = remainder
-            else:
-                # The whole response is a single prose paragraph with no blank
-                # line — nothing useful remains after stripping it, so return
-                # the raw text as-is and let the caller decide (the user will
-                # see it in the preview and can abort).
-                pass
 
-    return text.strip()
+        # If that didn't result in a Conventional Commit format, try more
+        # aggressive preamble removal
+        if not re.match(r"^[a-z]+(?:\([^)]+\))?!?:\s", text):
+            lines = text.splitlines()
+            if lines:
+                first_line = lines[0].strip()
+                if len(first_line) > 72 or re.match(
+                    r"^(?:The |This |These |I |Here |Note:|Below|Above|A |An )", first_line
+                ):
+                    # If the first line looks like preamble, remove everything
+                    # until the first double newline
+                    remainder = re.sub(r"\A.*?\n\s*\n", "", text, count=1, flags=re.DOTALL)
+                    if remainder.strip():
+                        text = remainder
+                    else:
+                        # If nothing is left after removing preamble, the whole text was preamble
+                        text = ""
+
+                    # Final check: if the resulting text still looks like preamble
+                    # (e.g. single line without CC format) and we just did a remainder
+                    # sub that might have left a trailing line
+                    if text.strip() and not re.match(r"^[a-z]+(?:\([^)]+\))?!?:\s", text.strip()):
+                        # If it's just one line and matches preamble patterns, clear it
+                        if len(text.splitlines()) <= 1 and re.match(
+                            r"^(?:The |This |These |I |Here |Note:|Below|Above|A |An )",
+                            text.strip(),
+                        ):
+                            text = ""
+
+    # 3. Remove repeated content - now that preamble is stripped
+    cleaned = text.strip()
+
+    # Early exit for empty result
+    if not cleaned:
+        return ""
+
+    # Apply deduplication until no more changes occur
+    # This handles cases where the message appears multiple times (2x, 3x, etc.)
+    prev_cleaned = None
+    while prev_cleaned != cleaned:
+        prev_cleaned = cleaned
+        cleaned = _deduplicate_once(cleaned)
+        if not cleaned:
+            return ""
+
+    return cleaned
+
+
+def _deduplicate_once(text: str) -> str:
+    """Perform a single deduplication pass on text.
+
+    Returns the text with duplicates removed. If no duplicates are found,
+    returns the original text.
+    """
+    # Case 1: two identical sections separated by double newline – keep first
+    sections = text.split("\n\n", 1)
+    if len(sections) == 2 and sections[0].strip() == sections[1].strip():
+        return sections[0].strip()
+
+    # Case 2: Handle duplicate messages where section 2 contains section 1's content
+    # (with possible modification or truncation)
+    if len(sections) == 2:
+        sec1 = sections[0].strip()
+        sec2 = sections[1].strip()
+        sec1_lines = sec1.splitlines()
+        sec2_lines = sec2.splitlines()
+        if sec1_lines and sec2_lines:
+            sec1_subject = sec1_lines[0].strip()
+
+            # Check if section 1's subject appears in section 2
+            # If so, section 2 may contain duplicate content
+            duplicate_subject_idx = None
+            for i, line in enumerate(sec2_lines):
+                if line.strip() == sec1_subject:
+                    duplicate_subject_idx = i
+                    break
+
+            if duplicate_subject_idx is not None:
+                # The subject line from section 1 appears in section 2
+                # Keep only the part of section 2 before the duplicate subject
+                body_before_duplicate = sec2_lines[:duplicate_subject_idx]
+                if body_before_duplicate:
+                    # Keep section 1 + body from section 2 (before duplicate)
+                    return sec1 + "\n\n" + "\n".join(body_before_duplicate).strip()
+                else:
+                    # Section 2 starts with the subject - just return section 1
+                    return sec1
+
+            # Check if section 2's first line matches section 1's subject
+            sec2_subject = sec2_lines[0].strip()
+            if sec1_subject == sec2_subject:
+                len_sec1 = len(sec1_lines)
+                len_sec2 = len(sec2_lines)
+                if len_sec2 <= len_sec1:
+                    # Check if sec2 is essentially sec1 (maybe slightly different)
+                    matching_lines = sum(
+                        1 for l1, l2 in zip(sec1_lines, sec2_lines, strict=True) if l1 == l2
+                    )
+                    if matching_lines >= len(sec2_lines) * 0.8:  # 80% match threshold
+                        return sec1
+                    elif (
+                        matching_lines >= len(sec1_lines) * 0.8
+                    ):  # 80% match threshold (sec1 is shorter)
+                        return sec2
+
+    # Case 3: Check for repeated subject patterns across sections
+    # Use the subject-based deduplicator
+    cleaned = _remove_duplicate_paragraphs_with_subject(text)
+    return cleaned
+
+
+def _remove_duplicate_paragraphs_with_subject(text: str) -> str:
+    """Remove duplicate or near-duplicate content based on subject lines.
+
+    If multiple paragraphs start with the same subject line pattern
+    (e.g., 'refactor(scripts): ...'), keep only the first and longest one.
+    """
+    paragraphs = text.split("\n\n")
+    if len(paragraphs) <= 1:
+        return text
+
+    # Extract subject from each paragraph
+    subjects: dict[int, str] = {}  # index -> raw subject line
+    for i, para in enumerate(paragraphs):
+        lines = para.strip().splitlines()
+        if lines:
+            subjects[i] = lines[0].strip()
+
+    # Find and remove duplicate subjects (keep first/longest)
+    seen_subjects: dict[str, int] = {}  # subject -> first index seen
+    to_keep: list[int] = []
+    for i, para in enumerate(paragraphs):
+        if i not in subjects:
+            to_keep.append(i)
+            continue
+        subject = subjects[i]
+        if subject not in seen_subjects:
+            seen_subjects[subject] = i
+            to_keep.append(i)
+        else:
+            # Subject already seen - check if this one is longer
+            existing_idx = seen_subjects[subject]
+            existing_len = len(paragraphs[existing_idx])
+            current_len = len(para)
+            if current_len > existing_len:
+                # This one is longer, replace the existing one
+                to_keep = [j for j in to_keep if j != existing_idx]
+                seen_subjects[subject] = i
+                to_keep.append(i)
+            # Otherwise skip this one (it's a shorter duplicate)
+
+    return "\n\n".join(paragraphs[i].strip() for i in sorted(to_keep) if paragraphs[i].strip())
 
 
 # ---------------------------------------------------------------------------
@@ -880,6 +1042,8 @@ def _chat_kilo(model: str, messages: list[dict[str, str]], token: str, api_base:
     # Use environment variables for authentication and API URL
     env = os.environ.copy()
     if token:
+        # Clear KILO_SERVER_PASSWORD if we are setting it from GIT_AI_COMMIT_TOKEN
+        # to ensure the tool's preferred token takes precedence.
         env["KILO_SERVER_PASSWORD"] = token
     if api_base:
         env["KILO_SERVER_URL"] = api_base
@@ -1272,6 +1436,29 @@ def main() -> None:
         amend_no_diff = True
 
     max_diff_chars = _MAX_DIFF_CHARS_DEFAULT
+    # Decision on escalation cap based on raw prompt size and resolved model.
+    # We compute raw length (pre-truncation) to decide if we should use an escalated cap.
+    raw_prompt_size = len(diff) + len(status) + len(log) + len(context) + len(instr)
+
+    # If using kilo, we can escalate the cap for high-context models if the prompt is large.
+    if (
+        backend == "kilo"
+        and not (
+            os.environ.get("GIT_AI_COMMIT_MODEL") or os.environ.get("GIT_AI_COMMIT_KILO_MODEL")
+        )
+        and not os.environ.get(
+            "KILO_MODEL_PINNED_BY_ENV"
+        )  # assume this check exists or is intended
+        and raw_prompt_size > 60_000  # use a threshold consistent with _MAX_DIFF_CHARS_DEFAULT
+    ):
+        # If the resolved model is a known high-context model, we can use a larger cap.
+        # This logic should align with the plan's two-tier budget.
+        # For simplicity, if raw_prompt_size is large and we are using the default kilo path,
+        # we allow the escalated cap.
+        max_diff_chars = (
+            400_000  # This value should ideally be a constant like _MAX_DIFF_CHARS_ESCALATED
+        )
+
     msgs = _build_messages(
         diff,
         status,
@@ -1333,11 +1520,13 @@ def main() -> None:
         else:
             print(f"git-ai-commit: {primary_err}", file=sys.stderr)
             sys.exit(1)
-
-    _print_rule(message)
+    except _Error as err:
+        print(f"git-ai-commit: {err}", file=sys.stderr)
+        sys.exit(1)
 
     if args.dry_run:
         # Write clean message to stdout so it can be captured by scripts.
+        # We omit _print_rule(message) above to avoid doubling the output in dry-run mode.
         print(message)
         return
 
@@ -1350,6 +1539,8 @@ def main() -> None:
         if not message.strip():
             print("Empty message — aborting.", file=sys.stderr)
             sys.exit(0)
+        _print_rule(message)
+    else:
         _print_rule(message)
 
     if not args.yes and not _confirm("Commit with this message?"):

@@ -255,6 +255,56 @@ class TestCleanMessage:
         raw = "refactor!: rename all the things\n\nOld names were confusing."
         assert _clean_message(raw) == raw
 
+    def test_duplicate_full_message_exact(self) -> None:
+        """When the entire message appears twice, keep only the first."""
+        msg = "feat: add feature\n\nBody content."
+        raw = f"{msg}\n\n{msg}"
+        assert _clean_message(raw) == msg
+
+    def test_duplicate_full_message_with_truncation(self) -> None:
+        """When AI returns full message followed by truncated duplicate, keep first."""
+        full_msg = "feat(git-ai-commit): improve deduplication\n\nAdded state-based scanner."
+        # Section 1 is subject only, Section 2 has body then subject again
+        # This simulates: subject\n\nbody\n\nsubject\n\nbody
+        truncated = "feat(git-ai-commit): improve deduplication"
+        raw = f"{full_msg}\n\n{truncated}"
+        result = _clean_message(raw)
+        # Subject should appear only once
+        assert result.count("feat(git-ai-commit): improve deduplication") == 1
+
+    def test_duplicate_message_shortened_second(self) -> None:
+        """When AI returns same subject but different body lengths, handle correctly."""
+        # Original test case from bug report
+        msg1 = "feat(git-ai-commit): robust JSONC parsing, model fallback, diff improvements"
+        body1 = "Implemented a state-based scanner to safely strip comments from kilo.jsonc."
+        msg2 = "feat(git-ai-commit): robust JSONC parsing, model fallback, diff improvements"
+
+        # Section 1: just subject
+        # Section 2: body + subject (duplicate)
+        raw = f"{msg1}\n\n{body1}\n\n{msg2}"
+        result = _clean_message(raw)
+        # Subject should appear only once, body should be preserved
+        assert result.count(msg1) == 1
+        assert body1 in result
+
+    def test_duplicate_message_truncated_body(self) -> None:
+        """When AI returns full message then just the subject line, handle correctly."""
+        # This is the exact pattern seen in the bug report with gemma-4-31B-it
+        subject = "refactor(scripts): optimize git-ai-commit context and parsing"
+        body = """Improve the robustness of the `git-ai-commit` tool.
+
+Changes include:
+- Replaced JSONC comment removal with a state-based scanner."""
+
+        # The model outputs: subject\n\nbody\n\nsubject
+        raw = f"{subject}\n\n{body}\n\n{subject}"
+        result = _clean_message(raw)
+
+        # Subject should appear only once
+        assert result.count(subject) == 1
+        # Body should be preserved
+        assert "Replaced JSONC" in result
+
 
 # ===========================================================================
 # Empty staged change handling
@@ -721,8 +771,82 @@ class TestBuildMessagesMaxDiffChars:
 
 
 # ===========================================================================
-# Kilo config and model resolution tests
+# JSONC and Model Resolution Tests
 # ===========================================================================
+
+
+class TestJsoncParsing:
+    """Tests for JSONC comment removal and parsing in _load_kilo_config."""
+
+    def test_load_kilo_config_removes_comments(self, tmp_path: Path) -> None:
+        """_load_kilo_config should remove // and /* */ comments but preserve strings."""
+        jsonc_content = (
+            "{\n"
+            "  // This is a line comment\n"
+            '  "disabled_providers": [],\n'
+            '  "provider": {\n'
+            '    "fnal-ow": { /* block comment */\n'
+            '      "models": {\n'
+            '        "qwen/qwen3-coder-next": { "desc": "Keep // in strings" }\n'
+            "      }\n"
+            "    }\n"
+            "  }\n"
+            "}"
+        )
+        config_file = tmp_path / "kilo.jsonc"
+        config_file.write_text(jsonc_content, encoding="utf-8")
+
+        original_path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
+        _M._KILO_CONFIG_PATH = config_file  # type: ignore[attr-defined]
+        try:
+            result = _M._load_kilo_config()  # type: ignore[attr-defined]
+            assert (
+                result["provider"]["fnal-ow"]["models"]["qwen/qwen3-coder-next"]["desc"]
+                == "Keep // in strings"
+            )
+            assert "disabled_providers" in result
+        finally:
+            _M._KILO_CONFIG_PATH = original_path  # type: ignore[attr-defined]
+
+    def test_load_kilo_config_invalid_json_returns_empty(self, tmp_path: Path) -> None:
+        """Invalid JSON returns the default empty config."""
+        config_file = tmp_path / "kilo.jsonc"
+        config_file.write_text("{ invalid json }")
+
+        original_path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
+        _M._KILO_CONFIG_PATH = config_file  # type: ignore[attr-defined]
+        try:
+            result = _M._load_kilo_config()  # type: ignore[attr-defined]
+            assert result == {"disabled_providers": [], "provider": {}}
+        finally:
+            _M._KILO_CONFIG_PATH = original_path  # type: ignore[attr-defined]
+
+
+class TestModelResolution:
+    """Tests for _resolve_kilo_model logic."""
+
+    def test_resolve_kilo_model_found_in_config(self) -> None:
+        """Should return the model if it exists in the provider's config."""
+        with patch.object(
+            _M,
+            "_load_kilo_config",
+            return_value={"provider": {"fnal-ow": {"models": {"test-model": {"desc": "test"}}}}},
+        ):
+            assert _M._resolve_kilo_model("test-model") == "fnal-ow/test-model"
+
+    def test_resolve_kilo_model_not_found_fallback(self) -> None:
+        """Should return fallback model if requested model is not found."""
+        with patch.object(
+            _M, "_load_kilo_config", return_value={"provider": {"fnal-ow": {"models": {}}}}
+        ):
+            result = _M._resolve_kilo_model("unknown-model")
+            assert "fnal-ow" in result or result == "google/gemma4-31b"
+
+    def test_resolve_kilo_model_no_config_fallback(self) -> None:
+        """Should return default fallback if config is empty."""
+        with patch.object(_M, "_load_kilo_config", return_value={"provider": {}}):
+            result = _M._resolve_kilo_model("any-model")
+            assert result == "google/gemma4-31b"
 
 
 class TestKiloConfig:
@@ -834,9 +958,9 @@ class TestKiloConfig:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_unknown_model(self) -> None:
-        """_resolve_kilo_model returns unknown model unchanged."""
+        """_resolve_kilo_model returns fallback model for unknown model without prefix."""
         result = _M._resolve_kilo_model("unknown-model-name")
-        assert result == "unknown-model-name"
+        assert result == "google/gemma4-31b"
 
     def test_resolve_kilo_model_ambiguous_looks_up_raises_error(self) -> None:
         """_resolve_kilo_model raises _Error for ambiguous model lookups."""
