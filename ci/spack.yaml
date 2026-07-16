@@ -8,6 +8,7 @@ spack:
   specs:
     - phlex
     - catch2
+    - cetmodules
     - cmake
     - lcov
     - ninja
@@ -37,10 +38,11 @@ spack:
       require:
         - "~qtgui"
         - "@4:"
+        - "target=x86_64_v3"
 
     llvm:
       require:
-        - "%c,cxx=gcc@15"
+        - "target=x86_64_v3"
 
     phlex:
       require:
