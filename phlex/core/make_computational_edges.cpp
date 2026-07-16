@@ -201,8 +201,6 @@ namespace phlex::detail {
       return {};
     }
 
-    edges_to_outputs(nodes.providers, producers, nodes.outputs);
-
     auto [explicit_provider_input_ports, unconsumed_head_ports] =
       edges_from_explicit_providers(std::move(head_ports), nodes.providers);
 
@@ -219,6 +217,9 @@ namespace phlex::detail {
       }
       throw std::runtime_error(error_msg);
     }
+
+    // Make edges to outputs after both implicit and explicit providers have been registered.
+    edges_to_outputs(nodes.providers, producers, nodes.outputs);
 
     // Combine implicit and explicit provider input ports.
     auto provider_input_ports = std::move(explicit_provider_input_ports);
