@@ -82,7 +82,7 @@ REPO_FULL_NAME=$(gh repo view --json nameWithOwner --jq '.nameWithOwnership')
 echo "-> Found Target Release SHA: $NEW_SHA"
 echo "-> Modifying local README string tokens..."
 
-OLD_PATTERN="${REPO_FULL_NAME}@[0-9a-f]\{40\} # v[0-9]*"
+OLD_PATTERN="${REPO_FULL_NAME}@[0-9a-f]\{40\} # v[-0-9a-zA-Z.]*"
 NEW_STRING="${REPO_FULL_NAME}@${NEW_SHA} # ${NEXT_VERSION}"
 
 if grep -q "$NEW_STRING" README.md; then
