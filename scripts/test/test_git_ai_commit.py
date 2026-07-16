@@ -871,11 +871,13 @@ class TestKiloConfig:
         finally:
             _M._KILO_CONFIG_PATH = original  # type: ignore[attr-defined]
 
-    def test_load_kilo_config_with_models_maps_providers(self) -> None:
+    def test_load_kilo_config_with_models_maps_providers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """_load_kilo_config_with_models returns provider-to-models mapping."""
         # Mock the config to have fnal-ow and fnal-azure providers with test models
         mock_config = {
-            "disabled_providers": [],
+            "disabled_providers": ["fnal-azure"],
             "provider": {
                 "fnal-ow": {
                     "models": {
@@ -891,25 +893,50 @@ class TestKiloConfig:
                 },
             },
         }
-        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
-        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
-        try:
-            mapping = _M._load_kilo_config_with_models()
-            # fnal-ow should be a provider in the mapping
-            assert "fnal-ow" in mapping
-            assert "fnal-azure" in mapping
-            # mapping[provider] = models_dict (models are directly in the dict)
-            assert "qwen/qwen3-coder-next" in mapping["fnal-ow"]
-            assert "qwen/qwen2.5-32b" in mapping["fnal-ow"]
-            assert "azure/gpt-5-nano" in mapping["fnal-azure"]
-        finally:
-            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
+        monkeypatch.setattr(_M, "_load_kilo_config", lambda: mock_config)  # type: ignore[attr-defined]
+
+        mapping = _M._load_kilo_config_with_models()  # type: ignore[attr-defined]
+        # fnal-ow should be a provider in the mapping
+        assert "fnal-ow" in mapping
+        # fnal-azure should be EXCLUDED because it is disabled
+        assert "fnal-azure" not in mapping
+        # mapping[provider] = models_dict (models are directly in the dict)
+        assert "qwen/qwen3-coder-next" in mapping["fnal-ow"]
+        assert "qwen/qwen2.5-32b" in mapping["fnal-ow"]
 
     def test_resolve_kilo_model_with_known_provider_prefix(self) -> None:
         """_resolve_kilo_model returns model unchanged if provider prefix is known."""
         # When the prefix (fnal-ow) is a known provider, model is passed as-is
         result = _M._resolve_kilo_model("fnal-ow/qwen3-coder-next")
         assert result == "fnal-ow/qwen3-coder-next"
+
+    def test_resolve_kilo_model_disabled_provider_prefix_is_treated_as_model_name(self) -> None:
+        """If provider prefix is disabled, it's treated as part of the model name."""
+        mock_config = {
+            "disabled_providers": ["disabled-prov"],
+            "provider": {
+                "enabled-prov": {
+                    "models": {
+                        "disabled-prov/model-x": {},
+                    }
+                },
+                "disabled-prov": {
+                    "models": {
+                        "model-x": {},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
+        try:
+            # "disabled-prov" is disabled, so it's not a "known provider".
+            # "disabled-prov/model-x" is looked up as a whole.
+            # It's found in "enabled-prov".
+            result = _M._resolve_kilo_model("disabled-prov/model-x")
+            assert result == "enabled-prov/disabled-prov/model-x"
+        finally:
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_unknown_provider_prefix_looks_up_model(
         self,
@@ -964,9 +991,9 @@ class TestKiloConfig:
 
     def test_resolve_kilo_model_ambiguous_looks_up_raises_error(self) -> None:
         """_resolve_kilo_model raises _Error for ambiguous model lookups."""
-        # Model exists under multiple providers
+        # Model exists under multiple providers, but one is disabled
         mock_config = {
-            "disabled_providers": [],
+            "disabled_providers": ["fnal-azure"],
             "provider": {
                 "fnal-ow": {
                     "models": {
@@ -978,6 +1005,25 @@ class TestKiloConfig:
                         "qwen/qwen3-coder-next": {},
                     }
                 },
+            },
+        }
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
+        try:
+            # Only fnal-ow is enabled, so this should NOT be ambiguous anymore.
+            # It should resolve to fnal-ow/qwen/qwen3-coder-next
+            result = _M._resolve_kilo_model("qwen3-coder-next")
+            assert result == "fnal-ow/qwen/qwen3-coder-next"
+        finally:
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
+
+    def test_resolve_kilo_model_still_ambiguous_when_multiple_enabled(self) -> None:
+        """_resolve_kilo_model still raises _Error if multiple enabled providers have the model."""
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}},
+                "fnal-azure": {"models": {"qwen/qwen3-coder-next": {}}},
             },
         }
         original_load = _M._load_kilo_config  # type: ignore[attr-defined]

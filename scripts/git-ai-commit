@@ -259,11 +259,12 @@ def _load_kilo_config_with_models() -> dict[str, dict[str, str]]:
     For example: {"fnal-ow": {"qwen/qwen3-coder-next": {...}, ...}}
     """
     config = _load_kilo_config()
+    disabled = set(config.get("disabled_providers", []))
     provider_config = config.get("provider", {})
     mapping: dict[str, dict[str, str]] = {}
 
     for provider_name, provider_data in provider_config.items():
-        if not isinstance(provider_data, dict):
+        if provider_name in disabled or not isinstance(provider_data, dict):
             continue
         models = provider_data.get("models", {})
         if not isinstance(models, dict):
@@ -276,8 +277,9 @@ def _load_kilo_config_with_models() -> dict[str, dict[str, str]]:
 def _get_kilo_provider_names() -> list[str]:
     """Return the list of known Kilo config provider names."""
     config = _load_kilo_config()
+    disabled = set(config.get("disabled_providers", []))
     provider_config = config.get("provider", {})
-    return list(provider_config.keys())
+    return [name for name in provider_config.keys() if name not in disabled]
 
 
 def _resolve_kilo_model(model: str) -> str:
