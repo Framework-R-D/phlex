@@ -300,8 +300,9 @@ def _resolve_kilo_model(model: str) -> str:
     provider_models = _load_kilo_config_with_models()
     known_providers = set(_get_kilo_provider_names())
 
-    # Default fallback model if nothing is found
-    fallback_model = "google/gemma4-31b"
+    # If no model is provided, use the default
+    if not model:
+        return _DEFAULT_MODEL_KILO
 
     # If model has a prefix (contains "/"), check if it's a known provider
     if "/" in model:
@@ -318,7 +319,7 @@ def _resolve_kilo_model(model: str) -> str:
                 candidate_providers.append(provider_name)
 
         if len(candidate_providers) == 0:
-            # Model not found in config; return as-is (might be a fully qualified name already)
+            # Model not found in config; return as-is
             return model
         elif len(candidate_providers) == 1:
             # Unambiguous lookup
@@ -348,8 +349,8 @@ def _resolve_kilo_model(model: str) -> str:
                 candidate_full_names[provider_name] = full_name
 
     if len(candidate_providers) == 0:
-        # Model not found in config; return fallback
-        return fallback_model
+        # Model not found in config; return as-is
+        return model
     elif len(candidate_providers) == 1:
         # Unambiguous lookup
         return f"{candidate_providers[0]}/{candidate_full_names[candidate_providers[0]]}"

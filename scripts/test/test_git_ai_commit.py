@@ -835,18 +835,18 @@ class TestModelResolution:
             assert _M._resolve_kilo_model("test-model") == "fnal-ow/test-model"
 
     def test_resolve_kilo_model_not_found_fallback(self) -> None:
-        """Should return fallback model if requested model is not found."""
+        """Should return requested model if not found in config."""
         with patch.object(
             _M, "_load_kilo_config", return_value={"provider": {"fnal-ow": {"models": {}}}}
         ):
             result = _M._resolve_kilo_model("unknown-model")
-            assert "fnal-ow" in result or result == "google/gemma4-31b"
+            assert result == "unknown-model"
 
     def test_resolve_kilo_model_no_config_fallback(self) -> None:
-        """Should return default fallback if config is empty."""
+        """Should return requested model if config is empty."""
         with patch.object(_M, "_load_kilo_config", return_value={"provider": {}}):
             result = _M._resolve_kilo_model("any-model")
-            assert result == "google/gemma4-31b"
+            assert result == "any-model"
 
 
 class TestKiloConfig:
@@ -985,9 +985,9 @@ class TestKiloConfig:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_unknown_model(self) -> None:
-        """_resolve_kilo_model returns fallback model for unknown model without prefix."""
+        """_resolve_kilo_model returns default model for unknown model without prefix."""
         result = _M._resolve_kilo_model("unknown-model-name")
-        assert result == "google/gemma4-31b"
+        assert result == "unknown-model-name"
 
     def test_resolve_kilo_model_ambiguous_looks_up_raises_error(self) -> None:
         """_resolve_kilo_model raises _Error for ambiguous model lookups."""
