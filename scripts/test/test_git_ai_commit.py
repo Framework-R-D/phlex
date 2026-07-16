@@ -67,7 +67,7 @@ _APIError: type[Exception] = _M._APIError  # type: ignore[attr-defined]
 class TestKiloAuthToken:
     """_kilo_auth_token validates the kilo credentials file before reading."""
 
-    _PROVIDER = "fnal-azure"
+    _PROVIDER = "fnal-litellm"
 
     def _write(self, path: Path, obj: object) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -75,9 +75,7 @@ class TestKiloAuthToken:
 
     def _setup(self, monkeypatch: pytest.MonkeyPatch, path: Path) -> None:
         monkeypatch.setattr(_M, "_KILO_AUTH_JSON", path)
-        # _kilo_auth_token iterates _KILO_PROVIDER_FALLBACKS; pin it to a single
-        # provider for the single-provider test cases below.
-        monkeypatch.setattr(_M, "_KILO_PROVIDER_FALLBACKS", [self._PROVIDER])
+        monkeypatch.setattr(_M, "_DEFAULT_KILO_PROVIDER", self._PROVIDER)
 
     def test_file_missing_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -174,42 +172,6 @@ class TestKiloAuthToken:
         self._write(p, {self._PROVIDER: {"key": "tok123"}})
         self._setup(monkeypatch, p)
         assert _kilo_auth_token() == "tok123"
-
-    def test_provider_fallback_order(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """First present provider in the fallback list wins.
-
-        The retired fnal-litellm provider was split into fnal-azure and
-        fnal-ow; _kilo_auth_token tries the list in order and returns the first
-        provider that has a usable key, skipping absent earlier entries.
-        """
-        p = tmp_path / "auth.json"
-        # fnal-azure absent; fnal-ow present -> fnal-ow key is used.
-        self._write(p, {"fnal-ow": {"key": "ow-token"}})
-        monkeypatch.setattr(_M, "_KILO_AUTH_JSON", p)
-        monkeypatch.setattr(
-            _M, "_KILO_PROVIDER_FALLBACKS", ["fnal-azure", "fnal-ow", "fnal-litellm"]
-        )
-        assert _kilo_auth_token() == "ow-token"
-
-    def test_provider_fallback_prefers_earlier(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """When multiple providers are present, the earliest in the list wins."""
-        p = tmp_path / "auth.json"
-        self._write(
-            p,
-            {
-                "fnal-azure": {"key": "azure-token"},
-                "fnal-ow": {"key": "ow-token"},
-            },
-        )
-        monkeypatch.setattr(_M, "_KILO_AUTH_JSON", p)
-        monkeypatch.setattr(
-            _M, "_KILO_PROVIDER_FALLBACKS", ["fnal-azure", "fnal-ow", "fnal-litellm"]
-        )
-        assert _kilo_auth_token() == "azure-token"
 
 
 # ===========================================================================

@@ -77,12 +77,11 @@ Environment variables
   GIT_AI_COMMIT_KILO_API      kilo backend base URL (default: https://litellm.fnal.gov/v1)
   GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5);
                               setting this env var suppresses auto-escalation
-  GIT_AI_COMMIT_KILO_PROVIDER kilo auth.json provider key (default: tries
-                              fnal-azure, then fnal-ow, then legacy fnal-litellm)
+  GIT_AI_COMMIT_KILO_PROVIDER kilo auth.json provider key (default: fnal-litellm)
 
 Token resolution (kilo backend):
   1. GIT_AI_COMMIT_TOKEN
-  2. ~/.local/share/kilo/auth.json  (fnal-azure / fnal-ow key)
+  2. ~/.local/share/kilo/auth.json  (fnal-litellm key)
   3. GITHUB_TOKEN / GH_TOKEN
   4. `gh auth token`
   5. ~/.config/gh/hosts.yml
@@ -129,18 +128,7 @@ _DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or "azure/claude-haiku-4-5"
 # True when the user has explicitly pinned a kilo model via the environment,
 # which suppresses auto-escalation even if the diff is large.
 _KILO_MODEL_PINNED_BY_ENV = bool(_KILO_MODEL_ENV)
-# auth.json provider key(s) that hold the FNAL gateway API token.  The former
-# single "fnal-litellm" provider was split into "fnal-azure" and "fnal-ow",
-# which share the same upstream key; "fnal-litellm" is retired.  When the user
-# does not pin GIT_AI_COMMIT_KILO_PROVIDER, try the new keys in order (and the
-# retired name last, for any un-migrated auth.json).  git-ai-commit talks to
-# the LiteLLM gateway directly, so the provider key only selects the auth
-# token — model names remain bare (e.g. "azure/...", "qwen/...").
-_KILO_PROVIDER_ENV = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "").strip()
-_DEFAULT_KILO_PROVIDER = _KILO_PROVIDER_ENV or "fnal-azure"
-_KILO_PROVIDER_FALLBACKS = (
-    [_KILO_PROVIDER_ENV] if _KILO_PROVIDER_ENV else ["fnal-azure", "fnal-ow", "fnal-litellm"]
-)
+_DEFAULT_KILO_PROVIDER = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "fnal-litellm")
 _DEFAULT_MODEL_OTHER = "gpt-4o"
 
 _MAX_DIFF_CHARS = 60_000
@@ -384,11 +372,8 @@ def _get_instructions(root: Path) -> str:
 def _kilo_auth_token() -> str | None:
     """Read the kilo provider API key from kilo's auth.json, if present.
 
-    The provider name(s) come from GIT_AI_COMMIT_KILO_PROVIDER when set;
-    otherwise the split FNAL providers are tried in order
-    ("fnal-azure", "fnal-ow", then the retired "fnal-litellm").  These share
-    the same upstream gateway token, so the first present key wins.  The names
-    match the provider keys in ~/.config/kilo/kilo.jsonc.
+    The provider name is taken from GIT_AI_COMMIT_KILO_PROVIDER (default:
+    "fnal-litellm"), matching the key used in ~/.config/kilo/kilo.jsonc.
     """
     if not _KILO_AUTH_JSON.exists():
         return None
@@ -398,14 +383,13 @@ def _kilo_auth_token() -> str | None:
         return None
     if not isinstance(data, dict):
         return None
-    for provider_name in _KILO_PROVIDER_FALLBACKS:
-        provider = data.get(provider_name)
-        if not isinstance(provider, dict):
-            continue
-        key = provider.get("key", "")
-        if isinstance(key, str) and key.strip():
-            return key.strip()
-    return None
+    provider = data.get(_DEFAULT_KILO_PROVIDER)
+    if not isinstance(provider, dict):
+        return None
+    key = provider.get("key", "")
+    if not isinstance(key, str):
+        return None
+    return key.strip() or None
 
 
 def _gh_config_token() -> str | None:
@@ -478,8 +462,8 @@ def _token(backend: str) -> str:
     if backend == "kilo":
         raise _Error(
             "No FNAL LiteLLM token found. "
-            "Ensure kilo is configured with the fnal-azure or fnal-ow "
-            "provider, or set GIT_AI_COMMIT_TOKEN."
+            "Ensure kilo is configured with the fnal-litellm provider, or "
+            "set GIT_AI_COMMIT_TOKEN."
         )
     raise _Error(
         "No API token found. Set GIT_AI_COMMIT_TOKEN, GITHUB_TOKEN, or run 'gh auth login'."
