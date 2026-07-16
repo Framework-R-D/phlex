@@ -139,7 +139,7 @@ for ((tier=1; tier < CURRENT_TIER; tier++)); do
 
           # 2. Check for version mismatch
           DEP_TAG=${LATEST_TAGS["$dep"]}
-          REF_VERSION=$(grep "uses: Framework-R-D/action-$dep" "actions/$repo/action.yaml" | sed -E 's/.*# ([^ ]+).*/\1/' | head -n 1 || true)
+          REF_VERSION=$(grep "uses: Framework-R-D/action-$dep" "actions/$repo/action.yaml" | sed -nE 's/.*# ([^ ]+).*/\1/p' | head -n 1 || true)
           if [ -n "$REF_VERSION" ] && [ "$DEP_TAG" != "NONE" ]; then
             if [ "$(printf '%s\n%s' "$REF_VERSION" "$DEP_TAG" | sort -V | tail -n 1)" != "$REF_VERSION" ]; then
                echo "   ⚠️  Dependency $dep is at version $DEP_TAG, but $repo refers to $REF_VERSION"
