@@ -73,33 +73,36 @@ for repo in "${ACTION_REPOS[@]}"; do
     cd "actions/$repo" || exit 1
     git fetch --tags -q
     TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "NONE")
-    echo "TAG=$TAG"
+    echo "REPO_TAG=$TAG"
     if [ "$TAG" != "NONE" ]; then
-      CHANGES=$(git log "${TAG}..HEAD" --oneline -- action.yaml 2>/dev/null || echo "")
-      if [ -n "$CHANGES" ]; then
-        echo "CHANGES=YES"
+      REPO_CHANGES=$(git log "${TAG}..HEAD" --oneline -- action.yaml 2>/dev/null || echo "")
+      if [ -n "$REPO_CHANGES" ]; then
+        echo "REPO_CHANGES=YES"
       else
-        echo "CHANGES=NO"
+        echo "REPO_CHANGES=NO"
       fi
     else
-      echo "CHANGES=NONE"
+      echo "REPO_CHANGES=NONE"
     fi
 
     UNCOMMITTED_STATUS=$(git status --porcelain 2>/dev/null || echo "")
     if [ -n "$UNCOMMITTED_STATUS" ]; then
-      echo "UNCOMMITTED=YES"
+      echo "REPO_UNCOMMITTED=YES"
     else
-      echo "UNCOMMITTED=NO"
+      echo "REPO_UNCOMMITTED=NO"
     fi
   ) > "actions/.tmp_${repo}_status"
 done
 
 # Load the pre-calculated data
 for repo in "${ACTION_REPOS[@]}"; do
+  REPO_TAG="NONE"
+  REPO_CHANGES="NO"
+  REPO_UNCOMMITTED="NO"
   source "actions/.tmp_${repo}_status"
-  LATEST_TAGS["$repo"]=$TAG
-  HAS_CHANGES["$repo"]=$CHANGES
-  UNCOMMITTED["$repo"]=$UNCOMMITTED
+  LATEST_TAGS["$repo"]=$REPO_TAG
+  HAS_CHANGES["$repo"]=$REPO_CHANGES
+  UNCOMMITTED["$repo"]=$REPO_UNCOMMITTED
   rm "actions/.tmp_${repo}_status"
 done
 
