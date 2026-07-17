@@ -2,95 +2,7 @@
 # pylint: disable=invalid-name  # hyphens are required by the git-subcommand convention
 """git-ai-commit — commit staged changes with an AI-generated message.
 
-Analyses the Git index of the current repository and generates a detailed,
-informative commit message using a language model, then optionally commits.
-
-This tool automatically gathers context from:
-  - Staged changes (diff)
-  - Git status and recent commit history
-  - Repository-level guidance: AGENTS.md, AGENT.md, GEMINI.md, CLAUDE.md,
-    CONTEXT.md, INSTRUCTIONS.md, CONTRIBUTING.md, HACKING.md,
-    ARCHITECTURE.md, and STYLEGUIDE.md.
-  - Tool-specific rules: .kilo/agent/, .kilo/command/, .amazonq/rules/,
-    .kiro/rules/, .kiro/steering/, .gemini/rules/, .kilocode/, .cursorrules,
-    .clinerules, .windsurfrules, and q.rules.
-  - User-level guidance: ~/.config/git-ai-commit/instructions.md
-  - Git commit template: (from `git config commit.template`)
-
-Usage
------
-  git-ai-commit [OPTIONS] [-- GIT-COMMIT-OPTIONS]
-  git ai-commit [OPTIONS] [-- GIT-COMMIT-OPTIONS]
-  git ai-commit --amend
-  echo "context" | git ai-commit --yes
-  git ai-commit --yes -- --no-verify --signoff
-
-Options
--------
-  --amend              Amend the previous commit, including its message as context
-  --context TEXT       Supplemental context/prompt for the AI
-  --backend BACKEND    API backend: kilo (default), github-models, copilot,
-                       antigravity, agy
-  --model   MODEL      Model name; defaults to azure/claude-haiku-4-5 for the
-                       kilo backend (gpt-4o for others, none for antigravity);
-                       large prompts auto-escalate to qwen/qwen3-coder-next on
-                       kilo unless a model is explicitly set (env:
-                       GIT_AI_COMMIT_MODEL or GIT_AI_COMMIT_KILO_MODEL)
-  --api     URL        API base URL override (env: GIT_AI_COMMIT_API)
-  --dry-run            Print generated message to stdout; do not commit
-  -y/--yes             Commit without interactive confirmation
-  -e/--edit            Open generated message in $EDITOR before committing
-  --no-instructions    Skip all instruction/context files; use only the diff
-  -h/--help            Show this help and exit
-  --                   Pass all remaining arguments verbatim to git commit
-                       (e.g. --no-verify, --signoff, --gpg-sign=<key>)
-
-Backends
---------
-  kilo          LiteLLM-compatible endpoint via kilo credentials.
-                Default URL/model/provider: FNAL values; override via
-                GIT_AI_COMMIT_KILO_API / _MODEL / _PROVIDER env vars.
-                Token: kilo auth.json → GIT_AI_COMMIT_TOKEN → GITHUB_TOKEN/GH_TOKEN.
-
-  github-models GitHub Models inference API (https://models.inference.ai.azure.com).
-                Default model: gpt-4o.
-                Token: GIT_AI_COMMIT_TOKEN → GITHUB_TOKEN/GH_TOKEN → gh auth token.
-                Falls back to the copilot backend on 401/403.
-
-  copilot       GitHub Copilot API (https://api.githubcopilot.com).
-                Default model: gpt-4o.
-                Token: exchanges a GitHub OAuth token for a short-lived Copilot token.
-
-  antigravity / agy
-                Antigravity CLI backend using `agy -p -`.
-                If a model is specified via --model (or GIT_AI_COMMIT_MODEL),
-                it is passed to `agy` as `--model <model>`. Otherwise,
-                `agy` uses its default configured model. No API token or URL
-                resolution is required for this backend.
-
-Environment variables
----------------------
-  GIT_AI_COMMIT_TOKEN         API token (overrides all other token sources)
-  GIT_AI_COMMIT_MODEL         Default model name
-  GIT_AI_COMMIT_API           API base URL override
-  GIT_AI_COMMIT_BACKEND       Default backend (kilo, github-models, copilot, antigravity, or agy)
-  GIT_AI_COMMIT_KILO_API      kilo backend base URL (default: https://litellm.fnal.gov/v1)
-  GIT_AI_COMMIT_KILO_MODEL    kilo backend default model (default: azure/claude-haiku-4-5);
-                              setting this env var suppresses auto-escalation
-  GIT_AI_COMMIT_KILO_PROVIDER kilo auth.json provider key (default: fnal-litellm)
-
-Token resolution (kilo backend):
-  1. GIT_AI_COMMIT_TOKEN
-  2. ~/.local/share/kilo/auth.json  (fnal-litellm key)
-  3. GITHUB_TOKEN / GH_TOKEN
-  4. `gh auth token`
-  5. ~/.config/gh/hosts.yml
-
-Token resolution (github-models / copilot backends):
-  1. GIT_AI_COMMIT_TOKEN
-  2. GITHUB_TOKEN / GH_TOKEN
-  3. `gh auth token`
-  4. ~/.config/gh/hosts.yml
+See `git-ai-commit --help` for full usage.
 """
 
 from __future__ import annotations
@@ -117,45 +29,386 @@ _GITHUB_MODELS_BASE = "https://models.inference.ai.azure.com"
 _COPILOT_API_BASE = "https://api.githubcopilot.com"
 _COPILOT_TOKEN_URL = "https://api.github.com/copilot_internal/v2/token"
 
-_KILO_AUTH_JSON = Path.home() / ".local" / "share" / "kilo" / "auth.json"
+# Defaults for kilo backend - only apply when user specifies them via env vars.
+# No defaults are used unless explicitly set by the user.
+# Support deprecated GIT_AI_COMMIT_KILO_* vars as fallback to GIT_AI_COMMIT_*
+_KILO_API_ENV = os.environ.get("GIT_AI_COMMIT_API", "").strip()
+if not _KILO_API_ENV:
+    deprecated = os.environ.get("GIT_AI_COMMIT_KILO_API", "").strip()
+    if deprecated:
+        import warnings
 
-# These defaults are appropriate for the FNAL kilo deployment.  Override via
-# environment variables to adapt to a different LiteLLM instance or model
-# naming convention.
-_DEFAULT_KILO_API = os.environ.get("GIT_AI_COMMIT_KILO_API", "https://litellm.fnal.gov/v1")
-_KILO_MODEL_ENV = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "").strip()
-_DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or "azure/claude-haiku-4-5"
-# True when the user has explicitly pinned a kilo model via the environment,
-# which suppresses auto-escalation even if the diff is large.
-_KILO_MODEL_PINNED_BY_ENV = bool(_KILO_MODEL_ENV)
-_DEFAULT_KILO_PROVIDER = os.environ.get("GIT_AI_COMMIT_KILO_PROVIDER", "fnal-litellm")
+        warnings.warn(
+            "GIT_AI_COMMIT_KILO_API is deprecated; use GIT_AI_COMMIT_API instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        _KILO_API_ENV = deprecated
+_DEFAULT_KILO_API = _KILO_API_ENV
+
+_KILO_MODEL_ENV = os.environ.get("GIT_AI_COMMIT_MODEL", "").strip()
+if not _KILO_MODEL_ENV:
+    deprecated = os.environ.get("GIT_AI_COMMIT_KILO_MODEL", "").strip()
+    if deprecated:
+        import warnings
+
+        warnings.warn(
+            "GIT_AI_COMMIT_KILO_MODEL is deprecated; use GIT_AI_COMMIT_MODEL instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        _KILO_MODEL_ENV = deprecated
+# Default model for kilo backend - uses qwen/qwen3-coder-next from fnal-ow provider
+_KILO_DEFAULT_MODEL = "qwen/qwen3-coder-next"
+_DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or _KILO_DEFAULT_MODEL
 _DEFAULT_MODEL_OTHER = "gpt-4o"
 
-_MAX_DIFF_CHARS = 60_000
+# Path to kilo config file
+_KILO_CONFIG_PATH = Path.home() / ".config" / "kilo" / "kilo.jsonc"
 
-# When the kilo model was not explicitly chosen and the prompt exceeds this
-# character count, escalate to a free high-context model rather than risk
-# truncation or degraded output with the default (Haiku).  The threshold is
-# set conservatively below _MAX_DIFF_CHARS so that instruction files and log
-# context on top of a near-limit diff still trigger escalation.
-_ESCALATION_THRESHOLD_CHARS = 30_000
-_ESCALATION_MODEL_KILO = "qwen/qwen3-coder-next"
+
+_MAX_DIFF_CHARS_DEFAULT = 60_000
+_MAX_DIFF_CHARS_ESCALATED = 400_000
+
+# Hunk-aware diff truncation helper
+
+# Binary and generated file skipping
+
+# Patterns for generated files to skip. Adjust as needed.
+_GENERATED_FILE_GLOBS = [
+    "*.pb.cc",
+    "*.pb.h",
+    "*.gen.cpp",
+    "*.gen.hpp",
+    "*.generated.cpp",
+    "*.generated.h",
+]
+
+
+# ---------------------------------------------------------------------------
+# Kilo config functions
+# ---------------------------------------------------------------------------
+
+
+def _load_kilo_config() -> dict:
+    """Load and parse the kilo configuration file.
+
+    Returns a dict with 'disabled_providers' and 'provider' keys.
+    'provider' maps provider names to provider configs, each containing a 'models' dict.
+    """
+    if not _KILO_CONFIG_PATH.exists():
+        return {"disabled_providers": [], "provider": {}}
+    try:
+        # Use json.loads after removing comments (kilo.jsonc supports comments)
+        content = _KILO_CONFIG_PATH.read_text(encoding="utf-8")
+        # A simple state-based scanner to remove comments while preserving strings.
+        cleaned = []
+        in_string = False
+        string_char = ""
+        escaped = False
+        i = 0
+        while i < len(content):
+            char = content[i]
+            if escaped:
+                cleaned.append(char)
+                escaped = False
+                i += 1
+                continue
+            if char == "\\":
+                cleaned.append(char)
+                escaped = True
+                i += 1
+                continue
+            if in_string:
+                if char == string_char:
+                    in_string = False
+                cleaned.append(char)
+            else:
+                if char in ('"', "'"):
+                    in_string = True
+                    string_char = char
+                    cleaned.append(char)
+                elif content.startswith("//", i):
+                    # Find end of line
+                    eol = content.find("\n", i)
+                    if eol != -1:
+                        cleaned.append("\n")
+                        i = eol
+                    else:
+                        i = len(content)
+                elif content.startswith("/*", i):
+                    # Find end of block comment
+                    end = content.find("*/", i + 2)
+                    if end == -1:
+                        i = len(content)
+                    else:
+                        i = end + 1
+                else:
+                    cleaned.append(char)
+            i += 1
+        # Parse JSON after comment removal
+        data = json.loads("".join(cleaned))
+        # Validate structure: top-level must be a dict with required keys.
+        if not isinstance(data, dict):
+            raise ValueError("Kilo config top-level is not a mapping")
+        disabled = data.get("disabled_providers", [])
+        provider = data.get("provider", {})
+        if not isinstance(disabled, (list, tuple)):
+            raise ValueError("disabled_providers must be a list")
+        if not isinstance(provider, dict):
+            raise ValueError("provider must be a mapping")
+        # Return a sanitized dict ensuring expected types.
+        return {"disabled_providers": list(disabled), "provider": dict(provider)}
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {"disabled_providers": [], "provider": {}}
+
+
+def _load_kilo_config_with_models() -> dict[str, dict[str, str]]:
+    """Load kilo config and return a mapping of provider names to model dicts.
+
+    Returns a dict mapping Kilo config provider names to dicts of model keys.
+    For example: {"fnal-ow": {"qwen/qwen3-coder-next": {...}, ...}}
+    """
+    config = _load_kilo_config()
+    disabled = set(config.get("disabled_providers", []))
+    provider_config = config.get("provider", {})
+    mapping: dict[str, dict[str, str]] = {}
+
+    for provider_name, provider_data in provider_config.items():
+        if provider_name in disabled or not isinstance(provider_data, dict):
+            continue
+        models = provider_data.get("models", {})
+        if not isinstance(models, dict):
+            continue
+        mapping[provider_name] = models
+
+    return mapping
+
+
+def _get_kilo_provider_names() -> list[str]:
+    """Return the list of known Kilo config provider names."""
+    config = _load_kilo_config()
+    disabled = set(config.get("disabled_providers", []))
+    provider_config = config.get("provider", {})
+    return [name for name in provider_config.keys() if name not in disabled]
+
+
+def _resolve_kilo_model(model: str) -> str:
+    """Resolve a kilo model name, adding provider prefix if needed.
+
+    Logic:
+    1. If model contains "/" (e.g., "qwen/"), check if the prefix is a known
+       provider in the Kilo config.
+    2a. If the prefix IS a known provider, the model is passed to kilo as-is.
+    2b. If the prefix is NOT a known provider, the full model (including prefix)
+        is treated as the model name and looked up in the config.
+    3. If model has no prefix, it is looked up directly in the config.
+    4. If the lookup is ambiguous (multiple providers have the model), raise an error.
+
+    Returns the fully-qualified model name in format "provider/model".
+    Raises _Error if the model lookup is ambiguous.
+    """
+    provider_models = _load_kilo_config_with_models()
+    known_providers = set(_get_kilo_provider_names())
+
+    # If no model is provided, use the default
+    if not model:
+        return _DEFAULT_MODEL_KILO
+
+    # If model has a prefix (contains "/"), check if it's a known provider
+    if "/" in model:
+        prefix, rest = model.split("/", 1)
+        if prefix in known_providers:
+            # The prefix is a known provider - pass model as-is to kilo
+            return model
+
+        # The prefix is NOT a known provider - treat full model as model name
+        # and look it up in config
+        candidate_providers = []
+        for provider_name, models in provider_models.items():
+            if model in models:
+                candidate_providers.append(provider_name)
+
+        if len(candidate_providers) == 0:
+            # Model not found in config; return as-is
+            return model
+        elif len(candidate_providers) == 1:
+            # Unambiguous lookup
+            return f"{candidate_providers[0]}/{model}"
+        else:
+            # Ambiguous lookup - raise error with available providers
+            raise _Error(
+                f"Model '{model}' is ambiguous: found under providers "
+                f"{', '.join(candidate_providers)}. "
+                "Please disambiguate by specifying one of these providers as a prefix."
+            )
+
+    # Model has no prefix - look it up directly in config
+    candidate_providers = []
+    candidate_full_names: dict[str, str] = {}  # provider -> full_name
+
+    for provider_name, models in provider_models.items():
+        for full_name in models.keys():
+            # Extract short name (after first "/")
+            if "/" in full_name:
+                short_name = full_name.split("/", 1)[1]
+            else:
+                short_name = full_name
+
+            if short_name == model:
+                candidate_providers.append(provider_name)
+                candidate_full_names[provider_name] = full_name
+
+    if len(candidate_providers) == 0:
+        # Model not found in config; return as-is
+        return model
+    elif len(candidate_providers) == 1:
+        # Unambiguous lookup
+        return f"{candidate_providers[0]}/{candidate_full_names[candidate_providers[0]]}"
+    else:
+        # Ambiguous lookup - raise error with available providers
+        raise _Error(
+            f"Model '{model}' is ambiguous: found under providers "
+            f"{', '.join(candidate_providers)}. "
+            "Please disambiguate by specifying one of these providers as a prefix."
+        )
+
+
+def _skip_binary_and_generated(diff: str) -> str:
+    """Replace binary and generated file sections in *diff* with a placeholder note.
+
+    Binary sections are lines containing "Binary files ... differ".
+    Generated files are detected via filename patterns in the "diff --git" header.
+    The placeholder format is ``"[skipped binary/generated file: <path>]"``.
+    """
+    import fnmatch
+
+    # Split diff into sections starting with "diff --git".
+    sections = re.split(r"(?=^diff --git )", diff, flags=re.MULTILINE)
+    kept_sections: list[str] = []
+    for sec in sections:
+        if not sec.strip():
+            continue
+        # Binary detection: apply only to sections that consist solely of the binary line
+        # (i.e., no diff header). This avoids replacing the entire preamble/stat block.
+        if "Binary files" in sec and "diff --git" not in sec:
+            # Replace each binary line with a placeholder, preserving other content.
+            sec = re.sub(
+                r"^Binary files ([^ \n]+) and ([^ \n]+) differ$",
+                lambda m: f"[skipped binary/generated file: {m.group(2)}]",
+                sec,
+                flags=re.MULTILINE,
+            )
+        # Generated file detection via header line.
+        header_match = re.search(r"^diff --git a/([^ \n]+) b/([^ \n]+)", sec, flags=re.MULTILINE)
+        if header_match:
+            path = header_match.group(2)
+            if any(fnmatch.fnmatch(path, pat) for pat in _GENERATED_FILE_GLOBS):
+                # Replace the entire generated file section with a placeholder.
+                kept_sections.append(f"[skipped binary/generated file: {path}]\n")
+                continue
+        # Keep original (or possibly modified) section.
+        kept_sections.append(sec)
+    return "".join(kept_sections)
+
+
+def _truncate_diff(diff: str, max_chars: int) -> str:
+    r"""Truncate *diff* to *max_chars* preserving the diffstat and whole file hunks.
+
+    - If the diff length is within the budget, return unchanged.
+    - Preserve the leading "git diff --cached --stat -p" stat block (the lines before the first
+      "diff --git").
+    - Include full ``diff --git`` file sections until adding the next section would exceed
+      *max_chars*.
+    - If a single file section alone exceeds *max_chars*, fall back to cutting at a line boundary
+      within that section.
+    - If there are no file sections (or only the stat block) and it exceeds *max_chars*,
+      truncate the stat block at a line boundary, reserving space for the omission marker.
+    - Omitted sections are replaced with a note:
+      ``"\n\n[diff truncated: N of M files omitted to fit context budget]"``.
+    """
+    if len(diff) <= max_chars:
+        return diff
+
+    # Split the diff into a leading stat block and per‑file sections.
+    raw_sections = re.split(r"(?=^diff --git )", diff, flags=re.MULTILINE)
+    stat_block = raw_sections[0]
+    file_sections = raw_sections[1:]
+
+    total_files = len(file_sections)
+    kept_sections: list[str] = []
+    current_len = len(stat_block)
+
+    def _add_marker(base: str, omitted_cnt: int, total_cnt: int) -> str:
+        marker = (
+            f"\n\n[diff truncated: {omitted_cnt} of {total_cnt} files omitted "
+            f"to fit context budget]"
+        )
+        return base + marker
+
+    for sec in file_sections:
+        if current_len + len(sec) <= max_chars:
+            kept_sections.append(sec)
+            current_len += len(sec)
+        else:
+            # Stop adding further sections; remaining are omitted.
+            break
+
+    omitted = total_files - len(kept_sections)
+    # Optimization: if we have room for the stat block and at least one file,
+    # we can keep them. If not, we'll rely on the final truncation.
+    result = stat_block + "".join(kept_sections)
+    if omitted:
+        result = _add_marker(result, omitted, total_files)
+    # Ensure result does not exceed max_chars; if it does (e.g., stat_block alone too large),
+    # truncate at a line boundary preserving space for the marker.
+    if len(result) > max_chars:
+        # Determine how much space we need for the marker (if omitted>0, else none)
+        marker_len = 0
+        if omitted:
+            marker = f"\n\n[diff truncated: {omitted} of {total_files} "
+            "files omitted to fit context budget]"
+            marker_len = len(marker)
+        # Truncate stat block (or result) to fit within max_chars, leaving room for marker.
+        truncate_len = max_chars - marker_len
+        truncated = result[:truncate_len]
+        # Ensure we cut at a line boundary.
+        truncated = truncated.rsplit("\n", 1)[0]
+        result = truncated
+        if omitted:
+            result = _add_marker(result, omitted, total_files)
+    return result
+
 
 _SYSTEM = textwrap.dedent("""\
     You are an expert software developer writing Git commit messages.
 
-    CRITICAL — respond with ONLY the commit message, nothing else.
-    Do not write any introduction, explanation, or commentary before or
-    after the message.  Do not wrap the message in a markdown code fence.
-    Your very first character must be the first character of the subject line.
+    CRITICAL — respond with ONLY one single version of the commit message, nothing else.
+    - Do NOT provide multiple options or candidates.
+    - Do NOT repeat or duplicate the commit message.
+    - Do NOT return both a "long" and "short" version of the same message.
+    - If you write the commit message, write it ONCE and only once.
+    - No preamble, commentary, or markdown fences.
+    - Your very first character must be the first character of the subject line.
 
-    Message rules:
-    - Subject line: imperative mood, ≤72 characters, no trailing period;
-      must be a complete, self-contained sentence (do not let the subject
-      run past the blank line into the body)
-    - Separate subject from body with exactly one blank line
-    - Body: explain *what* changed and *why*; bullet lists or inline code
-      spans where they genuinely aid clarity, not merely for decoration
+    ## Conventional Commits v1.0.0 Guidelines
+    Specification: https://www.conventionalcommits.org/en/v1.0.0/
+
+    Format: <type>[optional scope][optional !]: <description>
+    [optional body]
+    [optional footer(s)]
+
+    - Common types (spec allows additional types): feat, fix, docs, style, refactor,
+      perf, test, build, ci, chore, revert
+    - Breaking changes: append '!' directly before ':' (e.g., `feat!:`) OR add
+      `BREAKING CHANGE: <description>` as a footer line
+    - Subject: imperative mood, no trailing period, keep it brief
+    - Body: Explain *what* changed and *why* (motivation, problem, tradeoffs).
+      Required only for non-trivial changes. Body and footer each separated from
+      subject/footer by a blank line.
+    - Footer format: `Token: value` or `Token# value` (tokens use hyphens instead
+      of spaces, except BREAKING CHANGE which may use spaces)
+    - Use bullet points for lists; avoid decorative formatting
     - Do NOT reproduce the diff verbatim or enumerate every changed file
 """)
 
@@ -221,8 +474,10 @@ def _status() -> str:
 
 
 def _recent_log() -> str:
+    # Depth deliberately capped at 5 to keep context concise.
+    # Increase via a future --history-depth flag if needed.
     try:
-        return _git("log", "--oneline", "-10")
+        return _git("log", "--oneline", "-5")
     except _Error:
         return "(no prior commits)"
 
@@ -369,27 +624,38 @@ def _get_instructions(root: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _kilo_auth_token() -> str | None:
-    """Read the kilo provider API key from kilo's auth.json, if present.
+def _max_tokens_for_prompt(prompt_size: int, model: str) -> int:
+    """Return max_tokens based on prompt size and model capabilities.
 
-    The provider name is taken from GIT_AI_COMMIT_KILO_PROVIDER (default:
-    "fnal-litellm"), matching the key used in ~/.config/kilo/kilo.jsonc.
+    Reasoning models (e.g., qwen/qwen3-coder-next, google/gemma4-31b)
+    spend significant internal thinking tokens before producing visible
+    output. A low max_tokens budget can cause them to return empty content
+    (finish_reason=stop with zero visible text) instead of an error.
+
+    The max_tokens budget must be large enough for:
+    - System prompt
+    - User prompt (diff, status, log, instructions, context)
+    - Expected output (commit message with subject + body)
+
+    For large prompts, increase max_tokens to avoid truncating the response.
+    This applies to all models, not just reasoning ones.
     """
-    if not _KILO_AUTH_JSON.exists():
-        return None
-    try:
-        data = json.loads(_KILO_AUTH_JSON.read_text())
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(data, dict):
-        return None
-    provider = data.get(_DEFAULT_KILO_PROVIDER)
-    if not isinstance(provider, dict):
-        return None
-    key = provider.get("key", "")
-    if not isinstance(key, str):
-        return None
-    return key.strip() or None
+    # Base budget: enough for a decent commit message (subject + body)
+    base_tokens = 2048
+
+    # Reasoning models need higher budget to avoid empty responses
+    if model:
+        model_lower = model.lower()
+        if any(kw in model_lower for kw in ("reasoning", "4-5", "qwen3-coder-next", "gemma4-31b")):
+            return 8192
+
+    # Scale with prompt size to avoid truncated responses
+    if prompt_size > 50_000:
+        return 4096
+    elif prompt_size > 25_000:
+        return 3072
+    else:
+        return base_tokens
 
 
 def _gh_config_token() -> str | None:
@@ -435,17 +701,17 @@ def _gh_oauth_token() -> str | None:
     return _gh_config_token()
 
 
-def _token(backend: str) -> str:
-    """Resolve the best available API token for the given backend."""
+def _token(backend: str, model: str = "") -> str:
+    """Resolve the best available API token for the given backend and model."""
     # GIT_AI_COMMIT_TOKEN always wins regardless of backend.
     if val := os.environ.get("GIT_AI_COMMIT_TOKEN", "").strip():
         return val
 
     if backend == "kilo":
-        # Prefer the kilo-stored FNAL key; fall through to GH tokens so that
-        # the script still works if the kilo extension is not installed.
-        if tok := _kilo_auth_token():
-            return tok
+        # For the kilo backend, only use GIT_AI_COMMIT_TOKEN.
+        # No fallback to GITHUB_TOKEN, GH_TOKEN, gh CLI, or hosts.yml.
+        # If no token is set, return empty string - let the API handle it.
+        return ""
 
     for var in ("GITHUB_TOKEN", "GH_TOKEN"):
         if val := os.environ.get(var, "").strip():
@@ -459,12 +725,6 @@ def _token(backend: str) -> str:
     if tok := _gh_config_token():
         return tok
 
-    if backend == "kilo":
-        raise _Error(
-            "No FNAL LiteLLM token found. "
-            "Ensure kilo is configured with the fnal-litellm provider, or "
-            "set GIT_AI_COMMIT_TOKEN."
-        )
     raise _Error(
         "No API token found. Set GIT_AI_COMMIT_TOKEN, GITHUB_TOKEN, or run 'gh auth login'."
     )
@@ -478,62 +738,180 @@ def _token(backend: str) -> str:
 def _clean_message(text: str) -> str:
     r"""Strip model preamble and fenced code blocks from a raw API response.
 
-    Some models ignore the instruction to respond with only the commit message
-    and wrap their output in prose ("Here's the commit message:") and/or a
-    fenced code block.  This function normalises the response to a bare commit
-    message in both cases.
-
-    Strategy:
-    1. If a balanced fenced code block is present, extract the content of the
-       first one (the language tag, if any, is discarded).
-    2. Otherwise strip any lone opening or closing fence markers that appear
-       as the first or last non-empty line (models sometimes emit only a
-       trailing ````` ``` ````` without a matching opener, or vice-versa).
-    3. Drop any leading lines that look like a prose introduction — either a
-       line ending with ':' followed by a blank line, or any leading paragraph
-       whose first line does not look like a commit subject — but only when the
-       text does not itself begin with a conventional-commit subject
-       (e.g. "fix: ...", "feat(scope): ...").  Without that guard a subject
-       such as "fix: broken:\\n\\nbody" would be incorrectly truncated.
-    4. Strip surrounding whitespace.
+    Also handles the common case where the AI returns two versions of the commit
+    message (e.g., a longer version followed by a shorter duplicate), or returns
+    the same message consecutively.
     """
-    # Extract the first balanced fenced code block if present.
-    fence_match = re.search(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
-    if fence_match:
-        return fence_match.group(1).strip()
+    # 1. Extract all fenced code blocks (if any) and concatenate them.
+    fences = re.findall(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
+    if fences:
+        # Join the contents of all fenced blocks preserving their order.
+        # Strip surrounding whitespace from each block before joining.
+        text = "\n".join(block.strip() for block in fences)
+    else:
+        # No fenced blocks – fall back to stripping lone fence markers.
+        # Strip trailing lone fence (e.g. "\n```text\n")
+        text = re.sub(r"\n```[^\n]*\s*\Z", "", text)
+        # Strip leading lone fence (e.g. "```text\n")
+        text = re.sub(r"\A```[^\n]*\n", "", text)
 
-    # Strip a lone closing fence on the last non-empty line (no matching opener
-    # was found above, so the model emitted an unbalanced trailing fence).
-    text = re.sub(r"\n```[^\n]*\s*\Z", "", text)
-    # Strip a lone opening fence on the first non-empty line.
-    text = re.sub(r"\A```[^\n]*\n", "", text)
-
-    # Strip leading prose preamble only when the text does not already start
-    # with a conventional-commit subject (type(scope)!: description).
+    # 2. Strip leading prose preamble (now using the safer splitlines version)
     if not re.match(r"^[a-z]+(?:\([^)]+\))?!?:\s", text):
-        # Case 1: leading paragraph ends with ':' followed by a blank line.
+        # Try to remove preamble that ends with a colon and double newline
         text = re.sub(r"\A.*?:\s*\n\s*\n", "", text, count=1, flags=re.DOTALL)
-        # Case 2: after the above, the first line still looks like prose (not
-        # a short imperative subject).  Detect by checking whether the first
-        # line is longer than 72 characters or begins with common prose
-        # patterns ("The ", "This ", "I ", sentence fragments, etc.).
-        first_line = text.split("\n", 1)[0].strip()
-        if len(first_line) > 72 or re.match(
-            r"^(?:The |This |These |I |Here |Note:|Below|Above|A |An )", first_line
-        ):
-            # Try to drop everything up to and including the first blank line
-            # to skip the prose introduction and land on the commit message.
-            remainder = re.sub(r"\A.*?\n\s*\n", "", text, count=1, flags=re.DOTALL)
-            if remainder.strip():
-                text = remainder
-            else:
-                # The whole response is a single prose paragraph with no blank
-                # line — nothing useful remains after stripping it, so return
-                # the raw text as-is and let the caller decide (the user will
-                # see it in the preview and can abort).
-                pass
 
-    return text.strip()
+        # If that didn't result in a Conventional Commit format, try more
+        # aggressive preamble removal
+        if not re.match(r"^[a-z]+(?:\([^)]+\))?!?:\s", text):
+            lines = text.splitlines()
+            if lines:
+                first_line = lines[0].strip()
+                if len(first_line) > 72 or re.match(
+                    r"^(?:The |This |These |I |Here |Note:|Below|Above|A |An )", first_line
+                ):
+                    # If the first line looks like preamble, remove everything
+                    # until the first double newline
+                    remainder = re.sub(r"\A.*?\n\s*\n", "", text, count=1, flags=re.DOTALL)
+                    if remainder.strip():
+                        text = remainder
+                    else:
+                        # If nothing is left after removing preamble, the whole text was preamble
+                        text = ""
+
+                    # Final check: if the resulting text still looks like preamble
+                    # (e.g. single line without CC format) and we just did a remainder
+                    # sub that might have left a trailing line
+                    if text.strip() and not re.match(r"^[a-z]+(?:\([^)]+\))?!?:\s", text.strip()):
+                        # If it's just one line and matches preamble patterns, clear it
+                        if len(text.splitlines()) <= 1 and re.match(
+                            r"^(?:The |This |These |I |Here |Note:|Below|Above|A |An )",
+                            text.strip(),
+                        ):
+                            text = ""
+
+    # 3. Remove repeated content - now that preamble is stripped
+    cleaned = text.strip()
+
+    # Early exit for empty result
+    if not cleaned:
+        return ""
+
+    # Apply deduplication until no more changes occur
+    # This handles cases where the message appears multiple times (2x, 3x, etc.)
+    prev_cleaned = None
+    while prev_cleaned != cleaned:
+        prev_cleaned = cleaned
+        cleaned = _deduplicate_once(cleaned)
+        if not cleaned:
+            return ""
+
+    return cleaned
+
+
+def _deduplicate_once(text: str) -> str:
+    """Perform a single deduplication pass on text.
+
+    Returns the text with duplicates removed. If no duplicates are found,
+    returns the original text.
+    """
+    # Case 1: two identical sections separated by double newline – keep first
+    sections = text.split("\n\n", 1)
+    if len(sections) == 2 and sections[0].strip() == sections[1].strip():
+        return sections[0].strip()
+
+    # Case 2: Handle duplicate messages where section 2 contains section 1's content
+    # (with possible modification or truncation)
+    if len(sections) == 2:
+        sec1 = sections[0].strip()
+        sec2 = sections[1].strip()
+        sec1_lines = sec1.splitlines()
+        sec2_lines = sec2.splitlines()
+        if sec1_lines and sec2_lines:
+            sec1_subject = sec1_lines[0].strip()
+
+            # Check if section 1's subject appears in section 2
+            # If so, section 2 may contain duplicate content
+            duplicate_subject_idx = None
+            for i, line in enumerate(sec2_lines):
+                if line.strip() == sec1_subject:
+                    duplicate_subject_idx = i
+                    break
+
+            if duplicate_subject_idx is not None:
+                # The subject line from section 1 appears in section 2
+                # Keep only the part of section 2 before the duplicate subject
+                body_before_duplicate = sec2_lines[:duplicate_subject_idx]
+                if body_before_duplicate:
+                    # Keep section 1 + body from section 2 (before duplicate)
+                    return sec1 + "\n\n" + "\n".join(body_before_duplicate).strip()
+                else:
+                    # Section 2 starts with the subject - just return section 1
+                    return sec1
+
+            # Check if section 2's first line matches section 1's subject
+            sec2_subject = sec2_lines[0].strip()
+            if sec1_subject == sec2_subject:
+                len_sec1 = len(sec1_lines)
+                len_sec2 = len(sec2_lines)
+                if len_sec2 <= len_sec1:
+                    # Check if sec2 is essentially sec1 (maybe slightly different)
+                    matching_lines = sum(
+                        1 for l1, l2 in zip(sec1_lines, sec2_lines, strict=False) if l1 == l2
+                    )
+                    if matching_lines >= len(sec2_lines) * 0.8:  # 80% match threshold
+                        return sec1
+                    elif (
+                        matching_lines >= len(sec1_lines) * 0.8
+                    ):  # 80% match threshold (sec1 is shorter)
+                        return sec2
+
+    # Case 3: Check for repeated subject patterns across sections
+    # Use the subject-based deduplicator
+    cleaned = _remove_duplicate_paragraphs_with_subject(text)
+    return cleaned
+
+
+def _remove_duplicate_paragraphs_with_subject(text: str) -> str:
+    """Remove duplicate or near-duplicate content based on subject lines.
+
+    If multiple paragraphs start with the same subject line pattern
+    (e.g., 'refactor(scripts): ...'), keep only the first and longest one.
+    """
+    paragraphs = text.split("\n\n")
+    if len(paragraphs) <= 1:
+        return text
+
+    # Extract subject from each paragraph
+    subjects: dict[int, str] = {}  # index -> raw subject line
+    for i, para in enumerate(paragraphs):
+        lines = para.strip().splitlines()
+        if lines:
+            subjects[i] = lines[0].strip()
+
+    # Find and remove duplicate subjects (keep first/longest)
+    seen_subjects: dict[str, int] = {}  # subject -> first index seen
+    to_keep: list[int] = []
+    for i, para in enumerate(paragraphs):
+        if i not in subjects:
+            to_keep.append(i)
+            continue
+        subject = subjects[i]
+        if subject not in seen_subjects:
+            seen_subjects[subject] = i
+            to_keep.append(i)
+        else:
+            # Subject already seen - check if this one is longer
+            existing_idx = seen_subjects[subject]
+            existing_len = len(paragraphs[existing_idx])
+            current_len = len(para)
+            if current_len > existing_len:
+                # This one is longer, replace the existing one
+                to_keep = [j for j in to_keep if j != existing_idx]
+                seen_subjects[subject] = i
+                to_keep.append(i)
+            # Otherwise skip this one (it's a shorter duplicate)
+
+    return "\n\n".join(paragraphs[i].strip() for i in sorted(to_keep) if paragraphs[i].strip())
 
 
 # ---------------------------------------------------------------------------
@@ -560,19 +938,93 @@ def _copilot_token(oauth: str) -> str:
         raise _APIError(f"Copilot token exchange failed: {exc}") from exc
 
 
+def _chat_kilo(model: str, messages: list[dict[str, str]], token: str, api_base: str) -> str:
+    """Send *messages* via the kilo CLI and return the reply.
+
+    The kilo backend always uses --agent=code and resolves model names
+    against the kilo config to add provider prefixes if needed.
+    """
+    # Build the prompt from messages
+    system_content = ""
+    user_content = ""
+    for m in messages:
+        if m["role"] == "system":
+            system_content = m["content"]
+        elif m["role"] == "user":
+            user_content = m["content"]
+
+    if system_content:
+        prompt = f"System Instructions:\n{system_content}\n\n{user_content}"
+    else:
+        prompt = user_content
+
+    # Resolve model name against kilo config (add provider prefix if needed)
+    resolved_model = _resolve_kilo_model(model or _KILO_DEFAULT_MODEL)
+
+    # Build kilo run command with --agent=code
+    cmd = ["kilo", "run", "--agent=code"]
+    if resolved_model:
+        cmd += ["-m", resolved_model]
+
+    # Use environment variables for authentication and API URL
+    env = os.environ.copy()
+    if token:
+        # Clear KILO_SERVER_PASSWORD if we are setting it from GIT_AI_COMMIT_TOKEN
+        # to ensure the tool's preferred token takes precedence.
+        env["KILO_SERVER_PASSWORD"] = token
+    else:
+        # Ensure no inherited KILO_SERVER_PASSWORD is forwarded when no token is provided.
+        env.pop("KILO_SERVER_PASSWORD", None)
+    if api_base:
+        env["KILO_SERVER_URL"] = api_base
+
+    try:
+        result = subprocess.run(
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise _APIError("kilo run timed out after 60 seconds.", status=0) from exc
+    except FileNotFoundError as exc:
+        raise _Error("kilo CLI not found in PATH. Ensure it is installed and available.") from exc
+
+    if result.returncode != 0:
+        raise _APIError(
+            (f"kilo run failed (exit code {result.returncode}):\n{result.stderr.strip()}"),
+            result.returncode,
+        )
+
+    return _clean_message(result.stdout)
+
+
 def _chat(
     token: str,
     api_base: str,
     model: str,
     messages: list[dict[str, str]],
+    backend: str = "kilo",
 ) -> str:
     """Send *messages* to the chat completions endpoint and return the reply."""
+    # Scale max_tokens with prompt size to avoid truncated responses.
+    # This applies to all models, not just reasoning ones.
+    prompt_size = sum(len(m["content"]) for m in messages)
+    max_tokens = _max_tokens_for_prompt(prompt_size, model)
+
+    # Use kilo CLI for the kilo backend
+    if backend == "kilo":
+        return _chat_kilo(model, messages, token, api_base)
+
     payload = json.dumps(
         {
             "model": model,
             "messages": messages,
             "temperature": 0.2,
-            "max_tokens": 2048,
+            "max_tokens": max_tokens,
         }
     ).encode()
     req = urllib.request.Request(
@@ -659,28 +1111,47 @@ def _build_messages(
     root: Path,
     last_msg: str = "",
     instr: str = "",
+    amend_no_diff: bool = False,
+    max_diff_chars: int = _MAX_DIFF_CHARS_DEFAULT,
 ) -> list[dict[str, str]]:
-    """Build the system + user message list for the chat completion request."""
-    if len(diff) > _MAX_DIFF_CHARS:
-        diff = diff[:_MAX_DIFF_CHARS] + "\n\n[diff truncated — too large to show in full]"
+    """Build the system + user message list for the chat completion request.
+
+    If `amend_no_diff` is True, there are no staged changes; the model should rewrite
+    the previous commit message to conform to Conventional Commits guidelines.
+    """
+    # Apply hunk-aware truncation using the helper.
+    diff = _truncate_diff(diff, max_diff_chars)
 
     parts: list[str] = [
         f"Repository: {root}\n",
         f"## Staged diff (git diff --cached)\n\n```diff\n{diff}\n```",
         f"\n## Status (git status --short)\n\n```\n{status.strip()}\n```",
-        f"\n## Recent commits (git log --oneline -10)\n\n```\n{log.strip()}\n```",
+        f"\n## Recent commits (git log --oneline -5)\n\n```\n{log.strip()}\n```",
     ]
     if last_msg:
         parts.append(f"\n## Previous commit message\n\n```\n{last_msg}\n```")
+    if amend_no_diff:
+        parts.append(
+            "\n## Note\n\nNo staged changes are present. Rewrite the above previous commit "
+            "message to follow the Conventional Commits format and improve its wording."
+        )
     if instr:
         parts.append(f"\n## Agent instructions\n\n{instr}")
     if context:
         parts.append(f"\n## Supplemental context\n\n{context}")
-    parts.append(
-        "\n\nWrite the commit message for the staged changes above."
-        "  Remember: respond with the commit message text only —"
-        " start directly with the subject line."
-    )
+    if amend_no_diff:
+        parts.append(
+            "\n\nRewrite the previous commit message to follow Conventional Commits guidelines."
+            "  Do not simply repeat it; provide an improved version that complies with the format"
+            " and uses clearer wording."
+            "  Respond with only the revised commit message, starting with the subject line."
+        )
+    else:
+        parts.append(
+            "\n\nWrite the commit message for the staged changes above."
+            "  Remember: respond with the commit message text only —"
+            " start directly with the subject line."
+        )
 
     return [
         {"role": "system", "content": _SYSTEM},
@@ -695,7 +1166,12 @@ def _build_messages(
 
 def _edit(text: str) -> str:
     """Open *text* in $EDITOR and return the edited, comment-stripped result."""
-    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL") or "vi"
+    # Determine which editor to invoke.
+    # If stdin is a TTY, prefer $VISUAL, then $EDITOR; otherwise prefer $EDITOR, then $VISUAL.
+    if sys.stdin.isatty():
+        editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "vi"
+    else:
+        editor = os.environ.get("EDITOR") or os.environ.get("VISUAL") or "vi"
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", prefix="git-ai-commit-", delete=False
     ) as fh:
@@ -759,6 +1235,8 @@ def _resolve_backend_and_api(backend: str, api_override: str) -> tuple[str, str]
     if api_override:
         return backend, api_override
     if backend == "kilo":
+        # For kilo backend, only use API URL if explicitly set via env var.
+        # No default URL - user must set GIT_AI_COMMIT_API or use --api.
         return backend, _DEFAULT_KILO_API
     if backend == "copilot":
         return backend, _COPILOT_API_BASE
@@ -822,9 +1300,8 @@ def main() -> None:
         metavar="MODEL",
         help=(
             f"Model name — defaults to {_DEFAULT_MODEL_KILO} for the kilo "
-            f"backend and {_DEFAULT_MODEL_OTHER} for others; large prompts "
-            f"auto-escalate to {_ESCALATION_MODEL_KILO} unless a model is "
-            "explicitly set (env: GIT_AI_COMMIT_MODEL)"
+            f"backend and {_DEFAULT_MODEL_OTHER} for others "
+            "(env: GIT_AI_COMMIT_MODEL, GIT_AI_COMMIT_KILO_MODEL)"
         ),
     )
     ap.add_argument(
@@ -845,10 +1322,6 @@ def main() -> None:
     args = ap.parse_args(argv)
 
     backend, api_base = _resolve_backend_and_api(args.backend, args.api)
-    # Track whether the model was explicitly chosen by the user (CLI or env).
-    # An explicit choice suppresses auto-escalation for large prompts.
-    model_explicit = bool(args.model.strip())
-    model = args.model.strip() or _default_model(backend)
     # Collect supplemental context from --context and/or stdin.
     ctx_parts: list[str] = []
     if args.context:
@@ -860,18 +1333,31 @@ def main() -> None:
     context = "\n\n".join(ctx_parts)
 
     try:
+        if backend == "kilo":
+            # For kilo backend, ensure model has provider prefix by looking it up in config
+            model_name = args.model.strip() or _default_model(backend)
+            model = _resolve_kilo_model(model_name)
+        else:
+            model = args.model.strip() or _default_model(backend)
+
         root = _git_root()
         diff = _staged_diff(args.amend)
+        # Use a clean staged diff (index vs HEAD) to determine if there are new changes,
+        # avoiding the amended commit's contents which are included in args.amend diff.
+        staged_only_diff = _staged_diff(False)
+        # Skip binary and generated file sections before any truncation.
+        diff = _skip_binary_and_generated(diff)
         status = _status()
         log = _recent_log()
         last_msg = _last_commit_message() if args.amend else ""
         instr = "" if args.no_instructions else _get_instructions(root)
-        tok = "" if backend in ("antigravity", "agy") else _token(backend)
+        tok = "" if backend in ("antigravity", "agy") else _token(backend, model)
     except _Error as exc:
         print(f"git-ai-commit: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    if not diff.strip():
+    amend_no_diff = False
+    if not staged_only_diff.strip():
         if not args.amend:
             print("Nothing staged. Use 'git add' first.", file=sys.stderr)
             sys.exit(0)
@@ -884,25 +1370,37 @@ def main() -> None:
                 file=sys.stderr,
             )
             sys.exit(1)
+        # No staged changes but we have a prior commit message; rewrite it.
+        amend_no_diff = True
 
-    msgs = _build_messages(diff, status, log, context, root, last_msg, instr)
+    max_diff_chars = _MAX_DIFF_CHARS_DEFAULT
+    # Decision on escalation cap based on raw prompt size and resolved model.
+    # We compute raw length (pre-truncation) to decide if we should use an escalated cap.
+    raw_prompt_size = len(diff) + len(status) + len(log) + len(context) + len(instr)
 
-    # Auto-escalate to a free high-context model when the prompt is large and
-    # the user has not explicitly chosen a model.  This avoids degraded output
-    # (or silent truncation) from Haiku on large diffs without spending budget
-    # on azure models unnecessarily.
+    # If using kilo, we can escalate the cap for high-context models if the prompt is large.
     if (
         backend == "kilo"
-        and not model_explicit
-        and not _KILO_MODEL_PINNED_BY_ENV
-        and sum(len(m["content"]) for m in msgs) > _ESCALATION_THRESHOLD_CHARS
-    ):
-        model = _ESCALATION_MODEL_KILO
-        print(
-            f"Prompt exceeds {_ESCALATION_THRESHOLD_CHARS:,} chars — "
-            f"escalating to {_ESCALATION_MODEL_KILO}.",
-            file=sys.stderr,
+        and not args.model.strip()
+        and not (
+            os.environ.get("GIT_AI_COMMIT_MODEL") or os.environ.get("GIT_AI_COMMIT_KILO_MODEL")
         )
+        and raw_prompt_size > _MAX_DIFF_CHARS_DEFAULT
+    ):
+        # For the default kilo path (qwen/qwen3-coder-next), we allow the escalated cap.
+        max_diff_chars = _MAX_DIFF_CHARS_ESCALATED
+
+    msgs = _build_messages(
+        diff,
+        status,
+        log,
+        context,
+        root,
+        last_msg,
+        instr,
+        amend_no_diff,
+        max_diff_chars=max_diff_chars,
+    )
 
     print(
         f"Generating commit message using {model if model else '<auto>'} via {backend}…",
@@ -927,7 +1425,7 @@ def main() -> None:
         if backend in ("antigravity", "agy"):
             message = _chat_antigravity(model, msgs)
         else:
-            message = _chat(tok, api_base, model, msgs)
+            message = _chat(tok, api_base, model, msgs, backend)
     except _APIError as primary_err:
         # If GitHub Models fails with an auth or connectivity error, retry via
         # the Copilot API.  This fallback is specific to the github-models
@@ -946,18 +1444,25 @@ def main() -> None:
                 if not gh_tok:
                     raise _Error("No GitHub OAuth token found for Copilot fallback.")
                 copilot_tok = _copilot_token(gh_tok)
-                message = _chat(copilot_tok, _COPILOT_API_BASE, model, msgs)
+                message = _chat(copilot_tok, _COPILOT_API_BASE, model, msgs, "copilot")
             except _Error as exc:
                 print(f"git-ai-commit: {exc}", file=sys.stderr)
                 sys.exit(1)
         else:
             print(f"git-ai-commit: {primary_err}", file=sys.stderr)
             sys.exit(1)
+    except _Error as err:
+        print(f"git-ai-commit: {err}", file=sys.stderr)
+        sys.exit(1)
 
-    _print_rule(message)
+    # Empty message check - must happen before dry-run handling and editing
+    if not message.strip():
+        print("git-ai-commit: Empty message — aborting.", file=sys.stderr)
+        sys.exit(0)
 
     if args.dry_run:
         # Write clean message to stdout so it can be captured by scripts.
+        # We omit _print_rule(message) above to avoid doubling the output in dry-run mode.
         print(message)
         return
 
@@ -970,6 +1475,8 @@ def main() -> None:
         if not message.strip():
             print("Empty message — aborting.", file=sys.stderr)
             sys.exit(0)
+        _print_rule(message)
+    else:
         _print_rule(message)
 
     if not args.yes and not _confirm("Commit with this message?"):
