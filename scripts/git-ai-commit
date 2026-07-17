@@ -170,6 +170,7 @@ _KILO_CONFIG_PATH = Path.home() / ".config" / "kilo" / "kilo.jsonc"
 
 
 _MAX_DIFF_CHARS_DEFAULT = 60_000
+_MAX_DIFF_CHARS_ESCALATED = 400_000
 
 # Hunk-aware diff truncation helper
 
@@ -822,13 +823,17 @@ def _clean_message(text: str) -> str:
     message (e.g., a longer version followed by a shorter duplicate), or returns
     the same message consecutively.
     """
-    # 1. Extract first balanced fenced code block
-    fence_match = re.search(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
-    if fence_match:
-        text = fence_match.group(1).strip()
+    # 1. Extract all fenced code blocks (if any) and concatenate them.
+    fences = re.findall(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
+    if fences:
+        # Join the contents of all fenced blocks preserving their order.
+        # Strip surrounding whitespace from each block before joining.
+        text = "\n".join(block.strip() for block in fences)
     else:
-        # Strip lone fences
+        # No fenced blocks – fall back to stripping lone fence markers.
+        # Strip trailing lone fence (e.g. "\n```text\n")
         text = re.sub(r"\n```[^\n]*\s*\Z", "", text)
+        # Strip leading lone fence (e.g. "```text\n")
         text = re.sub(r"\A```[^\n]*\n", "", text)
 
     # 2. Strip leading prose preamble (now using the safer splitlines version)
@@ -1239,7 +1244,12 @@ def _build_messages(
 
 def _edit(text: str) -> str:
     """Open *text* in $EDITOR and return the edited, comment-stripped result."""
-    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL") or "vi"
+    # Determine which editor to invoke.
+    # If stdin is a TTY, prefer $VISUAL, then $EDITOR; otherwise prefer $EDITOR, then $VISUAL.
+    if sys.stdin.isatty():
+        editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "vi"
+    else:
+        editor = os.environ.get("EDITOR") or os.environ.get("VISUAL") or "vi"
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", prefix="git-ai-commit-", delete=False
     ) as fh:
@@ -1446,21 +1456,14 @@ def main() -> None:
     # If using kilo, we can escalate the cap for high-context models if the prompt is large.
     if (
         backend == "kilo"
+        and not args.model.strip()
         and not (
             os.environ.get("GIT_AI_COMMIT_MODEL") or os.environ.get("GIT_AI_COMMIT_KILO_MODEL")
         )
-        and not os.environ.get(
-            "KILO_MODEL_PINNED_BY_ENV"
-        )  # assume this check exists or is intended
-        and raw_prompt_size > 60_000  # use a threshold consistent with _MAX_DIFF_CHARS_DEFAULT
+        and raw_prompt_size > _MAX_DIFF_CHARS_DEFAULT
     ):
-        # If the resolved model is a known high-context model, we can use a larger cap.
-        # This logic should align with the plan's two-tier budget.
-        # For simplicity, if raw_prompt_size is large and we are using the default kilo path,
-        # we allow the escalated cap.
-        max_diff_chars = (
-            400_000  # This value should ideally be a constant like _MAX_DIFF_CHARS_ESCALATED
-        )
+        # For the default kilo path (qwen/qwen3-coder-next), we allow the escalated cap.
+        max_diff_chars = _MAX_DIFF_CHARS_ESCALATED
 
     msgs = _build_messages(
         diff,
