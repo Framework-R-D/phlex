@@ -93,9 +93,9 @@ Overridden by the
 \fBGIT_AI_COMMIT_MODEL\fR environment variable.
 .TP
 \fB\-\-api\fR \fIURL\fR
-Override the API base URL.  For the \fBkilo\fR backend, this is required
-(either via environment variable \fBGIT_AI_COMMIT_API\fR or the \fB\-\-api\fR
-option) unless using another backend with a default URL.
+Optional override of the API base URL for the \fBkilo\fR backend.
+If neither \fB\-\-api\fR nor \fBGIT_AI_COMMIT_API\fR is provided, the
+Kilo CLI uses its configured endpoint from \fB~/.config/kilo/kilo.jsonc\fR.
 Overridden by the \fBGIT_AI_COMMIT_API\fR environment variable.
 .TP
 \fB\-\-dry\-run\fR
@@ -139,7 +139,8 @@ the kilo CLI.
 Token is taken from \fBGIT_AI_COMMIT_TOKEN\fR and passed to the kilo CLI via
 the \fBKILO_SERVER_PASSWORD\fR environment variable.  If unset, no token is
 sent to the API.  The API base URL can be overridden via \fBGIT_AI_COMMIT_API\fR
-or passed as \fBKILO_SERVER_URL\fR.
+or passed as \fBKILO_SERVER_URL\fR; if neither is provided, the Kilo CLI uses
+its configured endpoint from \fB~/.config/kilo/kilo.jsonc\fR.
 
 \fBgithub\-models\fR
 GitHub Models inference API (\fIhttps://models.inference.ai.azure.com\fR).
@@ -180,7 +181,8 @@ all other token sources.
 Default model name.  Overrides the backend default.
 .TP
 \fBGIT_AI_COMMIT_API\fR
-API base URL override.  Required for the kilo backend.
+Optional API base URL override for the \fBkilo\fR backend.  When not set, the
+Kilo CLI uses its configured endpoint from \fB~/.config/kilo/kilo.jsonc\fR.
 .TP
 \fBGIT_AI_COMMIT_BACKEND\fR
 Default backend (\fBkilo\fR, \fBgithub\-models\fR, \fBcopilot\fR, \fBantigravity\fR, or \fBagy\fR).
