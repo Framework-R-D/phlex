@@ -424,6 +424,8 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
       *max_chars*.
     - If a single file section alone exceeds *max_chars*, fall back to cutting at a line boundary
       within that section.
+    - If there are no file sections (or only the stat block) and it exceeds *max_chars*,
+      truncate the stat block at a line boundary, reserving space for the omission marker.
     - Omitted sections are replaced with a note:
       ``"\n\n[diff truncated: N of M files omitted to fit context budget]"``.
     """
@@ -455,9 +457,28 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
             break
 
     omitted = total_files - len(kept_sections)
+    # Optimization: if we have room for the stat block and at least one file,
+    # we can keep them. If not, we'll rely on the final truncation.
     result = stat_block + "".join(kept_sections)
     if omitted:
         result = _add_marker(result, omitted, total_files)
+    # Ensure result does not exceed max_chars; if it does (e.g., stat_block alone too large),
+    # truncate at a line boundary preserving space for the marker.
+    if len(result) > max_chars:
+        # Determine how much space we need for the marker (if omitted>0, else none)
+        marker_len = 0
+        if omitted:
+            marker = f"\n\n[diff truncated: {omitted} of {total_files} "
+            "files omitted to fit context budget]"
+            marker_len = len(marker)
+        # Truncate stat block (or result) to fit within max_chars, leaving room for marker.
+        truncate_len = max_chars - marker_len
+        truncated = result[:truncate_len]
+        # Ensure we cut at a line boundary.
+        truncated = truncated.rsplit("\n", 1)[0]
+        result = truncated
+        if omitted:
+            result = _add_marker(result, omitted, total_files)
     return result
 
 
@@ -1053,6 +1074,9 @@ def _chat_kilo(model: str, messages: list[dict[str, str]], token: str, api_base:
         # Clear KILO_SERVER_PASSWORD if we are setting it from GIT_AI_COMMIT_TOKEN
         # to ensure the tool's preferred token takes precedence.
         env["KILO_SERVER_PASSWORD"] = token
+    else:
+        # Ensure no inherited KILO_SERVER_PASSWORD is forwarded when no token is provided.
+        env.pop("KILO_SERVER_PASSWORD", None)
     if api_base:
         env["KILO_SERVER_URL"] = api_base
 

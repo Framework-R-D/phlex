@@ -941,8 +941,10 @@ class TestTruncateDiff:
         file1 = "diff --git a/aaa.py b/aaa.py\nnew file mode 100644\n+line 1\n+line 2\n"
         file2 = "diff --git a/bbb.py b/bbb.py\nnew file mode 100644\n+line a\n+line b\n"
         diff = stat_block + file1 + file2
-        # Budget that fits stat + file1 exactly, but not file2 on top
-        budget = len(stat_block) + len(file1)
+        # Marker to include after file1
+        marker = "\n\n[diff truncated: 1 of 2 files omitted to fit context budget]"
+        # Budget that fits stat + file1 + marker, but not file2
+        budget = len(stat_block) + len(file1) + len(marker)
         result = _M._truncate_diff(diff, budget)
 
         # stat + file1 should be present
