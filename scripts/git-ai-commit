@@ -248,8 +248,20 @@ def _load_kilo_config() -> dict:
                 else:
                     cleaned.append(char)
             i += 1
-        return json.loads("".join(cleaned))
-    except (OSError, json.JSONDecodeError):
+        # Parse JSON after comment removal
+        data = json.loads("".join(cleaned))
+        # Validate structure: top-level must be a dict with required keys.
+        if not isinstance(data, dict):
+            raise ValueError("Kilo config top-level is not a mapping")
+        disabled = data.get("disabled_providers", [])
+        provider = data.get("provider", {})
+        if not isinstance(disabled, (list, tuple)):
+            raise ValueError("disabled_providers must be a list")
+        if not isinstance(provider, dict):
+            raise ValueError("provider must be a mapping")
+        # Return a sanitized dict ensuring expected types.
+        return {"disabled_providers": list(disabled), "provider": dict(provider)}
+    except (OSError, json.JSONDecodeError, ValueError):
         return {"disabled_providers": [], "provider": {}}
 
 
@@ -1517,6 +1529,11 @@ def main() -> None:
     except _Error as err:
         print(f"git-ai-commit: {err}", file=sys.stderr)
         sys.exit(1)
+
+    # Empty message check - must happen before dry-run handling and editing
+    if not message.strip():
+        print("git-ai-commit: Empty message — aborting.", file=sys.stderr)
+        sys.exit(0)
 
     if args.dry_run:
         # Write clean message to stdout so it can be captured by scripts.
