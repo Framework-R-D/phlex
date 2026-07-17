@@ -856,7 +856,7 @@ def _deduplicate_once(text: str) -> str:
                 if len_sec2 <= len_sec1:
                     # Check if sec2 is essentially sec1 (maybe slightly different)
                     matching_lines = sum(
-                        1 for l1, l2 in zip(sec1_lines, sec2_lines, strict=True) if l1 == l2
+                        1 for l1, l2 in zip(sec1_lines, sec2_lines, strict=False) if l1 == l2
                     )
                     if matching_lines >= len(sec2_lines) * 0.8:  # 80% match threshold
                         return sec1

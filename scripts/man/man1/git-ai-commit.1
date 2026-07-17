@@ -108,7 +108,8 @@ Skip the interactive confirmation prompt and commit immediately.
 \fB\-e\fR, \fB\-\-edit\fR
 Open the generated message in \fB$EDITOR\fR (falling back to \fB$VISUAL\fR,
 then \fBvi\fR) before committing.  Lines beginning with \fB#\fR are stripped.
-An empty message aborts the commit.
+An empty message aborts the commit.  If standard input is a terminal, \fB$VISUAL\fR is
+preferred over \fB$EDITOR\fR; otherwise, \fB$EDITOR\fR is preferred.
 .TP
 \fB\-\-no\-instructions\fR
 Skip all instruction and context files; include only the diff, status,
@@ -194,7 +195,9 @@ Deprecated.  Use \fBGIT_AI_COMMIT_API\fR instead.
 Deprecated.  Use \fBGIT_AI_COMMIT_MODEL\fR instead.
 .TP
 \fBEDITOR\fR, \fBVISUAL\fR
-Editor invoked by \fB\-\-edit\fR.  Checked in order; \fBvi\fR is the final fallback.
+Editor invoked by \fB\-\-edit\fR.  Preferred order depends on whether standard
+input is a terminal: \fB$VISUAL\fR then \fB$EDITOR\fR for terminals, \fB$EDITOR\fR
+then \fB$VISUAL\fR otherwise; \fBvi\fR is the final fallback.
 .SH EXAMPLES
 Stage all changes and commit with a generated message, confirming interactively:
 .PP
