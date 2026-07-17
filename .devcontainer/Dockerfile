@@ -88,15 +88,25 @@ if [ "$(dpkg-divert --truename /usr/bin/man)" = "/usr/bin/man.REAL" ]; then
 fi
 INSTALL_MAN_TOOLS
 
-# Install podman client and socat inside the container to support nested
+# Install dev utils
 # container communication and provide a 'docker' command alias.
-RUN bash <<'INSTALL_PODMAN_CLIENT'
+RUN bash <<'INSTALL_DEV_UTILS'
 set -euo pipefail
 apt-get update
-apt-get install -y --no-install-recommends ssh podman socat
+apt-get install -y --no-install-recommends jq podman ssh socat tree yq
+apt purge nodejs npm -y && apt autoremove -y || true
+apt-get install -y curl --no-install-recommends --autoremove
+curl -fsSL https://deb.nodesource.com/setup_26.x | bash -
+apt-get install -y nodejs
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-INSTALL_PODMAN_CLIENT
+INSTALL_DEV_UTILS
+
+RUN bash <<'INSTALL_NPM_PACKAGES'
+set -euo pipefail
+npm config set allow-scripts=@kilocode/cli --location=user
+npm install -g @kilocode/cli
+INSTALL_NPM_PACKAGES
 
 # Wire up the root user's .bashrc to source the Spack environment via
 # /entrypoint.sh on every interactive shell.
