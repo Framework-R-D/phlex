@@ -26,6 +26,7 @@ import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -759,9 +760,9 @@ class TestStdinContext:
         def _capture_build_messages(*args: object, **kwargs: object) -> list[dict[str, str]]:
             # Extract context from args (4th positional argument)
             if len(args) >= 4:
-                context = args[3]
+                context = cast(str, args[3])
             else:
-                context = kwargs.get("context", "")
+                context = cast(str, kwargs.get("context", ""))
             captured_context.append(context)
             return [{"role": "system", "content": ""}, {"role": "user", "content": ""}]
 
