@@ -1308,8 +1308,11 @@ class TestKiloConfig:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_default_model_kilo_uses_qwen3_coder_next(self) -> None:
-        """_DEFAULT_MODEL_KILO defaults to qwen/qwen3-coder-next."""
-        assert _M._DEFAULT_MODEL_KILO == "qwen/qwen3-coder-next"
+        """_KILO_DEFAULT_MODEL (hard-coded fallback) equals qwen/qwen3-coder-next."""
+        assert _M._KILO_DEFAULT_MODEL == "qwen/qwen3-coder-next"
+        # Verify _default_model("kilo") returns current _DEFAULT_MODEL_KILO
+        # (which may be environment-derived if GIT_AI_COMMIT_MODEL is set)
+        assert _M._default_model("kilo") == _M._DEFAULT_MODEL_KILO
 
 
 # ===========================================================================
@@ -1598,8 +1601,9 @@ class TestKiloBackend:
         """_resolve_backend_and_api returns correct api for kilo backend."""
         backend, api = _M._resolve_backend_and_api("kilo", "")
         assert backend == "kilo"
-        # API should be empty or from env var (not default)
-        assert api == "" or api is not None  # api_base from env var or empty
+        # API should be None (not returned) or a valid URL/startswith http
+        assert api is not None
+        assert api == "" or api.startswith("http")
 
     def test_default_model_kilo(self) -> None:
         """_default_model returns qwen/qwen3-coder-next for kilo backend."""
@@ -1610,9 +1614,11 @@ class TestKiloBackend:
         messages = [{"role": "user", "content": "test message"}]
         monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
 
-        # Mock kilo config to ensure consistent model resolution
+        # Mock kilo config to ensure consistent model resolution.
+        # Uses fnal-ow provider with qwen/qwen3-coder-next model (same as CI config).
         mock_config: dict[str, object] = {
-            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}}
+            "disabled_providers": [],
+            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}},
         }
         monkeypatch.setattr(_M, "_load_kilo_config", lambda: mock_config)
 
@@ -1644,9 +1650,11 @@ class TestKiloBackend:
         messages = [{"role": "user", "content": "test message"}]
         monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
 
-        # Mock kilo config to ensure consistent model resolution
+        # Mock kilo config to ensure consistent model resolution.
+        # Uses fnal-ow provider with qwen/qwen3-coder-next model (same as CI config).
         mock_config: dict[str, object] = {
-            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}}
+            "disabled_providers": [],
+            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}},
         }
         monkeypatch.setattr(_M, "_load_kilo_config", lambda: mock_config)
 
