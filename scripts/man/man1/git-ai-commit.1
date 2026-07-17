@@ -94,7 +94,7 @@ Overridden by the
 .TP
 \fB\-\-api\fR \fIURL\fR
 Override the API base URL.  For the \fBkilo\fR backend, this is required
-(either via environment variable \fBGIT_AI_COMMIT_API\fR or the \fB--api\fR
+(either via environment variable \fBGIT_AI_COMMIT_API\fR or the \fB\-\-api\fR
 option) unless using another backend with a default URL.
 Overridden by the \fBGIT_AI_COMMIT_API\fR environment variable.
 .TP
@@ -130,10 +130,10 @@ git ai\-commit \-\-yes \-\- \-\-gpg\-sign=KEYID
 .SH BACKENDS
 .TP
 \fBkilo\fR
-LiteLLM\-compatible endpoint via the \fBkilo\fR CLI (\fBkilo run --agent=code\fR).
+LiteLLM\-compatible endpoint via the \fBkilo\fR CLI (\fBkilo run \-\-agent=code\fR).
 The kilo backend reads its configuration from \fB~/.config/kilo/kilo.jsonc\fR.
 Model names without a provider prefix are auto\-resolved by looking up the
-model in the kilo config.  The \fB--agent=code\fR option is always passed to
+model in the kilo config.  The \fB\-\-agent=code\fR option is always passed to
 the kilo CLI.
 .PP
 Token is taken from \fBGIT_AI_COMMIT_TOKEN\fR and passed to the kilo CLI via

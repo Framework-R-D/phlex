@@ -379,21 +379,25 @@ def _skip_binary_and_generated(diff: str) -> str:
     for sec in sections:
         if not sec.strip():
             continue
-        # Binary detection.
-        m = re.search(r"^Binary files ([^ \n]+) and ([^ \n]+) differ$", sec, flags=re.MULTILINE)
-        if m:
-            # Extract path from the line, e.g., "Binary files a/foo.bin and b/foo.bin differ"
-            path = m.group(2)
-            kept_sections.append(f"[skipped binary/generated file: {path}]\n")
-            continue
+        # Binary detection: apply only to sections that consist solely of the binary line
+        # (i.e., no diff header). This avoids replacing the entire preamble/stat block.
+        if "Binary files" in sec and "diff --git" not in sec:
+            # Replace each binary line with a placeholder, preserving other content.
+            sec = re.sub(
+                r"^Binary files ([^ \n]+) and ([^ \n]+) differ$",
+                lambda m: f"[skipped binary/generated file: {m.group(2)}]",
+                sec,
+                flags=re.MULTILINE,
+            )
         # Generated file detection via header line.
         header_match = re.search(r"^diff --git a/([^ \n]+) b/([^ \n]+)", sec, flags=re.MULTILINE)
         if header_match:
             path = header_match.group(2)
             if any(fnmatch.fnmatch(path, pat) for pat in _GENERATED_FILE_GLOBS):
+                # Replace the entire generated file section with a placeholder.
                 kept_sections.append(f"[skipped binary/generated file: {path}]\n")
                 continue
-        # Keep original section.
+        # Keep original (or possibly modified) section.
         kept_sections.append(sec)
     return "".join(kept_sections)
 
@@ -414,51 +418,35 @@ def _truncate_diff(diff: str, max_chars: int) -> str:
     if len(diff) <= max_chars:
         return diff
 
-    # Split the diff into stat block + individual file sections.
-    # Use a zero-width lookahead so each file section retains its "diff --git " prefix.
+    # Split the diff into a leading stat block and per‑file sections.
     raw_sections = re.split(r"(?=^diff --git )", diff, flags=re.MULTILINE)
-    # First element is the leading diffstat block (may be empty for a bare diff).
     stat_block = raw_sections[0]
-    file_sections = raw_sections[1:]  # each starts with "diff --git "
+    file_sections = raw_sections[1:]
 
     total_files = len(file_sections)
     kept_sections: list[str] = []
     current_len = len(stat_block)
 
-    line_boundary_cut = False  # True when a section was cut mid-file
+    def _add_marker(base: str, omitted_cnt: int, total_cnt: int) -> str:
+        marker = (
+            f"\n\n[diff truncated: {omitted_cnt} of {total_cnt} files omitted "
+            f"to fit context budget]"
+        )
+        return base + marker
+
     for sec in file_sections:
         if current_len + len(sec) <= max_chars:
             kept_sections.append(sec)
             current_len += len(sec)
         else:
-            # Hard enforcement: if the remaining budget is too small for this section,
-            # we check if we can fit at least some of it.
-            remaining_budget = max_chars - current_len
-            if remaining_budget > 0:
-                # Fall back to a line-boundary cut within this section.
-                lines = sec.splitlines(keepends=True)
-                acc = ""
-                for line in lines:
-                    if len(acc) + len(line) > remaining_budget:
-                        break
-                    acc += line
-                if acc:
-                    kept_sections.append(acc)
-                line_boundary_cut = True
+            # Stop adding further sections; remaining are omitted.
             break
 
     omitted = total_files - len(kept_sections)
-    final = stat_block + "".join(kept_sections)
-    if line_boundary_cut:
-        final += (
-            f"\n\n[diff truncated: section cut mid-file; "
-            f"{omitted} of {total_files} files omitted to fit context budget]"
-        )
-    elif omitted:
-        final += (
-            f"\n\n[diff truncated: {omitted} of {total_files} files omitted to fit context budget]"
-        )
-    return final
+    result = stat_block + "".join(kept_sections)
+    if omitted:
+        result = _add_marker(result, omitted, total_files)
+    return result
 
 
 _SYSTEM = textwrap.dedent("""\
