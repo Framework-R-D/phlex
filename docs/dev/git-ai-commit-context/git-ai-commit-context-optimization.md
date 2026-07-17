@@ -3,7 +3,7 @@
 ## Goal
 
 Implement the applicable recommendations from
-`docs/dev/git_ai_commit_context_guidelines.md` to maximize commit-message
+`git_ai_commit_context_guidelines.md` to maximize commit-message
 quality while minimizing unnecessary prompt/context bloat in
 `scripts/git-ai-commit`. Treat the report as an idea source, not a spec: the
 tool already implements several recommendations and diverges from the report's
@@ -137,7 +137,7 @@ deployment; no full-file inclusion; no doc cache; no issue/PR fetch).
      reduced history depth, any new flag, and binary/generated skipping.
    - Script module docstring (top of `scripts/git-ai-commit`): sync any option
      or default changes.
-   - `docs/dev/git_ai_commit_context_guidelines.md`: append a short
+   - `git_ai_commit_context_guidelines.md`: append a short
      "Implementation status" section recording the disposition table above
      (done / partial / rejected + rationale) so the report reflects reality.
 

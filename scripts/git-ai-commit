@@ -1444,6 +1444,9 @@ def main() -> None:
 
         root = _git_root()
         diff = _staged_diff(args.amend)
+        # Use a clean staged diff (index vs HEAD) to determine if there are new changes,
+        # avoiding the amended commit's contents which are included in args.amend diff.
+        staged_only_diff = _staged_diff(False)
         # Skip binary and generated file sections before any truncation.
         diff = _skip_binary_and_generated(diff)
         status = _status()
@@ -1456,7 +1459,7 @@ def main() -> None:
         sys.exit(1)
 
     amend_no_diff = False
-    if not diff.strip():
+    if not staged_only_diff.strip():
         if not args.amend:
             print("Nothing staged. Use 'git add' first.", file=sys.stderr)
             sys.exit(0)
