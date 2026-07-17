@@ -1,4 +1,4 @@
-FROM ghcr.io/framework-r-d/phlex-dev:2026-06-24
+FROM ghcr.io/framework-r-d/phlex-dev:latest
 
 # Validate Python site-packages symlink.
 # Invoke bash explicitly: the script uses bash features (pipefail, arrays,
