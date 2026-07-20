@@ -159,7 +159,7 @@ namespace {
   std::optional<int> sequential_row_from_index_id(std::string const& id)
   {
     if (id == "[]") {
-      return 1;
+      return 0;
     }
 
     if (id.size() < 2 || id.front() != '[' || id.back() != ']') {
@@ -179,7 +179,7 @@ namespace {
 
     try {
       auto const number = std::stoi(body.substr(colon + 1));
-      return number + 1;
+      return number;
     } catch (...) {
       return std::nullopt;
     }
@@ -223,7 +223,7 @@ int StorageReader::getIndex(Token const& token,
       cont->second->setFile(file->second);
     }
     auto const& type = typeid(std::string);
-    int entry = 1;
+    int entry = 0;
     void const* rawData = nullptr;
     while (cont->second->read(entry, &rawData, type)) {
       std::unique_ptr<std::string const> data(static_cast<std::string const*>(rawData));
@@ -326,7 +326,7 @@ std::vector<std::string> StorageReader::listIndices(
     }
 
     auto const& type = typeid(std::string);
-    int entry = 1;
+    int entry = 0;
     void const* rawData = nullptr;
     while (cont->second->read(entry, &rawData, type)) {
       std::unique_ptr<std::string const> data(static_cast<std::string const*>(rawData));

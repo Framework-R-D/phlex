@@ -97,8 +97,9 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::read no branch found");
   }
-  if (id > m_tree->GetEntries())
+  if (id >= m_tree->GetEntries()) {
     return false;
+  }
 
   gsl::owner<void*> branchBuffer = nullptr;
   auto dictInfo = TDictionary::GetDictionary(type);

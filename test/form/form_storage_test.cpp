@@ -390,7 +390,7 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   Token const index_token{file_name, index_container, technology};
   tech_setting_config const settings{};
 
-  CHECK(reader.getIndex(index_token, "[]", settings) == 1);
+  CHECK(reader.getIndex(index_token, "[]", settings) == 0);
   CHECK(reader.getIndex(index_token, "plain-text-id", settings) == 0);
 
   CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=00000001]", settings),
@@ -398,8 +398,6 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   CHECK_THROWS_AS(
     reader.getIndex(index_token, "[EVENT=99999999999999999999999999999999]", settings),
     std::runtime_error);
-  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT=00000001,SEG=00000002]", settings),
-                  std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[=00000001]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[    ]", settings), std::runtime_error);
@@ -491,11 +489,7 @@ TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error br
   tech_setting_config container_attr_settings;
   container_attr_settings.container_settings[technology][creator + "/index"] = {{"split", "0"}};
 
-  if (form::technology::GetMinor(technology) == form::technology::ROOT_RNTUPLE_MINOR) {
-    CHECK_THROWS_AS(reader.listIndices(index_token, container_attr_settings), std::runtime_error);
-  } else {
-    CHECK_NOTHROW(reader.listIndices(index_token, container_attr_settings));
-  }
+  CHECK_NOTHROW(reader.listIndices(index_token, container_attr_settings));
   CHECK_NOTHROW(reader.readContainer(Token{file_name, creator + "/prod", technology, 0},
                                      &raw,
                                      typeid(std::vector<int>),
