@@ -69,7 +69,6 @@ Explain how to produce a structured, machine-readable JSON execution plan with t
       "on_error": "replan",
       "self_check": "eslint_passes('src/components/Toggle.jsx')"
     }
-    // …additional steps
   ]
 }
 ```
