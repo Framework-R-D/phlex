@@ -113,10 +113,8 @@ jobs:
               repo: context.repo.repo,
               issue_number: pr
             });
-            // Identify comment IDs that have replies
-            const repliedIds = new Set(comments.filter(c => c.in_reply_to).map(c => c.in_reply_to));
             for (const c of comments) {
-              if (c.body && c.body.includes(marker) && !repliedIds.has(c.id)) {
+              if (c.body && c.body.includes(marker)) {
                 await github.rest.issues.deleteComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,

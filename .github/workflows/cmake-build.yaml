@@ -229,7 +229,7 @@ jobs:
         working-directory: ${{ needs.setup.outputs.build_path }}
         env:
           PERFETTO_HEAP_PROFILE: ${{ inputs.perfetto_heap_profile }}
-          PERFETTO_CPU_PROFILE: ${{ github.event.inputs.perfetto_cpu_profile }}
+          PERFETTO_CPU_PROFILE: ${{ inputs.perfetto_cpu_profile }}
         run: |
           . /entrypoint.sh
 

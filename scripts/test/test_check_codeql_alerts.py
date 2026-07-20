@@ -1229,8 +1229,7 @@ class TestBuildMultiSectionComment:
         with *count* alerts and verifies that the generated comment folds the
         section when *count* exceeds ``M._FOLD_THRESHOLD``.
         """
-        tester = TestBuildMultiSectionComment()
-        alerts = [tester._alert(number=i) for i in range(count)]
+        alerts = [self._alert(number=i) for i in range(count)]
         kwargs: dict[str, Any] = {}
         # Populate the appropriate field based on the section name.
         if section == "new_vs_prev":
@@ -1247,7 +1246,7 @@ class TestBuildMultiSectionComment:
             kwargs["new_alerts"] = alerts
         elif section == "fixed_alerts":
             kwargs["fixed_alerts"] = alerts
-        comp = tester._comp(**kwargs)
+        comp = self._comp(**kwargs)
         body = M._build_multi_section_comment(comp, max_results=100)
         if expect_fold:
             assert "<details>" in body
