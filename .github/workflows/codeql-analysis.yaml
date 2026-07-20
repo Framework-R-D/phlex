@@ -242,7 +242,7 @@ jobs:
           build-path: ${{ env.local_build_path }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+        uses: github/codeql-action/init@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
         with:
           languages: ${{ matrix.language }}
           config-file: ${{ env.local_checkout_path }}/.github/codeql/codeql-config.yml
@@ -268,7 +268,7 @@ jobs:
 
       # Run CodeQL analysis (uploads results to code scanning)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+        uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
         with:
           checkout_path: ${{ env.local_checkout_path }}
           output: results
@@ -357,7 +357,8 @@ jobs:
 
       - name: Prepare PR comment data
         if: >-
-          github.event_name == 'pull_request' && steps.check_codeql.outputs.comment_path != ''
+          github.event_name == 'pull_request' && (steps.check_codeql.outputs.new_vs_base == 'true' ||
+          steps.check_codeql.outputs.fixed_vs_base == 'true') && steps.check_codeql.outputs.comment_path != ''
         env:
           COMMENT_PATH: ${{ steps.check_codeql.outputs.comment_path }}
         run: |
@@ -367,7 +368,8 @@ jobs:
 
       - name: Upload PR comment data
         if: >-
-          github.event_name == 'pull_request' && steps.check_codeql.outputs.comment_path != ''
+          github.event_name == 'pull_request' && (steps.check_codeql.outputs.new_vs_base == 'true' ||
+          steps.check_codeql.outputs.fixed_vs_base == 'true') && steps.check_codeql.outputs.comment_path != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: codeql-pr-data

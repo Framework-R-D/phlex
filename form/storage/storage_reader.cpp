@@ -345,9 +345,8 @@ std::vector<std::string> StorageReader::listIndices(
   for (auto const& [index_string, entry] : m_indexMaps[token.containerName()]) {
     ordered.emplace_back(entry, index_string);
   }
-  std::sort(ordered.begin(), ordered.end(), [](auto const& lhs, auto const& rhs) {
-    return lhs.first < rhs.first;
-  });
+  std::ranges::sort(ordered,
+                    [](auto const& lhs, auto const& rhs) { return lhs.first < rhs.first; });
 
   std::vector<std::string> result;
   result.reserve(ordered.size());

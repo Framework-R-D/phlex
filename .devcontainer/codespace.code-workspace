@@ -114,7 +114,6 @@
     "extensions": {
         "recommendations": [
             "charliermarsh.ruff",
-            "github.copilot-chat",
             "github.vscode-github-actions",
             "github.vscode-pull-request-github",
             "ms-vscode.cmake-tools",

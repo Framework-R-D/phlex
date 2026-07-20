@@ -7,7 +7,7 @@ using namespace phlex::experimental;
 
 static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 {
-  py_lifeline_t* pyobj = reinterpret_cast<py_lifeline_t*>(pytype->tp_alloc(pytype, 0));
+  auto* pyobj = reinterpret_cast<py_lifeline_t*>(pytype->tp_alloc(pytype, 0));
   if (pyobj) {
     pyobj->m_view = nullptr;
     new (&pyobj->m_source) std::shared_ptr<void>{};

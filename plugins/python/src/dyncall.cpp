@@ -16,7 +16,7 @@ phlex::experimental::dcarg phlex::experimental::dcarg::from_str(std::string cons
   // only types currently used in modulewrap are added, not all ffi types
   if (stype == "bool")
     return dcarg(false);
-  else if (stype == "int32_t")
+  if (stype == "int32_t")
     return dcarg(static_cast<std::int32_t>(0));
   else if (stype == "uint32_t")
     return dcarg(static_cast<std::uint32_t>(0));

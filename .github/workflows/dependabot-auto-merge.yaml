@@ -13,6 +13,7 @@ name: Dependabot auto-merge
     types: [completed]
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -63,7 +64,11 @@ jobs:
         shell: bash
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        # NOTE: This workflow assumes the repository-wide "Allow auto-merge" setting
+        # is enabled (Repository Settings → General → "Allow auto-merge").
+        # If it is disabled, the workflow will fail; enable it manually.
         # yamllint disable rule:line-length
         run: |
           set -o pipefail
@@ -82,22 +87,6 @@ jobs:
             exit 0
           fi
 
-          # The repository-level "Allow auto-merge" setting is off. Re-enable it and retry once.
-          # This can happen if the setting is accidentally toggled in the repository admin UI.
-          if grep -qF "Auto merge is not allowed for this repository" /tmp/gh-output.txt; then
-            echo "Repository Allow auto-merge is disabled; attempting to re-enable..."
-            if ! gh api "repos/${GITHUB_REPOSITORY}" --method PATCH --field allow_auto_merge=true > /dev/null; then
-              echo "Could not re-enable Allow auto-merge on the repository. Manual intervention required."
-              exit 1
-            fi
-            echo "Repository setting re-enabled; retrying..."
-            if ! attempt_merge; then
-              echo "Auto-merge still failed after re-enabling repository setting:"
-              cat /tmp/gh-output.txt
-              exit 1
-            fi
-            exit 0
-          fi
 
           # Concurrent merge race: another PR merged while this one was being processed,
           # moving the base branch. Request a Dependabot rebase to update this branch;

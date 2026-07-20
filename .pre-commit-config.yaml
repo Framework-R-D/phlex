@@ -13,14 +13,14 @@ repos:
       - id: check-executables-have-shebangs
       - id: mixed-line-ending
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.19
+    rev: v0.15.22
     hooks:
       - id: ruff-format
         types_or: [python, pyi]
       - id: ruff
         types_or: [python, pyi]
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v20.1.8
+    rev: 182152eb8c5ce1cf5299b956b04392c86bd8a126 # frozen: v20.1.8
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
@@ -54,12 +54,12 @@ repos:
         # We therefore exclude them from linting, but still format them.
         exclude: ^test/max-parallelism
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.8.4
+    rev: v3.9.5
     hooks:
       - id: prettier
         types_or: [yaml]
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.22.1
+    rev: v0.23.0
     hooks:
       - id: markdownlint-cli2
         args: [--fix]

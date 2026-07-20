@@ -13,6 +13,7 @@
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <numbers>
 #include <numeric>
 #include <vector>
 
@@ -59,7 +60,7 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
 
 TEST_CASE("Storage_Container sharing an Association", "[form]")
 {
-  std::vector<float> piData(10, 3.1415927);
+  std::vector<float> piData(10, std::numbers::pi_v<float>);
   std::string indexData = "[EVENT=00000001;SEG=00000001]";
 
   form::test::write(technology, piData, indexData);
@@ -73,9 +74,9 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
 
 TEST_CASE("Storage_Container multiple containers in Association", "[form]")
 {
-  std::vector<float> piData(10, 3.1415927);
+  std::vector<float> piData(10, std::numbers::pi_v<float>);
   std::vector<int> magicData(17);
-  std::iota(magicData.begin(), magicData.end(), 42);
+  std::ranges::iota(magicData, 42);
   std::string indexData = "[EVENT=00000001;SEG=00000001]";
 
   form::test::write(technology, piData, magicData, indexData);
@@ -200,8 +201,8 @@ TEST_CASE("Root branch read: fundamental scalar types round-trip", "[form]")
   testFundamental(9000000000UL);
   testFundamental(-4000000000LL);
   testFundamental(8000000000ULL);
-  testFundamental(3.14f);
-  testFundamental(2.718281828);
+  testFundamental(std::numbers::pi_v<float>);
+  testFundamental(std::numbers::e);
   testFundamental(true);
 }
 

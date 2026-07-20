@@ -89,7 +89,7 @@ namespace form::detail::experimental {
     m_view->BindRawPtr(buffer.get());
     try {
       (*m_view)(id);
-    } catch (const ROOT::RException& e) {
+    } catch (ROOT::RException const& e) {
       throw std::runtime_error("ROOT_RField_Read_ContainerImp::read got a ROOT exception: " +
                                std::string(e.what()));
     }
@@ -132,7 +132,7 @@ namespace form::detail::experimental {
     try {
       m_view =
         std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, type));
-    } catch (const ROOT::RException& e) {
+    } catch (ROOT::RException const& e) {
       //RNTupleView<void> will fail to create a field for fields written in streamer mode or for which type does not match the field's type on disk.  Passing an empty string for type forces it to create the same type of field as the object on disk.  Do this to handle streamer fields, then perform our own type check.
       m_view =
         std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, ""));

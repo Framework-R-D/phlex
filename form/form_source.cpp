@@ -162,10 +162,10 @@ PHLEX_REGISTER_SOURCE(s, config)
 {
   std::cout << "Registering FORM input source...\n";
 
-  std::string const input_file = config.get<std::string>("input_file");
-  std::string const advertised_creator = config.get<std::string>("creator");
-  std::string const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
-  std::string const module_label = config.get<std::string>("module_label", "form_source");
+  auto const input_file = config.get<std::string>("input_file");
+  auto const advertised_creator = config.get<std::string>("creator");
+  auto const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
+  auto const module_label = config.get<std::string>("module_label", "form_source");
   auto const products = config.get<std::vector<std::string>>("products");
 
   std::string actual_creator = advertised_creator;

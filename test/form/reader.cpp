@@ -198,8 +198,7 @@ int main(int argc, char** argv)
   if (all_passed) {
     std::cout << "PHLEX: All verification checks PASSED." << '\n';
     return 0;
-  } else {
-    std::cerr << "PHLEX: Some verification checks FAILED." << '\n';
-    return 1;
   }
+  std::cerr << "PHLEX: Some verification checks FAILED." << '\n';
+  return 1;
 }

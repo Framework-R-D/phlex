@@ -17,15 +17,6 @@ EOF
 # installation on every rebuild.
 rm -f /root/.vscode-server-insiders/data/Machine/.installExtensionsMarker
 
-# Set KILO_CONFIG_CONTENT for interactive shells.  When KILO_CONFIG_CONTENT_DOCKER
-# is non-empty (headroom local proxy via socat relay), use it so that the baseURL
-# points at host.docker.internal rather than 127.0.0.1.  Otherwise leave
-# KILO_CONFIG_CONTENT unset so Kilo falls back to ~/.config/kilo/kilo.jsonc,
-# which is bind-mounted from the host and may point at an external provider.
-if [ -n "${KILO_CONFIG_CONTENT_DOCKER:-}" ]; then
-  printf 'export KILO_CONFIG_CONTENT=%q\n' "${KILO_CONFIG_CONTENT_DOCKER}" >> /root/.bashrc
-fi
-
 # Seed the Kilo Code auth token into the container-private data volume.
 # The volume is not shared with the host to avoid SQLite conflicts between
 # the Remote-SSH and devcontainer Kilo Code instances.  The API key is
@@ -39,10 +30,17 @@ import json
 import os
 from pathlib import Path
 
+# The single fnal-litellm provider was split into fnal-azure (optimized) and
+# fnal-ow (passthrough); both share the same upstream gateway key.  Seed both
+# provider keys so Kilo resolves whichever provider a model is routed through.
+key = os.environ["KILO_API_KEY"]
 p = Path("/root/.local/share/kilo/auth.json")
 p.write_text(
     json.dumps(
-        {"fnal-litellm": {"type": "api", "key": os.environ["KILO_API_KEY"]}},
+        {
+            "fnal-azure": {"type": "api", "key": key},
+            "fnal-ow": {"type": "api", "key": key},
+        },
         indent=2,
     )
     + "\n",
@@ -100,5 +98,32 @@ elif command -v pre-commit >/dev/null 2>&1; then
   pre-commit install || true
 fi
 
-# Install kiro-cli and set up shell integrations.
-curl -fsSL https://cli.kiro.dev/install | bash
+# Configure Kilo to use host.docker.internal for headroom proxy ports.
+# The headroom SSH tunnels bind to 127.0.0.1 only, but rootless Podman's
+# pasta networking only routes host.docker.internal to ports listening on
+# 0.0.0.0.  We use socat relays (set up in ensure-repos.sh) to forward
+# 127.0.0.1:9797 -> 0.0.0.0:19797 and 127.0.0.1:9798 -> 0.0.0.0:19798.
+# This code rewrites Kilo's baseURL from 127.0.0.1:<port> to
+# host.docker.internal:<port+10000> for the relays to work.
+cat >> /root/.bashrc <<'EOF'
+
+# Unset any previous KILO_CONFIG_CONTENT to ensure a clean slate.
+unset KILO_CONFIG_CONTENT
+
+# If the headroom proxy ports (9797, 9798) are active via socat relays,
+# Kilo needs a modified config with baseURL pointing to host.docker.internal.
+# Parse 'kilo debug config', rewrite baseURLs, and export as KILO_CONFIG_CONTENT.
+if command -v kilo >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  # Only rewrite if we have a working Kilo config to work with.
+  if KILO_CONFIG_CONTENT="$(perl -pe 's{("(?:[^"\\]|\\.)*"|'"'"'(?:[^'"'"'\\]|\\.)*'"'"')|//.*}{$1 // ""}ge' "${HOME}/.config/kilo/kilo.jsonc" | jq -c '.provider |= with_entries(
+        .value.options.baseURL =
+        (if .value.options.baseURL == null then null
+         elif (.value.options.baseURL | test("^https?://127\\.0\\.0\\.1:"))
+         then (.value.options.baseURL | capture("https?://127\\.0\\.0\\.1:(?<port>[0-9]+)(?<rest>.*)") | "http://host.docker.internal:" + ((.port | tonumber + 10000) | tostring) + .rest)
+         else .value.options.baseURL
+         end)
+      )')"; then
+    export KILO_CONFIG_CONTENT
+  fi
+fi
+EOF
