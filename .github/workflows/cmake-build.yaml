@@ -26,12 +26,12 @@ run-name: "${{ github.actor }} building and testing ${{ github.repository }}"
           Default (if empty): Run `gcc/none`
         required: false
         default: ""
-      perfetto-heap-profile:
+      perfetto_heap_profile:
         description: "Enable heap profiling for Perfetto runs"
         required: false
         type: boolean
         default: false
-      perfetto-cpu-profile:
+      perfetto_cpu_profile:
         description: "Enable CPU profiling for Perfetto runs"
         required: false
         type: boolean
@@ -228,10 +228,8 @@ jobs:
         if: matrix.sanitizer == 'perfetto'
         working-directory: ${{ needs.setup.outputs.build_path }}
         env:
-          PERFETTO_HEAP_PROFILE: ${{ github.event.inputs.perfetto-heap-profile || 'false' }}
-          PERFETTO_CPU_PROFILE:
-            ${{ (github.event.inputs.perfetto-cpu-profile != null && github.event.inputs.perfetto-cpu-profile) || true
-            }}
+          PERFETTO_HEAP_PROFILE: ${{ inputs.perfetto_heap_profile }}
+          PERFETTO_CPU_PROFILE: ${{ inputs.perfetto_cpu_profile }}
         run: |
           . /entrypoint.sh
 

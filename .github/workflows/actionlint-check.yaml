@@ -54,64 +54,95 @@ jobs:
       pr_number: ${{ steps.setup.outputs.pr_number }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
       has_changes: ${{ steps.setup.outputs.has_changes }}
-    steps:
-      - name: Workflow setup
-        id: setup
-        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
-        with:
-          include-globs: |
-            .github/workflows/**/*.yml
-            .github/workflows/**/*.yaml
-            .github/actions/**/*.yml
-            .github/actions/**/*.yaml
-          head-ref: ${{ inputs.pr-head-sha }}
-          ref: ${{ inputs.ref }}
-          repo: ${{ inputs.repo }}
-          pr-base-sha: ${{ inputs.pr-base-sha }}
-          checkout-path: ${{ inputs.checkout-path }}
+  steps:
+    - name: Workflow setup
+      id: setup
+      uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
+      with:
+        include-globs: |
+          .github/workflows/**/*.yml
+          .github/workflows/**/*.yaml
+          .github/actions/**/*.yml
+          .github/actions/**/*.yaml
+        head-ref: ${{ inputs.pr-head-sha }}
+        ref: ${{ inputs.ref }}
+        repo: ${{ inputs.repo }}
+        pr-base-sha: ${{ inputs.pr-base-sha }}
+        checkout-path: ${{ inputs.checkout-path }}
 
-  actionlint-check:
-    needs: setup
-    if: >
-      always() && (
-        github.event_name == 'workflow_dispatch' ||
-        inputs.skip-relevance-check ||
-        needs.setup.outputs.has_changes == 'true'
-      )
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
+actionlint-check:
+  needs: setup
+  if: >
+    always() && (
+      github.event_name == 'workflow_dispatch' ||
+      inputs.skip-relevance-check ||
+      needs.setup.outputs.has_changes == 'true'
+    )
+  runs-on: ubuntu-latest
+  permissions:
+    contents: read
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        ref: ${{ needs.setup.outputs.ref }}
+        path: ${{ needs.setup.outputs.checkout_path }}
+        repository: ${{ needs.setup.outputs.repo }}
+        persist-credentials: false
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          ref: ${{ needs.setup.outputs.ref }}
-          path: ${{ needs.setup.outputs.checkout_path }}
-          repository: ${{ needs.setup.outputs.repo }}
-          persist-credentials: false
+    - name: Announce actionlint check
+      run: echo "➡️ Running actionlint check..."
 
-      - name: Announce actionlint check
-        run: echo "➡️ Running actionlint check..."
+    - name: Run actionlint
+      id: lint
+      continue-on-error: true
+      env:
+        CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
+      run: |
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE/${CHECKOUT_PATH}:/work" \
+          -w /work \
+          rhysd/actionlint:latest \
+          -config-file .github/actionlint.yaml
 
-      - name: Run actionlint
-        id: lint
-        env:
-          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-        run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE/${CHECKOUT_PATH}:/work" \
-            -w /work \
-            rhysd/actionlint:latest \
-            -config-file .github/actionlint.yaml
-        continue-on-error: true
+    - name: Evaluate actionlint result
+      if: always() && steps.lint.outcome != 'skipped'
+      run: |
+        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
+          echo "✅ actionlint check passed."
+        else
+          echo "::error::actionlint check failed. Please review the output above for details."
+          exit 1
+        fi
 
-      - name: Evaluate actionlint result
-        if: always() && steps.lint.outcome != 'skipped'
-        run: |
-          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
-            echo "✅ actionlint check passed."
-          else
-            echo "::error::actionlint check failed. Please review the output above for details."
-            exit 1
-          fi
+gating_check:
+  needs: setup
+  if: >
+    always() && (
+      github.event_name == 'workflow_dispatch' ||
+      inputs.skip-relevance-check ||
+      needs.setup.outputs.has_changes == 'true'
+    )
+  runs-on: ubuntu-latest
+  permissions:
+    contents: read
+
+  steps:
+    - name: Checkout trusted base repository for governance script
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        path: base-repo
+        persist-credentials: false
+
+    - name: Checkout code
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        ref: ${{ needs.setup.outputs.ref }}
+        path: ${{ needs.setup.outputs.checkout_path }}
+        repository: ${{ needs.setup.outputs.repo }}
+        persist-credentials: false
+
+    - name: Verify gating-block consistency
+      env:
+        CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
+      run: bash "base-repo/scripts/check-gating-block.sh" "${CHECKOUT_PATH}/.github/workflows"
