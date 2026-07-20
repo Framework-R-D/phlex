@@ -12,6 +12,11 @@ repos:
       - id: check-vcs-permalinks
       - id: check-executables-have-shebangs
       - id: mixed-line-ending
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        types_or: [python, pyi]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.22
     hooks:
