@@ -90,22 +90,19 @@ PyObject* phlex::experimental::wrap_source(phlex_source_t& source_)
 
 namespace {
 
-  static inline std::string stringify(std::vector<std::string>& v)
-  {
-    return fmt::format("{:n}", v);
-  }
+  inline std::string stringify(std::vector<std::string>& v) { return fmt::format("{:n}", v); }
 
-  static inline std::string stringify(std::vector<product_selector>& v)
+  inline std::string stringify(std::vector<product_selector>& v)
   {
     return fmt::format("{:n}", std::ranges::views::transform(v, &product_selector::to_string));
   }
 
-  static inline std::string input_converter_name(std::string const& algname, size_t arg)
+  inline std::string input_converter_name(std::string const& algname, size_t arg)
   {
     return fmt::format("{}_arg{}_py", algname, arg);
   }
 
-  static inline dcarg lifeline_transform(dcarg arg)
+  inline dcarg lifeline_transform(dcarg arg)
   {
     PyObject* pyobj = arg.get<PyObject*>();
     if (pyobj && PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
@@ -243,7 +240,7 @@ namespace {
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
   // input/output validation helpers
-  static inline std::optional<product_selector> validate_selector(PyObject* pysel)
+  inline std::optional<product_selector> validate_selector(PyObject* pysel)
   {
     if (!PyDict_Check(pysel)) {
       PyErr_Format(PyExc_TypeError, "selector should be a product specification");
@@ -279,7 +276,7 @@ namespace {
       product_selector{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
   }
 
-  static std::vector<product_selector> validate_input(PyObject* input)
+  std::vector<product_selector> validate_input(PyObject* input)
   {
     std::vector<product_selector> cargs;
     if (!input)
@@ -313,7 +310,7 @@ namespace {
     return cargs;
   }
 
-  static std::vector<std::string> validate_output(PyObject* output)
+  std::vector<std::string> validate_output(PyObject* output)
   {
     std::vector<std::string> cargs;
     if (!output)
@@ -355,7 +352,7 @@ namespace {
 
 namespace {
 
-  static bool is_numba_cfunc(PyObject* obj)
+  bool is_numba_cfunc(PyObject* obj)
   {
     static PyObject* cfunc_type = nullptr;
     static bool checked = false;
@@ -380,7 +377,7 @@ namespace {
     return result == 1;
   }
 
-  static std::string annotation_as_text(PyObject* pyobj)
+  std::string annotation_as_text(PyObject* pyobj)
   {
     static PyObject* normalizer = nullptr;
     if (!normalizer) {
@@ -412,9 +409,9 @@ namespace {
   }
 
   // retrieve C++ (matching) types from annotations
-  static bool annotations_to_strings(PyObject* callable,
-                                     std::vector<std::string>& input_types,
-                                     std::vector<std::string>& output_types)
+  bool annotations_to_strings(PyObject* callable,
+                              std::vector<std::string>& input_types,
+                              std::vector<std::string>& output_types)
   {
     bool conversion_ok = false;
 
@@ -490,7 +487,7 @@ namespace {
   // these will be generated from the IDL, or they should be picked up from an
   // existing place such as cppyy
 
-  static bool pylong_as_bool(PyObject* pyobject)
+  bool pylong_as_bool(PyObject* pyobject)
   {
     // range-checking python integer to C++ bool conversion
     long l = PyLong_AsLong(pyobject);
@@ -502,7 +499,7 @@ namespace {
     return (bool)l;
   }
 
-  static long pylong_as_strictlong(PyObject* pyobject)
+  long pylong_as_strictlong(PyObject* pyobject)
   {
     // convert <pybject> to C++ long, don't allow truncation
     if (PyLong_Check(pyobject)) { // native Python integer
@@ -523,7 +520,7 @@ namespace {
     return (long)-1;
   }
 
-  static unsigned long pylong_or_int_as_ulong(PyObject* pyobject)
+  unsigned long pylong_or_int_as_ulong(PyObject* pyobject)
   {
     // convert <pybject> to C++ unsigned long, with bounds checking, allow int -> ulong.
     if (PyFloat_Check(pyobject)) {
