@@ -6,17 +6,18 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ..:/workspaces/phlex
-      - ../../phlex-coding-guidelines:/workspaces/phlex-coding-guidelines
-      - ../../phlex-design:/workspaces/phlex-design
-      - ../../phlex-examples:/workspaces/phlex-examples
-      - ../../phlex-spack-recipes:/workspaces/phlex-spack-recipes
-      - ${HOME}/.config/gh:/root/.config/gh:ro
-      - ${HOME}/.config/kilo:/root/.config/kilo
-      - ${HOME}/.gnupg:/root/.gnupg
-      - ${HOME}/.podman-proxy/podman.sock:/tmp/podman.sock
-      - ${HOME}/.local/share/kilo:/root/.local/share/kilo:ro
-      - phlex-vscode-user-data:/root/.vscode-server-insiders/data/User
+      - ..:/workspaces/phlex:Z
+      - ../../phlex-coding-guidelines:/workspaces/phlex-coding-guidelines:Z
+      - ../../phlex-design:/workspaces/phlex-design:Z
+      - ../../phlex-examples:/workspaces/phlex-examples:Z
+      - ../../phlex-spack-recipes:/workspaces/phlex-spack-recipes:Z
+      - ${HOME}/.config/gh:/root/.config/gh:ro,Z
+      - ${HOME}/.config/kilo:/root/.config/kilo:ro,Z
+      - ${HOME}/.gnupg:/root/.gnupg:ro,Z
+      - ${HOME}/.podman-proxy/podman.sock:/tmp/podman.sock:Z
+      - phlex-kilo-data:/root/.local/share/kilo:Z
+      - ${HOME}/.local/share/kilo/auth.json:/root/.local/share/kilo/auth.json:ro,Z
+      - phlex-vscode-user-data:/root/.vscode-server-insiders/data/User:Z
     environment:
       - CMAKE_GENERATOR=Ninja
       - GH_CONFIG_DIR=/root/.config/gh
@@ -29,3 +30,4 @@ services:
 
 volumes:
   phlex-vscode-user-data:
+  phlex-kilo-data:

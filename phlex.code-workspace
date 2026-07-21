@@ -77,36 +77,5 @@
             "https://json.schemastore.org/github-workflow.json": "./.github/workflows/*",
             "https://json.schemastore.org/github-action.json": "./.github/actions/*/action.yaml"
         }
-    },
-    "extensions": {
-        "recommendations": [
-            "ms-vscode.cmake-tools",
-            "ms-vscode.cpptools",
-            "ms-vscode.cpptools-extension-pack",
-            "twxs.cmake",
-            "ms-vscode.vscode-json",
-            "redhat.vscode-yaml",
-            "charliermarsh.ruff",
-            "github.vscode-actions",
-            "github.copilot",
-            "github.copilot-chat",
-            "github.vscode-pull-request-github",
-            "ms-vscode.hexeditor"
-        ],
-        "unwantedRecommendations": [
-            "reditorsupport.r",
-            "ms-vscode.r",
-            "ikuyadeu.r",
-            "ms-vscode.r-debugger",
-            "vscjava.vscode-java-pack",
-            "redhat.java",
-            "vscjava.vscode-java-debug",
-            "vscjava.vscode-java-test",
-            "vscjava.vscode-maven",
-            "vscjava.vscode-gradle",
-            "ms-python.python",
-            "ms-toolsai.jupyter",
-            "ms-python.flake8"
-        ]
     }
 }

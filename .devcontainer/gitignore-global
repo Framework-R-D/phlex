@@ -1,0 +1,4 @@
+build/
+out/
+_deps/
+_build/

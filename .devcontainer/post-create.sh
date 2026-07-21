@@ -11,12 +11,6 @@ cat > ~/.actrc <<'EOF'
 --container-options --userns=keep-id
 EOF
 
-# Clear the VS Code extension-install marker so that VS Code always installs the
-# extensions listed in devcontainer.json on a fresh container. Without this, the
-# marker persists on the host via the Machine data bind-mount and VS Code skips
-# installation on every rebuild.
-rm -f /root/.vscode-server-insiders/data/Machine/.installExtensionsMarker
-
 # Seed the Kilo Code auth token into the container-private data volume.
 # The volume is not shared with the host to avoid SQLite conflicts between
 # the Remote-SSH and devcontainer Kilo Code instances.  The API key is

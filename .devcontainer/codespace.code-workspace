@@ -2,23 +2,23 @@
     "folders": [
         {
             "name": "Phlex",
-            "path": "/workspaces/phlex"
+            "path": ".."
         },
         {
             "name": "Phlex Design",
-            "path": "/workspaces/phlex-design"
+            "path": "../../phlex-design"
         },
         {
             "name": "Phlex Examples",
-            "path": "/workspaces/phlex-examples"
+            "path": "../../phlex-examples"
         },
         {
             "name": "Phlex Coding Guidelines",
-            "path": "/workspaces/phlex-coding-guidelines"
+            "path": "../../phlex-coding-guidelines"
         },
         {
             "name": "Phlex Spack Recipes",
-            "path": "/workspaces/phlex-spack-recipes"
+            "path": "../../phlex-spack-recipes"
         }
     ],
     "settings": {
@@ -63,38 +63,49 @@
         },
         "python.languageServer": "Pylance",
         "python.terminal.activateEnvironment": false,
-        "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
-        "esbonio.server.pythonPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+        // Container-only interpreter paths (python.defaultInterpreterPath,
+        // esbonio.server.pythonPath) are intentionally not set here: this file
+        // is shared with host (non-devcontainer) checkouts, where
+        // /opt/spack-environments does not exist. The devcontainer supplies
+        // them via the Remote scope in devcontainer.json (Remote settings only
+        // apply when actually connected to that container). Host users should
+        // set their own interpreter in a local .vscode/settings.json (Folder
+        // scope overrides this Workspace scope) -- see
+        // .vscode/settings.json.example.
         "esbonio.logging.level": "debug",
         "python.analysis.typeCheckingMode": "basic",
         "python.analysis.diagnosticMode": "workspace",
         "python.analysis.include": [
-            "/workspaces/phlex"
+            "${workspaceFolder:Phlex}"
         ],
         "python.analysis.extraPaths": [
-            "/workspaces/phlex/plugins/python/python",
+            "${workspaceFolder:Phlex}/plugins/python/python",
+            "${workspaceFolder:Phlex}/scripts",
+            "${workspaceFolder:Phlex}/build/_deps",
+            "${workspaceFolder:Phlex}/out/build/*/_deps",
             "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
-            "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
+            "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages",
+            "/spack/lib/spack"
         ],
         "python.analysis.exclude": [
             "/opt/spack-environments",
-            "/workspaces/phlex/local",
-            "/workspaces/phlex/build/_deps",
-            "/workspaces/phlex/build/CMakeFiles",
-            "/workspaces/phlex/**/.venv",
-            "/workspaces/phlex/**/py_virtual_env"
+            "${workspaceFolder:Phlex}/local",
+            "${workspaceFolder:Phlex}/build/_deps",
+            "${workspaceFolder:Phlex}/build/CMakeFiles",
+            "${workspaceFolder:Phlex}/**/.venv",
+            "${workspaceFolder:Phlex}/**/py_virtual_env"
         ],
         "python.analysis.ignore": [
             "/opt/spack-environments",
-            "/workspaces/phlex-design",
-            "/workspaces/phlex-examples",
-            "/workspaces/phlex-coding-guidelines",
-            "/workspaces/phlex-spack-recipes",
-            "/workspaces/phlex/local",
-            "/workspaces/phlex/build/_deps",
-            "/workspaces/phlex/build/CMakeFiles",
-            "/workspaces/phlex/**/.venv",
-            "/workspaces/phlex/**/py_virtual_env"
+            "${workspaceFolder:Phlex Design}",
+            "${workspaceFolder:Phlex Examples}",
+            "${workspaceFolder:Phlex Coding Guidelines}",
+            "${workspaceFolder:Phlex Spack Recipes}",
+            "${workspaceFolder:Phlex}/local",
+            "${workspaceFolder:Phlex}/build/_deps",
+            "${workspaceFolder:Phlex}/build/CMakeFiles",
+            "${workspaceFolder:Phlex}/**/.venv",
+            "${workspaceFolder:Phlex}/**/py_virtual_env"
         ],
         "flake8.enabled": false,
         "pylint.enabled": false,

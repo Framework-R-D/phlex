@@ -93,9 +93,8 @@ INSTALL_MAN_TOOLS
 RUN bash <<'INSTALL_DEV_UTILS'
 set -euo pipefail
 apt-get update
-apt-get install -y --no-install-recommends jq podman ssh socat tree yq
 apt purge nodejs npm -y && apt autoremove -y || true
-apt-get install -y curl --no-install-recommends --autoremove
+apt-get install -y --no-install-recommends chrpath curl jq patchelf nano podman ssh socat tree vim yq
 curl -fsSL https://deb.nodesource.com/setup_26.x | bash -
 apt-get install -y nodejs
 apt-get clean
@@ -115,3 +114,6 @@ RUN printf '. /entrypoint.sh\n' >> /root/.bashrc
 # Ensure /run/user/0 exists and is owned by root with 700 permissions to
 # allow GPG agent to function correctly when running as root.
 RUN mkdir -p /run/user/0 && chmod 700 /run/user/0 && chown root:root /run/user/0
+
+COPY gitignore-global /root/.gitignore-global
+RUN git config --global core.excludesfile '/root/.gitignore-global'
