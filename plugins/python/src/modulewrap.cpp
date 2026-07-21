@@ -894,7 +894,7 @@ static bool insert_input_converters(py_phlex_module* mod,
       insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output, nc);
     else if (inp_type == "double")
       insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output, nc);
-    else if (inp_type.compare(0, 7, "ndarray") == 0 || inp_type.compare(0, 4, "list") == 0) {
+    else if (inp_type.starts_with("ndarray") || inp_type.starts_with("list")) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
       // until we have an IDL
@@ -951,7 +951,7 @@ static bool insert_output_converter(py_phlex_module* mod,
     insert_converter(mod, cname, ispy ? py_to_float : dcarg_to_float, out_pq, output, nc);
   else if (out_type == "double")
     insert_converter(mod, cname, ispy ? py_to_double : dcarg_to_double, out_pq, output, nc);
-  else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
+  else if (out_type.starts_with("ndarray") || out_type.starts_with("list")) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
     auto const dtype = collection_dtype(out_type);
@@ -1073,7 +1073,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // vector support is added for Numba (WIP; release is cut first)
   // LCOV_EXCL_START
   auto is_collection_type = [](std::string const& type) {
-    return type.compare(0, 7, "ndarray") == 0 || type.compare(0, 4, "list") == 0;
+    return type.starts_with("ndarray") || type.starts_with("list");
   };
   if (ccallf) {
     for (auto const& input_type : input_types) {
@@ -1411,7 +1411,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   } else if (out_type == "double") {
     src->ph_source->provide(functor_name, provider_cb_double{callable})
       .output_product(creator, suffix, layer);
-  } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
+  } else if (out_type.starts_with("ndarray") || out_type.starts_with("list")) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
     auto const dtype = collection_dtype(out_type);
