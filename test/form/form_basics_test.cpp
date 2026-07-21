@@ -23,8 +23,8 @@ using namespace form::detail::experimental;
 TEST_CASE("Token default constructor", "[form]")
 {
   Token t;
-  CHECK(t.fileName() == "");
-  CHECK(t.containerName() == "");
+  CHECK(t.fileName().empty());
+  CHECK(t.containerName().empty());
   CHECK(t.technology() == 0);
   // Default-constructed token must carry the -1 sentinel for id
   CHECK(t.id() == -1);
