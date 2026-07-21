@@ -61,7 +61,7 @@ namespace form::detail::experimental {
       m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
     }
 
-    if(!m_view) {
+    if (!m_view) {
       createView(type);
     }
 
@@ -111,8 +111,10 @@ namespace form::detail::experimental {
       m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
     }
 
-    if(!m_view && (m_reader->GetDescriptor().FindFieldId(col_name()) == ROOT::kInvalidDescriptorId)) {
-      throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries field " + col_name() + " does not exist");
+    if (!m_view &&
+        (m_reader->GetDescriptor().FindFieldId(col_name()) == ROOT::kInvalidDescriptorId)) {
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries field " + col_name() +
+                               " does not exist");
     }
 
     return static_cast<int>(m_reader->GetNEntries());
@@ -125,10 +127,10 @@ namespace form::detail::experimental {
         throw std::runtime_error("ROOT_RField_Read_ContainerImp::createView No file loaded to read "
                                  "from on first read() call!");
       }
-  
+
       m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
     }
-  
+
     try {
       m_view =
         std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, type));
