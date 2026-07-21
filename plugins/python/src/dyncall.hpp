@@ -30,8 +30,8 @@
 using ph_long_t = long;
 using ph_ulong_t = unsigned long;
 #else
-typedef std::int64_t ph_long_t;
-typedef std::uint64_t ph_ulong_t;
+using ph_long_t = std::int64_t;
+using ph_ulong_t = std::uint64_t;
 #endif
 
 namespace phlex::experimental {
