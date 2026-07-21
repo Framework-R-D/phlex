@@ -21,7 +21,7 @@ namespace phlex::experimental {
 
   product_store_ptr product_store::base(algorithm_name base_name)
   {
-    return product_store_ptr{new product_store{data_cell_index::job(), std::move(base_name)}};
+    return std::make_shared<product_store>(data_cell_index::job(), std::move(base_name));
   }
 
   identifier const& product_store::layer_name() const noexcept { return id_->layer_name(); }
