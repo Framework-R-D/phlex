@@ -5,7 +5,12 @@ using namespace phlex::detail;
 namespace {
   int transform [[maybe_unused]] (double&) { return 1; };
   void observe [[maybe_unused]] (int) {}
+  // NOLINTBEGIN(modernize-redundant-void-arg)
+  // Using 'void' as an explicit input parameter is discouraged.  However, here we are
+  // testing whether the framework can accurately return the correct number of parameters
+  // when 'void' has been specified by a user.
   void only_void_param [[maybe_unused]] (void) {}
+  // NOLINTEND(modernize-redundant-void-arg)
   std::tuple<> still_no_output [[maybe_unused]] () { return {}; }
   std::tuple<int, double> two_output_objects [[maybe_unused]] (int, double) { return {}; }
   auto const closure [[maybe_unused]] = [](int) -> double { return 2.; };
