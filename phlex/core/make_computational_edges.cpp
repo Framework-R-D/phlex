@@ -83,7 +83,7 @@ namespace phlex::detail {
             });
 
           if (existing_provider_it != provider_input_ports.end()) {
-            auto provider = providers.get(existing_provider_it->first);
+            auto* provider = providers.get(existing_provider_it->first);
             assert(provider != nullptr);
             make_edge(provider->output_port(), *port);
             continue;
@@ -147,7 +147,7 @@ namespace phlex::detail {
 
         for (auto const& query : node->input()) {
           auto* receiver_port = collector ? collector : &node->port(query);
-          auto producer = producers.find_producer(query, node->name());
+          auto const* producer = producers.find_producer(query, node->name());
           if (not producer) {
             // Is there a way to detect mis-specified product dependencies?
             result[node_name].push_back({query, receiver_port});

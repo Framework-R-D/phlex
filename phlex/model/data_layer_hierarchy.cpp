@@ -114,7 +114,7 @@ namespace phlex::detail {
       tree[parent_name].emplace_back(fmt::to_string(layer_entry->name), layer_hash);
     }
 
-    auto const initial_indent = "  ";
+    auto const* const initial_indent = "  ";
     return fmt::format(
       "\n\nSeen layers:\n\n{}job{}\n", initial_indent, pretty_recurse(tree, "job", initial_indent));
   }
