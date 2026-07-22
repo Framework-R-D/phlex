@@ -7,6 +7,7 @@
 #include <fmt/ranges.h>
 
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -624,12 +625,12 @@ namespace {
                                                                                                    \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
-    npy_intp dims[] = {static_cast<npy_intp>(v->size())};                                          \
+    std::array<npy_intp, 1> dims{static_cast<npy_intp>(v->size())};                                \
                                                                                                    \
-    PyObject* np_view = PyArray_SimpleNewFromData(1,          /* 1-D array */                      \
-                                                  dims,       /* dimension sizes */                \
-                                                  nptype,     /* numpy C type */                   \
-                                                  (v->data()) /* raw buffer */                     \
+    PyObject* np_view = PyArray_SimpleNewFromData(1,           /* 1-D array */                     \
+                                                  dims.data(), /* dimension sizes */               \
+                                                  nptype,      /* numpy C type */                  \
+                                                  (v->data())  /* raw buffer */                    \
     );                                                                                             \
                                                                                                    \
     if (!np_view) {                                                                                \
@@ -759,14 +760,24 @@ static PyObject* parse_args(PyObject* args,
   // any node. (The observer does not require outputs, but they still need to be
   // retrieved, not ignored, to issue an error message if an output is provided.)
 
-  static char kw0[] = "callable", kw1[] = "input_family", kw2[] = "output_product_suffixes",
-              kw3[] = "concurrency", kw4[] = "name";
-  // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
+  // Python 3.13+ accepts const keyword-name tables. Older versions require mutable strings.
+#if PY_VERSION_HEX < 0x030d0000
+  // NOLINTBEGIN(modernize-avoid-c-arrays)
+  static char kw0[] = "callable";
+  static char kw1[] = "input_family";
+  static char kw2[] = "output_product_suffixes";
+  static char kw3[] = "concurrency";
+  static char kw4[] = "name";
   static char* kwnames[] = {kw0, kw1, kw2, kw3, kw4, nullptr};
+  // NOLINTEND(modernize-avoid-c-arrays)
+#else
+  static std::array<char const*, 6> const kwnames{
+    "callable", "input_family", "output_product_suffixes", "concurrency", "name", nullptr};
+#endif
   PyObject *callable = nullptr, *input = nullptr, *output = nullptr, *pyname = nullptr;
   int nconcur_ = -1;
   if (!PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO|OiO", (char**)kwnames, &callable, &input, &output, &nconcur_, &pyname)) {
+        args, kwds, "OO|OiO", std::data(kwnames), &callable, &input, &output, &nconcur_, &pyname)) {
     // error already set by argument parser
     return nullptr;
   }
@@ -1226,15 +1237,15 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef md_methods[] = {{"transform",
-                                    reinterpret_cast<PyCFunction>(md_transform),
-                                    METH_VARARGS | METH_KEYWORDS,
-                                    "register a Python transform"},
-                                   {"observe",
-                                    reinterpret_cast<PyCFunction>(md_observe),
-                                    METH_VARARGS | METH_KEYWORDS,
-                                    "register a Python observer"},
-                                   {nullptr, nullptr, 0, nullptr}};
+static std::array<PyMethodDef, 3> md_methods{{{"transform",
+                                               reinterpret_cast<PyCFunction>(md_transform),
+                                               METH_VARARGS | METH_KEYWORDS,
+                                               "register a Python transform"},
+                                              {"observe",
+                                               reinterpret_cast<PyCFunction>(md_observe),
+                                               METH_VARARGS | METH_KEYWORDS,
+                                               "register a Python observer"},
+                                              {nullptr, nullptr, 0, nullptr}}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
@@ -1267,7 +1278,7 @@ PyTypeObject phlex::experimental::PhlexModule_Type = {
   0,                             // tp_weaklistoffset
   nullptr,                       // tp_iter
   nullptr,                       // tp_iternext
-  md_methods,                    // tp_methods
+  md_methods.data(),             // tp_methods
   nullptr,                       // tp_members
   nullptr,                       // tp_getset
   nullptr,                       // tp_base
@@ -1315,11 +1326,20 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // Register a python algorithm by adding the necessary intermediate converter
   // nodes going from C++ to PyObject* and back.
 
-  static char kw0[] = "callable", kw1[] = "output_product", kw2[] = "name";
-  // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
+  // Python 3.13+ accepts const keyword-name tables. Older versions require mutable strings.
+#if PY_VERSION_HEX < 0x030d0000
+  // NOLINTBEGIN(modernize-avoid-c-arrays)
+  static char kw0[] = "callable";
+  static char kw1[] = "output_product";
+  static char kw2[] = "name";
   static char* kwnames[] = {kw0, kw1, kw2, nullptr};
+  // NOLINTEND(modernize-avoid-c-arrays)
+#else
+  static std::array<char const*, 4> const kwnames{"callable", "output_product", "name", nullptr};
+#endif
   PyObject *callable = nullptr, *output = nullptr, *pyname = nullptr;
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O", kwnames, &callable, &output, &pyname)) {
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwds, "OO|O", std::data(kwnames), &callable, &output, &pyname)) {
     // error already set by argument parser
     return nullptr;
   }
@@ -1451,11 +1471,11 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef sc_methods[] = {{"provide",
-                                    reinterpret_cast<PyCFunction>(sc_provide),
-                                    METH_VARARGS | METH_KEYWORDS,
-                                    "register a Python provider"},
-                                   {nullptr, nullptr, 0, nullptr}};
+static std::array<PyMethodDef, 2> sc_methods{{{"provide",
+                                               reinterpret_cast<PyCFunction>(sc_provide),
+                                               METH_VARARGS | METH_KEYWORDS,
+                                               "register a Python provider"},
+                                              {nullptr, nullptr, 0, nullptr}}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
@@ -1488,7 +1508,7 @@ PyTypeObject phlex::experimental::PhlexSource_Type = {
   0,                             // tp_weaklistoffset
   nullptr,                       // tp_iter
   nullptr,                       // tp_iternext
-  sc_methods,                    // tp_methods
+  sc_methods.data(),             // tp_methods
   nullptr,                       // tp_members
   nullptr,                       // tp_getset
   nullptr,                       // tp_base
