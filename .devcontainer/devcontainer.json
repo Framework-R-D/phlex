@@ -7,9 +7,9 @@
     "remoteEnv": {
         "KILO_API_KEY": "${localEnv:HEADROOM_UPSTREAM_KEY}"
     },
-    "initializeCommand": ".devcontainer/ensure-repos.sh",
-    "onCreateCommand": ".devcontainer/setup-repos.sh /workspaces",
-    "postCreateCommand": "git config --global --add safe.directory '${containerWorkspaceFolder}' && bash -lc '.devcontainer/post-create.sh'",
+    "initializeCommand": "bash .devcontainer/ensure-repos.sh",
+    "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
+    "postCreateCommand": "git config --global --add safe.directory '${containerWorkspaceFolder}' && bash -lc 'bash .devcontainer/post-create.sh'",
     "customizations": {
         "vscode": {
             "settings": {
