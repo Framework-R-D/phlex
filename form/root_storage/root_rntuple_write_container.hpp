@@ -5,6 +5,8 @@
 
 #include "storage/storage_write_association.hpp"
 
+#include "RVersion.h"
+
 #include <memory>
 #include <string>
 
@@ -14,14 +16,27 @@ namespace ROOT {
   class RNTupleWriter;
   class RNTupleModel;
 
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6, 40, 0)
+  namespace Detail {
+    class RRawPtrWriteEntry;
+  }
+#else
   namespace Experimental {
     namespace Detail {
       class RRawPtrWriteEntry;
     }
   }
+#endif
 }
 
 namespace form::detail::experimental {
+
+  //ROOT 6.40 moved RRawPtrWriteEntry from ROOT::Experimental::Detail to ROOT::Detail.
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6, 40, 0)
+  using RRawPtrWriteEntry = ROOT::Detail::RRawPtrWriteEntry;
+#else
+  using RRawPtrWriteEntry = ROOT::Experimental::Detail::RRawPtrWriteEntry;
+#endif
 
   class ROOT_RNTuple_Write_ContainerImp : public Storage_Write_Association {
   public:
@@ -43,7 +58,7 @@ namespace form::detail::experimental {
     //State shared by ROOT_RField_ContainerImps
     std::unique_ptr<ROOT::RNTupleWriter> m_writer;
     std::unique_ptr<ROOT::RNTupleModel> m_model;
-    std::unique_ptr<ROOT::Experimental::Detail::RRawPtrWriteEntry> m_entry;
+    std::unique_ptr<RRawPtrWriteEntry> m_entry;
   };
 }
 
