@@ -40,7 +40,6 @@ namespace form::detail::experimental {
   private:
     std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);
 
-  private:
     std::unique_ptr<IStorageWriter> m_store_writer;
     form::experimental::config::ItemConfig m_config_items;
     form::experimental::config::tech_setting_config m_tech_settings;
