@@ -54,21 +54,21 @@ jobs:
       pr_number: ${{ steps.setup.outputs.pr_number }}
       checkout_path: ${{ steps.setup.outputs.checkout_path }}
       has_changes: ${{ steps.setup.outputs.has_changes }}
-  steps:
-    - name: Workflow setup
-      id: setup
-      uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
-      with:
-        include-globs: |
-          .github/workflows/**/*.yml
-          .github/workflows/**/*.yaml
-          .github/actions/**/*.yml
-          .github/actions/**/*.yaml
-        head-ref: ${{ inputs.pr-head-sha }}
-        ref: ${{ inputs.ref }}
-        repo: ${{ inputs.repo }}
-        pr-base-sha: ${{ inputs.pr-base-sha }}
-        checkout-path: ${{ inputs.checkout-path }}
+    steps:
+      - name: Workflow setup
+        id: setup
+        uses: Framework-R-D/action-workflow-setup@f73307dd8c13cb66c2565c9ace32571517b1cea8 # v1
+        with:
+          include-globs: |
+            .github/workflows/**/*.yml
+            .github/workflows/**/*.yaml
+            .github/actions/**/*.yml
+            .github/actions/**/*.yaml
+          head-ref: ${{ inputs.pr-head-sha }}
+          ref: ${{ inputs.ref }}
+          repo: ${{ inputs.repo }}
+          pr-base-sha: ${{ inputs.pr-base-sha }}
+          checkout-path: ${{ inputs.checkout-path }}
 
 actionlint-check:
   needs: setup
