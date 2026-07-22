@@ -993,7 +993,8 @@ def _compare_alerts_via_api(
             )
             _debug(f"Fetched {len(base_alerts_raw)} alerts for base {base_target}")
         except GitHubAPIError as exc:
-            _debug(f"Failed to fetch base alerts ({base_target}): {exc}")
+            target_name = base_sha or base_ref
+            _debug(f"Failed to fetch base alerts ({target_name}): {exc}")
 
     if prev_commit_ref:
         try:
