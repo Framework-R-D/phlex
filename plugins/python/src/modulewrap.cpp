@@ -774,7 +774,10 @@ static PyObject* parse_args(PyObject* args,
   static std::array<char const*, 6> const kwnames{
     "callable", "input_family", "output_product_suffixes", "concurrency", "name", nullptr};
 #endif
-  PyObject *callable = nullptr, *input = nullptr, *output = nullptr, *pyname = nullptr;
+  PyObject* callable = nullptr;
+  PyObject* input = nullptr;
+  PyObject* output = nullptr;
+  PyObject* pyname = nullptr;
   int nconcur_ = -1;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|OiO", std::data(kwnames), &callable, &input, &output, &nconcur_, &pyname)) {
@@ -1020,7 +1023,9 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   std::string cname;
   std::vector<product_selector> input_selectors;
-  std::vector<std::string> input_types, output_suffixes, output_types;
+  std::vector<std::string> input_types;
+  std::vector<std::string> output_suffixes;
+  std::vector<std::string> output_types;
   auto nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
@@ -1164,7 +1169,9 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
   std::string cname;
   std::vector<product_selector> input_selectors;
-  std::vector<std::string> input_types, output_suffixes, output_types;
+  std::vector<std::string> input_types;
+  std::vector<std::string> output_suffixes;
+  std::vector<std::string> output_types;
   auto nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
@@ -1337,7 +1344,9 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
 #else
   static std::array<char const*, 4> const kwnames{"callable", "output_product", "name", nullptr};
 #endif
-  PyObject *callable = nullptr, *output = nullptr, *pyname = nullptr;
+  PyObject* callable = nullptr;
+  PyObject* output = nullptr;
+  PyObject* pyname = nullptr;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|O", std::data(kwnames), &callable, &output, &pyname)) {
     // error already set by argument parser
