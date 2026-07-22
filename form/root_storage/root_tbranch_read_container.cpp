@@ -37,7 +37,6 @@ void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file
       "ROOT_TBranch_Read_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = root_tfile_imp->getTFile();
-  return;
 }
 
 void ROOT_TBranch_Read_ContainerImp::prime(std::type_info const& type)

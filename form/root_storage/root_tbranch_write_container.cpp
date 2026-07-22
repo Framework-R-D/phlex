@@ -38,7 +38,6 @@ void ROOT_TBranch_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> fil
       "ROOT_TBranch_Write_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = root_tfile_imp->getTFile();
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_Container> parent)
@@ -50,7 +49,6 @@ void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_C
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setParent");
   }
   m_tree = root_ttree_imp->getTTree();
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
@@ -95,7 +93,6 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no branch created");
   }
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::fill(void const* data)
@@ -118,7 +115,6 @@ void ROOT_TBranch_Write_ContainerImp::fill(void const* data)
   }
   m_branch->Fill();
   m_branch->ResetAddress();
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::commit()
@@ -128,5 +124,4 @@ void ROOT_TBranch_Write_ContainerImp::commit()
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit no tree attached");
   }
   m_tree->SetEntries(m_branch->GetEntries());
-  return;
 }
