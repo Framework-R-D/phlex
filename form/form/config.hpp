@@ -47,8 +47,8 @@ namespace form::experimental::config {
     map_t file_settings;
     map_t container_settings;
 
-    table_t getFileTable(int const technology, std::string const& fileName) const;
-    table_t getContainerTable(int const technology, std::string const& containerName) const;
+    table_t getFileTable(int technology, std::string const& fileName) const;
+    table_t getContainerTable(int technology, std::string const& containerName) const;
   };
 
 } // namespace form::experimental::config

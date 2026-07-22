@@ -62,12 +62,10 @@ namespace phlex::detail {
     explicit data_map(for_output_t);
     explicit data_map(product_selectors const& product_names);
 
-    bool is_complete(std::size_t const msg_id) const;
+    bool is_complete(std::size_t msg_id) const;
 
-    void update(std::size_t const msg_id,
-                phlex::experimental::product_store_const_ptr const& store);
-    std::vector<phlex::experimental::product_store_const_ptr> release_data(
-      std::size_t const msg_id);
+    void update(std::size_t msg_id, phlex::experimental::product_store_const_ptr const& store);
+    std::vector<phlex::experimental::product_store_const_ptr> release_data(std::size_t msg_id);
 
   private:
     stores_t stores_;

@@ -68,7 +68,7 @@ namespace phlex::experimental {
   private:
     layer_generator();
 
-    index_generator execute(data_cell_index_ptr const cell);
+    index_generator execute(data_cell_index_ptr cell);
     std::string parent_path(std::string const& layer_name,
                             std::string const& parent_layer_spec) const;
     void maybe_rebase_layer_paths(std::string const& layer_name,
