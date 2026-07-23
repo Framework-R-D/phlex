@@ -21,8 +21,9 @@ public:
   std::vector<int> operator()([[maybe_unused]] data_cell_index const& idx)
   {
     std::vector<int> randoms(m_n_time_ticks);
-    for (auto& random : randoms)
+    for (auto& random : randoms) {
       random = static_cast<int>(m_dist(m_gen));
+    }
     return randoms;
   }
 

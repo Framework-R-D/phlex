@@ -6,12 +6,13 @@ namespace form::detail::experimental {
     form::experimental::config::ItemConfig const& config, std::string const& label)
   {
     auto const& items = config.getItems();
-    if (label == "index")
+    if (label == "index") {
       return (items.empty())
                ? std::nullopt
                : std::make_optional(
                    *items
                       .begin()); //emulate how FORM did this before Phlex PR #22.  Will be fixed in a future FORM update.
+    }
 
     return config.findItem(label);
   }
