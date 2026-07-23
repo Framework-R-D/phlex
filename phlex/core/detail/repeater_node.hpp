@@ -45,9 +45,9 @@ namespace phlex::detail::internal {
 
     struct cached_product {
       std::shared_ptr<message> data_msg;
-      tbb::concurrent_queue<std::size_t> msg_ids{};
+      tbb::concurrent_queue<std::size_t> msg_ids;
       std::atomic<int> counter;
-      std::atomic_flag flush_received{};
+      std::atomic_flag flush_received;
     };
 
     using cache_t = tbb::concurrent_hash_map<std::size_t, cached_product>; // Key is the index hash

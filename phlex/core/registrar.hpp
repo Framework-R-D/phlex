@@ -124,7 +124,7 @@ namespace phlex::detail {
     std::vector<std::string>* errors_;
     node_creator creator_{};
     std::optional<std::vector<std::string>> predicates_;
-    std::vector<std::string> output_product_suffixes_{};
+    std::vector<std::string> output_product_suffixes_;
   };
 }
 

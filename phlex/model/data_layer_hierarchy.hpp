@@ -51,7 +51,7 @@ namespace phlex::detail {
       phlex::experimental::identifier name;
       phlex::experimental::layer_path layer_path;
       std::size_t parent_hash;
-      std::atomic<std::size_t> count{};
+      std::atomic<std::size_t> count;
     };
 
     tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<layer_entry>> layers_;

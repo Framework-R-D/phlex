@@ -197,9 +197,9 @@ namespace phlex::detail {
     tbb::flow::multifunction_node<messages_t<num_inputs>,
                                   std::tuple<message, index_message, unfold_flush>>
       unfold_;
-    std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
-    std::atomic<std::size_t> calls_{};
-    std::atomic<std::size_t> product_count_{};
+    std::atomic<std::size_t> msg_counter_; // Is this sufficient?  Probably not.
+    std::atomic<std::size_t> calls_;
+    std::atomic<std::size_t> product_count_;
   };
 }
 
