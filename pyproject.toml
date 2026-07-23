@@ -8,7 +8,24 @@ warn_unreachable = true
 disable_error_code = "annotation-unchecked"
 
 [tool.pyright]
-extraPaths = ["plugins/python/python", "scripts"]
+# NOTE: this table is Pylance/Pyright's highest-precedence configuration
+# source: once it exists, python.analysis.extraPaths (and include/exclude/
+# ignore/typeCheckingMode/etc.) set via VS Code settings.json or a
+# .code-workspace file are ignored entirely. Update extraPaths here, not
+# there. Paths are relative to this file's directory (the repo root) unless
+# absolute; VS Code variables like ${workspaceFolder} are NOT substituted
+# here. The Spack-specific absolute paths only exist inside the phlex-dev
+# devcontainer and are harmless no-ops elsewhere.
+extraPaths = [
+    "plugins/python/python",
+    "scripts",
+    "build/_deps",
+    "out/build/*/_deps",
+    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
+    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages",
+    "/spack/lib/spack",
+]
+
 
 [tool.ruff]
 target-version = "py312"

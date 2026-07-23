@@ -2,18 +2,71 @@
     "name": "Phlex CI Dev Container",
     "dockerComposeFile": "docker-compose.yml",
     "service": "phlex-dev",
-    "workspaceFolder": "/workspaces/phlex",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "remoteUser": "root",
     "remoteEnv": {
         "KILO_API_KEY": "${localEnv:HEADROOM_UPSTREAM_KEY}"
     },
     "initializeCommand": "bash .devcontainer/ensure-repos.sh",
     "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
-    "postCreateCommand": "bash -lc 'bash .devcontainer/post-create.sh'",
+    "postCreateCommand": "git config --global --add safe.directory '${containerWorkspaceFolder}' && bash -lc 'bash .devcontainer/post-create.sh'",
     "customizations": {
-
         "vscode": {
             "settings": {
+                "chat.agent.sandbox.enabled": "off",
+                "cmake.buildDirectory": "${workspaceFolder}/build",
+                "cmake.defaultConfigurePreset": "default",
+                "cmake.generator": "Ninja",
+                "cmake.useCMakePresets": "always",
+                "C_Cpp.default.cStandard": "c17",
+                "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+                "C_Cpp.default.cppStandard": "c++23",
+                "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+                "files.watcherExclude": {
+                    "**/.venv/**": true,
+                    "**/py_virtual_env/**": true
+                },
+                "git.autoRepositoryDetection": "subFolders",
+                "git.repositoryScanMaxDepth": 1,
+                "git.scanRepositories": [
+                    "/workspaces/phlex",
+                    "/workspaces/phlex-coding-guidelines",
+                    "/workspaces/phlex-design",
+                    "/workspaces/phlex-examples",
+                    "/workspaces/phlex-spack-recipes"
+                ],
+                "kilocode.new.extraCaCerts": "",
+                "python.analysis.diagnosticMode": "workspace",
+                "python.analysis.exclude": [
+                    "**/.venv/**",
+                    "**/py_virtual_env/**",
+                    "**/build/_deps/**",
+                    "**/out/build/*/_deps/**"
+                ],
+                "python.analysis.ignore": [
+                    "**/.venv/**",
+                    "**/py_virtual_env/**"
+                ],
+                "python.analysis.extraPaths": [
+                    "${workspaceFolder}/plugins/python/python",
+                    "${workspaceFolder}/scripts",
+                    "${workspaceFolder}/build",
+                    "${workspaceFolder}/build/_deps",
+                    "${workspaceFolder}/out/build/*/_deps",
+                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
+                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages",
+                    "/spack/lib/spack"
+                ],
+                "python.analysis.typeCheckingMode": "basic",
+                "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+                "python.languageServer": "Pylance",
+                "python.terminal.activateEnvironment": false,
+                "esbonio.server.pythonPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+                "esbonio.logging.level": "debug",
+                "search.exclude": {
+                    "**/.venv/**": true,
+                    "**/py_virtual_env/**": true
+                },
                 "terminal.integrated.defaultProfile.linux": "bash",
                 "terminal.integrated.profiles.linux": {
                     "bash": {
@@ -24,41 +77,7 @@
                         "icon": "terminal-bash"
                     }
                 },
-                "terminal.integrated.shellIntegration.suggestEnablement": false,
-                "python.terminal.activateEnvironment": false,
-                "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
-                "python.analysis.extraPaths": [
-                    "${workspaceFolder}/build",
-                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
-                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
-                ],
-                "cmake.defaultConfigurePreset": "default",
-                "cmake.buildDirectory": "${workspaceFolder}/build",
-                "cmake.generator": "Ninja",
-                "C_Cpp.default.cStandard": "c17",
-                "C_Cpp.default.cppStandard": "c++23",
-                "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
-                "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
-                "python.languageServer": "Pylance",
-                "python.analysis.typeCheckingMode": "basic",
-                "python.analysis.diagnosticMode": "workspace",
-                "python.analysis.exclude": [
-                    "**/.venv/**",
-                    "**/py_virtual_env/**"
-                ],
-                "python.analysis.ignore": [
-                    "**/.venv/**",
-                    "**/py_virtual_env/**"
-                ],
-                "search.exclude": {
-                    "**/.venv/**": true,
-                    "**/py_virtual_env/**": true
-                },
-                "files.watcherExclude": {
-                    "**/.venv/**": true,
-                    "**/py_virtual_env/**": true
-                },
-                "kilocode.new.extraCaCerts": ""
+                "terminal.integrated.shellIntegration.suggestEnablement": false
             },
             "extensions": [
                 "charliermarsh.ruff",
@@ -82,6 +101,7 @@
                 "ms-python.vscode-pylance",
                 "ms-python.vscode-python-envs",
                 "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
                 "ms-vscode.cpptools-themes",
                 "ms-vscode.hexeditor",
