@@ -18,8 +18,9 @@ int main(int const argc, char const** argv)
 
     auto const& [prods] = read<std::vector<TrackStart>>(technology);
     std::ofstream outFile("form_root_schema_read_log_" + tech_string + ".txt");
-    for (auto const& prod : *prods)
+    for (auto const& prod : *prods) {
       outFile << prod << '\n';
+    }
   } catch (std::exception const& e) {
     std::cerr << "Exception caught in main: " << e.what() << '\n';
     return 1;

@@ -211,15 +211,17 @@ int StorageReader::getIndex(Token const& token,
           m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
             .first;
         for (auto const& [key, value] :
-             get_file_table(settings, token.technology(), token.fileName()))
+             get_file_table(settings, token.technology(), token.fileName())) {
           file->second->setAttribute(key, value);
+        }
       }
       cont = m_read_containers
                .insert({key, createReadContainer(token.technology(), token.containerName())})
                .first;
       for (auto const& [key, value] :
-           get_container_table(settings, token.technology(), token.containerName()))
+           get_container_table(settings, token.technology(), token.containerName())) {
         cont->second->setAttribute(key, value);
+      }
       cont->second->setFile(file->second);
     }
     auto const& type = typeid(std::string);
@@ -286,16 +288,18 @@ void StorageReader::prime(Token const& token,
         m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
           .first;
       for (auto const& [key, value] :
-           get_file_table(settings, token.technology(), token.fileName()))
+           get_file_table(settings, token.technology(), token.fileName())) {
         file->second->setAttribute(key, value);
+      }
     }
     cont = m_read_containers
              .insert({key, createReadContainer(token.technology(), token.containerName())})
              .first;
     cont->second->setFile(file->second);
     for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.containerName()))
+         get_container_table(settings, token.technology(), token.containerName())) {
       cont->second->setAttribute(key, value);
+    }
   }
   cont->second->prime(type);
 }
@@ -313,15 +317,17 @@ std::vector<std::string> StorageReader::listIndices(
           m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
             .first;
         for (auto const& [key, value] :
-             get_file_table(settings, token.technology(), token.fileName()))
+             get_file_table(settings, token.technology(), token.fileName())) {
           file->second->setAttribute(key, value);
+        }
       }
       cont = m_read_containers
                .insert({key, createReadContainer(token.technology(), token.containerName())})
                .first;
       for (auto const& [key, value] :
-           get_container_table(settings, token.technology(), token.containerName()))
+           get_container_table(settings, token.technology(), token.containerName())) {
         cont->second->setAttribute(key, value);
+      }
       cont->second->setFile(file->second);
     }
 
@@ -371,16 +377,18 @@ void StorageReader::readContainer(Token const& token,
         m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
           .first;
       for (auto const& [key, value] :
-           get_file_table(settings, token.technology(), token.fileName()))
+           get_file_table(settings, token.technology(), token.fileName())) {
         file->second->setAttribute(key, value);
+      }
     }
     cont = m_read_containers
              .insert({key, createReadContainer(token.technology(), token.containerName())})
              .first;
     cont->second->setFile(file->second);
     for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.containerName()))
+         get_container_table(settings, token.technology(), token.containerName())) {
       cont->second->setAttribute(key, value);
+    }
   }
   cont->second->read(token.id(), data, type);
   return;

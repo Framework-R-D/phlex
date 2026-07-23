@@ -53,8 +53,9 @@ namespace pymodule_register_providers {
 
     if (PyErr_Occurred()) {
       std::string error_msg;
-      if (!msg_from_py_error(error_msg))
+      if (!msg_from_py_error(error_msg)) {
         error_msg = "Unknown python error";
+      }
       throw std::runtime_error(error_msg.c_str());
     }
 
@@ -91,8 +92,9 @@ namespace pymodule_register_algorithms {
 
     if (PyErr_Occurred()) {
       std::string error_msg;
-      if (!msg_from_py_error(error_msg))
+      if (!msg_from_py_error(error_msg)) {
         error_msg = "Unknown python error";
+      }
       throw std::runtime_error(error_msg.c_str());
     }
   }
@@ -104,8 +106,9 @@ static void import_numpy(bool control_interpreter)
   if (!numpy_imported.exchange(true)) {
     if (_import_array() < 0) {
       PyErr_Print();
-      if (control_interpreter)
+      if (control_interpreter) {
         Py_Finalize();
+      }
       throw std::runtime_error("build with numpy support, but numpy not importable");
     }
   }
@@ -167,21 +170,27 @@ static bool initialize()
   }
 
   // try again to see if the interpreter is now initialized
-  if (!Py_IsInitialized())
+  if (!Py_IsInitialized()) {
     throw std::runtime_error("Python can not be initialized");
+  }
 
   // LCOV_EXCL_START
   // add custom types
-  if (PyType_Ready(&PhlexConfig_Type) < 0)
+  if (PyType_Ready(&PhlexConfig_Type) < 0) {
     return false;
-  if (PyType_Ready(&PhlexModule_Type) < 0)
+  }
+  if (PyType_Ready(&PhlexModule_Type) < 0) {
     return false;
-  if (PyType_Ready(&PhlexSource_Type) < 0)
+  }
+  if (PyType_Ready(&PhlexSource_Type) < 0) {
     return false;
-  if (PyType_Ready(&PhlexDataCellIndex_Type) < 0)
+  }
+  if (PyType_Ready(&PhlexDataCellIndex_Type) < 0) {
     return false;
-  if (PyType_Ready(&PhlexLifeline_Type) < 0)
+  }
+  if (PyType_Ready(&PhlexLifeline_Type) < 0) {
     return false;
+  }
   // LCOV_EXCL_STOP
 
   // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
