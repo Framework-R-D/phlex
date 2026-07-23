@@ -47,7 +47,7 @@ namespace phlex::detail {
     auto begin() const { return data_.begin(); }
     auto end() const { return data_.end(); }
 
-    typename ptr::element_type* get(std::string const& node_name) const
+    ptr::element_type* get(std::string const& node_name) const
     {
       if (auto it = data_.find(node_name); it != data_.end()) {
         return it->second.get();
