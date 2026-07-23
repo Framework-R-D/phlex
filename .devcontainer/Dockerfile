@@ -1,4 +1,4 @@
-FROM ghcr.io/framework-r-d/phlex-dev:latest
+FROM ghcr.io/framework-r-d/phlex-dev:2026-07-23
 
 # Validate Python site-packages symlink.
 # Invoke bash explicitly: the script uses bash features (pipefail, arrays,
@@ -119,5 +119,5 @@ COPY gitignore-global /root/.gitignore-global
 RUN git config --global core.excludesfile '/root/.gitignore-global'
 
 # Install Kilo environment script that sets KILO_CONFIG_CONTENT globally
-COPY .devcontainer/kilo-env.sh /etc/profile.d/kilo-env.sh
+COPY kilo-env.sh /etc/profile.d/kilo-env.sh
 RUN chmod +x /etc/profile.d/kilo-env.sh

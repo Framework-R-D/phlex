@@ -12,7 +12,7 @@ services:
       - ../../phlex-examples:/workspaces/phlex-examples:Z
       - ../../phlex-spack-recipes:/workspaces/phlex-spack-recipes:Z
       - ${HOME}/.config/gh:/root/.config/gh:ro,Z
-      - ${HOME}/.config/kilo:/root/.config/kilo:ro,Z
+      - ${HOME}/.config/kilo:/root/.config/kilo:Z
       - ${HOME}/.gnupg:/root/.gnupg:ro,Z
       - ${HOME}/.podman-proxy/podman.sock:/tmp/podman.sock:Z
       - phlex-kilo-data:/root/.local/share/kilo:Z
