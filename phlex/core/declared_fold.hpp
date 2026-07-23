@@ -56,13 +56,13 @@ namespace phlex::detail {
 
   template <typename AlgorithmBits, typename InitTuple>
   class fold_node : public declared_fold, private count_stores {
-    using all_parameter_types = typename AlgorithmBits::input_parameter_types;
+    using all_parameter_types = AlgorithmBits::input_parameter_types;
     using input_parameter_types = skip_first_type<all_parameter_types>; // Skip fold object
     static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
     using result_type = std::decay_t<std::tuple_element_t<0, all_parameter_types>>;
 
     static constexpr std::size_t num_outputs = 1; // hard-coded for now
-    using function_t = typename AlgorithmBits::bound_type;
+    using function_t = AlgorithmBits::bound_type;
 
   public:
     fold_node(phlex::experimental::algorithm_name algo_name,

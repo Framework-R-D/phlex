@@ -57,8 +57,8 @@ namespace phlex::detail {
 
   template <typename AlgorithmBits>
   class transform_node : public declared_transform {
-    using function_t = typename AlgorithmBits::bound_type;
-    using input_parameter_types = typename AlgorithmBits::input_parameter_types;
+    using function_t = AlgorithmBits::bound_type;
+    using input_parameter_types = AlgorithmBits::input_parameter_types;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = number_output_objects<function_t>;
