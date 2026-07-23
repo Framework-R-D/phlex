@@ -113,7 +113,10 @@ namespace phlex::detail {
       std::vector<named_index_port> result;
       result.reserve(repeaters_.size());
       for (auto const& [layer, repeater] : std::views::zip(layers_, repeaters_)) {
-        result.emplace_back(layer, &repeater->flush_port(), &repeater->index_port());
+        // Counting layer is the same as the routing layer: this repeater both routes
+        // messages at `layer` and emits one message per cell at `layer`, so the flush
+        // token's count must balance against `layer`'s own committed-counts entries.
+        result.emplace_back(layer, layer, &repeater->flush_port(), &repeater->index_port());
       }
       return result;
     }
