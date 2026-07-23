@@ -52,7 +52,7 @@ namespace {
                                  typename base_t::output_ports_type{broadcast_});
     }
 
-  public:
+  private:
     tbb::flow::buffer_node<Input> buffer_;
     tbb::flow::broadcast_node<Input> broadcast_;
     std::vector<T> modules_;
