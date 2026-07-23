@@ -55,7 +55,8 @@ int main(int argc, char** argv)
     iss >> type;
     if (type == "SEG") {
       SegChecksum cs{};
-      int nevent{}, nseg{};
+      int nevent{};
+      int nseg{};
       iss >> nevent >> nseg >> cs.check >> cs.cpx >> cs.cpy >> cs.cpz;
       expected_seg[{nevent, nseg}] = cs;
     } else if (type == "EVT") {
