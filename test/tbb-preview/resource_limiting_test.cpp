@@ -115,16 +115,16 @@ TEST_CASE("std::threads as limited resources")
                          return 0u;
                        }};
 
-  flow::resource_limited_node<unsigned int, std::tuple<>> geant4{
+  flow::resource_limited_node<unsigned int, std::tuple<>> geant4_node{
     g,
     flow::unlimited,
     std::tie(pinned_thread_resource),
-    [](unsigned int const i, auto&, managed_thread_type* geant4) {
+    [](unsigned int const i, auto&, managed_thread_type* geant4_resource) {
       spdlog::info("Launching from thread {} with argument {}", std::this_thread::get_id(), i);
-      geant4->execute(i);
+      geant4_resource->execute(i);
     }};
 
-  make_edge(src, geant4);
+  make_edge(src, geant4_node);
 
   src.activate();
   g.wait_for_all();
