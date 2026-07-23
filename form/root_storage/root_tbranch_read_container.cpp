@@ -60,14 +60,14 @@ void ROOT_TBranch_Read_ContainerImp::prime(std::type_info const& type)
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::prime no branch found");
   }
 
-  auto dictInfo = TDictionary::GetDictionary(type);
+  auto* dictInfo = TDictionary::GetDictionary(type);
   if (!dictInfo) {
     throw std::runtime_error(
       std::string{"ROOT_TBranch_Read_ContainerImp::prime unsupported type: "} + DemangleName(type));
   }
 
   if (!(dictInfo->Property() & EProperty::kIsFundamental)) {
-    auto klass = TClass::GetClass(type);
+    auto* klass = TClass::GetClass(type);
     if (!klass) {
       throw std::runtime_error(
         std::string{"ROOT_TBranch_Read_ContainerImp::prime missing TClass for type: "} +
@@ -101,7 +101,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   }
 
   gsl::owner<void*> branchBuffer = nullptr;
-  auto dictInfo = TDictionary::GetDictionary(type);
+  auto* dictInfo = TDictionary::GetDictionary(type);
   int branchStatus = 0;
 
   if (!dictInfo) {
@@ -111,7 +111,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
 
   if (dictInfo->Property() & EProperty::kIsFundamental) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    auto fundInfo = static_cast<TDataType*>(dictInfo); // Already checked to be fundamental
+    auto* fundInfo = static_cast<TDataType*>(dictInfo); // Already checked to be fundamental
     switch (fundInfo->GetType()) {
     case kChar_t:
       branchBuffer = new Char_t;
@@ -160,7 +160,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), branchBuffer, nullptr, EDataType(fundInfo->GetType()), false);
   } else {
-    auto klass = TClass::GetClass(type);
+    auto* klass = TClass::GetClass(type);
     if (!klass) {
       throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass"} +
                                " (col_name='" + col_name() + "', type='" + DemangleName(type) +
