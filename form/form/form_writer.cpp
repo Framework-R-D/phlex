@@ -25,19 +25,19 @@ namespace form::experimental {
 
   void form_writer_interface::write(std::string const& creator,
                                     std::string const& segment_id,
-                                    product_with_name const& pb)
+                                    product_with_name const& product)
   {
 
-    auto it = m_product_to_config.find(pb.label);
+    auto it = m_product_to_config.find(product.label);
     if (it == m_product_to_config.end()) {
-      std::cerr << "No configuration found for product: " << pb.label << '\n';
+      std::cerr << "No configuration found for product: " << product.label << '\n';
       return;
     }
 
-    std::map<std::string, std::type_info const*> products = {{pb.label, pb.type}};
+    std::map<std::string, std::type_info const*> products = {{product.label, product.type}};
     m_pers_writer->createContainers(creator, products);
 
-    m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type);
+    m_pers_writer->registerWrite(creator, product.label, product.data, *product.type);
 
     m_pers_writer->commitOutput(creator, segment_id);
   }

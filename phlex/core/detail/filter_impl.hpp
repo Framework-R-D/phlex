@@ -60,7 +60,7 @@ namespace phlex::detail {
     struct for_output_t {};
     static constexpr for_output_t for_output{};
     explicit data_map(for_output_t);
-    explicit data_map(product_selectors const& product_names);
+    explicit data_map(product_selectors const& input_products);
 
     bool is_complete(std::size_t msg_id) const;
 
