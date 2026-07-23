@@ -89,8 +89,9 @@ namespace phlex {
 
   bool data_cell_index::operator==(data_cell_index const& other) const
   {
-    if (depth_ != other.depth_)
+    if (depth_ != other.depth_) {
       return false;
+    }
     auto const same_numbers = number_ == other.number_;
     if (not parent_) {
       return same_numbers;

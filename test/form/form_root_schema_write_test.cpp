@@ -19,8 +19,9 @@ int main(int const argc, char const** argv)
   std::vector<TrackStart> const prods = tracker();
 
   std::ofstream outFile("form_root_schema_write_log_" + tech_string + ".txt");
-  for (auto const& prod : prods)
+  for (auto const& prod : prods) {
     outFile << prod << '\n';
+  }
 
   write(technology, prods);
 

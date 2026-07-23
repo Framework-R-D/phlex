@@ -69,8 +69,9 @@ bool phlex::experimental::msg_from_py_error(std::string& msg, bool check_error)
   PyGILRAII g;
 
   if (check_error) {
-    if (!PyErr_Occurred())
+    if (!PyErr_Occurred()) {
       return false;
+    }
   }
 
 #if PY_VERSION_HEX < 0x30c000000

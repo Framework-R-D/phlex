@@ -47,8 +47,9 @@ namespace form::experimental {
                                     std::vector<product_with_name> const& products)
   {
 
-    if (products.empty())
+    if (products.empty()) {
       return;
+    }
 
     auto it = m_product_to_config.find(products[0].label);
     if (it == m_product_to_config.end()) {
