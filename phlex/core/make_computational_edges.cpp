@@ -147,14 +147,16 @@ namespace phlex::detail {
 
         for (auto const& query : node->input()) {
           auto* receiver_port = collector ? collector : &node->port(query);
-          auto producer = producers.find_producer(query, node->name());
-          if (not producer) {
+          auto producer_ports = producers.find_producers(query, node->name());
+          if (producer_ports.empty()) {
             // Is there a way to detect mis-specified product dependencies?
             result[node_name].push_back({query, receiver_port});
             continue;
           }
 
-          make_edge(*producer->output_port, *receiver_port);
+          for (auto* producer : producer_ports) {
+            make_edge(*producer->output_port, *receiver_port);
+          }
         }
       }
       return result;
