@@ -40,7 +40,7 @@ namespace phlex {
     using handle_type = std::coroutine_handle<promise_type>;
 
     struct promise_type {
-      data_cell_index_ptr current_{};
+      data_cell_index_ptr current_;
       std::exception_ptr exception_{};
 
       index_generator get_return_object()
@@ -93,7 +93,7 @@ namespace phlex {
       }
 
     private:
-      handle_type coroutine_{};
+      handle_type coroutine_;
     };
 
     index_generator() noexcept = default;
@@ -148,7 +148,7 @@ namespace phlex {
     std::default_sentinel_t end() const noexcept { return {}; }
 
   private:
-    handle_type coroutine_{};
+    handle_type coroutine_;
   };
 #endif
 }

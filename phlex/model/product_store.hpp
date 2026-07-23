@@ -55,7 +55,7 @@ namespace phlex::experimental {
     static experimental::algorithm_name default_source();
 
   private:
-    phlex::detail::products products_{};
+    phlex::detail::products products_;
     data_cell_index_ptr id_;
     algorithm_name
       source_; // FIXME: Should not have to copy (the source should outlive the product store)

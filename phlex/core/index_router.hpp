@@ -106,7 +106,7 @@ namespace phlex::detail {
 
     tbb::flow::function_node<index_message, data_cell_index_ptr> unfold_index_receiver_;
     tbb::flow::function_node<unfold_flush> unfold_flush_receiver_;
-    std::atomic<std::size_t> received_indices_{};
+    std::atomic<std::size_t> received_indices_;
     flusher_t flusher_;
     tbb::concurrent_unordered_map<std::size_t, bool> is_lowest_layer_hashes_;
     std::vector<phlex::experimental::identifier> unfold_input_layer_names_;
