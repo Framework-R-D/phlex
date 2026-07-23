@@ -117,3 +117,7 @@ RUN mkdir -p /run/user/0 && chmod 700 /run/user/0 && chown root:root /run/user/0
 
 COPY gitignore-global /root/.gitignore-global
 RUN git config --global core.excludesfile '/root/.gitignore-global'
+
+# Install Kilo environment script that sets KILO_CONFIG_CONTENT globally
+COPY .devcontainer/kilo-env.sh /etc/profile.d/kilo-env.sh
+RUN chmod +x /etc/profile.d/kilo-env.sh
