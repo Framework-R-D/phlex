@@ -270,8 +270,9 @@ namespace {
         return std::nullopt;
       }
       s = identifier(PyUnicode_AsUTF8(pys));
-    } else
+    } else {
       PyErr_Clear();
+    }
 
     return std::optional<product_selector>{
       product_selector{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
@@ -435,8 +436,9 @@ namespace {
             input_types.push_back(annotation_as_text(item));
           }
           conversion_ok = true;
-        } else
+        } else {
           PyErr_Clear();
+        }
 
         Py_XDECREF(args);
         Py_XDECREF(ret);
@@ -891,21 +893,21 @@ static bool insert_input_converters(py_phlex_module* mod,
     std::string output =
       "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
 
-    if (inp_type == "bool")
+    if (inp_type == "bool") {
       insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "int32_t")
+    } else if (inp_type == "int32_t") {
       insert_converter(mod, pyname, ispy ? int_to_py : int_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "uint32_t")
+    } else if (inp_type == "uint32_t") {
       insert_converter(mod, pyname, ispy ? uint_to_py : uint_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "int64_t")
+    } else if (inp_type == "int64_t") {
       insert_converter(mod, pyname, ispy ? long_to_py : long_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "uint64_t")
+    } else if (inp_type == "uint64_t") {
       insert_converter(mod, pyname, ispy ? ulong_to_py : ulong_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "float")
+    } else if (inp_type == "float") {
       insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "double")
+    } else if (inp_type == "double") {
       insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output, nc);
-    else if (inp_type.starts_with("ndarray") || inp_type.starts_with("list")) {
+    } else if (inp_type.starts_with("ndarray") || inp_type.starts_with("list")) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
       // until we have an IDL
@@ -948,21 +950,21 @@ static bool insert_output_converter(py_phlex_module* mod,
                                     concurrency nc)
 {
   // insert output converter node into the graph
-  if (out_type == "bool")
+  if (out_type == "bool") {
     insert_converter(mod, cname, ispy ? py_to_bool : dcarg_to_bool, out_pq, output, nc);
-  else if (out_type == "int32_t")
+  } else if (out_type == "int32_t") {
     insert_converter(mod, cname, ispy ? py_to_int : dcarg_to_int, out_pq, output, nc);
-  else if (out_type == "uint32_t")
+  } else if (out_type == "uint32_t") {
     insert_converter(mod, cname, ispy ? py_to_uint : dcarg_to_uint, out_pq, output, nc);
-  else if (out_type == "int64_t")
+  } else if (out_type == "int64_t") {
     insert_converter(mod, cname, ispy ? py_to_long : dcarg_to_long, out_pq, output, nc);
-  else if (out_type == "uint64_t")
+  } else if (out_type == "uint64_t") {
     insert_converter(mod, cname, ispy ? py_to_ulong : dcarg_to_ulong, out_pq, output, nc);
-  else if (out_type == "float")
+  } else if (out_type == "float") {
     insert_converter(mod, cname, ispy ? py_to_float : dcarg_to_float, out_pq, output, nc);
-  else if (out_type == "double")
+  } else if (out_type == "double") {
     insert_converter(mod, cname, ispy ? py_to_double : dcarg_to_double, out_pq, output, nc);
-  else if (out_type.starts_with("ndarray") || out_type.starts_with("list")) {
+  } else if (out_type.starts_with("ndarray") || out_type.starts_with("list")) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
     auto const dtype = collection_dtype(out_type);
