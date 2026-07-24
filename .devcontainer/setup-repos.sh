@@ -1,16 +1,16 @@
 #!/bin/bash
-
 # Clone companion repositories into the codespace so they are available
 # for reference by developers and AI agents.
 #
 # Intended to be called from devcontainer.json onCreateCommand.
 
 WORKSPACE_ROOT="${1:-/workspaces}"
-
 if [ ! -d "$WORKSPACE_ROOT" ]; then
   echo "Error: workspace root does not exist: $WORKSPACE_ROOT" >&2
   exit 1
 fi
+
+FAILED_REPOS=()
 
 clone_if_absent() {
   local repo=$1
@@ -22,6 +22,7 @@ clone_if_absent() {
   elif [ -e "$dest" ]; then
     echo "WARNING: refusing to overwrite non-repository $dest:"
     ls -ld "$dest"
+    FAILED_REPOS+=("$repo")
     return 1
   fi
   if (( need_clone )); then
@@ -35,6 +36,7 @@ clone_if_absent() {
     done
     if (( current_try == max_tries )); then
       echo "WARNING: unable to check out $repo to $dest from GitHub" 1>&2
+      FAILED_REPOS+=("$repo")
       return 1
     fi
   fi
@@ -46,4 +48,7 @@ clone_if_absent phlex-examples
 clone_if_absent phlex-coding-guidelines
 clone_if_absent phlex-spack-recipes
 
-exit 0
+if (( ${#FAILED_REPOS[@]} > 0 )); then
+  echo "Error: Failed to clone repositories: ${FAILED_REPOS[*]}" >&2
+  exit 1
+fi
