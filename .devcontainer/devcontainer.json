@@ -13,7 +13,11 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "chat.agent.sandbox.enabled": "off",
+                "chat.agent.sandbox.enabled": "on",
+                "chat.agent.sandbox.allowNetwork": true,
+                "chat.agent.sandbox.advanced.runtime": {
+                    "enableWeakerNestedSandbox": false
+                },
                 "cmake.buildDirectory": "${workspaceFolder}/build",
                 "cmake.defaultConfigurePreset": "default",
                 "cmake.generator": "Ninja",
