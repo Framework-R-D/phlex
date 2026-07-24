@@ -210,6 +210,14 @@ cet_test(
   phlex::core_internal
 )
 cet_test(
+  transform_node
+  USE_CATCH2_MAIN
+  SOURCE
+  transform_node_test.cpp
+  LIBRARIES
+  phlex::core_internal
+)
+cet_test(
   replicated
   USE_CATCH2_MAIN
   SOURCE
