@@ -16,7 +16,7 @@ spack:
     - py-pytest-cov # Needed for Python coverage reports
     - py-pyyaml # Needed by run-clang-tidy --export-fixes to merge per-TU fix files
     - |
-      llvm@20.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
+      llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
   view:
     default:
@@ -43,6 +43,7 @@ spack:
     llvm:
       require:
         - "target=x86_64_v3"
+        - "%c,cxx=gcc@15"
 
     phlex:
       require:
