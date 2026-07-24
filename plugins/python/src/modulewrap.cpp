@@ -81,10 +81,10 @@ struct phlex::experimental::py_phlex_source {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_source(phlex_source_t& source_)
+PyObject* phlex::experimental::wrap_source(phlex_source_t& source)
 {
   py_phlex_source* pysrc = PyObject_New(py_phlex_source, &PhlexSource_Type);
-  pysrc->ph_source = &source_;
+  pysrc->ph_source = &source;
 
   return reinterpret_cast<PyObject*>(pysrc);
 }

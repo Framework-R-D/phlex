@@ -28,7 +28,7 @@ namespace phlex::detail {
                       tbb::flow::receiver<index_message>* input_port);
 
       void put_message(data_cell_index_ptr const& index, std::size_t message_id);
-      void put_end_token(data_cell_index_ptr const& index, flush_gate const& fc);
+      void put_end_token(data_cell_index_ptr const& index, flush_gate const& fg);
 
       bool matches_exactly(phlex::experimental::layer_path const& layer_path) const;
       bool is_parent_of(data_cell_index_ptr const& index) const;
