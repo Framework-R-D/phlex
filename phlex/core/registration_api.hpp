@@ -29,8 +29,8 @@ namespace phlex::detail {
   template <template <typename...> typename HOF, typename AlgorithmBits>
   class registration_api {
     using hof_type = HOF<AlgorithmBits>;
-    using node_ptr = typename hof_type::node_ptr_type;
-    using input_parameter_types = typename AlgorithmBits::input_parameter_types;
+    using node_ptr = hof_type::node_ptr_type;
+    using input_parameter_types = AlgorithmBits::input_parameter_types;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = hof_type::number_output_products;
