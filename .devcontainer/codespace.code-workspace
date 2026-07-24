@@ -73,40 +73,6 @@
         // scope overrides this Workspace scope) -- see
         // .vscode/settings.json.example.
         "esbonio.logging.level": "debug",
-        "python.analysis.typeCheckingMode": "basic",
-        "python.analysis.diagnosticMode": "workspace",
-        "python.analysis.include": [
-            "${workspaceFolder:Phlex}"
-        ],
-        "python.analysis.extraPaths": [
-            "${workspaceFolder:Phlex}/plugins/python/python",
-            "${workspaceFolder:Phlex}/scripts",
-            "${workspaceFolder:Phlex}/build/_deps",
-            "${workspaceFolder:Phlex}/out/build/*/_deps",
-            "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
-            "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages",
-            "/spack/lib/spack"
-        ],
-        "python.analysis.exclude": [
-            "/opt/spack-environments",
-            "${workspaceFolder:Phlex}/local",
-            "${workspaceFolder:Phlex}/build/_deps",
-            "${workspaceFolder:Phlex}/build/CMakeFiles",
-            "${workspaceFolder:Phlex}/**/.venv",
-            "${workspaceFolder:Phlex}/**/py_virtual_env"
-        ],
-        "python.analysis.ignore": [
-            "/opt/spack-environments",
-            "${workspaceFolder:Phlex Design}",
-            "${workspaceFolder:Phlex Examples}",
-            "${workspaceFolder:Phlex Coding Guidelines}",
-            "${workspaceFolder:Phlex Spack Recipes}",
-            "${workspaceFolder:Phlex}/local",
-            "${workspaceFolder:Phlex}/build/_deps",
-            "${workspaceFolder:Phlex}/build/CMakeFiles",
-            "${workspaceFolder:Phlex}/**/.venv",
-            "${workspaceFolder:Phlex}/**/py_virtual_env"
-        ],
         "flake8.enabled": false,
         "pylint.enabled": false,
         "[python]": {

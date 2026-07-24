@@ -40,28 +40,6 @@
                     "/workspaces/phlex-spack-recipes"
                 ],
                 "kilocode.new.extraCaCerts": "",
-                "python.analysis.diagnosticMode": "workspace",
-                "python.analysis.exclude": [
-                    "**/.venv/**",
-                    "**/py_virtual_env/**",
-                    "**/build/_deps/**",
-                    "**/out/build/*/_deps/**"
-                ],
-                "python.analysis.ignore": [
-                    "**/.venv/**",
-                    "**/py_virtual_env/**"
-                ],
-                "python.analysis.extraPaths": [
-                    "${workspaceFolder}/plugins/python/python",
-                    "${workspaceFolder}/scripts",
-                    "${workspaceFolder}/build",
-                    "${workspaceFolder}/build/_deps",
-                    "${workspaceFolder}/out/build/*/_deps",
-                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
-                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages",
-                    "/spack/lib/spack"
-                ],
-                "python.analysis.typeCheckingMode": "basic",
                 "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
                 "python.languageServer": "Pylance",
                 "python.terminal.activateEnvironment": false,

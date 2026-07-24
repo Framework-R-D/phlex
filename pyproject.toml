@@ -16,16 +16,29 @@ disable_error_code = "annotation-unchecked"
 # absolute; VS Code variables like ${workspaceFolder} are NOT substituted
 # here. The Spack-specific absolute paths only exist inside the phlex-dev
 # devcontainer and are harmless no-ops elsewhere.
+
+diagnosticMode = "workspace"
 extraPaths = [
     "plugins/python/python",
     "scripts",
     "build/_deps",
-    "out/build/*/_deps",
+    "out/build/default/_deps",
+    "out/build/clang-tidy/_deps",
     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
     "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages",
-    "/spack/lib/spack",
+    "/spack/lib/spack"
 ]
-
+exclude = [
+    "**/.venv/**",
+    "**/py_virtual_env/**",
+    "**/build/_deps/**",
+    "**/out/build/*/_deps/**"
+]
+ignore = [
+    "**/.venv/**",
+    "**/py_virtual_env/**"
+]
+typeCheckingMode = "basic"
 
 [tool.ruff]
 target-version = "py312"
