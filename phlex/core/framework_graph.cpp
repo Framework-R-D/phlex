@@ -187,11 +187,11 @@ namespace phlex::detail {
     make_edge(index_receiver_, hierarchy_node_);
     make_edge(index_router_.unfold_index_receiver(), hierarchy_node_);
 
-    for (auto& node : nodes_.folds | std::views::values) {
+    for (auto const& node : nodes_.folds | std::views::values) {
       make_edge(index_router_.flusher(), node->flush_port());
     }
 
-    for (auto& node : nodes_.unfolds | std::views::values) {
+    for (auto const& node : nodes_.unfolds | std::views::values) {
       make_edge(node->output_index_port(), index_router_.unfold_index_receiver());
       make_edge(node->flush_sender(), index_router_.unfold_flush_receiver());
     }

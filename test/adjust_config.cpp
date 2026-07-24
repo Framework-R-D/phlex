@@ -29,7 +29,7 @@ TEST_CASE("Both py and cpp specified as strings", "[config]")
   obj["py"] = "my_python_module";
   obj["cpp"] = "my_other_python_phlex_module";
 
-  auto const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed1
+  auto const* const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed1
   - cpp: my_other_python_phlex_module
   - py: my_python_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed1", std::move(obj)),
@@ -42,7 +42,7 @@ TEST_CASE("Both py and cpp specified, py as string", "[config]")
   obj["py"] = "my_python_module";
   obj["cpp"] = 1;
 
-  auto const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed2
+  auto const* const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed2
   - py: my_python_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed2", std::move(obj)),
                     Catch::Matchers::ContainsSubstring(err_msg));
@@ -54,7 +54,7 @@ TEST_CASE("Both py and cpp specified, cpp as string", "[config]")
   obj["py"] = 2;
   obj["cpp"] = "my_other_python_phlex_module";
 
-  auto const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed3
+  auto const* const err_msg = R"""(Both 'cpp' and 'py' parameters specified for malformed3
   - cpp: my_other_python_phlex_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed3", std::move(obj)),
                     Catch::Matchers::ContainsSubstring(err_msg));

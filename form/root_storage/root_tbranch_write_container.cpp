@@ -73,7 +73,7 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no tree found");
   }
 
-  auto dictInfo = TDictionary::GetDictionary(type);
+  auto* dictInfo = TDictionary::GetDictionary(type);
   if (m_branch == nullptr) {
     if (!dictInfo) {
       throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite unsupported type: " +
