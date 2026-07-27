@@ -53,7 +53,7 @@ namespace phlex::detail {
     // means that multiple unfolds produce children from the same parent layer.
     explicit flush_gate(data_cell_index_ptr index, std::size_t expected_flush_count);
 
-    data_cell_index_ptr const index() const { return index_; }
+    data_cell_index_ptr index() const { return index_; }
     std::size_t expected_total_count() const;
     std::size_t committed_total_count() const;
     std::size_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
