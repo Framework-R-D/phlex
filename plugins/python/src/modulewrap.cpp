@@ -337,7 +337,7 @@ namespace {
     for (Py_ssize_t i = 0; i < len; ++i) {
       PyObject* item = items[i]; // borrowed reference
       if (!PyUnicode_Check(item)) {
-        PyErr_Format(PyExc_TypeError, "item %d must be a string", (int)i);
+        PyErr_Format(PyExc_TypeError, "item %d must be a string", static_cast<int>(i));
         break;
       }
 
@@ -512,9 +512,9 @@ namespace {
     // fail to pass float -> bool; the problem is rounding (0.1 -> 0 -> False)
     if (!(l == 0 || l == 1) || PyFloat_Check(pyobject)) {
       PyErr_SetString(PyExc_ValueError, "boolean value should be bool, or integer 1 or 0");
-      return (bool)-1;
+      return static_cast<bool>(-1);
     }
-    return (bool)l;
+    return static_cast<bool>(l);
   }
 
   long pylong_as_strictlong(PyObject* pyobject)
@@ -535,7 +535,7 @@ namespace {
     }
 
     PyErr_SetString(PyExc_TypeError, "int/long conversion expects a signed integer object");
-    return (long)-1;
+    return static_cast<long>(-1);
   }
 
   unsigned long pylong_or_int_as_ulong(PyObject* pyobject)
@@ -543,7 +543,7 @@ namespace {
     // convert <pybject> to C++ unsigned long, with bounds checking, allow int -> ulong.
     if (PyFloat_Check(pyobject)) {
       PyErr_SetString(PyExc_TypeError, "can\'t convert float to unsigned long");
-      return (unsigned long)-1;
+      return static_cast<unsigned long>(-1);
     }
 
     // accept numpy unsigned integer scalars (uint8, uint16, uint32, uint64)
@@ -561,10 +561,10 @@ namespace {
       PyErr_Clear();
       long i = PyLong_AS_LONG(pyobject);
       if (0 <= i) {
-        ul = (unsigned long)i;
+        ul = static_cast<unsigned long>(i);
       } else {
         PyErr_SetString(PyExc_ValueError, "can\'t convert negative value to unsigned long");
-        return (unsigned long)-1;
+        return static_cast<unsigned long>(-1);
       }
     }
 
@@ -805,7 +805,7 @@ static PyObject* parse_args(PyObject* args,
   }
 
   // set concurrency, or the default of serial if not set
-  nconcur = nconcur_ > 0 ? (concurrency)nconcur_ : concurrency::serial;
+  nconcur = nconcur_ > 0 ? concurrency(nconcur_) : concurrency::serial;
 
   // retrieve function name
   if (!pyname) {
@@ -1042,7 +1042,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   std::vector<std::string> input_types;
   std::vector<std::string> output_suffixes;
   std::vector<std::string> output_types;
-  auto nconcur = (concurrency)-1;
+  concurrency nconcur(-1);
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
@@ -1190,7 +1190,7 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   std::vector<std::string> input_types;
   std::vector<std::string> output_suffixes;
   std::vector<std::string> output_types;
-  auto nconcur = (concurrency)-1;
+  concurrency nconcur(-1);
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 

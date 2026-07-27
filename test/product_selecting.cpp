@@ -16,9 +16,12 @@ using namespace std::string_literals;
 
 namespace {
   // Provider functions
-  int provide_idx(data_cell_index const& dci) { return int(dci.number()); }
+  int provide_idx(data_cell_index const& dci) { return static_cast<int>(dci.number()); }
   int provide_number(data_cell_index const&) { return 3; }
-  double provide_temperature(data_cell_index const& dci) { return double(dci.number()) * 100.0; }
+  double provide_temperature(data_cell_index const& dci)
+  {
+    return static_cast<double>(dci.number()) * 100.0;
+  }
   std::string provide_name(data_cell_index const& dci)
   {
     return fmt::format("John the {}th", dci.number());

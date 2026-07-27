@@ -27,7 +27,7 @@ PyObject* phlex::experimental::wrap_dci(data_cell_index const& dci)
 // simple forwarding methods
 static PyObject* dci_number(py_data_cell_index* pydci)
 {
-  return PyLong_FromLong((long)pydci->ph_dci->number());
+  return PyLong_FromLong(static_cast<long>(pydci->ph_dci->number()));
 }
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.

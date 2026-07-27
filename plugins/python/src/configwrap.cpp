@@ -148,8 +148,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         pyvalue = PyTuple_New(*cvalue_size);
         // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          PyObject* item =
-            PyUnicode_FromStringAndSize(cvalue[i].c_str(), (Py_ssize_t)cvalue[i].size());
+          PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(),
+                                                       static_cast<Py_ssize_t>(cvalue[i].size()));
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::object) {
@@ -164,8 +164,8 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
           PyObject* item = PyDict_New();
           for (auto const& kv : cvalue[i]) {
-            PyObject* val =
-              PyUnicode_FromStringAndSize(kv.second.c_str(), (Py_ssize_t)kv.second.size());
+            PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(),
+                                                        static_cast<Py_ssize_t>(kv.second.size()));
             PyDict_SetItemString(item, kv.first.c_str(), val);
             Py_DECREF(val);
           }
@@ -178,7 +178,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
     } else {
       if (k.first == boost::json::kind::bool_) {
         auto cvalue = pycmap->ph_config->get<bool>(ckey);
-        pyvalue = PyBool_FromLong((long)cvalue);
+        pyvalue = PyBool_FromLong(static_cast<long>(cvalue));
       } else if (k.first == boost::json::kind::int64) {
         auto cvalue = pycmap->ph_config->get<std::int64_t>(ckey);
         // Note Python3.14 is expected to add PyLong_FromInt64
@@ -192,13 +192,14 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         pyvalue = PyFloat_FromDouble(cvalue);
       } else if (k.first == boost::json::kind::string) {
         auto const& cvalue = pycmap->ph_config->get<std::string>(ckey);
-        pyvalue = PyUnicode_FromStringAndSize(cvalue.c_str(), (Py_ssize_t)cvalue.size());
+        pyvalue =
+          PyUnicode_FromStringAndSize(cvalue.c_str(), static_cast<Py_ssize_t>(cvalue.size()));
       } else if (k.first == boost::json::kind::object) {
         auto cvalue = pycmap->ph_config->get<std::map<std::string, std::string>>(ckey);
         pyvalue = PyDict_New();
         for (auto const& kv : cvalue) {
-          PyObject* val =
-            PyUnicode_FromStringAndSize(kv.second.c_str(), (Py_ssize_t)kv.second.size());
+          PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(),
+                                                      static_cast<Py_ssize_t>(kv.second.size()));
           PyDict_SetItemString(pyvalue, kv.first.c_str(), val);
           Py_DECREF(val);
         }
