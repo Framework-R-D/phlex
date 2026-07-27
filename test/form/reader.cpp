@@ -133,7 +133,7 @@ int main(int argc, char** argv)
 
       // Verify segment checksums
       auto key = std::make_pair(nevent, nseg);
-      if (expected_seg.count(key)) {
+      if (expected_seg.contains(key)) {
         auto const& exp = expected_seg[key];
         bool seg_ok = (std::fabs(check - exp.check) <= TOLERANCE) &&
                       (std::fabs(checkPoints.getX() - exp.cpx) <= TOLERANCE) &&
@@ -177,7 +177,7 @@ int main(int argc, char** argv)
               << ", check = " << check << '\n';
 
     // Verify event checksum
-    if (expected_evt.count(nevent)) {
+    if (expected_evt.contains(nevent)) {
       auto const& exp = expected_evt[nevent];
       bool evt_ok = (std::fabs(check - exp.check) <= TOLERANCE);
       if (evt_ok) {
