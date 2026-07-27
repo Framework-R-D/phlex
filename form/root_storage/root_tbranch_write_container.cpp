@@ -124,7 +124,11 @@ void ROOT_TBranch_Write_ContainerImp::commit()
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit no tree attached");
   }
 
-  if(m_branch->GetEntries() == m_tree->GetEntries()) {
+  if (!m_branch) {
+    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit no branch found");
+  }
+
+  if (m_branch->GetEntries() == m_tree->GetEntries()) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit cannot be called before fill");
   }
 
