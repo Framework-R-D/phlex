@@ -22,7 +22,7 @@ PHLEX_REGISTER_PROVIDERS(s)
     .output_product("input", "f1", "event");
   s.provide("provide_f2",
             [](data_cell_index const& id) -> float {
-              return 1.0f - static_cast<float>(id.number() % 100u) / 100.0f;
+              return 1.0f - (static_cast<float>(id.number() % 100u) / 100.0f);
             })
     .output_product("input", "f2", "event");
 
@@ -33,7 +33,7 @@ PHLEX_REGISTER_PROVIDERS(s)
     .output_product("input", "d1", "event");
   s.provide("provide_d2",
             [](data_cell_index const& id) -> double {
-              return 1.0 - static_cast<double>(id.number() % 100u) / 100.0;
+              return 1.0 - (static_cast<double>(id.number() % 100u) / 100.0);
             })
     .output_product("input", "d2", "event");
 

@@ -25,13 +25,13 @@ void generate(std::vector<float>& vrand, int size)
   int rand1 = rand() % 32768;
   int rand2 = rand() % 32768;
   // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-  int npx = (rand1 * 32768 + rand2) % size;
+  int npx = ((rand1 * 32768) + rand2) % size;
   for (int nelement = 0; nelement < npx; ++nelement) {
     // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
     int rand1 = rand() % 32768;
     int rand2 = rand() % 32768;
     // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-    float random = static_cast<float>(rand1 * 32768 + rand2) / (32768.0f * 32768);
+    float random = static_cast<float>((rand1 * 32768) + rand2) / (32768.0f * 32768);
     vrand.push_back(random);
   }
 }
