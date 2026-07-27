@@ -106,14 +106,14 @@ namespace phlex::detail {
     std::vector<products_consumer*> consumers() const;
     producer_catalog producers() const;
 
-    simple_ptr_map<declared_predicate_ptr> predicates{};
-    simple_ptr_map<declared_observer_ptr> observers{};
-    simple_ptr_map<declared_output_ptr> outputs{};
-    simple_ptr_map<declared_fold_ptr> folds{};
-    simple_ptr_map<declared_unfold_ptr> unfolds{};
-    simple_ptr_map<declared_transform_ptr> transforms{};
-    simple_ptr_map<provider_node_ptr> providers{};
-    simple_ptr_map<source_ptr> sources{};
+    simple_ptr_map<declared_predicate_ptr> predicates;
+    simple_ptr_map<declared_observer_ptr> observers;
+    simple_ptr_map<declared_output_ptr> outputs;
+    simple_ptr_map<declared_fold_ptr> folds;
+    simple_ptr_map<declared_unfold_ptr> unfolds;
+    simple_ptr_map<declared_transform_ptr> transforms;
+    simple_ptr_map<provider_node_ptr> providers;
+    simple_ptr_map<source_ptr> sources;
 
   private:
     template <typename>

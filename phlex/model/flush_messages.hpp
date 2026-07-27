@@ -31,7 +31,7 @@ namespace phlex::detail {
   // The `ready_flushes_then_emit` struct carries flushes that must be emitted
   // (to close out already-emitted indices) before emitting `index_to_emit`.
   struct PHLEX_MODEL_EXPORT ready_flushes_then_emit {
-    index_flushes ready_flushes{};
+    index_flushes ready_flushes;
     data_cell_index_ptr index_to_emit{nullptr};
   };
 }

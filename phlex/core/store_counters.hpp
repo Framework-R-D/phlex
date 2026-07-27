@@ -26,7 +26,7 @@ namespace phlex::detail {
     using counts_t =
       tbb::concurrent_unordered_map<data_cell_index::hash_type, std::atomic<std::size_t>>;
 
-    counts_t counts_{};
+    counts_t counts_;
 #ifdef __cpp_lib_atomic_shared_ptr
     std::atomic<data_cell_counts_const_ptr> flush_counts_{nullptr};
 #else

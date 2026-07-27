@@ -20,7 +20,7 @@ namespace form::experimental {
   struct form_source_type_entry {
     phlex::detail::type_id type_id;
     std::type_info const* cpp_type{nullptr};
-    form_source_product_from_data_fn product_from_data_fn{};
+    form_source_product_from_data_fn product_from_data_fn;
   };
 
   void register_form_product_type(std::string product_type,

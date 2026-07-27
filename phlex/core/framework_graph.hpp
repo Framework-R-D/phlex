@@ -190,17 +190,17 @@ namespace phlex::detail {
     enum class driver_mode { default_driver, deferred_driver };
     explicit framework_graph(driver_mode mode, int max_parallelism);
 
-    resource_usage graph_resource_usage_{};
+    resource_usage graph_resource_usage_;
     max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
     data_layer_hierarchy hierarchy_{};
-    node_catalog nodes_{};
-    std::map<std::string, filter> filters_{};
+    node_catalog nodes_;
+    std::map<std::string, filter> filters_;
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
-    std::optional<framework_driver> driver_{};
-    std::vector<std::string> registration_errors_{};
-    data_cell_tracker cell_tracker_{};
+    std::optional<framework_driver> driver_;
+    std::vector<std::string> registration_errors_;
+    data_cell_tracker cell_tracker_;
     tbb::flow::input_node<ready_flushes_then_emit> src_;
     index_router index_router_;
     tbb::flow::function_node<ready_flushes_then_emit, data_cell_index_ptr, tbb::flow::lightweight>

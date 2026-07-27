@@ -17,7 +17,7 @@ namespace {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   std::atomic<unsigned int> processed_messages{};
   struct thread_unsafe {
-    std::atomic<unsigned int> counter{};
+    std::atomic<unsigned int> counter;
 
     auto increment(unsigned int i)
     {
