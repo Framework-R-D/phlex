@@ -14,7 +14,7 @@ namespace form::detail::experimental {
     ~Storage_File() override = default;
 
     std::string const& name() override;
-    char const mode() override;
+    char mode() override;
 
     void setAttribute(std::string const& name, std::string const& value) override;
 

@@ -53,7 +53,7 @@ namespace form::detail::experimental {
     virtual ~IStorage_File() = default;
 
     virtual std::string const& name() = 0;
-    virtual char const mode() = 0;
+    virtual char mode() = 0;
 
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
   };
