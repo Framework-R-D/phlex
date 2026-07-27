@@ -14,7 +14,7 @@ namespace {
   auto square_numbers(std::vector<unsigned> const& numbers)
   {
     std::vector<unsigned> result(size(numbers));
-    std::transform(begin(numbers), end(numbers), begin(result), [](unsigned i) { return i * i; });
+    std::ranges::transform(numbers, begin(result), [](unsigned i) { return i * i; });
     return result;
   }
 

@@ -51,8 +51,8 @@ namespace phlex::detail {
 
   template <typename AlgorithmBits>
   class predicate_node : public declared_predicate {
-    using input_args = typename AlgorithmBits::input_parameter_types;
-    using function_t = typename AlgorithmBits::bound_type;
+    using input_args = AlgorithmBits::input_parameter_types;
+    using function_t = AlgorithmBits::bound_type;
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
 
   public:

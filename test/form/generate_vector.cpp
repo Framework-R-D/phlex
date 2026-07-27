@@ -37,8 +37,8 @@ PHLEX_REGISTER_PROVIDERS(graph, config)
   int const seed = config.get<int>(
     "seed", static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count()));
   int const n_time_ticks = config.get<int>("n_time_ticks");
-  float const mean = config.get<float>("mean", 0);
-  float const stddev = config.get<float>("stddev", 1);
+  auto const mean = config.get<float>("mean", 0);
+  auto const stddev = config.get<float>("stddev", 1);
   auto creator = config.get<std::string>("creator");
 
   graph.make<GaussianGenerator>(n_time_ticks, seed, mean, stddev)

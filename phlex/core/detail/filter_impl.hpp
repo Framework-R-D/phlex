@@ -60,14 +60,12 @@ namespace phlex::detail {
     struct for_output_t {};
     static constexpr for_output_t for_output{};
     explicit data_map(for_output_t);
-    explicit data_map(product_selectors const& product_names);
+    explicit data_map(product_selectors const& input_products);
 
-    bool is_complete(std::size_t const msg_id) const;
+    bool is_complete(std::size_t msg_id) const;
 
-    void update(std::size_t const msg_id,
-                phlex::experimental::product_store_const_ptr const& store);
-    std::vector<phlex::experimental::product_store_const_ptr> release_data(
-      std::size_t const msg_id);
+    void update(std::size_t msg_id, phlex::experimental::product_store_const_ptr const& store);
+    std::vector<phlex::experimental::product_store_const_ptr> release_data(std::size_t msg_id);
 
   private:
     stores_t stores_;

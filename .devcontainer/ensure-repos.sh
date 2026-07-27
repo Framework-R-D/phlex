@@ -150,44 +150,60 @@ s.bind('${PROXY_SOCKET}')
 " 2>/dev/null || touch "${PROXY_SOCKET}"
 fi
 
-# --- Headroom Proxy Relay for Devcontainer ---
+# --- Headroom Proxy Relays for Devcontainer ---
 #
-# The headroom proxy is an SSH-tunnelled port bound only to 127.0.0.1 on this
-# host.  Rootless Podman uses pasta for container networking, so containers
-# reach the host via host.docker.internal (169.254.1.2) rather than via a
-# bridge interface.  However, pasta maps host.docker.internal to the host's
-# loopback only for ports that are actually listening on all interfaces --
-# headroom's port is bound to 127.0.0.1 only and is therefore unreachable.
+# The headroom proxy was split into TWO SSH-tunnelled ports, each bound only to
+# 127.0.0.1 on this host:
+#   HEADROOM_AZURE_PORT (9797) : optimized proxy, Kilo provider fnal-azure
+#   HEADROOM_OW_PORT    (9798) : passthrough proxy, Kilo provider fnal-ow
+# Rootless Podman uses pasta for container networking, so containers reach the
+# host via host.docker.internal (169.254.1.2) rather than via a bridge
+# interface.  However, pasta maps host.docker.internal to the host's loopback
+# only for ports that are actually listening on all interfaces -- headroom's
+# ports are bound to 127.0.0.1 only and are therefore unreachable.
 #
-# We relay headroom onto a different port on 0.0.0.0 so that containers can
-# reach it via host.docker.internal:$HEADROOM_RELAY_PORT.  A different port is
-# required because 0.0.0.0:$HEADROOM_PORT would conflict with the existing
-# 127.0.0.1:$HEADROOM_PORT listener.  KILO_CONFIG_CONTENT_DOCKER is passed into the
-# devcontainer and post-create.sh wires it into /root/.bashrc to point at
-# host.docker.internal:$HEADROOM_RELAY_PORT.
+# We relay EACH headroom port onto a different port on 0.0.0.0 so that
+# containers can reach them via host.docker.internal:<port+10000>.  A different
+# port is required because 0.0.0.0:<port> would conflict with the existing
+# 127.0.0.1:<port> listener.  KILO_CONFIG_CONTENT_DOCKER (built in the shell rc)
+# rewrites both loopback ports to their host.docker.internal relay ports and is
+# wired into /root/.bashrc by post-create.sh.
 
-HEADROOM_PORT="${HEADROOM_PORT:-9797}"
-HEADROOM_RELAY_PORT=$(( HEADROOM_PORT + 10000 ))
-HEADROOM_LOCAL="127.0.0.1:${HEADROOM_PORT}"
+HEADROOM_AZURE_PORT="${HEADROOM_AZURE_PORT:-9797}"
+HEADROOM_OW_PORT="${HEADROOM_OW_PORT:-9798}"
 
-if ss -tlnp 2>/dev/null | grep -q "127.0.0.1:${HEADROOM_PORT}"; then
-  start_socat_relay \
-    "Headroom proxy" \
-    "socat TCP-LISTEN:${HEADROOM_RELAY_PORT}" \
-    "TCP-LISTEN:${HEADROOM_RELAY_PORT},fork,reuseaddr" \
-    "TCP:${HEADROOM_LOCAL}" \
-    "/tmp/socat-headroom.log" \
-    "ss -tlnp 2>/dev/null | grep -q ':${HEADROOM_RELAY_PORT} '" || true
-else
-  echo "WARNING: headroom proxy not detected at ${HEADROOM_LOCAL}; skipping relay" >&2
-  echo "  Ensure the SSH tunnel is active (headroom running on your laptop)" >&2
-fi
+# relay_headroom_port ROLE PROXY_PORT
+#   Relay 127.0.0.1:PROXY_PORT to 0.0.0.0:(PROXY_PORT+10000) if the proxy is
+#   listening; otherwise warn and skip.  Each role gets an independent relay
+#   and log file so the two never collide.
+relay_headroom_port() {
+  local role="$1"
+  local proxy_port="$2"
+  local relay_port=$(( proxy_port + 10000 ))
+  local local_addr="127.0.0.1:${proxy_port}"
+
+  if ss -tlnp 2>/dev/null | grep -q "127.0.0.1:${proxy_port}"; then
+    start_socat_relay \
+      "Headroom ${role} proxy" \
+      "socat TCP-LISTEN:${relay_port}" \
+      "TCP-LISTEN:${relay_port},fork,reuseaddr" \
+      "TCP:${local_addr}" \
+      "/tmp/socat-headroom-${role}.log" \
+      "ss -tlnp 2>/dev/null | grep -q ':${relay_port} '" || true
+  else
+    echo "WARNING: headroom ${role} proxy not detected at ${local_addr}; skipping relay" >&2
+    echo "  Ensure the SSH tunnel is active (headroom-${role} running on your laptop)" >&2
+  fi
+}
+
+relay_headroom_port azure "${HEADROOM_AZURE_PORT}"
+relay_headroom_port ow "${HEADROOM_OW_PORT}"
 
 # Ensure remaining source bind mount points exist.
-ensure_bind_dir "$HOME/.aws"
 ensure_bind_dir "$HOME/.config/"{gh,kilo}
-ensure_bind_dir "$HOME/.gnupg"
-ensure_bind_dir "$HOME/.kiro"
-ensure_bind_dir "$HOME/.vscode-remote-user-data"
+ensure_bind_dir -m 0700 "$HOME/.gnupg"
+ensure_bind_dir -m 0700 "$HOME/.vscode-remote-user-data"
+ensure_bind_dir -m 0700 "$HOME/.local/share/kilo"
+ensure_bind_dir -m 0700 "$HOME/.phlex-devcontainer-tmp"
 
 echo "SUCCESS: .devcontainer/ensure-repos.sh completed successfully"

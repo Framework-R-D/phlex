@@ -34,11 +34,11 @@ namespace phlex {
     // Users are allowed to specify handle<T> as a parameter type to their algorithm
     template <typename T>
     struct handle_value_type_impl<handle<T>> {
-      using type = typename handle_value_type_impl<T>::type;
+      using type = handle_value_type_impl<T>::type;
     };
 
     template <typename T>
-    using handle_value_type = typename handle_value_type_impl<T>::type;
+    using handle_value_type = handle_value_type_impl<T>::type;
   }
 
   // ==============================================================================================

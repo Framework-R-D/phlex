@@ -102,8 +102,7 @@ namespace phlex {
   {
     auto these_numbers = all_numbers(*this);
     auto those_numbers = all_numbers(other);
-    return std::lexicographical_compare(
-      begin(these_numbers), end(these_numbers), begin(those_numbers), end(those_numbers));
+    return std::ranges::lexicographical_compare(these_numbers, those_numbers);
   }
 
   data_cell_index_ptr data_cell_index::parent() const noexcept { return parent_; }

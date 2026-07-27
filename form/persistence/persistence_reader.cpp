@@ -45,7 +45,6 @@ void PersistenceReader::read(std::string const& creator,
 {
   std::unique_ptr<Token> token = getToken(creator, label, id);
   m_store_reader->readContainer(*token, data, type, m_tech_settings);
-  return;
 }
 
 void PersistenceReader::prime(std::string const& creator,

@@ -54,7 +54,7 @@ namespace phlex::detail {
                                                    std::vector<std::string> output_suffixes,
                                                    std::vector<type_id> output_types)
   {
-    static std::string const default_product_suffix = "";
+    static std::string const default_product_suffix;
 
     if (output_suffixes.empty()) {
       // This happens whenever the user does not specify output_product_suffixes(...), so we

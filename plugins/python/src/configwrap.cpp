@@ -19,7 +19,7 @@ struct phlex::experimental::py_config_map {
 
 PyObject* phlex::experimental::wrap_configuration(configuration const& config)
 {
-  py_config_map* pyconfig =
+  auto* pyconfig =
     reinterpret_cast<py_config_map*>(PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr));
 
   pyconfig->ph_config = &config;
@@ -29,7 +29,7 @@ PyObject* phlex::experimental::wrap_configuration(configuration const& config)
 
 static py_config_map* pcm_new(PyTypeObject* subtype, PyObject*, PyObject*)
 {
-  py_config_map* pcm = reinterpret_cast<py_config_map*>(subtype->tp_alloc(subtype, 0));
+  auto* pcm = reinterpret_cast<py_config_map*>(subtype->tp_alloc(subtype, 0));
   if (!pcm)
     return nullptr;
 

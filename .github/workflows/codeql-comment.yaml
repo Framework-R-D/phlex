@@ -35,10 +35,12 @@ jobs:
       - name: Post Comment
         # Only run if the artifact was found (meaning alerts exist)
         if: success() && hashFiles('pr_comment_data/pr_number.txt') != ''
+        id: post_comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{ secrets.WORKFLOW_PAT }}
+          github-token: ${{ github.token }}
           script: |
+            const core = require('@actions/core');
             const fs = require('fs');
             const path = require('path');
 
@@ -68,6 +70,7 @@ jobs:
 
             const existing = comments.find(c => c.body.includes(marker) || c.body.includes(legacyMarker));
 
+            let commentId;
             if (existing) {
               console.log(`Updating existing comment ${existing.id}`);
               await github.rest.issues.updateComment({
@@ -76,12 +79,47 @@ jobs:
                 comment_id: existing.id,
                 body: finalBody
               });
+              commentId = existing.id;
             } else {
               console.log(`Creating new comment`);
-              await github.rest.issues.createComment({
+              const { data: created } = await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber,
                 body: finalBody
               });
+              commentId = created.id;
+            }
+            core.setOutput('comment_id', commentId);
+
+      - name: Cleanup old CodeQL comments
+        if: success() && hashFiles('pr_comment_data/pr_number.txt') != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          MARKER: "<!-- codeql-alerts -->"
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = process.env.MARKER;
+            const prNumberPath = 'pr_comment_data/pr_number.txt';
+            if (!fs.existsSync(prNumberPath)) {
+              console.log('pr_number.txt artifact not found, skipping cleanup');
+              process.exit(0);
+            }
+            const pr = parseInt(fs.readFileSync(prNumberPath, 'utf8').trim(), 10);
+            if (isNaN(pr)) { console.log('No PR number, skipping cleanup'); process.exit(0); }
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr
+            });
+            for (const c of comments) {
+              if (c.body && c.body.includes(marker)) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: c.id
+                });
+                console.log(`Deleted old comment ${c.id}`);
+              }
             }

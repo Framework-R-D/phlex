@@ -99,7 +99,6 @@ void StorageWriter::createContainers(
       container->setupWrite(*type);
     }
   }
-  return;
 }
 
 void StorageWriter::fillContainer(Placement const& plcmnt,
@@ -115,7 +114,6 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
                              plcmnt.containerName());
   }
   cont->second->fill(data);
-  return;
 }
 
 void StorageWriter::commitContainers(Placement const& plcmnt)
@@ -123,5 +121,4 @@ void StorageWriter::commitContainers(Placement const& plcmnt)
   auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
   auto cont = m_write_containers.find(key);
   cont->second->commit();
-  return;
 }

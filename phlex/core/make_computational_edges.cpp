@@ -83,7 +83,7 @@ namespace phlex::detail {
             });
 
           if (existing_provider_it != provider_input_ports.end()) {
-            auto provider = providers.get(existing_provider_it->first);
+            auto* provider = providers.get(existing_provider_it->first);
             assert(provider != nullptr);
             make_edge(provider->output_port(), *port);
             continue;
@@ -147,7 +147,7 @@ namespace phlex::detail {
 
         for (auto const& query : node->input()) {
           auto* receiver_port = collector ? collector : &node->port(query);
-          auto producer = producers.find_producer(query, node->name());
+          auto const* producer = producers.find_producer(query, node->name());
           if (not producer) {
             // Is there a way to detect mis-specified product dependencies?
             result[node_name].push_back({query, receiver_port});
@@ -201,8 +201,6 @@ namespace phlex::detail {
       return {};
     }
 
-    edges_to_outputs(nodes.providers, producers, nodes.outputs);
-
     auto [explicit_provider_input_ports, unconsumed_head_ports] =
       edges_from_explicit_providers(std::move(head_ports), nodes.providers);
 
@@ -219,6 +217,9 @@ namespace phlex::detail {
       }
       throw std::runtime_error(error_msg);
     }
+
+    // Make edges to outputs after both implicit and explicit providers have been registered.
+    edges_to_outputs(nodes.providers, producers, nodes.outputs);
 
     // Combine implicit and explicit provider input ports.
     auto provider_input_ports = std::move(explicit_provider_input_ports);

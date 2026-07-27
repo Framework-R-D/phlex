@@ -1,49 +1,54 @@
 {
     "name": "Phlex CI Dev Container",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "runArgs": [],
-    "workspaceFolder": "/workspaces/phlex",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "phlex-dev",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "remoteUser": "root",
     "remoteEnv": {
-        // KILO_CONFIG_CONTENT_DOCKER rewrites 127.0.0.1:PORT to
-        // host.docker.internal:RELAY_PORT for the socat relay used when
-        // headroom runs as a local proxy.  Passed through here so that
-        // post-create.sh can wire it into the container's .bashrc
-        // conditionally: if non-empty it sets KILO_CONFIG_CONTENT to this
-        // value; otherwise KILO_CONFIG_CONTENT is left unset and Kilo falls
-        // back to ~/.config/kilo/kilo.jsonc (bind-mounted from the host).
-        "KILO_CONFIG_CONTENT_DOCKER": "${localEnv:KILO_CONFIG_CONTENT_DOCKER}",
         "KILO_API_KEY": "${localEnv:HEADROOM_UPSTREAM_KEY}"
     },
-    "containerEnv": {
-        "CMAKE_GENERATOR": "Ninja",
-        "GH_CONFIG_DIR": "/root/.config/gh",
-        "DOCKER_HOST": "unix:///tmp/podman.sock",
-        "CONTAINER_HOST": "unix:///tmp/podman.sock",
-        "GNUPGHOME": "/root/.gnupg"
-    },
-    "mounts": [
-        "source=${localWorkspaceFolder}/../phlex-coding-guidelines,target=/workspaces/phlex-coding-guidelines,type=bind",
-        "source=${localWorkspaceFolder}/../phlex-design,target=/workspaces/phlex-design,type=bind",
-        "source=${localWorkspaceFolder}/../phlex-examples,target=/workspaces/phlex-examples,type=bind",
-        "source=${localWorkspaceFolder}/../phlex-spack-recipes,target=/workspaces/phlex-spack-recipes,type=bind",
-        "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind",
-        "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind,readonly",
-        "source=${localEnv:HOME}/.config/kilo,target=/root/.config/kilo,type=bind",
-        "source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
-        "source=${localEnv:HOME}/.kiro,target=/root/.kiro,type=bind",
-        "source=phlex-kilo-data,target=/root/.local/share/kilo,type=volume",
-        "source=${localEnv:HOME}/.podman-proxy/podman.sock,target=/tmp/podman.sock,type=bind",
-        "source=${localEnv:HOME}/.vscode-remote-user-data,target=/root/.vscode-server-insiders/data/User,type=bind"
-    ],
     "initializeCommand": "bash .devcontainer/ensure-repos.sh",
     "onCreateCommand": "bash .devcontainer/setup-repos.sh /workspaces",
-    "postCreateCommand": "bash -lc 'bash .devcontainer/post-create.sh'",
+    "postCreateCommand": "git config --global --add safe.directory '${containerWorkspaceFolder}' && bash -lc 'bash .devcontainer/post-create.sh'",
     "customizations": {
         "vscode": {
             "settings": {
+                "chat.agent.sandbox.enabled": "on",
+                "chat.agent.sandbox.allowNetwork": true,
+                "chat.agent.sandbox.advanced.runtime": {
+                    "enableWeakerNestedSandbox": false
+                },
+                "cmake.buildDirectory": "${workspaceFolder}/build",
+                "cmake.defaultConfigurePreset": "default",
+                "cmake.generator": "Ninja",
+                "cmake.useCMakePresets": "always",
+                "C_Cpp.default.cStandard": "c17",
+                "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+                "C_Cpp.default.cppStandard": "c++23",
+                "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+                "files.watcherExclude": {
+                    "**/.venv/**": true,
+                    "**/py_virtual_env/**": true
+                },
+                "git.autoRepositoryDetection": "subFolders",
+                "git.repositoryScanMaxDepth": 1,
+                "git.scanRepositories": [
+                    "/workspaces/phlex",
+                    "/workspaces/phlex-coding-guidelines",
+                    "/workspaces/phlex-design",
+                    "/workspaces/phlex-examples",
+                    "/workspaces/phlex-spack-recipes"
+                ],
+                "kilocode.new.extraCaCerts": "",
+                "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+                "python.languageServer": "Pylance",
+                "python.terminal.activateEnvironment": false,
+                "esbonio.server.pythonPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
+                "esbonio.logging.level": "debug",
+                "search.exclude": {
+                    "**/.venv/**": true,
+                    "**/py_virtual_env/**": true
+                },
                 "terminal.integrated.defaultProfile.linux": "bash",
                 "terminal.integrated.profiles.linux": {
                     "bash": {
@@ -54,42 +59,7 @@
                         "icon": "terminal-bash"
                     }
                 },
-                "terminal.integrated.shellIntegration.suggestEnablement": false,
-                "python.terminal.activateEnvironment": false,
-                "python.defaultInterpreterPath": "/opt/spack-environments/phlex-ci/.spack-env/view/bin/python",
-                "python.analysis.extraPaths": [
-                    "${workspaceFolder}/build",
-                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/root",
-                    "/opt/spack-environments/phlex-ci/.spack-env/view/lib/python/site-packages"
-                ],
-                "cmake.defaultConfigurePreset": "default",
-                "cmake.buildDirectory": "${workspaceFolder}/build",
-                "cmake.generator": "Ninja",
-                "C_Cpp.default.cStandard": "c17",
-                "C_Cpp.default.cppStandard": "c++23",
-                "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
-                "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
-                "python.languageServer": "Pylance",
-                "python.analysis.typeCheckingMode": "basic",
-                "python.analysis.diagnosticMode": "workspace",
-                "python.analysis.exclude": [
-                    "**/.venv/**",
-                    "**/py_virtual_env/**"
-                ],
-                "python.analysis.ignore": [
-                    "**/.venv/**",
-                    "**/py_virtual_env/**"
-                ],
-                "search.exclude": {
-                    "**/.venv/**": true,
-                    "**/py_virtual_env/**": true
-                },
-                "files.watcherExclude": {
-                    "**/.venv/**": true,
-                    "**/py_virtual_env/**": true
-                },
-                "github.copilot-chat.usePreReleaseVersion": false,
-                "kilocode.new.extraCaCerts": ""
+                "terminal.integrated.shellIntegration.suggestEnablement": false
             },
             "extensions": [
                 "charliermarsh.ruff",
@@ -99,7 +69,6 @@
                 "donjayamanne.githistory",
                 "dotjoshjohnson.xml",
                 "eamodio.gitlens",
-                "github.copilot-chat",
                 "github.vscode-github-actions",
                 "github.vscode-pull-request-github",
                 "jebbs.plantuml",
@@ -120,7 +89,6 @@
                 "ms-vscode.hexeditor",
                 "ms-vscode.live-server",
                 "ms-vscode.makefile-tools",
-                "ms-vscode.vscode-websearchforcopilot",
                 "redhat.vscode-yaml",
                 "shd101wyy.markdown-preview-enhanced",
                 "swyddfa.esbonio",

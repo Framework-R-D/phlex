@@ -31,7 +31,7 @@ namespace pymodule_register_providers {
 
     PyGILRAII g;
 
-    std::string modname = config.get<std::string>("py");
+    auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
     if (mod) {
       // register providers using conventional callback
@@ -70,7 +70,7 @@ namespace pymodule_register_algorithms {
 
     PyGILRAII g;
 
-    std::string modname = config.get<std::string>("py");
+    auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
     if (mod) {
       // register algorithms using conventional callback

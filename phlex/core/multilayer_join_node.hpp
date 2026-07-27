@@ -50,8 +50,8 @@ namespace phlex::detail {
     requires(NInputs > 1)
   class multilayer_join_node : public multilayer_join_node_base_t<message_tuple<NInputs>> {
     using base_t = multilayer_join_node_base_t<message_tuple<NInputs>>;
-    using input_t = typename base_t::input_ports_type;
-    using output_t = typename base_t::output_ports_type;
+    using input_t = base_t::input_ports_type;
+    using output_t = base_t::output_ports_type;
 
     using args_t = message_tuple<NInputs>;
 
@@ -150,7 +150,7 @@ namespace phlex::detail {
 
   // Resolves to multilayer_join_node<N> for N > 1 and to no_join for N == 1.
   template <std::size_t N>
-  using join_or_none_t = typename internal::pre_node<N>::type;
+  using join_or_none_t = internal::pre_node<N>::type;
 
   // Constructs a multilayer_join_node when N > 1, or a no_join when N == 1.
   template <std::size_t N>

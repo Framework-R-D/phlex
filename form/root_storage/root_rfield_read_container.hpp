@@ -40,6 +40,8 @@ namespace form::detail::experimental {
     std::shared_ptr<TFile> m_tfile;
     std::unique_ptr<ROOT::RNTupleReader> m_reader;
     std::unique_ptr<ROOT::RNTupleView<void>> m_view;
+
+    void createView(std::type_info const& type);
   };
 }
 

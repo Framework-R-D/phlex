@@ -27,11 +27,11 @@
 #if defined(__APPLE__) && defined(__MACH__)
 // This is a temporary workaround until we have a solution for handling translation of types
 // between C++ and Python.
-typedef long ph_long_t;
-typedef unsigned long ph_ulong_t;
+using ph_long_t = long;
+using ph_ulong_t = unsigned long;
 #else
-typedef std::int64_t ph_long_t;
-typedef std::uint64_t ph_ulong_t;
+using ph_long_t = std::int64_t;
+using ph_ulong_t = std::uint64_t;
 #endif
 
 namespace phlex::experimental {
@@ -89,7 +89,7 @@ namespace phlex::experimental {
     return reinterpret_cast<PyObject*>(std::get<void*>(m_value));
   }
 
-  typedef std::vector<dcarg> dcargs_t;
+  using dcargs_t = std::vector<dcarg>;
 
   void dyncall(void* fn, dcarg& result, dcargs_t& args, int var_offset = -1);
 

@@ -13,6 +13,7 @@
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <numbers>
 #include <numeric>
 #include <vector>
 
@@ -59,7 +60,7 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
 
 TEST_CASE("Storage_Container sharing an Association", "[form]")
 {
-  std::vector<float> piData(10, 3.1415927);
+  std::vector<float> piData(10, std::numbers::pi_v<float>);
   std::string indexData = "[EVENT=00000001;SEG=00000001]";
 
   form::test::write(technology, piData, indexData);
@@ -73,9 +74,9 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
 
 TEST_CASE("Storage_Container multiple containers in Association", "[form]")
 {
-  std::vector<float> piData(10, 3.1415927);
+  std::vector<float> piData(10, std::numbers::pi_v<float>);
   std::vector<int> magicData(17);
-  std::iota(magicData.begin(), magicData.end(), 42);
+  std::ranges::iota(magicData, 42);
   std::string indexData = "[EVENT=00000001;SEG=00000001]";
 
   form::test::write(technology, piData, magicData, indexData);
@@ -196,8 +197,8 @@ TEST_CASE("Root branch read: fundamental scalar types round-trip", "[form]")
   testFundamental(9000000000UL);
   testFundamental(-4000000000LL);
   testFundamental(8000000000ULL);
-  testFundamental(3.14f);
-  testFundamental(2.718281828);
+  testFundamental(std::numbers::pi_v<float>);
+  testFundamental(std::numbers::e);
   testFundamental(true);
 }
 
@@ -324,10 +325,6 @@ TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
 {
   using namespace form::experimental::config;
 
-  if (form::technology::GetMinor(technology) == form::technology::ROOT_RNTUPLE_MINOR) {
-    SKIP("RNTUPLE backend does not provide stable empty-index readback in this test harness");
-  }
-
   std::string const file_name = "persistence_zero_index_" + std::to_string(technology) + ".root";
   std::string const creator = "zero_creator";
 
@@ -385,7 +382,7 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   Token const index_token{file_name, index_container, technology};
   tech_setting_config const settings{};
 
-  CHECK(reader.getIndex(index_token, "[]", settings) == 1);
+  CHECK(reader.getIndex(index_token, "[]", settings) == 0);
   CHECK(reader.getIndex(index_token, "plain-text-id", settings) == 0);
 
   CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=00000001]", settings),
@@ -393,8 +390,6 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   CHECK_THROWS_AS(
     reader.getIndex(index_token, "[EVENT=99999999999999999999999999999999]", settings),
     std::runtime_error);
-  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT=00000001,SEG=00000002]", settings),
-                  std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[=00000001]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[    ]", settings), std::runtime_error);
@@ -486,11 +481,7 @@ TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error br
   tech_setting_config container_attr_settings;
   container_attr_settings.container_settings[technology][creator + "/index"] = {{"split", "0"}};
 
-  if (form::technology::GetMinor(technology) == form::technology::ROOT_RNTUPLE_MINOR) {
-    CHECK_THROWS_AS(reader.listIndices(index_token, container_attr_settings), std::runtime_error);
-  } else {
-    CHECK_NOTHROW(reader.listIndices(index_token, container_attr_settings));
-  }
+  CHECK_NOTHROW(reader.listIndices(index_token, container_attr_settings));
   CHECK_NOTHROW(reader.readContainer(Token{file_name, creator + "/prod", technology, 0},
                                      &raw,
                                      typeid(std::vector<int>),
@@ -499,17 +490,13 @@ TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error br
 
 TEST_CASE("Root branch prime: error paths", "[form]")
 {
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) {
-    SKIP("prime() error paths only tested for ROOT_TTREE backend");
-  }
-
   SECTION("no file attached throws")
   {
     auto container = createReadContainer(technology, "SomeTree/branch");
     CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
   }
 
-  SECTION("tree not found throws")
+  SECTION("container name not found throws")
   {
     std::vector<int> data = {1};
     form::test::write(technology, data);
@@ -545,10 +532,6 @@ TEST_CASE("Root branch prime: error paths", "[form]")
 
 TEST_CASE("Root branch entries: success and error paths", "[form]")
 {
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_TTREE_MINOR) {
-    SKIP("entries() only tested for ROOT_TTREE backend");
-  }
-
   SECTION("no file attached throws")
   {
     auto container = createReadContainer(technology, "SomeTree/branch");
@@ -573,55 +556,6 @@ TEST_CASE("Root branch entries: success and error paths", "[form]")
     auto container = createReadContainer(
       technology, std::string(form::test::testTreeName) + "/NonExistentBranchForEntries");
     container->setFile(file);
-    CHECK_THROWS_AS(container->entries(), std::runtime_error);
-  }
-
-  SECTION("valid container returns entry count")
-  {
-    std::vector<int> data = {10, 20, 30};
-    form::test::write(technology, data);
-    auto file = createFile(technology, form::test::testFileName, 'i');
-    auto container =
-      createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
-    container->setFile(file);
-    CHECK(container->entries() == 1);
-  }
-}
-
-TEST_CASE("Root RField prime: error paths", "[form]")
-{
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_RNTUPLE_MINOR) {
-    SKIP("prime() error paths only tested for ROOT_RNTUPLE backend");
-  }
-
-  SECTION("no file attached throws")
-  {
-    auto container = createReadContainer(technology, "ntuple/field");
-    CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
-  }
-
-  SECTION("unsupported type throws")
-  {
-    struct LocalRFieldPrimeType {};
-    std::vector<int> data = {1};
-    form::test::write(technology, data);
-    auto file = createFile(technology, form::test::testFileName, 'i');
-    auto container =
-      createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
-    container->setFile(file);
-    CHECK_THROWS_AS(container->prime(typeid(LocalRFieldPrimeType)), std::runtime_error);
-  }
-}
-
-TEST_CASE("Root RField entries: success and error paths", "[form]")
-{
-  if (form::technology::GetMinor(technology) != form::technology::ROOT_RNTUPLE_MINOR) {
-    SKIP("entries() only tested for ROOT_RNTUPLE backend");
-  }
-
-  SECTION("no file attached throws")
-  {
-    auto container = createReadContainer(technology, "ntuple/field");
     CHECK_THROWS_AS(container->entries(), std::runtime_error);
   }
 

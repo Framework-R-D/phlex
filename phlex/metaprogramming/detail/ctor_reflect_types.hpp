@@ -116,7 +116,7 @@ namespace phlex::detail {
 
   template <typename T>
   using as_tuple =
-    typename loophole_tuple<T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
+    loophole_tuple<T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
 
 } // namespace phlex::detail
 

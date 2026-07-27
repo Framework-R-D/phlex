@@ -24,7 +24,6 @@ void ROOT_TTree_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
       "ROOT_TTree_Write_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = dynamic_cast<ROOT_TFileImp*>(file.get())->getTFile();
-  return;
 }
 
 void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
@@ -42,7 +41,6 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no tree created");
   }
-  return;
 }
 
 void ROOT_TTree_Write_ContainerImp::fill(void const* /* data*/)

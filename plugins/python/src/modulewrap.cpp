@@ -7,6 +7,7 @@
 #include <fmt/ranges.h>
 
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -80,32 +81,29 @@ struct phlex::experimental::py_phlex_source {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_source(phlex_source_t& source_)
+PyObject* phlex::experimental::wrap_source(phlex_source_t& source)
 {
   py_phlex_source* pysrc = PyObject_New(py_phlex_source, &PhlexSource_Type);
-  pysrc->ph_source = &source_;
+  pysrc->ph_source = &source;
 
   return reinterpret_cast<PyObject*>(pysrc);
 }
 
 namespace {
 
-  static inline std::string stringify(std::vector<std::string>& v)
-  {
-    return fmt::format("{:n}", v);
-  }
+  inline std::string stringify(std::vector<std::string>& v) { return fmt::format("{:n}", v); }
 
-  static inline std::string stringify(std::vector<product_selector>& v)
+  inline std::string stringify(std::vector<product_selector>& v)
   {
     return fmt::format("{:n}", std::ranges::views::transform(v, &product_selector::to_string));
   }
 
-  static inline std::string input_converter_name(std::string const& algname, size_t arg)
+  inline std::string input_converter_name(std::string const& algname, size_t arg)
   {
     return fmt::format("{}_arg{}_py", algname, arg);
   }
 
-  static inline dcarg lifeline_transform(dcarg arg)
+  inline dcarg lifeline_transform(dcarg arg)
   {
     PyObject* pyobj = arg.get<PyObject*>();
     if (pyobj && PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
@@ -243,7 +241,7 @@ namespace {
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
   // input/output validation helpers
-  static inline std::optional<product_selector> validate_selector(PyObject* pysel)
+  inline std::optional<product_selector> validate_selector(PyObject* pysel)
   {
     if (!PyDict_Check(pysel)) {
       PyErr_Format(PyExc_TypeError, "selector should be a product specification");
@@ -272,14 +270,15 @@ namespace {
         return std::nullopt;
       }
       s = identifier(PyUnicode_AsUTF8(pys));
-    } else
+    } else {
       PyErr_Clear();
+    }
 
     return std::optional<product_selector>{
       product_selector{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
   }
 
-  static std::vector<product_selector> validate_input(PyObject* input)
+  std::vector<product_selector> validate_input(PyObject* input)
   {
     std::vector<product_selector> cargs;
     if (!input)
@@ -313,7 +312,7 @@ namespace {
     return cargs;
   }
 
-  static std::vector<std::string> validate_output(PyObject* output)
+  std::vector<std::string> validate_output(PyObject* output)
   {
     std::vector<std::string> cargs;
     if (!output)
@@ -355,7 +354,7 @@ namespace {
 
 namespace {
 
-  static bool is_numba_cfunc(PyObject* obj)
+  bool is_numba_cfunc(PyObject* obj)
   {
     static PyObject* cfunc_type = nullptr;
     static bool checked = false;
@@ -380,7 +379,7 @@ namespace {
     return result == 1;
   }
 
-  static std::string annotation_as_text(PyObject* pyobj)
+  std::string annotation_as_text(PyObject* pyobj)
   {
     static PyObject* normalizer = nullptr;
     if (!normalizer) {
@@ -412,9 +411,9 @@ namespace {
   }
 
   // retrieve C++ (matching) types from annotations
-  static bool annotations_to_strings(PyObject* callable,
-                                     std::vector<std::string>& input_types,
-                                     std::vector<std::string>& output_types)
+  bool annotations_to_strings(PyObject* callable,
+                              std::vector<std::string>& input_types,
+                              std::vector<std::string>& output_types)
   {
     bool conversion_ok = false;
 
@@ -437,8 +436,9 @@ namespace {
             input_types.push_back(annotation_as_text(item));
           }
           conversion_ok = true;
-        } else
+        } else {
           PyErr_Clear();
+        }
 
         Py_XDECREF(args);
         Py_XDECREF(ret);
@@ -490,7 +490,7 @@ namespace {
   // these will be generated from the IDL, or they should be picked up from an
   // existing place such as cppyy
 
-  static bool pylong_as_bool(PyObject* pyobject)
+  bool pylong_as_bool(PyObject* pyobject)
   {
     // range-checking python integer to C++ bool conversion
     long l = PyLong_AsLong(pyobject);
@@ -502,7 +502,7 @@ namespace {
     return (bool)l;
   }
 
-  static long pylong_as_strictlong(PyObject* pyobject)
+  long pylong_as_strictlong(PyObject* pyobject)
   {
     // convert <pybject> to C++ long, don't allow truncation
     if (PyLong_Check(pyobject)) { // native Python integer
@@ -523,7 +523,7 @@ namespace {
     return (long)-1;
   }
 
-  static unsigned long pylong_or_int_as_ulong(PyObject* pyobject)
+  unsigned long pylong_or_int_as_ulong(PyObject* pyobject)
   {
     // convert <pybject> to C++ unsigned long, with bounds checking, allow int -> ulong.
     if (PyFloat_Check(pyobject)) {
@@ -573,7 +573,7 @@ namespace {
   {                                                                                                \
     PyGILRAII gil;                                                                                 \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
-    cpptype i = static_cast<cpptype>(frompy(pyobj));                                               \
+    auto i = static_cast<cpptype>(frompy(pyobj));                                                  \
     std::string msg;                                                                               \
     if (msg_from_py_error(msg, true)) {                                                            \
       Py_DECREF(pyobj);                                                                            \
@@ -624,12 +624,12 @@ namespace {
                                                                                                    \
     /* use a numpy view with the shared pointer tied up in a lifeline object (note: this */        \
     /* is just a demonstrator; alternatives are still being considered) */                         \
-    npy_intp dims[] = {static_cast<npy_intp>(v->size())};                                          \
+    std::array<npy_intp, 1> dims{static_cast<npy_intp>(v->size())};                                \
                                                                                                    \
-    PyObject* np_view = PyArray_SimpleNewFromData(1,          /* 1-D array */                      \
-                                                  dims,       /* dimension sizes */                \
-                                                  nptype,     /* numpy C type */                   \
-                                                  (v->data()) /* raw buffer */                     \
+    PyObject* np_view = PyArray_SimpleNewFromData(1,           /* 1-D array */                     \
+                                                  dims.data(), /* dimension sizes */               \
+                                                  nptype,      /* numpy C type */                  \
+                                                  (v->data())  /* raw buffer */                    \
     );                                                                                             \
                                                                                                    \
     if (!np_view) {                                                                                \
@@ -683,7 +683,7 @@ namespace {
         total *= static_cast<size_t>(dims[i]);                                                     \
                                                                                                    \
       /* copy the array info; note that this assumes C continuity */                               \
-      cpptype* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                     \
+      auto* raw = static_cast<cpptype*>(PyArray_DATA(arr));                                        \
       vec->reserve(total);                                                                         \
       vec->insert(vec->end(), raw, raw + total);                                                   \
     } else if (PyList_Check(pyobj)) {                                                              \
@@ -691,7 +691,7 @@ namespace {
       vec->reserve(total);                                                                         \
       for (Py_ssize_t i = 0; i < total; ++i) {                                                     \
         PyObject* item = PyList_GetItem(pyobj, i);                                                 \
-        cpptype value = static_cast<cpptype>(frompy(item));                                        \
+        auto value = static_cast<cpptype>(frompy(item));                                           \
         std::string msg;                                                                           \
         if (msg_from_py_error(msg, true)) {                                                        \
           Py_DECREF(pyobj);                                                                        \
@@ -759,14 +759,27 @@ static PyObject* parse_args(PyObject* args,
   // any node. (The observer does not require outputs, but they still need to be
   // retrieved, not ignored, to issue an error message if an output is provided.)
 
-  static char kw0[] = "callable", kw1[] = "input_family", kw2[] = "output_product_suffixes",
-              kw3[] = "concurrency", kw4[] = "name";
-  // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
+  // Python 3.13+ accepts const keyword-name tables. Older versions require mutable strings.
+#if PY_VERSION_HEX < 0x030d0000
+  // NOLINTBEGIN(modernize-avoid-c-arrays)
+  static char kw0[] = "callable";
+  static char kw1[] = "input_family";
+  static char kw2[] = "output_product_suffixes";
+  static char kw3[] = "concurrency";
+  static char kw4[] = "name";
   static char* kwnames[] = {kw0, kw1, kw2, kw3, kw4, nullptr};
-  PyObject *callable = nullptr, *input = nullptr, *output = nullptr, *pyname = nullptr;
+  // NOLINTEND(modernize-avoid-c-arrays)
+#else
+  static std::array<char const*, 6> const kwnames{
+    "callable", "input_family", "output_product_suffixes", "concurrency", "name", nullptr};
+#endif
+  PyObject* callable = nullptr;
+  PyObject* input = nullptr;
+  PyObject* output = nullptr;
+  PyObject* pyname = nullptr;
   int nconcur_ = -1;
   if (!PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO|OiO", (char**)kwnames, &callable, &input, &output, &nconcur_, &pyname)) {
+        args, kwds, "OO|OiO", std::data(kwnames), &callable, &input, &output, &nconcur_, &pyname)) {
     // error already set by argument parser
     return nullptr;
   }
@@ -880,21 +893,21 @@ static bool insert_input_converters(py_phlex_module* mod,
     std::string output =
       "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
 
-    if (inp_type == "bool")
+    if (inp_type == "bool") {
       insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "int32_t")
+    } else if (inp_type == "int32_t") {
       insert_converter(mod, pyname, ispy ? int_to_py : int_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "uint32_t")
+    } else if (inp_type == "uint32_t") {
       insert_converter(mod, pyname, ispy ? uint_to_py : uint_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "int64_t")
+    } else if (inp_type == "int64_t") {
       insert_converter(mod, pyname, ispy ? long_to_py : long_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "uint64_t")
+    } else if (inp_type == "uint64_t") {
       insert_converter(mod, pyname, ispy ? ulong_to_py : ulong_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "float")
+    } else if (inp_type == "float") {
       insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output, nc);
-    else if (inp_type == "double")
+    } else if (inp_type == "double") {
       insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output, nc);
-    else if (inp_type.compare(0, 7, "ndarray") == 0 || inp_type.compare(0, 4, "list") == 0) {
+    } else if (inp_type.starts_with("ndarray") || inp_type.starts_with("list")) {
       // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
       // way too simplistic for real use. It only exists for demonstration purposes,
       // until we have an IDL
@@ -937,21 +950,21 @@ static bool insert_output_converter(py_phlex_module* mod,
                                     concurrency nc)
 {
   // insert output converter node into the graph
-  if (out_type == "bool")
+  if (out_type == "bool") {
     insert_converter(mod, cname, ispy ? py_to_bool : dcarg_to_bool, out_pq, output, nc);
-  else if (out_type == "int32_t")
+  } else if (out_type == "int32_t") {
     insert_converter(mod, cname, ispy ? py_to_int : dcarg_to_int, out_pq, output, nc);
-  else if (out_type == "uint32_t")
+  } else if (out_type == "uint32_t") {
     insert_converter(mod, cname, ispy ? py_to_uint : dcarg_to_uint, out_pq, output, nc);
-  else if (out_type == "int64_t")
+  } else if (out_type == "int64_t") {
     insert_converter(mod, cname, ispy ? py_to_long : dcarg_to_long, out_pq, output, nc);
-  else if (out_type == "uint64_t")
+  } else if (out_type == "uint64_t") {
     insert_converter(mod, cname, ispy ? py_to_ulong : dcarg_to_ulong, out_pq, output, nc);
-  else if (out_type == "float")
+  } else if (out_type == "float") {
     insert_converter(mod, cname, ispy ? py_to_float : dcarg_to_float, out_pq, output, nc);
-  else if (out_type == "double")
+  } else if (out_type == "double") {
     insert_converter(mod, cname, ispy ? py_to_double : dcarg_to_double, out_pq, output, nc);
-  else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
+  } else if (out_type.starts_with("ndarray") || out_type.starts_with("list")) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
     auto const dtype = collection_dtype(out_type);
@@ -1009,8 +1022,10 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
 
   std::string cname;
   std::vector<product_selector> input_selectors;
-  std::vector<std::string> input_types, output_suffixes, output_types;
-  concurrency nconcur = (concurrency)-1;
+  std::vector<std::string> input_types;
+  std::vector<std::string> output_suffixes;
+  std::vector<std::string> output_types;
+  auto nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
@@ -1073,7 +1088,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // vector support is added for Numba (WIP; release is cut first)
   // LCOV_EXCL_START
   auto is_collection_type = [](std::string const& type) {
-    return type.compare(0, 7, "ndarray") == 0 || type.compare(0, 4, "list") == 0;
+    return type.starts_with("ndarray") || type.starts_with("list");
   };
   if (ccallf) {
     for (auto const& input_type : input_types) {
@@ -1153,8 +1168,10 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
   std::string cname;
   std::vector<product_selector> input_selectors;
-  std::vector<std::string> input_types, output_suffixes, output_types;
-  concurrency nconcur = (concurrency)-1;
+  std::vector<std::string> input_types;
+  std::vector<std::string> output_suffixes;
+  std::vector<std::string> output_types;
+  auto nconcur = (concurrency)-1;
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
@@ -1226,15 +1243,15 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef md_methods[] = {{"transform",
-                                    reinterpret_cast<PyCFunction>(md_transform),
-                                    METH_VARARGS | METH_KEYWORDS,
-                                    "register a Python transform"},
-                                   {"observe",
-                                    reinterpret_cast<PyCFunction>(md_observe),
-                                    METH_VARARGS | METH_KEYWORDS,
-                                    "register a Python observer"},
-                                   {nullptr, nullptr, 0, nullptr}};
+static std::array<PyMethodDef, 3> md_methods{{{"transform",
+                                               reinterpret_cast<PyCFunction>(md_transform),
+                                               METH_VARARGS | METH_KEYWORDS,
+                                               "register a Python transform"},
+                                              {"observe",
+                                               reinterpret_cast<PyCFunction>(md_observe),
+                                               METH_VARARGS | METH_KEYWORDS,
+                                               "register a Python observer"},
+                                              {nullptr, nullptr, 0, nullptr}}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
@@ -1267,7 +1284,7 @@ PyTypeObject phlex::experimental::PhlexModule_Type = {
   0,                             // tp_weaklistoffset
   nullptr,                       // tp_iter
   nullptr,                       // tp_iternext
-  md_methods,                    // tp_methods
+  md_methods.data(),             // tp_methods
   nullptr,                       // tp_members
   nullptr,                       // tp_getset
   nullptr,                       // tp_base
@@ -1315,11 +1332,22 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // Register a python algorithm by adding the necessary intermediate converter
   // nodes going from C++ to PyObject* and back.
 
-  static char kw0[] = "callable", kw1[] = "output_product", kw2[] = "name";
-  // kwnames can be of type char const*[] once we mandate Python 3.13 or newer
+  // Python 3.13+ accepts const keyword-name tables. Older versions require mutable strings.
+#if PY_VERSION_HEX < 0x030d0000
+  // NOLINTBEGIN(modernize-avoid-c-arrays)
+  static char kw0[] = "callable";
+  static char kw1[] = "output_product";
+  static char kw2[] = "name";
   static char* kwnames[] = {kw0, kw1, kw2, nullptr};
-  PyObject *callable = nullptr, *output = nullptr, *pyname = nullptr;
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O", kwnames, &callable, &output, &pyname)) {
+  // NOLINTEND(modernize-avoid-c-arrays)
+#else
+  static std::array<char const*, 4> const kwnames{"callable", "output_product", "name", nullptr};
+#endif
+  PyObject* callable = nullptr;
+  PyObject* output = nullptr;
+  PyObject* pyname = nullptr;
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwds, "OO|O", std::data(kwnames), &callable, &output, &pyname)) {
     // error already set by argument parser
     return nullptr;
   }
@@ -1411,7 +1439,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   } else if (out_type == "double") {
     src->ph_source->provide(functor_name, provider_cb_double{callable})
       .output_product(creator, suffix, layer);
-  } else if (out_type.compare(0, 7, "ndarray") == 0 || out_type.compare(0, 4, "list") == 0) {
+  } else if (out_type.starts_with("ndarray") || out_type.starts_with("list")) {
     // TODO: just like for input types, these are hard-coded, but should be handled by
     // an IDL instead.
     auto const dtype = collection_dtype(out_type);
@@ -1451,11 +1479,11 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef sc_methods[] = {{"provide",
-                                    reinterpret_cast<PyCFunction>(sc_provide),
-                                    METH_VARARGS | METH_KEYWORDS,
-                                    "register a Python provider"},
-                                   {nullptr, nullptr, 0, nullptr}};
+static std::array<PyMethodDef, 2> sc_methods{{{"provide",
+                                               reinterpret_cast<PyCFunction>(sc_provide),
+                                               METH_VARARGS | METH_KEYWORDS,
+                                               "register a Python provider"},
+                                              {nullptr, nullptr, 0, nullptr}}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
@@ -1488,7 +1516,7 @@ PyTypeObject phlex::experimental::PhlexSource_Type = {
   0,                             // tp_weaklistoffset
   nullptr,                       // tp_iter
   nullptr,                       // tp_iternext
-  sc_methods,                    // tp_methods
+  sc_methods.data(),             // tp_methods
   nullptr,                       // tp_members
   nullptr,                       // tp_getset
   nullptr,                       // tp_base

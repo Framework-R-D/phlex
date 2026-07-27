@@ -116,8 +116,8 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   std::cout << "Registering FORM output module...\n";
 
   // Extract configuration from Phlex config
-  std::string const output_file = config.get<std::string>("output_file", "output.root");
-  std::string const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
+  auto const output_file = config.get<std::string>("output_file", "output.root");
+  auto const tech_string = config.get<std::string>("technology", "ROOT_TTREE");
 
   std::cout << "Configuration:\n";
   std::cout << "  output_file: " << output_file << "\n";

@@ -19,7 +19,7 @@ TEST_CASE("algorithm_name tests", "[model]")
   SECTION("Default constructor")
   {
     algorithm_name an;
-    CHECK(an.to_string() == "");
+    CHECK(an.to_string().empty());
   }
   SECTION("Create from string with colon")
   {
@@ -55,8 +55,8 @@ TEST_CASE("algorithm_name tests", "[model]")
   }
   SECTION("Empty bulleted list")
   {
-    CHECK(bulleted_list(std::vector<identifier>{}) == "");
-    CHECK(bulleted_list(std::vector<algorithm_name>{}) == "");
+    CHECK(bulleted_list(std::vector<identifier>{}).empty());
+    CHECK(bulleted_list(std::vector<algorithm_name>{}).empty());
   }
 }
 

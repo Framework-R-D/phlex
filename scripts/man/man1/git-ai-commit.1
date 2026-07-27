@@ -34,13 +34,14 @@ sent to the language model.  Pass \fB\-\-no\-instructions\fR to suppress all
 sources except the diff, status, and log.
 .TP
 \fBStaged diff\fR
-Output of \fBgit diff \-\-cached \-\-stat \-p\fR.
+Output of \fBgit diff \-\-cached \-\-stat \-p\fR, with hunk\-aware truncation
+applied to whole file sections and binary/generated files skipped.
 .TP
 \fBGit status\fR
 Output of \fBgit status \-\-short\fR.
 .TP
 \fBRecent commits\fR
-Output of \fBgit log \-\-oneline \-10\fR.
+Output of \fBgit log \-\-oneline \-5\fR.
 .TP
 \fBRepository guidance\fR
 \fBAGENTS.md\fR, \fBAGENT.md\fR, \fBGEMINI.md\fR, \fBCLAUDE.md\fR, \fBCONTEXT.md\fR,
@@ -81,19 +82,20 @@ API backend to use.  One of \fBkilo\fR (default), \fBgithub\-models\fR,
 Overridden by the \fBGIT_AI_COMMIT_BACKEND\fR environment variable.
 .TP
 \fB\-\-model\fR \fIMODEL\fR
-Model name to use.  Defaults to \fBazure/claude\-haiku\-4\-5\fR for the
-\fBkilo\fR backend, \fBgpt\-4o\fR for other backends, and none for the
-\fBantigravity\fR backend (which lets the CLI use its default model).
-When the \fBkilo\fR backend is selected and the model was not explicitly
-specified (neither via \fB\-\-model\fR nor via \fBGIT_AI_COMMIT_KILO_MODEL\fR /
-\fBGIT_AI_COMMIT_MODEL\fR), large prompts (>\~30,000 characters) are
-automatically escalated to \fBqwen/qwen3\-coder\-next\fR to avoid silent
-truncation.
-Overridden by the \fBGIT_AI_COMMIT_MODEL\fR environment variable.
+Model name to use.  For the \fBkilo\fR backend, the default is
+\fBqwen/qwen3\-coder\-next\fR (resolved via the model name or with provider
+prefix).  If a model name without a provider prefix is provided (e.g.,
+\fBqwen3\-coder\-next\fR), \fBgit\-ai\-commit\fR looks up the model in
+\fB~/.config/kilo/kilo.jsonc\fR to add the appropriate provider prefix
+(e.g., \fBqwen/qwen3\-coder\-next\fR).  For other backends, the defaults are:
+\fBgpt\-4o\fR for github\-models and copilot, none for antigravity/agy.
+Overridden by the
+\fBGIT_AI_COMMIT_MODEL\fR environment variable.
 .TP
 \fB\-\-api\fR \fIURL\fR
-Override the API base URL.  Useful when pointing at a local or
-alternative LiteLLM proxy.
+Optional override of the API base URL for the \fBkilo\fR backend.
+If neither \fB\-\-api\fR nor \fBGIT_AI_COMMIT_API\fR is provided, the
+Kilo CLI uses its configured endpoint from \fB~/.config/kilo/kilo.jsonc\fR.
 Overridden by the \fBGIT_AI_COMMIT_API\fR environment variable.
 .TP
 \fB\-\-dry\-run\fR
@@ -106,7 +108,8 @@ Skip the interactive confirmation prompt and commit immediately.
 \fB\-e\fR, \fB\-\-edit\fR
 Open the generated message in \fB$EDITOR\fR (falling back to \fB$VISUAL\fR,
 then \fBvi\fR) before committing.  Lines beginning with \fB#\fR are stripped.
-An empty message aborts the commit.
+An empty message aborts the commit.  If standard input is a terminal, \fB$VISUAL\fR is
+preferred over \fB$EDITOR\fR; otherwise, \fB$EDITOR\fR is preferred.
 .TP
 \fB\-\-no\-instructions\fR
 Skip all instruction and context files; include only the diff, status,
@@ -128,23 +131,18 @@ git ai\-commit \-\-yes \-\- \-\-gpg\-sign=KEYID
 .SH BACKENDS
 .TP
 \fBkilo\fR
-LiteLLM\-compatible endpoint using kilo credentials.  The default
-endpoint and model are tuned for the FNAL deployment; override via
-environment variables (see \fBENVIRONMENT\fR below).
-Token resolution order:
-.RS 8
-.IP "1." 4
-\fBGIT_AI_COMMIT_TOKEN\fR
-.IP "2." 4
-\fB~/.local/share/kilo/auth.json\fR (\fIfnal\-litellm\fR key)
-.IP "3." 4
-\fBGITHUB_TOKEN\fR / \fBGH_TOKEN\fR
-.IP "4." 4
-\fBgh auth token\fR
-.IP "5." 4
-\fB~/.config/gh/hosts.yml\fR
-.RE
-.TP
+LiteLLM\-compatible endpoint via the \fBkilo\fR CLI (\fBkilo run \-\-agent=code\fR).
+The kilo backend reads its configuration from \fB~/.config/kilo/kilo.jsonc\fR.
+Model names without a provider prefix are auto\-resolved by looking up the
+model in the kilo config.  The \fB\-\-agent=code\fR option is always passed to
+the kilo CLI.
+.PP
+Token is taken from \fBGIT_AI_COMMIT_TOKEN\fR and passed to the kilo CLI via
+the \fBKILO_SERVER_PASSWORD\fR environment variable.  If unset, no token is
+sent to the API.  The API base URL can be overridden via \fBGIT_AI_COMMIT_API\fR
+or passed as \fBKILO_SERVER_URL\fR; if neither is provided, the Kilo CLI uses
+its configured endpoint from \fB~/.config/kilo/kilo.jsonc\fR.
+
 \fBgithub\-models\fR
 GitHub Models inference API (\fIhttps://models.inference.ai.azure.com\fR).
 Default model: \fBgpt\-4o\fR.
@@ -176,31 +174,30 @@ backend.
 .SH ENVIRONMENT
 .TP
 \fBGIT_AI_COMMIT_TOKEN\fR
-API token.  Takes precedence over all other token sources for all
-backends.
+API token.  For the kilo backend, this is optional; if unset, no token
+is sent to the API.  For other backends, this takes precedence over
+all other token sources.
 .TP
 \fBGIT_AI_COMMIT_MODEL\fR
-Default model name.  Overrides the backend default and suppresses
-auto\-escalation.
+Default model name.  Overrides the backend default.
 .TP
 \fBGIT_AI_COMMIT_API\fR
-API base URL override.  Applied before the backend default.
+Optional API base URL override for the \fBkilo\fR backend.  When not set, the
+Kilo CLI uses its configured endpoint from \fB~/.config/kilo/kilo.jsonc\fR.
 .TP
 \fBGIT_AI_COMMIT_BACKEND\fR
 Default backend (\fBkilo\fR, \fBgithub\-models\fR, \fBcopilot\fR, \fBantigravity\fR, or \fBagy\fR).
 .TP
 \fBGIT_AI_COMMIT_KILO_API\fR
-Base URL for the \fBkilo\fR backend.  Default: \fIhttps://litellm.fnal.gov/v1\fR.
+Deprecated.  Use \fBGIT_AI_COMMIT_API\fR instead.
 .TP
 \fBGIT_AI_COMMIT_KILO_MODEL\fR
-Default model for the \fBkilo\fR backend.  Default: \fBazure/claude\-haiku\-4\-5\fR.
-Setting this variable suppresses auto\-escalation even for large prompts.
-.TP
-\fBGIT_AI_COMMIT_KILO_PROVIDER\fR
-Provider key in \fB~/.local/share/kilo/auth.json\fR.  Default: \fBfnal\-litellm\fR.
+Deprecated.  Use \fBGIT_AI_COMMIT_MODEL\fR instead.
 .TP
 \fBEDITOR\fR, \fBVISUAL\fR
-Editor invoked by \fB\-\-edit\fR.  Checked in order; \fBvi\fR is the final fallback.
+Editor invoked by \fB\-\-edit\fR.  Preferred order depends on whether standard
+input is a terminal: \fB$VISUAL\fR then \fB$EDITOR\fR for terminals, \fB$EDITOR\fR
+then \fB$VISUAL\fR otherwise; \fBvi\fR is the final fallback.
 .SH EXAMPLES
 Stage all changes and commit with a generated message, confirming interactively:
 .PP
@@ -244,9 +241,6 @@ echo "Closes #1234; keep message terse" | git ai\-commit \-\-yes
 .fi
 .RE
 .SH FILES
-.TP
-\fB~/.local/share/kilo/auth.json\fR
-Kilo credentials file; read for the \fBfnal\-litellm\fR provider key.
 .TP
 \fB~/.config/git\-ai\-commit/instructions.md\fR
 User\-level instructions included in every prompt.

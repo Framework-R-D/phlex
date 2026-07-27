@@ -22,8 +22,5 @@ namespace {
 namespace test {
   fibonacci_numbers::fibonacci_numbers(int const n) : numbers_{fibs_less_than(n + 1)} {}
 
-  bool fibonacci_numbers::accept(int i) const
-  {
-    return std::binary_search(begin(numbers_), end(numbers_), i);
-  }
+  bool fibonacci_numbers::accept(int i) const { return std::ranges::binary_search(numbers_, i); }
 }

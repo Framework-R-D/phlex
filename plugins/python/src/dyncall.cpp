@@ -16,7 +16,7 @@ phlex::experimental::dcarg phlex::experimental::dcarg::from_str(std::string cons
   // only types currently used in modulewrap are added, not all ffi types
   if (stype == "bool")
     return dcarg(false);
-  else if (stype == "int32_t")
+  if (stype == "int32_t")
     return dcarg(static_cast<std::int32_t>(0));
   else if (stype == "uint32_t")
     return dcarg(static_cast<std::uint32_t>(0));
@@ -49,7 +49,7 @@ void* phlex::experimental::dcarg::value_ptr()
 }
 
 namespace {
-  static ffi_type* get_ffi_type(dcarg const& d)
+  ffi_type* get_ffi_type(dcarg const& d)
   {
     return std::visit(
       [](auto&& val) -> ffi_type* {

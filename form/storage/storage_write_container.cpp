@@ -14,11 +14,11 @@ std::string const& Storage_Write_Container::name() { return m_name; }
 
 void Storage_Write_Container::setFile(std::shared_ptr<IStorage_File> file) { m_file = file; }
 
-void Storage_Write_Container::setupWrite(std::type_info const& /* type*/) { return; }
+void Storage_Write_Container::setupWrite(std::type_info const& /* type*/) {}
 
-void Storage_Write_Container::fill(void const* /* data*/) { return; }
+void Storage_Write_Container::fill(void const* /* data*/) {}
 
-void Storage_Write_Container::commit() { return; }
+void Storage_Write_Container::commit() {}
 
 void Storage_Write_Container::setAttribute(std::string const& /*name*/,
                                            std::string const& /*value*/)
