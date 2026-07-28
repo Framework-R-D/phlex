@@ -557,7 +557,7 @@ namespace {
     }
 
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
-    if (ul == (unsigned long)-1 && PyErr_Occurred() && PyLong_Check(pyobject)) {
+    if (ul == static_cast<unsigned long>(-1) && PyErr_Occurred() && PyLong_Check(pyobject)) {
       PyErr_Clear();
       long i = PyLong_AS_LONG(pyobject);
       if (0 <= i) {
