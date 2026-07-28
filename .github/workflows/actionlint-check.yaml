@@ -136,6 +136,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Framework-R-D/phlex
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name ==
+            'workflow_call' && inputs.pr-base-sha || github.sha }}
           path: phlex
           fetch-depth: 0
           persist-credentials: false
