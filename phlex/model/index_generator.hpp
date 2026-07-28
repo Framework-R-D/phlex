@@ -15,14 +15,14 @@
 
 #include "phlex/model/fwd.hpp"
 
-#if defined(__has_include)
+#ifdef __has_include
 #if __has_include(<generator>)
 #include <generator>
 #include <version>
 #endif
 #endif
 
-#if !defined(__cpp_lib_generator)
+#ifndef __cpp_lib_generator
 #include <coroutine>
 #include <exception>
 #include <iterator>
@@ -31,7 +31,7 @@
 #endif
 
 namespace phlex {
-#if defined(__cpp_lib_generator)
+#ifdef __cpp_lib_generator
   using index_generator = std::generator<data_cell_index_ptr>;
 #else
   class index_generator {
