@@ -188,4 +188,5 @@
   - [PR #742](https://github.com/Framework-R-D/phlex/pull/742)
 - [ ] [readability-static-accessed-through-instance](https://clang.llvm.org/extra/clang-tidy/checks/readability/static-accessed-through-instance.html) (10)
 - [ ] [readability-use-anyofallof](https://clang.llvm.org/extra/clang-tidy/checks/readability/use-anyofallof.html) (2)
-- [ ] [readability-use-concise-preprocessor-directives](https://clang.llvm.org/extra/clang-tidy/checks/readability/use-concise-preprocessor-directives.html) (201)
+- [x] [readability-use-concise-preprocessor-directives](https://clang.llvm.org/extra/clang-tidy/checks/readability/use-concise-preprocessor-directives.html) (201)
+  - [PR #772](https://github.com/Framework-R-D/phlex/pull/772)
