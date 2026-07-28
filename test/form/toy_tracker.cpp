@@ -2,30 +2,18 @@
 #include "data_products/track_start.hpp"
 
 #include <algorithm>
-#include <cstdlib>
+#include <chrono>
 
-ToyTracker::ToyTracker(int maxTracks) : m_maxTracks(maxTracks) {}
+ToyTracker::ToyTracker(int maxTracks) : m_gen(std::chrono::system_clock().now().time_since_epoch().count()), m_sizeDist(0, maxTracks), m_valueDist(0, 1) {}
 
 std::vector<TrackStart> ToyTracker::operator()()
 {
-  int32_t const npx = generateRandom() % m_maxTracks;
+  int32_t const npx = m_sizeDist(m_gen);
   std::vector<TrackStart> points;
   points.reserve(npx);
   std::generate_n(std::back_inserter(points), npx, [this] {
-    return TrackStart(static_cast<float>(generateRandom()) / static_cast<float>(random_max),
-                      static_cast<float>(generateRandom()) / static_cast<float>(random_max),
-                      static_cast<float>(generateRandom()) / static_cast<float>(random_max));
+    return TrackStart(m_valueDist(m_gen), m_valueDist(m_gen), m_valueDist(m_gen));
   });
 
   return points;
-}
-
-int32_t ToyTracker::generateRandom()
-{
-  //Get a 32-bit random integer with even the lowest allowed precision of rand()
-  // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Test code, single-threaded
-  int rand1 = rand() % 32768;
-  int rand2 = rand() % 32768;
-  // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Test code, single-threaded
-  return (rand1 * 32768) + rand2;
 }

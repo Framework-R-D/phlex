@@ -3,6 +3,7 @@
 #define TEST_FORM_TOY_TRACKER_HPP
 #include <cstdint>
 #include <vector>
+#include <random>
 
 class TrackStart;
 
@@ -14,9 +15,9 @@ public:
   std::vector<TrackStart> operator()();
 
 private:
-  int m_maxTracks;
-  int32_t generateRandom();
-  int32_t random_max = 32768 * 32768;
+  std::mt19937 m_gen;
+  std::uniform_int_distribution<int> m_sizeDist;
+  std::uniform_real_distribution<float> m_valueDist;
 };
 
 #endif // TEST_FORM_TOY_TRACKER_HPP
