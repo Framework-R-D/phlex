@@ -1094,8 +1094,16 @@ class TestGetDefaultCombinations:
     """Tests for get_default_combinations()."""
 
     ALL = [
-        "gcc/none", "gcc/asan", "gcc/tsan", "gcc/valgrind", "gcc/perfetto",
-        "clang/none", "clang/asan", "clang/tsan", "clang/valgrind", "clang/perfetto",
+        "gcc/none",
+        "gcc/asan",
+        "gcc/tsan",
+        "gcc/valgrind",
+        "gcc/perfetto",
+        "clang/none",
+        "clang/asan",
+        "clang/tsan",
+        "clang/valgrind",
+        "clang/perfetto",
     ]
 
     # ... parametrize all six cases from the table above

@@ -132,15 +132,17 @@ TEST_CASE("FORM Container setup error handling")
     auto parent = createWriteAssociation(technology, "test");
     parent->setFile(file);
     parent->setupWrite(typeInfo);
-    if (form::technology::GetMinor(technology) !=
-        form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this
+    SECTION("commit() before fill() without setupWrite()")
     {
-      SECTION("commit() before fill()")
-      {
-        writeAssocContainer->setParent(parent);
-        writeContainer->setupWrite(typeInfo);
-        CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
-      }
+      writeAssocContainer->setParent(parent);
+      CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+    }
+
+    SECTION("commit() before fill() with setupWrite()")
+    {
+      writeAssocContainer->setParent(parent);
+      writeContainer->setupWrite(typeInfo);
+      CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
     }
   }
 
