@@ -108,9 +108,12 @@ jobs:
       - name: Check out source code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.ref }}
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
-          repository: ${{ needs.setup.outputs.repo }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
           persist-credentials: false
 
       - name: Setup build environment
@@ -386,8 +389,11 @@ jobs:
       - name: Check out source code for Codecov mapping
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.ref }}
-          repository: ${{ needs.setup.outputs.repo }}
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
           fetch-depth: 0
 
       - name: Download coverage bundle

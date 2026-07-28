@@ -132,10 +132,12 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout trusted base repository for governance script
+      - name: Checkout repository for governance script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: base-repo
+          repository: Framework-R-D/phlex
+          path: phlex
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Checkout code
@@ -152,4 +154,4 @@ jobs:
       - name: Verify gating-block consistency
         env:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-        run: bash "base-repo/scripts/check-gating-block.sh" "${CHECKOUT_PATH}/.github/workflows"
+        run: bash "phlex/scripts/check-gating-block.sh" "${CHECKOUT_PATH}/.github/workflows"
