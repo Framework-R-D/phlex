@@ -98,11 +98,12 @@ jobs:
         continue-on-error: true
         env:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
+          ACTIONLINT_IMAGE_URL: "rhysd/actionlint:7ef0d156288b43c3bd5ee96bac787a28aae53275e88e4f9476a64bc0c19195c9" # v1.7.12
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE/${CHECKOUT_PATH}:/work" \
             -w /work \
-            rhysd/actionlint:latest \
+             "${ACTIONLINT_IMAGE_URL}" \
             -config-file .github/actionlint.yaml
 
       - name: Evaluate actionlint result
