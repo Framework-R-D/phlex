@@ -22,7 +22,7 @@ repos:
         additional_dependencies:
           - types-PyYAML
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
+    rev: v0.16.0
     hooks:
       - id: ruff-format
         types_or: [python, pyi]
@@ -31,7 +31,7 @@ repos:
         types_or: [python, pyi]
         language_version: python3.12
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: 182152eb8c5ce1cf5299b956b04392c86bd8a126 # frozen: v20.1.8
+    rev: v22.1.8
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
@@ -53,7 +53,7 @@ repos:
         types_or: [python]
         pass_filenames: false
   - repo: https://github.com/BlankSpruce/gersemi-pre-commit
-    rev: 0.27.7
+    rev: 0.28.0
     hooks:
       - id: gersemi
   - repo: https://github.com/google/go-jsonnet
