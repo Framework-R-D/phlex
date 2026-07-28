@@ -10,7 +10,7 @@ namespace form {
     constexpr int HDF5_MAJOR = 2;
 
     // Helper function for combining major/minor
-    constexpr int Combine(int major, int minor) { return major * 256 + minor; }
+    constexpr int Combine(int major, int minor) { return (major * 256) + minor; }
 
     // Technology constants using the helper
     constexpr int ROOT_TTREE = Combine(ROOT_MAJOR, ROOT_TTREE_MINOR);
