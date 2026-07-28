@@ -70,79 +70,86 @@ jobs:
           pr-base-sha: ${{ inputs.pr-base-sha }}
           checkout-path: ${{ inputs.checkout-path }}
 
-actionlint-check:
-  needs: setup
-  if: >
-    always() && (
-      github.event_name == 'workflow_dispatch' ||
-      inputs.skip-relevance-check ||
-      needs.setup.outputs.has_changes == 'true'
-    )
-  runs-on: ubuntu-latest
-  permissions:
-    contents: read
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      with:
-        ref: ${{ needs.setup.outputs.ref }}
-        path: ${{ needs.setup.outputs.checkout_path }}
-        repository: ${{ needs.setup.outputs.repo }}
-        persist-credentials: false
+  actionlint-check:
+    needs: setup
+    if: >
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
+          persist-credentials: false
 
-    - name: Announce actionlint check
-      run: echo "➡️ Running actionlint check..."
+      - name: Announce actionlint check
+        run: echo "➡️ Running actionlint check..."
 
-    - name: Run actionlint
-      id: lint
-      continue-on-error: true
-      env:
-        CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-      run: |
-        docker run --rm \
-          -v "$GITHUB_WORKSPACE/${CHECKOUT_PATH}:/work" \
-          -w /work \
-          rhysd/actionlint:latest \
-          -config-file .github/actionlint.yaml
+      - name: Run actionlint
+        id: lint
+        continue-on-error: true
+        env:
+          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
+          ACTIONLINT_IMAGE_URL: "rhysd/actionlint:7ef0d156288b43c3bd5ee96bac787a28aae53275e88e4f9476a64bc0c19195c9" # v1.7.12
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/${CHECKOUT_PATH}:/work" \
+            -w /work \
+             "${ACTIONLINT_IMAGE_URL}" \
+            -config-file .github/actionlint.yaml
 
-    - name: Evaluate actionlint result
-      if: always() && steps.lint.outcome != 'skipped'
-      run: |
-        if [ "${{ steps.lint.outcome }}" = 'success' ]; then
-          echo "✅ actionlint check passed."
-        else
-          echo "::error::actionlint check failed. Please review the output above for details."
-          exit 1
-        fi
+      - name: Evaluate actionlint result
+        if: always() && steps.lint.outcome != 'skipped'
+        run: |
+          if [ "${{ steps.lint.outcome }}" = 'success' ]; then
+            echo "✅ actionlint check passed."
+          else
+            echo "::error::actionlint check failed. Please review the output above for details."
+            exit 1
+          fi
 
-gating_check:
-  needs: setup
-  if: >
-    always() && (
-      github.event_name == 'workflow_dispatch' ||
-      inputs.skip-relevance-check ||
-      needs.setup.outputs.has_changes == 'true'
-    )
-  runs-on: ubuntu-latest
-  permissions:
-    contents: read
+  gating_check:
+    needs: setup
+    if: >
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        inputs.skip-relevance-check ||
+        needs.setup.outputs.has_changes == 'true'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
-  steps:
-    - name: Checkout trusted base repository for governance script
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      with:
-        path: base-repo
-        persist-credentials: false
+    steps:
+      - name: Checkout trusted base repository for governance script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: base-repo
+          persist-credentials: false
 
-    - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      with:
-        ref: ${{ needs.setup.outputs.ref }}
-        path: ${{ needs.setup.outputs.checkout_path }}
-        repository: ${{ needs.setup.outputs.repo }}
-        persist-credentials: false
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
+          path: ${{ needs.setup.outputs.checkout_path }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
+          persist-credentials: false
 
-    - name: Verify gating-block consistency
-      env:
-        CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-      run: bash "base-repo/scripts/check-gating-block.sh" "${CHECKOUT_PATH}/.github/workflows"
+      - name: Verify gating-block consistency
+        env:
+          CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
+        run: bash "base-repo/scripts/check-gating-block.sh" "${CHECKOUT_PATH}/.github/workflows"
