@@ -37,8 +37,9 @@ int main(int const argc, char** const argv)
   session.cli(cli);
 
   int const returnCode = session.applyCommandLine(argc, argv);
-  if (returnCode != 0)
+  if (returnCode != 0) {
     return returnCode;
+  }
 
   technology = form::test::getTechnology(tech_string);
 

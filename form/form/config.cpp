@@ -5,8 +5,9 @@ namespace {
   auto const_lookup(const MAP_LIKE& map, typename MAP_LIKE::key_type const& key)
   {
     auto const found = map.find(key);
-    if (found != map.end())
+    if (found != map.end()) {
       return found->second;
+    }
     return decltype(found->second)();
   }
 }

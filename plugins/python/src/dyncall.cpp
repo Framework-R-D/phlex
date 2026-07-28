@@ -14,23 +14,30 @@ using namespace phlex::experimental;
 phlex::experimental::dcarg phlex::experimental::dcarg::from_str(std::string const& stype)
 {
   // only types currently used in modulewrap are added, not all ffi types
-  if (stype == "bool")
+  if (stype == "bool") {
     return dcarg(false);
-  if (stype == "int32_t")
+  }
+  if (stype == "int32_t") {
     return dcarg(static_cast<std::int32_t>(0));
-  else if (stype == "uint32_t")
+  }
+  if (stype == "uint32_t") {
     return dcarg(static_cast<std::uint32_t>(0));
-  else if (stype == "int64_t")
+  }
+  if (stype == "int64_t") {
     return dcarg(static_cast<ph_long_t>(0));
-  else if (stype == "uint64_t")
+  }
+  if (stype == "uint64_t") {
     return dcarg(static_cast<ph_ulong_t>(0));
-  else if (stype == "float")
+  }
+  if (stype == "float") {
     return dcarg(0.0f);
-  else if (stype == "double")
+  }
+  if (stype == "double") {
     return dcarg(0.0);
-  else if (stype == "void")
+  }
+  if (stype == "void") {
     return dcarg{};
-
+  }
   throw std::invalid_argument("unknown type string: " + stype);
 }
 
@@ -60,32 +67,33 @@ namespace {
         // with each type on its own line, however, rather than combining the
         // two in a single predicate as a special case
         // NOLINTBEGIN(bugprone-branch-clone)
-        if constexpr (std::is_same_v<T, std::monostate>)
+        if constexpr (std::is_same_v<T, std::monostate>) {
           return &ffi_type_void;
-        else if constexpr (std::is_same_v<T, void*>)
+        } else if constexpr (std::is_same_v<T, void*>) {
           return &ffi_type_pointer;
-        else if constexpr (std::is_same_v<T, bool>)
+        } else if constexpr (std::is_same_v<T, bool>) {
           return &ffi_type_uint8;
-        else if constexpr (std::is_same_v<T, std::int8_t>)
+        } else if constexpr (std::is_same_v<T, std::int8_t>) {
           return &ffi_type_sint8;
-        else if constexpr (std::is_same_v<T, std::uint8_t>)
+        } else if constexpr (std::is_same_v<T, std::uint8_t>) {
           return &ffi_type_uint8;
-        else if constexpr (std::is_same_v<T, std::int16_t>)
+        } else if constexpr (std::is_same_v<T, std::int16_t>) {
           return &ffi_type_sint16;
-        else if constexpr (std::is_same_v<T, std::uint16_t>)
+        } else if constexpr (std::is_same_v<T, std::uint16_t>) {
           return &ffi_type_uint16;
-        else if constexpr (std::is_same_v<T, std::int32_t>)
+        } else if constexpr (std::is_same_v<T, std::int32_t>) {
           return &ffi_type_sint32;
-        else if constexpr (std::is_same_v<T, std::uint32_t>)
+        } else if constexpr (std::is_same_v<T, std::uint32_t>) {
           return &ffi_type_uint32;
-        else if constexpr (std::is_same_v<T, ph_long_t>)
+        } else if constexpr (std::is_same_v<T, ph_long_t>) {
           return &ffi_type_sint64;
-        else if constexpr (std::is_same_v<T, ph_ulong_t>)
+        } else if constexpr (std::is_same_v<T, ph_ulong_t>) {
           return &ffi_type_uint64;
-        else if constexpr (std::is_same_v<T, float>)
+        } else if constexpr (std::is_same_v<T, float>) {
           return &ffi_type_float;
-        else if constexpr (std::is_same_v<T, double>)
+        } else if constexpr (std::is_same_v<T, double>) {
           return &ffi_type_double;
+        }
         // NOLINTEND(bugprone-branch-clone)
       },
       d.m_value);

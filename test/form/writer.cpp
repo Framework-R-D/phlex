@@ -82,8 +82,9 @@ int main(int argc, char** argv)
       std::vector<float> track_start_x;
       generate(track_start_x, 4 * 1024 /* * 1024*/); // sub-event processing
       float check = 0.0;
-      for (float val : track_start_x)
+      for (float val : track_start_x) {
         check += val;
+      }
 
       std::string const seg_id_text = std::format("[EVENT={:08X};SEG={:08X}]", nevent, nseg);
 
@@ -97,8 +98,9 @@ int main(int argc, char** argv)
       products.push_back(pb);
 
       std::vector<int> track_n_hits(std::from_range, std::views::iota(0, 100));
-      for (int val : track_n_hits)
+      for (int val : track_n_hits) {
         check += static_cast<float>(val);
+      }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << '\n';
 
@@ -108,8 +110,9 @@ int main(int argc, char** argv)
 
       std::vector<TrackStart> start_points = tracker();
       TrackStart checkPoints;
-      for (TrackStart const& point : start_points)
+      for (TrackStart const& point : start_points) {
         checkPoints += point;
+      }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", checkPoints = " << checkPoints << '\n';
 
@@ -129,8 +132,9 @@ int main(int argc, char** argv)
     std::cout << "PHLEX: Write Event segments done " << nevent << '\n';
 
     float check = 0.0;
-    for (float val : track_x)
+    for (float val : track_x) {
       check += val;
+    }
 
     std::string const evt_id_text = std::format("[EVENT={:08X}]", nevent);
 

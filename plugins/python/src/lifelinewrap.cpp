@@ -19,8 +19,9 @@ static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 
 static int ll_traverse(py_lifeline_t* pyobj, visitproc visit, void* args)
 {
-  if (pyobj->m_view)
+  if (pyobj->m_view) {
     visit(pyobj->m_view, args);
+  }
   return 0;
 }
 

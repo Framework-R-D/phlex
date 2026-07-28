@@ -119,13 +119,16 @@ int main(int argc, char** argv)
         static_cast<std::vector<TrackStart> const*>(pb_points.data));
 
       float check = 0.0;
-      for (float val : *track_start_x)
+      for (float val : *track_start_x) {
         check += val;
-      for (int val : *track_n_hits)
+      }
+      for (int val : *track_n_hits) {
         check += static_cast<float>(val);
+      }
       TrackStart checkPoints;
-      for (TrackStart val : *start_points)
+      for (TrackStart val : *start_points) {
         checkPoints += val;
+      }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << '\n';
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
@@ -171,8 +174,9 @@ int main(int argc, char** argv)
     track_x.reset(static_cast<std::vector<float> const*>(pb.data));
 
     float check = 0.0;
-    for (float val : *track_x)
+    for (float val : *track_x) {
       check += val;
+    }
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << '\n';
 

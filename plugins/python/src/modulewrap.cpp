@@ -181,19 +181,22 @@ namespace {
 
       std::string error_msg;
       if (!result.get<PyObject*>()) {
-        if (!msg_from_py_error(error_msg))
+        if (!msg_from_py_error(error_msg)) {
           error_msg = "Unknown python error";
+        }
       }
 
       decref_all(args...);
 
-      if (!error_msg.empty())
+      if (!error_msg.empty()) {
         throw std::runtime_error(error_msg.c_str());
+      }
 
-      if constexpr (!std::is_void_v<RT>)
+      if constexpr (!std::is_void_v<RT>) {
         return result;
-      else
+      } else {
         Py_DECREF(result.get<PyObject*>());
+      }
     }
 
   private:
@@ -227,8 +230,9 @@ namespace {
       dyncall((void*)m_ccallback, result, argsv);
       // TODO: error reporting?
 
-      if constexpr (!std::is_void_v<RT>)
+      if constexpr (!std::is_void_v<RT>) {
         return result;
+      }
     }
   };
 
@@ -281,12 +285,14 @@ namespace {
   std::vector<product_selector> validate_input(PyObject* input)
   {
     std::vector<product_selector> cargs;
-    if (!input)
+    if (!input) {
       return cargs;
+    }
 
     PyObject* coll = PySequence_Fast(input, "input_family must be a sequence");
-    if (!coll)
+    if (!coll) {
       return cargs;
+    }
 
     Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
     cargs.reserve(static_cast<size_t>(len));
@@ -306,21 +312,23 @@ namespace {
 
     Py_DECREF(coll);
 
-    if (PyErr_Occurred())
+    if (PyErr_Occurred()) {
       cargs.clear(); // error handled through Python
-
+    }
     return cargs;
   }
 
   std::vector<std::string> validate_output(PyObject* output)
   {
     std::vector<std::string> cargs;
-    if (!output)
+    if (!output) {
       return cargs;
+    }
 
     PyObject* coll = PySequence_Fast(output, "output_product_suffixes must be a sequence");
-    if (!coll)
+    if (!coll) {
       return cargs;
+    }
 
     Py_ssize_t len = PySequence_Fast_GET_SIZE(coll);
     cargs.reserve(static_cast<size_t>(len));
@@ -344,8 +352,9 @@ namespace {
 
     Py_DECREF(coll);
 
-    if (PyErr_Occurred())
+    if (PyErr_Occurred()) {
       cargs.clear(); // error handled through Python
+    }
 
     return cargs;
   }
@@ -367,13 +376,15 @@ namespace {
         Py_DECREF(nbmod);
       }
 
-      if (!cfunc_type)
+      if (!cfunc_type) {
         PyErr_Clear();
+      }
       // hard reference to cfunc_type here if not null
     }
 
-    if (!cfunc_type)
+    if (!cfunc_type) {
       return false;
+    }
 
     int result = PyObject_IsInstance(obj, cfunc_type);
     return result == 1;
@@ -393,19 +404,22 @@ namespace {
       // this would only fail if the phlex installation were broken and
       // only exists to get a proper error message instead of a segfault
       // in that rather unlikely case
-      if (!normalizer)
+      if (!normalizer) {
         return "";
+      }
       // LCOV_EXCL_STOP
     }
 
     PyObject* norm = PyObject_CallOneArg(normalizer, pyobj);
-    if (!norm)
+    if (!norm) {
       return "";
+    }
 
     char const* ann = PyUnicode_AsUTF8(norm);
     Py_DECREF(norm);
-    if (!ann)
+    if (!ann) {
       return "";
+    }
 
     return ann;
   }
@@ -478,8 +492,9 @@ namespace {
         }
       }
     } else {
-      if (!PyErr_Occurred())
+      if (!PyErr_Occurred()) {
         PyErr_SetString(PyExc_TypeError, "unknown annotation formatting");
+      }
     }
 
     Py_XDECREF(annot);
@@ -831,12 +846,14 @@ static PyObject* parse_args(PyObject* args,
 
   // retrieve C++ (matching) types if provided
   input_types.reserve(input_selectors.size());
-  if (!annotations_to_strings(callable, input_types, output_types))
+  if (!annotations_to_strings(callable, input_types, output_types)) {
     return nullptr; // Python error already set
+  }
 
   // ignore None as Python's conventional "void" return, which is meaningless in C++
-  if (output_types.size() == 1 && output_types[0] == "None")
+  if (output_types.size() == 1 && output_types[0] == "None") {
     output_types.clear();
+  }
 
   // if annotations were correct (and correctly parsed), there should be as many
   // input types as input product selectors
@@ -1029,8 +1046,9 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
-  if (!callable)
+  if (!callable) {
     return nullptr; // error already set
+  }
 
   // detect numba and extract C function pointer if any, else use default Python
   // callable dispatcher
@@ -1041,8 +1059,9 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
       ccallf = PyLong_AsVoidPtr(pyaddr);
       Py_DECREF(pyaddr);
     }
-    if (!ccallf)
+    if (!ccallf) {
       PyErr_Clear();
+    }
   }
 
   if (output_types.empty()) {
@@ -1175,8 +1194,9 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   PyObject* callable = parse_args(
     args, kwds, cname, input_selectors, input_types, output_suffixes, output_types, nconcur);
 
-  if (!callable)
+  if (!callable) {
     return nullptr; // error already set
+  }
 
   // detect numba and extract C function pointer if any, else use default Python
   // callable dispatcher
@@ -1187,8 +1207,9 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
       ccallf = PyLong_AsVoidPtr(pyaddr);
       Py_DECREF(pyaddr);
     }
-    if (!ccallf)
+    if (!ccallf) {
       PyErr_Clear();
+    }
   }
 
   if (!output_types.empty()) {
@@ -1374,8 +1395,9 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // retrieve C++ (matching) types from annotations
   std::vector<std::string> input_types;
   std::vector<std::string> output_types;
-  if (!annotations_to_strings(callable, input_types, output_types))
+  if (!annotations_to_strings(callable, input_types, output_types)) {
     return nullptr; // Python error already set
+  }
 
   // provider needs to take a single "data_cell_input"
   if (input_types.size() != 1 || input_types[0] != "data_cell_index") {

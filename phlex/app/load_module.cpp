@@ -68,8 +68,9 @@ namespace phlex::detail {
       // Called during single-threaded graph construction
       char const* plugin_path_ptr =
         std::getenv("PHLEX_PLUGIN_PATH"); // NOLINT(concurrency-mt-unsafe)
-      if (!plugin_path_ptr)
+      if (!plugin_path_ptr) {
         throw std::runtime_error("PHLEX_PLUGIN_PATH has not been set.");
+      }
 
       std::vector<std::string> subdirs;
       boost::split(subdirs, plugin_path_ptr, boost::is_any_of(":"));
