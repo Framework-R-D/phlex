@@ -132,7 +132,13 @@ TEST_CASE("FORM Container setup error handling")
     auto parent = createWriteAssociation(technology, "test");
     parent->setFile(file);
     parent->setupWrite(typeInfo);
-    SECTION("commit() before fill()")
+    SECTION("commit() before fill() without setupWrite()")
+    {
+      writeAssocContainer->setParent(parent);
+      CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+    }
+
+    SECTION("commit() before fill() with setupWrite()")
     {
       writeAssocContainer->setParent(parent);
       writeContainer->setupWrite(typeInfo);
