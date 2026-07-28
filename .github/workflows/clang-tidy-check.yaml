@@ -59,9 +59,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.ref }}
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
-          repository: ${{ needs.setup.outputs.repo }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
           persist-credentials: false
 
       - name: Setup build environment
@@ -146,6 +149,12 @@ jobs:
         shell: bash
         env:
           BASE_SHA: ${{ needs.setup.outputs.base_sha }}
+          BASE_REPO:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.base.repo.full_name ||
+            needs.setup.outputs.repo }}
+          HEAD_REPO:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
           SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
           BUILD_PATH: ${{ needs.setup.outputs.build_path }}
         run: |
@@ -156,9 +165,15 @@ jobs:
 
           # Fetch the base commit if it is not already in the shallow history.
           # actions/checkout uses --depth 1, so BASE_SHA may be absent locally.
+          FETCH_REMOTE="origin"
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ "${BASE_REPO}" != "${HEAD_REPO}" ]; then
+            FETCH_REMOTE="base-origin"
+            git remote add "$FETCH_REMOTE" "https://github.com/${BASE_REPO}.git" 2>/dev/null || true
+          fi
+
           if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
             echo "Fetching base commit ${BASE_SHA}..."
-            if ! git fetch --depth=1 origin "$BASE_SHA" 2>/dev/null; then
+            if ! git fetch --depth=1 "$FETCH_REMOTE" "$BASE_SHA" 2>/dev/null; then
               echo "::warning::Could not fetch base commit ${BASE_SHA}; skipping new-issue check"
               exit 0
             fi

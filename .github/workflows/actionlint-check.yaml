@@ -101,7 +101,7 @@ jobs:
         continue-on-error: true
         env:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-          ACTIONLINT_IMAGE_URL: "rhysd/actionlint:7ef0d156288b43c3bd5ee96bac787a28aae53275e88e4f9476a64bc0c19195c9" # v1.7.12
+          ACTIONLINT_IMAGE_URL: "rhysd/actionlint@sha256:7ef0d156288b43c3bd5ee96bac787a28aae53275e88e4f9476a64bc0c19195c9" # v1.7.12
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE/${CHECKOUT_PATH}:/work" \
@@ -132,10 +132,15 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout trusted base repository for governance script
+      - name: Checkout repository for governance script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: base-repo
+          repository: Framework-R-D/phlex
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name ==
+            'workflow_call' && inputs.pr-base-sha || github.sha }}
+          path: phlex
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Checkout code
@@ -152,4 +157,4 @@ jobs:
       - name: Verify gating-block consistency
         env:
           CHECKOUT_PATH: ${{ needs.setup.outputs.checkout_path }}
-        run: bash "base-repo/scripts/check-gating-block.sh" "${CHECKOUT_PATH}/.github/workflows"
+        run: bash "phlex/scripts/check-gating-block.sh" "${CHECKOUT_PATH}/.github/workflows"
