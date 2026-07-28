@@ -53,17 +53,17 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  if (vm.count("help")) {
+  if (vm.contains("help")) {
     std::cout << desc << '\n';
     return 0;
   }
 
-  if (vm.count("version")) {
+  if (vm.contains("version")) {
     std::cout << "phlex " << phlex::detail::version() << '\n';
     return 0;
   }
 
-  if (not vm.count("config")) {
+  if (not vm.contains("config")) {
     std::cerr << "Error: No configuration file given.\n";
     return 2;
   }
