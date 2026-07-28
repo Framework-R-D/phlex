@@ -8,6 +8,7 @@
 #include "phlex/core/declared_output.hpp"
 #include "phlex/core/declared_predicate.hpp"
 #include "phlex/core/declared_transform.hpp"
+#include "phlex/core/declared_translator.hpp"
 #include "phlex/core/declared_unfold.hpp"
 #include "phlex/core/producer_catalog.hpp"
 #include "phlex/core/products_consumer.hpp"
@@ -37,8 +38,8 @@ namespace phlex::detail {
   //
   // User plugins define this function via the PHLEX_REGISTER_ALGORITHMS macro,
   // which expands to the extern "C" entry point.  The body invokes module methods
-  // like transform(), predicate(), fold(), unfold(), observe(), and output() on
-  // the 'm' argument. These methods add nodes to this node_catalog.
+  // like transform(), translate(), predicate(), fold(), unfold(), observe(), and
+  // output() on the 'm' argument. These methods add nodes to this node_catalog.
   //
   // During application initialization, the framework loads each configured
   // plugin shared library (PHLEX_PLUGIN_PATH), resolves the create_module entry
@@ -112,6 +113,7 @@ namespace phlex::detail {
     simple_ptr_map<declared_fold_ptr> folds;
     simple_ptr_map<declared_unfold_ptr> unfolds;
     simple_ptr_map<declared_transform_ptr> transforms;
+    simple_ptr_map<declared_translator_ptr> translators;
     simple_ptr_map<provider_node_ptr> providers;
     simple_ptr_map<source_ptr> sources;
 
@@ -135,6 +137,8 @@ namespace phlex::detail {
         return unfolds;
       } else if constexpr (std::is_same_v<Ptr, declared_transform_ptr>) {
         return transforms;
+      } else if constexpr (std::is_same_v<Ptr, declared_translator_ptr>) {
+        return translators;
       } else if constexpr (std::is_same_v<Ptr, provider_node_ptr>) {
         return providers;
       } else if constexpr (std::is_same_v<Ptr, source_ptr>) {

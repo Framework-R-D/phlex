@@ -22,6 +22,7 @@ namespace phlex::detail {
     result.append_range(as_product_consumers(folds));
     result.append_range(as_product_consumers(unfolds));
     result.append_range(as_product_consumers(transforms));
+    result.append_range(as_product_consumers(translators));
     return result;
   }
 
@@ -43,7 +44,10 @@ namespace phlex::detail {
     if (auto* node = transforms.get(node_name)) {
       return node->num_calls();
     }
-    if (auto* node = providers.get(node_name)) {
+    if (auto* node = translators.get(node_name)) {
+      return node->num_calls();
+    }
+    if (auto node = providers.get(node_name)) {
       return node->num_calls();
     }
     if (auto* node = outputs.get(node_name)) {
@@ -54,7 +58,7 @@ namespace phlex::detail {
 
   producer_catalog node_catalog::producers() const
   {
-    return producer_catalog{transforms, folds, unfolds};
+    return producer_catalog{transforms, translators, folds, unfolds};
   }
 
   source_vector node_catalog::sources_for(std::vector<std::string> const& keys) const

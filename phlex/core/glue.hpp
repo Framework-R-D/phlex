@@ -113,6 +113,16 @@ namespace phlex::detail {
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
     // warning to take it by const reference is a false positive.
     template <typename FT>
+    auto translate(std::string_view name,
+                   FT f,
+                   concurrency c)
+    {
+      internal::verify_name(name, config_);
+      return make_registration<translator_node>(
+          config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
+    }
+
+    template <typename FT>
     auto predicate(std::string_view name,
                    FT f, // NOLINT(performance-unnecessary-value-param)
                    concurrency c)

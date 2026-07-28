@@ -21,6 +21,12 @@ namespace phlex::detail {
   concept sendable = requires { typename phlex::experimental::sendable_type<T>; };
 
   template <typename T, std::size_t N>
+  concept exactly_n_input_parameters = number_parameters<T> == N;
+
+  template <typename T>
+  concept exactly_one_input_parameter = exactly_n_input_parameters<T, 1>;
+
+  template <typename T, std::size_t N>
   concept at_least_n_input_parameters = number_parameters<T> >= N;
 
   template <typename T>
@@ -28,6 +34,9 @@ namespace phlex::detail {
 
   template <typename T>
   concept at_least_two_input_parameters = at_least_n_input_parameters<T, 2>;
+
+  template <typename T>
+  concept exactly_one_output_object = number_output_objects<T> == 1ull;
 
   template <typename T>
   concept at_least_one_output_object = number_output_objects<T> >= 1ull;
@@ -74,6 +83,9 @@ namespace phlex::detail {
 
   template <typename T>
   concept is_transform_like = at_least_one_input_parameter<T> && at_least_one_output_object<T>;
+
+  template <typename T>
+  concept is_translator_like = exactly_one_input_parameter<T> && exactly_one_output_object<T>;
 }
 
 #endif // PHLEX_CORE_CONCEPTS_HPP

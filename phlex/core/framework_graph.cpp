@@ -216,6 +216,7 @@ namespace phlex::detail {
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.folds));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.unfolds));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.transforms));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates, nodes_.translators));
   }
 
   void framework_graph::make_bookkeeping_edges()

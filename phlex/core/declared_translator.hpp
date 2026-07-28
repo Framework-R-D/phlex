@@ -1,0 +1,156 @@
+#ifndef PHLEX_CORE_DECLARED_TRANSLATOR_HPP
+#define PHLEX_CORE_DECLARED_TRANSLATOR_HPP
+
+#include "phlex/phlex_core_export.hpp"
+
+#include "phlex/core/concepts.hpp"
+#include "phlex/core/fwd.hpp"
+#include "phlex/core/input_arguments.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/multilayer_join_node.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/products_consumer.hpp"
+#include "phlex/metaprogramming/type_deduction.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/handle.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/product_store.hpp"
+#include "phlex/utilities/simple_ptr_map.hpp"
+
+#include "oneapi/tbb/concurrent_unordered_map.h"
+#include "oneapi/tbb/flow_graph.h"
+
+#include <atomic>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <ranges>
+#include <string>
+#include <type_traits>
+#include <utility>
+
+namespace phlex::detail {
+
+  class PHLEX_CORE_EXPORT declared_translator : public products_consumer {
+  public:
+    declared_translator(phlex::experimental::algorithm_name name,
+                        std::vector<std::string> predicates,
+                        product_selectors input_products);
+    ~declared_translator() override;
+
+    virtual tbb::flow::sender<message>& output_port() = 0;
+    virtual product_specifications const& output() const = 0;
+    virtual std::size_t product_count() const = 0;
+  };
+
+  using declared_translator_ptr = std::unique_ptr<declared_translator>;
+  using declared_translators = simple_ptr_map<declared_translator_ptr>;
+
+  // =====================================================================================
+
+  template <typename AlgorithmBits>
+  class translator_node : public declared_translator {
+    using function_t = typename AlgorithmBits::bound_type;
+    using input_parameter_types = typename AlgorithmBits::input_parameter_types;
+
+    static constexpr auto num_inputs = AlgorithmBits::number_inputs;
+    static constexpr auto num_outputs = number_output_objects<function_t>;
+
+    static_assert(num_inputs == 1, "translator_node requires exactly one input");
+    static_assert(num_outputs == 1, "translator_node requires exactly one output");
+
+    static_assert(std::tuple_size_v<input_parameter_types> == 1,
+                  "translator_node requires exactly one input parameter");
+
+  public:
+    using node_ptr_type = declared_translator_ptr;
+    static constexpr auto number_output_products = num_outputs;
+
+    translator_node(phlex::experimental::algorithm_name algo_name,
+                    std::size_t concurrency,
+                    std::vector<std::string> predicates,
+                    tbb::flow::graph& g,
+                    AlgorithmBits alg,
+                    product_selectors input_products,
+                    std::vector<std::string> output) :
+      declared_translator{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      output_{
+        to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
+      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
+      translator_{
+        g,
+        concurrency,
+        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto& output) {
+          using namespace phlex::experimental::detail;
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+
+          auto result = call(ft, messages, std::make_index_sequence<num_inputs>{});
+          ++calls_;
+          ++product_count_[store->index()->layer_hash()];
+
+          products new_products{num_outputs};
+          new_products.add_all(output_, std::move(result));
+          auto new_store = std::make_shared<phlex::experimental::product_store>(
+            store->index(), name(), std::move(new_products));
+
+          std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
+        }}
+    {
+      if constexpr (num_inputs > 1ull) {
+        make_edge(join_, translator_);
+      }
+    }
+
+  private:
+    tbb::flow::receiver<message>& port_for(product_selector const& input_product) override
+    {
+      return receiver_for<num_inputs>(join_, input(), input_product, translator_);
+    }
+
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<num_inputs>(join_, translator_);
+    }
+
+    tbb::flow::sender<message>& output_port() override
+    {
+      return tbb::flow::output_port<0>(translator_);
+    }
+    product_specifications const& output() const override { return output_; }
+
+    template <std::size_t... Is>
+    auto call(function_t const& ft,
+              messages_t<num_inputs> const& messages,
+              std::index_sequence<Is...>)
+    {
+      if constexpr (num_inputs == 1ull) {
+        return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
+      } else {
+        return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+      }
+    }
+
+    named_index_ports index_ports() final { return join_.index_ports(); }
+    std::size_t num_calls() const final { return calls_.load(); }
+    std::size_t product_count() const final
+    {
+      std::size_t result{};
+      for (auto const& count : product_count_ | std::views::values) {
+        result += count.load();
+      }
+      return result;
+    }
+
+    input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
+    product_specifications output_;
+    join_or_none_t<num_inputs> join_;
+    tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1u>> translator_;
+    std::atomic<std::size_t> calls_;
+    tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
+  };
+
+}
+
+#endif // PHLEX_CORE_DECLARED_TRANSLATOR_HPP

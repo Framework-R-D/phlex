@@ -135,7 +135,16 @@ namespace phlex::detail {
       return make_glue().transform(name, std::move(f), c);
     }
 
-    auto provide(std::string_view name, auto f, concurrency c = concurrency::serial)
+    auto translate(std::string_view name,
+                   is_translator_like auto f,
+                   concurrency c = concurrency::serial)
+    {
+      return make_glue().translate(name, std::move(f), c);
+    }
+
+    auto provide(std::string_view name,
+                 auto f,
+                 concurrency c = concurrency::serial)
     {
       return make_glue().provide(name, std::move(f), c);
     }

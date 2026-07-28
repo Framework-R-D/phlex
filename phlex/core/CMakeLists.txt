@@ -10,6 +10,7 @@ cet_make_library(
   declared_output.cpp
   declared_predicate.cpp
   declared_transform.cpp
+  declared_translator.cpp
   declared_unfold.cpp
   detail/filter_impl.cpp
   detail/make_algorithm_name.cpp
@@ -47,6 +48,7 @@ install(
     declared_output.hpp
     declared_predicate.hpp
     declared_transform.hpp
+    declared_translator.hpp
     declared_unfold.hpp
     producer_catalog.hpp
     make_computational_edges.hpp
