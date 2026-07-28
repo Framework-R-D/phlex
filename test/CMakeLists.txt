@@ -218,6 +218,14 @@ cet_test(
   phlex::core_internal
 )
 cet_test(
+  join
+  USE_CATCH2_MAIN
+  SOURCE
+  join_test.cpp
+  LIBRARIES
+  phlex::core_internal
+)
+cet_test(
   replicated
   USE_CATCH2_MAIN
   SOURCE
