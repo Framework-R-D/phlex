@@ -129,7 +129,8 @@ void ROOT_TBranch_Write_ContainerImp::commit()
   }
 
   if (m_branch->GetEntries() == m_tree->GetEntries()) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit called without new entries since last fill/commit");
+    throw std::runtime_error(
+      "ROOT_TBranch_Write_ContainerImp::commit called without new entries since last fill/commit");
   }
 
   m_tree->SetEntries(m_branch->GetEntries());
