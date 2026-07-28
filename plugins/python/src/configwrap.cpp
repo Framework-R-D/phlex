@@ -98,7 +98,7 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
         pyvalue = PyTuple_New(*cvalue_size);
         // We can use std::views::enumerate once the AppleClang C++ STL supports it.
         for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          PyObject* item = PyLong_FromLong((long)cvalue[i]);
+          PyObject* item = PyLong_FromLong(static_cast<long>(cvalue[i]));
           PyTuple_SetItem(pyvalue, i, item);
         }
       } else if (k.first == boost::json::kind::int64) {

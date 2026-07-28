@@ -177,7 +177,7 @@ namespace {
       PyGILRAII gil;
 
       dcarg result{nullptr};
-      dyncall((void*)m_ccallback, result, argsv, 1);
+      dyncall(m_ccallback, result, argsv, 1);
 
       std::string error_msg;
       if (!result.get<PyObject*>()) {
@@ -227,7 +227,7 @@ namespace {
       argsv.reserve(sizeof...(Is));
       (argsv.push_back(args), ...);
 
-      dyncall((void*)m_ccallback, result, argsv);
+      dyncall(m_ccallback, result, argsv);
       // TODO: error reporting?
 
       if constexpr (!std::is_void_v<RT>) {

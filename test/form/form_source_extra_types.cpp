@@ -1,6 +1,8 @@
 #include "form/form_source_type_registry.hpp"
 #include "phlex/module.hpp"
 
+#include <utility>
+
 using namespace phlex;
 
 namespace {
@@ -23,9 +25,8 @@ namespace {
   }
 }
 
-PHLEX_REGISTER_ALGORITHMS(m, config)
+PHLEX_REGISTER_ALGORITHMS(m)
 {
-  (void)m;
-  (void)config;
+  std::ignore = m;
   register_extra_form_types_once();
 }
