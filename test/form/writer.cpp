@@ -15,26 +15,31 @@
 #include <iostream>
 #include <ranges>
 #include <vector>
+#include <random>
+#include <chrono>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;
 
-void generate(std::vector<float>& vrand, int size)
+struct Generator
 {
-  // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-  int rand1 = rand() % 32768;
-  int rand2 = rand() % 32768;
-  // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-  int npx = ((rand1 * 32768) + rand2) % size;
-  for (int nelement = 0; nelement < npx; ++nelement) {
-    // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-    int rand1 = rand() % 32768;
-    int rand2 = rand() % 32768;
-    // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-    float random = static_cast<float>((rand1 * 32768) + rand2) / (32768.0f * 32768);
-    vrand.push_back(random);
+  Generator(): m_gen(std::chrono::system_clock::now().time_since_epoch().count()), m_dist(0, 1) {}
+
+  void operator ()(std::vector<float>& vrand, int size)
+  {
+    std::uniform_int_distribution sizeDist(0, size);
+    size_t const howMany = sizeDist(m_gen);
+    vrand.reserve(howMany);
+
+    for(auto& rand: vrand) {
+      rand = m_dist(m_gen);
+    }
   }
-}
+
+  private:
+    std::mt19937 m_gen;
+    std::uniform_real_distribution<float> m_dist;
+};
 
 int main(int argc, char** argv)
 {
@@ -71,6 +76,8 @@ int main(int argc, char** argv)
     std::cerr << "ERROR: Could not open checksum file: " << checksum_filename << '\n';
     return 1;
   }
+
+  Generator generate;
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << '\n';
