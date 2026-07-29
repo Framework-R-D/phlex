@@ -17,7 +17,7 @@ namespace form::detail::experimental {
 
   class IPersistenceWriter {
   public:
-    IPersistenceWriter() {};
+    IPersistenceWriter() = default;
     virtual ~IPersistenceWriter() = default;
 
     virtual void configureTechSettings(
