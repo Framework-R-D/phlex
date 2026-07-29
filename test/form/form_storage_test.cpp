@@ -194,7 +194,7 @@ void testFundamental(T const expected)
 // current ROOT release and is therefore not tested here.
 TEST_CASE("Root branch read: fundamental scalar types round-trip", "[form]")
 {
-  testFundamental(static_cast<char>('r'));
+  testFundamental('r');
   testFundamental(static_cast<unsigned char>(200));
   testFundamental(static_cast<short>(-1000));
   testFundamental(static_cast<unsigned short>(60000));

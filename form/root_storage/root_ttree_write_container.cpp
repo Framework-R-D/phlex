@@ -35,7 +35,7 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
     m_tree.reset(m_tfile->Get<TTree>(name().c_str()));
   }
   if (m_tree == nullptr) {
-    m_tree.reset(gsl::owner<TTree*>{new TTree(name().c_str(), name().c_str())});
+    m_tree.reset(new TTree(name().c_str(), name().c_str()));
     m_tree->SetDirectory(m_tfile.get());
   }
   if (m_tree == nullptr) {
