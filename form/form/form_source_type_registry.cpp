@@ -37,7 +37,7 @@ namespace form::experimental {
       throw std::runtime_error("Cannot register FORM product type with empty conversion function");
     }
 
-    std::lock_guard<std::mutex> lock(form_type_registry_mutex());
+    std::scoped_lock lock(form_type_registry_mutex());
     mutable_form_type_registry()[std::move(product_type)] =
       form_source_type_entry{std::move(type), &cpp_type, std::move(product_from_data_fn)};
   }
@@ -48,7 +48,7 @@ namespace form::experimental {
   {
     ensure_builtin_form_product_types_registered();
 
-    std::lock_guard<std::mutex> lock(form_type_registry_mutex());
+    std::scoped_lock lock(form_type_registry_mutex());
     auto const& registry = mutable_form_type_registry();
     auto const it = registry.find(product_type);
     if (it == registry.end()) {
@@ -61,7 +61,7 @@ namespace form::experimental {
   {
     ensure_builtin_form_product_types_registered();
 
-    std::lock_guard<std::mutex> lock(form_type_registry_mutex());
+    std::scoped_lock lock(form_type_registry_mutex());
     auto const& registry = mutable_form_type_registry();
 
     // Prefer exact (type_info-based) identity to avoid collisions between
