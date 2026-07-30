@@ -23,22 +23,22 @@ static int const NUMBER_SEGMENT = 15;
 
 struct Generator
 {
-  Generator(): m_gen(std::chrono::system_clock::now().time_since_epoch().count()), m_dist(0, 1) {}
+  Generator(): gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
 
   void operator ()(std::vector<float>& vrand, int size)
   {
-    std::uniform_int_distribution sizeDist(0, size-1);
-    size_t const howMany = sizeDist(m_gen);
+    std::uniform_int_distribution size_dist(0, size-1);
+    size_t const howMany = size_dist(gen_);
     vrand.resize(howMany);
 
     for(auto& rand: vrand) {
-      rand = m_dist(m_gen);
+      rand = dist_(gen_);
     }
   }
 
   private:
-    std::mt19937 m_gen;
-    std::uniform_real_distribution<float> m_dist;
+    std::mt19937 gen_;
+    std::uniform_real_distribution<float> dist_;
 };
 
 int main(int argc, char** argv)
