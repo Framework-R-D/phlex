@@ -41,7 +41,7 @@ void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file
 
 void ROOT_TBranch_Read_ContainerImp::prime(std::type_info const& type)
 {
-  std::lock_guard<std::mutex> guard(root_tbranch_read_mutex());
+  std::scoped_lock guard(root_tbranch_read_mutex());
 
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::prime no file attached");
@@ -78,7 +78,7 @@ void ROOT_TBranch_Read_ContainerImp::prime(std::type_info const& type)
 
 bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
 {
-  std::lock_guard<std::mutex> guard(root_tbranch_read_mutex());
+  std::scoped_lock guard(root_tbranch_read_mutex());
 
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::read no file attached");
@@ -190,7 +190,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
 
 int ROOT_TBranch_Read_ContainerImp::entries()
 {
-  std::lock_guard<std::mutex> guard(root_tbranch_read_mutex());
+  std::scoped_lock guard(root_tbranch_read_mutex());
 
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::entries no file attached");
