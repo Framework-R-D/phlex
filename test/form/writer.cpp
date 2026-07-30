@@ -17,6 +17,7 @@
 #include <random>
 #include <ranges>
 #include <vector>
+#include <cassert>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;
@@ -26,6 +27,7 @@ struct Generator {
 
   void operator()(std::vector<float>& vrand, int size)
   {
+    assert(size > 1);
     std::uniform_int_distribution size_dist(0, size - 1);
     size_t const howMany = size_dist(gen_);
     vrand.resize(howMany);
