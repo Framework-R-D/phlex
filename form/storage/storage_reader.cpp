@@ -202,8 +202,8 @@ int StorageReader::getIndex(Token const& token,
   }
 
   if (m_indexMaps[token.containerName()].empty()) {
-    auto key = std::make_pair(token.fileName(), token.containerName());
-    auto cont = m_read_containers.find(key);
+    auto contKey = std::make_pair(token.fileName(), token.containerName());
+    auto cont = m_read_containers.find(contKey);
     if (cont == m_read_containers.end()) {
       auto file = m_files.find(token.fileName());
       if (file == m_files.end()) {
@@ -216,7 +216,7 @@ int StorageReader::getIndex(Token const& token,
         }
       }
       cont = m_read_containers
-               .insert({key, createReadContainer(token.technology(), token.containerName())})
+               .insert({contKey, createReadContainer(token.technology(), token.containerName())})
                .first;
       for (auto const& [key, value] :
            get_container_table(settings, token.technology(), token.containerName())) {
@@ -279,8 +279,8 @@ void StorageReader::prime(Token const& token,
                           std::type_info const& type,
                           form::experimental::config::tech_setting_config const& settings)
 {
-  auto key = std::make_pair(token.fileName(), token.containerName());
-  auto cont = m_read_containers.find(key);
+  auto contKey = std::make_pair(token.fileName(), token.containerName());
+  auto cont = m_read_containers.find(contKey);
   if (cont == m_read_containers.end()) {
     auto file = m_files.find(token.fileName());
     if (file == m_files.end()) {
@@ -293,7 +293,7 @@ void StorageReader::prime(Token const& token,
       }
     }
     cont = m_read_containers
-             .insert({key, createReadContainer(token.technology(), token.containerName())})
+             .insert({contKey, createReadContainer(token.technology(), token.containerName())})
              .first;
     cont->second->setFile(file->second);
     for (auto const& [key, value] :
@@ -308,8 +308,8 @@ std::vector<std::string> StorageReader::listIndices(
   Token const& token, form::experimental::config::tech_setting_config const& settings)
 {
   if (m_indexMaps[token.containerName()].empty()) {
-    auto key = std::make_pair(token.fileName(), token.containerName());
-    auto cont = m_read_containers.find(key);
+    auto contKey = std::make_pair(token.fileName(), token.containerName());
+    auto cont = m_read_containers.find(contKey);
     if (cont == m_read_containers.end()) {
       auto file = m_files.find(token.fileName());
       if (file == m_files.end()) {
@@ -322,7 +322,7 @@ std::vector<std::string> StorageReader::listIndices(
         }
       }
       cont = m_read_containers
-               .insert({key, createReadContainer(token.technology(), token.containerName())})
+               .insert({contKey, createReadContainer(token.technology(), token.containerName())})
                .first;
       for (auto const& [key, value] :
            get_container_table(settings, token.technology(), token.containerName())) {
@@ -368,8 +368,8 @@ void StorageReader::readContainer(Token const& token,
                                   std::type_info const& type,
                                   form::experimental::config::tech_setting_config const& settings)
 {
-  auto key = std::make_pair(token.fileName(), token.containerName());
-  auto cont = m_read_containers.find(key);
+  auto contKey = std::make_pair(token.fileName(), token.containerName());
+  auto cont = m_read_containers.find(contKey);
   if (cont == m_read_containers.end()) {
     auto file = m_files.find(token.fileName());
     if (file == m_files.end()) {
@@ -382,7 +382,7 @@ void StorageReader::readContainer(Token const& token,
       }
     }
     cont = m_read_containers
-             .insert({key, createReadContainer(token.technology(), token.containerName())})
+             .insert({contKey, createReadContainer(token.technology(), token.containerName())})
              .first;
     cont->second->setFile(file->second);
     for (auto const& [key, value] :

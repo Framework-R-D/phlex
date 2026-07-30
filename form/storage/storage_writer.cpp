@@ -57,8 +57,8 @@ void StorageWriter::createContainers(
 {
   for (auto const& [plcmnt, type] : containers) {
     // Use file+container as composite key
-    auto key = std::make_pair(plcmnt->fileName(), plcmnt->containerName());
-    auto cont = m_write_containers.find(key);
+    auto contKey = std::make_pair(plcmnt->fileName(), plcmnt->containerName());
+    auto cont = m_write_containers.find(contKey);
     if (cont == m_write_containers.end()) {
       // Ensure the file exists
       auto file = m_files.find(plcmnt->fileName());
@@ -74,7 +74,7 @@ void StorageWriter::createContainers(
       }
       // Create and bind container to file
       auto container = createWriteContainer(plcmnt->technology(), plcmnt->containerName());
-      m_write_containers.insert({key, container});
+      m_write_containers.insert({contKey, container});
       // For associative container, create association layer
       auto associative_container =
         dynamic_pointer_cast<Storage_Associative_Write_Container>(container);
@@ -108,8 +108,8 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
                                   std::type_info const& /* type*/)
 {
   // Use file+container as composite key
-  auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
-  auto cont = m_write_containers.find(key);
+  auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
+  auto cont = m_write_containers.find(contKey);
   if (cont == m_write_containers.end()) {
     // FIXME: For now throw an exception here, but in future, we may have storage technology do that.
     throw std::runtime_error("StorageWriter::fillContainer Container doesn't exist: " +
@@ -120,7 +120,7 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
 
 void StorageWriter::commitContainers(Placement const& plcmnt)
 {
-  auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
-  auto cont = m_write_containers.find(key);
+  auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
+  auto cont = m_write_containers.find(contKey);
   cont->second->commit();
 }
