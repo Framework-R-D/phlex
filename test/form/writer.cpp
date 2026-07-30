@@ -44,8 +44,6 @@ struct Generator
 int main(int argc, char** argv)
 {
   std::cout << "In main" << '\n';
-  // Deliberately use C-style random number generation for simplicity in a test
-  // NOLINTNEXTLINE(bugprone-random-generator-seed, cert-msc32-c, cert-msc51-cpp)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
