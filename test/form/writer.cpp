@@ -7,6 +7,7 @@
 #include "test_utils.hpp"
 #include "toy_tracker.hpp"
 
+#include <cassert>
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
@@ -17,7 +18,6 @@
 #include <random>
 #include <ranges>
 #include <vector>
-#include <cassert>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;

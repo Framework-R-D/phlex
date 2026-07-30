@@ -2,8 +2,8 @@
 #include "data_products/track_start.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cassert>
+#include <chrono>
 
 ToyTracker::ToyTracker(int max_tracks) :
   gen_(std::chrono::system_clock().now().time_since_epoch().count()),
