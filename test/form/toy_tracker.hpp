@@ -2,8 +2,8 @@
 #ifndef TEST_FORM_TOY_TRACKER_HPP
 #define TEST_FORM_TOY_TRACKER_HPP
 #include <cstdint>
-#include <vector>
 #include <random>
+#include <vector>
 
 class TrackStart;
 
