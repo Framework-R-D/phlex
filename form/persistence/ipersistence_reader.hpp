@@ -18,7 +18,7 @@ namespace form::detail::experimental {
 
   class IPersistenceReader {
   public:
-    IPersistenceReader() {};
+    IPersistenceReader() = default;
     virtual ~IPersistenceReader() = default;
 
     virtual void configureTechSettings(

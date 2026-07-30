@@ -7,7 +7,7 @@
 
 demo::WaveformGenerator::WaveformGenerator(WGI const& wgi) : maxsize_{wgi.size} {}
 
-demo::WaveformGenerator::~WaveformGenerator() {}
+demo::WaveformGenerator::~WaveformGenerator() = default;
 
 std::size_t demo::WaveformGenerator::initial_value() const { return 0; }
 
