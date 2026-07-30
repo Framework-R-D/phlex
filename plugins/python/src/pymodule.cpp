@@ -56,7 +56,7 @@ namespace pymodule_register_providers {
       if (!msg_from_py_error(error_msg)) {
         error_msg = "Unknown python error";
       }
-      throw std::runtime_error(error_msg.c_str());
+      throw std::runtime_error(error_msg);
     }
 
     //m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number() % 2; })
@@ -95,7 +95,7 @@ namespace pymodule_register_algorithms {
       if (!msg_from_py_error(error_msg)) {
         error_msg = "Unknown python error";
       }
-      throw std::runtime_error(error_msg.c_str());
+      throw std::runtime_error(error_msg);
     }
   }
 } // namespace pymodule_register_algorithms
