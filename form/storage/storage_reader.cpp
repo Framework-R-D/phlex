@@ -147,8 +147,7 @@ namespace {
     if (components.empty()) {
       return false;
     }
-    for (auto const& [key, value] : components) {
-      (void)key;
+    for (auto const& [_, value] : components) {
       if (value != 0) {
         return false;
       }
@@ -356,8 +355,7 @@ std::vector<std::string> StorageReader::listIndices(
 
   std::vector<std::string> result;
   result.reserve(ordered.size());
-  for (auto const& [entry, index_string] : ordered) {
-    (void)entry;
+  for (auto const& [_, index_string] : ordered) {
     result.push_back(index_string);
   }
   return result;

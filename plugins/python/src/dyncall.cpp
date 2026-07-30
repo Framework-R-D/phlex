@@ -110,7 +110,7 @@ void phlex::experimental::dyncall(void* fn, dcarg& result, dcargs_t& args, int v
   // because libffi is, and that yields a plethora of warnings from clang-tidy,
   // none of which warrant actual changes.
   // NOLINTBEGIN
-  std::size_t nargs = (std::size_t)args.size();
+  std::size_t nargs = args.size();
 
   auto t = std::make_unique<ffi_type*[]>(nargs);
   auto p = std::make_unique<void*[]>(nargs);

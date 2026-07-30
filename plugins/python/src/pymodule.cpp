@@ -210,7 +210,7 @@ static bool initialize()
   // Python interpreter will not happen atm.
   static std::atomic<bool> gil_released{false};
   if (!gil_released.exchange(true)) {
-    (void)PyEval_SaveThread(); // state not saved, as no place to restore
+    PyEval_SaveThread(); // state not saved, as no place to restore
   }
 
   return true;

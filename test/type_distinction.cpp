@@ -24,7 +24,7 @@ namespace {
 
   auto triple(int x) { return 3 * x; }
 
-  auto square(int x) { return std::tuple{x * x, double((x * x) + 0.5)}; }
+  auto square(int x) { return std::tuple{x * x, ((x * x) + 0.5)}; }
 
   int id(int x) { return x; }
 

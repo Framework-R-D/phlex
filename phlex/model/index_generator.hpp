@@ -79,7 +79,7 @@ namespace phlex {
         return *this;
       }
 
-      void operator++(int) { (void)++(*this); }
+      void operator++(int) { ++(*this); }
 
       value_type const& operator*() const noexcept { return coroutine_.promise().current_; }
       value_type const* operator->() const noexcept

@@ -79,8 +79,9 @@ namespace form::detail::experimental {
       createView(type);
     }
 
-    if (id >= (int)m_reader->GetNEntries())
+    if (id >= static_cast<int>(m_reader->GetNEntries())) {
       return false;
+    }
 
     //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
     auto buffer = m_view->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
