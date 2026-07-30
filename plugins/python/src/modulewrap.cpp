@@ -170,9 +170,9 @@ namespace {
     {
       dcargs_t argsv;
       argsv.reserve(sizeof...(Is) + 2);
-      argsv.push_back(dcarg{m_callable});
+      argsv.emplace_back(m_callable);
       (argsv.push_back(lifeline_transform(args)), ...);
-      argsv.push_back(dcarg{nullptr});
+      argsv.emplace_back(nullptr);
 
       PyGILRAII gil;
 
