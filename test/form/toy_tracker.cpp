@@ -4,7 +4,12 @@
 #include <algorithm>
 #include <chrono>
 
-ToyTracker::ToyTracker(int max_tracks) : gen_(std::chrono::system_clock().now().time_since_epoch().count()), size_dist_(0, max_tracks-1), value_dist_(0, 1) {}
+ToyTracker::ToyTracker(int max_tracks) :
+  gen_(std::chrono::system_clock().now().time_since_epoch().count()),
+  size_dist_(0, max_tracks-1),
+  value_dist_(0, 1)
+{
+}
 
 std::vector<TrackStart> ToyTracker::operator()()
 {

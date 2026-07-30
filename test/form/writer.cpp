@@ -7,25 +7,25 @@
 #include "test_utils.hpp"
 #include "toy_tracker.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <format>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <ranges>
 #include <vector>
-#include <random>
-#include <chrono>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;
 
 struct Generator
 {
-  Generator(): gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
+  Generator() : gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
 
-  void operator ()(std::vector<float>& vrand, int size)
+  void operator()(std::vector<float>& vrand, int size)
   {
     std::uniform_int_distribution size_dist(0, size-1);
     size_t const howMany = size_dist(gen_);
