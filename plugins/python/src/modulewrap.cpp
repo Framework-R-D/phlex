@@ -189,7 +189,7 @@ namespace {
       decref_all(args...);
 
       if (!error_msg.empty()) {
-        throw std::runtime_error(error_msg.c_str());
+        throw std::runtime_error(error_msg);
       }
 
       if constexpr (!std::is_void_v<RT>) {
