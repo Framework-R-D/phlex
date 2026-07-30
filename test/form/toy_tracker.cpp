@@ -10,7 +10,7 @@ std::vector<TrackStart> ToyTracker::operator()()
 {
   int32_t const npx = m_sizeDist(m_gen);
   std::vector<TrackStart> points;
-  points.reserve(npx);
+  points.resize(npx);
   std::generate_n(std::back_inserter(points), npx, [this] {
     return TrackStart(m_valueDist(m_gen), m_valueDist(m_gen), m_valueDist(m_gen));
   });

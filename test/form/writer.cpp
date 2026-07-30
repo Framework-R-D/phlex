@@ -29,7 +29,7 @@ struct Generator
   {
     std::uniform_int_distribution sizeDist(0, size);
     size_t const howMany = sizeDist(m_gen);
-    vrand.reserve(howMany);
+    vrand.resize(howMany);
 
     for(auto& rand: vrand) {
       rand = m_dist(m_gen);
