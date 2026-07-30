@@ -25,7 +25,7 @@ void TrackStart::setIndex(int index) { m_index = index; }
 
 TrackStart TrackStart::operator+(TrackStart const& other) const
 {
-  return TrackStart(m_x + other.m_x, m_y + other.m_y, m_z + other.m_z, m_index + other.m_index);
+  return {m_x + other.m_x, m_y + other.m_y, m_z + other.m_z, m_index + other.m_index};
 }
 
 TrackStart& TrackStart::operator+=(TrackStart const& other)
@@ -39,7 +39,7 @@ TrackStart& TrackStart::operator+=(TrackStart const& other)
 
 TrackStart TrackStart::operator-(TrackStart const& other) const
 {
-  return TrackStart(m_x - other.m_x, m_y - other.m_y, m_z - other.m_z, m_index - other.m_index);
+  return {m_x - other.m_x, m_y - other.m_y, m_z - other.m_z, m_index - other.m_index};
 }
 
 std::ostream& operator<<(std::ostream& os, TrackStart const& track)

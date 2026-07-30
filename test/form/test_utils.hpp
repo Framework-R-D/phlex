@@ -42,7 +42,7 @@ namespace form::test {
     int const /*technology*/,
     std::shared_ptr<IStorage_Write_Container>& /*parent*/)
   {
-    return std::vector<std::shared_ptr<IStorage_Write_Container>>();
+    return {};
   }
 
   template <class PROD, class... PRODS>
