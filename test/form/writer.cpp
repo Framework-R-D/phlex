@@ -27,7 +27,7 @@ struct Generator
 
   void operator ()(std::vector<float>& vrand, int size)
   {
-    std::uniform_int_distribution sizeDist(0, size);
+    std::uniform_int_distribution sizeDist(0, size-1);
     size_t const howMany = sizeDist(m_gen);
     vrand.resize(howMany);
 
