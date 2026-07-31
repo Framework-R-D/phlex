@@ -2,6 +2,7 @@
 #include "form/config.hpp"
 #include "form/form_reader.hpp"
 #include "form/form_source_type_registry.hpp"
+#include "form/form_writer.hpp"
 #include "form/technology.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
@@ -303,6 +304,30 @@ TEST_CASE("form_reader_interface::indices exercises persistence listIndices path
   // indices() calls persistence listIndices; with tech=0 the index container is
   // always empty, so it throws -- but the call itself covers form_reader.cpp L48.
   CHECK_THROWS_AS(reader.indices("creator", "prod"), std::runtime_error);
+}
+
+TEST_CASE("form_reader_interface::read throws for missing product config", "[form]")
+{
+  using namespace form::experimental::config;
+
+  ItemConfig cfg;
+  cfg.addItem("prod", "dummy_reader_test.root", 0);
+  form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
+
+  form::experimental::product_with_name product{"missing", nullptr, &typeid(int)};
+  CHECK_THROWS_AS(reader.read("creator", "segment", product), std::runtime_error);
+}
+
+TEST_CASE("form_writer_interface handles missing product config without crashing", "[form]")
+{
+  using namespace form::experimental::config;
+
+  ItemConfig cfg;
+  cfg.addItem("prod", "dummy_writer_test.root", 0);
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}};
+
+  form::experimental::product_with_name product{"missing", nullptr, &typeid(int)};
+  CHECK_NOTHROW(writer.write("creator", "segment", product));
 }
 
 TEST_CASE("form_source_type_registry product_from_data_fn throws on null data", "[form]")
