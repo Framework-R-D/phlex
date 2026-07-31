@@ -43,7 +43,7 @@ namespace phlex::detail {
                     tbb::flow::unlimited,
                     [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
                       auto&& [ready_flushes, index_to_emit] = input;
-                      return index_router_.route(index_to_emit, std::move(ready_flushes));
+                      return index_router_.route(index_to_emit, ready_flushes);
                     }},
     hierarchy_node_{graph_,
                     tbb::flow::unlimited,
@@ -82,7 +82,7 @@ namespace phlex::detail {
     if (shutdown_on_error_) {
       // When in an error state, we need to sanely pop the layer stack and wait for any tasks to finish.
       auto remaining_flushes = cell_tracker_.report_and_evict_ready_flushes(nullptr);
-      index_router_.drain(std::move(remaining_flushes));
+      index_router_.drain(remaining_flushes);
       graph_.wait_for_all();
     }
   }
@@ -213,13 +213,13 @@ namespace phlex::detail {
     }
 
     // Index-router finalization makes edges between the index-set nodes and the provider nodes.
-    finalize_router(std::move(provider_input_ports), std::move(multilayer_join_index_ports));
+    finalize_router(std::move(provider_input_ports), multilayer_join_index_ports);
   }
 
   // FIXME: Much, if not all, of this logic should be moved to the index_router.
   void framework_graph::finalize_router(
     index_router::provider_input_ports_t provider_input_ports,
-    std::map<std::string, named_index_ports> multilayer_join_index_ports)
+    std::map<std::string, named_index_ports> const& multilayer_join_index_ports)
   {
     std::set<phlex::experimental::identifier> unfold_input_layer_names;
 
@@ -248,7 +248,6 @@ namespace phlex::detail {
                                                    unfold_input_layer_names.end()),
       unfold_output_layer_names);
     index_router_.register_unfold_count_per_input_layer(std::move(unfold_count_per_input_layer));
-    index_router_.finalize(
-      graph_, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
+    index_router_.finalize(graph_, std::move(provider_input_ports), multilayer_join_index_ports);
   }
 }

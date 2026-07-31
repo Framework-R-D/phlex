@@ -25,6 +25,7 @@
 #include "oneapi/tbb/parallel_for.h"
 #include "spdlog/spdlog.h"
 
+#include <cassert>
 #include <memory>
 #include <ranges>
 
@@ -67,7 +68,9 @@ namespace {
       auto parent = index->parent();
       if (parent) {
         if (gates_t::accessor pa; gates.find(pa, parent->hash())) {
-          pa->second->roll_up_child(gate->committed_counts());
+          auto committed_counts = gate->committed_counts();
+          assert(committed_counts);
+          pa->second->roll_up_child(*committed_counts);
         }
       }
       gates.erase(a);
@@ -222,13 +225,13 @@ TEST_CASE("flush_gate: roll_up_child accumulates across multiple children", "[fl
   job_gate->update_expected_count(run_layer_hash, 2);
 
   // Simulate run 0 rolling up with 3 spills.
-  auto run0_committed = std::make_shared<data_cell_counts>();
-  run0_committed->add_to(spill_layer_hash, 3);
+  data_cell_counts run0_committed;
+  run0_committed.add_to(spill_layer_hash, 3);
   job_gate->roll_up_child(run0_committed);
 
   // Simulate run 1 rolling up with 5 spills.
-  auto run1_committed = std::make_shared<data_cell_counts>();
-  run1_committed->add_to(spill_layer_hash, 5);
+  data_cell_counts run1_committed;
+  run1_committed.add_to(spill_layer_hash, 5);
   job_gate->roll_up_child(run1_committed);
 
   REQUIRE(job_gate->all_children_accounted());

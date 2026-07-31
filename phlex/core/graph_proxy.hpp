@@ -13,6 +13,7 @@
 #include <concepts>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -47,48 +48,60 @@ namespace phlex::detail {
     /// Returns a new proxy through which member functions of that object may
     /// be registered as algorithm nodes.
     template <typename U, typename... Args>
-    graph_proxy<U> make(Args&&... args)
+    graph_proxy<U> make(Args&&... args) const
       requires(not is_bound_object<T>);
+
+    // In the registration methods below, 'f' is a by-value sink: it is ultimately
+    // moved into algorithm_bits.  The clang-tidy warning to take it by const
+    // reference is a false positive.
 
     /// @brief Registers a fold algorithm node.
     template <typename... InitArgs>
-    auto fold(std::string name,
-              is_fold_like auto f,
+    auto fold(std::string_view name,
+              is_fold_like auto f, // NOLINT(performance-unnecessary-value-param)
               concurrency c = concurrency::serial,
               std::string partition = "job",
-              InitArgs&&... init_args);
+              InitArgs&&... init_args) const;
 
     /// @brief Registers an observer node.
-    auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial);
+    auto observe(std::string_view name,
+                 is_observer_like auto f, // NOLINT(performance-unnecessary-value-param)
+                 concurrency c = concurrency::serial) const;
 
     /// @brief Registers a predicate node.
-    auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial);
+    auto predicate(std::string_view name,
+                   is_predicate_like auto f, // NOLINT(performance-unnecessary-value-param)
+                   concurrency c = concurrency::serial) const;
 
     /// @brief Registers a provider node.
-    auto provide(std::string name, is_provider_like auto f, concurrency c = concurrency::serial);
+    auto provide(std::string_view name,
+                 is_provider_like auto f, // NOLINT(performance-unnecessary-value-param)
+                 concurrency c = concurrency::serial) const;
 
     /// @brief Registers a transform node.
-    auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial);
+    auto transform(std::string_view name,
+                   is_transform_like auto f, // NOLINT(performance-unnecessary-value-param)
+                   concurrency c = concurrency::serial) const;
 
     /// @brief Registers an unfold node.
     template <typename Splitter>
-    auto unfold(std::string name,
+    auto unfold(std::string_view name,
                 is_predicate_like auto pred,
                 auto unf,
                 std::string destination_data_layer,
-                concurrency c = concurrency::serial);
+                concurrency c = concurrency::serial) const;
 
     /// @brief Registers a source (used by the framework to create provider nodes)
     template <std::derived_from<source> Source, typename... Args>
-    void add_source(std::string name, Args&&... args)
+    void add_source(std::string_view name, Args&&... args) const
       requires(not is_bound_object<T>);
 
     /// @brief Registers an output node.
-    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial);
+    auto output(std::string_view name, is_output_like auto f, concurrency c = concurrency::serial);
 
   protected:
     template <template <typename> typename Proxy, typename U, typename... Args>
-    Proxy<U> bind_to(Args&&... args)
+    Proxy<U> bind_to(Args&&... args) const
       requires(not is_bound_object<T>);
 
     graph_proxy(configuration const* config,
@@ -99,7 +112,7 @@ namespace phlex::detail {
       requires(is_bound_object<T>);
 
   private:
-    glue<T> create_glue(bool use_bound_object = true);
+    glue<T> create_glue(bool use_bound_object = true) const;
 
     configuration const* config_;
     // Non-owning references to framework-owned resources; graph_proxy<T> is a
@@ -122,7 +135,7 @@ namespace phlex::detail {
 
   template <typename T>
   template <typename U, typename... Args>
-  graph_proxy<U> graph_proxy<T>::make(Args&&... args)
+  graph_proxy<U> graph_proxy<T>::make(Args&&... args) const
     requires(not is_bound_object<T>)
   {
     return bind_to<graph_proxy, U>(std::forward<Args>(args)...);
@@ -130,72 +143,75 @@ namespace phlex::detail {
 
   template <typename T>
   template <typename... InitArgs>
-  auto graph_proxy<T>::fold(std::string name,
+  auto graph_proxy<T>::fold(std::string_view name,
                             is_fold_like auto f,
                             concurrency c,
                             std::string partition,
-                            InitArgs&&... init_args)
+                            InitArgs&&... init_args) const
   {
     return create_glue().fold(
-      std::move(name), std::move(f), c, std::move(partition), std::forward<InitArgs>(init_args)...);
+      name, std::move(f), c, std::move(partition), std::forward<InitArgs>(init_args)...);
   }
 
   template <typename T>
-  auto graph_proxy<T>::observe(std::string name, is_observer_like auto f, concurrency c)
+  auto graph_proxy<T>::observe(std::string_view name, is_observer_like auto f, concurrency c) const
   {
-    return create_glue().observe(std::move(name), std::move(f), c);
+    return create_glue().observe(name, std::move(f), c);
   }
 
   template <typename T>
-  auto graph_proxy<T>::predicate(std::string name, is_predicate_like auto f, concurrency c)
+  auto graph_proxy<T>::predicate(std::string_view name,
+                                 is_predicate_like auto f,
+                                 concurrency c) const
   {
-    return create_glue().predicate(std::move(name), std::move(f), c);
+    return create_glue().predicate(name, std::move(f), c);
   }
 
   template <typename T>
-  auto graph_proxy<T>::provide(std::string name, is_provider_like auto f, concurrency c)
+  auto graph_proxy<T>::provide(std::string_view name, is_provider_like auto f, concurrency c) const
   {
-    return create_glue().provide(std::move(name), std::move(f), c);
+    return create_glue().provide(name, std::move(f), c);
   }
 
   template <typename T>
-  auto graph_proxy<T>::transform(std::string name, is_transform_like auto f, concurrency c)
+  auto graph_proxy<T>::transform(std::string_view name,
+                                 is_transform_like auto f,
+                                 concurrency c) const
   {
-    return create_glue().transform(std::move(name), std::move(f), c);
+    return create_glue().transform(name, std::move(f), c);
   }
 
   template <typename T>
   template <typename Splitter>
-  auto graph_proxy<T>::unfold(std::string name,
+  auto graph_proxy<T>::unfold(std::string_view name,
                               is_predicate_like auto pred,
                               auto unf,
                               std::string destination_data_layer,
-                              concurrency c)
+                              concurrency c) const
   {
     return glue<Splitter>{graph_, nodes_, nullptr, errors_, config_}.unfold(
-      std::move(name), std::move(pred), std::move(unf), c, std::move(destination_data_layer));
+      name, std::move(pred), std::move(unf), c, std::move(destination_data_layer));
   }
 
   template <typename T>
   template <std::derived_from<source> Source, typename... Args>
-  void graph_proxy<T>::add_source(std::string name, Args&&... args)
+  void graph_proxy<T>::add_source(std::string_view name, Args&&... args) const
     requires(not is_bound_object<T>)
   {
     // The bound object is created when invoking add_source<Source>(...), so we explicitly indicate that
     // no bound object should be used in the create_glue(...) call.
-    return create_glue(false).template add_source<Source>(std::move(name),
-                                                          std::forward<Args>(args)...);
+    return create_glue(false).template add_source<Source>(name, std::forward<Args>(args)...);
   }
 
   template <typename T>
-  auto graph_proxy<T>::output(std::string name, is_output_like auto f, concurrency c)
+  auto graph_proxy<T>::output(std::string_view name, is_output_like auto f, concurrency c)
   {
-    return create_glue().output(std::move(name), std::move(f), c);
+    return create_glue().output(name, std::move(f), c);
   }
 
   template <typename T>
   template <template <typename> typename Proxy, typename U, typename... Args>
-  Proxy<U> graph_proxy<T>::bind_to(Args&&... args)
+  Proxy<U> graph_proxy<T>::bind_to(Args&&... args) const
     requires(not is_bound_object<T>)
   {
     return Proxy<U>{
@@ -209,12 +225,12 @@ namespace phlex::detail {
                               std::shared_ptr<T> bound_obj,
                               std::vector<std::string>& errors)
     requires(is_bound_object<T>)
-    : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{bound_obj}, errors_{errors}
+    : config_{config}, graph_{g}, nodes_{nodes}, bound_obj_{std::move(bound_obj)}, errors_{errors}
   {
   }
 
   template <typename T>
-  glue<T> graph_proxy<T>::create_glue(bool use_bound_object)
+  glue<T> graph_proxy<T>::create_glue(bool use_bound_object) const
   {
     return glue{graph_, nodes_, (use_bound_object ? bound_obj_ : nullptr), errors_, config_};
   }

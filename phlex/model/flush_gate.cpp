@@ -40,10 +40,9 @@ namespace phlex::detail {
     ++received_flush_count_;
   }
 
-  void flush_gate::roll_up_child(data_cell_counts_const_ptr child_committed_counts)
+  void flush_gate::roll_up_child(data_cell_counts const& child_committed_counts)
   {
-    assert(child_committed_counts);
-    for (auto const& [layer_hash, count] : *child_committed_counts) {
+    for (auto const& [layer_hash, count] : child_committed_counts) {
       committed_counts_->add_to(layer_hash, count);
     }
     --pending_child_rollups_;

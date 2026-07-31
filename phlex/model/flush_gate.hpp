@@ -66,7 +66,7 @@ namespace phlex::detail {
     // Records that a non-lowest direct child has rolled up: merges its committed_counts
     // into this gate's and decrements the pending-rollups balance.  The two steps are
     // bundled because every rollup must do both, in the same call.
-    void roll_up_child(data_cell_counts_const_ptr child_committed_counts);
+    void roll_up_child(data_cell_counts const& child_committed_counts);
 
     // Announces that n additional non-lowest direct children are expected to roll up.
     // Lowest-layer children require no such bookkeeping: their counts are fully accounted

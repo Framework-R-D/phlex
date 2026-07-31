@@ -2,6 +2,8 @@
 
 #include "storage_associative_write_container.hpp"
 
+#include <utility>
+
 using namespace form::detail::experimental;
 
 Storage_Associative_Write_Container::Storage_Associative_Write_Container(std::string const& name) :
@@ -26,5 +28,5 @@ std::string const& Storage_Associative_Write_Container::col_name() { return m_cN
 void Storage_Associative_Write_Container::setParent(
   std::shared_ptr<IStorage_Write_Container> parent)
 {
-  m_parent = parent;
+  m_parent = std::move(parent);
 }

@@ -50,7 +50,7 @@ namespace phlex::detail {
 
       void operator()(driver_proxy proxy, configuration const& config, driver_bundle* out) const
       {
-        fn(proxy, config, out);
+        fn(std::move(proxy), config, out);
       }
     };
 

@@ -136,7 +136,7 @@ namespace phlex::detail {
 
     template <typename DriverBuilder>
       requires is_driver_builder_like<DriverBuilder>
-    driver_bundle driver(std::shared_ptr<DriverBuilder> driver_builder) const
+    driver_bundle driver(std::shared_ptr<DriverBuilder> const& driver_builder) const
     {
       if (!driver_builder) {
         throw std::invalid_argument("Cannot configure driver with an empty driver builder.");

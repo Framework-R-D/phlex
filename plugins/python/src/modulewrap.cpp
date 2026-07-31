@@ -61,32 +61,32 @@ using phlex::product_selector;
 // clang-format off
 struct phlex::experimental::py_phlex_module {
   PyObject_HEAD
-  phlex_module_t* ph_module;
+  phlex_module_t const* ph_module;
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_module(phlex_module_t& module_)
+PyObject const* phlex::experimental::wrap_module(phlex_module_t const& module_)
 {
   py_phlex_module* pymod = PyObject_New(py_phlex_module, &PhlexModule_Type);
   pymod->ph_module = &module_;
 
-  return reinterpret_cast<PyObject*>(pymod);
+  return reinterpret_cast<PyObject const*>(pymod);
 }
 
 // Simple phlex source wrapper
 // clang-format off
 struct phlex::experimental::py_phlex_source {
   PyObject_HEAD
-  phlex_source_t* ph_source;
+  phlex_source_t const* ph_source;
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_source(phlex_source_t& source)
+PyObject const* phlex::experimental::wrap_source(phlex_source_t const& source)
 {
   py_phlex_source* pysrc = PyObject_New(py_phlex_source, &PhlexSource_Type);
   pysrc->ph_source = &source;
 
-  return reinterpret_cast<PyObject*>(pysrc);
+  return reinterpret_cast<PyObject const*>(pysrc);
 }
 
 namespace {
@@ -755,7 +755,7 @@ namespace {
                         concurrency nconcur)
   {
     mod->ph_module->transform(name, converter, nconcur)
-      .input_family(pq_in)
+      .input_family(std::move(pq_in))
       .output_product_suffixes(output);
   }
 
