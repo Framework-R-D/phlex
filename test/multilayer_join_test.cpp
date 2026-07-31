@@ -1,5 +1,4 @@
-#include "phlex/core/declared_transform.hpp"
-#include "phlex/metaprogramming/delegate.hpp"
+#include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
@@ -21,25 +20,13 @@ namespace {
 
   struct input_type_1 {
     int value;
-    auto operator<=>(input_type_1 const&) const = default;
   };
 
   struct input_type_2 {
     int value;
-    auto operator<=>(input_type_2 const&) const = default;
   };
 
-  struct output_type_1 {
-    int value;
-    auto operator<=>(output_type_1 const&) const = default;
-  };
-
-  output_type_1 add_values(input_type_1 const& left, input_type_2 const& right)
-  {
-    return {left.value + right.value};
-  }
-
-  template <typename T>
+ template <typename T>
   product_specification spec(char const* creator, char const* suffix)
   {
     return {algorithm_name{creator}, identifier{suffix}, make_type_id<T>()};
@@ -58,57 +45,43 @@ namespace {
     store->add_product(spec<T>(creator, suffix), std::move(value));
     return store;
   }
-
-  template <typename F>
-  auto algorithm_bits_for(F function)
-  {
-    return algorithm_bits{std::shared_ptr<void_tag>{}, std::move(function)};
-  }
 }
 
-TEST_CASE("transform_node joins multiple input products", "[join]")
+TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
 {
   oneapi::tbb::flow::graph graph;
-  auto left_selector = selector<input_type_1>("left_input", "");
-  auto right_selector = selector<input_type_2>("right_input", "");
   auto left_store = store_with_product("left_input", "", input_type_1{17});
   auto right_store = store_with_product("right_input", "", input_type_2{25});
-  auto alg = algorithm_bits_for(add_values);
 
-  transform_node<decltype(alg)> node{algorithm_name{"add_values"},
-                                     1u,
-                                     {},
-                                     graph,
-                                     std::move(alg),
-                                     {left_selector, right_selector},
-                                     {}};
-  declared_transform& transform = node;
+  // Force repeaters by passing distinct layer names.
+  // The actual routing is performed by matching index hashes between data, index, and flush.
+  auto join = multilayer_join_node<2>{
+    graph,
+    "multilayer_join_test",
+    std::vector<identifier>{identifier{"left_layer"}, identifier{"right_layer"}}};
 
-  oneapi::tbb::flow::queue_node<message> sink{graph};
-  make_edge(transform.output_port(), sink);
+  oneapi::tbb::flow::queue_node<message_tuple<2>> sink{graph};
+  make_edge(output_port<0>(join), sink);
 
-  auto& left_port = *transform.ports().at(0);
-  auto& right_port = *transform.ports().at(1);
+  auto& left_port = receiver_for<0ull, 2>(join, 0u);
+  auto& right_port = receiver_for<0ull, 2>(join, 1u);
 
   REQUIRE(left_port.try_put({.store = left_store, .id = message_id}));
   graph.wait_for_all();
 
-  message output;
+  message_tuple<2> output;
   CHECK_FALSE(sink.try_get(output));
-  CHECK(transform.num_calls() == 0u);
 
   REQUIRE(right_port.try_put({.store = right_store, .id = message_id}));
   graph.wait_for_all();
   CHECK_FALSE(sink.try_get(output));
-  CHECK(transform.num_calls() == 0u);
 
-  auto index_ports = transform.index_ports();
+  auto index_ports = join.index_ports();
   REQUIRE(index_ports.size() == 2u);
   REQUIRE(index_ports[0].index_port->try_put(
     {.index = left_store->index(), .msg_id = message_id, .cache = true}));
   graph.wait_for_all();
   CHECK_FALSE(sink.try_get(output));
-  CHECK(transform.num_calls() == 0u);
 
   REQUIRE(index_ports[1].index_port->try_put(
     {.index = right_store->index(), .msg_id = message_id, .cache = true}));
@@ -117,19 +90,16 @@ TEST_CASE("transform_node joins multiple input products", "[join]")
   REQUIRE(sink.try_get(output));
   CHECK_FALSE(sink.try_get(output));
 
+  CHECK(std::get<0>(output).id == message_id);
+  CHECK(std::get<1>(output).id == message_id);
+  REQUIRE(std::get<0>(output).store);
+  REQUIRE(std::get<1>(output).store);
+  CHECK(std::get<0>(output).store->index() == left_store->index());
+  CHECK(std::get<1>(output).store->index() == right_store->index());
+
+  // Do what is necessary to have the tokens flushed, so that the test does not generate
+  // warnings.
   REQUIRE(index_ports[0].token_port->try_put({.index = left_store->index(), .count = 1}));
   REQUIRE(index_ports[1].token_port->try_put({.index = right_store->index(), .count = 1}));
   graph.wait_for_all();
-
-  CHECK(output.id == message_id);
-  REQUIRE(output.store);
-  CHECK(output.store->index() == left_store->index());
-
-  auto const& output_specs = transform.output();
-  REQUIRE(output_specs.size() == 1u);
-  CHECK(output_specs[0].suffix() == identifier{""});
-  CHECK(output.store->get_product<output_type_1>(output_specs[0]) == output_type_1{42});
-
-  CHECK(transform.num_calls() == 1u);
-  CHECK(transform.product_count() == 1u);
 }
