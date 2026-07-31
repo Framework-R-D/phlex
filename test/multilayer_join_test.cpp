@@ -33,12 +33,6 @@ namespace {
   }
 
   template <typename T>
-  product_selector selector(char const* creator, char const* suffix)
-  {
-    return {.creator = creator, .layer = "job", .suffix = suffix, .type = make_type_id<T>()};
-  }
-
-  template <typename T>
   product_store_ptr store_with_product(char const* creator, char const* suffix, T value)
   {
     auto store = product_store::base(creator);
