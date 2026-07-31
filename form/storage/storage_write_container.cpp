@@ -1,12 +1,14 @@
 // Copyright (C) 2025 ...
 
 #include "storage_write_container.hpp"
+
 #include "storage_file.hpp"
+#include <utility>
 
 using namespace form::detail::experimental;
 
-Storage_Write_Container::Storage_Write_Container(std::string const& name) :
-  m_name(name), m_file(nullptr)
+Storage_Write_Container::Storage_Write_Container(std::string name) :
+  m_name(std::move(name)), m_file(nullptr)
 {
 }
 
