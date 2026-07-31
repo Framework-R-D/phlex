@@ -7,41 +7,44 @@
 #include "test_utils.hpp"
 #include "toy_tracker.hpp"
 
+#include <cassert>
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <format>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <ranges>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;
 
-void generate(std::vector<float>& vrand, int size)
-{
-  // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-  int rand1 = rand() % 32768;
-  int rand2 = rand() % 32768;
-  // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-  int npx = ((rand1 * 32768) + rand2) % size;
-  for (int nelement = 0; nelement < npx; ++nelement) {
-    // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-    int rand1 = rand() % 32768;
-    int rand2 = rand() % 32768;
-    // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-    float random = static_cast<float>((rand1 * 32768) + rand2) / (32768.0f * 32768);
-    vrand.push_back(random);
+struct Generator {
+  Generator() : gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
+
+  void operator()(std::vector<float>& vrand, int size)
+  {
+    assert(size > 1);
+    std::uniform_int_distribution size_dist(0, size - 1);
+    size_t const howMany = size_dist(gen_);
+    vrand.resize(howMany);
+
+    for (auto& rand : vrand) {
+      rand = dist_(gen_);
+    }
   }
-}
+
+private:
+  std::mt19937 gen_;
+  std::uniform_real_distribution<float> dist_;
+};
 
 int main(int argc, char** argv)
 {
   std::cout << "In main" << '\n';
-  // Deliberately use C-style random number generation for simplicity in a test
-  // NOLINTNEXTLINE(bugprone-random-generator-seed, cert-msc32-c, cert-msc51-cpp)
-  srand(time(nullptr));
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
@@ -71,6 +74,8 @@ int main(int argc, char** argv)
     std::cerr << "ERROR: Could not open checksum file: " << checksum_filename << '\n';
     return 1;
   }
+
+  Generator generate;
 
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << '\n';
