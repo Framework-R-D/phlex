@@ -28,9 +28,9 @@ namespace phlex::detail {
       boost::dll::shared_library lib;
       internal::module_creator_t* fn{};
 
-      void operator()(module_graph_proxy<void_tag> proxy, configuration const& config) const
+      void operator()(module_graph_proxy<void_tag> const& proxy, configuration const& config) const
       {
-        fn(std::move(proxy), config);
+        fn(proxy, config);
       }
     };
 
@@ -48,9 +48,11 @@ namespace phlex::detail {
       boost::dll::shared_library lib;
       internal::driver_shim_t* fn{};
 
-      void operator()(driver_proxy proxy, configuration const& config, driver_bundle* out) const
+      void operator()(driver_proxy const& proxy,
+                      configuration const& config,
+                      driver_bundle* out) const
       {
-        fn(std::move(proxy), config, out);
+        fn(proxy, config, out);
       }
     };
 

@@ -32,7 +32,7 @@ namespace phlex::detail {
     using next_index_t = std::function<void(framework_driver&)>;
     // Shim type for the extern "C" entry-point: out-parameter avoids returning a C++ type
     // across a C-linkage boundary.
-    using driver_shim_t = void(driver_proxy, configuration const&, driver_bundle*);
+    using driver_shim_t = void(driver_proxy const&, configuration const&, driver_bundle*);
 
     template <typename SourceType>
     std::remove_cvref_t<SourceType> const& as_driver_source(source const* src, std::size_t index)

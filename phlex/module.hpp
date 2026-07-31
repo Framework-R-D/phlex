@@ -37,7 +37,7 @@ namespace phlex::detail {
   };
 
   namespace internal {
-    using module_creator_t = void(module_graph_proxy<void_tag>, configuration const&);
+    using module_creator_t = void(module_graph_proxy<void_tag> const&, configuration const&);
   }
 }
 

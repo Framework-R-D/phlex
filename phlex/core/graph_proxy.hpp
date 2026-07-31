@@ -97,7 +97,9 @@ namespace phlex::detail {
       requires(not is_bound_object<T>);
 
     /// @brief Registers an output node.
-    auto output(std::string_view name, is_output_like auto f, concurrency c = concurrency::serial);
+    auto output(std::string_view name,
+                is_output_like auto f,
+                concurrency c = concurrency::serial) const;
 
   protected:
     template <template <typename> typename Proxy, typename U, typename... Args>
@@ -204,7 +206,7 @@ namespace phlex::detail {
   }
 
   template <typename T>
-  auto graph_proxy<T>::output(std::string_view name, is_output_like auto f, concurrency c)
+  auto graph_proxy<T>::output(std::string_view name, is_output_like auto f, concurrency c) const
   {
     return create_glue().output(name, std::move(f), c);
   }
