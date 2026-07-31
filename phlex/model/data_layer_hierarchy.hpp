@@ -38,7 +38,7 @@ namespace phlex::detail {
     using hash_name_pairs = std::vector<hash_name_pair>;
     std::string pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
                                std::string const& parent_name,
-                               std::string indent = {}) const;
+                               std::string const& indent = {}) const;
 
     struct layer_entry {
       layer_entry(phlex::experimental::identifier n,

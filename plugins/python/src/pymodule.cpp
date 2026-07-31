@@ -37,7 +37,7 @@ namespace pymodule_register_providers {
       // register providers using conventional callback
       PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_REGISTER_PROVIDERS");
       if (reg) {
-        PyObject* pys = wrap_source(m);
+        PyObject const* pys = wrap_source(m);
         PyObject* pyconfig = wrap_configuration(config);
         if (pys && pyconfig) {
           PyObject* res = PyObject_CallFunctionObjArgs(reg, pys, pyconfig, nullptr);
@@ -77,7 +77,7 @@ namespace pymodule_register_algorithms {
       // register algorithms using conventional callback
       PyObject* reg = PyObject_GetAttrString(mod, "PHLEX_REGISTER_ALGORITHMS");
       if (reg) {
-        PyObject* pym = wrap_module(m);
+        PyObject const* pym = wrap_module(m);
         PyObject* pyconfig = wrap_configuration(config);
         if (pym && pyconfig) {
           PyObject* res = PyObject_CallFunctionObjArgs(reg, pym, pyconfig, nullptr);

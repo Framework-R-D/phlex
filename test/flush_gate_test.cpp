@@ -24,6 +24,7 @@
 #include "oneapi/tbb/concurrent_vector.h"
 #include "oneapi/tbb/parallel_for.h"
 
+#include <cassert>
 #include <memory>
 #include <ranges>
 #include <vector>
@@ -67,7 +68,9 @@ namespace {
       auto parent = index->parent();
       if (parent) {
         if (gates_t::accessor pa; gates.find(pa, parent->hash())) {
-          pa->second->roll_up_child(gate->committed_counts());
+          auto committed_counts = gate->committed_counts();
+          assert(committed_counts);
+          pa->second->roll_up_child(*committed_counts);
         }
       }
       gates.erase(a);

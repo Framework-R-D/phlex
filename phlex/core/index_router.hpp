@@ -98,7 +98,7 @@ namespace phlex::detail {
     };
 
     explicit index_router(tbb::flow::graph& g);
-    data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes flushes);
+    data_cell_index_ptr route(data_cell_index_ptr const& index, index_flushes const& flushes);
 
     // Establishes the layer hierarchy, registers unfold metadata, and wires all TBB graph
     // edges needed before execution.
@@ -122,8 +122,8 @@ namespace phlex::detail {
                   unfold_data unfolds,
                   provider_input_ports_t provider_input_ports,
                   fold_partition_ports_t fold_partition_ports,
-                  std::map<std::string, named_index_ports> multilayer_join_ports);
-    void drain(index_flushes flushes);
+                  std::map<std::string, named_index_ports> const& multilayer_join_ports);
+    void drain(index_flushes const& flushes);
 
     tbb::flow::function_node<index_message, data_cell_index_ptr>& unfold_index_receiver()
     {
@@ -159,7 +159,7 @@ namespace phlex::detail {
     internal::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<internal::multilayer_slots_ptr, internal::end_token_entries_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);
-    void update_flush_counts(index_flushes flushes);
+    void update_flush_counts(index_flushes const& flushes);
     void apply_expected_count(flush_gate& gate,
                               data_cell_index::hash_type child_layer_hash,
                               std::size_t count);
