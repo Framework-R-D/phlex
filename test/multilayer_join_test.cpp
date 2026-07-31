@@ -26,7 +26,7 @@ namespace {
     int value;
   };
 
- template <typename T>
+  template <typename T>
   product_specification spec(char const* creator, char const* suffix)
   {
     return {algorithm_name{creator}, identifier{suffix}, make_type_id<T>()};
