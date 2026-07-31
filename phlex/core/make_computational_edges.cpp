@@ -170,7 +170,7 @@ namespace phlex::detail {
             continue;
           }
 
-          for (auto* producer : producer_ports) {
+          for (auto const* producer : producer_ports) {
             make_edge(*producer->output_port, *receiver_port);
           }
         }
