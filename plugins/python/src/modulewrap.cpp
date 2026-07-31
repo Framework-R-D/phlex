@@ -65,12 +65,12 @@ struct phlex::experimental::py_phlex_module {
 };
 // clang-format on
 
-PyObject const* phlex::experimental::wrap_module(phlex_module_t const& module_)
+PyObject* phlex::experimental::wrap_module(phlex_module_t const& module_)
 {
   py_phlex_module* pymod = PyObject_New(py_phlex_module, &PhlexModule_Type);
   pymod->ph_module = &module_;
 
-  return reinterpret_cast<PyObject const*>(pymod);
+  return reinterpret_cast<PyObject*>(pymod);
 }
 
 // Simple phlex source wrapper
@@ -81,12 +81,12 @@ struct phlex::experimental::py_phlex_source {
 };
 // clang-format on
 
-PyObject const* phlex::experimental::wrap_source(phlex_source_t const& source)
+PyObject* phlex::experimental::wrap_source(phlex_source_t const& source)
 {
   py_phlex_source* pysrc = PyObject_New(py_phlex_source, &PhlexSource_Type);
   pysrc->ph_source = &source;
 
-  return reinterpret_cast<PyObject const*>(pysrc);
+  return reinterpret_cast<PyObject*>(pysrc);
 }
 
 namespace {
