@@ -18,7 +18,11 @@ namespace phlex::detail {
     data_{consumer.input()},
     indexer_{g},
     filter_{g, flow::unlimited, [this](tag_t const& t) { return execute(t); }},
-    downstream_ports_{consumer.ports()},
+    downstream_ports_{consumer.input() |
+                      std::views::transform([&consumer](product_selector const& selector) {
+                        return &consumer.port(selector);
+                      }) |
+                      std::ranges::to<decltype(downstream_ports_)>()},
     nargs_{size(downstream_ports_)}
   {
     make_edge(indexer_, filter_);
