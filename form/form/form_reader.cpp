@@ -27,8 +27,8 @@ namespace form::experimental {
                                    product_with_name& product)
   {
 
-    auto it = m_product_to_config.find(product.label);
-    if (it == m_product_to_config.end()) {
+    auto config_it = m_product_to_config.find(product.label);
+    if (config_it == m_product_to_config.end()) {
       throw std::runtime_error("No configuration found for product: " + product.label);
     }
 

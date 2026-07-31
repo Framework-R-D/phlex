@@ -113,9 +113,9 @@ namespace form::detail::experimental {
     if (m_force_streamer_field) {
       field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
     } else {
-      auto result = ROOT::RFieldBase::Create(col_name(), type_name);
-      if (result) {
-        field = result.Unwrap();
+      auto field_result = ROOT::RFieldBase::Create(col_name(), type_name);
+      if (field_result) {
+        field = field_result.Unwrap();
       } else {
         std::cerr
           << "ROOT_RField_Write_ContainerImp::setupWrite could not create column-wise storage for "

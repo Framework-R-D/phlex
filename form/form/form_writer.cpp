@@ -28,8 +28,8 @@ namespace form::experimental {
                                     product_with_name const& product)
   {
 
-    auto it = m_product_to_config.find(product.label);
-    if (it == m_product_to_config.end()) {
+    auto config_it = m_product_to_config.find(product.label);
+    if (config_it == m_product_to_config.end()) {
       std::cerr << "No configuration found for product: " << product.label << '\n';
       return;
     }
@@ -51,8 +51,8 @@ namespace form::experimental {
       return;
     }
 
-    auto it = m_product_to_config.find(products[0].label);
-    if (it == m_product_to_config.end()) {
+    auto config_it = m_product_to_config.find(products[0].label);
+    if (config_it == m_product_to_config.end()) {
       std::cerr << "No configuration found for product: " << products[0].label << '\n';
       return;
     }
