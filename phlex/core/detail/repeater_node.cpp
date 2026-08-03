@@ -169,5 +169,4 @@ namespace phlex::detail::internal {
       cached_products_.erase(a);
     }
   }
-
 }

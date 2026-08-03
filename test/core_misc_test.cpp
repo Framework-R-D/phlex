@@ -91,7 +91,7 @@ TEST_CASE("verify_name tests", "[core]")
       FAIL("Should have thrown");
     } catch (std::runtime_error const& e) {
       std::string msg = e.what();
-      CHECK(msg.find("my_module") != std::string::npos);
+      CHECK(msg.contains("my_module"));
     }
   }
 }
@@ -104,5 +104,5 @@ TEST_CASE("add_to_error_messages tests", "[core]")
   add_to_error_messages(errors, "Node", "duplicate_node");
 
   REQUIRE(errors.size() == 1);
-  CHECK(errors[0].find("duplicate_node") != std::string::npos);
+  CHECK(errors[0].contains("duplicate_node"));
 }

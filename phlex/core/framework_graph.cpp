@@ -45,7 +45,7 @@ namespace phlex::detail {
     index_router::fold_partition_ports_t fold_partition_ports(declared_folds const& folds)
     {
       index_router::fold_partition_ports_t result;
-      for (auto& [fold_name, fold_node] : folds) {
+      for (auto const& [fold_name, fold_node] : folds) {
         result.try_emplace(fold_name, fold_node->partition_layer(), &fold_node->partition_port());
       }
       return result;
@@ -254,6 +254,6 @@ namespace phlex::detail {
                            unfold_layers(nodes_.unfolds),
                            std::move(provider_input_ports),
                            fold_partition_ports(nodes_.folds),
-                           std::move(multilayer_join_index_ports));
+                           multilayer_join_index_ports);
   }
 }

@@ -143,13 +143,11 @@ namespace {
     }
     py_callback_base(py_callback_base&& other) = delete;
     py_callback_base& operator=(py_callback_base&& other) = delete;
-    virtual ~py_callback_base()
-    {
-      // TODO: cleanup deferred to Phlex shutdown hook
-      // Cannot safely Py_DECREF during arbitrary destruction due to:
-      // - TOCTOU race on Py_IsInitialized() without GIL
-      // - Module offloading in interpreter cleanup phase 2
-    }
+    // TODO: cleanup deferred to Phlex shutdown hook
+    // Cannot safely Py_DECREF during arbitrary destruction due to:
+    // - TOCTOU race on Py_IsInitialized() without GIL
+    // - Module offloading in interpreter cleanup phase 2
+    virtual ~py_callback_base() = default;
   };
 
   // type repeater to automatically instantiate callbacks taking N args

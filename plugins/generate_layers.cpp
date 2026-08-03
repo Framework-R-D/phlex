@@ -38,5 +38,5 @@ PHLEX_REGISTER_DRIVER(d, config)
                     .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
   }
 
-  return d.driver(std::move(gen));
+  return d.driver(gen);
 }

@@ -32,7 +32,7 @@ void ROOT_TBranch_Write_ContainerImp::setAttribute(std::string const& key, std::
 void ROOT_TBranch_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
   this->Storage_Associative_Write_Container::setFile(file);
-  ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
+  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
     throw std::runtime_error(
       "ROOT_TBranch_Write_ContainerImp::setFile can't attach to non-ROOT file");
@@ -43,8 +43,7 @@ void ROOT_TBranch_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> fil
 void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_Container> parent)
 {
   this->Storage_Associative_Write_Container::setParent(parent);
-  ROOT_TTree_Write_ContainerImp* root_ttree_imp =
-    dynamic_cast<ROOT_TTree_Write_ContainerImp*>(parent.get());
+  auto* root_ttree_imp = dynamic_cast<ROOT_TTree_Write_ContainerImp*>(parent.get());
   if (root_ttree_imp == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setParent");
   }

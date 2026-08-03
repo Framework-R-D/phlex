@@ -23,6 +23,7 @@
 #include "oneapi/tbb/info.h"
 
 #include <concepts>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -190,7 +191,7 @@ namespace phlex::detail {
     void make_filter_edges();
     void make_bookkeeping_edges();
 
-    enum class driver_mode { default_driver, deferred_driver };
+    enum class driver_mode : std::uint8_t { default_driver, deferred_driver };
     explicit framework_graph(driver_mode mode, int max_parallelism);
 
     resource_usage graph_resource_usage_;

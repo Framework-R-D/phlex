@@ -13,12 +13,12 @@
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
-#if defined(USE_ROOT_STORAGE)
+#ifdef USE_ROOT_STORAGE
 #include "root_storage/root_tbranch_read_container.hpp"
 #include "root_storage/root_tbranch_write_container.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
 #endif
-#if defined(USE_RNTUPLE_STORAGE)
+#ifdef USE_RNTUPLE_STORAGE
 #include "root_storage/root_rfield_read_container.hpp"
 #include "root_storage/root_rfield_write_container.hpp"
 #include "root_storage/root_rntuple_write_container.hpp"
@@ -203,7 +203,7 @@ TEST_CASE("Factories fallback", "[form]")
 
 TEST_CASE("Factories ROOT storage dispatch", "[form]")
 {
-#if defined(USE_ROOT_STORAGE)
+#ifdef USE_ROOT_STORAGE
   auto rc_ttree = createReadContainer(form::technology::ROOT_TTREE, "cont");
   CHECK(dynamic_cast<ROOT_TBranch_Read_ContainerImp*>(rc_ttree.get()) != nullptr);
 
@@ -227,7 +227,7 @@ TEST_CASE("Factories ROOT storage dispatch", "[form]")
 
 TEST_CASE("Factories RNTuple storage dispatch", "[form]")
 {
-#if defined(USE_RNTUPLE_STORAGE)
+#ifdef USE_RNTUPLE_STORAGE
   auto rc_rntuple = createReadContainer(form::technology::ROOT_RNTUPLE, "cont");
   CHECK(dynamic_cast<ROOT_RField_Read_ContainerImp*>(rc_rntuple.get()) != nullptr);
 
