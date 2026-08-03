@@ -38,6 +38,15 @@ cet_make_library(
   Boost::json
   spdlog::spdlog
 )
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.1)
+    target_link_libraries(phlex_core PUBLIC -lstdc++exp)
+  else()
+    target_link_libraries(phlex_core PUBLIC -lstdc++_libbacktrace)
+  endif()
+endif()
+
 install(
   FILES
     concepts.hpp

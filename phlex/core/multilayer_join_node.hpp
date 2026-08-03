@@ -76,15 +76,14 @@ namespace phlex::detail {
       name_{std::move(node_name)},
       layers_{std::move(layer_names)}
     {
-      assert(NInputs == layers_.size());
-
+      using namespace experimental::literals;
       // Collapse to the set of distinct layer names.  More than one distinct layer means
       // at least one input crosses a layer boundary and therefore every input stream
       // needs a repeater_node.
       std::set collapsed_layers(layers_.begin(), layers_.end());
 
       // Add repeaters only if the inputs span more than one distinct layer.
-      if (collapsed_layers.size() > 1) {
+      if (collapsed_layers.size() > 1 || collapsed_layers.contains("*"_id)) {
         repeaters_.reserve(NInputs);
         for (auto const& layer : layers_) {
           repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));
