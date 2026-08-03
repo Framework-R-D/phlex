@@ -3,11 +3,17 @@
 namespace {
   std::vector<phlex::experimental::identifier> layers_from(phlex::product_selectors const& queries)
   {
+    using namespace phlex::experimental::literals;
     std::vector<phlex::experimental::identifier> result;
     result.reserve(queries.size());
     for (auto const& query : queries) {
-      result.push_back(query.layer);
+      if (query.layer) {
+        result.push_back(query.layer);
+      } else {
+        result.push_back("*"_id);
+      }
     }
+    result.shrink_to_fit();
     return result;
   }
 }

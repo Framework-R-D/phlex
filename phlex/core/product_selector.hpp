@@ -9,7 +9,9 @@
 #include "phlex/model/type_id.hpp"
 
 #include <concepts>
+#include <format>
 #include <optional>
+#include <stacktrace>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -49,35 +51,49 @@ namespace phlex {
 
     // The required_layer_name has to be a template for static_assert(false)
     template <std::same_as<experimental::identifier> T>
-    class required_layer_name {
+    class layer_name {
     public:
-      required_layer_name()
-      {
-        static_assert(false, "The layer name has not been set in this product_selector.");
-      }
+      layer_name() : content_(std::nullopt) {}
       template <typename U>
         requires std::constructible_from<T, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      required_layer_name(U&& rhs) : content_(std::forward<U>(rhs))
+      layer_name(U&& rhs) : content_(std::forward<U>(rhs))
       {
-        if (content_.empty()) {
+        if (content_.value().empty()) {
           throw std::runtime_error("Cannot specify the empty string as a data layer.");
         }
       }
 
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      operator T const&() const noexcept { return content_; }
-      explicit operator std::string_view() const noexcept { return std::string_view(content_); }
-      bool operator==(required_layer_name const&) const noexcept = default;
+      operator T const&() const
+      {
+        if (!content_.has_value()) {
+          throw std::logic_error(
+            std::format("Cannot retrieve layer from product_selector with no layer\n{}\n",
+                        std::stacktrace::current()));
+        }
+        return content_.operator*();
+      }
+
+      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
+      explicit operator std::string_view() const noexcept
+      {
+        using namespace std::string_view_literals;
+        return content_
+          .transform([](experimental::identifier const& id) { return std::string_view(id); })
+          .value_or(""sv);
+      }
+      operator bool() const noexcept { return content_.has_value(); }
+      bool operator==(layer_name const&) const noexcept = default;
 
     private:
-      experimental::identifier content_;
+      std::optional<experimental::identifier> content_;
     };
   }
 
   struct PHLEX_CORE_EXPORT product_selector {
     detail::creator_name<experimental::identifier> creator;
-    detail::required_layer_name<experimental::identifier> layer;
+    detail::layer_name<experimental::identifier> layer;
     std::optional<experimental::identifier> suffix;
     std::optional<experimental::identifier> stage;
     detail::type_id type;

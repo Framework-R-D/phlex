@@ -50,13 +50,13 @@ TEST_CASE("Querying products in different ways", "[graph]")
 
   // Duplicate with transform
   g.transform("duplicate_temperature", [](double const& t) { return t; })
-    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "temperature"})
+    .input_family(product_selector{.creator = "input", .suffix = "temperature"})
     .output_product_suffixes("temperature");
 
   SECTION("All fields")
   {
     g.transform("all_fields", [](int const& i) { return i + 1; })
-      .input_family(product_selector{.creator = "input", .layer = "job", .suffix = "number"})
+      .input_family(product_selector{.creator = "input", .suffix = "number"})
       .output_product_suffixes("job_number");
     g.execute();
     CHECK(g.execution_count("all_fields") == 1);
@@ -71,7 +71,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
        "verify_name",
        [](std::string const& str, int const& n) { CHECK(str == fmt::format("John the {}th", n)); })
       .input_family(product_selector{.creator = "give_name", .layer = "event"},
-                    product_selector{.creator = "input", .layer = "event"});
+                    product_selector{.creator = "input"});
     g.execute();
     CHECK(g.execution_count("creator_and_layer_by_creator") == num_events);
   }
@@ -88,7 +88,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
   SECTION("Creator and Layer, using layer")
   {
     g.transform("creator_and_layer_by_layer", [](double const& d) { return d; })
-      .input_family(product_selector{.creator = "input", .layer = "event"})
+      .input_family(product_selector{.creator = "input"})
       .output_product_suffixes("event_temp");
     g.execute();
     CHECK(g.execution_count("creator_and_layer_by_layer") == num_events);
