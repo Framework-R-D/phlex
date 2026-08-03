@@ -49,7 +49,8 @@
   - [PR #451](https://github.com/Framework-R-D/phlex/issues/451)
 - [x] [clang-analyzer-security.ArrayBound](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/security.ArrayBound.html) (2)
   - No longer found with current `clang-tidy` configuration.
-- [ ] [clang-analyzer-security.insecureAPI.rand](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/security.insecureAPI.rand.html) (6)
+- [x] [clang-analyzer-security.insecureAPI.rand](https://clang.llvm.org/extra/clang-tidy/checks/clang-analyzer/security.insecureAPI.rand.html) (6)
+  - [PR #790](https://github.com/Framework-R-D/phlex/pull/790)
 - [x] [concurrency-mt-unsafe](https://clang.llvm.org/extra/clang-tidy/checks/concurrency/mt-unsafe.html) (1)
   - [PR #542](https://github.com/Framework-R-D/phlex/pull/542)
 - [x] [cppcoreguidelines-avoid-const-or-ref-data-members](https://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines/avoid-const-or-ref-data-members.html) (26)
