@@ -81,10 +81,7 @@ namespace {
   // Provider algorithms
   unsigned int provide_max_number(data_cell_index const& id) { return 10u * (id.number() + 1); }
 
-  numbers_t provide_ten_numbers(data_cell_index const& id)
-  {
-    return numbers_t(10, id.number() + 1);
-  }
+  auto provide_ten_numbers(data_cell_index const& id) { return numbers_t(10, id.number() + 1); }
 }
 
 TEST_CASE("Splitting the processing", "[graph]")

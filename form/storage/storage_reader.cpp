@@ -389,5 +389,4 @@ void StorageReader::readContainer(Token const& token,
     }
   }
   cont->second->read(token.id(), data, type);
-  return;
 }
