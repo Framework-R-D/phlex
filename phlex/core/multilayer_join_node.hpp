@@ -80,7 +80,7 @@ namespace phlex::detail {
       // Collapse to the set of distinct layer names.  More than one distinct layer means
       // at least one input crosses a layer boundary and therefore every input stream
       // needs a repeater_node.
-      std::set collapsed_layers{layers_.begin(), layers_.end()};
+      std::set collapsed_layers(layers_.begin(), layers_.end());
 
       // Add repeaters only if the inputs span more than one distinct layer.
       if (collapsed_layers.size() > 1) {
