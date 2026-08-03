@@ -15,10 +15,7 @@ namespace form::detail::experimental {
     Token() : Token("", "", 0) {}
 
     /// Named constructor; id defaults to -1 as a "not set" sentinel
-    Token(std::string const& fileName,
-          std::string const& containerName,
-          int technology,
-          int id = -1);
+    Token(std::string fileName, std::string containerName, int technology, int id = -1);
 
     /// Access file name
     std::string const& fileName() const;

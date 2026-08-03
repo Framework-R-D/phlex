@@ -68,11 +68,11 @@ namespace phlex::detail {
 
   public:
     multilayer_join_node(tbb::flow::graph& g,
-                         std::string const& node_name,
+                         std::string node_name,
                          std::vector<phlex::experimental::identifier> layer_names) :
       base_t{g},
       join_{make_join(g, std::make_index_sequence<NInputs>{})},
-      name_{node_name},
+      name_{std::move(node_name)},
       layers_{std::move(layer_names)}
     {
       assert(NInputs == layers_.size());

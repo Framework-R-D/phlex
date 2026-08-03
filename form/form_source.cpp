@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -63,12 +64,12 @@ namespace {
   public:
     FormInputSource(form::experimental::config::ItemConfig const& input_cfg,
                     form::experimental::config::tech_setting_config const& tech_cfg,
-                    std::string const& actual_creator,
-                    std::string const& advertised_creator,
+                    std::string actual_creator,
+                    std::string advertised_creator,
                     std::vector<std::string> const& products) :
       reader_(std::make_shared<form::experimental::form_reader_interface>(input_cfg, tech_cfg)),
-      actual_creator_(actual_creator),
-      advertised_creator_(advertised_creator),
+      actual_creator_(std::move(actual_creator)),
+      advertised_creator_(std::move(advertised_creator)),
       products_(products)
     {
       // Ensure all builtin types are registered for dynamic dispatch

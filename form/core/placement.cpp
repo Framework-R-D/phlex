@@ -2,13 +2,15 @@
 
 #include "placement.hpp"
 
+#include <utility>
+
 using namespace form::detail::experimental;
 
 /// Constructor with initialization
-Placement::Placement(std::string const& fileName,
-                     std::string const& containerName,
-                     int technology) :
-  m_technology(technology), m_fileName(fileName), m_containerName(containerName)
+Placement::Placement(std::string fileName, std::string containerName, int technology) :
+  m_technology(technology),
+  m_fileName(std::move(fileName)),
+  m_containerName(std::move(containerName))
 {
 }
 

@@ -39,7 +39,7 @@ namespace phlex {
   class PHLEX_CONFIGURATION_INTERNAL_EXPORT configuration {
   public:
     configuration() = default;
-    explicit configuration(boost::json::object const& config) : config_{config} {}
+    explicit configuration(boost::json::object config) : config_{std::move(config)} {}
 
     template <typename T>
     std::optional<T> get_if_present(std::string const& key) const

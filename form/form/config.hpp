@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace form::experimental::config {
@@ -17,8 +18,8 @@ namespace form::experimental::config {
 
     PersistenceItem() = default;
 
-    PersistenceItem(std::string const& product, std::string const& file, int tech) :
-      product_name(product), file_name(file), technology(tech)
+    PersistenceItem(std::string product, std::string file, int tech) :
+      product_name(std::move(product)), file_name(std::move(file)), technology(tech)
     {
     }
   };
