@@ -22,7 +22,6 @@ install(
     simple_ptr_map.hpp
     sized_tuple.hpp
     sleep_for.hpp
-    string_literal.hpp
     thread_counter.hpp
   DESTINATION include/phlex/utilities
 )
