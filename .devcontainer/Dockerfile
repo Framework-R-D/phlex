@@ -104,6 +104,7 @@ INSTALL_DEV_UTILS
 RUN bash <<'INSTALL_NPM_PACKAGES'
 set -euo pipefail
 npm config set allow-scripts=@kilocode/cli --location=user
+npm config set min-release-age=3 --location=user
 npm install -g @kilocode/cli
 INSTALL_NPM_PACKAGES
 
