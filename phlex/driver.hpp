@@ -32,7 +32,7 @@ namespace phlex::detail {
     using next_index_t = std::function<void(framework_driver&)>;
     // Shim type for the extern "C" entry-point: out-parameter avoids returning a C++ type
     // across a C-linkage boundary.
-    using driver_shim_t = void(driver_proxy, configuration const&, driver_bundle*);
+    using driver_shim_t = void(driver_proxy const&, configuration const&, driver_bundle*);
 
     template <typename SourceType>
     std::remove_cvref_t<SourceType> const& as_driver_source(source const* src, std::size_t index)
@@ -136,7 +136,7 @@ namespace phlex::detail {
 
     template <typename DriverBuilder>
       requires is_driver_builder_like<DriverBuilder>
-    driver_bundle driver(std::shared_ptr<DriverBuilder> driver_builder) const
+    driver_bundle driver(std::shared_ptr<DriverBuilder> const& driver_builder) const
     {
       if (!driver_builder) {
         throw std::invalid_argument("Cannot configure driver with an empty driver builder.");

@@ -98,7 +98,7 @@ CheckOptions:
   - key: performance-move-const-arg.CheckTriviallyCopyableMove
     value: '1'
   - key: performance-unnecessary-value-param.AllowedTypes
-    value: ''
+    value: 'data_cell_cursor;handle'
 
   # Modernize settings
   - key: modernize-use-override.AllowOverrideAndFinal

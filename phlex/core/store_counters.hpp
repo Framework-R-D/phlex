@@ -17,7 +17,7 @@
 namespace phlex::detail {
   class PHLEX_CORE_EXPORT store_counter {
   public:
-    void set_flush_value(data_cell_counts_const_ptr counts, std::size_t original_message_id);
+    void set_flush_value(data_cell_counts_const_ptr const& counts, std::size_t original_message_id);
     void increment(data_cell_index::hash_type layer_hash);
     bool is_complete();
     unsigned int original_message_id() const noexcept;

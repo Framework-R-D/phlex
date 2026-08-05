@@ -16,6 +16,7 @@
 #include <concepts>
 #include <functional>
 #include <memory>
+#include <string_view>
 
 namespace phlex {
   class configuration;
@@ -37,14 +38,14 @@ namespace phlex::detail {
 
   public:
     registration_api(configuration const* config,
-                     std::string name,
+                     std::string_view name,
                      AlgorithmBits alg,
                      concurrency c,
                      tbb::flow::graph& g,
                      node_catalog& nodes,
                      std::vector<std::string>& errors) :
       config_{config},
-      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -58,7 +59,7 @@ namespace phlex::detail {
 
       if constexpr (num_outputs == 0ull) {
         registrar_.set_creator([this, inputs = std::move(input_args)](
-                                 auto predicates, auto /* output_product_suffixes */) {
+                                 auto predicates, auto const& /* output_product_suffixes */) {
           return std::make_unique<hof_type>(std::move(name_),
                                             concurrency_.value,
                                             std::move(predicates),
@@ -101,15 +102,14 @@ namespace phlex::detail {
 
   template <template <typename...> typename HOF, typename AlgorithmBits>
   auto make_registration(configuration const* config,
-                         std::string name,
+                         std::string_view name,
                          AlgorithmBits alg,
                          concurrency c,
                          tbb::flow::graph& g,
                          node_catalog& nodes,
                          std::vector<std::string>& errors)
   {
-    return registration_api<HOF, AlgorithmBits>{
-      config, std::move(name), std::move(alg), c, g, nodes, errors};
+    return registration_api<HOF, AlgorithmBits>{config, name, std::move(alg), c, g, nodes, errors};
   }
 
   // ====================================================================================
@@ -119,14 +119,14 @@ namespace phlex::detail {
   class provider_api {
   public:
     provider_api(configuration const* config,
-                 std::string name,
+                 std::string_view name,
                  AlgorithmBits alg,
                  concurrency c,
                  tbb::flow::graph& g,
                  node_catalog& nodes,
                  std::vector<std::string>& errors) :
       config_{config},
-      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -147,20 +147,20 @@ namespace phlex::detail {
         return product_for(std::invoke(alg, index));
       };
 
-      registrar_.set_creator(
-        [this,
-         alg = std::move(type_erased_alg),
-         output_spec = std::move(output_spec),
-         output_layer = std::move(output_layer),
-         stage = std::move(stage)](auto /* predicates */, auto /* output_product_suffixes */) {
-          return std::make_unique<provider_node>(std::move(name_),
-                                                 concurrency_.value,
-                                                 graph_,
-                                                 std::move(alg),
-                                                 std::move(output_spec),
-                                                 std::move(output_layer),
-                                                 std::move(stage));
-        });
+      registrar_.set_creator([this,
+                              alg = std::move(type_erased_alg),
+                              output_spec = std::move(output_spec),
+                              output_layer = std::move(output_layer),
+                              stage = std::move(stage)](auto const& /* predicates */,
+                                                        auto const& /* output_product_suffixes */) {
+        return std::make_unique<provider_node>(std::move(name_),
+                                               concurrency_.value,
+                                               graph_,
+                                               std::move(alg),
+                                               std::move(output_spec),
+                                               std::move(output_layer),
+                                               std::move(stage));
+      });
     }
 
   private:
@@ -186,7 +186,7 @@ namespace phlex::detail {
 
   public:
     fold_api(configuration const* config,
-             std::string name,
+             std::string_view name,
              AlgorithmBits alg,
              concurrency c,
              tbb::flow::graph& g,
@@ -195,7 +195,7 @@ namespace phlex::detail {
              std::string partition,
              InitArgs&&... init_args) :
       config_{config},
-      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -263,7 +263,7 @@ namespace phlex::detail {
 
   public:
     unfold_api(configuration const* config,
-               std::string name,
+               std::string_view name,
                Predicate predicate,
                Unfold unfold,
                concurrency c,
@@ -273,7 +273,7 @@ namespace phlex::detail {
                std::string destination_data_layer) :
       config_{config},
       registrar_{nodes.registrar_for<declared_unfold_ptr>(errors)},
-      name_{phlex::experimental::internal::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       concurrency_{c.value},
       graph_{g},
       predicate_{std::move(predicate)},
@@ -329,7 +329,7 @@ namespace phlex::detail {
   public:
     output_api(registrar<declared_output_ptr> reg,
                configuration const* config,
-               std::string name,
+               std::string_view name,
                tbb::flow::graph& g,
                internal::output_function_t&& f,
                concurrency c);

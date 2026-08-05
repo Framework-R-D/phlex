@@ -63,7 +63,7 @@ namespace phlex::experimental {
     std::function<void(data_cell_yielder const)> driver_function();
 
     fixed_hierarchy hierarchy() const;
-    std::size_t emitted_cell_count(std::string layer_path = {}) const;
+    std::size_t emitted_cell_count(std::string const& layer_path = {}) const;
 
   private:
     layer_generator();

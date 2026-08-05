@@ -17,6 +17,8 @@ using phlex::experimental::layer_path;
 
 namespace {
   // Removes duplicate paths from the provided list.
+  // The paths variable is moved from, so the clang-tidy warning is a false positive.
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
   std::vector<layer_path> unique_paths(std::vector<layer_path> paths)
   {
     std::set<layer_path> const unique{std::from_range, std::move(paths)};
@@ -69,7 +71,7 @@ namespace phlex {
   data_cell_cursor::data_cell_cursor(data_cell_index_ptr index,
                                      fixed_hierarchy const& h,
                                      detail::framework_driver& d) :
-    index_{std::move(index)}, hierarchy_{h}, driver_{d}
+    index_{std::move(index)}, hierarchy_{&h}, driver_{&d}
   {
   }
 
@@ -77,9 +79,9 @@ namespace phlex {
                                                  std::size_t number) const
   {
     auto child = index_->make_child(layer_name, number);
-    hierarchy_.validate(child);
-    driver_.yield(child);
-    return data_cell_cursor{child, hierarchy_, driver_};
+    hierarchy_->validate(child);
+    driver_->yield(child);
+    return data_cell_cursor{child, *hierarchy_, *driver_};
   }
 
   experimental::layer_path data_cell_cursor::layer_path() const { return index_->layer_path(); }
@@ -110,6 +112,8 @@ namespace phlex {
   {
   }
 
+  // The layer_paths variable is directly moved from when creating the merged set.
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
   void fixed_hierarchy::update(std::vector<layer_path> layer_paths)
   {
     std::set<layer_path> merged{std::from_range, std::move(layer_paths_)};
