@@ -23,6 +23,7 @@
 #include "oneapi/tbb/info.h"
 
 #include <concepts>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -187,7 +188,7 @@ namespace phlex::detail {
     void finalize_router(index_router::provider_input_ports_t provider_input_ports,
                          std::map<std::string, named_index_ports> multilayer_join_index_ports);
 
-    enum class driver_mode { default_driver, deferred_driver };
+    enum class driver_mode : std::uint8_t { default_driver, deferred_driver };
     explicit framework_graph(driver_mode mode, int max_parallelism);
 
     resource_usage graph_resource_usage_;

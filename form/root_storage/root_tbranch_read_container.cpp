@@ -31,7 +31,7 @@ ROOT_TBranch_Read_ContainerImp::ROOT_TBranch_Read_ContainerImp(std::string const
 
 void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
-  ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
+  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
     throw std::runtime_error(
       "ROOT_TBranch_Read_ContainerImp::setFile can't attach to non-ROOT file");
@@ -166,7 +166,9 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
                                " (col_name='" + col_name() + "', type='" + DemangleName(type) +
                                "')");
     }
-    branchBuffer = klass->New();
+    // ROOT returns ownership of dynamically created branch payload objects here.
+    // NOLINTNEXTLINE(readability-redundant-casting)
+    branchBuffer = gsl::owner<void*>{klass->New()};
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), reinterpret_cast<void*>(&branchBuffer), klass, EDataType::kOther_t, true);
   }
