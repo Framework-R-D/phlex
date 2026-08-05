@@ -44,6 +44,10 @@ namespace phlex::experimental {
     /// Return hash of this path and every parent path
     std::set<std::size_t> hashes() const;
 
+    /// Return the number of stored path segments only, excluding the implicit job root
+    /// used by hash() and hashes().
+    std::size_t depth() const noexcept;
+
   private:
     std::vector<identifier> layer_path_;
     void validate() const;

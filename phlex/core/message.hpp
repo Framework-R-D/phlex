@@ -14,6 +14,7 @@
 #include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
 #include <cstddef>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -28,16 +29,9 @@ namespace phlex::detail {
     bool cache{true};
   };
 
-  // FIXME: Do we need both indexed_end_token and flush_message?
   struct indexed_end_token {
     data_cell_index_ptr index;
     int count;
-  };
-
-  struct flush_message {
-    data_cell_index_ptr index;
-    data_cell_counts_const_ptr counts;
-    std::size_t original_id{}; // FIXME: Used only by folds
   };
 
   struct message {
@@ -56,8 +50,20 @@ namespace phlex::detail {
   template <std::size_t N>
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
 
+  // A named_index_port describes one input slot of a multi-layer join node from the
+  // perspective of the index router.  Two distinct layer concepts are carried:
+  //
+  //  - `layer`           — the *routing* layer.  The router decides whether a routed index
+  //                        feeds this slot's `index_port` (and whether the slot should
+  //                        receive a flush token) using this layer name via
+  //                        `matches_exactly` / `is_parent_of` checks.
+  //
+  //  - `counting_layer`  — the *counting* layer preference.  `std::nullopt` selects the
+  //                        node's deepest layer, while a populated value selects that
+  //                        explicit layer name.
   struct named_index_port {
     phlex::experimental::identifier layer;
+    std::optional<phlex::experimental::identifier> counting_layer;
     tbb::flow::receiver<indexed_end_token>* token_port;
     tbb::flow::receiver<index_message>* index_port;
   };
