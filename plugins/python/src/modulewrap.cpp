@@ -968,7 +968,7 @@ static bool insert_input_converters(py_phlex_module* mod,
 {
   // insert input converter nodes into the graph
   auto const converters = std::views::zip(std::views::iota(size_t{}), input_selectors, input_types);
-  return std::ranges::all_of(converters, [&](auto const& converter) {
+  return std::ranges::all_of(converters, [mod, &cname, ispy, nc](auto const& converter) {
     auto const& [i, inp_pq, inp_type] = converter;
     return insert_input_converter(mod, cname, i, inp_pq, inp_type, ispy, nc);
   });
