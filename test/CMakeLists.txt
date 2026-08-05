@@ -24,7 +24,6 @@ cet_test(
 cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
          phlex::configuration
 )
-cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities_internal)
 cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
 )

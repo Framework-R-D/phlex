@@ -47,7 +47,7 @@ The main framework implementation containing the execution engine and core abstr
   - `resumable_driver.hpp`: Resumable driver execution
   - `max_allowed_parallelism.hpp`: Parallelism control
   - `thread_counter.hpp`: Thread tracking
-  - `simple_ptr_map.hpp`, `sized_tuple.hpp`, `sleep_for.hpp`, `string_literal.hpp`: Various utilities
+  - `simple_ptr_map.hpp`, `sized_tuple.hpp`, `sleep_for.hpp`: Various utilities
 
 - **Top-level files**:
   - `configuration.cpp/hpp`: Configuration management
