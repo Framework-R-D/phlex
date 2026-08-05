@@ -557,6 +557,9 @@ namespace {
     }
 
     unsigned long ul = PyLong_AsUnsignedLong(pyobject);
+    // In this case, using 'std::cmp_equal(ul, -1)' returns the wrong result, so
+    // we suppress the clang-tidy warning re. 'ul == static_cast<unsigned long>(-1)'.
+    // NOLINTNEXTLINE(modernize-use-integer-sign-comparison)
     if (ul == static_cast<unsigned long>(-1) && PyErr_Occurred() && PyLong_Check(pyobject)) {
       PyErr_Clear();
       long i = PyLong_AS_LONG(pyobject);
