@@ -23,6 +23,7 @@
 
 #include <atomic>
 #include <string>
+#include <utility>
 
 using namespace phlex;
 
@@ -85,6 +86,21 @@ namespace {
   {
     return numbers_t(10, id.number() + 1);
   }
+
+  class iota_two_inputs {
+  public:
+    iota_two_inputs(unsigned int max_number, numbers_t numbers) :
+      max_{max_number}, numbers_{std::move(numbers)}
+    {
+    }
+    unsigned int initial_value() const { return 0; }
+    bool predicate(unsigned int i) const { return i != max_ && !numbers_.empty(); }
+    auto unfold(unsigned int i) const { return std::make_pair(i + 1, i); };
+
+  private:
+    unsigned int max_;
+    numbers_t numbers_;
+  };
 }
 
 TEST_CASE("Splitting the processing", "[graph]")
@@ -186,4 +202,44 @@ TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
   // event 1: max_number=20, new_number in [0,19] -> 20 executions
   CHECK(g.execution_count("iota") == index_limit);
   CHECK(g.execution_count("add_max_and_new") == 30u);
+}
+
+TEST_CASE("Unfold deduplicates same-layer inputs for bookkeeping", "[graph]")
+{
+  constexpr auto index_limit = 2u;
+
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {"job", index_limit});
+
+  auto g = phlex::detail::framework_graph::without_driver();
+  g.add_driver(gen);
+
+  g.provide("provide_max_number", provide_max_number, concurrency::unlimited)
+    .output_product("input", "max_number", "event");
+  g.provide("provide_ten_numbers", provide_ten_numbers, concurrency::unlimited)
+    .output_product("input", "ten_numbers", "event");
+
+  g.unfold<iota_two_inputs>("iota_two_inputs",
+                            &iota_two_inputs::predicate,
+                            &iota_two_inputs::unfold,
+                            concurrency::unlimited,
+                            "subevent")
+    .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "max_number"},
+                  product_selector{.creator = "input", .layer = "event", .suffix = "ten_numbers"})
+    .output_product_suffixes("new_number");
+
+  g.fold("add_dual_input_unfold", add, concurrency::unlimited, "event")
+    .input_family(
+      product_selector{.creator = "iota_two_inputs", .layer = "subevent", .suffix = "new_number"})
+    .output_product_suffixes("sum");
+
+  g.observe("check_dual_input_unfold_sum", check_sum, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "add_dual_input_unfold", .layer = "event", .suffix = "sum"});
+
+  g.execute();
+
+  CHECK(g.execution_count("iota_two_inputs") == index_limit);
+  CHECK(g.execution_count("add_dual_input_unfold") == 30u);
+  CHECK(g.execution_count("check_dual_input_unfold_sum") == index_limit);
 }

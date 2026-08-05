@@ -22,7 +22,7 @@ namespace phlex::detail {
                                                                      products new_products)
   {
     auto child_index = parent_->index()->make_child(child_layer_name_, i);
-    ++child_counts_;
+    ++child_count_;
     return std::make_shared<phlex::experimental::product_store>(
       child_index, node_name_, std::move(new_products));
   }
