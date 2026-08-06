@@ -30,7 +30,7 @@ namespace phlex::experimental {
   };
 
   template <typename T>
-  concept move_constructible_only = std::move_constructible<T> && !has_send<T>;
+  concept sendable_by_move = std::move_constructible<T> && !has_send<T>;
 
   namespace detail {
     template <typename T>
@@ -41,7 +41,7 @@ namespace phlex::experimental {
       using type = decltype(send(std::declval<T const&>()));
     };
 
-    template <move_constructible_only T>
+    template <sendable_by_move T>
     struct sendable_type_impl<T> {
       using type = T;
     };
