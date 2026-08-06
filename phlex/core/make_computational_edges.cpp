@@ -106,15 +106,7 @@ namespace phlex::detail {
           }
 
           auto& bundle = bundles[0];
-          auto const& spec = bundle.spec;
-          auto node =
-            std::make_unique<provider_node>(spec.creator(),
-                                            bundle.max_concurrency.value,
-                                            g,
-                                            std::move(bundle.provider_function),
-                                            spec,
-                                            phlex::experimental::identifier{bundle.layer},
-                                            phlex::experimental::identifier{bundle.stage});
+          auto node = std::make_unique<provider_node>(g, std::move(bundle));
           auto const provider_name = node->name().to_string();
           auto [_, inserted] =
             provider_input_ports.try_emplace(provider_name, input_product, node->input_port());

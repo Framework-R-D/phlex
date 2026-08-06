@@ -3,8 +3,8 @@
 
 #include "phlex/phlex_core_export.hpp"
 
-#include "phlex/concurrency.hpp"
 #include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/index_generator.hpp"
 #include "phlex/model/product_specification.hpp"
@@ -18,22 +18,6 @@
 
 namespace phlex::detail {
 
-  // ==============================================================================
-
-  // Function type for type-erased data-product types (used by implicit providers)
-  using provider_function_t = product_ptr(data_cell_index const&);
-
-  struct PHLEX_CORE_EXPORT provider_bundle {
-    std::function<provider_function_t> provider_function;
-    concurrency max_concurrency;
-    product_specification spec;
-    std::string layer;
-    std::string stage;
-  };
-
-  using provider_bundles = std::vector<provider_bundle>;
-
-  // ==============================================================================
   class PHLEX_CORE_EXPORT source {
   public:
     virtual ~source() = default;
