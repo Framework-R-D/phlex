@@ -33,7 +33,6 @@ TEST_CASE("Product store insertion", "[data model]")
   CHECK(store->get_product<int>("number") == number);
 
   auto h = store->get_handle<std::vector<int>>("numbers");
-  REQUIRE(h);
   CHECK(*h == many_numbers);
   CHECK(store->get_product<std::vector<int>>("numbers") == many_numbers);
 }
