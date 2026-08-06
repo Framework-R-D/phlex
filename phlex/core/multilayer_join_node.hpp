@@ -9,6 +9,7 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
+#include <optional>
 #include <ranges>
 #include <set>
 #include <string>
@@ -113,7 +114,9 @@ namespace phlex::detail {
       std::vector<named_index_port> result;
       result.reserve(repeaters_.size());
       for (auto const& [layer, repeater] : std::views::zip(layers_, repeaters_)) {
-        result.emplace_back(layer, &repeater->flush_port(), &repeater->index_port());
+        // Leave counting layer unset so the router balances this slot's flush token
+        // against the node's deepest layer.
+        result.emplace_back(layer, std::nullopt, &repeater->flush_port(), &repeater->index_port());
       }
       return result;
     }

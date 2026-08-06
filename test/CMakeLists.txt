@@ -11,6 +11,7 @@ include(CetTest)
 
 cet_test_env(SPDLOG_LEVEL=debug)
 
+cet_test(accumulator USE_CATCH2_MAIN SOURCE accumulator_test.cpp LIBRARIES phlex::core_internal)
 cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core_internal)
 cet_test(
   adjust_config

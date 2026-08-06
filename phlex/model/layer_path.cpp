@@ -100,4 +100,6 @@ namespace phlex::experimental {
     }
     return hashes;
   }
+
+  std::size_t layer_path::depth() const noexcept { return layer_path_.size(); }
 }
