@@ -40,6 +40,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 namespace phlex::detail {
 
@@ -57,7 +58,7 @@ namespace phlex::detail {
     std::size_t expected_total_count() const;
     std::size_t committed_total_count() const;
     std::size_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
-    data_cell_counts_const_ptr committed_counts() const { return committed_counts_; }
+    data_cell_counts const& committed_counts() const { return committed_counts_; }
 
     // Merges an expected child count into the accumulated expected counts.  Each call
     // represents one flush message arriving (e.g. one unfold completing for this index).
@@ -66,7 +67,7 @@ namespace phlex::detail {
     // Records that a non-lowest direct child has rolled up: merges its committed_counts
     // into this gate's and decrements the pending-rollups balance.  The two steps are
     // bundled because every rollup must do both, in the same call.
-    void roll_up_child(data_cell_counts_const_ptr child_committed_counts);
+    void roll_up_child(data_cell_counts const& child_committed_counts);
 
     // Announces that n additional non-lowest direct children are expected to roll up.
     // Lowest-layer children require no such bookkeeping: their counts are fully accounted
@@ -84,11 +85,7 @@ namespace phlex::detail {
 
     data_cell_index_ptr const index_;
     std::once_flag commit_once_;
-    // FIXME: We express committed_counts_ as a shared pointer so that we can copy the committed
-    //        counts (this is done for determining the flush values for folds).  Once the fold
-    //        flushes are incorporated as part of the multi-layer join node infrastructure, it
-    //        should be possible for committed_counts_ to no longer be a pointer, but a value.
-    std::shared_ptr<data_cell_counts> committed_counts_;
+    data_cell_counts committed_counts_;
     // Accumulated expected child counts from all unfolds.
     data_cell_counts expected_counts_;
     std::atomic<std::size_t> received_flush_count_{0};
