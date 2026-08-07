@@ -17,7 +17,7 @@ using namespace form::detail::experimental;
 namespace {
   form::experimental::config::tech_setting_config::table_t get_file_table(
     form::experimental::config::tech_setting_config const& settings,
-    int technology,
+    form::technology::Id technology,
     std::string const& file_name)
   {
     auto const per_tech = settings.file_settings.find(technology);
@@ -33,7 +33,7 @@ namespace {
 
   form::experimental::config::tech_setting_config::table_t get_container_table(
     form::experimental::config::tech_setting_config const& settings,
-    int technology,
+    form::technology::Id technology,
     std::string const& container_name)
   {
     auto const per_tech = settings.container_settings.find(technology);

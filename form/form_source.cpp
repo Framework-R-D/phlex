@@ -1,9 +1,9 @@
 #include "phlex/source.hpp"
 
+#include "core/technology.hpp"
 #include "form/config.hpp"
 #include "form/form_reader.hpp"
 #include "form/form_source_type_registry.hpp"
-#include "form/technology.hpp"
 
 #include "phlex/model/data_cell_index.hpp"
 
@@ -13,7 +13,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -176,16 +175,7 @@ PHLEX_REGISTER_SOURCE(s, config)
     actual_creator = *plugin + ":" + *algorithm;
   }
 
-  std::unordered_map<std::string_view, int> const tech_lookup = {
-    {"ROOT_TTREE", form::technology::ROOT_TTREE},
-    {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
-    {"HDF5", form::technology::HDF5}};
-
-  auto it = tech_lookup.find(tech_string);
-  if (it == tech_lookup.end()) {
-    throw std::runtime_error("Unknown technology: " + tech_string);
-  }
-  int const technology = it->second;
+  auto const technology = form::technology::from_string(tech_string);
 
   form::experimental::config::ItemConfig input_cfg;
   form::experimental::config::tech_setting_config tech_cfg;

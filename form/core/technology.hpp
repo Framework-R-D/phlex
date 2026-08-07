@@ -6,17 +6,17 @@
 #include <string>
 #include <string_view>
 
+/* A storage technology, identified by a (family, variant) pair */
+
 namespace form::technology {
 
-  // A storage technology, identified by a (family, variant) pair
-  
   // Storage family (ROOT, HDF5, ...)
   enum class Family : int {
     unknown = 0,
     root = 1,
     hdf5 = 2,
   };
-  
+
   // Variant in family
   struct Id {
     Family family{Family::unknown};

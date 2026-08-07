@@ -21,7 +21,7 @@ using namespace form::detail::experimental;
 
 namespace {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  int technology = form::technology::ROOT_TTREE; //Potentially overridden in main
+  form::technology::Id technology = form::technology::ROOT_TTREE; //Potentially overridden in main
   //Non-const global variable required by limitations of Catch2
 }
 
@@ -283,7 +283,8 @@ TEST_CASE("Persistence round-trip: structured index normalization and listing", 
 {
   using namespace form::experimental::config;
 
-  std::string const file_name = "persistence_roundtrip_" + std::to_string(technology) + ".root";
+  std::string const file_name =
+    "persistence_roundtrip_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "norm_creator";
 
   ItemConfig cfg;
@@ -332,7 +333,8 @@ TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
 {
   using namespace form::experimental::config;
 
-  std::string const file_name = "persistence_zero_index_" + std::to_string(technology) + ".root";
+  std::string const file_name =
+    "persistence_zero_index_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "zero_creator";
 
   ItemConfig cfg;
@@ -367,7 +369,7 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   using namespace form::experimental::config;
 
   std::string const file_name =
-    "storage_reader_index_branches_" + std::to_string(technology) + ".root";
+    "storage_reader_index_branches_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "storage_reader_creator";
   std::string const index_container = creator + "/index";
 
@@ -420,7 +422,7 @@ TEST_CASE("StorageReader getIndex: empty container and tech-table branches", "[f
                   std::runtime_error);
 
   std::string const file_name =
-    "storage_reader_getindex_attr_" + std::to_string(technology) + ".root";
+    "storage_reader_getindex_attr_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "storage_reader_getindex_attr_creator";
   ItemConfig cfg;
   cfg.addItem("prod", file_name, technology);
@@ -450,7 +452,8 @@ TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error br
 {
   using namespace form::experimental::config;
 
-  std::string const file_name = "storage_reader_misc_attr_" + std::to_string(technology) + ".root";
+  std::string const file_name =
+    "storage_reader_misc_attr_" + form::technology::to_string(technology) + ".root";
   std::string const creator = "storage_reader_misc_creator";
   ItemConfig cfg;
   cfg.addItem("prod", file_name, technology);

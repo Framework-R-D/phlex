@@ -4,29 +4,27 @@
 
 // FORM headers - these need to be available via CMake configuration
 // need to set up the build system to find these headers
+#include "core/technology.hpp"
 #include "form/config.hpp"
 #include "form/form_writer.hpp"
-#include "form/technology.hpp"
 
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
-#include <unordered_map>
 
 namespace {
 
   class FormOutputModule {
   public:
     FormOutputModule(std::string output_file,
-                     int technology,
+                     form::technology::Id technology,
                      std::vector<std::string> const& products_to_save) :
       m_output_file(std::move(output_file)), m_technology(technology)
     {
       std::cout << "FormOutputModule initialized\n";
       std::cout << "  Output file: " << m_output_file << "\n";
-      std::cout << "  Technology: " << m_technology << "\n";
+      std::cout << "  Technology: " << form::technology::to_string(m_technology) << "\n";
 
       // Build FORM configuration
       form::experimental::config::ItemConfig output_cfg;
@@ -104,7 +102,7 @@ namespace {
     // Algorithm configuration fixed at construction; intentionally immutable for object lifetime.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const m_output_file;
-    int const m_technology;
+    form::technology::Id const m_technology;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::unique_ptr<form::experimental::form_writer_interface> m_form_interface;
   };
@@ -123,18 +121,7 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   std::cout << "  output_file: " << output_file << "\n";
   std::cout << "  technology: " << tech_string << "\n";
 
-  std::unordered_map<std::string_view, int> const tech_lookup = {
-    {"ROOT_TTREE", form::technology::ROOT_TTREE},
-    {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
-    {"HDF5", form::technology::HDF5}};
-
-  auto it = tech_lookup.find(tech_string);
-
-  if (it == tech_lookup.end()) {
-    throw std::runtime_error("Unknown technology: " + tech_string);
-  }
-
-  int const technology = it->second;
+  auto const technology = form::technology::from_string(tech_string);
 
   auto products_to_save = config.get<std::vector<std::string>>("products");
 
