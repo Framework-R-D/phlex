@@ -13,6 +13,16 @@
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
 #include "util/factories.hpp"
+#if defined(USE_ROOT_STORAGE)
+#include "root_storage/root_tbranch_read_container.hpp"
+#include "root_storage/root_tbranch_write_container.hpp"
+#include "root_storage/root_ttree_write_container.hpp"
+#endif
+#if defined(USE_RNTUPLE_STORAGE)
+#include "root_storage/root_rfield_read_container.hpp"
+#include "root_storage/root_rfield_write_container.hpp"
+#include "root_storage/root_rntuple_write_container.hpp"
+#endif
 #include <catch2/catch_test_macros.hpp>
 
 #include <memory>
@@ -180,6 +190,54 @@ TEST_CASE("Factories fallback", "[form]")
   CHECK_THROWS_AS(createReadContainer(form::technology::HDF5, "cont"), std::runtime_error);
   CHECK_THROWS_AS(createWriteAssociation(form::technology::HDF5, "assoc"), std::runtime_error);
   CHECK_THROWS_AS(createWriteContainer(form::technology::HDF5, "cont"), std::runtime_error);
+}
+
+TEST_CASE("Factories ROOT storage dispatch", "[form]")
+{
+  auto rc_ttree = createReadContainer(form::technology::ROOT_TTREE, "cont");
+#if defined(USE_ROOT_STORAGE)
+  CHECK(dynamic_cast<ROOT_TBranch_Read_ContainerImp*>(rc_ttree.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Read_Container*>(rc_ttree.get()) != nullptr);
+#endif
+
+  auto wa_ttree = createWriteAssociation(form::technology::ROOT_TTREE, "assoc");
+#if defined(USE_ROOT_STORAGE)
+  CHECK(dynamic_cast<ROOT_TTree_Write_ContainerImp*>(wa_ttree.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Association*>(wa_ttree.get()) != nullptr);
+#endif
+
+  auto wc_ttree = createWriteContainer(form::technology::ROOT_TTREE, "cont");
+#if defined(USE_ROOT_STORAGE)
+  CHECK(dynamic_cast<ROOT_TBranch_Write_ContainerImp*>(wc_ttree.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Container*>(wc_ttree.get()) != nullptr);
+#endif
+}
+
+TEST_CASE("Factories RNTuple storage dispatch", "[form]")
+{
+  auto rc_rntuple = createReadContainer(form::technology::ROOT_RNTUPLE, "cont");
+#if defined(USE_RNTUPLE_STORAGE)
+  CHECK(dynamic_cast<ROOT_RField_Read_ContainerImp*>(rc_rntuple.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Read_Container*>(rc_rntuple.get()) != nullptr);
+#endif
+
+  auto wa_rntuple = createWriteAssociation(form::technology::ROOT_RNTUPLE, "assoc");
+#if defined(USE_RNTUPLE_STORAGE)
+  CHECK(dynamic_cast<ROOT_RNTuple_Write_ContainerImp*>(wa_rntuple.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Association*>(wa_rntuple.get()) != nullptr);
+#endif
+
+  auto wc_rntuple = createWriteContainer(form::technology::ROOT_RNTUPLE, "cont");
+#if defined(USE_RNTUPLE_STORAGE)
+  CHECK(dynamic_cast<ROOT_RField_Write_ContainerImp*>(wc_rntuple.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Container*>(wc_rntuple.get()) != nullptr);
+#endif
 }
 
 TEST_CASE("StorageReader basic operations", "[form]")

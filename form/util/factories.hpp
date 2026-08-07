@@ -48,6 +48,7 @@ namespace form::detail::experimental {
                                                                           std::string const& name)
   {
     if (tech.major == form::technology::Major::root) {
+#if defined(USE_ROOT_STORAGE) || defined(USE_RNTUPLE_STORAGE)
       if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TTree_Write_ContainerImp>(name);
@@ -57,6 +58,7 @@ namespace form::detail::experimental {
         return std::make_shared<ROOT_RNTuple_Write_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
+#endif
     } else if (tech.major == form::technology::Major::hdf5) {
       throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
@@ -69,6 +71,7 @@ namespace form::detail::experimental {
                                                                       std::string const& name)
   {
     if (tech.major == form::technology::Major::root) {
+#if defined(USE_ROOT_STORAGE) || defined(USE_RNTUPLE_STORAGE)
       if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_Read_ContainerImp>(name);
@@ -78,6 +81,7 @@ namespace form::detail::experimental {
         return std::make_shared<ROOT_RField_Read_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
+#endif
     } else if (tech.major == form::technology::Major::hdf5) {
       throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
@@ -90,6 +94,7 @@ namespace form::detail::experimental {
                                                                         std::string const& name)
   {
     if (tech.major == form::technology::Major::root) {
+#if defined(USE_ROOT_STORAGE) || defined(USE_RNTUPLE_STORAGE)
       if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_Write_ContainerImp>(name);
@@ -99,6 +104,7 @@ namespace form::detail::experimental {
         return std::make_shared<ROOT_RField_Write_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
+#endif
     } else if (tech.major == form::technology::Major::hdf5) {
       throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
