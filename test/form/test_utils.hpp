@@ -39,7 +39,7 @@ namespace form::test {
 
   inline std::vector<std::shared_ptr<IStorage_Write_Container>> doWrite(
     std::shared_ptr<IStorage_File>& /*file*/,
-    int const /*technology*/,
+    form::technology::Id const /*technology*/,
     std::shared_ptr<IStorage_Write_Container>& /*parent*/)
   {
     return {};
@@ -48,7 +48,7 @@ namespace form::test {
   template <class PROD, class... PRODS>
   inline std::vector<std::shared_ptr<IStorage_Write_Container>> doWrite(
     std::shared_ptr<IStorage_File>& file,
-    int const technology,
+    form::technology::Id const technology,
     std::shared_ptr<IStorage_Write_Container>& parent,
     PROD& prod,
     PRODS&... prods)
@@ -69,7 +69,7 @@ namespace form::test {
   }
 
   template <class... PRODS>
-  inline void write(int const technology, PRODS&... prods)
+  inline void write(form::technology::Id const technology, PRODS&... prods)
   {
     auto file = createFile(technology, std::string(testFileName), 'o');
     auto parent = createWriteAssociation(technology, std::string(testTreeName));
@@ -83,7 +83,7 @@ namespace form::test {
 
   template <class PROD>
   inline std::unique_ptr<PROD const> doRead(std::shared_ptr<IStorage_File>& file,
-                                            int const technology)
+                                            form::technology::Id const technology)
   {
     auto container = createReadContainer(technology, makeTestBranchName<PROD>());
     container->setFile(file);
@@ -97,26 +97,16 @@ namespace form::test {
   }
 
   template <class... PRODS>
-  inline std::tuple<std::unique_ptr<PRODS const>...> read(int const technology)
+  inline std::tuple<std::unique_ptr<PRODS const>...> read(form::technology::Id const technology)
   {
     auto file = createFile(technology, std::string(testFileName), 'i');
 
     return std::make_tuple(doRead<PRODS>(file, technology)...);
   }
 
-  inline int getTechnology(std::string const& tech_string)
+  inline form::technology::Id getTechnology(std::string const& tech_string)
   {
-    std::unordered_map<std::string_view, int> const tech_lookup = {
-      {"ROOT_TTREE", form::technology::ROOT_TTREE},
-      {"ROOT_RNTUPLE", form::technology::ROOT_RNTUPLE},
-      {"HDF5", form::technology::HDF5}};
-
-    auto const it = tech_lookup.find(tech_string);
-    if (it == tech_lookup.end()) {
-      throw std::runtime_error("Unknown technology: " + tech_string);
-    }
-
-    return it->second;
+    return form::technology::from_string(tech_string);
   }
 
 } // namespace form::test

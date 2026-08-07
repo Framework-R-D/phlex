@@ -3,7 +3,7 @@
 #ifndef FORM_UTIL_FACTORIES_HPP
 #define FORM_UTIL_FACTORIES_HPP
 
-#include "form/technology.hpp"
+#include "core/technology.hpp"
 
 #include "storage/istorage.hpp"
 #include "storage/storage_file.hpp"
@@ -25,91 +25,88 @@
 #endif
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace form::detail::experimental {
 
-  inline std::shared_ptr<IStorage_File> createFile(int tech, std::string const& name, char mode)
+  inline std::shared_ptr<IStorage_File> createFile(form::technology::Id tech,
+                                                   std::string const& name,
+                                                   char mode)
   {
-    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
+    if (tech.major == form::technology::Major::root) {
 #ifdef USE_ROOT_STORAGE
       return std::make_shared<ROOT_TFileImp>(name, mode);
 #endif
-    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
-      // Handle HDF5 file creation when implemented
-      // return std::make_shared<HDF5_FileImp>(name, mode);
+    } else if (tech.major == form::technology::Major::hdf5) {
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
     return std::make_shared<Storage_File>(name, mode);
   }
 
-  inline std::shared_ptr<IStorage_Write_Container> createWriteAssociation(int tech,
+  inline std::shared_ptr<IStorage_Write_Container> createWriteAssociation(form::technology::Id tech,
                                                                           std::string const& name)
   {
-    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
-      if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
+    if (tech.major == form::technology::Major::root) {
+#if defined(USE_ROOT_STORAGE) || defined(USE_RNTUPLE_STORAGE)
+      if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TTree_Write_ContainerImp>(name);
 #endif // USE_ROOT_STORAGE
-      } else if (form::technology::GetMinor(tech) == form::technology::ROOT_RNTUPLE_MINOR) {
+      } else if (tech == form::technology::ROOT_RNTUPLE) {
 #ifdef USE_RNTUPLE_STORAGE
         return std::make_shared<ROOT_RNTuple_Write_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
-    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
-#ifdef USE_HDF5_STORAGE
-      // Add HDF5 implementation when available
-      // return std::make_shared<HDF5_Write_ContainerImp>(name);
-#endif // USE_HDF5_STORAGE
+#endif
+    } else if (tech.major == form::technology::Major::hdf5) {
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
 
     // Default fallback
     return std::make_shared<Storage_Write_Association>(name);
   }
 
-  inline std::shared_ptr<IStorage_Read_Container> createReadContainer(int tech,
+  inline std::shared_ptr<IStorage_Read_Container> createReadContainer(form::technology::Id tech,
                                                                       std::string const& name)
   {
-    // Use the helper functions from Technology namespace for consistency
-    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
-      if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
+    if (tech.major == form::technology::Major::root) {
+#if defined(USE_ROOT_STORAGE) || defined(USE_RNTUPLE_STORAGE)
+      if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_Read_ContainerImp>(name);
 #endif // USE_ROOT_STORAGE
-      } else if (form::technology::GetMinor(tech) == form::technology::ROOT_RNTUPLE_MINOR) {
+      } else if (tech == form::technology::ROOT_RNTUPLE) {
 #ifdef USE_RNTUPLE_STORAGE
         return std::make_shared<ROOT_RField_Read_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
-    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
-#ifdef USE_HDF5_STORAGE
-      // Add HDF5 implementation when available
-      // return std::make_shared<HDF5_Field_Read_ContainerImp>(name);
-#endif // USE_HDF5_STORAGE
+#endif
+    } else if (tech.major == form::technology::Major::hdf5) {
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
 
     // Default fallback
     return std::make_shared<Storage_Read_Container>(name);
   }
 
-  inline std::shared_ptr<IStorage_Write_Container> createWriteContainer(int tech,
+  inline std::shared_ptr<IStorage_Write_Container> createWriteContainer(form::technology::Id tech,
                                                                         std::string const& name)
   {
-    // Use the helper functions from Technology namespace for consistency
-    if (form::technology::GetMajor(tech) == form::technology::ROOT_MAJOR) {
-      if (form::technology::GetMinor(tech) == form::technology::ROOT_TTREE_MINOR) {
+    if (tech.major == form::technology::Major::root) {
+#if defined(USE_ROOT_STORAGE) || defined(USE_RNTUPLE_STORAGE)
+      if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_Write_ContainerImp>(name);
 #endif // USE_ROOT_STORAGE
-      } else if (form::technology::GetMinor(tech) == form::technology::ROOT_RNTUPLE_MINOR) {
+      } else if (tech == form::technology::ROOT_RNTUPLE) {
 #ifdef USE_RNTUPLE_STORAGE
         return std::make_shared<ROOT_RField_Write_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
-    } else if (form::technology::GetMajor(tech) == form::technology::HDF5_MAJOR) {
-#ifdef USE_HDF5_STORAGE
-      // Add HDF5 implementation when available
-      // return std::make_shared<HDF5_Field_Write_ContainerImp>(name);
-#endif // USE_HDF5_STORAGE
+#endif
+    } else if (tech.major == form::technology::Major::hdf5) {
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
 
     // Default fallback

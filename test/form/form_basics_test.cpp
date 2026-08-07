@@ -1,9 +1,9 @@
+#include "core/technology.hpp"
 #include "core/token.hpp"
 #include "form/config.hpp"
 #include "form/form_reader.hpp"
 #include "form/form_source_type_registry.hpp"
 #include "form/form_writer.hpp"
-#include "form/technology.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
 #include "storage/istorage.hpp"
@@ -13,6 +13,16 @@
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
 #include "util/factories.hpp"
+#if defined(USE_ROOT_STORAGE)
+#include "root_storage/root_tbranch_read_container.hpp"
+#include "root_storage/root_tbranch_write_container.hpp"
+#include "root_storage/root_ttree_write_container.hpp"
+#endif
+#if defined(USE_RNTUPLE_STORAGE)
+#include "root_storage/root_rfield_read_container.hpp"
+#include "root_storage/root_rfield_write_container.hpp"
+#include "root_storage/root_rntuple_write_container.hpp"
+#endif
 #include <catch2/catch_test_macros.hpp>
 
 #include <memory>
@@ -26,7 +36,7 @@ TEST_CASE("Token default constructor", "[form]")
   Token t;
   CHECK(t.fileName().empty());
   CHECK(t.containerName().empty());
-  CHECK(t.technology() == 0);
+  CHECK(t.technology() == form::technology::Id{});
   // Default-constructed token must carry the -1 sentinel for id
   CHECK(t.id() == -1);
 }
@@ -38,6 +48,45 @@ TEST_CASE("Token basics", "[form]")
   CHECK(t.containerName() == "container");
   CHECK(t.technology() == form::technology::ROOT_TTREE);
   CHECK(t.id() == 42);
+}
+
+TEST_CASE("technology::Id string conversions", "[form]")
+{
+  using namespace form::technology;
+
+  // Round-trip the implemented backends through from_string / to_string
+  CHECK(from_string("ROOT_TTREE") == ROOT_TTREE);
+  CHECK(from_string("ROOT_RNTUPLE") == ROOT_RNTUPLE);
+
+  CHECK(to_string(ROOT_TTREE) == "ROOT_TTREE");
+  CHECK(to_string(ROOT_RNTUPLE) == "ROOT_RNTUPLE");
+  CHECK(to_string(HDF5) == "HDF5"); // reserved: still names itself for diagnostics
+
+  // HDF5 is reserved but unimplemented: reject it at parse time rather than
+  // silently falling back to a different storage.
+  CHECK_THROWS_AS(from_string("HDF5"), std::runtime_error);
+
+  // An unknown name throws; an unknown Id stringifies to the sentinel
+  CHECK_THROWS_AS(from_string("NOT_A_TECH"), std::runtime_error);
+  CHECK(to_string(Id{}) == "UNKNOWN");
+}
+
+TEST_CASE("technology::Id members and ordering", "[form]")
+{
+  using namespace form::technology;
+
+  // (major, minor) decomposition
+  CHECK(ROOT_TTREE.major == Major::root);
+  CHECK(ROOT_TTREE.minor == 1);
+  CHECK(ROOT_RNTUPLE.major == Major::root);
+  CHECK(ROOT_RNTUPLE.minor == 2);
+  CHECK(HDF5.major == Major::hdf5);
+  CHECK(Id{}.major == Major::unknown);
+
+  // operator<=> compares BOTH parts: same major, different minor stay distinct
+  CHECK(ROOT_TTREE != ROOT_RNTUPLE);
+  CHECK(ROOT_TTREE < ROOT_RNTUPLE);
+  CHECK(Id{} == Id{Major::unknown, 0});
 }
 
 TEST_CASE("Storage_File basics", "[form]")
@@ -123,17 +172,72 @@ TEST_CASE("Storage_Associative_Write_Container basics", "[form]")
 
 TEST_CASE("Factories fallback", "[form]")
 {
-  auto f = createFile(0, "test.root", 'o');
+  auto f = createFile(form::technology::Id{}, "test.root", 'o');
   CHECK(dynamic_cast<Storage_File*>(f.get()) != nullptr);
 
-  auto rc = createReadContainer(0, "cont");
+  auto rc = createReadContainer(form::technology::Id{}, "cont");
   CHECK(dynamic_cast<Storage_Read_Container*>(rc.get()) != nullptr);
 
-  auto wa = createWriteAssociation(0, "assoc");
+  auto wa = createWriteAssociation(form::technology::Id{}, "assoc");
   CHECK(dynamic_cast<Storage_Write_Association*>(wa.get()) != nullptr);
 
-  auto wc = createWriteContainer(0, "cont");
+  auto wc = createWriteContainer(form::technology::Id{}, "cont");
   CHECK(dynamic_cast<Storage_Write_Container*>(wc.get()) != nullptr);
+
+  // HDF5 is reserved but unimplemented: every factory must fail loudly on the
+  // hdf5 dispatch branch rather than silently return generic storage.
+  CHECK_THROWS_AS(createFile(form::technology::HDF5, "test.h5", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(createReadContainer(form::technology::HDF5, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteAssociation(form::technology::HDF5, "assoc"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteContainer(form::technology::HDF5, "cont"), std::runtime_error);
+}
+
+TEST_CASE("Factories ROOT storage dispatch", "[form]")
+{
+  auto rc_ttree = createReadContainer(form::technology::ROOT_TTREE, "cont");
+#if defined(USE_ROOT_STORAGE)
+  CHECK(dynamic_cast<ROOT_TBranch_Read_ContainerImp*>(rc_ttree.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Read_Container*>(rc_ttree.get()) != nullptr);
+#endif
+
+  auto wa_ttree = createWriteAssociation(form::technology::ROOT_TTREE, "assoc");
+#if defined(USE_ROOT_STORAGE)
+  CHECK(dynamic_cast<ROOT_TTree_Write_ContainerImp*>(wa_ttree.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Association*>(wa_ttree.get()) != nullptr);
+#endif
+
+  auto wc_ttree = createWriteContainer(form::technology::ROOT_TTREE, "cont");
+#if defined(USE_ROOT_STORAGE)
+  CHECK(dynamic_cast<ROOT_TBranch_Write_ContainerImp*>(wc_ttree.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Container*>(wc_ttree.get()) != nullptr);
+#endif
+}
+
+TEST_CASE("Factories RNTuple storage dispatch", "[form]")
+{
+  auto rc_rntuple = createReadContainer(form::technology::ROOT_RNTUPLE, "cont");
+#if defined(USE_RNTUPLE_STORAGE)
+  CHECK(dynamic_cast<ROOT_RField_Read_ContainerImp*>(rc_rntuple.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Read_Container*>(rc_rntuple.get()) != nullptr);
+#endif
+
+  auto wa_rntuple = createWriteAssociation(form::technology::ROOT_RNTUPLE, "assoc");
+#if defined(USE_RNTUPLE_STORAGE)
+  CHECK(dynamic_cast<ROOT_RNTuple_Write_ContainerImp*>(wa_rntuple.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Association*>(wa_rntuple.get()) != nullptr);
+#endif
+
+  auto wc_rntuple = createWriteContainer(form::technology::ROOT_RNTUPLE, "cont");
+#if defined(USE_RNTUPLE_STORAGE)
+  CHECK(dynamic_cast<ROOT_RField_Write_ContainerImp*>(wc_rntuple.get()) != nullptr);
+#else
+  CHECK(dynamic_cast<Storage_Write_Container*>(wc_rntuple.get()) != nullptr);
+#endif
 }
 
 TEST_CASE("StorageReader basic operations", "[form]")
@@ -143,7 +247,7 @@ TEST_CASE("StorageReader basic operations", "[form]")
 
   form::experimental::config::tech_setting_config settings;
 
-  Token token("file.root", "cont", 0, 1);
+  Token token("file.root", "cont", form::technology::Id{}, 1);
   void const* read_data = nullptr;
   storage->readContainer(token, &read_data, typeid(int), settings);
 
@@ -159,12 +263,12 @@ TEST_CASE("StorageWriter basic operations", "[form]")
   form::experimental::config::tech_setting_config settings;
 
   std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
-  auto p = std::make_unique<Placement>("file.root", "cont", 0);
+  auto p = std::make_unique<Placement>("file.root", "cont", form::technology::Id{});
   containers.emplace(std::move(p), &typeid(int));
 
   storage->createContainers(containers, settings);
 
-  Placement p2("file.root", "cont", 0);
+  Placement p2("file.root", "cont", form::technology::Id{});
   int data = 42;
   storage->fillContainer(p2, &data, typeid(int));
   storage->commitContainers(p2);
@@ -177,8 +281,8 @@ TEST_CASE("PersistenceReader basic operations", "[form]")
 
   using namespace form::experimental::config;
   ItemConfig out_cfg;
-  out_cfg.addItem("prod", "file.root", 0);
-  out_cfg.addItem("parent/child", "file.root", 0);
+  out_cfg.addItem("prod", "file.root", form::technology::Id{});
+  out_cfg.addItem("parent/child", "file.root", form::technology::Id{});
   p->configure(out_cfg);
 
   tech_setting_config tech_cfg;
@@ -199,8 +303,8 @@ TEST_CASE("PersistenceWriter basic operations", "[form]")
 
   using namespace form::experimental::config;
   ItemConfig out_cfg;
-  out_cfg.addItem("prod", "file.root", 0);
-  out_cfg.addItem("parent/child", "file.root", 0);
+  out_cfg.addItem("prod", "file.root", form::technology::Id{});
+  out_cfg.addItem("parent/child", "file.root", form::technology::Id{});
   p->configure(out_cfg);
 
   tech_setting_config tech_cfg;
@@ -221,7 +325,7 @@ TEST_CASE("form::experimental::config tests", "[form]")
   SECTION("ItemConfig")
   {
     ItemConfig cfg;
-    cfg.addItem("prod1", "file1.root", 1);
+    cfg.addItem("prod1", "file1.root", form::technology::ROOT_TTREE);
 
     auto item = cfg.findItem("prod1");
     REQUIRE(item);
@@ -234,15 +338,15 @@ TEST_CASE("form::experimental::config tests", "[form]")
   SECTION("tech_setting_config")
   {
     tech_setting_config cfg;
-    cfg.file_settings[1]["file1.root"] = {{"attr", "val"}};
-    cfg.container_settings[1]["cont1"] = {{"cattr", "cval"}};
+    cfg.file_settings[form::technology::ROOT_TTREE]["file1.root"] = {{"attr", "val"}};
+    cfg.container_settings[form::technology::ROOT_TTREE]["cont1"] = {{"cattr", "cval"}};
 
-    auto ftable = cfg.getFileTable(1, "file1.root");
+    auto ftable = cfg.getFileTable(form::technology::ROOT_TTREE, "file1.root");
     REQUIRE(ftable.size() == 1);
     CHECK(ftable[0].first == "attr");
     CHECK(ftable[0].second == "val");
 
-    auto ctable = cfg.getContainerTable(1, "cont1");
+    auto ctable = cfg.getContainerTable(form::technology::ROOT_TTREE, "cont1");
     REQUIRE(ctable.size() == 1);
     CHECK(ctable[0].first == "cattr");
     CHECK(ctable[0].second == "cval");
@@ -298,7 +402,7 @@ TEST_CASE("form_reader_interface::indices exercises persistence listIndices path
   using namespace form::experimental::config;
 
   ItemConfig cfg;
-  cfg.addItem("prod", "dummy_reader_test.root", 0);
+  cfg.addItem("prod", "dummy_reader_test.root", form::technology::Id{});
   form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
 
   // indices() calls persistence listIndices; with tech=0 the index container is
@@ -311,7 +415,7 @@ TEST_CASE("form_reader_interface::read throws for missing product config", "[for
   using namespace form::experimental::config;
 
   ItemConfig cfg;
-  cfg.addItem("prod", "dummy_reader_test.root", 0);
+  cfg.addItem("prod", "dummy_reader_test.root", form::technology::Id{});
   form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
 
   form::experimental::product_with_name product{"missing", nullptr, &typeid(int)};
@@ -323,7 +427,7 @@ TEST_CASE("form_writer_interface handles missing product config without crashing
   using namespace form::experimental::config;
 
   ItemConfig cfg;
-  cfg.addItem("prod", "dummy_writer_test.root", 0);
+  cfg.addItem("prod", "dummy_writer_test.root", form::technology::Id{});
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}};
 
   form::experimental::product_with_name product{"missing", nullptr, &typeid(int)};
