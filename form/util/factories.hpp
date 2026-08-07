@@ -33,11 +33,11 @@ namespace form::detail::experimental {
                                                    std::string const& name,
                                                    char mode)
   {
-    if (tech.family == form::technology::Family::root) {
+    if (tech.major == form::technology::Major::root) {
 #ifdef USE_ROOT_STORAGE
       return std::make_shared<ROOT_TFileImp>(name, mode);
 #endif
-    } else if (tech.family == form::technology::Family::hdf5) {
+    } else if (tech.major == form::technology::Major::hdf5) {
       // Handle HDF5 file creation when implemented
       // return std::make_shared<HDF5_FileImp>(name, mode);
     }
@@ -47,7 +47,7 @@ namespace form::detail::experimental {
   inline std::shared_ptr<IStorage_Write_Container> createWriteAssociation(form::technology::Id tech,
                                                                           std::string const& name)
   {
-    if (tech.family == form::technology::Family::root) {
+    if (tech.major == form::technology::Major::root) {
       if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TTree_Write_ContainerImp>(name);
@@ -57,7 +57,7 @@ namespace form::detail::experimental {
         return std::make_shared<ROOT_RNTuple_Write_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
-    } else if (tech.family == form::technology::Family::hdf5) {
+    } else if (tech.major == form::technology::Major::hdf5) {
 #ifdef USE_HDF5_STORAGE
       // Add HDF5 implementation when available
       // return std::make_shared<HDF5_Write_ContainerImp>(name);
@@ -71,7 +71,7 @@ namespace form::detail::experimental {
   inline std::shared_ptr<IStorage_Read_Container> createReadContainer(form::technology::Id tech,
                                                                       std::string const& name)
   {
-    if (tech.family == form::technology::Family::root) {
+    if (tech.major == form::technology::Major::root) {
       if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_Read_ContainerImp>(name);
@@ -81,7 +81,7 @@ namespace form::detail::experimental {
         return std::make_shared<ROOT_RField_Read_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
-    } else if (tech.family == form::technology::Family::hdf5) {
+    } else if (tech.major == form::technology::Major::hdf5) {
 #ifdef USE_HDF5_STORAGE
       // Add HDF5 implementation when available
       // return std::make_shared<HDF5_Field_Read_ContainerImp>(name);
@@ -95,7 +95,7 @@ namespace form::detail::experimental {
   inline std::shared_ptr<IStorage_Write_Container> createWriteContainer(form::technology::Id tech,
                                                                         std::string const& name)
   {
-    if (tech.family == form::technology::Family::root) {
+    if (tech.major == form::technology::Major::root) {
       if (tech == form::technology::ROOT_TTREE) {
 #ifdef USE_ROOT_STORAGE
         return std::make_shared<ROOT_TBranch_Write_ContainerImp>(name);
@@ -105,7 +105,7 @@ namespace form::detail::experimental {
         return std::make_shared<ROOT_RField_Write_ContainerImp>(name);
 #endif // USE_RNTUPLE_STORAGE
       }
-    } else if (tech.family == form::technology::Family::hdf5) {
+    } else if (tech.major == form::technology::Major::hdf5) {
 #ifdef USE_HDF5_STORAGE
       // Add HDF5 implementation when available
       // return std::make_shared<HDF5_Field_Write_ContainerImp>(name);

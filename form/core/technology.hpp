@@ -6,30 +6,30 @@
 #include <string>
 #include <string_view>
 
-/* A storage technology, identified by a (family, variant) pair */
+/* A storage technology, identified by a (major, minor) pair */
 
 namespace form::technology {
 
-  // Storage family (ROOT, HDF5, ...)
-  enum class Family : int {
+  // Major storage type (ROOT, HDF5, ...)
+  enum class Major : int {
     unknown = 0,
     root = 1,
     hdf5 = 2,
   };
 
-  // Variant in family
+  // Minor variant within a Major (e.g. TTree vs RNTuple within ROOT)
   struct Id {
-    Family family{Family::unknown};
-    int variant{0};
+    Major major{Major::unknown};
+    int minor{0};
 
-    // Equality and ordering: ordering lets an Id be used as a std::map key
+    // Exact ordering over (major, minor): lets an Id be a std::map key and drives backend dispatch
     constexpr auto operator<=>(Id const&) const = default;
   };
 
-  // Backends: valid (family, variant) pairs, stable numeric values as a future Token may persist them
-  inline constexpr Id ROOT_TTREE{Family::root, 1};
-  inline constexpr Id ROOT_RNTUPLE{Family::root, 2};
-  inline constexpr Id HDF5{Family::hdf5, 1};
+  // Backends: valid (major, minor) pairs, stable numeric values as a future Token may persist them
+  inline constexpr Id ROOT_TTREE{Major::root, 1};
+  inline constexpr Id ROOT_RNTUPLE{Major::root, 2};
+  inline constexpr Id HDF5{Major::hdf5, 1};
 
   // Canonical string -> technology mapping: the single place a technology string is parsed, replacing the copies that used to live in each module/source/test
   inline Id from_string(std::string_view name)
