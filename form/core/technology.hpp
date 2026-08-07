@@ -41,7 +41,8 @@ namespace form::technology {
       return ROOT_RNTUPLE;
     }
     if (name == "HDF5") {
-      return HDF5;
+      // HDF5 is a reserved technology but has no backend yet: reject it at parse time
+      throw std::runtime_error("Technology 'HDF5' is recognized but not yet implemented");
     }
     throw std::runtime_error("Unknown technology: " + std::string(name));
   }

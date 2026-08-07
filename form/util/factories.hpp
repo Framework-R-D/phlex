@@ -25,6 +25,7 @@
 #endif
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace form::detail::experimental {
@@ -38,8 +39,7 @@ namespace form::detail::experimental {
       return std::make_shared<ROOT_TFileImp>(name, mode);
 #endif
     } else if (tech.major == form::technology::Major::hdf5) {
-      // Handle HDF5 file creation when implemented
-      // return std::make_shared<HDF5_FileImp>(name, mode);
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
     return std::make_shared<Storage_File>(name, mode);
   }
@@ -58,10 +58,7 @@ namespace form::detail::experimental {
 #endif // USE_RNTUPLE_STORAGE
       }
     } else if (tech.major == form::technology::Major::hdf5) {
-#ifdef USE_HDF5_STORAGE
-      // Add HDF5 implementation when available
-      // return std::make_shared<HDF5_Write_ContainerImp>(name);
-#endif // USE_HDF5_STORAGE
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
 
     // Default fallback
@@ -82,10 +79,7 @@ namespace form::detail::experimental {
 #endif // USE_RNTUPLE_STORAGE
       }
     } else if (tech.major == form::technology::Major::hdf5) {
-#ifdef USE_HDF5_STORAGE
-      // Add HDF5 implementation when available
-      // return std::make_shared<HDF5_Field_Read_ContainerImp>(name);
-#endif // USE_HDF5_STORAGE
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
 
     // Default fallback
@@ -106,10 +100,7 @@ namespace form::detail::experimental {
 #endif // USE_RNTUPLE_STORAGE
       }
     } else if (tech.major == form::technology::Major::hdf5) {
-#ifdef USE_HDF5_STORAGE
-      // Add HDF5 implementation when available
-      // return std::make_shared<HDF5_Field_Write_ContainerImp>(name);
-#endif // USE_HDF5_STORAGE
+      throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
 
     // Default fallback

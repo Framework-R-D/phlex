@@ -40,6 +40,45 @@ TEST_CASE("Token basics", "[form]")
   CHECK(t.id() == 42);
 }
 
+TEST_CASE("technology::Id string conversions", "[form]")
+{
+  using namespace form::technology;
+
+  // Round-trip the implemented backends through from_string / to_string
+  CHECK(from_string("ROOT_TTREE") == ROOT_TTREE);
+  CHECK(from_string("ROOT_RNTUPLE") == ROOT_RNTUPLE);
+
+  CHECK(to_string(ROOT_TTREE) == "ROOT_TTREE");
+  CHECK(to_string(ROOT_RNTUPLE) == "ROOT_RNTUPLE");
+  CHECK(to_string(HDF5) == "HDF5"); // reserved: still names itself for diagnostics
+
+  // HDF5 is reserved but unimplemented: reject it at parse time rather than
+  // silently falling back to a different storage.
+  CHECK_THROWS_AS(from_string("HDF5"), std::runtime_error);
+
+  // An unknown name throws; an unknown Id stringifies to the sentinel
+  CHECK_THROWS_AS(from_string("NOT_A_TECH"), std::runtime_error);
+  CHECK(to_string(Id{}) == "UNKNOWN");
+}
+
+TEST_CASE("technology::Id members and ordering", "[form]")
+{
+  using namespace form::technology;
+
+  // (major, minor) decomposition
+  CHECK(ROOT_TTREE.major == Major::root);
+  CHECK(ROOT_TTREE.minor == 1);
+  CHECK(ROOT_RNTUPLE.major == Major::root);
+  CHECK(ROOT_RNTUPLE.minor == 2);
+  CHECK(HDF5.major == Major::hdf5);
+  CHECK(Id{}.major == Major::unknown);
+
+  // operator<=> compares BOTH parts: same major, different minor stay distinct
+  CHECK(ROOT_TTREE != ROOT_RNTUPLE);
+  CHECK(ROOT_TTREE < ROOT_RNTUPLE);
+  CHECK(Id{} == Id{Major::unknown, 0});
+}
+
 TEST_CASE("Storage_File basics", "[form]")
 {
   Storage_File f("test.root", 'o');
@@ -134,6 +173,13 @@ TEST_CASE("Factories fallback", "[form]")
 
   auto wc = createWriteContainer(form::technology::Id{}, "cont");
   CHECK(dynamic_cast<Storage_Write_Container*>(wc.get()) != nullptr);
+
+  // HDF5 is reserved but unimplemented: every factory must fail loudly on the
+  // hdf5 dispatch branch rather than silently return generic storage.
+  CHECK_THROWS_AS(createFile(form::technology::HDF5, "test.h5", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(createReadContainer(form::technology::HDF5, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteAssociation(form::technology::HDF5, "assoc"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteContainer(form::technology::HDF5, "cont"), std::runtime_error);
 }
 
 TEST_CASE("StorageReader basic operations", "[form]")
