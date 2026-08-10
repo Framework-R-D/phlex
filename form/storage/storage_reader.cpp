@@ -4,7 +4,7 @@
 #include "storage_file.hpp"
 #include "storage_read_container.hpp"
 
-#include "util/factories.hpp"
+#include "storage/factories.hpp"
 
 #include <algorithm>
 #include <cctype>

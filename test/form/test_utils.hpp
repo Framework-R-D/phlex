@@ -7,7 +7,7 @@
 #include "storage/istorage.hpp"
 #include "storage/storage_associative_write_container.hpp"
 #include "storage/storage_read_container.hpp"
-#include "util/factories.hpp"
+#include "storage/factories.hpp"
 
 #include <cstring>
 #include <iostream>

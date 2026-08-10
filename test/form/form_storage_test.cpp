@@ -5,7 +5,9 @@
 #include "form/config.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
+#include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
+#include "storage/storage_write_container.hpp"
 
 #include "TFile.h"
 #include "TTree.h"

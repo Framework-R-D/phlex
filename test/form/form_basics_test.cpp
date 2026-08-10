@@ -12,7 +12,7 @@
 #include "storage/storage_read_container.hpp"
 #include "storage/storage_write_association.hpp"
 #include "storage/storage_write_container.hpp"
-#include "util/factories.hpp"
+#include "storage/factories.hpp"
 #if defined(USE_ROOT_STORAGE)
 #include "root_storage/root_tbranch_read_container.hpp"
 #include "root_storage/root_tbranch_write_container.hpp"
