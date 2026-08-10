@@ -83,7 +83,7 @@ namespace phlex::detail {
       std::set collapsed_layers(layers_.begin(), layers_.end());
 
       // Add repeaters only if the inputs span more than one distinct layer.
-      if (collapsed_layers.size() > 1 || collapsed_layers.contains("*"_id)) {
+      if (collapsed_layers.size() > 1) {
         repeaters_.reserve(NInputs);
         for (auto const& layer : layers_) {
           repeaters_.push_back(std::make_unique<internal::repeater_node>(g, name_, layer));

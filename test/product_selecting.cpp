@@ -71,7 +71,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
        "verify_name",
        [](std::string const& str, int const& n) { CHECK(str == fmt::format("John the {}th", n)); })
       .input_family(product_selector{.creator = "give_name", .layer = "event"},
-                    product_selector{.creator = "input"});
+                    product_selector{.creator = "input", .layer = "event"});
     g.execute();
     CHECK(g.execution_count("creator_and_layer_by_creator") == num_events);
   }

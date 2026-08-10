@@ -107,6 +107,14 @@ phlex_make_internal_library(
 )
 add_library(phlex::core_internal ALIAS phlex_core_internal)
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.1)
+    target_link_libraries(phlex_core_internal PUBLIC -lstdc++exp)
+  else()
+    target_link_libraries(phlex_core_internal PUBLIC -lstdc++_libbacktrace)
+  endif()
+endif()
+
 # Interface library
 cet_make_library(
   LIBRARY_NAME

@@ -1,5 +1,7 @@
 #include "phlex/core/products_consumer.hpp"
 
+#include "fmt/format.h"
+
 namespace {
   std::vector<phlex::experimental::identifier> layers_from(phlex::product_selectors const& queries)
   {
@@ -22,11 +24,29 @@ namespace phlex::detail {
 
   products_consumer::products_consumer(phlex::experimental::algorithm_name name,
                                        std::vector<std::string> predicates,
-                                       product_selectors input_products) :
+                                       product_selectors input_products,
+                                       bool always_require_layers) :
     consumer{std::move(name), std::move(predicates)},
     input_products_{std::move(input_products)},
     layers_{layers_from(input_products_)}
   {
+    using namespace phlex::experimental::literals;
+    if (always_require_layers || input_products_.size() > 1) {
+      std::vector<std::string> err_selectors{};
+      for (auto const& p : input_products_) {
+        if (!p.layer) {
+          err_selectors.push_back(p.to_string());
+        }
+      }
+      if (!err_selectors.empty()) {
+        std::string error = fmt::format(
+          "Product selectors in multi-input algorithms (here: {}) must define their layers:\n"
+          "  (Only invalid selectors are listed)\n{}",
+          this->name().to_string(),
+          bulleted_list(err_selectors));
+        throw std::runtime_error(error);
+      }
+    }
   }
 
   products_consumer::~products_consumer() = default;
