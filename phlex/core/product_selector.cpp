@@ -99,12 +99,8 @@ namespace phlex {
   std::strong_ordering product_selector::operator<=>(product_selector const& rhs) const
   {
     using experimental::identifier;
-    return std::tie(type, creator, static_cast<identifier const&>(layer), suffix, stage) <=>
-           std::tie(rhs.type,
-                    rhs.creator,
-                    static_cast<identifier const&>(rhs.layer),
-                    rhs.suffix,
-                    rhs.stage);
+    return std::tie(type, creator, layer, suffix, stage) <=>
+           std::tie(rhs.type, rhs.creator, rhs.layer, rhs.suffix, rhs.stage);
   }
 
   detail::product_specification const* resolve_in_store(product_selector const& query,

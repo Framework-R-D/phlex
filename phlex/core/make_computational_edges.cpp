@@ -52,8 +52,12 @@ namespace phlex::detail {
           // output port) and the right family (hidden in the input port).
           if (auto* matched_provider = find_matching_provider(explicit_providers, input_product)) {
             auto const provider_name = matched_provider->name().to_string();
-            provider_input_ports.try_emplace(
+            auto&& [it, _] = provider_input_ports.try_emplace(
               provider_name, input_product, matched_provider->input_port());
+            // Rewrite the stored layer if it's empty
+            if (!input_product.layer) {
+              it->second.input_product.layer = matched_provider->layer();
+            }
             spdlog::debug("Connecting provider {} to node {} (product: {})",
                           provider_name,
                           node_name,
@@ -80,7 +84,7 @@ namespace phlex::detail {
         for (auto const& [input_product, port] : ports) {
           auto existing_provider_it = std::ranges::find_if(
             provider_input_ports, [&input_product](auto const& provider_entry) {
-              return provider_entry.second.input_product == input_product;
+              return input_product.match(provider_entry.second.input_product);
             });
 
           if (existing_provider_it != provider_input_ports.end()) {
@@ -110,8 +114,12 @@ namespace phlex::detail {
           auto& bundle = bundles[0];
           auto node = std::make_unique<provider_node>(g, std::move(bundle));
           auto const provider_name = node->name().to_string();
-          auto [_, inserted] =
+          auto&& [it, inserted] =
             provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
+          // Rewrite the stored layer if it's empty
+          if (!input_product.layer) {
+            it->second.input_product.layer = node->layer();
+          }
           if (!inserted) {
             throw std::runtime_error(
               fmt::format("Failed to create implicit provider for product selector '{}'\n"

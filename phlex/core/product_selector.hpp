@@ -44,6 +44,7 @@ namespace phlex {
         return me.content_.value_or("[ANY]");
       }
       bool operator==(creator_name const&) const noexcept = default;
+      auto operator<=>(creator_name const&) const noexcept = default;
 
     private:
       std::optional<experimental::identifier> content_;
@@ -85,6 +86,7 @@ namespace phlex {
       }
       operator bool() const noexcept { return content_.has_value(); }
       bool operator==(layer_name const&) const noexcept = default;
+      auto operator<=>(layer_name const&) const noexcept = default;
 
     private:
       std::optional<experimental::identifier> content_;
