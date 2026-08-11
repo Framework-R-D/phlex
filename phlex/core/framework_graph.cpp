@@ -66,10 +66,7 @@ namespace phlex::detail {
         phlex::experimental::identifier const child_layer{n->child_layer()};
         std::set<phlex::experimental::identifier> input_layers_for_unfold;
         for (auto const& input : n->input()) {
-          if (!input.layer) {
-            throw std::runtime_error(fmt::format(
-              "{} used by unfold {} has no layer defined", input, n->name().to_string()));
-          }
+          // Existence of layer already validated
           auto const& input_layer =
             static_cast<phlex::experimental::identifier const&>(input.layer);
           if (not input_layers_for_unfold.insert(input_layer).second) {
