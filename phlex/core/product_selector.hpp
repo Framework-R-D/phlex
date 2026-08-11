@@ -27,6 +27,12 @@ namespace phlex {
     class creator_name {
     public:
       creator_name() : content_{std::nullopt} {}
+      creator_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
+      {
+        if (content_ && content_.value().empty()) {
+          throw std::runtime_error("Cannot specify product with empty creator name.");
+        }
+      }
       template <typename U>
         requires std::constructible_from<T, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
@@ -55,6 +61,12 @@ namespace phlex {
     class layer_name {
     public:
       layer_name() : content_(std::nullopt) {}
+      layer_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
+      {
+        if (content_ && content_.value().empty()) {
+          throw std::runtime_error("Cannot specify the empty string as a data layer.");
+        }
+      }
       template <typename U>
         requires std::constructible_from<T, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
