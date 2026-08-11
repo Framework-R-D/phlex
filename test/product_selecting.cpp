@@ -166,7 +166,8 @@ TEST_CASE("Querying products in different ways", "[graph]")
                                       &copy_temperature_once::unfold,
                                       concurrency::unlimited,
                                       "temperature_copy")
-        .input_family(product_selector{.creator = "input", .suffix = "temperature"}),
+        .input_family(product_selector{.creator = "input", .suffix = "temperature"})
+        .output_product_suffixes("temperature"),
       "Product selectors in layer-mandatory algorithm copy_temperature_once must define their "
       "layers:\n"
       "  (Only invalid selectors are listed)\n"
