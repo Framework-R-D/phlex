@@ -40,11 +40,14 @@ namespace phlex::detail {
         }
       }
       if (!err_selectors.empty()) {
-        std::string error = fmt::format(
-          "Product selectors in multi-input algorithms (here: {}) must define their layers:\n"
-          "  (Only invalid selectors are listed)\n{}",
-          this->name().to_string(),
-          bulleted_list(err_selectors));
+        std::string type =
+          layers_required == layers_required::always ? "layer-mandatory" : "multi-input";
+        std::string error =
+          fmt::format("Product selectors in {} algorithm {} must define their layers:\n"
+                      "  (Only invalid selectors are listed)\n{}",
+                      type,
+                      this->name().to_string(),
+                      bulleted_list(err_selectors));
         throw std::runtime_error(error);
       }
     }
