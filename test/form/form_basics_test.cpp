@@ -190,53 +190,52 @@ TEST_CASE("Factories fallback", "[form]")
   CHECK_THROWS_AS(createReadContainer(form::technology::HDF5, "cont"), std::runtime_error);
   CHECK_THROWS_AS(createWriteAssociation(form::technology::HDF5, "assoc"), std::runtime_error);
   CHECK_THROWS_AS(createWriteContainer(form::technology::HDF5, "cont"), std::runtime_error);
+
+  // A major FORM doesn't recognize at all must also fail loudly
+  // Major has a fixed underlying type, so an out-of-range value is legal at runtime
+  // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
+  auto const unknown_major = form::technology::Id{static_cast<form::technology::Major>(99), 0};
+  CHECK_THROWS_AS(createFile(unknown_major, "test.dat", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(createReadContainer(unknown_major, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteAssociation(unknown_major, "assoc"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteContainer(unknown_major, "cont"), std::runtime_error);
 }
 
 TEST_CASE("Factories ROOT storage dispatch", "[form]")
 {
-  auto rc_ttree = createReadContainer(form::technology::ROOT_TTREE, "cont");
 #if defined(USE_ROOT_STORAGE)
+  auto rc_ttree = createReadContainer(form::technology::ROOT_TTREE, "cont");
   CHECK(dynamic_cast<ROOT_TBranch_Read_ContainerImp*>(rc_ttree.get()) != nullptr);
-#else
-  CHECK(dynamic_cast<Storage_Read_Container*>(rc_ttree.get()) != nullptr);
-#endif
 
   auto wa_ttree = createWriteAssociation(form::technology::ROOT_TTREE, "assoc");
-#if defined(USE_ROOT_STORAGE)
   CHECK(dynamic_cast<ROOT_TTree_Write_ContainerImp*>(wa_ttree.get()) != nullptr);
-#else
-  CHECK(dynamic_cast<Storage_Write_Association*>(wa_ttree.get()) != nullptr);
-#endif
 
   auto wc_ttree = createWriteContainer(form::technology::ROOT_TTREE, "cont");
-#if defined(USE_ROOT_STORAGE)
   CHECK(dynamic_cast<ROOT_TBranch_Write_ContainerImp*>(wc_ttree.get()) != nullptr);
 #else
-  CHECK(dynamic_cast<Storage_Write_Container*>(wc_ttree.get()) != nullptr);
+  CHECK_THROWS_AS(createReadContainer(form::technology::ROOT_TTREE, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteAssociation(form::technology::ROOT_TTREE, "assoc"),
+                  std::runtime_error);
+  CHECK_THROWS_AS(createWriteContainer(form::technology::ROOT_TTREE, "cont"), std::runtime_error);
 #endif
 }
 
 TEST_CASE("Factories RNTuple storage dispatch", "[form]")
 {
-  auto rc_rntuple = createReadContainer(form::technology::ROOT_RNTUPLE, "cont");
 #if defined(USE_RNTUPLE_STORAGE)
+  auto rc_rntuple = createReadContainer(form::technology::ROOT_RNTUPLE, "cont");
   CHECK(dynamic_cast<ROOT_RField_Read_ContainerImp*>(rc_rntuple.get()) != nullptr);
-#else
-  CHECK(dynamic_cast<Storage_Read_Container*>(rc_rntuple.get()) != nullptr);
-#endif
 
   auto wa_rntuple = createWriteAssociation(form::technology::ROOT_RNTUPLE, "assoc");
-#if defined(USE_RNTUPLE_STORAGE)
   CHECK(dynamic_cast<ROOT_RNTuple_Write_ContainerImp*>(wa_rntuple.get()) != nullptr);
-#else
-  CHECK(dynamic_cast<Storage_Write_Association*>(wa_rntuple.get()) != nullptr);
-#endif
 
   auto wc_rntuple = createWriteContainer(form::technology::ROOT_RNTUPLE, "cont");
-#if defined(USE_RNTUPLE_STORAGE)
   CHECK(dynamic_cast<ROOT_RField_Write_ContainerImp*>(wc_rntuple.get()) != nullptr);
 #else
-  CHECK(dynamic_cast<Storage_Write_Container*>(wc_rntuple.get()) != nullptr);
+  CHECK_THROWS_AS(createReadContainer(form::technology::ROOT_RNTUPLE, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteAssociation(form::technology::ROOT_RNTUPLE, "assoc"),
+                  std::runtime_error);
+  CHECK_THROWS_AS(createWriteContainer(form::technology::ROOT_RNTUPLE, "cont"), std::runtime_error);
 #endif
 }
 

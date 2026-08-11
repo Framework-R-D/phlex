@@ -153,10 +153,20 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
   )
 endif()
 
+set(form_basics_test_libraries form)
+if(FORM_USE_ROOT_STORAGE)
+  list(APPEND form_basics_test_libraries root_storage)
+endif()
 cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
-         form
+         ${form_basics_test_libraries}
 )
 target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
+if(FORM_USE_ROOT_STORAGE)
+  target_compile_definitions(form_basics_test PRIVATE USE_ROOT_STORAGE)
+  if(FORM_USE_RNTUPLE_STORAGE)
+    target_compile_definitions(form_basics_test PRIVATE USE_RNTUPLE_STORAGE)
+  endif()
+endif()
 
 add_library(generate_vector MODULE generate_vector.cpp)
 target_link_libraries(generate_vector PRIVATE phlex::module)
