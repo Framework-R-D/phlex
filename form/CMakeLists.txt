@@ -18,7 +18,10 @@ option(FORM_USE_RNTUPLE_STORAGE "Enable RNTuple Storage" OFF)
 
 # RNTuple is a ROOT sub-technology and cannot be built without ROOT.
 if(FORM_USE_RNTUPLE_STORAGE AND NOT FORM_USE_ROOT_STORAGE)
-  message(FATAL_ERROR "FORM_USE_RNTUPLE_STORAGE requires FORM_USE_ROOT_STORAGE=ON (RNTuple is part of ROOT).")
+  message(
+    FATAL_ERROR
+    "FORM_USE_RNTUPLE_STORAGE requires FORM_USE_ROOT_STORAGE=ON (RNTuple is part of ROOT)."
+  )
 endif()
 
 # Add sub directories
