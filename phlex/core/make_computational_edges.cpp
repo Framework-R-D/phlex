@@ -22,10 +22,24 @@ namespace phlex::detail {
       };
       auto proj = [](auto const& pair) -> provider_node* { return pair.second.get(); };
 
-      if (auto it = std::ranges::find_if(providers, pred, proj); it != providers.end()) {
-        return it->second.get();
+      auto candidates = providers | std::views::transform(proj) | std::views::filter(pred) |
+                        std::ranges::to<std::vector>();
+      switch (candidates.size()) {
+      case 0:
+        return nullptr;
+      case 1:
+        return candidates[0];
+      default:
+        auto items = candidates | std::views::transform([](provider_node* p) {
+                       return fmt::format("spec: {}, layer: {}, stage: {}",
+                                          p->output_product().to_string(),
+                                          p->layer(),
+                                          p->stage());
+                     });
+        throw std::runtime_error(fmt::format("Multiple explicit providers found for {}:\n{}",
+                                             input_product.to_string(),
+                                             bulleted_list(items)));
       }
-      return nullptr;
     }
 
     provider_bundles find_matching_implicit_providers(source_map const& sources,
