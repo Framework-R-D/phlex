@@ -31,7 +31,7 @@ namespace form::detail::experimental {
                                             char mode)
   {
     switch (tech.major) {
-    case Major::unknown:
+    case Major::generic:
       // No technology specified: generic storage.
       return std::make_shared<Storage_File>(name, mode);
     case Major::root:
@@ -50,7 +50,7 @@ namespace form::detail::experimental {
                                                                    std::string const& name)
   {
     switch (tech.major) {
-    case Major::unknown:
+    case Major::generic:
       // No technology specified: generic storage.
       return std::make_shared<Storage_Write_Association>(name);
     case Major::root:
@@ -79,7 +79,7 @@ namespace form::detail::experimental {
                                                                std::string const& name)
   {
     switch (tech.major) {
-    case Major::unknown:
+    case Major::generic:
       // No technology specified: generic storage.
       return std::make_shared<Storage_Read_Container>(name);
     case Major::root:
@@ -108,7 +108,7 @@ namespace form::detail::experimental {
                                                                  std::string const& name)
   {
     switch (tech.major) {
-    case Major::unknown:
+    case Major::generic:
       // No technology specified: generic storage.
       return std::make_shared<Storage_Write_Container>(name);
     case Major::root:

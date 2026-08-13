@@ -11,15 +11,15 @@
 namespace form::technology {
 
   // Major storage type (ROOT, HDF5, ...)
-  enum class Major : int {
-    unknown = 0,
+  enum class Major {
+    generic = 0, // no specific technology requested
     root = 1,
     hdf5 = 2,
   };
 
   // Minor variant within a Major (e.g. TTree vs RNTuple within ROOT)
   struct Id {
-    Major major{Major::unknown};
+    Major major{Major::generic};
     int minor{0};
 
     // Exact ordering over (major, minor): lets an Id be a std::map key and drives backend dispatch

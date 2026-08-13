@@ -81,12 +81,12 @@ TEST_CASE("technology::Id members and ordering", "[form]")
   CHECK(ROOT_RNTUPLE.major == Major::root);
   CHECK(ROOT_RNTUPLE.minor == 2);
   CHECK(HDF5.major == Major::hdf5);
-  CHECK(Id{}.major == Major::unknown);
+  CHECK(Id{}.major == Major::generic);
 
   // operator<=> compares BOTH parts: same major, different minor stay distinct
   CHECK(ROOT_TTREE != ROOT_RNTUPLE);
   CHECK(ROOT_TTREE < ROOT_RNTUPLE);
-  CHECK(Id{} == Id{Major::unknown, 0});
+  CHECK(Id{} == Id{Major::generic, 0});
 }
 
 TEST_CASE("Storage_File basics", "[form]")
