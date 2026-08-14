@@ -14,6 +14,8 @@ cet_make_library(
   layer_path.cpp
   product_store.cpp
   products.cpp
+  data_product_concept.cpp
+  data_product_concept_registry.cpp
   product_specification.cpp
   LIBRARIES
   PUBLIC
@@ -44,6 +46,8 @@ install(
     product_store.hpp
     products.hpp
     type_id.hpp
+    data_product_concept.hpp
+    data_product_concept_registry.hpp
   DESTINATION include/phlex/model
 )
 

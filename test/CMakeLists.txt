@@ -168,6 +168,23 @@ cet_test(
   phlex::model_internal
   phlex::utilities_internal
 )
+cet_test(
+  data_product_concept
+  USE_CATCH2_MAIN
+  SOURCE
+  data_product_concept_test.cpp
+  LIBRARIES
+  phlex::model
+)
+cet_test(
+  data_product_concept_registry
+  USE_CATCH2_MAIN
+  SOURCE
+  data_product_concept_registry_test.cpp
+  LIBRARIES
+  phlex::model
+  TBB::tbb
+)
 cet_test(data_cell_index USE_CATCH2_MAIN SOURCE data_cell_index.cpp LIBRARIES
          phlex::model_internal
 )
