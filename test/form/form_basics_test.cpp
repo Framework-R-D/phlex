@@ -212,6 +212,11 @@ TEST_CASE("Factories ROOT storage dispatch", "[form]")
 
   auto wc_ttree = createWriteContainer(form::technology::ROOT_TTREE, "cont");
   CHECK(dynamic_cast<ROOT_TBranch_Write_ContainerImp*>(wc_ttree.get()) != nullptr);
+
+  auto const unsupported_root = form::technology::Id{form::technology::Major::root, 99};
+  CHECK_THROWS_AS(createReadContainer(unsupported_root, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteAssociation(unsupported_root, "assoc"), std::runtime_error);
+  CHECK_THROWS_AS(createWriteContainer(unsupported_root, "cont"), std::runtime_error);
 #else
   CHECK_THROWS_AS(createReadContainer(form::technology::ROOT_TTREE, "cont"), std::runtime_error);
   CHECK_THROWS_AS(createWriteAssociation(form::technology::ROOT_TTREE, "assoc"),
