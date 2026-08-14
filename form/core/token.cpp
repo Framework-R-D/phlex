@@ -7,7 +7,7 @@
 using namespace form::detail::experimental;
 
 /// Constructor with initialization
-Token::Token(std::string fileName, std::string containerName, int technology, int id) :
+Token::Token(std::string fileName, std::string containerName, technology::Id technology, int id) :
   m_technology(technology),
   m_fileName(std::move(fileName)),
   m_containerName(std::move(containerName)),
@@ -20,7 +20,7 @@ std::string const& Token::fileName() const { return m_fileName; }
 /// Access container name
 std::string const& Token::containerName() const { return m_containerName; }
 /// Access technology type
-int Token::technology() const { return m_technology; }
+form::technology::Id Token::technology() const { return m_technology; }
 /// Set technology type
 /// Access identifier/entry number
 int Token::id() const { return m_id; }

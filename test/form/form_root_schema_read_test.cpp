@@ -14,7 +14,7 @@ int main(int const argc, char const** argv)
   std::string const tech_string = (argc > 1) ? argv[1] : "ROOT_TTREE";
 
   try {
-    int const technology = getTechnology(tech_string);
+    auto const technology = getTechnology(tech_string);
 
     auto const& [prods] = read<std::vector<TrackStart>>(technology);
     std::ofstream outFile("form_root_schema_read_log_" + tech_string + ".txt");

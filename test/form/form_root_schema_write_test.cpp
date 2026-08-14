@@ -13,7 +13,7 @@ using namespace form::test;
 int main(int const argc, char const** argv)
 {
   std::string const tech_string = (argc > 1) ? argv[1] : "ROOT_TTREE";
-  int const technology = getTechnology(tech_string);
+  auto const technology = getTechnology(tech_string);
 
   ToyTracker tracker(4 * 1024);
   std::vector<TrackStart> const prods = tracker();
