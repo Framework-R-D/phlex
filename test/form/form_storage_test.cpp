@@ -397,12 +397,11 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   CHECK(reader.getIndex(index_token, "plain-text-id", settings) == 0);
 
   // Malformed IDs must be rejected by the storage-layer index parser
-  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=00000001]", settings),
-                  std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=1]", settings), std::runtime_error);
   CHECK_THROWS_AS(
     reader.getIndex(index_token, "[EVENT=99999999999999999999999999999999]", settings),
     std::runtime_error);
-  CHECK_THROWS_AS(reader.getIndex(index_token, "[=00000001]", settings), std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[=1]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[    ]", settings), std::runtime_error);
 }
