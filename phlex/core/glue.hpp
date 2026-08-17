@@ -65,7 +65,7 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return fold_api{config_,
                       name,
-                      algorithm_bits(std::move(bound_obj_), std::move(f)),
+                      algorithm_bits(bound_obj_, std::move(f)),
                       c,
                       graph_,
                       nodes_,
@@ -82,13 +82,8 @@ namespace phlex::detail {
                  concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<observer_node>(config_,
-                                              name,
-                                              algorithm_bits{std::move(bound_obj_), std::move(f)},
-                                              c,
-                                              graph_,
-                                              nodes_,
-                                              errors_);
+      return make_registration<observer_node>(
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -99,13 +94,8 @@ namespace phlex::detail {
                  concurrency c)
     {
       internal::verify_name(name, config_);
-      return provider_api{config_,
-                          name,
-                          algorithm_bits{std::move(bound_obj_), std::move(f)},
-                          c,
-                          graph_,
-                          nodes_,
-                          errors_};
+      return provider_api{
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_};
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -116,13 +106,8 @@ namespace phlex::detail {
                    concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<transform_node>(config_,
-                                               name,
-                                               algorithm_bits{std::move(bound_obj_), std::move(f)},
-                                               c,
-                                               graph_,
-                                               nodes_,
-                                               errors_);
+      return make_registration<transform_node>(
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -133,13 +118,8 @@ namespace phlex::detail {
                    concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<predicate_node>(config_,
-                                               name,
-                                               algorithm_bits{std::move(bound_obj_), std::move(f)},
-                                               c,
-                                               graph_,
-                                               nodes_,
-                                               errors_);
+      return make_registration<predicate_node>(
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
     }
 
     auto unfold(std::string_view name,
@@ -168,7 +148,7 @@ namespace phlex::detail {
                         config_,
                         name,
                         graph_,
-                        delegate(std::move(bound_obj_), f),
+                        delegate(bound_obj_, f),
                         c};
     }
 
