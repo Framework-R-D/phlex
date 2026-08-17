@@ -109,7 +109,7 @@ namespace phlex::detail {
     index_receiver_{graph_,
                     tbb::flow::unlimited,
                     [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
-                      auto&& [ready_flushes, index_to_emit] = input;
+                      auto const& [ready_flushes, index_to_emit] = input;
                       return index_router_.route(index_to_emit, ready_flushes);
                     }},
     hierarchy_node_{graph_,
