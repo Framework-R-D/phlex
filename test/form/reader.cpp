@@ -89,7 +89,8 @@ int main(int argc, char** argv)
     for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
 
       void const* rawPtr = nullptr;
-      std::string const seg_id_text = std::format("[EVENT={:08X};SEG={:08X}]", nevent, nseg);
+      // Must match the canonical format emitted by writer.cpp (phlex data_cell_index format)
+      std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
 
       std::string const& segment_id = seg_id_text;
 
@@ -160,7 +161,7 @@ int main(int argc, char** argv)
     }
     std::cout << "PHLEX: Read Event segments done " << nevent << '\n';
 
-    std::string const evt_id_text = std::format("[EVENT={:08X}]", nevent);
+    std::string const evt_id_text = std::format("[event:{}]", nevent);
 
     std::string const& event_id = evt_id_text;
 

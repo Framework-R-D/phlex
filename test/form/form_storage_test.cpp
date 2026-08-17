@@ -64,7 +64,7 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
 TEST_CASE("Storage_Container sharing an Association", "[form]")
 {
   std::vector<float> piData(10, std::numbers::pi_v<float>);
-  std::string indexData = "[EVENT=00000001;SEG=00000001]";
+  std::string indexData = "[event:1, segment:1]";
 
   form::test::write(technology, piData, indexData);
 
@@ -80,7 +80,7 @@ TEST_CASE("Storage_Container multiple containers in Association", "[form]")
   std::vector<float> piData(10, std::numbers::pi_v<float>);
   std::vector<int> magicData(17);
   std::ranges::iota(magicData, 42);
-  std::string indexData = "[EVENT=00000001;SEG=00000001]";
+  std::string indexData = "[event:1, segment:1]";
 
   form::test::write(technology, piData, magicData, indexData);
 
@@ -295,8 +295,8 @@ TEST_CASE("Persistence round-trip: structured index normalization and listing", 
   std::vector<int> first = {10, 20, 30};
   std::vector<int> second = {40, 50, 60};
 
-  std::string const first_id = "[EVENT=00000001;SEG=00000002]";
-  std::string const second_id = "[EVENT=00000003;SEG=00000004]";
+  std::string const first_id = "[event:1, segment:2]";
+  std::string const second_id = "[event:3, segment:4]";
 
   {
     auto writer = createPersistenceWriter();
@@ -359,7 +359,7 @@ TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
   reader->configureTechSettings(tech_setting_config{});
 
   void const* raw = nullptr;
-  reader->read(creator, "prod", "[EVENT=00000000;SEG=00000000]", &raw, typeid(std::vector<int>));
+  reader->read(creator, "prod", "[event:0, segment:0]", &raw, typeid(std::vector<int>));
 
   auto const* read_payload = static_cast<std::vector<int> const*>(raw);
   REQUIRE(read_payload != nullptr);
@@ -386,7 +386,7 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
     writer->configureTechSettings(tech_setting_config{});
     writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
     writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
-    writer->commitOutput(creator, "[EVENT=00000001;SEG=00000002]");
+    writer->commitOutput(creator, "[event:1, segment:2]");
   }
 
   StorageReader reader;
@@ -396,12 +396,12 @@ TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "
   CHECK(reader.getIndex(index_token, "[]", settings) == 0);
   CHECK(reader.getIndex(index_token, "plain-text-id", settings) == 0);
 
-  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=00000001]", settings),
-                  std::runtime_error);
+  // Malformed IDs must be rejected by the storage-layer index parser
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=1]", settings), std::runtime_error);
   CHECK_THROWS_AS(
     reader.getIndex(index_token, "[EVENT=99999999999999999999999999999999]", settings),
     std::runtime_error);
-  CHECK_THROWS_AS(reader.getIndex(index_token, "[=00000001]", settings), std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[=1]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT]", settings), std::runtime_error);
   CHECK_THROWS_AS(reader.getIndex(index_token, "[    ]", settings), std::runtime_error);
 }
@@ -414,13 +414,13 @@ TEST_CASE("StorageReader getIndex: empty container and tech-table branches", "[f
   Token const token{"storage_reader_hdf5_get_index.root", "creator/index", form::technology::HDF5};
 
   tech_setting_config empty_settings;
-  CHECK_THROWS_AS(reader.getIndex(token, "[EVENT=00000001;SEG=00000001]", empty_settings),
+  CHECK_THROWS_AS(reader.getIndex(token, "[event:1, segment:1]", empty_settings),
                   std::runtime_error);
 
   tech_setting_config tech_only_settings;
   tech_only_settings.file_settings[form::technology::HDF5]["different_file"] = {};
   tech_only_settings.container_settings[form::technology::HDF5]["different_container"] = {};
-  CHECK_THROWS_AS(reader.getIndex(token, "[EVENT=00000001;SEG=00000001]", tech_only_settings),
+  CHECK_THROWS_AS(reader.getIndex(token, "[event:1, segment:1]", tech_only_settings),
                   std::runtime_error);
 
   std::string const file_name =
@@ -436,7 +436,7 @@ TEST_CASE("StorageReader getIndex: empty container and tech-table branches", "[f
     writer->configureTechSettings(tech_setting_config{});
     writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
     writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
-    writer->commitOutput(creator, "[EVENT=00000005;SEG=00000006]");
+    writer->commitOutput(creator, "[event:5, segment:6]");
   }
 
   tech_setting_config attr_settings;
@@ -467,7 +467,7 @@ TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error br
     writer->configureTechSettings(tech_setting_config{});
     writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
     writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
-    writer->commitOutput(creator, "[EVENT=00000009;SEG=00000008]");
+    writer->commitOutput(creator, "[event:9, segment:8]");
   }
 
   StorageReader reader;
