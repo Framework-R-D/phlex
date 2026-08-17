@@ -154,7 +154,7 @@ namespace phlex::detail {
     void wire_fold_partition_index_sets(tbb::flow::graph& g,
                                         fold_partition_ports_t fold_partition_ports);
     void build_multilayer_join_slots(
-      tbb::flow::graph& g, std::map<std::string, named_index_ports> multilayer_join_ports);
+      tbb::flow::graph& g, std::map<std::string, named_index_ports> const& multilayer_join_ports);
     internal::index_set_node_ptr index_set_node_for(phlex::experimental::layer_path const& layer);
     internal::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<internal::multilayer_slots_ptr, internal::end_token_entries_ptr> multilayer_slots_for(

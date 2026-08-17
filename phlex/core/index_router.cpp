@@ -217,7 +217,7 @@ namespace phlex::detail {
   // counting_layer is unset to the node's deepest layer, construct the multilayer_slot objects,
   // and store everything in multilayer_join_slots_.
   void index_router::build_multilayer_join_slots(
-    tbb::flow::graph& g, std::map<std::string, named_index_ports> multilayer_join_ports)
+    tbb::flow::graph& g, std::map<std::string, named_index_ports> const& multilayer_join_ports)
   {
     for (auto const& [node_name, join_ports] : multilayer_join_ports) {
       spdlog::trace("Making multilayer slots for {}", node_name);
@@ -579,9 +579,7 @@ namespace phlex::detail {
 
       auto next = index->parent();
       if (next) {
-        auto committed_counts = gate->committed_counts();
-        assert(committed_counts);
-        gate_for(next)->roll_up_child(*committed_counts);
+        gate_for(next)->roll_up_child(gate->committed_counts());
       }
       index = next;
     }
