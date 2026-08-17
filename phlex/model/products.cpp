@@ -19,7 +19,8 @@ namespace phlex::detail {
 
   product_base const* products::find_product(product_specification const& spec) const
   {
-    auto it = std::ranges::find(products_, spec, [](auto const& p) { return p.first; });
+    auto it =
+      std::ranges::find(products_, spec, [](auto const& p) -> auto const& { return p.first; });
     if (it == products_.end()) {
       throw std::runtime_error(
         fmt::format("No product exists with the specification '{}'.", spec.to_string()));
