@@ -1,22 +1,12 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/data_cell_tracker.hpp"
+#include "test/ostream_logger.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_string.hpp"
-#include "spdlog/sinks/ostream_sink.h"
-#include "spdlog/spdlog.h"
 
 using namespace phlex;
 using namespace phlex::detail;
-
-namespace {
-  void use_ostream_logger(std::ostringstream& oss)
-  {
-    auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt>(oss);
-    auto ostream_logger = std::make_shared<spdlog::logger>("my_logger", ostream_sink);
-    spdlog::set_default_logger(ostream_logger);
-  }
-}
 
 TEST_CASE("Test data-cell tracker", "[graph]")
 {
@@ -98,7 +88,7 @@ TEST_CASE("Test data-cell tracker with missing intermediate layers", "[graph]")
 TEST_CASE("Cached flush counts at destruction generate warning message", "[graph]")
 {
   std::ostringstream oss;
-  use_ostream_logger(oss);
+  auto logger = phlex::test::use_ostream_logger(oss);
   auto tracker = std::make_unique<data_cell_tracker>();
 
   auto job_index = data_cell_index::job();
