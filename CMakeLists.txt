@@ -158,11 +158,15 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 
 list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Modules)
 
-find_package(Boost REQUIRED COMPONENTS json program_options)
-find_package(TBB REQUIRED)
-find_package(fmt REQUIRED)
+# Dependencies required by public API
+find_package(Boost REQUIRED COMPONENTS json EXPORT)
+find_package(TBB REQUIRED EXPORT)
+find_package(fmt REQUIRED EXPORT)
+find_package(spdlog REQUIRED EXPORT)
+
+# Dependencies required by internal implementation
+find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(jsonnet REQUIRED)
-find_package(spdlog REQUIRED)
 
 # Apply ThreadSanitizer flags if enabled
 if(ENABLE_TSAN)
