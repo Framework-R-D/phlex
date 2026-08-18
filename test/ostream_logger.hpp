@@ -28,7 +28,10 @@ namespace phlex::test {
     std::shared_ptr<spdlog::logger> previous_logger_;
   };
 
-  inline ostream_logger use_ostream_logger(std::ostream& stream) { return ostream_logger{stream}; }
+  [[nodiscard]] inline ostream_logger use_ostream_logger(std::ostream& stream)
+  {
+    return ostream_logger{stream};
+  }
 }
 
 #endif // TEST_OSTREAM_LOGGER_HPP
