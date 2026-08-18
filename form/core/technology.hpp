@@ -2,6 +2,7 @@
 #define FORM_CORE_TECHNOLOGY_HPP
 
 #include <compare>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -11,7 +12,7 @@
 namespace form::technology {
 
   // Major storage type (ROOT, HDF5, ...)
-  enum class Major {
+  enum class Major : std::uint8_t {
     generic = 0, // no specific technology requested
     root = 1,
     hdf5 = 2,

@@ -114,7 +114,7 @@ namespace phlex::detail {
     unfold_count_per_input_layer_ = std::move(unfolds.count_per_input_layer);
     wire_provider_index_sets(g, std::move(provider_input_ports));
     wire_fold_partition_index_sets(g, std::move(fold_partition_ports));
-    build_multilayer_join_slots(g, std::move(multilayer_join_ports));
+    build_multilayer_join_slots(g, multilayer_join_ports);
   }
 
   // --------------------------------------------------------------------------------------------
@@ -393,7 +393,7 @@ namespace phlex::detail {
       std::size_t matched_count = 0;
 
       for (std::size_t i = 0; i != slots.size(); ++i) {
-        auto& slot = slots[i];
+        auto const& slot = slots[i];
         auto const& flush = flush_specs[i];
         if (slot->matches_exactly(layer_path)) {
           has_exact_match = true;

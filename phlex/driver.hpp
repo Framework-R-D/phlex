@@ -183,7 +183,7 @@ namespace phlex::detail {
       auto h = hierarchy;
       return {[f = std::move(driver_function),
                h = std::move(h),
-               srcs = std::move(sources_),
+               srcs = sources_,
                first_arg_factory = std::move(first_arg_factory)](framework_driver& d) mutable {
                 internal::invoke_driver_with_sources<source_parameters_t>(
                   f, first_arg_factory(h, d), srcs);

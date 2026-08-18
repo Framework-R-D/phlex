@@ -48,7 +48,7 @@ namespace phlex::experimental {
   }
 
   template <typename T>
-  using sendable_type = typename detail::sendable_type_impl<T>::type;
+  using sendable_type = detail::sendable_type_impl<T>::type;
 }
 
 #endif // PHLEX_CORE_FOLD_SEND_HPP

@@ -57,8 +57,8 @@ namespace phlex::detail {
     using base_t = fold_join_node_base_t<FoldResult, NInputs>;
     using join_args_t = accumulator_with_messages<FoldResult, NInputs>;
     using result_initializer_t = std::function<std::unique_ptr<FoldResult>(data_cell_index const&)>;
-    using input_t = typename base_t::input_ports_type;
-    using output_t = typename base_t::output_ports_type;
+    using input_t = base_t::input_ports_type;
+    using output_t = base_t::output_ports_type;
 
     template <std::size_t... Is>
     static auto make_join(tbb::flow::graph& g, std::index_sequence<Is...>)

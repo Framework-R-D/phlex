@@ -21,7 +21,7 @@ namespace {
   // NOLINTNEXTLINE(performance-unnecessary-value-param)
   std::vector<layer_path> unique_paths(std::vector<layer_path> paths)
   {
-    std::set<layer_path> const unique{std::from_range, std::move(paths)};
+    std::set<layer_path> unique{std::from_range, std::move(paths)};
     return {std::from_range, std::move(unique)};
   }
 
@@ -50,7 +50,7 @@ namespace {
   }
 
   std::vector<layer_path> convert_vector_vector_string(
-    std::vector<std::vector<std::string>>&& layer_path_strings)
+    std::vector<std::vector<std::string>> layer_path_strings)
   {
     std::vector<layer_path> layer_paths;
     layer_paths.reserve(layer_path_strings.size());

@@ -120,9 +120,9 @@ namespace phlex::detail::internal {
 
     struct cached_accumulator {
       std::shared_ptr<accumulator_msg_t> accumulator_msg;
-      tbb::concurrent_queue<std::size_t> msg_ids{};
+      tbb::concurrent_queue<std::size_t> msg_ids;
       std::atomic<int> counter;
-      std::atomic_flag flush_received{};
+      std::atomic_flag flush_received;
       std::size_t original_message_id{};
     };
 
