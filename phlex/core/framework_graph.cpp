@@ -109,8 +109,8 @@ namespace phlex::detail {
     index_receiver_{graph_,
                     tbb::flow::unlimited,
                     [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
-                      auto&& [ready_flushes, index_to_emit] = input;
-                      return index_router_.route(index_to_emit, std::move(ready_flushes));
+                      auto const& [ready_flushes, index_to_emit] = input;
+                      return index_router_.route(index_to_emit, ready_flushes);
                     }},
     hierarchy_node_{graph_,
                     tbb::flow::unlimited,
@@ -149,7 +149,7 @@ namespace phlex::detail {
     if (shutdown_on_error_) {
       // When in an error state, we need to pop the layer stack and wait for any tasks to finish.
       auto remaining_flushes = cell_tracker_.report_and_evict_ready_flushes(nullptr);
-      index_router_.drain(std::move(remaining_flushes));
+      index_router_.drain(remaining_flushes);
       graph_.wait_for_all();
     }
   }

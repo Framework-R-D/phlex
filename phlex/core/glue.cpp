@@ -3,9 +3,10 @@
 
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace phlex::detail::internal {
-  void verify_name(std::string const& name, configuration const* config)
+  void verify_name(std::string_view name, configuration const* config)
   {
     if (not name.empty()) {
       return;

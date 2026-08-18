@@ -39,7 +39,7 @@ namespace phlex::detail {
     }
 
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
-    edges_from_explicit_providers(index_router::head_ports_t head_ports,
+    edges_from_explicit_providers(index_router::head_ports_t const& head_ports,
                                   provider_nodes& explicit_providers)
     {
       assert(!head_ports.empty());
@@ -68,7 +68,7 @@ namespace phlex::detail {
     }
 
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
-    edges_from_implicit_providers(index_router::head_ports_t head_ports,
+    edges_from_implicit_providers(index_router::head_ports_t const& head_ports,
                                   provider_nodes& providers,
                                   source_map const& sources,
                                   tbb::flow::graph& g)
@@ -194,10 +194,10 @@ namespace phlex::detail {
     }
 
     auto [explicit_provider_input_ports, unconsumed_head_ports] =
-      edges_from_explicit_providers(std::move(head_ports), nodes.providers);
+      edges_from_explicit_providers(head_ports, nodes.providers);
 
-    auto [implicit_provider_input_ports, unmatched_head_ports] = edges_from_implicit_providers(
-      std::move(unconsumed_head_ports), nodes.providers, nodes.sources, g);
+    auto [implicit_provider_input_ports, unmatched_head_ports] =
+      edges_from_implicit_providers(unconsumed_head_ports, nodes.providers, nodes.sources, g);
 
     if (not unmatched_head_ports.empty()) {
       std::string error_msg{"No provider found for the following required products:\n"};

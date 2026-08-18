@@ -22,7 +22,7 @@ namespace phlex::detail {
     using base::graph_proxy;
 
     template <typename U, typename... Args>
-    module_graph_proxy<U> make(Args&&... args)
+    module_graph_proxy<U> make(Args&&... args) const
       requires(not is_bound_object<T>)
     {
       return this->template bind_to<module_graph_proxy, U>(std::forward<Args>(args)...);
@@ -37,7 +37,7 @@ namespace phlex::detail {
   };
 
   namespace internal {
-    using module_creator_t = void(module_graph_proxy<void_tag>, configuration const&);
+    using module_creator_t = void(module_graph_proxy<void_tag> const&, configuration const&);
   }
 }
 

@@ -91,8 +91,8 @@ namespace phlex::detail {
                              return route(index, index_is_lowest_layer(index), message_id);
                            }},
     unfold_flush_receiver_{
-      g, tbb::flow::unlimited, [this](unfold_flush input) -> tbb::flow::continue_msg {
-        auto&& [index, layer_hash, count] = input;
+      g, tbb::flow::unlimited, [this](unfold_flush const& input) -> tbb::flow::continue_msg {
+        auto const& [index, layer_hash, count] = input;
         apply_expected_count(*gate_for(index), layer_hash, count);
         flush_if_done(index);
         return {};
@@ -105,7 +105,7 @@ namespace phlex::detail {
                               unfold_data unfolds,
                               provider_input_ports_t provider_input_ports,
                               fold_partition_ports_t fold_partition_ports,
-                              std::map<std::string, named_index_ports> multilayer_join_ports)
+                              std::map<std::string, named_index_ports> const& multilayer_join_ports)
   {
     // We must have at least one provider port, or there can be no data to process.
     assert(!provider_input_ports.empty());
@@ -217,7 +217,7 @@ namespace phlex::detail {
   // counting_layer is unset to the node's deepest layer, construct the multilayer_slot objects,
   // and store everything in multilayer_join_slots_.
   void index_router::build_multilayer_join_slots(
-    tbb::flow::graph& g, std::map<std::string, named_index_ports> multilayer_join_ports)
+    tbb::flow::graph& g, std::map<std::string, named_index_ports> const& multilayer_join_ports)
   {
     for (auto const& [node_name, join_ports] : multilayer_join_ports) {
       spdlog::trace("Making multilayer slots for {}", node_name);
@@ -252,9 +252,10 @@ namespace phlex::detail {
     }
   }
 
-  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index, index_flushes flushes)
+  data_cell_index_ptr index_router::route(data_cell_index_ptr const& index,
+                                          index_flushes const& flushes)
   {
-    update_flush_counts(std::move(flushes));
+    update_flush_counts(flushes);
     return route(index, index_is_lowest_layer(index), received_indices_.fetch_add(1));
   }
 
@@ -290,7 +291,7 @@ namespace phlex::detail {
     return index;
   }
 
-  void index_router::drain(index_flushes flushes) { update_flush_counts(std::move(flushes)); }
+  void index_router::drain(index_flushes const& flushes) { update_flush_counts(flushes); }
 
   bool index_router::index_is_lowest_layer(data_cell_index_ptr const& index)
   {
@@ -486,7 +487,7 @@ namespace phlex::detail {
     return *result;
   }
 
-  void index_router::update_flush_counts(index_flushes flushes)
+  void index_router::update_flush_counts(index_flushes const& flushes)
   {
     for (auto const& [index, flush_counts] : flushes) {
       auto gate = gate_for(index);

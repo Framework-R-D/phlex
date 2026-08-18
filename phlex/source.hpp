@@ -38,7 +38,7 @@ namespace phlex::detail {
     using base::graph_proxy;
 
     template <typename U, typename... Args>
-    providers_graph_proxy<U> make(Args&&... args)
+    providers_graph_proxy<U> make(Args&&... args) const
       requires(not is_bound_object<T>)
     {
       return this->template bind_to<providers_graph_proxy, U>(std::forward<Args>(args)...);

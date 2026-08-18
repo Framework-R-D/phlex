@@ -35,12 +35,10 @@ namespace phlex {
                      detail::framework_driver& d);
 
     data_cell_index_ptr index_;
-    // Non-owning references to the enclosing hierarchy and driver; data_cell_cursor is a
-    // short-lived view and does not manage their lifetimes.
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    fixed_hierarchy const& hierarchy_;
-    detail::framework_driver& driver_;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // Non-owning pointers to the enclosing hierarchy and driver; data_cell_cursor is a
+    // short-lived, freely copyable view and does not manage their lifetimes.
+    fixed_hierarchy const* hierarchy_;
+    detail::framework_driver* driver_;
   };
 
   /// @brief Callable object that yields data cells to the framework driver.

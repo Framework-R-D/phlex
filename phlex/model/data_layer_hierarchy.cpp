@@ -75,7 +75,7 @@ namespace phlex::detail {
   std::string data_layer_hierarchy::pretty_recurse(
     std::map<std::string, hash_name_pairs> const& tree,
     std::string const& name,
-    std::string indent) const
+    std::string const& indent) const
   {
     auto it = tree.find(name);
     if (it == cend(tree)) {

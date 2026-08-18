@@ -15,6 +15,7 @@
 #include <cassert>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -25,7 +26,7 @@ namespace phlex {
 namespace phlex::detail {
   struct node_catalog;
   namespace internal {
-    PHLEX_CORE_EXPORT void verify_name(std::string const& name, configuration const* config);
+    PHLEX_CORE_EXPORT void verify_name(std::string_view name, configuration const* config);
   }
 
   // ==============================================================================
@@ -52,13 +53,18 @@ namespace phlex::detail {
     {
     }
 
+    // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
+    // warning to take it by const reference is a false positive.
     template <typename... InitArgs>
-    auto fold(
-      std::string name, auto f, concurrency c, std::string partition, InitArgs&&... init_args)
+    auto fold(std::string_view name,
+              auto f, // NOLINT(performance-unnecessary-value-param)
+              concurrency c,
+              std::string partition,
+              InitArgs&&... init_args)
     {
       internal::verify_name(name, config_);
       return fold_api{config_,
-                      std::move(name),
+                      name,
                       algorithm_bits(bound_obj_, std::move(f)),
                       c,
                       graph_,
@@ -68,59 +74,55 @@ namespace phlex::detail {
                       std::forward<InitArgs>(init_args)...};
     }
 
+    // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
+    // warning to take it by const reference is a false positive.
     template <typename FT>
-    auto observe(std::string name, FT f, concurrency c)
+    auto observe(std::string_view name,
+                 FT f, // NOLINT(performance-unnecessary-value-param)
+                 concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<observer_node>(config_,
-                                              std::move(name),
-                                              algorithm_bits{bound_obj_, std::move(f)},
-                                              c,
-                                              graph_,
-                                              nodes_,
-                                              errors_);
+      return make_registration<observer_node>(
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
     }
 
+    // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
+    // warning to take it by const reference is a false positive.
     template <typename FT>
-    auto provide(std::string name, FT f, concurrency c)
+    auto provide(std::string_view name,
+                 FT f, // NOLINT(performance-unnecessary-value-param)
+                 concurrency c)
     {
       internal::verify_name(name, config_);
-      return provider_api{config_,
-                          std::move(name),
-                          algorithm_bits{bound_obj_, std::move(f)},
-                          c,
-                          graph_,
-                          nodes_,
-                          errors_};
+      return provider_api{
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_};
     }
 
+    // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
+    // warning to take it by const reference is a false positive.
     template <typename FT>
-    auto transform(std::string name, FT f, concurrency c)
+    auto transform(std::string_view name,
+                   FT f, // NOLINT(performance-unnecessary-value-param)
+                   concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<transform_node>(config_,
-                                               std::move(name),
-                                               algorithm_bits{bound_obj_, std::move(f)},
-                                               c,
-                                               graph_,
-                                               nodes_,
-                                               errors_);
+      return make_registration<transform_node>(
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
     }
 
+    // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
+    // warning to take it by const reference is a false positive.
     template <typename FT>
-    auto predicate(std::string name, FT f, concurrency c)
+    auto predicate(std::string_view name,
+                   FT f, // NOLINT(performance-unnecessary-value-param)
+                   concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<predicate_node>(config_,
-                                               std::move(name),
-                                               algorithm_bits{bound_obj_, std::move(f)},
-                                               c,
-                                               graph_,
-                                               nodes_,
-                                               errors_);
+      return make_registration<predicate_node>(
+        config_, name, algorithm_bits{bound_obj_, std::move(f)}, c, graph_, nodes_, errors_);
     }
 
-    auto unfold(std::string name,
+    auto unfold(std::string_view name,
                 auto predicate,
                 auto unfold,
                 concurrency c,
@@ -130,7 +132,7 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return unfold_api<T, decltype(predicate), decltype(unfold)>{
         config_,
-        std::move(name),
+        name,
         std::move(predicate),
         std::move(unfold),
         c,
@@ -140,23 +142,23 @@ namespace phlex::detail {
         std::move(destination_data_layer)};
     }
 
-    auto output(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
+    auto output(std::string_view name, is_output_like auto f, concurrency c = concurrency::serial)
     {
       return output_api{nodes_.registrar_for<declared_output_ptr>(errors_),
                         config_,
-                        std::move(name),
+                        name,
                         graph_,
                         delegate(bound_obj_, f),
                         c};
     }
 
     template <std::derived_from<source> Source, typename... Args>
-    void add_source(std::string name, Args&&... args)
+    void add_source(std::string_view name, Args&&... args)
     {
-      auto [_, inserted] =
-        nodes_.sources.try_emplace(name, std::make_unique<Source>(std::forward<Args>(args)...));
+      auto [_, inserted] = nodes_.sources.try_emplace(
+        std::string{name}, std::make_unique<Source>(std::forward<Args>(args)...));
       if (not inserted) {
-        internal::add_to_error_messages(errors_, "Source", name); // From registrar.hpp
+        internal::add_to_error_messages(errors_, "Source", std::string{name}); // From registrar.hpp
       }
     }
 
