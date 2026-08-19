@@ -57,7 +57,7 @@ namespace phlex::detail {
     data_cell_index_ptr index() const { return index_; }
     std::size_t expected_total_count() const;
     std::size_t committed_total_count() const;
-    std::size_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
+    std::ptrdiff_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
     data_cell_counts const& committed_counts() const { return committed_counts_; }
 
     // Merges an expected child count into the accumulated expected counts.  Each call

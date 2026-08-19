@@ -22,10 +22,10 @@ namespace phlex::detail {
     return std::ranges::fold_left(committed_counts_ | std::views::values, 0uz, std::plus{});
   }
 
-  std::size_t flush_gate::committed_count_for_layer(
+  std::ptrdiff_t flush_gate::committed_count_for_layer(
     data_cell_index::hash_type const layer_hash) const
   {
-    return committed_counts_.count(layer_hash);
+    return static_cast<std::ptrdiff_t>(committed_counts_.count(layer_hash));
   }
 
   void flush_gate::update_expected_count(data_cell_index::hash_type const layer_hash,

@@ -72,10 +72,10 @@ namespace phlex::detail::internal {
     }
   }
 
-  int repeater_node::emit_pending_ids(cached_product* entry)
+  std::ptrdiff_t repeater_node::emit_pending_ids(cached_product* entry)
   {
     assert(entry->data_msg);
-    int num_emitted{};
+    std::ptrdiff_t num_emitted{};
     std::size_t msg_id{};
     while (entry->msg_ids.try_pop(msg_id)) {
       output_port<0>(repeater_).try_put({.store = entry->data_msg->store, .id = msg_id});

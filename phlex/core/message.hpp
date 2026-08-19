@@ -31,7 +31,7 @@ namespace phlex::detail {
 
   struct indexed_end_token {
     data_cell_index_ptr index;
-    int count;
+    std::ptrdiff_t count;
   };
 
   struct message {

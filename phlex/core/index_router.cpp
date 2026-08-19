@@ -282,7 +282,7 @@ namespace phlex::detail {
       [end_token_entries = std::move(end_token_entries)](flush_gate const& fc) {
         for (auto const& entry : *end_token_entries) {
           auto const count = fc.committed_count_for_layer(entry.counting_layer_hash);
-          entry.flush_port->try_put({.index = fc.index(), .count = static_cast<int>(count)});
+          entry.flush_port->try_put({.index = fc.index(), .count = count});
         }
       });
 
