@@ -45,7 +45,7 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
   }
 }
 
-int ROOT_TTree_Write_ContainerImp::fill(void const* /* data*/)
+std::uint64_t ROOT_TTree_Write_ContainerImp::fill(void const* /* data*/)
 {
   throw std::runtime_error("ROOT_TTree_Write_ContainerImp::fill not implemented");
 }

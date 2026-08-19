@@ -25,7 +25,7 @@ namespace form::detail::experimental {
     void setParent(std::shared_ptr<IStorage_Write_Container> parent) override;
 
     void setupWrite(std::type_info const& type = typeid(void)) override;
-    int fill(void const* data) override;
+    std::uint64_t fill(void const* data) override;
     void commit() override;
 
   private:

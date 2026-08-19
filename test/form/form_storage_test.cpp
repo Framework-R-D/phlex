@@ -331,7 +331,7 @@ TEST_CASE("Persistence round-trip: structured index normalization and listing", 
   CHECK((*read_first == first || *read_first == second));
 }
 
-TEST_CASE("registerWrite returns the row id used to build a Token", "[form]")
+TEST_CASE("registerWrite returns a Token locating the written product", "[form]")
 {
   using namespace form::experimental::config;
 
@@ -346,8 +346,8 @@ TEST_CASE("registerWrite returns the row id used to build a Token", "[form]")
   std::vector<int> const first = {11, 22, 33};
   std::vector<int> const second = {44, 55, 66};
 
-  int row_first = -1;
-  int row_second = -1;
+  Token token_first;
+  Token token_second;
   {
     auto writer = createPersistenceWriter();
     REQUIRE(writer != nullptr);
@@ -355,35 +355,65 @@ TEST_CASE("registerWrite returns the row id used to build a Token", "[form]")
     writer->configureTechSettings(tech_setting_config{});
     writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
 
-    row_first = writer->registerWrite(creator, "prod", &first, typeid(std::vector<int>));
+    token_first = writer->registerWrite(creator, "prod", &first, typeid(std::vector<int>));
     writer->commitOutput(creator, "[event:1, segment:1]");
 
-    row_second = writer->registerWrite(creator, "prod", &second, typeid(std::vector<int>));
+    token_second = writer->registerWrite(creator, "prod", &second, typeid(std::vector<int>));
     writer->commitOutput(creator, "[event:1, segment:2]");
   }
 
-  // registerWrite returns 0-based, monotonically increasing rows.
-  CHECK(row_first == 0);
-  CHECK(row_second == 1);
+  // The returned Token carries the placement and the 0-based, monotonically increasing row
+  CHECK(token_first.hasId());
+  CHECK(token_first.id() == 0u);
+  CHECK(token_first.containerName() == container);
+  CHECK(token_second.hasId());
+  CHECK(token_second.id() == 1u);
 
-  // The returned row is all a Token needs (beyond the placement) to locate the
-  // data again: read each row straight back through a hand-built Token.
+  // Token returned by the write is directly usable on the read side: no hand-buit Token or re-scan
   StorageReader reader;
   tech_setting_config const settings{};
 
   void const* raw = nullptr;
-  Token const token_first{file_name, container, technology, row_first};
   reader.readContainer(token_first, &raw, typeid(std::vector<int>), settings);
   auto const* got_first = static_cast<std::vector<int> const*>(raw);
   REQUIRE(got_first != nullptr);
   CHECK(*got_first == first);
 
   raw = nullptr;
-  Token const token_second{file_name, container, technology, row_second};
   reader.readContainer(token_second, &raw, typeid(std::vector<int>), settings);
   auto const* got_second = static_cast<std::vector<int> const*>(raw);
   REQUIRE(got_second != nullptr);
   CHECK(*got_second == second);
+}
+
+TEST_CASE("registerWrite returns a not-set Token when the backend does not address rows", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // The generic backend's write container is a no-op whose fill() returns kInvalidRowId (no rows)
+  // registerWrite must map that to a Token with the placement filled in but no id set.
+  form::technology::Id const generic{};
+  std::string const file_name = "registerwrite_notset_row.generic";
+  std::string const creator = "notset_creator";
+  std::string const container = creator + "/prod";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, generic);
+
+  std::vector<int> const payload = {1, 2, 3};
+
+  auto writer = createPersistenceWriter();
+  REQUIRE(writer != nullptr);
+  writer->configure(cfg);
+  writer->configureTechSettings(tech_setting_config{});
+  writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+
+  Token const token = writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+
+  CHECK_FALSE(token.hasId());
+  CHECK(token.fileName() == file_name);
+  CHECK(token.containerName() == container);
+  CHECK(token.technology() == generic);
 }
 
 TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")

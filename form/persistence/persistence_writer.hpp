@@ -31,10 +31,10 @@ namespace form::detail::experimental {
 
     void createContainers(std::string const& creator,
                           std::map<std::string, std::type_info const*> const& products) override;
-    int registerWrite(std::string const& creator,
-                      std::string const& label,
-                      void const* data,
-                      std::type_info const& type) override;
+    Token registerWrite(std::string const& creator,
+                        std::string const& label,
+                        void const* data,
+                        std::type_info const& type) override;
     void commitOutput(std::string const& creator, std::string const& id) override;
 
   private:

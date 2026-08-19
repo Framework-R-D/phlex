@@ -94,7 +94,7 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
   }
 }
 
-int ROOT_TBranch_Write_ContainerImp::fill(void const* data)
+std::uint64_t ROOT_TBranch_Write_ContainerImp::fill(void const* data)
 {
   // NOTE: incoming parameter `data` is `const` due to the constraints on how we
   // expect users to interact with the data; however, ROOT's SetBranchAddress
@@ -115,8 +115,9 @@ int ROOT_TBranch_Write_ContainerImp::fill(void const* data)
   m_branch->Fill();
   m_branch->ResetAddress();
 
-  // 0-based entries: GetEntries() is the total count after this Fill(); row = count - 1
-  return static_cast<int>(m_branch->GetEntries()) - 1;
+  // 0-based entries: GetEntries() is the total count after this Fill(); row = count - 1.
+  // GetEntries() >= 1 here (we just filled), so the row is non-negative.
+  return static_cast<std::uint64_t>(m_branch->GetEntries() - 1);
 }
 
 void ROOT_TBranch_Write_ContainerImp::commit()

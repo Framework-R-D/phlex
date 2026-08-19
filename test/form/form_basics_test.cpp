@@ -37,8 +37,8 @@ TEST_CASE("Token default constructor", "[form]")
   CHECK(t.fileName().empty());
   CHECK(t.containerName().empty());
   CHECK(t.technology() == form::technology::Id{});
-  // Default-constructed token must carry the -1 sentinel for id
-  CHECK(t.id() == -1);
+  // Default-constructed token has no id set
+  CHECK_FALSE(t.hasId());
 }
 
 TEST_CASE("Token basics", "[form]")
@@ -47,7 +47,8 @@ TEST_CASE("Token basics", "[form]")
   CHECK(t.fileName() == "file.root");
   CHECK(t.containerName() == "container");
   CHECK(t.technology() == form::technology::ROOT_TTREE);
-  CHECK(t.id() == 42);
+  CHECK(t.hasId());
+  CHECK(t.id() == 42u);
 }
 
 TEST_CASE("technology::Id string conversions", "[form]")

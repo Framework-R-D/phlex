@@ -48,13 +48,17 @@ void PersistenceWriter::createContainers(
   m_store_writer->createContainers(containers, m_tech_settings);
 }
 
-int PersistenceWriter::registerWrite(std::string const& creator,
-                                     std::string const& label,
-                                     void const* data,
-                                     std::type_info const& type)
+Token PersistenceWriter::registerWrite(std::string const& creator,
+                                       std::string const& label,
+                                       void const* data,
+                                       std::type_info const& type)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
-  return m_store_writer->fillContainer(*plcmnt, data, type);
+  std::uint64_t const row = m_store_writer->fillContainer(*plcmnt, data, type);
+  if (row == kInvalidRowId) {
+    return Token{plcmnt->fileName(), plcmnt->containerName(), plcmnt->technology()};
+  }
+  return Token{plcmnt->fileName(), plcmnt->containerName(), plcmnt->technology(), row};
 }
 
 void PersistenceWriter::commitOutput(std::string const& creator, std::string const& id)

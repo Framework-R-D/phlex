@@ -103,9 +103,9 @@ void StorageWriter::createContainers(
   }
 }
 
-int StorageWriter::fillContainer(Placement const& plcmnt,
-                                 void const* data,
-                                 std::type_info const& /* type*/)
+std::uint64_t StorageWriter::fillContainer(Placement const& plcmnt,
+                                           void const* data,
+                                           std::type_info const& /* type*/)
 {
   // Use file+container as composite key
   auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());

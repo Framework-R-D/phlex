@@ -5,6 +5,7 @@
 
 #include "core/technology.hpp"
 
+#include <cstdint>
 #include <string>
 
 /* @class Token
@@ -13,11 +14,17 @@
 namespace form::detail::experimental {
   class Token {
   public:
-    /// Default constructor; delegates to the named constructor so the -1 sentinel for id is defined once
+    /// Default constructor; a token with no id set (delegates to the placement-only constructor)
     Token() : Token("", "", {}) {}
 
-    /// Named constructor; id defaults to -1 as a "not set" sentinel
-    Token(std::string fileName, std::string containerName, technology::Id technology, int id = -1);
+    /// Placement-only constructor; leaves the id unset (hasId() == false)
+    Token(std::string fileName, std::string containerName, technology::Id technology);
+
+    /// Fully-specified constructor; sets the 0-based row/entry id (hasId() == true)
+    Token(std::string fileName,
+          std::string containerName,
+          technology::Id technology,
+          std::uint64_t id);
 
     /// Access file name
     std::string const& fileName() const;
@@ -26,8 +33,10 @@ namespace form::detail::experimental {
     /// Access technology type
     technology::Id technology() const;
 
-    /// Access identifier/entry number
-    int id() const;
+    /// Access identifier/entry number (0-based row). Only meaningful when hasId() is true.
+    std::uint64_t id() const;
+    /// Whether an id has been set on this token
+    bool hasId() const;
 
   private:
     /// Technology identifier
@@ -36,8 +45,10 @@ namespace form::detail::experimental {
     std::string m_fileName;
     /// Container name
     std::string m_containerName;
-    /// Identifier/entry number
-    int m_id;
+    /// Identifier/entry number (0-based row)
+    std::uint64_t m_id;
+    /// Whether m_id holds a valid, set value
+    bool m_hasId;
   };
 } // namespace form::detail::experimental
 #endif // FORM_CORE_TOKEN_HPP

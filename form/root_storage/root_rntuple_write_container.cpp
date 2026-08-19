@@ -29,7 +29,7 @@ namespace form::detail::experimental {
     return;
   }
 
-  int ROOT_RNTuple_Write_ContainerImp::fill(void const* /*data*/)
+  std::uint64_t ROOT_RNTuple_Write_ContainerImp::fill(void const* /*data*/)
   {
     throw std::runtime_error("ROOT_RNTuple_Write_ContainerImp::fill not implemented");
   }

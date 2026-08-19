@@ -61,7 +61,7 @@ namespace form::detail::experimental {
     m_rntuple_parent = parentDerived;
   }
 
-  int ROOT_RField_Write_ContainerImp::fill(void const* data)
+  std::uint64_t ROOT_RField_Write_ContainerImp::fill(void const* data)
   {
     if (!m_rntuple_parent) {
       throw std::runtime_error(
@@ -83,7 +83,7 @@ namespace form::detail::experimental {
     // Unlike a TBranch, an RNTuple entry is only written on commit();
     // every field bound before that commit shares one entry.
     // Return the 0-based index that pending entry will occupy (the current entry count).
-    return static_cast<int>(m_rntuple_parent->m_writer->GetNEntries());
+    return static_cast<std::uint64_t>(m_rntuple_parent->m_writer->GetNEntries());
   }
 
   void ROOT_RField_Write_ContainerImp::commit()

@@ -52,7 +52,7 @@ namespace form::detail::experimental {
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setupWrite(std::type_info const& type) override;
-    int fill(void const* data) override;
+    std::uint64_t fill(void const* data) override;
     void commit() override;
 
     //State shared by ROOT_RField_ContainerImps

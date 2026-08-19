@@ -18,7 +18,7 @@ void Storage_Write_Container::setFile(std::shared_ptr<IStorage_File> file) { m_f
 
 void Storage_Write_Container::setupWrite(std::type_info const& /* type*/) {}
 
-int Storage_Write_Container::fill(void const* /* data*/) { return -1; }
+std::uint64_t Storage_Write_Container::fill(void const* /* data*/) { return kInvalidRowId; }
 
 void Storage_Write_Container::commit() {}
 

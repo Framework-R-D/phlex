@@ -23,9 +23,9 @@ namespace form::detail::experimental {
     void createContainers(
       std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
       form::experimental::config::tech_setting_config const& settings) override;
-    int fillContainer(Placement const& plcmnt,
-                      void const* data,
-                      std::type_info const& type) override;
+    std::uint64_t fillContainer(Placement const& plcmnt,
+                                void const* data,
+                                std::type_info const& type) override;
     void commitContainers(Placement const& plcmnt) override;
 
   private:
