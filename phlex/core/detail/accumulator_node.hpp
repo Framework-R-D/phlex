@@ -4,6 +4,7 @@
 #include "phlex/core/fold/send.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/phlex_core_export.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_queue.h"
@@ -122,7 +123,9 @@ namespace phlex::detail::internal {
     struct cached_accumulator {
       std::shared_ptr<accumulator_msg_t> accumulator_msg;
       tbb::concurrent_queue<std::size_t> msg_ids;
-      std::atomic<std::ptrdiff_t> counter;
+      // Signed balance of pending invocations. It may be negative when a flush arrives before
+      // all concurrent invocations are processed; zero means that the partition is complete.
+      std::atomic<signed_size_t> pending_invocations;
       std::atomic_flag flush_received;
       std::size_t original_message_id{};
     };
@@ -271,7 +274,7 @@ namespace phlex::detail::internal {
     entry->original_message_id = msg.msg_id;
     emit_pending_ids(entry);
     // Handle the flush-before-partition case: if the flush token already arrived (and
-    // left counter == 0 because no fold inputs flowed under this partition), emit the
+    // left pending_invocations == 0 because no fold inputs flowed under this partition), emit the
     // initial accumulator value now that we finally have the index and original message
     // ID needed to construct the output.
     cleanup_cache_entry(a);
@@ -284,7 +287,7 @@ namespace phlex::detail::internal {
     accessor a;
     cached_results_.insert(a, index->hash());
     auto* entry = &a->second;
-    entry->counter -= count;
+    entry->pending_invocations -= count;
     std::ignore = entry->flush_received.test_and_set();
     cleanup_cache_entry(a);
   }
@@ -313,10 +316,11 @@ namespace phlex::detail::internal {
     auto* entry = &a->second;
     // The `accumulator_msg` check guards the flush-before-partition case: a zero-count
     // flush can establish the cache entry with `flush_received == true` and
-    // `counter == 0` before the partition message has supplied the index and initial
+    // `pending_invocations == 0` before the partition message has supplied the index and initial
     // value.  In that case we defer emission until `handle_partition_message` re-enters
     // cleanup with a populated `accumulator_msg`.
-    if (entry->flush_received.test() and entry->counter == 0 and entry->accumulator_msg) {
+    if (entry->flush_received.test() and entry->pending_invocations == 0 and
+        entry->accumulator_msg) {
       output_port<0>(repeater_).try_put(entry->accumulator_msg->release_as_message(
         node_name_, output_, entry->original_message_id));
       ++emitted_result_count_;
@@ -331,7 +335,7 @@ namespace phlex::detail::internal {
     if (!cached_results_.find(a, key)) {
       return;
     }
-    ++a->second.counter;
+    ++a->second.pending_invocations;
     cleanup_cache_entry(a);
   }
 }

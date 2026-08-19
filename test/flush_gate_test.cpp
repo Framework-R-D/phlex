@@ -18,6 +18,7 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_gate.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -110,9 +111,9 @@ TEST_CASE("flush_gate: large count behavior", "[flush_gate]")
   auto job = data_cell_index::job();
   auto large_run = job->make_child("large_run", 0);
 
-  // committed_count_for_layer(...) returns std::ptrdiff_t, while update_expected_count(...)
-  // accepts std::size_t. Test a value above INT_MAX that remains representable as ptrdiff_t.
-  auto const count_above_int_max = static_cast<std::ptrdiff_t>(std::numeric_limits<int>::max()) + 1;
+  // committed_count_for_layer(...) returns signed_size_t, while update_expected_count(...)
+  // accepts std::size_t. Test a value above INT_MAX that remains representable as signed_size_t.
+  auto const count_above_int_max = static_cast<signed_size_t>(std::numeric_limits<int>::max()) + 1;
   auto gate = make_gate(job, 0);
 
   gate->update_expected_count(large_run->layer_hash(),
@@ -123,21 +124,21 @@ TEST_CASE("flush_gate: large count behavior", "[flush_gate]")
   {
     CHECK(gate->committed_count_for_layer(large_run->layer_hash()) == count_above_int_max);
   }
-  SECTION("Reject counts above std::ptrdiff_t range")
+  SECTION("Reject counts above signed_size_t range")
   {
-    // We assume std::size_t's maximum is larger than std::ptrdiff_t's maximum, which is reasonable
+    // We assume std::size_t's maximum is larger than signed_size_t's maximum, which is reasonable
     // for the platforms we need to support.
     static_assert(
       std::cmp_greater(std::numeric_limits<std::size_t>::max(),
-                       std::numeric_limits<std::ptrdiff_t>::max()),
-      "std::size_t max must be larger than std::ptrdiff_t max for this test to be valid");
+                       std::numeric_limits<signed_size_t>::max()),
+      "std::size_t max must be larger than signed_size_t max for this test to be valid");
 
     auto too_large_run = job->make_child("too_large_run", 0);
-    auto const count_above_ptrdiff_max =
-      static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max()) + 1;
+    auto const count_above_signed_size_max =
+      static_cast<std::size_t>(std::numeric_limits<signed_size_t>::max()) + 1;
     auto overflow_gate = make_gate(job, 0);
 
-    overflow_gate->update_expected_count(too_large_run->layer_hash(), count_above_ptrdiff_max);
+    overflow_gate->update_expected_count(too_large_run->layer_hash(), count_above_signed_size_max);
     REQUIRE(overflow_gate->all_children_accounted());
 
     CHECK_THROWS_AS(overflow_gate->committed_count_for_layer(too_large_run->layer_hash()),

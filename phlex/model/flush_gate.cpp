@@ -2,9 +2,7 @@
 
 #include <cassert>
 #include <functional>
-#include <limits>
 #include <ranges>
-#include <stdexcept>
 #include <utility>
 
 namespace phlex::detail {
@@ -24,14 +22,10 @@ namespace phlex::detail {
     return std::ranges::fold_left(committed_counts_ | std::views::values, 0uz, std::plus{});
   }
 
-  std::ptrdiff_t flush_gate::committed_count_for_layer(
+  signed_size_t flush_gate::committed_count_for_layer(
     data_cell_index::hash_type const layer_hash) const
   {
-    auto const count = committed_counts_.count(layer_hash);
-    if (std::cmp_greater(count, std::numeric_limits<std::ptrdiff_t>::max())) {
-      throw std::overflow_error{"Committed count exceeds std::ptrdiff_t range"};
-    }
-    return static_cast<std::ptrdiff_t>(count);
+    return checked_signed_size(committed_counts_.count(layer_hash));
   }
 
   void flush_gate::update_expected_count(data_cell_index::hash_type const layer_hash,
@@ -49,7 +43,10 @@ namespace phlex::detail {
     --pending_child_rollups_;
   }
 
-  void flush_gate::expect_child_rollups(std::ptrdiff_t const n) { pending_child_rollups_ += n; }
+  void flush_gate::expect_child_rollups(std::size_t const n)
+  {
+    pending_child_rollups_ += checked_signed_size(n);
+  }
 
   void flush_gate::send_flush()
   {

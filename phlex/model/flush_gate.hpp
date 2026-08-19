@@ -34,6 +34,7 @@
 #include "phlex/model/data_cell_counts.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/phlex_model_export.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include <atomic>
 #include <cstddef>
@@ -57,7 +58,7 @@ namespace phlex::detail {
     data_cell_index_ptr index() const { return index_; }
     std::size_t expected_total_count() const;
     std::size_t committed_total_count() const;
-    std::ptrdiff_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
+    signed_size_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
     data_cell_counts const& committed_counts() const { return committed_counts_; }
 
     // Merges an expected child count into the accumulated expected counts.  Each call
@@ -74,7 +75,7 @@ namespace phlex::detail {
     // for by the expected-count message that produced them (from the input_node or an
     // unfold).  The pending counter is signed because rollups can be recorded before the
     // corresponding expected-count message has been processed.
-    void expect_child_rollups(std::ptrdiff_t n);
+    void expect_child_rollups(std::size_t n);
 
     void set_flush_callback(flush_callback_t callback) { flush_callback_ = std::move(callback); }
     void send_flush();
@@ -94,7 +95,7 @@ namespace phlex::detail {
     std::size_t expected_flush_count_{0};
     // Signed running balance: (expected non-lowest direct-child rollups) - (rollups received).
     // Commit-ready when this reaches zero (and the expected-count message has arrived).
-    std::atomic<std::ptrdiff_t> pending_child_rollups_{0};
+    std::atomic<signed_size_t> pending_child_rollups_{0};
     flush_callback_t flush_callback_;
   };
 
