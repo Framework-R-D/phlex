@@ -2,7 +2,9 @@
 
 #include <cassert>
 #include <functional>
+#include <limits>
 #include <ranges>
+#include <stdexcept>
 #include <utility>
 
 namespace phlex::detail {
@@ -25,7 +27,11 @@ namespace phlex::detail {
   std::ptrdiff_t flush_gate::committed_count_for_layer(
     data_cell_index::hash_type const layer_hash) const
   {
-    return static_cast<std::ptrdiff_t>(committed_counts_.count(layer_hash));
+    auto const count = committed_counts_.count(layer_hash);
+    if (std::cmp_greater(count, std::numeric_limits<std::ptrdiff_t>::max())) {
+      throw std::overflow_error{"Committed count exceeds std::ptrdiff_t range"};
+    }
+    return static_cast<std::ptrdiff_t>(count);
   }
 
   void flush_gate::update_expected_count(data_cell_index::hash_type const layer_hash,
