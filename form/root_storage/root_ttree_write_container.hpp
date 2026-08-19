@@ -25,7 +25,7 @@ namespace form::detail::experimental {
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setupWrite(std::type_info const& type) override;
-    void fill(void const* data) override;
+    int fill(void const* data) override;
     void commit() override;
 
     TTree* getTTree();

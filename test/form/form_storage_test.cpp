@@ -331,6 +331,61 @@ TEST_CASE("Persistence round-trip: structured index normalization and listing", 
   CHECK((*read_first == first || *read_first == second));
 }
 
+TEST_CASE("registerWrite returns the row id used to build a Token", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "registerwrite_rowid_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "rowid_creator";
+  std::string const container = creator + "/prod";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> const first = {11, 22, 33};
+  std::vector<int> const second = {44, 55, 66};
+
+  int row_first = -1;
+  int row_second = -1;
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+
+    row_first = writer->registerWrite(creator, "prod", &first, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[event:1, segment:1]");
+
+    row_second = writer->registerWrite(creator, "prod", &second, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[event:1, segment:2]");
+  }
+
+  // registerWrite returns 0-based, monotonically increasing rows.
+  CHECK(row_first == 0);
+  CHECK(row_second == 1);
+
+  // The returned row is all a Token needs (beyond the placement) to locate the
+  // data again: read each row straight back through a hand-built Token.
+  StorageReader reader;
+  tech_setting_config const settings{};
+
+  void const* raw = nullptr;
+  Token const token_first{file_name, container, technology, row_first};
+  reader.readContainer(token_first, &raw, typeid(std::vector<int>), settings);
+  auto const* got_first = static_cast<std::vector<int> const*>(raw);
+  REQUIRE(got_first != nullptr);
+  CHECK(*got_first == first);
+
+  raw = nullptr;
+  Token const token_second{file_name, container, technology, row_second};
+  reader.readContainer(token_second, &raw, typeid(std::vector<int>), settings);
+  auto const* got_second = static_cast<std::vector<int> const*>(raw);
+  REQUIRE(got_second != nullptr);
+  CHECK(*got_second == second);
+}
+
 TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
 {
   using namespace form::experimental::config;

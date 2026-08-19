@@ -103,9 +103,9 @@ void StorageWriter::createContainers(
   }
 }
 
-void StorageWriter::fillContainer(Placement const& plcmnt,
-                                  void const* data,
-                                  std::type_info const& /* type*/)
+int StorageWriter::fillContainer(Placement const& plcmnt,
+                                 void const* data,
+                                 std::type_info const& /* type*/)
 {
   // Use file+container as composite key
   auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
@@ -115,7 +115,7 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
     throw std::runtime_error("StorageWriter::fillContainer Container doesn't exist: " +
                              plcmnt.containerName());
   }
-  cont->second->fill(data);
+  return cont->second->fill(data);
 }
 
 void StorageWriter::commitContainers(Placement const& plcmnt)

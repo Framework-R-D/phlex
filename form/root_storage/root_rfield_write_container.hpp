@@ -23,7 +23,7 @@ namespace form::detail::experimental {
     void setFile(std::shared_ptr<IStorage_File> file) override;
     void setupWrite(std::type_info const& type) override;
     void setParent(std::shared_ptr<IStorage_Write_Container> const parent) override;
-    void fill(void const* data) override;
+    int fill(void const* data) override;
     void commit() override;
 
   private:

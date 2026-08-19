@@ -48,13 +48,13 @@ void PersistenceWriter::createContainers(
   m_store_writer->createContainers(containers, m_tech_settings);
 }
 
-void PersistenceWriter::registerWrite(std::string const& creator,
-                                      std::string const& label,
-                                      void const* data,
-                                      std::type_info const& type)
+int PersistenceWriter::registerWrite(std::string const& creator,
+                                     std::string const& label,
+                                     void const* data,
+                                     std::type_info const& type)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
-  m_store_writer->fillContainer(*plcmnt, data, type);
+  return m_store_writer->fillContainer(*plcmnt, data, type);
 }
 
 void PersistenceWriter::commitOutput(std::string const& creator, std::string const& id)
