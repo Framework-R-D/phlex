@@ -176,10 +176,13 @@ namespace phlex::detail {
     using aggregate_to_plain_tuple_t = aggregate_to_plain_tuple<A>::type;
 
     template <typename T>
-    class is_handle : public std::false_type {};
+    struct is_handle_impl : std::false_type {};
 
     template <typename T>
-    class is_handle<phlex::handle<T>> : public std::true_type {};
+    struct is_handle_impl<handle<T>> : std::true_type {};
+
+    template <typename T>
+    concept is_handle = is_handle_impl<std::remove_cvref_t<T>>::value;
   }
 
   // Forward declaration
@@ -190,7 +193,7 @@ namespace phlex::detail {
   constexpr type_id make_type_id()
   {
     // First deal with handles
-    if constexpr (internal::is_handle<T>::value) {
+    if constexpr (internal::is_handle<T>) {
       return make_type_id<typename T::value_type>();
     }
 

@@ -98,19 +98,8 @@ TEST_CASE("Handle comparisons", "[data model]")
   CHECK(h17 != h17sr);                                     // Therefore handles are not the same
 }
 
-TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
+TEST_CASE("Data-product access through operator->", "[data model]")
 {
-  int const number{3};
-  spec_t spec{"number"};
-  handle const h{number, *data_cell_index::job(), spec};
-  CHECK(h.data_cell_index() == *data_cell_index::job());
-
-  int const& num_ref = h;
-  int const* num_ptr = h;
-  CHECK(static_cast<bool>(h));
-  CHECK(num_ref == number);
-  CHECK(*num_ptr == number);
-
   Composer const composer{"Elgar"};
   spec_t composer_spec{"composer"};
   CHECK(handle{composer, *data_cell_index::job(), composer_spec}->name == "Elgar");

@@ -13,15 +13,16 @@
 #include <ranges>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace phlex::detail {
   template <typename T>
   struct retriever {
-    using handle_arg_t = internal::handle_value_type<T>;
+    using product_type = std::remove_cv_t<std::remove_pointer_t<std::decay_t<T>>>;
     product_selector query;
-    auto retrieve(message const& msg) const
+    decltype(auto) retrieve(message const& msg) const
     {
       namespace views = std::ranges::views;
       auto const& store = msg.store;
@@ -44,7 +45,14 @@ namespace phlex::detail {
                                              query,
                                              bulleted_list(products, /*indent=*/4)));
       }
-      return store->get_handle<handle_arg_t>(products[0]);
+      if constexpr (internal::is_handle<T>) {
+        using handle_arg_t = internal::handle_value_type<T>;
+        return store->get_handle<handle_arg_t>(products[0]);
+      } else if constexpr (std::is_pointer_v<T>) {
+        return &store->get_product<product_type>(products[0]);
+      } else {
+        return store->get_product<product_type>(products[0]);
+      }
     }
   };
 
