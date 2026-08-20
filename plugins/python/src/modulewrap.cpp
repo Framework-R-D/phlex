@@ -391,6 +391,11 @@ namespace {
   std::string annotation_as_text(PyObject* pyobj)
   {
     static PyObject* normalizer = nullptr;
+
+    // a return buffer is needed because the normalizer result is a Python
+    // object that needs to be dereferenced before this function returns
+    std::string result;
+
     if (!normalizer) {
       PyObject* phlexmod = PyImport_ImportModule("phlex");
       if (phlexmod) {
@@ -403,23 +408,23 @@ namespace {
       // only exists to get a proper error message instead of a segfault
       // in that rather unlikely case
       if (!normalizer) {
-        return "";
+        return result;
       }
       // LCOV_EXCL_STOP
     }
 
     PyObject* norm = PyObject_CallOneArg(normalizer, pyobj);
     if (!norm) {
-      return "";
+      return result;
     }
 
     char const* ann = PyUnicode_AsUTF8(norm);
-    Py_DECREF(norm);
-    if (!ann) {
-      return "";
+    if (ann) {
+      result = ann;
     }
+    Py_DECREF(norm);
 
-    return ann;
+    return result;
   }
 
   // retrieve C++ (matching) types from annotations
