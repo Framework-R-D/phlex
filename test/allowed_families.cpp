@@ -35,9 +35,9 @@ namespace {
 TEST_CASE("Testing families", "[data model]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("run", {"job", 1});
-  gen->add_layer("subrun", {"run", 1});
-  gen->add_layer("event", {"subrun", 1});
+  gen->add_layer("run", {.parent_layer = "job", .count = 1});
+  gen->add_layer("subrun", {.parent_layer = "run", .count = 1});
+  gen->add_layer("event", {.parent_layer = "subrun", .count = 1});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

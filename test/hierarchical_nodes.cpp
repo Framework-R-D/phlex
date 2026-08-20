@@ -51,7 +51,7 @@ namespace {
 
   data_for_rms send(threadsafe_data_for_rms const& data)
   {
-    return {experimental::send(data.total), experimental::send(data.number)};
+    return {.total = experimental::send(data.total), .number = experimental::send(data.number)};
   }
 
   void add(threadsafe_data_for_rms& redata, unsigned squared_number)
@@ -79,8 +79,8 @@ namespace {
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("run", {"job", index_limit});
-  gen->add_layer("event", {"run", number_limit});
+  gen->add_layer("run", {.parent_layer = "job", .count = index_limit});
+  gen->add_layer("event", {.parent_layer = "run", .count = number_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

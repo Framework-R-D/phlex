@@ -23,7 +23,7 @@ TEST_CASE("Only job layer", "[layer-generation]")
 TEST_CASE("One non-job layer", "[layer-generation]")
 {
   auto gen = layer_generator::make();
-  gen->add_layer("spill", {"job", 16});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 16});
 
   auto g = framework_graph::without_driver();
   g.add_driver(gen);
@@ -37,8 +37,8 @@ TEST_CASE("One non-job layer", "[layer-generation]")
 TEST_CASE("Two non-job layers", "[layer-generation]")
 {
   auto gen = layer_generator::make();
-  gen->add_layer("spill", {"job", 16});
-  gen->add_layer("APA", {"spill", 16});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 16});
+  gen->add_layer("APA", {.parent_layer = "spill", .count = 16});
 
   auto g = framework_graph::without_driver();
   g.add_driver(gen);
@@ -53,8 +53,8 @@ TEST_CASE("Two non-job layers", "[layer-generation]")
 TEST_CASE("Test rebasing layers", "[layer-generation]")
 {
   auto gen = layer_generator::make();
-  gen->add_layer("APA", {"spill", 16});
-  gen->add_layer("spill", {"job", 16});
+  gen->add_layer("APA", {.parent_layer = "spill", .count = 16});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 16});
 
   auto g = framework_graph::without_driver();
   g.add_driver(gen);
@@ -69,9 +69,9 @@ TEST_CASE("Test rebasing layers", "[layer-generation]")
 TEST_CASE("Ambiguous layers", "[layer-generation]")
 {
   auto gen = layer_generator::make();
-  gen->add_layer("run", {"job", 16});
-  gen->add_layer("spill", {"run", 16});
-  gen->add_layer("spill", {"job", 16});
+  gen->add_layer("run", {.parent_layer = "job", .count = 16});
+  gen->add_layer("spill", {.parent_layer = "run", .count = 16});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 16});
 
   CHECK_THROWS_WITH(gen->add_layer("APA", {"spill", 16}),
                     ContainsSubstring("Ambiguous: two parent layers found for data layer 'APA'") &&
@@ -83,10 +83,12 @@ TEST_CASE("Ambiguous layers", "[layer-generation]")
 TEST_CASE("Avoid ambiguous layers", "[layer-generation]")
 {
   auto gen = layer_generator::make();
-  gen->add_layer("run", {"job", 16});
-  gen->add_layer("spill", {"run", 16});
-  gen->add_layer("spill", {"job", 16});
-  gen->add_layer("APA", {"/run/spill", 16}); // More complete parent path used to disambiguate
+  gen->add_layer("run", {.parent_layer = "job", .count = 16});
+  gen->add_layer("spill", {.parent_layer = "run", .count = 16});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 16});
+  gen->add_layer(
+    "APA",
+    {.parent_layer = "/run/spill", .count = 16}); // More complete parent path used to disambiguate
 
   auto g = framework_graph::without_driver();
   g.add_driver(gen);

@@ -49,21 +49,22 @@ namespace {
 TEST_CASE("Catch STL exceptions", "[graph]")
 {
   auto g = phlex::detail::framework_graph::without_driver();
-  g.add_driver(driver_bundle{[](framework_driver&) { throw std::runtime_error("STL error"); }, {}});
+  g.add_driver(driver_bundle{
+    .driver = [](framework_driver&) { throw std::runtime_error("STL error"); }, .hierarchy = {}});
   CHECK_THROWS_AS(g.execute(), std::exception);
 }
 
 TEST_CASE("Catch other exceptions", "[graph]")
 {
   auto g = phlex::detail::framework_graph::without_driver();
-  g.add_driver(driver_bundle{[](framework_driver&) { throw 2.5; }, {}});
+  g.add_driver(driver_bundle{.driver = [](framework_driver&) { throw 2.5; }, .hierarchy = {}});
   CHECK_THROWS_AS(g.execute(), double);
 }
 
 TEST_CASE("Make progress with one thread", "[graph]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", 1000});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 1000});
 
   auto g = phlex::detail::framework_graph::without_driver(1);
   g.add_driver(gen);
@@ -85,7 +86,7 @@ TEST_CASE("Make progress with one thread", "[graph]")
 TEST_CASE("Stop driver when workflow throws exception", "[graph]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", 1000});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 1000});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -123,7 +124,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
 TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 1, 1});
+  gen->add_layer("event", {.parent_layer = "job", .count = 1, .start_at = 1});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -218,7 +219,7 @@ TEST_CASE("Throw on duplicate node registration", "[graph]")
 TEST_CASE("Allow late driver configuration", "[graph]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", 3});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 3});
 
   auto g = phlex::detail::framework_graph::without_driver();
 

@@ -28,9 +28,9 @@ namespace form::technology {
   };
 
   // Backends: valid (major, minor) pairs, stable numeric values as a future Token may persist them
-  inline constexpr Id ROOT_TTREE{Major::root, 1};
-  inline constexpr Id ROOT_RNTUPLE{Major::root, 2};
-  inline constexpr Id HDF5{Major::hdf5, 1};
+  inline constexpr Id ROOT_TTREE{.major = Major::root, .minor = 1};
+  inline constexpr Id ROOT_RNTUPLE{.major = Major::root, .minor = 2};
+  inline constexpr Id HDF5{.major = Major::hdf5, .minor = 1};
 
   // Canonical string -> technology mapping: the single place a technology string is parsed, replacing the copies that used to live in each module/source/test
   inline Id from_string(std::string_view name)

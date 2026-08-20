@@ -58,9 +58,9 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
   constexpr auto top_level_event_limit = 10u;
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("run", {"job", index_limit});
-  gen->add_layer("event", {"run", number_limit});
-  gen->add_layer("event", {"job", top_level_event_limit});
+  gen->add_layer("run", {.parent_layer = "job", .count = index_limit});
+  gen->add_layer("event", {.parent_layer = "run", .count = number_limit});
+  gen->add_layer("event", {.parent_layer = "job", .count = top_level_event_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

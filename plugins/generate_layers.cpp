@@ -33,9 +33,9 @@ PHLEX_REGISTER_DRIVER(d, config)
   for (auto const& key : layers.keys()) {
     auto const layer_config = layers.get<configuration>(key);
     gen->add_layer(key,
-                   {.parent_layer_name = layer_config.get<std::string>("parent", "job"),
-                    .total_per_parent_data_cell = layer_config.get<unsigned int>("total"),
-                    .starting_value = layer_config.get<unsigned int>("starting_number", 0)});
+                   {.parent_layer = layer_config.get<std::string>("parent", "job"),
+                    .count = layer_config.get<unsigned int>("total"),
+                    .start_at = layer_config.get<unsigned int>("starting_number", 0)});
   }
 
   return d.driver(gen);

@@ -1268,85 +1268,78 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static std::array<PyMethodDef, 3> md_methods{{{"transform",
-                                               reinterpret_cast<PyCFunction>(md_transform),
-                                               METH_VARARGS | METH_KEYWORDS,
-                                               "register a Python transform"},
-                                              {"observe",
-                                               reinterpret_cast<PyCFunction>(md_observe),
-                                               METH_VARARGS | METH_KEYWORDS,
-                                               "register a Python observer"},
-                                              {nullptr, nullptr, 0, nullptr}}};
+static std::array<PyMethodDef, 3> md_methods{
+  {{.ml_name = "transform",
+    .ml_meth = reinterpret_cast<PyCFunction>(md_transform),
+    .ml_flags = METH_VARARGS | METH_KEYWORDS,
+    .ml_doc = "register a Python transform"},
+   {.ml_name = "observe",
+    .ml_meth = reinterpret_cast<PyCFunction>(md_observe),
+    .ml_flags = METH_VARARGS | METH_KEYWORDS,
+    .ml_doc = "register a Python observer"},
+   {.ml_name = nullptr, .ml_meth = nullptr, .ml_flags = 0, .ml_doc = nullptr}}};
 
-// clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexModule_Type = {
-  PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  "pyphlex.module",              // tp_name
-  sizeof(py_phlex_module),       // tp_basicsize
-  0,                             // tp_itemsize
-  nullptr,                       // tp_dealloc
-  0,                             // tp_vectorcall_offset / tp_print
-  nullptr,                       // tp_getattr
-  nullptr,                       // tp_setattr
-  nullptr,                       // tp_as_async / tp_compare
-  nullptr,                       // tp_repr
-  nullptr,                       // tp_as_number
-  nullptr,                       // tp_as_sequence
-  nullptr,                       // tp_as_mapping
-  nullptr,                       // tp_hash
-  nullptr,                       // tp_call
-  nullptr,                       // tp_str
-  nullptr,                       // tp_getattro
-  nullptr,                       // tp_setattro
-  nullptr,                       // tp_as_buffer
-  Py_TPFLAGS_DEFAULT,            // tp_flags
-  "phlex module wrapper",        // tp_doc
-  nullptr,                       // tp_traverse
-  nullptr,                       // tp_clear
-  nullptr,                       // tp_richcompare
-  0,                             // tp_weaklistoffset
-  nullptr,                       // tp_iter
-  nullptr,                       // tp_iternext
-  md_methods.data(),             // tp_methods
-  nullptr,                       // tp_members
-  nullptr,                       // tp_getset
-  nullptr,                       // tp_base
-  nullptr,                       // tp_dict
-  nullptr,                       // tp_descr_get
-  nullptr,                       // tp_descr_set
-  0,                             // tp_dictoffset
-  nullptr,                       // tp_init
-  nullptr,                       // tp_alloc
-  nullptr,                       // tp_new
-  nullptr,                       // tp_free
-  nullptr,                       // tp_is_gc
-  nullptr,                       // tp_bases
-  nullptr,                       // tp_mro
-  nullptr,                       // tp_cache
-  nullptr,                       // tp_subclasses
-  nullptr                        // tp_weaklist
-#if PY_VERSION_HEX >= 0x02030000
-  , nullptr                      // tp_del
-#endif
-#if PY_VERSION_HEX >= 0x02060000
-  , 0                            // tp_version_tag
-#endif
-#if PY_VERSION_HEX >= 0x03040000
-  , nullptr                      // tp_finalize
-#endif
-#if PY_VERSION_HEX >= 0x03080000
-  , nullptr                      // tp_vectorcall
-#endif
+  // clang-format off
+  .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
+  .tp_name = "pyphlex.module",
+  // clang-format on
+  .tp_basicsize = sizeof(py_phlex_module),
+  .tp_itemsize = 0,
+  .tp_dealloc = nullptr,
+  .tp_vectorcall_offset = 0,
+  .tp_getattr = nullptr,
+  .tp_setattr = nullptr,
+  .tp_as_async = nullptr,
+  .tp_repr = nullptr,
+  .tp_as_number = nullptr,
+  .tp_as_sequence = nullptr,
+  .tp_as_mapping = nullptr,
+  .tp_hash = nullptr,
+  .tp_call = nullptr,
+  .tp_str = nullptr,
+  .tp_getattro = nullptr,
+  .tp_setattro = nullptr,
+  .tp_as_buffer = nullptr,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = "phlex module wrapper",
+  .tp_traverse = nullptr,
+  .tp_clear = nullptr,
+  .tp_richcompare = nullptr,
+  .tp_weaklistoffset = 0,
+  .tp_iter = nullptr,
+  .tp_iternext = nullptr,
+  .tp_methods = md_methods.data(),
+  .tp_members = nullptr,
+  .tp_getset = nullptr,
+  .tp_base = nullptr,
+  .tp_dict = nullptr,
+  .tp_descr_get = nullptr,
+  .tp_descr_set = nullptr,
+  .tp_dictoffset = 0,
+  .tp_init = nullptr,
+  .tp_alloc = nullptr,
+  .tp_new = nullptr,
+  .tp_free = nullptr,
+  .tp_is_gc = nullptr,
+  .tp_bases = nullptr,
+  .tp_mro = nullptr,
+  .tp_cache = nullptr,
+  .tp_subclasses = nullptr,
+  .tp_weaklist = nullptr,
+  .tp_del = nullptr,
+  .tp_version_tag = 0,
+  .tp_finalize = nullptr,
+  .tp_vectorcall = nullptr,
 #if PY_VERSION_HEX >= 0x030c0000
-  , 0                            // tp_watched
+  .tp_watched = 0,
 #endif
 #if PY_VERSION_HEX >= 0x030d0000
-  , 0                            // tp_versions_used
+  .tp_versions_used = 0,
 #endif
 };
-// clang-format on
 
 //
 // TODO: source wrapper lives here for now to re-use the converter functions;
@@ -1505,80 +1498,73 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static std::array<PyMethodDef, 2> sc_methods{{{"provide",
-                                               reinterpret_cast<PyCFunction>(sc_provide),
-                                               METH_VARARGS | METH_KEYWORDS,
-                                               "register a Python provider"},
-                                              {nullptr, nullptr, 0, nullptr}}};
+static std::array<PyMethodDef, 2> sc_methods{
+  {{.ml_name = "provide",
+    .ml_meth = reinterpret_cast<PyCFunction>(sc_provide),
+    .ml_flags = METH_VARARGS | METH_KEYWORDS,
+    .ml_doc = "register a Python provider"},
+   {.ml_name = nullptr, .ml_meth = nullptr, .ml_flags = 0, .ml_doc = nullptr}}};
 
-// clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexSource_Type = {
-  PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  "pyphlex.source",              // tp_name
-  sizeof(py_phlex_source),       // tp_basicsize
-  0,                             // tp_itemsize
-  nullptr,                       // tp_dealloc
-  0,                             // tp_vectorcall_offset / tp_print
-  nullptr,                       // tp_getattr
-  nullptr,                       // tp_setattr
-  nullptr,                       // tp_as_async / tp_compare
-  nullptr,                       // tp_repr
-  nullptr,                       // tp_as_number
-  nullptr,                       // tp_as_sequence
-  nullptr,                       // tp_as_mapping
-  nullptr,                       // tp_hash
-  nullptr,                       // tp_call
-  nullptr,                       // tp_str
-  nullptr,                       // tp_getattro
-  nullptr,                       // tp_setattro
-  nullptr,                       // tp_as_buffer
-  Py_TPFLAGS_DEFAULT,            // tp_flags
-  "phlex source wrapper",        // tp_doc
-  nullptr,                       // tp_traverse
-  nullptr,                       // tp_clear
-  nullptr,                       // tp_richcompare
-  0,                             // tp_weaklistoffset
-  nullptr,                       // tp_iter
-  nullptr,                       // tp_iternext
-  sc_methods.data(),             // tp_methods
-  nullptr,                       // tp_members
-  nullptr,                       // tp_getset
-  nullptr,                       // tp_base
-  nullptr,                       // tp_dict
-  nullptr,                       // tp_descr_get
-  nullptr,                       // tp_descr_set
-  0,                             // tp_dictoffset
-  nullptr,                       // tp_init
-  nullptr,                       // tp_alloc
-  nullptr,                       // tp_new
-  nullptr,                       // tp_free
-  nullptr,                       // tp_is_gc
-  nullptr,                       // tp_bases
-  nullptr,                       // tp_mro
-  nullptr,                       // tp_cache
-  nullptr,                       // tp_subclasses
-  nullptr                        // tp_weaklist
-#if PY_VERSION_HEX >= 0x02030000
-  , nullptr                      // tp_del
-#endif
-#if PY_VERSION_HEX >= 0x02060000
-  , 0                            // tp_version_tag
-#endif
-#if PY_VERSION_HEX >= 0x03040000
-  , nullptr                      // tp_finalize
-#endif
-#if PY_VERSION_HEX >= 0x03080000
-  , nullptr                      // tp_vectorcall
-#endif
+  // clang-format off
+  .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
+  .tp_name = "pyphlex.source",
+  // clang-format on
+  .tp_basicsize = sizeof(py_phlex_source),
+  .tp_itemsize = 0,
+  .tp_dealloc = nullptr,
+  .tp_vectorcall_offset = 0,
+  .tp_getattr = nullptr,
+  .tp_setattr = nullptr,
+  .tp_as_async = nullptr,
+  .tp_repr = nullptr,
+  .tp_as_number = nullptr,
+  .tp_as_sequence = nullptr,
+  .tp_as_mapping = nullptr,
+  .tp_hash = nullptr,
+  .tp_call = nullptr,
+  .tp_str = nullptr,
+  .tp_getattro = nullptr,
+  .tp_setattro = nullptr,
+  .tp_as_buffer = nullptr,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = "phlex source wrapper",
+  .tp_traverse = nullptr,
+  .tp_clear = nullptr,
+  .tp_richcompare = nullptr,
+  .tp_weaklistoffset = 0,
+  .tp_iter = nullptr,
+  .tp_iternext = nullptr,
+  .tp_methods = sc_methods.data(),
+  .tp_members = nullptr,
+  .tp_getset = nullptr,
+  .tp_base = nullptr,
+  .tp_dict = nullptr,
+  .tp_descr_get = nullptr,
+  .tp_descr_set = nullptr,
+  .tp_dictoffset = 0,
+  .tp_init = nullptr,
+  .tp_alloc = nullptr,
+  .tp_new = nullptr,
+  .tp_free = nullptr,
+  .tp_is_gc = nullptr,
+  .tp_bases = nullptr,
+  .tp_mro = nullptr,
+  .tp_cache = nullptr,
+  .tp_subclasses = nullptr,
+  .tp_weaklist = nullptr,
+  .tp_del = nullptr,
+  .tp_version_tag = 0,
+  .tp_finalize = nullptr,
+  .tp_vectorcall = nullptr,
 #if PY_VERSION_HEX >= 0x030c0000
-  , 0                            // tp_watched
+  .tp_watched = 0,
 #endif
 #if PY_VERSION_HEX >= 0x030d0000
-  , 0                            // tp_versions_used
+  .tp_versions_used = 0,
 #endif
 };
-// clang-format on
 
 // NOLINTEND(performance-no-int-to-ptr)

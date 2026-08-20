@@ -53,9 +53,9 @@ TEST_CASE("Cached function calls", "[data model]")
   constexpr unsigned int n_events{5000u};
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("run", {"job", n_runs});
-  gen->add_layer("subrun", {"run", n_subruns});
-  gen->add_layer("event", {"subrun", n_events});
+  gen->add_layer("run", {.parent_layer = "job", .count = n_runs});
+  gen->add_layer("subrun", {.parent_layer = "run", .count = n_subruns});
+  gen->add_layer("event", {.parent_layer = "subrun", .count = n_events});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

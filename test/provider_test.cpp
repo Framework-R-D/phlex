@@ -78,7 +78,7 @@ TEST_CASE("Explicit providers")
   constexpr auto num_spills{3u};
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", num_spills, 1u});
+  gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -107,7 +107,7 @@ TEST_CASE("Implicit providers")
   constexpr auto num_spills{3u};
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", num_spills, 1u});
+  gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -178,7 +178,7 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
 TEST_CASE("Throw when implicit provider insertion fails")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", 1u});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(std::move(gen));

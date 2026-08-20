@@ -105,7 +105,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", index_limit});
+  gen->add_layer("event", {.parent_layer = "job", .count = index_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -173,7 +173,7 @@ TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", index_limit});
+  gen->add_layer("event", {.parent_layer = "job", .count = index_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -206,7 +206,7 @@ TEST_CASE("Unfold deduplicates same-layer inputs for bookkeeping", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", index_limit});
+  gen->add_layer("event", {.parent_layer = "job", .count = index_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
