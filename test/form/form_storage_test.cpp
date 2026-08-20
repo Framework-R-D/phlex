@@ -15,6 +15,7 @@
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <memory>
 #include <numbers>
 #include <numeric>
 #include <vector>
@@ -373,15 +374,18 @@ TEST_CASE("registerWrite returns a Token locating the written product", "[form]"
   StorageReader reader;
   tech_setting_config const settings{};
 
+  // readContainer allocates the payload and transfers ownership to the caller.
   void const* raw = nullptr;
   reader.readContainer(token_first, &raw, typeid(std::vector<int>), settings);
-  auto const* got_first = static_cast<std::vector<int> const*>(raw);
+  std::unique_ptr<std::vector<int> const> const got_first(
+    static_cast<std::vector<int> const*>(raw));
   REQUIRE(got_first != nullptr);
   CHECK(*got_first == first);
 
   raw = nullptr;
   reader.readContainer(token_second, &raw, typeid(std::vector<int>), settings);
-  auto const* got_second = static_cast<std::vector<int> const*>(raw);
+  std::unique_ptr<std::vector<int> const> const got_second(
+    static_cast<std::vector<int> const*>(raw));
   REQUIRE(got_second != nullptr);
   CHECK(*got_second == second);
 }
