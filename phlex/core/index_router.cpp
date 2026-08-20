@@ -282,7 +282,7 @@ namespace phlex::detail {
       [end_token_entries = std::move(end_token_entries)](flush_gate const& fc) {
         for (auto const& entry : *end_token_entries) {
           auto const count = fc.committed_count_for_layer(entry.counting_layer_hash);
-          entry.flush_port->try_put({.index = fc.index(), .count = static_cast<int>(count)});
+          entry.flush_port->try_put({.index = fc.index(), .count = count});
         }
       });
 
@@ -513,7 +513,7 @@ namespace phlex::detail {
     // be at or below zero from earlier rollup notifications) and erroneously declare the tracker
     // ready.
     if (not is_lowest_layer_hash(child_layer_hash)) {
-      gate.expect_child_rollups(static_cast<std::ptrdiff_t>(count));
+      gate.expect_child_rollups(count);
     }
     gate.update_expected_count(child_layer_hash, count);
   }

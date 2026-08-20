@@ -18,14 +18,18 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_gate.hpp"
 #include "phlex/model/identifier.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_vector.h"
 #include "oneapi/tbb/parallel_for.h"
 
+#include <limits>
 #include <memory>
 #include <ranges>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
 using namespace phlex;
@@ -100,6 +104,46 @@ TEST_CASE("flush_gate: single-layer hierarchy (job -> runs)", "[flush_gate]")
   CHECK(jt->expected_total_count() == 2);
   CHECK(jt->committed_count_for_layer(run_layer_hash) == 2);
   CHECK(gates.empty());
+}
+
+TEST_CASE("flush_gate: large count behavior", "[flush_gate]")
+{
+  auto job = data_cell_index::job();
+  auto large_run = job->make_child("large_run", 0);
+
+  // committed_count_for_layer(...) returns signed_size_t, while update_expected_count(...)
+  // accepts std::size_t. Test a value above INT_MAX that remains representable as signed_size_t.
+  auto const count_above_int_max = static_cast<signed_size_t>(std::numeric_limits<int>::max()) + 1;
+  auto gate = make_gate(job, 0);
+
+  gate->update_expected_count(large_run->layer_hash(),
+                              static_cast<std::size_t>(count_above_int_max));
+  REQUIRE(gate->all_children_accounted());
+
+  SECTION("Preserve counts above INT_MAX")
+  {
+    CHECK(gate->committed_count_for_layer(large_run->layer_hash()) == count_above_int_max);
+  }
+  SECTION("Reject counts above signed_size_t range")
+  {
+    // We assume std::size_t's maximum is larger than signed_size_t's maximum, which is reasonable
+    // for the platforms we need to support.
+    static_assert(
+      std::cmp_greater(std::numeric_limits<std::size_t>::max(),
+                       std::numeric_limits<signed_size_t>::max()),
+      "std::size_t max must be larger than signed_size_t max for this test to be valid");
+
+    auto too_large_run = job->make_child("too_large_run", 0);
+    auto const count_above_signed_size_max =
+      static_cast<std::size_t>(std::numeric_limits<signed_size_t>::max()) + 1;
+    auto overflow_gate = make_gate(job, 0);
+
+    overflow_gate->update_expected_count(too_large_run->layer_hash(), count_above_signed_size_max);
+    REQUIRE(overflow_gate->all_children_accounted());
+
+    CHECK_THROWS_AS(overflow_gate->committed_count_for_layer(too_large_run->layer_hash()),
+                    std::overflow_error);
+  }
 }
 
 TEST_CASE("flush_gate: two-layer hierarchy (job -> runs -> spills)", "[flush_gate]")

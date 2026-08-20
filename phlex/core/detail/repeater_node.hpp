@@ -4,12 +4,14 @@
 #include "phlex/phlex_core_export.hpp"
 
 #include "phlex/core/message.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_queue.h"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <atomic>
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -46,14 +48,16 @@ namespace phlex::detail::internal {
     struct cached_product {
       std::shared_ptr<message> data_msg;
       tbb::concurrent_queue<std::size_t> msg_ids;
-      std::atomic<int> counter;
+      // Signed balance of pending invocations. It may be negative when a flush arrives before
+      // all concurrent invocations are processed; zero means that the partition is complete.
+      std::atomic<signed_size_t> pending_invocations;
       std::atomic_flag flush_received;
     };
 
     using cache_t = tbb::concurrent_hash_map<std::size_t, cached_product>; // Key is the index hash
     using accessor = cache_t::accessor;
 
-    int emit_pending_ids(cached_product* entry);
+    signed_size_t emit_pending_ids(cached_product* entry);
     std::size_t handle_data_message(message const& msg);
     std::size_t handle_flush_token(indexed_end_token const& token);
     std::size_t handle_index_message(index_message const& msg);
