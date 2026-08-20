@@ -32,11 +32,11 @@
 #include <type_traits>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT declared_predicate : public products_consumer {
   public:
-    declared_predicate(algorithm_name name,
+    declared_predicate(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
                        product_selectors input_products);
     ~declared_predicate() override;
@@ -51,15 +51,15 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits>
   class predicate_node : public declared_predicate {
-    using input_args = typename AlgorithmBits::input_parameter_types;
-    using function_t = typename AlgorithmBits::bound_type;
+    using input_args = AlgorithmBits::input_parameter_types;
+    using function_t = AlgorithmBits::bound_type;
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
 
   public:
     static constexpr auto number_output_products = 0ull;
     using node_ptr_type = declared_predicate_ptr;
 
-    predicate_node(algorithm_name algo_name,
+    predicate_node(phlex::experimental::algorithm_name algo_name,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,

@@ -4,7 +4,7 @@
 #include "catch2/catch_all.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 using namespace oneapi::tbb;
 
 TEST_CASE("Thread counter exception", "[multithreading]")

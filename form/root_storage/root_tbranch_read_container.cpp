@@ -11,9 +11,18 @@
 
 #include <gsl/pointers>
 
+#include <mutex>
 #include <unordered_map>
 
 using namespace form::detail::experimental;
+
+namespace {
+  std::mutex& root_tbranch_read_mutex()
+  {
+    static std::mutex m;
+    return m;
+  }
+}
 
 ROOT_TBranch_Read_ContainerImp::ROOT_TBranch_Read_ContainerImp(std::string const& name) :
   Storage_Read_Container(name)
@@ -22,17 +31,55 @@ ROOT_TBranch_Read_ContainerImp::ROOT_TBranch_Read_ContainerImp(std::string const
 
 void ROOT_TBranch_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
-  ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
+  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
     throw std::runtime_error(
       "ROOT_TBranch_Read_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = root_tfile_imp->getTFile();
-  return;
+}
+
+void ROOT_TBranch_Read_ContainerImp::prime(std::type_info const& type)
+{
+  std::scoped_lock guard(root_tbranch_read_mutex());
+
+  if (m_tfile == nullptr) {
+    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::prime no file attached");
+  }
+  if (m_tree == nullptr) {
+    m_tree = m_tfile->Get<TTree>(top_name().c_str());
+  }
+  if (m_tree == nullptr) {
+    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::prime no tree found with name " +
+                             top_name());
+  }
+  if (m_branch == nullptr) {
+    m_branch = m_tree->GetBranch(col_name().c_str());
+  }
+  if (m_branch == nullptr) {
+    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::prime no branch found");
+  }
+
+  auto* dictInfo = TDictionary::GetDictionary(type);
+  if (!dictInfo) {
+    throw std::runtime_error(
+      std::string{"ROOT_TBranch_Read_ContainerImp::prime unsupported type: "} + DemangleName(type));
+  }
+
+  if (!(dictInfo->Property() & EProperty::kIsFundamental)) {
+    auto* klass = TClass::GetClass(type);
+    if (!klass) {
+      throw std::runtime_error(
+        std::string{"ROOT_TBranch_Read_ContainerImp::prime missing TClass for type: "} +
+        DemangleName(type));
+    }
+  }
 }
 
 bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
 {
+  std::scoped_lock guard(root_tbranch_read_mutex());
+
   if (m_tfile == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::read no file attached");
   }
@@ -49,11 +96,12 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::read no branch found");
   }
-  if (id > m_tree->GetEntries())
+  if (id >= m_tree->GetEntries()) {
     return false;
+  }
 
   gsl::owner<void*> branchBuffer = nullptr;
-  auto dictInfo = TDictionary::GetDictionary(type);
+  auto* dictInfo = TDictionary::GetDictionary(type);
   int branchStatus = 0;
 
   if (!dictInfo) {
@@ -63,7 +111,7 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
 
   if (dictInfo->Property() & EProperty::kIsFundamental) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    auto fundInfo = static_cast<TDataType*>(dictInfo); // Already checked to be fundamental
+    auto* fundInfo = static_cast<TDataType*>(dictInfo); // Already checked to be fundamental
     switch (fundInfo->GetType()) {
     case kChar_t:
       branchBuffer = new Char_t;
@@ -112,13 +160,15 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), branchBuffer, nullptr, EDataType(fundInfo->GetType()), false);
   } else {
-    auto klass = TClass::GetClass(type);
+    auto* klass = TClass::GetClass(type);
     if (!klass) {
       throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass"} +
                                " (col_name='" + col_name() + "', type='" + DemangleName(type) +
                                "')");
     }
-    branchBuffer = gsl::owner<void*>(klass->New());
+    // ROOT returns ownership of dynamically created branch payload objects here.
+    // NOLINTNEXTLINE(readability-redundant-casting)
+    branchBuffer = gsl::owner<void*>{klass->New()};
     branchStatus = m_tree->SetBranchAddress(
       col_name().c_str(), reinterpret_cast<void*>(&branchBuffer), klass, EDataType::kOther_t, true);
   }
@@ -138,4 +188,27 @@ bool ROOT_TBranch_Read_ContainerImp::read(int id, void const** data, std::type_i
   m_branch->ResetAddress();
 
   return true;
+}
+
+int ROOT_TBranch_Read_ContainerImp::entries()
+{
+  std::scoped_lock guard(root_tbranch_read_mutex());
+
+  if (m_tfile == nullptr) {
+    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::entries no file attached");
+  }
+  if (m_tree == nullptr) {
+    m_tree = m_tfile->Get<TTree>(top_name().c_str());
+  }
+  if (m_tree == nullptr) {
+    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::entries no tree found with name " +
+                             top_name());
+  }
+  if (m_branch == nullptr) {
+    m_branch = m_tree->GetBranch(col_name().c_str());
+  }
+  if (m_branch == nullptr) {
+    throw std::runtime_error("ROOT_TBranch_Read_ContainerImp::entries no branch found");
+  }
+  return static_cast<int>(m_tree->GetEntries());
 }

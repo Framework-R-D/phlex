@@ -13,97 +13,9 @@
 #include <cassert>
 #include <format>
 #include <iostream>
+#include <set>
 
-namespace phlex::experimental {
-  framework_graph::framework_graph(int const max_parallelism) :
-    framework_graph{[](framework_driver& driver) { driver.yield(data_cell_index::job()); },
-                    max_parallelism}
-  {
-  }
-
-  framework_graph::framework_graph(detail::next_index_t next_index, int const max_parallelism) :
-    framework_graph{driver_bundle{std::move(next_index), {}}, max_parallelism}
-  {
-  }
-
-  framework_graph::framework_graph(driver_bundle bundle, int const max_parallelism) :
-    parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
-    fixed_hierarchy_{std::move(bundle.hierarchy)},
-    driver_{std::move(bundle.driver)},
-    src_{graph_,
-         [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
-           if (auto item = driver_()) {
-             return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
-                     .index_to_emit = *item};
-           }
-           fc.stop();
-           return {};
-         }},
-    index_router_{graph_},
-    index_receiver_{graph_,
-                    tbb::flow::unlimited,
-                    [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
-                      auto&& [ready_flushes, index_to_emit] = input;
-                      return index_router_.route(index_to_emit, std::move(ready_flushes));
-                    }},
-    hierarchy_node_{graph_,
-                    tbb::flow::unlimited,
-                    [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
-                      hierarchy_.increment_count(index);
-                      return {};
-                    }}
-  {
-    spdlog::cfg::load_env_levels();
-    spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
-  }
-
-  framework_graph::~framework_graph()
-  {
-    if (shutdown_on_error_) {
-      // When in an error state, we need to sanely pop the layer stack and wait for any tasks to finish.
-      auto remaining_flushes = cell_tracker_.report_and_evict_ready_flushes(nullptr);
-      index_router_.drain(std::move(remaining_flushes));
-      graph_.wait_for_all();
-    }
-  }
-
-  std::size_t framework_graph::seen_cell_count(std::string const& layer_name,
-                                               bool const missing_ok) const
-  {
-    return hierarchy_.count_for(experimental::layer_path(layer_name), missing_ok);
-  }
-
-  std::size_t framework_graph::execution_count(std::string const& node_name) const
-  {
-    return nodes_.execution_count(node_name);
-  }
-
-  void framework_graph::execute()
-  try {
-    finalize();
-    run();
-  } catch (std::exception const& e) {
-    driver_.stop();
-    spdlog::error(e.what());
-    shutdown_on_error_ = true;
-    throw;
-  } catch (...) {
-    driver_.stop();
-    spdlog::error("Unknown exception during graph execution");
-    shutdown_on_error_ = true;
-    throw;
-  }
-
-  void framework_graph::run()
-  {
-    src_.activate();
-    graph_.wait_for_all();
-
-    // Now back out of all remaining layers
-    index_router_.drain(cell_tracker_.report_and_evict_ready_flushes(nullptr));
-    graph_.wait_for_all();
-  }
-
+namespace phlex::detail {
   namespace {
     template <typename T>
     auto internal_edges_for_predicates(oneapi::tbb::flow::graph& g,
@@ -129,6 +41,161 @@ namespace phlex::experimental {
       }
       return result;
     }
+
+    index_router::fold_partition_ports_t fold_partition_ports(declared_folds const& folds)
+    {
+      index_router::fold_partition_ports_t result;
+      for (auto const& [fold_name, fold_node] : folds) {
+        result.try_emplace(fold_name, fold_node->partition_layer(), &fold_node->partition_port());
+      }
+      return result;
+    }
+
+    // Collects (input layer, child layer) pairs and per-input-layer unfold counts from all
+    // registered unfold nodes.  One pair is emitted per (unfold node, input layer): a
+    // multi-input unfold contributes the same child layer under each of its input layers,
+    // which is over-approximate but harmless — only the most-derived input actually parents
+    // children at runtime, and the extra synthetic paths are never reached by
+    // counting_layer_hashes_under for any real fold.  The per-input-layer count lets
+    // flush_gates wait for a flush message from every unfold that consumes a given layer
+    // before evaluating done().
+    index_router::unfold_data unfold_layers(declared_unfolds const& unfolds)
+    {
+      index_router::unfold_data result;
+      for (auto const& n : unfolds | std::views::values) {
+        phlex::experimental::identifier const child_layer{n->child_layer()};
+        std::set<phlex::experimental::identifier> input_layers_for_unfold;
+        for (auto const& input : n->input()) {
+          auto const& input_layer =
+            static_cast<phlex::experimental::identifier const&>(input.layer);
+          if (input_layer.empty()) {
+            continue;
+          }
+          if (not input_layers_for_unfold.insert(input_layer).second) {
+            continue;
+          }
+          ++result.count_per_input_layer[input_layer];
+          result.layer_pairs.push_back({.input = input_layer, .output = child_layer});
+        }
+      }
+      return result;
+    }
+  }
+
+  framework_graph framework_graph::with_default_driver(int const max_parallelism)
+  {
+    return framework_graph{driver_mode::default_driver, max_parallelism};
+  }
+
+  framework_graph framework_graph::without_driver(int const max_parallelism)
+  {
+    return framework_graph{driver_mode::deferred_driver, max_parallelism};
+  }
+
+  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+  framework_graph::framework_graph(driver_mode const mode, int const max_parallelism) :
+    parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
+    src_{graph_,
+         [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
+           assert(driver_);
+           if (auto item = (*driver_)()) {
+             return {.ready_flushes = cell_tracker_.report_and_evict_ready_flushes(*item),
+                     .index_to_emit = *item};
+           }
+           fc.stop();
+           return {};
+         }},
+    index_router_{graph_},
+    index_receiver_{graph_,
+                    tbb::flow::unlimited,
+                    [this](ready_flushes_then_emit const& input) -> data_cell_index_ptr {
+                      auto const& [ready_flushes, index_to_emit] = input;
+                      return index_router_.route(index_to_emit, ready_flushes);
+                    }},
+    hierarchy_node_{graph_,
+                    tbb::flow::unlimited,
+                    [this](data_cell_index_ptr const& index) -> tbb::flow::continue_msg {
+                      hierarchy_.increment_count(index);
+                      return {};
+                    }},
+    driver_mode_{mode}
+  {
+    if (driver_mode_ == driver_mode::default_driver) {
+      driver_.emplace([](framework_driver& driver) { driver.yield(data_cell_index::job()); });
+    }
+
+    spdlog::cfg::load_env_levels();
+    spdlog::info("Number of worker threads: {}", max_allowed_parallelism::active_value());
+  }
+
+  void framework_graph::add_driver(driver_bundle bundle)
+  {
+    if (driver_mode_ != driver_mode::deferred_driver) {
+      throw std::runtime_error(
+        "Cannot configure framework_graph with a driver when not in deferred mode.");
+    }
+    if (driver_) {
+      throw std::runtime_error("Driver has already been configured for framework_graph.");
+    }
+    if (!bundle.driver) {
+      throw std::runtime_error("Cannot configure framework_graph with an empty driver.");
+    }
+    fixed_hierarchy_ = std::move(bundle.hierarchy);
+    driver_.emplace(std::move(bundle.driver));
+  }
+
+  framework_graph::~framework_graph()
+  {
+    if (shutdown_on_error_) {
+      // When in an error state, we need to pop the layer stack and wait for any tasks to finish.
+      auto remaining_flushes = cell_tracker_.report_and_evict_ready_flushes(nullptr);
+      index_router_.drain(remaining_flushes);
+      graph_.wait_for_all();
+    }
+  }
+
+  std::size_t framework_graph::seen_cell_count(std::string const& layer_name,
+                                               bool const missing_ok) const
+  {
+    return hierarchy_.count_for(phlex::experimental::layer_path(layer_name), missing_ok);
+  }
+
+  std::size_t framework_graph::execution_count(std::string const& node_name) const
+  {
+    return nodes_.execution_count(node_name);
+  }
+
+  void framework_graph::execute()
+  {
+    if (!driver_) {
+      throw std::runtime_error("No driver configured for framework_graph.");
+    }
+
+    try {
+      finalize();
+      run();
+    } catch (std::exception const& e) {
+      driver_->stop();
+
+      spdlog::error(e.what());
+      shutdown_on_error_ = true;
+      throw;
+    } catch (...) {
+      driver_->stop();
+      spdlog::error("Unknown exception during graph execution");
+      shutdown_on_error_ = true;
+      throw;
+    }
+  }
+
+  void framework_graph::run()
+  {
+    src_.activate();
+    graph_.wait_for_all();
+
+    // Now back out of all remaining layers
+    index_router_.drain(cell_tracker_.report_and_evict_ready_flushes(nullptr));
+    graph_.wait_for_all();
   }
 
   void framework_graph::throw_if_registration_errors() const
@@ -160,11 +227,7 @@ namespace phlex::experimental {
     make_edge(index_receiver_, hierarchy_node_);
     make_edge(index_router_.unfold_index_receiver(), hierarchy_node_);
 
-    for (auto& node : nodes_.folds | std::views::values) {
-      make_edge(index_router_.flusher(), node->flush_port());
-    }
-
-    for (auto& node : nodes_.unfolds | std::views::values) {
+    for (auto const& node : nodes_.unfolds | std::views::values) {
       make_edge(node->output_index_port(), index_router_.unfold_index_receiver());
       make_edge(node->flush_sender(), index_router_.unfold_flush_receiver());
     }
@@ -186,41 +249,11 @@ namespace phlex::experimental {
     }
 
     // Index-router finalization makes edges between the index-set nodes and the provider nodes.
-    finalize_router(std::move(provider_input_ports), std::move(multilayer_join_index_ports));
-  }
-
-  // FIXME: Much, if not all, of this logic should be moved to the index_router.
-  void framework_graph::finalize_router(
-    index_router::provider_input_ports_t provider_input_ports,
-    std::map<std::string, named_index_ports> multilayer_join_index_ports)
-  {
-    std::set<identifier> unfold_input_layer_names;
-
-    // Count how many distinct unfold nodes consume each input layer.  When that count is
-    // greater than one, the flush_gate for an index in that layer must collect a flush
-    // message from every unfold before it knows the total number of children it will see.
-    std::map<identifier, std::size_t> unfold_count_per_input_layer;
-    for (auto const& n : nodes_.unfolds | std::views::values) {
-      for (auto const& input : n->input()) {
-        if (!static_cast<identifier const&>(input.layer).empty()) {
-          unfold_input_layer_names.insert(input.layer);
-          ++unfold_count_per_input_layer[identifier{input.layer}];
-        }
-      }
-    }
-
-    std::vector<identifier> unfold_output_layer_names;
-    for (auto const& n : nodes_.unfolds | std::views::values) {
-      unfold_output_layer_names.emplace_back(n->child_layer());
-    }
-
-    // FIXME: All of this should be collapsed into one call to index_router::finalize()
-    index_router_.establish_layers(
-      fixed_hierarchy_.layer_paths(),
-      std::vector<identifier>(unfold_input_layer_names.begin(), unfold_input_layer_names.end()),
-      unfold_output_layer_names);
-    index_router_.register_unfold_count_per_input_layer(std::move(unfold_count_per_input_layer));
-    index_router_.finalize(
-      graph_, std::move(provider_input_ports), std::move(multilayer_join_index_ports));
+    index_router_.finalize(graph_,
+                           fixed_hierarchy_.layer_paths(),
+                           unfold_layers(nodes_.unfolds),
+                           std::move(provider_input_ports),
+                           fold_partition_ports(nodes_.folds),
+                           multilayer_join_index_ports);
   }
 }

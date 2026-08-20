@@ -1,51 +1,54 @@
 // Copyright (C) 2025 ...
 
+#include "core/technology.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form_writer.hpp"
-#include "form/technology.hpp"
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 #include "toy_tracker.hpp"
 
+#include <cassert>
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <format>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <ranges>
 #include <vector>
 
 static int const NUMBER_EVENT = 4;
 static int const NUMBER_SEGMENT = 15;
 
-void generate(std::vector<float>& vrand, int size)
-{
-  // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-  int rand1 = rand() % 32768;
-  int rand2 = rand() % 32768;
-  // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-  int npx = (rand1 * 32768 + rand2) % size;
-  for (int nelement = 0; nelement < npx; ++nelement) {
-    // NOLINTBEGIN(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-    int rand1 = rand() % 32768;
-    int rand2 = rand() % 32768;
-    // NOLINTEND(concurrency-mt-unsafe, cert-msc30-c, misc-predictable-rand, cert-msc50-cpp) - Single-threaded test
-    float random = static_cast<float>(rand1 * 32768 + rand2) / (32768.0f * 32768);
-    vrand.push_back(random);
+struct Generator {
+  Generator() : gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
+
+  void operator()(std::vector<float>& vrand, int size)
+  {
+    assert(size > 1);
+    std::uniform_int_distribution size_dist(0, size - 1);
+    size_t const howMany = size_dist(gen_);
+    vrand.resize(howMany);
+
+    for (auto& rand : vrand) {
+      rand = dist_(gen_);
+    }
   }
-}
+
+private:
+  std::mt19937 gen_;
+  std::uniform_real_distribution<float> dist_;
+};
 
 int main(int argc, char** argv)
 {
   std::cout << "In main" << '\n';
-  // Deliberately use C-style random number generation for simplicity in a test
-  // NOLINTNEXTLINE(bugprone-random-generator-seed, cert-msc32-c, cert-msc51-cpp)
-  srand(time(nullptr));
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
-  int const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
+  auto const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
 
   // TODO: Read configuration from config file instead of hardcoding
   form::experimental::config::ItemConfig config_items;
@@ -72,6 +75,8 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  Generator generate;
+
   for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << '\n';
 
@@ -82,10 +87,13 @@ int main(int argc, char** argv)
       std::vector<float> track_start_x;
       generate(track_start_x, 4 * 1024 /* * 1024*/); // sub-event processing
       float check = 0.0;
-      for (float val : track_start_x)
+      for (float val : track_start_x) {
         check += val;
+      }
 
-      std::string const seg_id_text = std::format("[EVENT={:08X};SEG={:08X}]", nevent, nseg);
+      // Canonical Phlex index format: [layer:number, ...], base-10, ", "-joined.
+      // Matches phlex::data_cell_index::to_string() and is directly parseable by the source parser.
+      std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
 
       std::string const& segment_id = seg_id_text;
 
@@ -97,8 +105,9 @@ int main(int argc, char** argv)
       products.push_back(pb);
 
       std::vector<int> track_n_hits(std::from_range, std::views::iota(0, 100));
-      for (int val : track_n_hits)
+      for (int val : track_n_hits) {
         check += static_cast<float>(val);
+      }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << '\n';
 
@@ -108,8 +117,9 @@ int main(int argc, char** argv)
 
       std::vector<TrackStart> start_points = tracker();
       TrackStart checkPoints;
-      for (TrackStart const& point : start_points)
+      for (TrackStart const& point : start_points) {
         checkPoints += point;
+      }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", checkPoints = " << checkPoints << '\n';
 
@@ -129,10 +139,11 @@ int main(int argc, char** argv)
     std::cout << "PHLEX: Write Event segments done " << nevent << '\n';
 
     float check = 0.0;
-    for (float val : track_x)
+    for (float val : track_x) {
       check += val;
+    }
 
-    std::string const evt_id_text = std::format("[EVENT={:08X}]", nevent);
+    std::string const evt_id_text = std::format("[event:{}]", nevent);
 
     std::string const& event_id = evt_id_text;
 

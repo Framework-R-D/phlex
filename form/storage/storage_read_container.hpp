@@ -22,8 +22,10 @@ namespace form::detail::experimental {
     std::string const& col_name();
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
+    void prime(std::type_info const& type) override;
 
     bool read(int id, void const** data, std::type_info const& type) override;
+    int entries() override;
 
     void setAttribute(std::string const& name, std::string const& value) override;
 

@@ -17,7 +17,7 @@ cet_test(
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_default.jsonnet
   TEST_PROPERTIES
   ENVIRONMENT
-  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
 )
 
 configure_file(check_parallelism_cli.jsonnet check_parallelism_cli.jsonnet COPYONLY)
@@ -33,7 +33,7 @@ cet_test(
   7
   TEST_PROPERTIES
   ENVIRONMENT
-  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
 )
 
 configure_file(check_parallelism_config.jsonnet check_parallelism_config.jsonnet COPYONLY)
@@ -47,7 +47,7 @@ cet_test(
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_config.jsonnet
   TEST_PROPERTIES
   ENVIRONMENT
-  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
 )
 
 configure_file(
@@ -67,5 +67,5 @@ cet_test(
   9
   TEST_PROPERTIES
   ENVIRONMENT
-  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}"
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
 )

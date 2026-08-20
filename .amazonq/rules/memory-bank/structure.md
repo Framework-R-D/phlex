@@ -24,7 +24,7 @@ The main framework implementation containing the execution engine and core abstr
 
 - **`model/`**: Data model and type system
   - `product_store.cpp/hpp`: Central data product storage
-  - `product_specification.cpp/hpp`, `product_matcher.cpp/hpp`: Product identification
+  - `product_specification.cpp/hpp`: Product identification
   - `products.cpp/hpp`: Product collections
   - `data_layer_hierarchy.cpp/hpp`: Hierarchical data organization
   - `data_cell_index.cpp/hpp`, `data_cell_counter.cpp/hpp`: Data cell management
@@ -47,7 +47,7 @@ The main framework implementation containing the execution engine and core abstr
   - `resumable_driver.hpp`: Resumable driver execution
   - `max_allowed_parallelism.hpp`: Parallelism control
   - `thread_counter.hpp`: Thread tracking
-  - `simple_ptr_map.hpp`, `sized_tuple.hpp`, `sleep_for.hpp`, `string_literal.hpp`: Various utilities
+  - `simple_ptr_map.hpp`, `sized_tuple.hpp`, `sleep_for.hpp`: Various utilities
 
 - **Top-level files**:
   - `configuration.cpp/hpp`: Configuration management

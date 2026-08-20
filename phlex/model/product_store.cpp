@@ -8,8 +8,12 @@ namespace phlex::experimental {
 
   product_store::product_store(data_cell_index_ptr id,
                                algorithm_name source,
-                               products new_products) :
-    products_{std::move(new_products)}, id_{std::move(id)}, source_{std::move(source)}
+                               phlex::detail::products new_products,
+                               std::optional<identifier> stage) :
+    products_{std::move(new_products)},
+    id_{std::move(id)},
+    source_{std::move(source)},
+    stage_{std::move(stage)}
   {
   }
 
@@ -17,14 +21,24 @@ namespace phlex::experimental {
 
   product_store_ptr product_store::base(algorithm_name base_name)
   {
-    return product_store_ptr{new product_store{data_cell_index::job(), std::move(base_name)}};
+    return std::make_shared<product_store>(data_cell_index::job(), std::move(base_name));
   }
 
   identifier const& product_store::layer_name() const noexcept { return id_->layer_name(); }
   algorithm_name const& product_store::source() const noexcept { return source_; }
   data_cell_index_ptr const& product_store::index() const noexcept { return id_; }
 
-  product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
+  product_store_ptr const& detail::more_derived(product_store_ptr const& a,
+                                                product_store_ptr const& b)
+  {
+    if (a->index()->depth() > b->index()->depth()) {
+      return a; // NOLINT(bugprone-return-const-ref-from-parameter)
+    }
+    return b; // NOLINT(bugprone-return-const-ref-from-parameter)
+  }
+
+  product_store_const_ptr const& detail::more_derived(product_store_const_ptr const& a,
+                                                      product_store_const_ptr const& b)
   {
     if (a->index()->depth() > b->index()->depth()) {
       return a; // NOLINT(bugprone-return-const-ref-from-parameter)

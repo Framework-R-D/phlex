@@ -1,5 +1,6 @@
 #include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/product_store.hpp"
 
 #include "fmt/format.h"
 
@@ -8,7 +9,7 @@
 #include <stdexcept>
 #include <tuple>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   std::size_t message_matcher::operator()(message const& msg) const noexcept { return msg.id; }
 
@@ -16,7 +17,8 @@ namespace phlex::experimental {
   {
     assert(a.store);
     assert(b.store);
-    if (a.store->index()->depth() > b.store->index()->depth()) {
+    auto const& store = phlex::experimental::detail::more_derived(a.store, b.store);
+    if (store == a.store) {
       return a; // NOLINT(bugprone-return-const-ref-from-parameter)
     }
     return b; // NOLINT(bugprone-return-const-ref-from-parameter)

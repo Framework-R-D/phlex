@@ -1,0 +1,97 @@
+{
+  "goal": "Implement recommendations from workflow-audit-report.md",
+  "idempotent": false,
+  "steps": [
+    {
+      "id": "step-1",
+      "description": "Create documentation file WORKFLOW_CALLS.md listing all reusable workflow names, required inputs, and example invocations",
+      "model": "coder-qwen",
+      "input": null,
+      "output": "WORKFLOW_CALLS.md created in docs/dev/",
+      "gate": false,
+      "parallel": false,
+      "retry": 0,
+      "max_retries": 2,
+      "on_error": "abort",
+      "self_check": "file exists and contains markdown headings for each workflow"
+    },
+    {
+      "id": "step-2",
+      "description": "Standardize boolean workflow inputs to snake_case (e.g., skip-relevance-check) across all .github/workflows/*.yaml files",
+      "model": "coder-qwen",
+      "input": "List of workflow YAML files via grep pattern '\\.yaml' in .github/workflows",
+      "output": "All boolean inputs renamed consistently; corresponding references updated",
+      "gate": false,
+      "parallel": false,
+      "retry": 0,
+      "max_retries": 3,
+      "on_error": "continue",
+      "self_check": "grep for camelCase or kebab-case boolean inputs yields no results"
+    },
+    {
+      "id": "step-3",
+      "description": "Add missing description fields for 'ref' input and other extra inputs in all workflow_dispatch sections",
+      "model": "coder-qwen",
+      "input": "Search for workflow_dispatch blocks lacking description for inputs",
+      "output": "All inputs in workflow_dispatch have a 'description' field",
+      "gate": false,
+      "parallel": false,
+      "retry": 0,
+      "max_retries": 2,
+      "on_error": "continue",
+      "self_check": "grep for 'workflow_dispatch' sections where 'inputs' entries miss a 'description' key returns zero"
+    },
+    {
+      "id": "step-4",
+      "description": "Add a lightweight lint/assertion script (e.g., scripts/check-gating-block.sh) that verifies the shared if‑gating block is identical across all workflows and fails CI if drift is detected",
+      "model": "coder-qwen",
+      "input": null,
+      "output": "New script added and referenced in CI workflow (e.g., actionlint job)",
+      "gate": false,
+      "parallel": false,
+      "retry": 0,
+      "max_retries": 2,
+      "on_error": "abort",
+      "self_check": "Run script locally; exits 0 only when all workflows contain identical gating block"
+    },
+    {
+      "id": "step-5",
+      "description": "Update permissions for workflows that currently over‑grant to use fine‑grained token scoped to Contents: write and Pull‑requests: write (replace classic PAT where possible)",
+      "model": "coder-qwen",
+      "input": "Identify workflows using secrets.WORKFLOW_PAT where only comment steps need it",
+      "output": "Permissions blocks simplified; comment‑only steps migrated to workflow_run using GITHUB_TOKEN, PAT retained only for commit‑push paths",
+      "gate": false,
+      "parallel": false,
+      "retry": 0,
+      "max_retries": 2,
+      "on_error": "continue",
+      "self_check": "grep for 'secrets.WORKFLOW_PAT' in comment‑only jobs returns none"
+    },
+    {
+      "id": "step-6",
+      "description": "Add CI job to run the gating‑block lint script and enforce variable‑naming consistency",
+      "model": "coder-qwen",
+      "input": null,
+      "output": "CI workflow (e.g., .github/workflows/ci.yaml) includes new job 'gating_check' that fails on drift",
+      "gate": false,
+      "parallel": false,
+      "retry": 0,
+      "max_retries": 1,
+      "on_error": "abort",
+      "self_check": "CI config contains job named gating_check"
+    },
+    {
+      "id": "step-7",
+      "description": "Run pre‑commit hooks and CI locally to validate changes; commit all modifications in a single atomic commit",
+      "model": "coder-qwen",
+      "input": null,
+      "output": "All tests pass, CI passes, and repository is clean",
+      "gate": false,
+      "parallel": false,
+      "retry": 0,
+      "max_retries": 1,
+      "on_error": "abort",
+      "self_check": "pre‑commit run --all-files returns success and ctest passes"
+    }
+  ]
+}

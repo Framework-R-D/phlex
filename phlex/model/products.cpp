@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   products::products(std::size_t number_known_products)
   {
     products_.reserve(number_known_products);
@@ -19,7 +19,8 @@ namespace phlex::experimental {
 
   product_base const* products::find_product(product_specification const& spec) const
   {
-    auto it = std::ranges::find(products_, spec, [](auto const& p) { return p.first; });
+    auto it =
+      std::ranges::find(products_, spec, [](auto const& p) -> auto const& { return p.first; });
     if (it == products_.end()) {
       throw std::runtime_error(
         fmt::format("No product exists with the specification '{}'.", spec.to_string()));

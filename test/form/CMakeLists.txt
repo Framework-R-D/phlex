@@ -111,6 +111,8 @@ if(FORM_USE_ROOT_STORAGE)
     cet_test("form_storage_test_${TECH}" USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
              root_storage
              storage
+             persistence
+             form
              form_test_utils
              TEST_ARGS
              --technology
@@ -133,7 +135,7 @@ cet_test(
   ${CMAKE_CURRENT_SOURCE_DIR}/form_test.jsonnet
   TEST_PROPERTIES
   ENVIRONMENT
-  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
 )
 
 if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
@@ -147,11 +149,64 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
     ${CMAKE_CURRENT_SOURCE_DIR}/form_test_rntuple.jsonnet
     TEST_PROPERTIES
     ENVIRONMENT
-    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}:${CMAKE_BINARY_DIR}/form"
+    "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
   )
 endif()
 
+set(form_basics_test_libraries form)
+if(FORM_USE_ROOT_STORAGE)
+  list(APPEND form_basics_test_libraries root_storage)
+endif()
 cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
-         form
+         ${form_basics_test_libraries}
 )
 target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
+if(FORM_USE_ROOT_STORAGE)
+  target_compile_definitions(form_basics_test PRIVATE USE_ROOT_STORAGE)
+  if(FORM_USE_RNTUPLE_STORAGE)
+    target_compile_definitions(form_basics_test PRIVATE USE_RNTUPLE_STORAGE)
+  endif()
+endif()
+
+add_library(generate_vector MODULE generate_vector.cpp)
+target_link_libraries(generate_vector PRIVATE phlex::module)
+
+add_library(form_source_extra_types MODULE form_source_extra_types.cpp)
+target_link_libraries(form_source_extra_types PRIVATE phlex::module form)
+target_include_directories(form_source_extra_types PRIVATE ${PROJECT_SOURCE_DIR})
+
+add_library(passthrough_vector MODULE passthrough_vector.cpp)
+target_link_libraries(passthrough_vector PRIVATE phlex::module)
+
+cet_test(
+  job:form_source_coverage_write_ttree
+  HANDBUILT
+  TEST_EXEC
+  phlex::phlex
+  TEST_ARGS
+  -c
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_write_ttree.jsonnet
+  TEST_WORKDIR
+  form_source_coverage_ttree
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+)
+
+cet_test(
+  job:form_source_coverage_read_ttree
+  HANDBUILT
+  TEST_EXEC
+  phlex::phlex
+  TEST_ARGS
+  -c
+  ${CMAKE_CURRENT_SOURCE_DIR}/form_source_read_ttree.jsonnet
+  DIRTY_WORKDIR
+  TEST_WORKDIR
+  form_source_coverage_ttree
+  REQUIRED_FIXTURES
+  job:form_source_coverage_write_ttree
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
+)

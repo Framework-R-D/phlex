@@ -1,7 +1,7 @@
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/framework_graph.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 namespace {
   int transform [[maybe_unused]] (double&) { return 1; };

@@ -26,12 +26,16 @@ std::string const& Storage_Read_Container::col_name() { return m_cName; }
 
 void Storage_Read_Container::setFile(std::shared_ptr<IStorage_File> file) { m_file = file; }
 
+void Storage_Read_Container::prime(std::type_info const& /*type*/) {}
+
 bool Storage_Read_Container::read(int /* id*/,
                                   void const** /*data*/,
                                   std::type_info const& /* type*/)
 {
   return false;
 }
+
+int Storage_Read_Container::entries() { return 0; }
 
 void Storage_Read_Container::setAttribute(std::string const& /*name*/, std::string const& /*value*/)
 {

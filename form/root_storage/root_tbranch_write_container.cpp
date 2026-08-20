@@ -32,25 +32,22 @@ void ROOT_TBranch_Write_ContainerImp::setAttribute(std::string const& key, std::
 void ROOT_TBranch_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
   this->Storage_Associative_Write_Container::setFile(file);
-  ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
+  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
     throw std::runtime_error(
       "ROOT_TBranch_Write_ContainerImp::setFile can't attach to non-ROOT file");
   }
   m_tfile = root_tfile_imp->getTFile();
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_Container> parent)
 {
   this->Storage_Associative_Write_Container::setParent(parent);
-  ROOT_TTree_Write_ContainerImp* root_ttree_imp =
-    dynamic_cast<ROOT_TTree_Write_ContainerImp*>(parent.get());
+  auto* root_ttree_imp = dynamic_cast<ROOT_TTree_Write_ContainerImp*>(parent.get());
   if (root_ttree_imp == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setParent");
   }
   m_tree = root_ttree_imp->getTTree();
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
@@ -75,7 +72,7 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no tree found");
   }
 
-  auto dictInfo = TDictionary::GetDictionary(type);
+  auto* dictInfo = TDictionary::GetDictionary(type);
   if (m_branch == nullptr) {
     if (!dictInfo) {
       throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite unsupported type: " +
@@ -95,7 +92,6 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
   if (m_branch == nullptr) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no branch created");
   }
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::fill(void const* data)
@@ -118,7 +114,6 @@ void ROOT_TBranch_Write_ContainerImp::fill(void const* data)
   }
   m_branch->Fill();
   m_branch->ResetAddress();
-  return;
 }
 
 void ROOT_TBranch_Write_ContainerImp::commit()
@@ -127,6 +122,15 @@ void ROOT_TBranch_Write_ContainerImp::commit()
   if (!m_tree) {
     throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit no tree attached");
   }
+
+  if (!m_branch) {
+    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit no branch found");
+  }
+
+  if (m_branch->GetEntries() == m_tree->GetEntries()) {
+    throw std::runtime_error(
+      "ROOT_TBranch_Write_ContainerImp::commit called without new entries since last fill/commit");
+  }
+
   m_tree->SetEntries(m_branch->GetEntries());
-  return;
 }

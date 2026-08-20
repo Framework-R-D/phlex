@@ -14,7 +14,7 @@ namespace {
   auto square_numbers(std::vector<unsigned> const& numbers)
   {
     std::vector<unsigned> result(size(numbers));
-    std::transform(begin(numbers), end(numbers), begin(result), [](unsigned i) { return i * i; });
+    std::ranges::transform(numbers, begin(result), [](unsigned i) { return i * i; });
     return result;
   }
 
@@ -41,7 +41,7 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  experimental::framework_graph g;
+  auto g = phlex::detail::framework_graph::with_default_driver();
 
   g.provide("provide_numbers",
             [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })

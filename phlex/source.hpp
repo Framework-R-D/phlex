@@ -4,11 +4,12 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/core/graph_proxy.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/detail/plugin_macros.hpp"
 
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   struct source_bundle {
     // Non-owning references to framework-owned resources; source_bundle is a short-lived struct.
@@ -37,7 +38,7 @@ namespace phlex::experimental {
     using base::graph_proxy;
 
     template <typename U, typename... Args>
-    providers_graph_proxy<U> make(Args&&... args)
+    providers_graph_proxy<U> make(Args&&... args) const
       requires(not is_bound_object<T>)
     {
       return this->template bind_to<providers_graph_proxy, U>(std::forward<Args>(args)...);
@@ -62,20 +63,20 @@ namespace phlex::experimental {
     }
 
     // Only source(...) should be accessible
-    using base::source;
+    using base::add_source;
   };
 
-  namespace detail {
+  namespace internal {
     using source_creator_t = void(source_bundle, configuration const&);
   }
 }
 
 #define PHLEX_REGISTER_PROVIDERS(...)                                                              \
   PHLEX_DETAIL_REGISTER_SOURCE_PLUGIN(                                                             \
-    phlex::experimental::providers_graph_proxy, create, create_source, __VA_ARGS__)
+    phlex::detail::providers_graph_proxy, create, create_source, __VA_ARGS__)
 
 #define PHLEX_REGISTER_SOURCE(...)                                                                 \
   PHLEX_DETAIL_REGISTER_SOURCE_PLUGIN(                                                             \
-    phlex::experimental::source_graph_proxy, create, create_source, __VA_ARGS__)
+    phlex::detail::source_graph_proxy, create, create_source, __VA_ARGS__)
 
 #endif // PHLEX_SOURCE_HPP

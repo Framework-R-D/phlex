@@ -6,6 +6,6 @@ using namespace phlex::experimental::test;
 
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
-  define_algorithm<sim::SimEnergyDeposits,
-                   phlex::experimental::sized_tuple<sim::SimEnergyDeposits, 2>>(m, config);
+  define_algorithm<sim::SimEnergyDeposits, phlex::detail::sized_tuple<sim::SimEnergyDeposits, 2>>(
+    m, config);
 }

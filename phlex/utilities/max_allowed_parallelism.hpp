@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class max_allowed_parallelism {
   public:
     explicit max_allowed_parallelism(std::size_t const n) :

@@ -3,7 +3,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 using phlex::data_cell_index;
 
 TEST_CASE("Data layer hierarchy with ambiguous layer names", "[data model]")

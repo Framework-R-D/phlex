@@ -6,42 +6,76 @@
 #include "phlex/source.hpp"
 
 #include "boost/algorithm/string.hpp"
-#include "boost/dll/import.hpp"
+#include "boost/dll/shared_library.hpp"
 #include "boost/json.hpp"
 
 #include <cstdlib>
-#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 
 using namespace std::string_literals;
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   namespace {
     constexpr std::string_view pymodule_name{"pymodule"};
 
-    // If factory function goes out of scope, then the library is unloaded...and that's
-    // bad.
+    // The shared_library member in each wrapper struct keeps the loaded .so
+    // alive for the lifetime of the wrapper.  If it goes out of scope, the
+    // library is unloaded and the stored function pointer becomes invalid.
+    struct module_plugin {
+      boost::dll::shared_library lib;
+      internal::module_creator_t* fn{};
+
+      void operator()(module_graph_proxy<void_tag> const& proxy, configuration const& config) const
+      {
+        fn(proxy, config);
+      }
+    };
+
+    struct source_plugin {
+      boost::dll::shared_library lib;
+      internal::source_creator_t* fn{};
+
+      void operator()(source_bundle bundle, configuration const& config) const
+      {
+        fn(bundle, config);
+      }
+    };
+
+    struct driver_plugin {
+      boost::dll::shared_library lib;
+      internal::driver_shim_t* fn{};
+
+      void operator()(driver_proxy const& proxy,
+                      configuration const& config,
+                      driver_bundle* out) const
+      {
+        fn(proxy, config, out);
+      }
+    };
+
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::vector<std::function<detail::module_creator_t>> create_module;
+    std::vector<module_plugin> create_module;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::vector<std::function<detail::source_creator_t>> create_source;
+    std::vector<source_plugin> create_source;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::function<detail::driver_shim_t> create_driver;
+    std::optional<driver_plugin> create_driver;
 
     template <typename creator_t>
-    std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
+    std::pair<boost::dll::shared_library, creator_t*> plugin_loader(std::string const& spec,
+                                                                    std::string const& symbol_name)
     {
       // Called during single-threaded graph construction
       char const* plugin_path_ptr =
         std::getenv("PHLEX_PLUGIN_PATH"); // NOLINT(concurrency-mt-unsafe)
-      if (!plugin_path_ptr)
+      if (!plugin_path_ptr) {
         throw std::runtime_error("PHLEX_PLUGIN_PATH has not been set.");
+      }
 
-      using namespace boost;
       std::vector<std::string> subdirs;
-      split(subdirs, plugin_path_ptr, is_any_of(":"));
+      boost::split(subdirs, plugin_path_ptr, boost::is_any_of(":"));
 
       // FIXME: Need to test to ensure that first match wins.
       for (auto const& subdir : subdirs) {
@@ -50,9 +84,11 @@ namespace phlex::experimental {
         if (exists(shared_library_path)) {
           // Load pymodule with rtld_global to make Python symbols available to extension modules
           // (e.g., NumPy). Load all other plugins with rtld_local (default) to avoid symbol collisions.
-          auto const load_mode =
-            (spec == pymodule_name) ? dll::load_mode::rtld_global : dll::load_mode::default_mode;
-          return dll::import_symbol<creator_t>(shared_library_path, symbol_name, load_mode);
+          auto const load_mode = (spec == pymodule_name) ? boost::dll::load_mode::rtld_global
+                                                         : boost::dll::load_mode::default_mode;
+          boost::dll::shared_library lib{shared_library_path, load_mode};
+          auto* fn = &lib.get<creator_t>(symbol_name);
+          return {std::move(lib), fn};
         }
       }
       throw std::runtime_error("Could not locate library with specification '"s + spec +
@@ -60,7 +96,7 @@ namespace phlex::experimental {
     }
   }
 
-  namespace detail {
+  namespace internal {
     boost::json::object adjust_config(std::string const& label, boost::json::object raw_config)
     {
       raw_config["module_label"] = label;
@@ -86,11 +122,11 @@ namespace phlex::experimental {
 
   void load_module(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
+    auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
-    auto& creator =
-      create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
+    auto [lib, fn] = plugin_loader<internal::module_creator_t>(spec, "create_module");
+    auto& creator = create_module.emplace_back(module_plugin{std::move(lib), fn});
 
     configuration const config{adjusted_config};
     creator(g.module_proxy(config), config);
@@ -98,11 +134,11 @@ namespace phlex::experimental {
 
   void load_source(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const adjusted_config = detail::adjust_config(label, std::move(raw_config));
+    auto const adjusted_config = internal::adjust_config(label, std::move(raw_config));
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
-    auto& creator =
-      create_source.emplace_back(plugin_loader<detail::source_creator_t>(spec, "create_source"));
+    auto [lib, fn] = plugin_loader<internal::source_creator_t>(spec, "create_source");
+    auto& creator = create_source.emplace_back(source_plugin{std::move(lib), fn});
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
@@ -113,16 +149,18 @@ namespace phlex::experimental {
     creator(g.source_proxy(config), config);
   }
 
-  driver_bundle load_driver(boost::json::object const& raw_config)
+  void load_driver(framework_graph& g, boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("cpp");
+    auto const required_sources = config.get<std::vector<std::string>>("uses_sources", {});
     // False positive: clang-analyzer cannot trace ownership through Boost's is_any_of<char>
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
-    create_driver = plugin_loader<detail::driver_shim_t>(spec, "create_driver");
+    auto [lib, fn] = plugin_loader<internal::driver_shim_t>(spec, "create_driver");
+    create_driver.emplace(driver_plugin{std::move(lib), fn});
     driver_bundle result;
-    create_driver(driver_proxy{}, config, &result);
-    return result;
+    (*create_driver)(g.driver_proxy(required_sources), config, &result);
+    g.add_driver(result);
   }
 }

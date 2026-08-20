@@ -1,6 +1,8 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "wrap.hpp"
 
+#include <array>
+
 using namespace phlex::experimental;
 using namespace phlex;
 
@@ -25,14 +27,14 @@ PyObject* phlex::experimental::wrap_dci(data_cell_index const& dci)
 // simple forwarding methods
 static PyObject* dci_number(py_data_cell_index* pydci)
 {
-  return PyLong_FromLong((long)pydci->ph_dci->number());
+  return PyLong_FromLong(static_cast<long>(pydci->ph_dci->number()));
 }
 
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMethodDef dci_methods[] = {
-  {"number", reinterpret_cast<PyCFunction>(dci_number), METH_NOARGS, "index number"},
-  {nullptr, nullptr, 0, nullptr}};
+static std::array<PyMethodDef, 2> dci_methods{
+  {{"number", reinterpret_cast<PyCFunction>(dci_number), METH_NOARGS, "index number"},
+   {nullptr, nullptr, 0, nullptr}}};
 
 // clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
@@ -65,7 +67,7 @@ PyTypeObject phlex::experimental::PhlexDataCellIndex_Type = {
   0,                                                 // tp_weaklistoffset
   nullptr,                                           // tp_iter
   nullptr,                                           // tp_iternext
-  dci_methods,                                       // tp_methods
+  dci_methods.data(),                                // tp_methods
   nullptr,                                           // tp_members
   nullptr,                                           // tp_getset
   nullptr,                                           // tp_base

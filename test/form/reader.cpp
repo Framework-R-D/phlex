@@ -1,8 +1,8 @@
 // Copyright (C) 2025 ...
 
+#include "core/technology.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form_reader.hpp"
-#include "form/technology.hpp"
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
-  int const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
+  auto const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
 
   // Load expected checksums from file
   std::map<std::pair<int, int>, SegChecksum> expected_seg;
@@ -55,7 +55,8 @@ int main(int argc, char** argv)
     iss >> type;
     if (type == "SEG") {
       SegChecksum cs{};
-      int nevent{}, nseg{};
+      int nevent{};
+      int nseg{};
       iss >> nevent >> nseg >> cs.check >> cs.cpx >> cs.cpy >> cs.cpz;
       expected_seg[{nevent, nseg}] = cs;
     } else if (type == "EVT") {
@@ -88,7 +89,8 @@ int main(int argc, char** argv)
     for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
 
       void const* rawPtr = nullptr;
-      std::string const seg_id_text = std::format("[EVENT={:08X};SEG={:08X}]", nevent, nseg);
+      // Must match the canonical format emitted by writer.cpp (phlex data_cell_index format)
+      std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
 
       std::string const& segment_id = seg_id_text;
 
@@ -118,13 +120,16 @@ int main(int argc, char** argv)
         static_cast<std::vector<TrackStart> const*>(pb_points.data));
 
       float check = 0.0;
-      for (float val : *track_start_x)
+      for (float val : *track_start_x) {
         check += val;
-      for (int val : *track_n_hits)
+      }
+      for (int val : *track_n_hits) {
         check += static_cast<float>(val);
+      }
       TrackStart checkPoints;
-      for (TrackStart val : *start_points)
+      for (TrackStart val : *start_points) {
         checkPoints += val;
+      }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << '\n';
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
@@ -132,7 +137,7 @@ int main(int argc, char** argv)
 
       // Verify segment checksums
       auto key = std::make_pair(nevent, nseg);
-      if (expected_seg.count(key)) {
+      if (expected_seg.contains(key)) {
         auto const& exp = expected_seg[key];
         bool seg_ok = (std::fabs(check - exp.check) <= TOLERANCE) &&
                       (std::fabs(checkPoints.getX() - exp.cpx) <= TOLERANCE) &&
@@ -156,7 +161,7 @@ int main(int argc, char** argv)
     }
     std::cout << "PHLEX: Read Event segments done " << nevent << '\n';
 
-    std::string const evt_id_text = std::format("[EVENT={:08X}]", nevent);
+    std::string const evt_id_text = std::format("[event:{}]", nevent);
 
     std::string const& event_id = evt_id_text;
 
@@ -170,13 +175,14 @@ int main(int argc, char** argv)
     track_x.reset(static_cast<std::vector<float> const*>(pb.data));
 
     float check = 0.0;
-    for (float val : *track_x)
+    for (float val : *track_x) {
       check += val;
+    }
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
               << ", check = " << check << '\n';
 
     // Verify event checksum
-    if (expected_evt.count(nevent)) {
+    if (expected_evt.contains(nevent)) {
       auto const& exp = expected_evt[nevent];
       bool evt_ok = (std::fabs(check - exp.check) <= TOLERANCE);
       if (evt_ok) {
@@ -198,8 +204,7 @@ int main(int argc, char** argv)
   if (all_passed) {
     std::cout << "PHLEX: All verification checks PASSED." << '\n';
     return 0;
-  } else {
-    std::cerr << "PHLEX: Some verification checks FAILED." << '\n';
-    return 1;
   }
+  std::cerr << "PHLEX: Some verification checks FAILED." << '\n';
+  return 1;
 }

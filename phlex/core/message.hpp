@@ -9,18 +9,20 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/utilities/signed_size.hpp"
 #include "phlex/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
 #include <cstddef>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   struct index_message {
     data_cell_index_ptr index;
@@ -28,21 +30,18 @@ namespace phlex::experimental {
     bool cache{true};
   };
 
-  // FIXME: Do we need both indexed_end_token and flush_message?
   struct indexed_end_token {
     data_cell_index_ptr index;
-    int count;
-  };
-
-  struct flush_message {
-    data_cell_index_ptr index;
-    data_cell_counts_const_ptr counts;
-    std::size_t original_id{}; // FIXME: Used only by folds
+    // The count is the number of direct children processed for this index. It uses signed_size_t
+    // because it is subtracted from a pending-invocations counter, which may be negative when the
+    // indexed_end_token arrives before all pending invocations are processed.
+    // (See the pending_invocations members in repeater_node and accumulator_node.)
+    signed_size_t count;
   };
 
   struct message {
     // FIXME: Maybe consider adding an 'index' data member?
-    product_store_const_ptr store;
+    phlex::experimental::product_store_const_ptr store;
     std::size_t id{};
   };
 
@@ -56,8 +55,20 @@ namespace phlex::experimental {
   template <std::size_t N>
   using messages_t = std::conditional_t<N == 1ull, message, message_tuple<N>>;
 
+  // A named_index_port describes one input slot of a multi-layer join node from the
+  // perspective of the index router.  Two distinct layer concepts are carried:
+  //
+  //  - `layer`           — the *routing* layer.  The router decides whether a routed index
+  //                        feeds this slot's `index_port` (and whether the slot should
+  //                        receive a flush token) using this layer name via
+  //                        `matches_exactly` / `is_parent_of` checks.
+  //
+  //  - `counting_layer`  — the *counting* layer preference.  `std::nullopt` selects the
+  //                        node's deepest layer, while a populated value selects that
+  //                        explicit layer name.
   struct named_index_port {
-    identifier layer;
+    phlex::experimental::identifier layer;
+    std::optional<phlex::experimental::identifier> counting_layer;
     tbb::flow::receiver<indexed_end_token>* token_port;
     tbb::flow::receiver<index_message>* index_port;
   };
@@ -70,6 +81,24 @@ namespace phlex::experimental {
   inline message const& most_derived(message const& msg)
   {
     return msg; // NOLINT(bugprone-return-const-ref-from-parameter)
+  }
+
+  // Generic most_derived for message tuples
+  template <std::size_t I, typename Tuple>
+  auto const& get_most_derived(Tuple const& tup, std::tuple_element_t<I - 1, Tuple> const& element)
+  {
+    constexpr auto num_inputs = std::tuple_size_v<Tuple>;
+    if constexpr (I == num_inputs - 1) {
+      return more_derived(element, std::get<I>(tup));
+    } else {
+      return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
+    }
+  }
+
+  template <typename T, typename U, typename... Ts>
+  auto const& most_derived(std::tuple<T, U, Ts...> const& elements)
+  {
+    return get_most_derived<1ull>(elements, std::get<0>(elements));
   }
 
   PHLEX_CORE_EXPORT std::size_t port_index_for(product_selectors const& input_products,

@@ -13,20 +13,26 @@ namespace phlex {
   class fixed_hierarchy;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
+  template <typename RT>
+  class resumable_driver;
+}
+
+namespace phlex::detail {
   class data_layer_hierarchy;
   class data_cell_counts;
-  class product_store;
+  using framework_driver = resumable_driver<data_cell_index_ptr>;
 
   using data_cell_counts_const_ptr = std::shared_ptr<data_cell_counts const>;
   using data_cell_counts_ptr = std::shared_ptr<data_cell_counts>;
+
+}
+
+namespace phlex::experimental {
+  class product_store;
+
   using product_store_const_ptr = std::shared_ptr<product_store const>;
   using product_store_ptr = std::shared_ptr<product_store>;
-
-  template <typename RT>
-  class resumable_driver;
-
-  using framework_driver = resumable_driver<data_cell_index_ptr>;
 }
 
 #endif // PHLEX_MODEL_FWD_HPP

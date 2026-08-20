@@ -36,16 +36,16 @@ namespace phlex::experimental {
   struct py_config_map;
 
   // Phlex' module wrapper to register algorithms
-  typedef module_graph_proxy<void_tag> phlex_module_t;
-  PyObject* wrap_module(phlex_module_t& mod); // returns new reference
+  using phlex_module_t = phlex::detail::module_graph_proxy<phlex::detail::void_tag>;
+  PyObject* wrap_module(phlex_module_t const& mod); // returns new reference
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern PyTypeObject PhlexModule_Type;
   struct py_phlex_module;
 
   // Phlex' source wrapper to register providers
-  typedef providers_graph_proxy<void_tag> phlex_source_t;
-  PyObject* wrap_source(phlex_source_t& src); // returns new reference
+  using phlex_source_t = phlex::detail::providers_graph_proxy<phlex::detail::void_tag>;
+  PyObject* wrap_source(phlex_source_t const& source); // returns new reference
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern PyTypeObject PhlexSource_Type;

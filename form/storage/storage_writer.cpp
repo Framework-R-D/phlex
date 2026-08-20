@@ -5,9 +5,43 @@
 #include "storage_file.hpp"
 #include "storage_write_association.hpp"
 
-#include "util/factories.hpp"
+#include "storage/factories.hpp"
 
 using namespace form::detail::experimental;
+
+namespace {
+  form::experimental::config::tech_setting_config::table_t get_file_table(
+    form::experimental::config::tech_setting_config const& settings,
+    form::technology::Id technology,
+    std::string const& file_name)
+  {
+    auto const per_tech = settings.file_settings.find(technology);
+    if (per_tech == settings.file_settings.end()) {
+      return {};
+    }
+    auto const per_file = per_tech->second.find(file_name);
+    if (per_file == per_tech->second.end()) {
+      return {};
+    }
+    return per_file->second;
+  }
+
+  form::experimental::config::tech_setting_config::table_t get_container_table(
+    form::experimental::config::tech_setting_config const& settings,
+    form::technology::Id technology,
+    std::string const& container_name)
+  {
+    auto const per_tech = settings.container_settings.find(technology);
+    if (per_tech == settings.container_settings.end()) {
+      return {};
+    }
+    auto const per_container = per_tech->second.find(container_name);
+    if (per_container == per_tech->second.end()) {
+      return {};
+    }
+    return per_container->second;
+  }
+}
 
 // Factory function implementation
 namespace form::detail::experimental {
@@ -23,8 +57,8 @@ void StorageWriter::createContainers(
 {
   for (auto const& [plcmnt, type] : containers) {
     // Use file+container as composite key
-    auto key = std::make_pair(plcmnt->fileName(), plcmnt->containerName());
-    auto cont = m_write_containers.find(key);
+    auto contKey = std::make_pair(plcmnt->fileName(), plcmnt->containerName());
+    auto cont = m_write_containers.find(contKey);
     if (cont == m_write_containers.end()) {
       // Ensure the file exists
       auto file = m_files.find(plcmnt->fileName());
@@ -34,12 +68,13 @@ void StorageWriter::createContainers(
             .insert({plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')})
             .first;
         for (auto const& [key, value] :
-             settings.getFileTable(plcmnt->technology(), plcmnt->fileName()))
+             get_file_table(settings, plcmnt->technology(), plcmnt->fileName())) {
           file->second->setAttribute(key, value);
+        }
       }
       // Create and bind container to file
       auto container = createWriteContainer(plcmnt->technology(), plcmnt->containerName());
-      m_write_containers.insert({key, container});
+      m_write_containers.insert({contKey, container});
       // For associative container, create association layer
       auto associative_container =
         dynamic_pointer_cast<Storage_Associative_Write_Container>(container);
@@ -59,13 +94,13 @@ void StorageWriter::createContainers(
       }
 
       for (auto const& [key, value] :
-           settings.getContainerTable(plcmnt->technology(), plcmnt->containerName()))
+           get_container_table(settings, plcmnt->technology(), plcmnt->containerName())) {
         container->setAttribute(key, value);
+      }
       container->setFile(file->second);
       container->setupWrite(*type);
     }
   }
-  return;
 }
 
 void StorageWriter::fillContainer(Placement const& plcmnt,
@@ -73,21 +108,19 @@ void StorageWriter::fillContainer(Placement const& plcmnt,
                                   std::type_info const& /* type*/)
 {
   // Use file+container as composite key
-  auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
-  auto cont = m_write_containers.find(key);
+  auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
+  auto cont = m_write_containers.find(contKey);
   if (cont == m_write_containers.end()) {
     // FIXME: For now throw an exception here, but in future, we may have storage technology do that.
     throw std::runtime_error("StorageWriter::fillContainer Container doesn't exist: " +
                              plcmnt.containerName());
   }
   cont->second->fill(data);
-  return;
 }
 
 void StorageWriter::commitContainers(Placement const& plcmnt)
 {
-  auto key = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
-  auto cont = m_write_containers.find(key);
+  auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
+  auto cont = m_write_containers.find(contKey);
   cont->second->commit();
-  return;
 }

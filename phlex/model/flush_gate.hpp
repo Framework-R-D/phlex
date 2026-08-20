@@ -34,14 +34,16 @@
 #include "phlex/model/data_cell_counts.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/phlex_model_export.hpp"
+#include "phlex/utilities/signed_size.hpp"
 
 #include <atomic>
 #include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_MODEL_EXPORT flush_gate {
     using flush_callback_t = std::function<void(flush_gate const&)>;
@@ -53,11 +55,11 @@ namespace phlex::experimental {
     // means that multiple unfolds produce children from the same parent layer.
     explicit flush_gate(data_cell_index_ptr index, std::size_t expected_flush_count);
 
-    data_cell_index_ptr const index() const { return index_; }
+    data_cell_index_ptr index() const { return index_; }
     std::size_t expected_total_count() const;
     std::size_t committed_total_count() const;
-    std::size_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
-    data_cell_counts_const_ptr committed_counts() const { return committed_counts_; }
+    signed_size_t committed_count_for_layer(data_cell_index::hash_type layer_hash) const;
+    data_cell_counts const& committed_counts() const { return committed_counts_; }
 
     // Merges an expected child count into the accumulated expected counts.  Each call
     // represents one flush message arriving (e.g. one unfold completing for this index).
@@ -66,14 +68,14 @@ namespace phlex::experimental {
     // Records that a non-lowest direct child has rolled up: merges its committed_counts
     // into this gate's and decrements the pending-rollups balance.  The two steps are
     // bundled because every rollup must do both, in the same call.
-    void roll_up_child(data_cell_counts_const_ptr child_committed_counts);
+    void roll_up_child(data_cell_counts const& child_committed_counts);
 
     // Announces that n additional non-lowest direct children are expected to roll up.
     // Lowest-layer children require no such bookkeeping: their counts are fully accounted
     // for by the expected-count message that produced them (from the input_node or an
     // unfold).  The pending counter is signed because rollups can be recorded before the
     // corresponding expected-count message has been processed.
-    void expect_child_rollups(std::ptrdiff_t n);
+    void expect_child_rollups(std::size_t n);
 
     void set_flush_callback(flush_callback_t callback) { flush_callback_ = std::move(callback); }
     void send_flush();
@@ -84,11 +86,7 @@ namespace phlex::experimental {
 
     data_cell_index_ptr const index_;
     std::once_flag commit_once_;
-    // FIXME: We express committed_counts_ as a shared pointer so that we can copy the committed
-    //        counts (this is done for determining the flush values for folds).  Once the fold
-    //        flushes are incorporated as part of the multi-layer join node infrastructure, it
-    //        should be possible for committed_counts_ to no longer be a pointer, but a value.
-    std::shared_ptr<data_cell_counts> committed_counts_;
+    data_cell_counts committed_counts_;
     // Accumulated expected child counts from all unfolds.
     data_cell_counts expected_counts_;
     std::atomic<std::size_t> received_flush_count_{0};
@@ -97,12 +95,12 @@ namespace phlex::experimental {
     std::size_t expected_flush_count_{0};
     // Signed running balance: (expected non-lowest direct-child rollups) - (rollups received).
     // Commit-ready when this reaches zero (and the expected-count message has arrived).
-    std::atomic<std::ptrdiff_t> pending_child_rollups_{0};
+    std::atomic<signed_size_t> pending_child_rollups_{0};
     flush_callback_t flush_callback_;
   };
 
   using flush_gate_ptr = std::shared_ptr<flush_gate>;
 
-} // namespace phlex::experimental
+} // namespace phlex::detail
 
 #endif // PHLEX_MODEL_FLUSH_GATE_HPP

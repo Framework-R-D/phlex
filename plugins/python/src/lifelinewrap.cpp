@@ -7,7 +7,7 @@ using namespace phlex::experimental;
 
 static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 {
-  py_lifeline_t* pyobj = reinterpret_cast<py_lifeline_t*>(pytype->tp_alloc(pytype, 0));
+  auto* pyobj = reinterpret_cast<py_lifeline_t*>(pytype->tp_alloc(pytype, 0));
   if (pyobj) {
     pyobj->m_view = nullptr;
     new (&pyobj->m_source) std::shared_ptr<void>{};
@@ -19,8 +19,9 @@ static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 
 static int ll_traverse(py_lifeline_t* pyobj, visitproc visit, void* args)
 {
-  if (pyobj->m_view)
+  if (pyobj->m_view) {
     visit(pyobj->m_view, args);
+  }
   return 0;
 }
 
@@ -36,7 +37,7 @@ static void ll_dealloc(py_lifeline_t* pyobj)
   // collector does not traverse a partially torn-down object during dealloc.
   PyObject_GC_UnTrack(pyobj);
   Py_CLEAR(pyobj->m_view);
-  typedef std::shared_ptr<void> generic_shared_t;
+  using generic_shared_t = std::shared_ptr<void>;
   pyobj->m_source.~generic_shared_t();
   // Use tp_free to pair with tp_alloc for GC-tracked Python objects.
   Py_TYPE(pyobj)->tp_free(reinterpret_cast<PyObject*>(pyobj));

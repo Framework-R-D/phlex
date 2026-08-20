@@ -1,0 +1,7 @@
+---
+InheritParentConfig: true
+
+# TBB's type-erased flow-graph tbb::flow::tagged_msg<>::cast_to<> command trigger a false positive
+# in this path-sensitive analyzer check; the diagnostic is reported in TBB headers.
+Checks: >
+  -clang-analyzer-core.CallAndMessage

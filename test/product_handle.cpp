@@ -4,12 +4,14 @@
 #include "catch2/catch_test_macros.hpp"
 
 #include <concepts>
+#include <optional>
 #include <string>
 #include <vector>
 
 using namespace phlex;
 using namespace phlex::experimental::literals;
-using spec_t = experimental::product_specification;
+using spec_t = detail::product_specification;
+using opt_id_t = std::optional<experimental::identifier>;
 
 namespace {
   struct Composer {
@@ -19,7 +21,7 @@ namespace {
 
 TEST_CASE("Handle type conversions (compile-time checks)", "[data model]")
 {
-  using experimental::detail::handle_value_type;
+  using detail::internal::handle_value_type;
   static_assert(std::same_as<handle_value_type<int>, int>);
   static_assert(std::same_as<handle_value_type<int const>, int>);
   static_assert(std::same_as<handle_value_type<int const&>, int>);
@@ -36,6 +38,8 @@ TEST_CASE("Can only construct handles with compatible types (compile-time checks
   static_assert(std::constructible_from<handle<int>, int, data_cell_index, spec_t>);
   static_assert(std::constructible_from<handle<int>, int const, data_cell_index, spec_t>);
   static_assert(std::constructible_from<handle<int>, int const&, data_cell_index, spec_t>);
+  static_assert(
+    std::constructible_from<handle<int>, int const&, data_cell_index, spec_t, opt_id_t>);
   static_assert(not std::constructible_from<handle<int>, double, data_cell_index, spec_t>);
 }
 
@@ -121,4 +125,14 @@ TEST_CASE("Retrieve product specification from handle", "[data model]")
   CHECK(h.creator().algorithm == "creator");
   CHECK(h.suffix() == "three");
   CHECK(h.layer() == "job");
+  CHECK(h.stage() == "CURRENT");
+}
+
+TEST_CASE("Retrieve stage from handle", "[data model]")
+{
+  int const number{3};
+  spec_t spec("creator/three");
+
+  handle const h{number, *data_cell_index::job(), spec, "last"};
+  CHECK(h.stage() == "last");
 }

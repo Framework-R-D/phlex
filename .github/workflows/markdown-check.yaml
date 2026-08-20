@@ -80,11 +80,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.ref }}
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
-          repository: ${{ needs.setup.outputs.repo }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
           persist-credentials: false
 
       - name: Add problem matcher
@@ -92,7 +95,7 @@ jobs:
 
       - name: Run markdownlint
         id: lint
-        uses: DavidAnson/markdownlint-cli2-action@ded1f9488f68a970bc66ea5619e13e9b52e601cd # v23.2.0
+        uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
         with:
           globs: |
             ${{ needs.setup.outputs.checkout_path }}/**/*.md

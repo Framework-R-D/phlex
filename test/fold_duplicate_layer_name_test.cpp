@@ -57,12 +57,13 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
   // job -> event layers
   constexpr auto top_level_event_limit = 10u;
 
-  experimental::layer_generator gen;
-  gen.add_layer("run", {"job", index_limit});
-  gen.add_layer("event", {"run", number_limit});
-  gen.add_layer("event", {"job", top_level_event_limit});
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {"job", index_limit});
+  gen->add_layer("event", {"run", number_limit});
+  gen->add_layer("event", {"job", top_level_event_limit});
 
-  experimental::framework_graph g{driver_for_test(gen)};
+  auto g = phlex::detail::framework_graph::without_driver();
+  g.add_driver(gen);
 
   // Register provider
   g.provide("provide_number", provide_number, concurrency::unlimited)
@@ -86,7 +87,7 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
   g.execute();
 
   CHECK(g.execution_count("run_add") == std::size_t{index_limit} * number_limit);
-  CHECK(g.execution_count("job_add") == index_limit * number_limit + top_level_event_limit);
+  CHECK(g.execution_count("job_add") == (index_limit * number_limit) + top_level_event_limit);
   CHECK(g.execution_count("verify_run_sum") == index_limit);
   CHECK(g.execution_count("verify_job_sum") == 1);
 }

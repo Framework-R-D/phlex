@@ -15,14 +15,14 @@
 
 #include "phlex/model/fwd.hpp"
 
-#if defined(__has_include)
+#ifdef __has_include
 #if __has_include(<generator>)
 #include <generator>
 #include <version>
 #endif
 #endif
 
-#if !defined(__cpp_lib_generator)
+#ifndef __cpp_lib_generator
 #include <coroutine>
 #include <exception>
 #include <iterator>
@@ -31,7 +31,7 @@
 #endif
 
 namespace phlex {
-#if defined(__cpp_lib_generator)
+#ifdef __cpp_lib_generator
   using index_generator = std::generator<data_cell_index_ptr>;
 #else
   class index_generator {
@@ -40,7 +40,7 @@ namespace phlex {
     using handle_type = std::coroutine_handle<promise_type>;
 
     struct promise_type {
-      data_cell_index_ptr current_{};
+      data_cell_index_ptr current_;
       std::exception_ptr exception_{};
 
       index_generator get_return_object()
@@ -79,7 +79,7 @@ namespace phlex {
         return *this;
       }
 
-      void operator++(int) { (void)++(*this); }
+      void operator++(int) { ++(*this); }
 
       value_type const& operator*() const noexcept { return coroutine_.promise().current_; }
       value_type const* operator->() const noexcept
@@ -93,7 +93,7 @@ namespace phlex {
       }
 
     private:
-      handle_type coroutine_{};
+      handle_type coroutine_;
     };
 
     index_generator() noexcept = default;
@@ -148,7 +148,7 @@ namespace phlex {
     std::default_sentinel_t end() const noexcept { return {}; }
 
   private:
-    handle_type coroutine_{};
+    handle_type coroutine_;
   };
 #endif
 }

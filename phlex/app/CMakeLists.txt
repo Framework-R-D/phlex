@@ -1,3 +1,5 @@
+include(CetMake)
+
 configure_file(version.cpp.in version.cpp @ONLY)
 
 add_library(version_obj OBJECT version.cpp)

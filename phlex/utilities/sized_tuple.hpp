@@ -5,7 +5,7 @@
 #include <tuple>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   // Infrastructure to allow specification of (e.g.) sized_tuple<T, 4>, which is an alias
   // for std::tuple<T, T, T, T>
   template <typename T, std::size_t>

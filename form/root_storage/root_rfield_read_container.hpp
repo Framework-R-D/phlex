@@ -32,12 +32,16 @@ namespace form::detail::experimental {
     ROOT_RField_Read_ContainerImp& operator=(ROOT_RField_Read_ContainerImp&& other) = delete;
 
     void setFile(std::shared_ptr<IStorage_File> file) override;
+    void prime(std::type_info const& type) override;
     bool read(int id, void const** data, std::type_info const& type) override;
+    int entries() override;
 
   private:
     std::shared_ptr<TFile> m_tfile;
     std::unique_ptr<ROOT::RNTupleReader> m_reader;
     std::unique_ptr<ROOT::RNTupleView<void>> m_view;
+
+    void createView(std::type_info const& type);
   };
 }
 

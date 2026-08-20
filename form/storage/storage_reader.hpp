@@ -24,6 +24,11 @@ namespace form::detail::experimental {
     int getIndex(Token const& token,
                  std::string const& id,
                  form::experimental::config::tech_setting_config const& settings) override;
+    void prime(Token const& token,
+               std::type_info const& type,
+               form::experimental::config::tech_setting_config const& settings) override;
+    std::vector<std::string> listIndices(
+      Token const& token, form::experimental::config::tech_setting_config const& settings) override;
     void readContainer(Token const& token,
                        void const** data,
                        std::type_info const& type,

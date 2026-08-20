@@ -32,15 +32,13 @@ namespace phlex {
     friend class fixed_hierarchy;
     data_cell_cursor(data_cell_index_ptr index,
                      fixed_hierarchy const& h,
-                     experimental::framework_driver& d);
+                     detail::framework_driver& d);
 
     data_cell_index_ptr index_;
-    // Non-owning references to the enclosing hierarchy and driver; data_cell_cursor is a
-    // short-lived view and does not manage their lifetimes.
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    fixed_hierarchy const& hierarchy_;
-    experimental::framework_driver& driver_;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // Non-owning pointers to the enclosing hierarchy and driver; data_cell_cursor is a
+    // short-lived, freely copyable view and does not manage their lifetimes.
+    fixed_hierarchy const* hierarchy_;
+    detail::framework_driver* driver_;
   };
 
   /// @brief Callable object that yields data cells to the framework driver.
@@ -57,11 +55,11 @@ namespace phlex {
 
   private:
     friend class fixed_hierarchy;
-    data_cell_yielder(fixed_hierarchy const& h, experimental::framework_driver& d);
+    data_cell_yielder(fixed_hierarchy const& h, detail::framework_driver& d);
 
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     fixed_hierarchy const& hierarchy_;
-    experimental::framework_driver& driver_;
+    detail::framework_driver& driver_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
@@ -82,10 +80,13 @@ namespace phlex {
 
     // Yields the job-level data-cell index to the provided driver and returns a
     // data_cell_cursor for the job.
-    data_cell_cursor yield_job(experimental::framework_driver& d) const;
+    data_cell_cursor yield_job(detail::framework_driver& d) const;
 
     // Returns a callable data-cell yielder bound to the provided driver.
-    data_cell_yielder yielder(experimental::framework_driver& d) const;
+    data_cell_yielder yielder(detail::framework_driver& d) const;
+
+    // Merges additional layer paths into the hierarchy, ignoring duplicates.
+    void update(std::vector<experimental::layer_path> layer_paths);
 
   private:
     std::vector<experimental::layer_path> layer_paths_;

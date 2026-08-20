@@ -1,8 +1,8 @@
 driver_proxy
 =============
 
-.. doxygenclass:: phlex::experimental::driver_proxy
+.. doxygenclass:: phlex::detail::driver_proxy
    :members:
 
-.. doxygenstruct:: phlex::experimental::driver_bundle
+.. doxygenstruct:: phlex::detail::driver_bundle
    :members:

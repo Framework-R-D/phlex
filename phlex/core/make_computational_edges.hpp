@@ -26,7 +26,7 @@
 #include <tuple>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   PHLEX_CORE_EXPORT
   std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>

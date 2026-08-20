@@ -8,7 +8,7 @@
 #include <atomic>
 #include <vector>
 
-using phlex::experimental::thread_counter;
+using phlex::detail::thread_counter;
 using namespace oneapi::tbb;
 
 namespace {
@@ -17,7 +17,7 @@ namespace {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   std::atomic<unsigned int> processed_messages{};
   struct thread_unsafe {
-    std::atomic<unsigned int> counter{};
+    std::atomic<unsigned int> counter;
 
     auto increment(unsigned int i)
     {
@@ -52,7 +52,7 @@ namespace {
                                  typename base_t::output_ports_type{broadcast_});
     }
 
-  public:
+  private:
     tbb::flow::buffer_node<Input> buffer_;
     tbb::flow::broadcast_node<Input> broadcast_;
     std::vector<T> modules_;

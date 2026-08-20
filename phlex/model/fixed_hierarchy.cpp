@@ -13,7 +13,18 @@
 #include <span>
 #include <stdexcept>
 
+using phlex::experimental::layer_path;
+
 namespace {
+  // Removes duplicate paths from the provided list.
+  // The paths variable is moved from, so the clang-tidy warning is a false positive.
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
+  std::vector<layer_path> unique_paths(std::vector<layer_path> paths)
+  {
+    std::set<layer_path> unique{std::from_range, std::move(paths)};
+    return {std::from_range, std::move(unique)};
+  }
+
   // Builds the set of cumulative layer hashes that define the fixed hierarchy.
   // For example, if the layer paths are ["job", "run", "subrun"] and ["job", "spill"],
   // the hashes included will correspond to:
@@ -27,10 +38,8 @@ namespace {
   //   - "job/spill"
   //
   // Each path must be non-empty and may only contain "job" as the first element.
-  std::set<std::size_t> build_hashes(
-    std::vector<phlex::experimental::layer_path> const& layer_paths)
+  std::set<std::size_t> build_hashes(std::vector<layer_path> const& layer_paths)
   {
-    using namespace phlex::experimental;
     using namespace phlex::experimental::literals;
     std::set<std::size_t> hashes{"job"_idq.hash};
     for (layer_path const& path : layer_paths) {
@@ -40,17 +49,19 @@ namespace {
     return hashes;
   }
 
-  std::vector<phlex::experimental::layer_path> convert_vector_vector_string(
-    std::vector<std::vector<std::string>>&& layer_paths)
+  std::vector<layer_path> convert_vector_vector_string(
+    std::vector<std::vector<std::string>> layer_path_strings)
   {
-    using namespace phlex::experimental;
-    return std::move(layer_paths) | std::views::transform([](std::vector<std::string>& lp) {
-             auto lp_as_ids =
-               lp | std::views::transform([](auto& str) { return identifier(std::move(str)); }) |
-               std::ranges::to<std::vector>();
-             return layer_path(std::move(lp_as_ids));
-           }) |
-           std::ranges::to<std::vector<layer_path>>();
+    std::vector<layer_path> layer_paths;
+    layer_paths.reserve(layer_path_strings.size());
+    for (auto& lp : layer_path_strings) {
+      auto lp_as_ids = lp | std::views::as_rvalue | std::views::transform([](std::string&& str) {
+                         return phlex::experimental::identifier(std::move(str));
+                       }) |
+                       std::ranges::to<std::vector>();
+      layer_paths.emplace_back(std::move(lp_as_ids));
+    }
+    return unique_paths(std::move(layer_paths));
   }
 }
 
@@ -59,8 +70,8 @@ namespace phlex {
   // data_cell_cursor implementation
   data_cell_cursor::data_cell_cursor(data_cell_index_ptr index,
                                      fixed_hierarchy const& h,
-                                     experimental::framework_driver& d) :
-    index_{std::move(index)}, hierarchy_{h}, driver_{d}
+                                     detail::framework_driver& d) :
+    index_{std::move(index)}, hierarchy_{&h}, driver_{&d}
   {
   }
 
@@ -68,17 +79,16 @@ namespace phlex {
                                                  std::size_t number) const
   {
     auto child = index_->make_child(layer_name, number);
-    hierarchy_.validate(child);
-    driver_.yield(child);
-    return data_cell_cursor{child, hierarchy_, driver_};
+    hierarchy_->validate(child);
+    driver_->yield(child);
+    return data_cell_cursor{child, *hierarchy_, *driver_};
   }
 
   experimental::layer_path data_cell_cursor::layer_path() const { return index_->layer_path(); }
 
   // ================================================================================
   // data_cell_yielder implementation
-  data_cell_yielder::data_cell_yielder(fixed_hierarchy const& h,
-                                       experimental::framework_driver& d) :
+  data_cell_yielder::data_cell_yielder(fixed_hierarchy const& h, detail::framework_driver& d) :
     hierarchy_{h}, driver_{d}
   {
   }
@@ -102,6 +112,17 @@ namespace phlex {
   {
   }
 
+  // The layer_paths variable is directly moved from when creating the merged set.
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
+  void fixed_hierarchy::update(std::vector<layer_path> layer_paths)
+  {
+    std::set<layer_path> merged{std::from_range, std::move(layer_paths_)};
+    merged.insert_range(std::move(layer_paths));
+
+    layer_paths_.assign_range(merged);
+    layer_hashes_.assign_range(build_hashes(layer_paths_));
+  }
+
   void fixed_hierarchy::validate(data_cell_index_ptr const& index) const
   {
     if (layer_hashes_.empty()) {
@@ -114,14 +135,14 @@ namespace phlex {
       fmt::format("Layer {} is not part of the fixed hierarchy.", index->layer_path()));
   }
 
-  data_cell_cursor fixed_hierarchy::yield_job(experimental::framework_driver& d) const
+  data_cell_cursor fixed_hierarchy::yield_job(detail::framework_driver& d) const
   {
     auto job = data_cell_index::job();
     d.yield(job);
     return data_cell_cursor{job, *this, d};
   }
 
-  data_cell_yielder fixed_hierarchy::yielder(experimental::framework_driver& d) const
+  data_cell_yielder fixed_hierarchy::yielder(detail::framework_driver& d) const
   {
     return data_cell_yielder{*this, d};
   }

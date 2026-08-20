@@ -12,7 +12,7 @@
 
 using namespace std::string_literals;
 
-namespace phlex::experimental {
+namespace phlex::detail {
   namespace {
     provider_node* find_matching_provider(provider_nodes& providers,
                                           product_selector const& input_product)
@@ -39,7 +39,7 @@ namespace phlex::experimental {
     }
 
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
-    edges_from_explicit_providers(index_router::head_ports_t head_ports,
+    edges_from_explicit_providers(index_router::head_ports_t const& head_ports,
                                   provider_nodes& explicit_providers)
     {
       assert(!head_ports.empty());
@@ -68,7 +68,7 @@ namespace phlex::experimental {
     }
 
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
-    edges_from_implicit_providers(index_router::head_ports_t head_ports,
+    edges_from_implicit_providers(index_router::head_ports_t const& head_ports,
                                   provider_nodes& providers,
                                   source_map const& sources,
                                   tbb::flow::graph& g)
@@ -83,7 +83,7 @@ namespace phlex::experimental {
             });
 
           if (existing_provider_it != provider_input_ports.end()) {
-            auto provider = providers.get(existing_provider_it->first);
+            auto* provider = providers.get(existing_provider_it->first);
             assert(provider != nullptr);
             make_edge(provider->output_port(), *port);
             continue;
@@ -106,14 +106,7 @@ namespace phlex::experimental {
           }
 
           auto& bundle = bundles[0];
-          auto const& spec = bundle.spec;
-          auto node = std::make_unique<provider_node>(spec.creator(),
-                                                      bundle.max_concurrency.value,
-                                                      g,
-                                                      std::move(bundle.provider_function),
-                                                      spec,
-                                                      identifier{bundle.layer},
-                                                      identifier{bundle.stage});
+          auto node = std::make_unique<provider_node>(g, std::move(bundle));
           auto const provider_name = node->name().to_string();
           auto [_, inserted] =
             provider_input_ports.try_emplace(provider_name, input_product, node->input_port());
@@ -124,7 +117,6 @@ namespace phlex::experimental {
                           "data products",
                           input_product));
           }
-
           make_edge(node->output_port(), *port);
           providers.try_emplace(provider_name, std::move(node));
         }
@@ -147,7 +139,7 @@ namespace phlex::experimental {
 
         for (auto const& query : node->input()) {
           auto* receiver_port = collector ? collector : &node->port(query);
-          auto producer = producers.find_producer(query, node->name());
+          auto const* producer = producers.find_producer(query, node->name());
           if (not producer) {
             // Is there a way to detect mis-specified product dependencies?
             result[node_name].push_back({query, receiver_port});
@@ -201,13 +193,11 @@ namespace phlex::experimental {
       return {};
     }
 
-    edges_to_outputs(nodes.providers, producers, nodes.outputs);
-
     auto [explicit_provider_input_ports, unconsumed_head_ports] =
-      edges_from_explicit_providers(std::move(head_ports), nodes.providers);
+      edges_from_explicit_providers(head_ports, nodes.providers);
 
-    auto [implicit_provider_input_ports, unmatched_head_ports] = edges_from_implicit_providers(
-      std::move(unconsumed_head_ports), nodes.providers, nodes.sources, g);
+    auto [implicit_provider_input_ports, unmatched_head_ports] =
+      edges_from_implicit_providers(unconsumed_head_ports, nodes.providers, nodes.sources, g);
 
     if (not unmatched_head_ports.empty()) {
       std::string error_msg{"No provider found for the following required products:\n"};
@@ -219,6 +209,9 @@ namespace phlex::experimental {
       }
       throw std::runtime_error(error_msg);
     }
+
+    // Make edges to outputs after both implicit and explicit providers have been registered.
+    edges_to_outputs(nodes.providers, producers, nodes.outputs);
 
     // Combine implicit and explicit provider input ports.
     auto provider_input_ports = std::move(explicit_provider_input_ports);

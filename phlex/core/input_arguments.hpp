@@ -16,10 +16,10 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <typename T>
   struct retriever {
-    using handle_arg_t = detail::handle_value_type<T>;
+    using handle_arg_t = internal::handle_value_type<T>;
     product_selector query;
     auto retrieve(message const& msg) const
     {

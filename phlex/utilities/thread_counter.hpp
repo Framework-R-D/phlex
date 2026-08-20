@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class thread_counter {
   public:
     using counter_type = std::atomic<unsigned int>;

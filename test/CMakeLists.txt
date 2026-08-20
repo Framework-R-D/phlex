@@ -11,6 +11,7 @@ include(CetTest)
 
 cet_test_env(SPDLOG_LEVEL=debug)
 
+cet_test(accumulator USE_CATCH2_MAIN SOURCE accumulator_test.cpp LIBRARIES phlex::core_internal)
 cet_test(concepts SOURCE concepts.cpp LIBRARIES phlex::core_internal)
 cet_test(
   adjust_config
@@ -24,7 +25,6 @@ cet_test(
 cet_test(config_test USE_CATCH2_MAIN SOURCE configuration.cpp LIBRARIES
          phlex::configuration
 )
-cet_test(string_literal SOURCE string_literal.cpp LIBRARIES phlex::utilities_internal)
 cet_test(type_deduction SOURCE type_deduction.cpp LIBRARIES
          phlex::metaprogramming
 )
@@ -188,9 +188,6 @@ cet_test(flush_gate USE_CATCH2_MAIN SOURCE flush_gate_test.cpp LIBRARIES
 cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle.cpp LIBRARIES
          phlex::core_internal
 )
-cet_test(product_matcher USE_CATCH2_MAIN SOURCE product_matcher.cpp LIBRARIES
-         phlex::model_internal
-)
 cet_test(product_store USE_CATCH2_MAIN SOURCE product_store.cpp LIBRARIES
          phlex::core_internal
 )
@@ -209,6 +206,22 @@ cet_test(
   USE_CATCH2_MAIN
   SOURCE
   repeater_node_test.cpp
+  LIBRARIES
+  phlex::core_internal
+)
+cet_test(
+  transform_node
+  USE_CATCH2_MAIN
+  SOURCE
+  transform_node_test.cpp
+  LIBRARIES
+  phlex::core_internal
+)
+cet_test(
+  multilayer_join
+  USE_CATCH2_MAIN
+  SOURCE
+  multilayer_join_test.cpp
   LIBRARIES
   phlex::core_internal
 )

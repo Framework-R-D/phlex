@@ -1,14 +1,14 @@
 #include "phlex/core/registration_api.hpp"
 #include "phlex/core/detail/maybe_predicates.hpp"
 
-namespace phlex::experimental {
+namespace phlex::detail {
   output_api::output_api(registrar<declared_output_ptr> reg,
                          configuration const* config,
-                         std::string name,
+                         std::string_view name,
                          tbb::flow::graph& g,
-                         detail::output_function_t&& f,
+                         internal::output_function_t&& f,
                          concurrency c) :
-    name_{detail::make_algorithm_name(config, std::move(name))},
+    name_{experimental::internal::make_algorithm_name(config, name)},
     graph_{g},
     ft_{std::move(f)},
     concurrency_{c},
@@ -16,9 +16,9 @@ namespace phlex::experimental {
   {
     // Predicates from the configuration always take precedence
     if (config) {
-      reg_.set_predicates(detail::maybe_predicates(config));
+      reg_.set_predicates(internal::maybe_predicates(config));
     }
-    reg_.set_creator([this](auto predicates, auto) {
+    reg_.set_creator([this](auto predicates, auto const& /* output_product_suffixes */) {
       return std::make_unique<declared_output>(
         std::move(name_), concurrency_.value, std::move(predicates), graph_, std::move(ft_));
     });

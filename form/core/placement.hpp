@@ -3,6 +3,8 @@
 #ifndef FORM_CORE_PLACEMENT_HPP
 #define FORM_CORE_PLACEMENT_HPP
 
+#include "core/technology.hpp"
+
 #include <string>
 
 /* @class Placement
@@ -16,18 +18,18 @@ namespace form::detail::experimental {
     Placement() = default;
 
     /// Constructor with initialization
-    Placement(std::string const& fileName, std::string const& containerName, int technology);
+    Placement(std::string fileName, std::string containerName, technology::Id technology);
 
     /// Access file name
     std::string const& fileName() const;
     /// Access container name
     std::string const& containerName() const;
     /// Access technology type
-    int technology() const;
+    technology::Id technology() const;
 
   private:
     /// Technology identifier
-    int m_technology{};
+    technology::Id m_technology{};
     /// File name
     std::string m_fileName;
     /// Container name

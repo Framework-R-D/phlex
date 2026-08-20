@@ -78,7 +78,9 @@ find_package(cetmodules 4.01.01 REQUIRED)
 
 # ##############################################################################
 # Main project declaration
-project(phlex VERSION 0.2.0 LANGUAGES CXX)
+project(phlex VERSION 0.3.2 LANGUAGES CXX)
+
+include(CetCMakeEnv)
 cet_cmake_env()
 # ##############################################################################
 
@@ -156,11 +158,15 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 
 list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Modules)
 
-find_package(Boost REQUIRED COMPONENTS json program_options)
-find_package(TBB REQUIRED)
-find_package(fmt REQUIRED)
+# Dependencies required by public API
+find_package(Boost REQUIRED COMPONENTS json EXPORT)
+find_package(TBB REQUIRED EXPORT)
+find_package(fmt REQUIRED EXPORT)
+find_package(spdlog REQUIRED EXPORT)
+
+# Dependencies required by internal implementation
+find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(jsonnet REQUIRED)
-find_package(spdlog REQUIRED)
 
 # Apply ThreadSanitizer flags if enabled
 if(ENABLE_TSAN)
@@ -258,4 +264,5 @@ if(BUILD_TESTING)
   endif()
 endif()
 
+include(CetCMakeConfig)
 cet_cmake_config()

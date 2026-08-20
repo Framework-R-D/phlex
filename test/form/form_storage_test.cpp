@@ -2,12 +2,20 @@
 
 #include "test/form/test_utils.hpp"
 
+#include "form/config.hpp"
+#include "persistence/persistence_reader.hpp"
+#include "persistence/persistence_writer.hpp"
+#include "storage/storage_file.hpp"
+#include "storage/storage_reader.hpp"
+#include "storage/storage_write_container.hpp"
+
 #include "TFile.h"
 #include "TTree.h"
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <numbers>
 #include <numeric>
 #include <vector>
 
@@ -15,7 +23,7 @@ using namespace form::detail::experimental;
 
 namespace {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  int technology = form::technology::ROOT_TTREE; //Potentially overridden in main
+  form::technology::Id technology = form::technology::ROOT_TTREE; //Potentially overridden in main
   //Non-const global variable required by limitations of Catch2
 }
 
@@ -31,8 +39,9 @@ int main(int const argc, char** const argv)
   session.cli(cli);
 
   int const returnCode = session.applyCommandLine(argc, argv);
-  if (returnCode != 0)
+  if (returnCode != 0) {
     return returnCode;
+  }
 
   technology = form::test::getTechnology(tech_string);
 
@@ -54,8 +63,8 @@ TEST_CASE("Storage_Container read wrong type", "[form]")
 
 TEST_CASE("Storage_Container sharing an Association", "[form]")
 {
-  std::vector<float> piData(10, 3.1415927);
-  std::string indexData = "[EVENT=00000001;SEG=00000001]";
+  std::vector<float> piData(10, std::numbers::pi_v<float>);
+  std::string indexData = "[event:1, segment:1]";
 
   form::test::write(technology, piData, indexData);
 
@@ -68,10 +77,10 @@ TEST_CASE("Storage_Container sharing an Association", "[form]")
 
 TEST_CASE("Storage_Container multiple containers in Association", "[form]")
 {
-  std::vector<float> piData(10, 3.1415927);
+  std::vector<float> piData(10, std::numbers::pi_v<float>);
   std::vector<int> magicData(17);
-  std::iota(magicData.begin(), magicData.end(), 42);
-  std::string indexData = "[EVENT=00000001;SEG=00000001]";
+  std::ranges::iota(magicData, 42);
+  std::string indexData = "[event:1, segment:1]";
 
   form::test::write(technology, piData, magicData, indexData);
 
@@ -126,15 +135,17 @@ TEST_CASE("FORM Container setup error handling")
     auto parent = createWriteAssociation(technology, "test");
     parent->setFile(file);
     parent->setupWrite(typeInfo);
-    if (form::technology::GetMinor(technology) !=
-        form::technology::ROOT_TTREE_MINOR) //TODO: dedicated TTree testing PR to fix this
+    SECTION("commit() before fill() without setupWrite()")
     {
-      SECTION("commit() before fill()")
-      {
-        writeAssocContainer->setParent(parent);
-        writeContainer->setupWrite(typeInfo);
-        CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
-      }
+      writeAssocContainer->setParent(parent);
+      CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
+    }
+
+    SECTION("commit() before fill() with setupWrite()")
+    {
+      writeAssocContainer->setParent(parent);
+      writeContainer->setupWrite(typeInfo);
+      CHECK_THROWS_AS(writeContainer->commit(), std::runtime_error);
     }
   }
 
@@ -185,7 +196,7 @@ void testFundamental(T const expected)
 // current ROOT release and is therefore not tested here.
 TEST_CASE("Root branch read: fundamental scalar types round-trip", "[form]")
 {
-  testFundamental(static_cast<char>('r'));
+  testFundamental('r');
   testFundamental(static_cast<unsigned char>(200));
   testFundamental(static_cast<short>(-1000));
   testFundamental(static_cast<unsigned short>(60000));
@@ -195,8 +206,8 @@ TEST_CASE("Root branch read: fundamental scalar types round-trip", "[form]")
   testFundamental(9000000000UL);
   testFundamental(-4000000000LL);
   testFundamental(8000000000ULL);
-  testFundamental(3.14f);
-  testFundamental(2.718281828);
+  testFundamental(std::numbers::pi_v<float>);
+  testFundamental(std::numbers::e);
   testFundamental(true);
 }
 
@@ -268,4 +279,306 @@ TEST_CASE("Root TTree write container: fill and commit are not implemented", "[f
   void const* dummy = nullptr;
   CHECK_THROWS_AS(writeAssoc->fill(dummy), std::runtime_error);
   CHECK_THROWS_AS(writeAssoc->commit(), std::runtime_error);
+}
+
+TEST_CASE("Persistence round-trip: structured index normalization and listing", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "persistence_roundtrip_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "norm_creator";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> first = {10, 20, 30};
+  std::vector<int> second = {40, 50, 60};
+
+  std::string const first_id = "[event:1, segment:2]";
+  std::string const second_id = "[event:3, segment:4]";
+
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+
+    writer->registerWrite(creator, "prod", &first, typeid(std::vector<int>));
+    writer->commitOutput(creator, first_id);
+
+    writer->registerWrite(creator, "prod", &second, typeid(std::vector<int>));
+    writer->commitOutput(creator, second_id);
+  }
+
+  auto reader = createPersistenceReader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configureTechSettings(tech_setting_config{});
+
+  reader->prime(creator, "prod", typeid(std::vector<int>));
+
+  auto indices = reader->listIndices(creator, "prod");
+  REQUIRE_FALSE(indices.empty());
+
+  void const* raw = nullptr;
+  // Backends may canonicalize persisted index strings differently.
+  // Use an index emitted by listIndices() to verify readback.
+  reader->read(creator, "prod", indices.front(), &raw, typeid(std::vector<int>));
+  auto const* read_first = static_cast<std::vector<int> const*>(raw);
+  REQUIRE(read_first != nullptr);
+  CHECK((*read_first == first || *read_first == second));
+}
+
+TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "persistence_zero_index_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "zero_creator";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> payload = {7, 8, 9};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "");
+  }
+
+  auto reader = createPersistenceReader();
+  REQUIRE(reader != nullptr);
+  reader->configure(cfg);
+  reader->configureTechSettings(tech_setting_config{});
+
+  void const* raw = nullptr;
+  reader->read(creator, "prod", "[event:0, segment:0]", &raw, typeid(std::vector<int>));
+
+  auto const* read_payload = static_cast<std::vector<int> const*>(raw);
+  REQUIRE(read_payload != nullptr);
+  CHECK(*read_payload == payload);
+}
+
+TEST_CASE("StorageReader getIndex: malformed ids and compatibility fallbacks", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "storage_reader_index_branches_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "storage_reader_creator";
+  std::string const index_container = creator + "/index";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> payload = {1, 2, 3};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[event:1, segment:2]");
+  }
+
+  StorageReader reader;
+  Token const index_token{file_name, index_container, technology};
+  tech_setting_config const settings{};
+
+  CHECK(reader.getIndex(index_token, "[]", settings) == 0);
+  CHECK(reader.getIndex(index_token, "plain-text-id", settings) == 0);
+
+  // Malformed IDs must be rejected by the storage-layer index parser
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT,SEG=1]", settings), std::runtime_error);
+  CHECK_THROWS_AS(
+    reader.getIndex(index_token, "[EVENT=99999999999999999999999999999999]", settings),
+    std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[=1]", settings), std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[EVENT]", settings), std::runtime_error);
+  CHECK_THROWS_AS(reader.getIndex(index_token, "[    ]", settings), std::runtime_error);
+}
+
+TEST_CASE("StorageReader getIndex: empty container and tech-table branches", "[form]")
+{
+  using namespace form::experimental::config;
+
+  StorageReader reader;
+  Token const token{"storage_reader_hdf5_get_index.root", "creator/index", form::technology::HDF5};
+
+  tech_setting_config empty_settings;
+  CHECK_THROWS_AS(reader.getIndex(token, "[event:1, segment:1]", empty_settings),
+                  std::runtime_error);
+
+  tech_setting_config tech_only_settings;
+  tech_only_settings.file_settings[form::technology::HDF5]["different_file"] = {};
+  tech_only_settings.container_settings[form::technology::HDF5]["different_container"] = {};
+  CHECK_THROWS_AS(reader.getIndex(token, "[event:1, segment:1]", tech_only_settings),
+                  std::runtime_error);
+
+  std::string const file_name =
+    "storage_reader_getindex_attr_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "storage_reader_getindex_attr_creator";
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+  std::vector<int> payload = {5, 6, 7};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[event:5, segment:6]");
+  }
+
+  tech_setting_config attr_settings;
+  attr_settings.file_settings[technology][file_name] = {{"compression", "1"}};
+  CHECK(reader.getIndex(
+          Token{file_name, creator + "/index", technology}, "missing-id", attr_settings) == 0);
+
+  tech_setting_config container_attr_settings;
+  container_attr_settings.container_settings[technology][creator + "/index"] = {{"split", "0"}};
+  CHECK_NOTHROW(reader.getIndex(
+    Token{file_name, creator + "/index", technology}, "missing-id", container_attr_settings));
+}
+
+TEST_CASE("StorageReader prime/listIndices/readContainer: attribute and error branches", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "storage_reader_misc_attr_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "storage_reader_misc_creator";
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+  std::vector<int> payload = {9, 8, 7};
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+    writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[event:9, segment:8]");
+  }
+
+  StorageReader reader;
+  Token const index_token{file_name, creator + "/index", technology};
+
+  tech_setting_config file_attr_settings;
+  file_attr_settings.file_settings[technology][file_name] = {{"compression", "1"}};
+
+  CHECK_NOTHROW(reader.prime(index_token, typeid(std::string), file_attr_settings));
+
+  void const* raw = nullptr;
+  CHECK_NOTHROW(reader.readContainer(Token{file_name, creator + "/prod", technology, 0},
+                                     &raw,
+                                     typeid(std::vector<int>),
+                                     file_attr_settings));
+
+  tech_setting_config empty_settings;
+  CHECK_THROWS_AS(reader.listIndices(
+                    Token{"storage_reader_hdf5_misc.root", "creator/index", form::technology::HDF5},
+                    empty_settings),
+                  std::runtime_error);
+
+  tech_setting_config container_attr_settings;
+  container_attr_settings.container_settings[technology][creator + "/index"] = {{"split", "0"}};
+
+  CHECK_NOTHROW(reader.listIndices(index_token, container_attr_settings));
+  CHECK_NOTHROW(reader.readContainer(Token{file_name, creator + "/prod", technology, 0},
+                                     &raw,
+                                     typeid(std::vector<int>),
+                                     container_attr_settings));
+}
+
+TEST_CASE("Root branch prime: error paths", "[form]")
+{
+  SECTION("no file attached throws")
+  {
+    auto container = createReadContainer(technology, "SomeTree/branch");
+    CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
+  }
+
+  SECTION("container name not found throws")
+  {
+    std::vector<int> data = {1};
+    form::test::write(technology, data);
+    auto file = createFile(technology, form::test::testFileName, 'i');
+    auto container = createReadContainer(technology, "NonExistentTreeForPrime/branch");
+    container->setFile(file);
+    CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
+  }
+
+  SECTION("branch not found throws")
+  {
+    std::vector<int> data = {1};
+    form::test::write(technology, data);
+    auto file = createFile(technology, form::test::testFileName, 'i');
+    auto container = createReadContainer(
+      technology, std::string(form::test::testTreeName) + "/NonExistentBranchForPrime");
+    container->setFile(file);
+    CHECK_THROWS_AS(container->prime(typeid(std::vector<int>)), std::runtime_error);
+  }
+
+  SECTION("unsupported type throws")
+  {
+    struct LocalPrimeType {};
+    std::vector<int> data = {1};
+    form::test::write(technology, data);
+    auto file = createFile(technology, form::test::testFileName, 'i');
+    auto container =
+      createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
+    container->setFile(file);
+    CHECK_THROWS_AS(container->prime(typeid(LocalPrimeType)), std::runtime_error);
+  }
+}
+
+TEST_CASE("Root branch entries: success and error paths", "[form]")
+{
+  SECTION("no file attached throws")
+  {
+    auto container = createReadContainer(technology, "SomeTree/branch");
+    CHECK_THROWS_AS(container->entries(), std::runtime_error);
+  }
+
+  SECTION("tree not found throws")
+  {
+    std::vector<int> data = {1};
+    form::test::write(technology, data);
+    auto file = createFile(technology, form::test::testFileName, 'i');
+    auto container = createReadContainer(technology, "NonExistentTreeForEntries/branch");
+    container->setFile(file);
+    CHECK_THROWS_AS(container->entries(), std::runtime_error);
+  }
+
+  SECTION("branch not found throws")
+  {
+    std::vector<int> data = {1};
+    form::test::write(technology, data);
+    auto file = createFile(technology, form::test::testFileName, 'i');
+    auto container = createReadContainer(
+      technology, std::string(form::test::testTreeName) + "/NonExistentBranchForEntries");
+    container->setFile(file);
+    CHECK_THROWS_AS(container->entries(), std::runtime_error);
+  }
+
+  SECTION("valid container returns entry count")
+  {
+    std::vector<int> data = {10, 20, 30};
+    form::test::write(technology, data);
+    auto file = createFile(technology, form::test::testFileName, 'i');
+    auto container =
+      createReadContainer(technology, form::test::makeTestBranchName<std::vector<int>>());
+    container->setFile(file);
+    CHECK(container->entries() == 1);
+  }
 }

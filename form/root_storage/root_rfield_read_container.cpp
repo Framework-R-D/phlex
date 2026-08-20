@@ -10,6 +10,15 @@
 #include "TFile.h"
 
 #include <exception>
+#include <mutex>
+
+namespace {
+  std::mutex& root_rfield_read_mutex()
+  {
+    static std::mutex m;
+    return m;
+  }
+}
 
 namespace form::detail::experimental {
   ROOT_RField_Read_ContainerImp::ROOT_RField_Read_ContainerImp(std::string const& name) :
@@ -40,41 +49,39 @@ namespace form::detail::experimental {
     return;
   }
 
-  bool ROOT_RField_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
+  void ROOT_RField_Read_ContainerImp::prime(std::type_info const& type)
   {
-    //Connect to file at the last possible moment at the cost of a little run-time branching
-    if (!m_view) {
-      if (!m_reader) { //First time this RNTuple is read this job
-        if (!m_tfile) {
-          throw std::runtime_error("ROOT_RField_Read_ContainerImp::read No file loaded to read "
-                                   "from on first read() call!");
-        }
+    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
 
-        m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
-      }
-
-      try {
-        m_view =
-          std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, type));
-      } catch (const ROOT::RException& e) {
-        //RNTupleView<void> will fail to create a field for fields written in streamer mode or for which type does not match the field's type on disk.  Passing an empty string for type forces it to create the same type of field as the object on disk.  Do this to handle streamer fields, then perform our own type check.
-        m_view =
-          std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, ""));
-        //TClass takes the "std::" off of "std::vector<>" when RNTuple's on-disk format doesn't.  Convert RNTuple's type name to match TClass for manual type check because our dictionary of choice will likely be the same as TClass.
-        if (!TDictionary::GetDictionary(type) ||
-            !TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str()) ||
-            (strcmp(TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str())->GetName(),
-                    TDictionary::GetDictionary(type)->GetName()) != 0)) {
-          throw std::runtime_error(
-            "ROOT_RField_Read_ContainerImp::read type " + DemangleName(type) +
-            " requested for a field named " + col_name() +
-            " does not match the type in the file: " + m_view->GetField().GetTypeName());
-        }
-      }
+    if (!m_tfile) {
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime No file loaded");
     }
 
-    if (id >= (int)m_reader->GetNEntries())
+    if (!m_reader) {
+      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+    }
+
+    if (!m_view) {
+      createView(type);
+    }
+
+    if (!TDictionary::GetDictionary(type)) {
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime unsupported type");
+    }
+  }
+
+  bool ROOT_RField_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
+  {
+    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+
+    //Connect to file at the last possible moment at the cost of a little run-time branching
+    if (!m_view) {
+      createView(type);
+    }
+
+    if (id >= static_cast<int>(m_reader->GetNEntries())) {
       return false;
+    }
 
     //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
     auto buffer = m_view->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
@@ -83,7 +90,7 @@ namespace form::detail::experimental {
     m_view->BindRawPtr(buffer.get());
     try {
       (*m_view)(id);
-    } catch (const ROOT::RException& e) {
+    } catch (ROOT::RException const& e) {
       throw std::runtime_error("ROOT_RField_Read_ContainerImp::read got a ROOT exception: " +
                                std::string(e.what()));
     }
@@ -92,5 +99,56 @@ namespace form::detail::experimental {
     //Any framework using FORM must free this memory.  FORM holds no reference to it.
 
     return true;
+  }
+
+  int ROOT_RField_Read_ContainerImp::entries()
+  {
+    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+
+    if (!m_reader) {
+      if (!m_tfile) {
+        throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries No file loaded");
+      }
+      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+    }
+
+    if (!m_view &&
+        (m_reader->GetDescriptor().FindFieldId(col_name()) == ROOT::kInvalidDescriptorId)) {
+      throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries field " + col_name() +
+                               " does not exist");
+    }
+
+    return static_cast<int>(m_reader->GetNEntries());
+  }
+
+  void ROOT_RField_Read_ContainerImp::createView(std::type_info const& type)
+  {
+    if (!m_reader) { //First time this RNTuple is read this job
+      if (!m_tfile) {
+        throw std::runtime_error("ROOT_RField_Read_ContainerImp::createView No file loaded to read "
+                                 "from on first read() call!");
+      }
+
+      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+    }
+
+    try {
+      m_view =
+        std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, type));
+    } catch (ROOT::RException const& e) {
+      //RNTupleView<void> will fail to create a field for fields written in streamer mode or for which type does not match the field's type on disk.  Passing an empty string for type forces it to create the same type of field as the object on disk.  Do this to handle streamer fields, then perform our own type check.
+      m_view =
+        std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, ""));
+      //TClass takes the "std::" off of "std::vector<>" when RNTuple's on-disk format doesn't.  Convert RNTuple's type name to match TClass for manual type check because our dictionary of choice will likely be the same as TClass.
+      if (!TDictionary::GetDictionary(type) ||
+          !TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str()) ||
+          (strcmp(TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str())->GetName(),
+                  TDictionary::GetDictionary(type)->GetName()) != 0)) {
+        throw std::runtime_error(
+          "ROOT_RField_Read_ContainerImp::createView type " + DemangleName(type) +
+          " requested for a field named " + col_name() +
+          " does not match the type in the file: " + m_view->GetField().GetTypeName());
+      }
+    }
   }
 }

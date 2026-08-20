@@ -16,12 +16,13 @@
 #include <concepts>
 #include <functional>
 #include <memory>
+#include <string_view>
 
 namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   // ====================================================================================
   // Registration API
@@ -29,22 +30,22 @@ namespace phlex::experimental {
   template <template <typename...> typename HOF, typename AlgorithmBits>
   class registration_api {
     using hof_type = HOF<AlgorithmBits>;
-    using node_ptr = typename hof_type::node_ptr_type;
-    using input_parameter_types = typename AlgorithmBits::input_parameter_types;
+    using node_ptr = hof_type::node_ptr_type;
+    using input_parameter_types = AlgorithmBits::input_parameter_types;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = hof_type::number_output_products;
 
   public:
     registration_api(configuration const* config,
-                     std::string name,
+                     std::string_view name,
                      AlgorithmBits alg,
                      concurrency c,
                      tbb::flow::graph& g,
                      node_catalog& nodes,
                      std::vector<std::string>& errors) :
       config_{config},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -58,7 +59,7 @@ namespace phlex::experimental {
 
       if constexpr (num_outputs == 0ull) {
         registrar_.set_creator([this, inputs = std::move(input_args)](
-                                 auto predicates, auto /* output_product_suffixes */) {
+                                 auto predicates, auto const& /* output_product_suffixes */) {
           return std::make_unique<hof_type>(std::move(name_),
                                             concurrency_.value,
                                             std::move(predicates),
@@ -91,7 +92,7 @@ namespace phlex::experimental {
 
   private:
     configuration const* config_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -101,15 +102,14 @@ namespace phlex::experimental {
 
   template <template <typename...> typename HOF, typename AlgorithmBits>
   auto make_registration(configuration const* config,
-                         std::string name,
+                         std::string_view name,
                          AlgorithmBits alg,
                          concurrency c,
                          tbb::flow::graph& g,
                          node_catalog& nodes,
                          std::vector<std::string>& errors)
   {
-    return registration_api<HOF, AlgorithmBits>{
-      config, std::move(name), std::move(alg), c, g, nodes, errors};
+    return registration_api<HOF, AlgorithmBits>{config, name, std::move(alg), c, g, nodes, errors};
   }
 
   // ====================================================================================
@@ -119,14 +119,14 @@ namespace phlex::experimental {
   class provider_api {
   public:
     provider_api(configuration const* config,
-                 std::string name,
+                 std::string_view name,
                  AlgorithmBits alg,
                  concurrency c,
                  tbb::flow::graph& g,
                  node_catalog& nodes,
                  std::vector<std::string>& errors) :
       config_{config},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -134,38 +134,38 @@ namespace phlex::experimental {
     {
     }
 
-    auto output_product(algorithm_name creator,
-                        identifier suffix,
-                        identifier output_layer,
-                        identifier stage = "CURRENT"_id)
+    auto output_product(phlex::experimental::algorithm_name creator,
+                        phlex::experimental::identifier suffix,
+                        phlex::experimental::identifier output_layer,
+                        phlex::experimental::identifier stage = "CURRENT"_id)
     {
-      using return_type = return_type<typename AlgorithmBits::algorithm_type>;
+      using return_type_t = return_type<typename AlgorithmBits::algorithm_type>;
       product_specification output_spec(
-        std::move(creator), std::move(suffix), make_type_id<return_type>());
+        std::move(creator), std::move(suffix), make_type_id<return_type_t>());
 
       auto type_erased_alg = [alg = alg_.release_algorithm()](data_cell_index const& index) {
         return product_for(std::invoke(alg, index));
       };
 
-      registrar_.set_creator(
-        [this,
-         alg = std::move(type_erased_alg),
-         output_spec = std::move(output_spec),
-         output_layer = std::move(output_layer),
-         stage = std::move(stage)](auto /* predicates */, auto /* output_product_suffixes */) {
-          return std::make_unique<provider_node>(std::move(name_),
-                                                 concurrency_.value,
-                                                 graph_,
-                                                 std::move(alg),
-                                                 std::move(output_spec),
-                                                 std::move(output_layer),
-                                                 std::move(stage));
-        });
+      registrar_.set_creator([this,
+                              alg = std::move(type_erased_alg),
+                              output_spec = std::move(output_spec),
+                              output_layer = std::move(output_layer),
+                              stage = std::move(stage)](auto const& /* predicates */,
+                                                        auto const& /* output_product_suffixes */) {
+        return std::make_unique<provider_node>(std::move(name_),
+                                               concurrency_.value,
+                                               graph_,
+                                               std::move(alg),
+                                               std::move(output_spec),
+                                               std::move(output_layer),
+                                               std::move(stage));
+      });
     }
 
   private:
     configuration const* config_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -186,7 +186,7 @@ namespace phlex::experimental {
 
   public:
     fold_api(configuration const* config,
-             std::string name,
+             std::string_view name,
              AlgorithmBits alg,
              concurrency c,
              tbb::flow::graph& g,
@@ -195,7 +195,7 @@ namespace phlex::experimental {
              std::string partition,
              InitArgs&&... init_args) :
       config_{config},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -235,7 +235,7 @@ namespace phlex::experimental {
 
   private:
     configuration const* config_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -263,7 +263,7 @@ namespace phlex::experimental {
 
   public:
     unfold_api(configuration const* config,
-               std::string name,
+               std::string_view name,
                Predicate predicate,
                Unfold unfold,
                concurrency c,
@@ -273,7 +273,7 @@ namespace phlex::experimental {
                std::string destination_data_layer) :
       config_{config},
       registrar_{nodes.registrar_for<declared_unfold_ptr>(errors)},
-      name_{detail::make_algorithm_name(config, std::move(name))},
+      name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       concurrency_{c.value},
       graph_{g},
       predicate_{std::move(predicate)},
@@ -313,7 +313,7 @@ namespace phlex::experimental {
   private:
     configuration const* config_;
     registrar<declared_unfold_ptr> registrar_;
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     std::size_t concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -329,9 +329,9 @@ namespace phlex::experimental {
   public:
     output_api(registrar<declared_output_ptr> reg,
                configuration const* config,
-               std::string name,
+               std::string_view name,
                tbb::flow::graph& g,
-               detail::output_function_t&& f,
+               internal::output_function_t&& f,
                concurrency c);
 
     void experimental_when(std::vector<std::string> predicates);
@@ -342,10 +342,10 @@ namespace phlex::experimental {
     }
 
   private:
-    algorithm_name name_;
+    phlex::experimental::algorithm_name name_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    detail::output_function_t ft_;
+    internal::output_function_t ft_;
     concurrency concurrency_;
     registrar<declared_output_ptr> reg_;
   };

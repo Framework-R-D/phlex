@@ -7,7 +7,7 @@
 
 #include <optional>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   RUN_PHLEX_EXPORT void run(boost::json::object const& configurations, int max_parallelism);
 }
 

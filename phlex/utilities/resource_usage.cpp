@@ -26,13 +26,13 @@ namespace {
     auto const [secs, microsecs] = used.ru_utime;
     // ru_maxrss is a POSIX field inside a GCC __extension__ union in <sys/resource.h>;
     // no user-controlled alternative exists.
-    return {.elapsed_time = double(secs) + double(microsecs) / 1e6,
+    return {.elapsed_time = static_cast<double>(secs) + (static_cast<double>(microsecs) / 1e6),
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-            .max_rss = double(used.ru_maxrss) / mem_denominator};
+            .max_rss = static_cast<double>(used.ru_maxrss) / mem_denominator};
   }
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   resource_usage::resource_usage() noexcept :
     begin_wall_{steady_clock::now()}, begin_cpu_{get_rusage().elapsed_time}
   {

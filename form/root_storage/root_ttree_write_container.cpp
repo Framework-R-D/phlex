@@ -18,13 +18,12 @@ ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& 
 void ROOT_TTree_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
 {
   this->Storage_Write_Association::setFile(file);
-  ROOT_TFileImp* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
+  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
   if (root_tfile_imp == nullptr) {
     throw std::runtime_error(
       "ROOT_TTree_Write_ContainerImp::setFile can't attach to non-ROOT file");
   }
-  m_tfile = dynamic_cast<ROOT_TFileImp*>(file.get())->getTFile();
-  return;
+  m_tfile = root_tfile_imp->getTFile();
 }
 
 void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
@@ -36,13 +35,14 @@ void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
     m_tree.reset(m_tfile->Get<TTree>(name().c_str()));
   }
   if (m_tree == nullptr) {
+    // Mark the raw allocation as an owning pointer before transferring it.
+    // NOLINTNEXTLINE(readability-redundant-casting)
     m_tree.reset(gsl::owner<TTree*>{new TTree(name().c_str(), name().c_str())});
     m_tree->SetDirectory(m_tfile.get());
   }
   if (m_tree == nullptr) {
     throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no tree created");
   }
-  return;
 }
 
 void ROOT_TTree_Write_ContainerImp::fill(void const* /* data*/)

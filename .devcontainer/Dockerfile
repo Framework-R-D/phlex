@@ -1,4 +1,4 @@
-FROM ghcr.io/framework-r-d/phlex-dev:latest
+FROM ghcr.io/framework-r-d/phlex-dev:2026-07-23
 
 # Validate Python site-packages symlink.
 # Invoke bash explicitly: the script uses bash features (pipefail, arrays,
@@ -88,15 +88,26 @@ if [ "$(dpkg-divert --truename /usr/bin/man)" = "/usr/bin/man.REAL" ]; then
 fi
 INSTALL_MAN_TOOLS
 
-# Install podman client and socat inside the container to support nested
+# Install dev utils
 # container communication and provide a 'docker' command alias.
-RUN bash <<'INSTALL_PODMAN_CLIENT'
+RUN bash <<'INSTALL_DEV_UTILS'
 set -euo pipefail
 apt-get update
-apt-get install -y --no-install-recommends ssh podman socat
+apt purge nodejs npm -y && apt autoremove -y || true
+apt-get install -y --no-install-recommends chrpath curl jq patchelf nano podman ssh socat tree vim yq
+curl -fsSL https://deb.nodesource.com/setup_26.x | bash -
+apt-get install -y nodejs
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-INSTALL_PODMAN_CLIENT
+INSTALL_DEV_UTILS
+
+RUN bash <<'INSTALL_NPM_PACKAGES'
+set -euo pipefail
+npm update -g npm@^11.10.0
+npm config set allow-scripts=@kilocode/cli --location=user
+npm config set min-release-age=3 --location=user
+npm install -g @kilocode/cli
+INSTALL_NPM_PACKAGES
 
 # Wire up the root user's .bashrc to source the Spack environment via
 # /entrypoint.sh on every interactive shell.
@@ -105,3 +116,10 @@ RUN printf '. /entrypoint.sh\n' >> /root/.bashrc
 # Ensure /run/user/0 exists and is owned by root with 700 permissions to
 # allow GPG agent to function correctly when running as root.
 RUN mkdir -p /run/user/0 && chmod 700 /run/user/0 && chown root:root /run/user/0
+
+COPY gitignore-global /root/.gitignore-global
+RUN git config --global core.excludesfile '/root/.gitignore-global'
+
+# Install Kilo environment script that sets KILO_CONFIG_CONTENT globally
+COPY kilo-env.sh /etc/profile.d/kilo-env.sh
+RUN chmod +x /etc/profile.d/kilo-env.sh

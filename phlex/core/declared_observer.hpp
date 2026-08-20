@@ -10,7 +10,6 @@
 #include "phlex/core/multilayer_join_node.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
-#include "phlex/core/store_counters.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
@@ -30,11 +29,11 @@
 #include <type_traits>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT declared_observer : public products_consumer {
   public:
-    declared_observer(algorithm_name name,
+    declared_observer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
                       product_selectors input_products);
     ~declared_observer() override;
@@ -47,15 +46,15 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits>
   class observer_node : public declared_observer {
-    using input_args = typename AlgorithmBits::input_parameter_types;
-    using function_t = typename AlgorithmBits::bound_type;
+    using input_args = AlgorithmBits::input_parameter_types;
+    using function_t = AlgorithmBits::bound_type;
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
 
   public:
     static constexpr auto number_output_products = 0;
     using node_ptr_type = declared_observer_ptr;
 
-    observer_node(algorithm_name algo_name,
+    observer_node(phlex::experimental::algorithm_name algo_name,
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,

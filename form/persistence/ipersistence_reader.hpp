@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <typeinfo>
+#include <vector>
 
 namespace form::experimental::config {
   class ItemConfig;
@@ -17,7 +18,7 @@ namespace form::detail::experimental {
 
   class IPersistenceReader {
   public:
-    IPersistenceReader() {};
+    IPersistenceReader() = default;
     virtual ~IPersistenceReader() = default;
 
     virtual void configureTechSettings(
@@ -30,6 +31,13 @@ namespace form::detail::experimental {
                       std::string const& id,
                       void const** data,
                       std::type_info const& type) = 0;
+
+    virtual void prime(std::string const& creator,
+                       std::string const& label,
+                       std::type_info const& type) = 0;
+
+    virtual std::vector<std::string> listIndices(std::string const& creator,
+                                                 std::string const& label) = 0;
   };
 
   std::unique_ptr<IPersistenceReader> createPersistenceReader();

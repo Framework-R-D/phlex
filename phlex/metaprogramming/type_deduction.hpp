@@ -12,7 +12,7 @@
 #include <tuple>
 #include <type_traits>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   namespace ct = boost::callable_traits;
   namespace mp11 = boost::mp11;
   template <typename T>
@@ -29,7 +29,7 @@ namespace phlex::experimental {
   using function_parameter_type = std::tuple_element_t<I, function_parameter_types<T>>;
 
   template <typename T>
-  using constructor_parameter_types = typename refl::as_tuple<T>;
+  using constructor_parameter_types = as_tuple<T>;
 
   template <typename T>
   constexpr std::size_t number_parameters = mp11::mp_size<function_parameter_types<T>>::value;

@@ -77,17 +77,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: ${{ needs.setup.outputs.checkout_path }}
           ref: ${{ needs.setup.outputs.ref }}
           repository: ${{ needs.setup.outputs.repo }}
           token: ${{ secrets.WORKFLOW_PAT }}
+          persist-credentials: false
 
       - name: Try to download existing fixes from check workflow
         id: download_fixes_check
         if: needs.setup.outputs.tidy_checks == ''
-        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
+        uses: dawidd6/action-download-artifact@57aa996fc1713cc1579039614f4645a7f4841fd4 # v23
         with:
           workflow: clang-tidy-check.yaml
           name: clang-tidy-check
@@ -98,7 +99,7 @@ jobs:
       - name: Try to download existing fixes from previous fix workflow
         id: download_fixes_fix
         if: steps.download_fixes_check.outcome != 'success' && needs.setup.outputs.tidy_checks == ''
-        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
+        uses: dawidd6/action-download-artifact@57aa996fc1713cc1579039614f4645a7f4841fd4 # v23
         with:
           workflow: clang-tidy-fix.yaml
           name: clang-tidy-fix

@@ -8,10 +8,10 @@
 #include <cassert>
 #include <ranges>
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 using namespace oneapi::tbb;
 
-namespace phlex::experimental {
+namespace phlex::detail {
   filter::filter(flow::graph& g, products_consumer& consumer) :
     filter_base{g},
     decisions_{static_cast<unsigned int>(consumer.when().size())},

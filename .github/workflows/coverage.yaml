@@ -106,11 +106,14 @@ jobs:
         # yamllint enable
 
       - name: Check out source code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.ref }}
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
           path: ${{ needs.setup.outputs.checkout_path }}
-          repository: ${{ needs.setup.outputs.repo }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
           persist-credentials: false
 
       - name: Setup build environment
@@ -384,11 +387,15 @@ jobs:
 
     steps:
       - name: Check out source code for Codecov mapping
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.ref }}
-          repository: ${{ needs.setup.outputs.repo }}
+          ref:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || needs.setup.outputs.ref }}
+          repository:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
+            needs.setup.outputs.repo }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Download coverage bundle
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -467,6 +474,33 @@ jobs:
       issues: write
 
     steps:
+      - name: Cleanup old coverage comments
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_NUMBER: ${{ github.event.issue.number || '' }}
+          MARKER: "<!-- coverage-comment -->"
+        with:
+          script: |
+            const marker = process.env.MARKER;
+            const pr = parseInt(process.env.PR_NUMBER, 10);
+            if (isNaN(pr)) { console.log('No PR number, skipping cleanup'); process.exit(0); }
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr
+            });
+            for (const c of comments) {
+              if (c.body && c.body.includes(marker)) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: c.id
+                });
+                console.log(`Deleted old comment ${c.id}`);
+              }
+            }
+
       - name: Comment on coverage completion
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
@@ -480,6 +514,8 @@ jobs:
               || format('ℹ️ Coverage completed with status: {0}.', needs.coverage.result) }}
 
             See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.
+
+            <!-- coverage-comment -->
 
       - name: Update PR comment reactions
         if: always()

@@ -35,12 +35,18 @@ namespace form::detail::experimental {
               void const** data,
               std::type_info const& type) override;
 
+    void prime(std::string const& creator,
+               std::string const& label,
+               std::type_info const& type) override;
+
+    std::vector<std::string> listIndices(std::string const& creator,
+                                         std::string const& label) override;
+
   private:
     std::unique_ptr<Token> getToken(std::string const& creator,
                                     std::string const& label,
                                     std::string const& id);
 
-  private:
     std::unique_ptr<IStorageReader> m_store_reader;
     form::experimental::config::ItemConfig m_config_items;
     form::experimental::config::tech_setting_config m_tech_settings;

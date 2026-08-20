@@ -12,13 +12,26 @@ repos:
       - id: check-vcs-permalinks
       - id: check-executables-have-shebangs
       - id: mixed-line-ending
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.0
+    hooks:
+      - id: mypy
+        language_version: python3.12
+        types_or: [python, pyi]
+        args: [--enable-incomplete-feature=NewGenericSyntax]
+        additional_dependencies:
+          - types-PyYAML
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.16
+    rev: v0.16.0
     hooks:
       - id: ruff-format
         types_or: [python, pyi]
+        language_version: python3.12
+      - id: ruff
+        types_or: [python, pyi]
+        language_version: python3.12
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.5
+    rev: v22.1.8
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
@@ -40,7 +53,7 @@ repos:
         types_or: [python]
         pass_filenames: false
   - repo: https://github.com/BlankSpruce/gersemi-pre-commit
-    rev: 0.27.7
+    rev: 0.28.0
     hooks:
       - id: gersemi
   - repo: https://github.com/google/go-jsonnet
@@ -52,12 +65,16 @@ repos:
         # We therefore exclude them from linting, but still format them.
         exclude: ^test/max-parallelism
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.8.3
+    rev: v3.9.6
     hooks:
       - id: prettier
         types_or: [yaml]
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.22.1
+    rev: v0.23.2
     hooks:
       - id: markdownlint-cli2
         args: [--fix]
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint

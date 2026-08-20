@@ -69,12 +69,15 @@ bool phlex::experimental::msg_from_py_error(std::string& msg, bool check_error)
   PyGILRAII g;
 
   if (check_error) {
-    if (!PyErr_Occurred())
+    if (!PyErr_Occurred()) {
       return false;
+    }
   }
 
 #if PY_VERSION_HEX < 0x30c000000
-  PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
+  PyObject* type = nullptr;
+  PyObject* value = nullptr;
+  PyObject* traceback = nullptr;
   PyErr_Fetch(&type, &value, &traceback);
   if (value) {
     bool tb_ok = format_traceback(msg, type, value, traceback);

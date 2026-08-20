@@ -5,8 +5,9 @@ namespace {
   auto const_lookup(const MAP_LIKE& map, typename MAP_LIKE::key_type const& key)
   {
     auto const found = map.find(key);
-    if (found != map.end())
+    if (found != map.end()) {
       return found->second;
+    }
     return decltype(found->second)();
   }
 }
@@ -15,7 +16,7 @@ namespace form::experimental::config {
 
   void ItemConfig::addItem(std::string const& product_name,
                            std::string const& file_name,
-                           int technology)
+                           technology::Id technology)
   {
     m_items.emplace_back(product_name, file_name, technology);
   }
@@ -30,7 +31,7 @@ namespace form::experimental::config {
     return std::nullopt;
   }
 
-  tech_setting_config::table_t tech_setting_config::getFileTable(int const technology,
+  tech_setting_config::table_t tech_setting_config::getFileTable(technology::Id const technology,
                                                                  std::string const& fileName) const
   {
     auto const per_tech = ::const_lookup(file_settings, technology);
@@ -38,7 +39,7 @@ namespace form::experimental::config {
   }
 
   tech_setting_config::table_t tech_setting_config::getContainerTable(
-    int const technology, std::string const& containerName) const
+    technology::Id const technology, std::string const& containerName) const
   {
     auto const per_tech = ::const_lookup(container_settings, technology);
     return ::const_lookup(per_tech, containerName);

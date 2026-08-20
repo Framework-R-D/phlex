@@ -16,10 +16,10 @@
 #include <string>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT products_consumer : public consumer {
   public:
-    products_consumer(algorithm_name name,
+    products_consumer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
                       product_selectors input_products);
 
@@ -28,7 +28,7 @@ namespace phlex::experimental {
     std::size_t num_inputs() const;
 
     product_selectors const& input() const noexcept;
-    std::vector<identifier> const& layers() const noexcept;
+    std::vector<phlex::experimental::identifier> const& layers() const noexcept;
     tbb::flow::receiver<message>& port(product_selector const& input_product);
 
     virtual named_index_ports index_ports() = 0;
@@ -46,7 +46,7 @@ namespace phlex::experimental {
     virtual tbb::flow::receiver<message>& port_for(product_selector const& input_product) = 0;
 
     product_selectors input_products_;
-    std::vector<identifier> layers_;
+    std::vector<phlex::experimental::identifier> layers_;
   };
 }
 

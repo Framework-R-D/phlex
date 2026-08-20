@@ -2,10 +2,12 @@
 
 #include "storage_associative_write_container.hpp"
 
+#include <utility>
+
 using namespace form::detail::experimental;
 
 Storage_Associative_Write_Container::Storage_Associative_Write_Container(std::string const& name) :
-  Storage_Write_Container::Storage_Write_Container(name), m_tName(), m_cName(), m_parent(nullptr)
+  Storage_Write_Container::Storage_Write_Container(name), m_parent(nullptr)
 {
   auto del_pos = name.find('/');
   if (del_pos != std::string::npos) {
@@ -26,5 +28,5 @@ std::string const& Storage_Associative_Write_Container::col_name() { return m_cN
 void Storage_Associative_Write_Container::setParent(
   std::shared_ptr<IStorage_Write_Container> parent)
 {
-  m_parent = parent;
+  m_parent = std::move(parent);
 }

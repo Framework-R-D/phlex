@@ -11,7 +11,7 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   using assns =
     phlex::experimental::association<simb::MCParticle, simb::MCTruth, sim::GeneratedParticleInfo>;
-  using input = phlex::experimental::sized_tuple<simb::MCTruths, 6>;
+  using input = phlex::detail::sized_tuple<simb::MCTruths, 6>;
   using output = std::tuple<sim::ParticleAncestryMap,
                             assns,
                             sim::SimEnergyDeposits,

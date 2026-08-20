@@ -1,24 +1,27 @@
 #ifndef FORM_FORM_CONFIG_HPP
 #define FORM_FORM_CONFIG_HPP
 
+#include "core/technology.hpp"
+
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace form::experimental::config {
 
   struct PersistenceItem {
-    std::string product_name; // e.g. "trackStart", "trackNumberHits"
-    std::string file_name;    // e.g. "toy.root", "output.hdf5"
-    int technology{};         // Technology::ROOT_TTREE, Technology::ROOT_RNTUPLE, Technology::HDF5
+    std::string product_name;    // e.g. "trackStart", "trackNumberHits"
+    std::string file_name;       // e.g. "toy.root", "output.hdf5"
+    technology::Id technology{}; // technology::ROOT_TTREE, ROOT_RNTUPLE, HDF5
 
     PersistenceItem() = default;
 
-    PersistenceItem(std::string const& product, std::string const& file, int tech) :
-      product_name(product), file_name(file), technology(tech)
+    PersistenceItem(std::string product, std::string file, technology::Id tech) :
+      product_name(std::move(product)), file_name(std::move(file)), technology(tech)
     {
     }
   };
@@ -29,7 +32,9 @@ namespace form::experimental::config {
     ~ItemConfig() = default;
 
     // Add a configuration item
-    void addItem(std::string const& product_name, std::string const& file_name, int technology);
+    void addItem(std::string const& product_name,
+                 std::string const& file_name,
+                 technology::Id technology);
 
     // Find configuration for a product+creator combination
     std::optional<PersistenceItem> findItem(std::string const& product_name) const;
@@ -43,12 +48,12 @@ namespace form::experimental::config {
 
   struct tech_setting_config {
     using table_t = std::vector<std::pair<std::string, std::string>>;
-    using map_t = std::map<int, std::unordered_map<std::string, table_t>>;
+    using map_t = std::map<technology::Id, std::unordered_map<std::string, table_t>>;
     map_t file_settings;
     map_t container_settings;
 
-    table_t getFileTable(int const technology, std::string const& fileName) const;
-    table_t getContainerTable(int const technology, std::string const& containerName) const;
+    table_t getFileTable(technology::Id technology, std::string const& fileName) const;
+    table_t getContainerTable(technology::Id technology, std::string const& containerName) const;
   };
 
 } // namespace form::experimental::config

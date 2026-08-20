@@ -40,6 +40,8 @@ TEST_CASE("Product store insertion", "[data model]")
 
 TEST_CASE("Product store derivation", "[data model]")
 {
+  using namespace phlex::experimental::detail;
+
   SECTION("Only one store")
   {
     auto store = product_store::base();

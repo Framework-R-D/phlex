@@ -36,11 +36,11 @@
 #include <type_traits>
 #include <utility>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_CORE_EXPORT declared_transform : public products_consumer {
   public:
-    declared_transform(algorithm_name name,
+    declared_transform(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
                        product_selectors input_products);
     ~declared_transform() override;
@@ -57,8 +57,8 @@ namespace phlex::experimental {
 
   template <typename AlgorithmBits>
   class transform_node : public declared_transform {
-    using function_t = typename AlgorithmBits::bound_type;
-    using input_parameter_types = typename AlgorithmBits::input_parameter_types;
+    using function_t = AlgorithmBits::bound_type;
+    using input_parameter_types = AlgorithmBits::input_parameter_types;
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = number_output_objects<function_t>;
@@ -67,7 +67,7 @@ namespace phlex::experimental {
     using node_ptr_type = declared_transform_ptr;
     static constexpr auto number_output_products = num_outputs;
 
-    transform_node(algorithm_name algo_name,
+    transform_node(phlex::experimental::algorithm_name algo_name,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
@@ -81,7 +81,8 @@ namespace phlex::experimental {
       transform_{
         g,
         concurrency,
-        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages, auto& output) {
+        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages) -> message {
+          using namespace phlex::experimental::detail;
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
@@ -91,10 +92,10 @@ namespace phlex::experimental {
 
           products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
-          auto new_store =
-            std::make_shared<product_store>(store->index(), name(), std::move(new_products));
+          auto new_store = std::make_shared<phlex::experimental::product_store>(
+            store->index(), name(), std::move(new_products));
 
-          std::get<0>(output).try_put({.store = std::move(new_store), .id = message_id});
+          return {.store = std::move(new_store), .id = message_id};
         }}
     {
       if constexpr (num_inputs > 1ull) {
@@ -113,10 +114,7 @@ namespace phlex::experimental {
       return input_ports<num_inputs>(join_, transform_);
     }
 
-    tbb::flow::sender<message>& output_port() override
-    {
-      return tbb::flow::output_port<0>(transform_);
-    }
+    tbb::flow::sender<message>& output_port() override { return transform_; }
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
@@ -145,7 +143,7 @@ namespace phlex::experimental {
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
     product_specifications output_;
     join_or_none_t<num_inputs> join_;
-    tbb::flow::multifunction_node<messages_t<num_inputs>, message_tuple<1u>> transform_;
+    tbb::flow::function_node<messages_t<num_inputs>, message> transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };

@@ -7,7 +7,7 @@
 #include "spdlog/spdlog.h"
 
 using namespace phlex;
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 namespace {
   void use_ostream_logger(std::ostringstream& oss)

@@ -24,14 +24,27 @@ namespace form::experimental {
 
   void form_reader_interface::read(std::string const& creator,
                                    std::string const& segment_id,
-                                   product_with_name& pb)
+                                   product_with_name& product)
   {
 
-    auto it = m_product_to_config.find(pb.label);
-    if (it == m_product_to_config.end()) {
-      throw std::runtime_error("No configuration found for product: " + pb.label);
+    auto config_it = m_product_to_config.find(product.label);
+    if (config_it == m_product_to_config.end()) {
+      throw std::runtime_error("No configuration found for product: " + product.label);
     }
 
-    m_pers_reader->read(creator, pb.label, segment_id, &pb.data, *pb.type);
+    m_pers_reader->read(creator, product.label, segment_id, &product.data, *product.type);
+  }
+
+  void form_reader_interface::prime(std::string const& creator,
+                                    std::string const& product_name,
+                                    std::type_info const& type)
+  {
+    m_pers_reader->prime(creator, product_name, type);
+  }
+
+  std::vector<std::string> form_reader_interface::indices(std::string const& creator,
+                                                          std::string const& product_name)
+  {
+    return m_pers_reader->listIndices(creator, product_name);
   }
 }

@@ -12,7 +12,7 @@ float TrackStart::getZ() const { return m_z; }
 
 TrackStart TrackStart::operator+(TrackStart const& other) const
 {
-  return TrackStart(m_x + other.m_x, m_y + other.m_y, m_z + other.m_z);
+  return {m_x + other.m_x, m_y + other.m_y, m_z + other.m_z};
 }
 
 TrackStart& TrackStart::operator+=(TrackStart const& other)
@@ -25,7 +25,7 @@ TrackStart& TrackStart::operator+=(TrackStart const& other)
 
 TrackStart TrackStart::operator-(TrackStart const& other) const
 {
-  return TrackStart(m_x - other.m_x, m_y - other.m_y, m_z - other.m_z);
+  return {m_x - other.m_x, m_y - other.m_y, m_z - other.m_z};
 }
 
 std::ostream& operator<<(std::ostream& os, TrackStart const& track)

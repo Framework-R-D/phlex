@@ -41,9 +41,9 @@ namespace phlex {
     parent_{std::move(parent)},
     number_{i},
     layer_name_{std::move(layer_name)},
-    layer_hash_{experimental::hash(parent_->layer_hash_, layer_name_.hash())},
+    layer_hash_{phlex::detail::hash(parent_->layer_hash_, layer_name_.hash())},
     depth_{parent_->depth_ + 1},
-    hash_{experimental::hash(parent_->hash_, number_, layer_hash_)}
+    hash_{phlex::detail::hash(parent_->hash_, number_, layer_hash_)}
   {
     // FIXME: Should it be an error to create an ID with an empty name?
   }
@@ -89,8 +89,9 @@ namespace phlex {
 
   bool data_cell_index::operator==(data_cell_index const& other) const
   {
-    if (depth_ != other.depth_)
+    if (depth_ != other.depth_) {
       return false;
+    }
     auto const same_numbers = number_ == other.number_;
     if (not parent_) {
       return same_numbers;
@@ -102,8 +103,7 @@ namespace phlex {
   {
     auto these_numbers = all_numbers(*this);
     auto those_numbers = all_numbers(other);
-    return std::lexicographical_compare(
-      begin(these_numbers), end(these_numbers), begin(those_numbers), end(those_numbers));
+    return std::ranges::lexicographical_compare(these_numbers, those_numbers);
   }
 
   data_cell_index_ptr data_cell_index::parent() const noexcept { return parent_; }

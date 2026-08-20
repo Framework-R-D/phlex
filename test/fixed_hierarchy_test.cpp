@@ -71,6 +71,39 @@ TEST_CASE("Fixed hierarchy rejects indices not present in the hierarchy", "[fixe
                     ContainsSubstring("Layer /job/subrun is not part of the fixed hierarchy"));
 }
 
+TEST_CASE("Duplicate paths in constructor are deduplicated", "[fixed_hierarchy]")
+{
+  fixed_hierarchy const h{{"run", "subrun"}, {"run", "subrun"}, {"run", "calibration_period"}};
+  // fixed_hierarchy stores layer-paths are stored lexicographically.
+  std::vector<experimental::layer_path> expected{"run/calibration_period", "run/subrun"};
+  CHECK(h.layer_paths() == expected);
+}
+
+TEST_CASE("update() adds new paths and ignores duplicates", "[fixed_hierarchy]")
+{
+  fixed_hierarchy h{{"run", "subrun"}};
+  h.update({"run/calibration_period"});
+
+  std::vector<experimental::layer_path> expected = {"run/calibration_period", "run/subrun"};
+  CHECK(h.layer_paths() == expected);
+
+  // Adding the same path again is a no-op
+  h.update({"run/calibration_period", "run/subrun"});
+  CHECK(h.layer_paths() == expected);
+}
+
+TEST_CASE("update() extends the validated set of indices", "[fixed_hierarchy]")
+{
+  fixed_hierarchy h{{"run", "subrun"}};
+  auto const job = data_cell_index::job();
+  auto const run = job->make_child("run", 0);
+
+  CHECK_THROWS(h.validate(run->make_child("calibration_period", 0)));
+
+  h.update({"run/calibration_period"});
+  CHECK_NOTHROW(h.validate(run->make_child("calibration_period", 0)));
+}
+
 TEST_CASE("Paths with and without 'job' prefix produce the same hierarchy", "[fixed_hierarchy]")
 {
   fixed_hierarchy const without_prefix{{"run", "subrun"}, {"run", "calibration_period"}};

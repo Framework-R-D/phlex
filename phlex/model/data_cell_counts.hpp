@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_MODEL_EXPORT data_cell_counts {
   public:
     void emplace(std::size_t layer_hash, std::size_t value);

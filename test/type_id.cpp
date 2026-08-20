@@ -9,7 +9,7 @@
 #include <functional>
 #include <vector>
 
-using namespace phlex::experimental;
+using namespace phlex::detail;
 
 struct A {
   int a;

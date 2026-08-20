@@ -7,14 +7,25 @@
 #include <memory>
 #include <utility>
 
-namespace phlex::experimental {
-  provider_node::provider_node(algorithm_name algo_name,
+namespace phlex::detail {
+  provider_node::provider_node(tbb::flow::graph& g, provider_bundle bundle) :
+    provider_node{bundle.spec.creator(),
+                  bundle.max_concurrency.value,
+                  g,
+                  std::move(bundle.provider_function),
+                  std::move(bundle.spec), // safe: brace-init arguments are evaluated left-to-right
+                  phlex::experimental::identifier{bundle.layer},
+                  phlex::experimental::identifier{bundle.stage}}
+  {
+  }
+
+  provider_node::provider_node(phlex::experimental::algorithm_name algo_name,
                                std::size_t concurrency,
                                tbb::flow::graph& g,
                                provider_function provider_func,
                                product_specification output_spec,
-                               identifier output_layer,
-                               identifier stage) :
+                               phlex::experimental::identifier output_layer,
+                               phlex::experimental::identifier stage) :
     name_{std::move(algo_name)},
     output_{std::move(output_spec)},
     layer_{std::move(output_layer)},
@@ -32,7 +43,8 @@ namespace phlex::experimental {
                 // produced per input index.
                 products new_products{1uz};
                 new_products.add(output_, std::move(new_product));
-                auto store = std::make_shared<product_store>(index, name_, std::move(new_products));
+                auto store = std::make_shared<phlex::experimental::product_store>(
+                  index, name_, std::move(new_products), stage_);
 
                 return {.store = std::move(store), .id = msg_id};
               }}
@@ -43,12 +55,12 @@ namespace phlex::experimental {
                   layer_);
   }
 
-  algorithm_name const& provider_node::name() const noexcept { return name_; }
+  phlex::experimental::algorithm_name const& provider_node::name() const noexcept { return name_; }
 
   product_specification const& provider_node::output_product() const noexcept { return output_; }
 
-  identifier const& provider_node::layer() const noexcept { return layer_; }
+  phlex::experimental::identifier const& provider_node::layer() const noexcept { return layer_; }
 
-  identifier const& provider_node::stage() const noexcept { return stage_; }
+  phlex::experimental::identifier const& provider_node::stage() const noexcept { return stage_; }
 
 }

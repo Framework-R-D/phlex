@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     ("parallel,j",
        bpo::value<int>()->default_value(max_concurrency),
        "Maximum parallelism requested for the program")
-    ("version", ("Print phlex version ("s + phlex::experimental::version() + ")").c_str());
+    ("version", ("Print phlex version ("s + phlex::detail::version() + ")").c_str());
   // clang-format on
 
   // Parse the command line.
@@ -53,17 +53,17 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  if (vm.count("help")) {
+  if (vm.contains("help")) {
     std::cout << desc << '\n';
     return 0;
   }
 
-  if (vm.count("version")) {
-    std::cout << "phlex " << phlex::experimental::version() << '\n';
+  if (vm.contains("version")) {
+    std::cout << "phlex " << phlex::detail::version() << '\n';
     return 0;
   }
 
-  if (not vm.count("config")) {
+  if (not vm.contains("config")) {
     std::cerr << "Error: No configuration file given.\n";
     return 2;
   }
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     max_concurrency = vm["parallel"].as<int>();
   }
   try {
-    phlex::experimental::run(configurations, max_concurrency);
+    phlex::detail::run(configurations, max_concurrency);
   } catch (std::exception const& e) {
     std::cerr << e.what() << '\n';
     return 1;

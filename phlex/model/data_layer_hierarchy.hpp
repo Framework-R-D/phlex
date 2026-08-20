@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::experimental {
+namespace phlex::detail {
 
   class PHLEX_MODEL_EXPORT data_layer_hierarchy {
   public:
@@ -26,7 +26,8 @@ namespace phlex::experimental {
     data_layer_hierarchy& operator=(data_layer_hierarchy&&) = delete;
 
     void increment_count(data_cell_index_ptr const& id);
-    std::size_t count_for(layer_path const& layer, bool missing_ok = false) const;
+    std::size_t count_for(phlex::experimental::layer_path const& layer,
+                          bool missing_ok = false) const;
 
     void print() const;
 
@@ -37,18 +38,20 @@ namespace phlex::experimental {
     using hash_name_pairs = std::vector<hash_name_pair>;
     std::string pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
                                std::string const& parent_name,
-                               std::string indent = {}) const;
+                               std::string const& indent = {}) const;
 
     struct layer_entry {
-      layer_entry(identifier n, layer_path path, std::size_t par_hash) :
+      layer_entry(phlex::experimental::identifier n,
+                  phlex::experimental::layer_path path,
+                  std::size_t par_hash) :
         name{std::move(n)}, layer_path{std::move(path)}, parent_hash{par_hash}
       {
       }
 
-      identifier name;
-      experimental::layer_path layer_path;
+      phlex::experimental::identifier name;
+      phlex::experimental::layer_path layer_path;
       std::size_t parent_hash;
-      std::atomic<std::size_t> count{};
+      std::atomic<std::size_t> count;
     };
 
     tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<layer_entry>> layers_;

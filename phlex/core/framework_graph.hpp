@@ -23,10 +23,13 @@
 #include "oneapi/tbb/info.h"
 
 #include <concepts>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -35,19 +38,31 @@ namespace phlex {
   class configuration;
 }
 
-namespace phlex::experimental {
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT framework_graph {
   public:
-    explicit framework_graph(int max_parallelism = oneapi::tbb::info::default_concurrency());
-    explicit framework_graph(detail::next_index_t next_index,
-                             int max_parallelism = oneapi::tbb::info::default_concurrency());
-    explicit framework_graph(driver_bundle bundle,
-                             int max_parallelism = oneapi::tbb::info::default_concurrency());
+    [[nodiscard]] static framework_graph with_default_driver(
+      int max_parallelism = oneapi::tbb::info::default_concurrency());
+    [[nodiscard]] static framework_graph without_driver(
+      int max_parallelism = oneapi::tbb::info::default_concurrency());
+
     ~framework_graph();
     framework_graph(framework_graph const&) = delete;
     framework_graph& operator=(framework_graph const&) = delete;
     framework_graph(framework_graph&&) = delete;
     framework_graph& operator=(framework_graph&&) = delete;
+
+    void add_driver(driver_bundle bundle);
+
+    template <typename Generator>
+      requires requires(std::shared_ptr<Generator> generator, std::vector<source const*> sources) {
+        { driver_proxy{sources}.driver(generator) } -> std::same_as<driver_bundle>;
+      }
+    void add_driver(
+      std::shared_ptr<Generator> generator) // NOLINT(performance-unnecessary-value-param)
+    {
+      add_driver(driver_proxy().driver(std::move(generator)));
+    }
 
     void execute();
 
@@ -64,60 +79,68 @@ namespace phlex::experimental {
       return {config, graph_, nodes_, registration_errors_};
     }
 
+    phlex::detail::driver_proxy driver_proxy(std::vector<std::string> const& strings = {})
+    {
+      return phlex::detail::driver_proxy{nodes_.sources_for(strings)};
+    }
+
     // Framework function registrations
 
     // N.B. declare_output() is not directly accessible through framework_graph.  Is this
     //      right?
 
     template <typename... InitArgs>
-    auto fold(std::string name,
+    auto fold(std::string_view name,
               is_fold_like auto f,
               concurrency c = concurrency::serial,
               std::string partition = "job",
               InitArgs&&... init_args)
     {
-      return make_glue().fold(std::move(name),
-                              std::move(f),
-                              c,
-                              std::move(partition),
-                              std::forward<InitArgs>(init_args)...);
+      return make_glue().fold(
+        name, std::move(f), c, std::move(partition), std::forward<InitArgs>(init_args)...);
     }
 
     template <typename T>
-    auto unfold(std::string name,
+    auto unfold(std::string_view name,
                 is_predicate_like auto pred,
                 auto unf,
                 concurrency c,
                 std::string destination_data_layer)
     {
       return make_glue<T, false>().unfold(
-        std::move(name), std::move(pred), std::move(unf), c, std::move(destination_data_layer));
+        name, std::move(pred), std::move(unf), c, std::move(destination_data_layer));
     }
 
-    auto observe(std::string name, is_observer_like auto f, concurrency c = concurrency::serial)
+    auto observe(std::string_view name,
+                 is_observer_like auto f,
+                 concurrency c = concurrency::serial)
     {
-      return make_glue().observe(std::move(name), std::move(f), c);
+      return make_glue().observe(name, std::move(f), c);
     }
 
-    auto predicate(std::string name, is_predicate_like auto f, concurrency c = concurrency::serial)
+    auto predicate(std::string_view name,
+                   is_predicate_like auto f,
+                   concurrency c = concurrency::serial)
     {
-      return make_glue().predicate(std::move(name), std::move(f), c);
+      return make_glue().predicate(name, std::move(f), c);
     }
 
-    auto transform(std::string name, is_transform_like auto f, concurrency c = concurrency::serial)
+    auto transform(std::string_view name,
+                   is_transform_like auto f,
+                   concurrency c = concurrency::serial)
     {
-      return make_glue().transform(std::move(name), std::move(f), c);
+      return make_glue().transform(name, std::move(f), c);
     }
 
-    auto provide(std::string name, auto f, concurrency c = concurrency::serial)
+    auto provide(std::string_view name, auto f, concurrency c = concurrency::serial)
     {
-      return make_glue().provide(std::move(name), std::move(f), c);
+      return make_glue().provide(name, std::move(f), c);
     }
 
     template <std::derived_from<source> Source, typename... Args>
-    void source(std::string name, Args&&... args)
+    void add_source(std::string_view name, Args&&... args)
     {
-      return make_glue().template source<Source>(std::move(name), std::forward<Args>(args)...);
+      return make_glue().template add_source<Source>(name, std::forward<Args>(args)...);
     }
 
     template <typename T, typename... Args>
@@ -167,26 +190,28 @@ namespace phlex::experimental {
     void throw_if_registration_errors() const;
     void make_filter_edges();
     void make_bookkeeping_edges();
-    void finalize_router(index_router::provider_input_ports_t provider_input_ports,
-                         std::map<std::string, named_index_ports> multilayer_join_index_ports);
 
-    resource_usage graph_resource_usage_{};
+    enum class driver_mode : std::uint8_t { default_driver, deferred_driver };
+    explicit framework_graph(driver_mode mode, int max_parallelism);
+
+    resource_usage graph_resource_usage_;
     max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
     data_layer_hierarchy hierarchy_{};
-    node_catalog nodes_{};
-    std::map<std::string, filter> filters_{};
+    node_catalog nodes_;
+    std::map<std::string, filter> filters_;
     // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
-    framework_driver driver_;
-    std::vector<std::string> registration_errors_{};
-    data_cell_tracker cell_tracker_{};
+    std::optional<framework_driver> driver_;
+    std::vector<std::string> registration_errors_;
+    data_cell_tracker cell_tracker_;
     tbb::flow::input_node<ready_flushes_then_emit> src_;
     index_router index_router_;
     tbb::flow::function_node<ready_flushes_then_emit, data_cell_index_ptr, tbb::flow::lightweight>
       index_receiver_;
     tbb::flow::function_node<data_cell_index_ptr, tbb::flow::continue_msg, tbb::flow::lightweight>
       hierarchy_node_;
+    driver_mode driver_mode_{driver_mode::default_driver};
     bool shutdown_on_error_{false};
   };
 }

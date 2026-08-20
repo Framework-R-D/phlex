@@ -4,7 +4,7 @@
 #include <chrono>
 #include <thread>
 
-namespace phlex::experimental {
+namespace phlex::detail {
   template <typename T>
   void sleep_for(T duration)
   {
