@@ -649,8 +649,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view) {                                                                                \
-      std::runtime_error("failed to allocate numpy view object");                                  \
-      return dcarg{nullptr};                                                                       \
+      throw std::runtime_error("failed to allocate numpy view object");                            \
     }                                                                                              \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
@@ -663,8 +662,7 @@ namespace {
       PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr));                           \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
-      std::runtime_error("failed to allocate lifeline object");                                    \
-      return dcarg{nullptr};                                                                       \
+      throw std::runtime_error("failed to allocate lifeline object");                              \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \
