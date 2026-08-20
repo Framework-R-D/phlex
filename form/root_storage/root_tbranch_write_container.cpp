@@ -112,11 +112,17 @@ std::uint64_t ROOT_TBranch_Write_ContainerImp::fill(void const* data)
   } else {
     m_branch->SetAddress(reinterpret_cast<void*>(&data));
   }
-  m_branch->Fill();
+  // TBranch::Fill() returns the number of bytes committed, or a negative value on a write error.
+  // ROOT increments entry count before a basket write can fail, so check return value first
+  Int_t const nbytes = m_branch->Fill();
   m_branch->ResetAddress();
+  if (nbytes < 0) {
+    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::fill TBranch::Fill() failed for " +
+                             col_name());
+  }
 
   // 0-based entries: GetEntries() is the total count after this Fill(); row = count - 1.
-  // GetEntries() >= 1 here (we just filled), so the row is non-negative.
+  // GetEntries() >= 1 here (Fill() succeeded), so the row is non-negative.
   return static_cast<std::uint64_t>(m_branch->GetEntries() - 1);
 }
 
