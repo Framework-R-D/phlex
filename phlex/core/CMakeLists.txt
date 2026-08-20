@@ -1,3 +1,13 @@
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.1)
+    set(_std_stacktrace_library stdc++exp)
+  else()
+    set(_std_stacktrace_library stdc++_libbacktrace)
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(_std_stacktrace_library stdc++exp)
+endif()
+
 cet_make_library(
   LIBRARY_NAME
   phlex_core
@@ -34,10 +44,12 @@ cet_make_library(
   phlex::metaprogramming
   phlex::model
   phlex::utilities
+  ${_std_stacktrace_library}
   PRIVATE
   Boost::json
   spdlog::spdlog
 )
+
 install(
   FILES
     concepts.hpp
@@ -94,6 +106,7 @@ phlex_make_internal_library(
   phlex_core
   LIBRARIES
   PUBLIC TBB::tbb phlex::metaprogramming phlex_model_internal phlex_utilities_internal
+         ${_std_stacktrace_library}
   PRIVATE Boost::json spdlog::spdlog
 )
 add_library(phlex::core_internal ALIAS phlex_core_internal)

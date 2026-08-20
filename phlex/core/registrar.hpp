@@ -112,11 +112,17 @@ namespace phlex::detail {
     void create_node(std::vector<std::string> output_product_suffixes)
     {
       assert(creator_);
-      auto ptr = creator_(release_predicates(), std::move(output_product_suffixes));
-      auto name = ptr->name().to_string();
-      auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
-      if (not inserted) {
-        internal::add_to_error_messages(*errors_, "Node", name);
+      try {
+        auto ptr = creator_(release_predicates(), std::move(output_product_suffixes));
+        auto name = ptr->name().to_string();
+        auto [_, inserted] = nodes_->try_emplace(name, std::move(ptr));
+        if (not inserted) {
+          internal::add_to_error_messages(*errors_, "Node", name);
+        }
+      } catch (...) {
+        // Prevent trying to re-run create_node
+        creator_ = nullptr;
+        throw;
       }
     }
 

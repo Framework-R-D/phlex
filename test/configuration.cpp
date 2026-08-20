@@ -43,7 +43,7 @@ TEST_CASE("Retrieve product_selector", "[config]")
 
   boost::json::object malformed_input2;
   malformed_input2["creator"] = "hits";
-  malformed_input2["level"] = "should be layer, not level";
+  malformed_input2["layer"] = "";
 
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
@@ -59,5 +59,5 @@ TEST_CASE("Retrieve product_selector", "[config]")
                       ContainsSubstring("not a string"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
-                      ContainsSubstring("Error retrieving parameter 'layer'"));
+                      ContainsSubstring("Cannot specify the empty string as a data layer."));
 }
