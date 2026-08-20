@@ -894,6 +894,69 @@ static std::optional<std::string_view> collection_dtype(std::string const& type_
   return std::string_view{type_name}.substr(pos);
 }
 
+static bool insert_input_converter(py_phlex_module* mod,
+                                   std::string const& cname, // TODO: shared_ptr<PyObject>
+                                   size_t i,
+                                   product_selector const& inp_pq,
+                                   std::string const& inp_type,
+                                   bool ispy,
+                                   concurrency nc)
+{
+  // insert a single input converter node into the graph
+  // TODO: this seems overly verbose and inefficient, but the function needs
+  // to be properly types, so every option is made explicit
+
+  std::string const& pyname = input_converter_name(cname, i);
+  std::string output =
+    "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
+
+  if (inp_type == "bool") {
+    insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output, nc);
+  } else if (inp_type == "int32_t") {
+    insert_converter(mod, pyname, ispy ? int_to_py : int_to_dcarg, inp_pq, output, nc);
+  } else if (inp_type == "uint32_t") {
+    insert_converter(mod, pyname, ispy ? uint_to_py : uint_to_dcarg, inp_pq, output, nc);
+  } else if (inp_type == "int64_t") {
+    insert_converter(mod, pyname, ispy ? long_to_py : long_to_dcarg, inp_pq, output, nc);
+  } else if (inp_type == "uint64_t") {
+    insert_converter(mod, pyname, ispy ? ulong_to_py : ulong_to_dcarg, inp_pq, output, nc);
+  } else if (inp_type == "float") {
+    insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output, nc);
+  } else if (inp_type == "double") {
+    insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output, nc);
+  } else if (inp_type.starts_with("ndarray") || inp_type.starts_with("list")) {
+    // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
+    // way too simplistic for real use. It only exists for demonstration purposes,
+    // until we have an IDL
+    auto const dtype = collection_dtype(inp_type);
+    if (!dtype) {
+      PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
+      return false;
+    }
+    if (*dtype == "[int32_t]") {
+      insert_converter(mod, pyname, vint_to_py, inp_pq, output, nc);
+    } else if (*dtype == "[uint32_t]") {
+      insert_converter(mod, pyname, vuint_to_py, inp_pq, output, nc);
+    } else if (*dtype == "[int64_t]") {
+      insert_converter(mod, pyname, vlong_to_py, inp_pq, output, nc);
+    } else if (*dtype == "[uint64_t]") {
+      insert_converter(mod, pyname, vulong_to_py, inp_pq, output, nc);
+    } else if (*dtype == "[float]") {
+      insert_converter(mod, pyname, vfloat_to_py, inp_pq, output, nc);
+    } else if (*dtype == "[double]") {
+      insert_converter(mod, pyname, vdouble_to_py, inp_pq, output, nc);
+    } else {
+      PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
+      return false;
+    }
+  } else {
+    PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
+    return false;
+  }
+
+  return true;
+}
+
 static bool insert_input_converters(py_phlex_module* mod,
                                     std::string const& cname, // TODO: shared_ptr<PyObject>
                                     std::vector<product_selector> const& input_selectors,
@@ -902,61 +965,11 @@ static bool insert_input_converters(py_phlex_module* mod,
                                     concurrency nc)
 {
   // insert input converter nodes into the graph
-  for (auto const [i, inp_pq, inp_type] :
-       std::views::zip(std::views::iota(size_t{}), input_selectors, input_types)) {
-    // TODO: this seems overly verbose and inefficient, but the function needs
-    // to be properly types, so every option is made explicit
-
-    std::string const& pyname = input_converter_name(cname, i);
-    std::string output =
-      "py_" + (inp_pq.suffix ? std::string{static_cast<std::string_view>(*inp_pq.suffix)} : "");
-
-    if (inp_type == "bool") {
-      insert_converter(mod, pyname, ispy ? bool_to_py : bool_to_dcarg, inp_pq, output, nc);
-    } else if (inp_type == "int32_t") {
-      insert_converter(mod, pyname, ispy ? int_to_py : int_to_dcarg, inp_pq, output, nc);
-    } else if (inp_type == "uint32_t") {
-      insert_converter(mod, pyname, ispy ? uint_to_py : uint_to_dcarg, inp_pq, output, nc);
-    } else if (inp_type == "int64_t") {
-      insert_converter(mod, pyname, ispy ? long_to_py : long_to_dcarg, inp_pq, output, nc);
-    } else if (inp_type == "uint64_t") {
-      insert_converter(mod, pyname, ispy ? ulong_to_py : ulong_to_dcarg, inp_pq, output, nc);
-    } else if (inp_type == "float") {
-      insert_converter(mod, pyname, ispy ? float_to_py : float_to_dcarg, inp_pq, output, nc);
-    } else if (inp_type == "double") {
-      insert_converter(mod, pyname, ispy ? double_to_py : double_to_dcarg, inp_pq, output, nc);
-    } else if (inp_type.starts_with("ndarray") || inp_type.starts_with("list")) {
-      // TODO: these are hard-coded std::vector <-> numpy array mappings, which is
-      // way too simplistic for real use. It only exists for demonstration purposes,
-      // until we have an IDL
-      auto const dtype = collection_dtype(inp_type);
-      if (!dtype) {
-        PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
-        return false;
-      }
-      if (*dtype == "[int32_t]") {
-        insert_converter(mod, pyname, vint_to_py, inp_pq, output, nc);
-      } else if (*dtype == "[uint32_t]") {
-        insert_converter(mod, pyname, vuint_to_py, inp_pq, output, nc);
-      } else if (*dtype == "[int64_t]") {
-        insert_converter(mod, pyname, vlong_to_py, inp_pq, output, nc);
-      } else if (*dtype == "[uint64_t]") {
-        insert_converter(mod, pyname, vulong_to_py, inp_pq, output, nc);
-      } else if (*dtype == "[float]") {
-        insert_converter(mod, pyname, vfloat_to_py, inp_pq, output, nc);
-      } else if (*dtype == "[double]") {
-        insert_converter(mod, pyname, vdouble_to_py, inp_pq, output, nc);
-      } else {
-        PyErr_Format(PyExc_TypeError, "unsupported collection input type \"%s\"", inp_type.c_str());
-        return false;
-      }
-    } else {
-      PyErr_Format(PyExc_TypeError, "unsupported input type \"%s\"", inp_type.c_str());
-      return false;
-    }
-  }
-
-  return true;
+  auto const converters = std::views::zip(std::views::iota(size_t{}), input_selectors, input_types);
+  return std::ranges::all_of(converters, [mod, &cname, ispy, nc](auto const& converter) {
+    auto const& [i, inp_pq, inp_type] = converter;
+    return insert_input_converter(mod, cname, i, inp_pq, inp_type, ispy, nc);
+  });
 }
 
 static bool insert_output_converter(py_phlex_module* mod,

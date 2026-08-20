@@ -202,6 +202,7 @@
 - [x] [readability-static-definition-in-anonymous-namespace](https://clang.llvm.org/extra/clang-tidy/checks/readability/static-definition-in-anonymous-namespace.html) (12)
   - [PR #742](https://github.com/Framework-R-D/phlex/pull/742)
 - [ ] [readability-static-accessed-through-instance](https://clang.llvm.org/extra/clang-tidy/checks/readability/static-accessed-through-instance.html) (10)
-- [ ] [readability-use-anyofallof](https://clang.llvm.org/extra/clang-tidy/checks/readability/use-anyofallof.html) (2)
+- [x] [readability-use-anyofallof](https://clang.llvm.org/extra/clang-tidy/checks/readability/use-anyofallof.html) (2)
+  - [PR #805](https://github.com/Framework-R-D/phlex/pull/805)
 - [x] [readability-use-concise-preprocessor-directives](https://clang.llvm.org/extra/clang-tidy/checks/readability/use-concise-preprocessor-directives.html) (201)
   - [PR #772](https://github.com/Framework-R-D/phlex/pull/772)

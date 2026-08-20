@@ -147,12 +147,8 @@ namespace {
     if (components.empty()) {
       return false;
     }
-    for (auto const& [_, value] : components) {
-      if (value != 0) {
-        return false;
-      }
-    }
-    return true;
+    return std::ranges::all_of(components,
+                               [](auto const& component) { return component.second == 0; });
   }
 
   std::optional<int> sequential_row_from_index_id(std::string const& id)
