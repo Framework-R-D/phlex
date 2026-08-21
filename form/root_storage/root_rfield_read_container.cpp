@@ -11,6 +11,7 @@
 
 #include <exception>
 #include <mutex>
+#include <utility>
 
 namespace {
   std::mutex& root_rfield_read_mutex()
@@ -26,13 +27,13 @@ namespace form::detail::experimental {
   {
   }
 
-  ROOT_RField_Read_ContainerImp::~ROOT_RField_Read_ContainerImp() {}
+  ROOT_RField_Read_ContainerImp::~ROOT_RField_Read_ContainerImp() = default;
 
   void ROOT_RField_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
   {
     Storage_Read_Container::setFile(file);
 
-    auto form_root_file = dynamic_cast<ROOT_TFileImp*>(file.get());
+    auto* form_root_file = dynamic_cast<ROOT_TFileImp*>(file.get());
     if (form_root_file) {
       m_tfile = form_root_file->getTFile();
     } else {
@@ -45,13 +46,11 @@ namespace form::detail::experimental {
       throw std::runtime_error(
         "ROOT_RField_Read_ContainerImp::setFile failed to get a TFile from a ROOT_TFileImp");
     }
-
-    return;
   }
 
   void ROOT_RField_Read_ContainerImp::prime(std::type_info const& type)
   {
-    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+    std::scoped_lock guard(root_rfield_read_mutex());
 
     if (!m_tfile) {
       throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime No file loaded");
@@ -72,14 +71,14 @@ namespace form::detail::experimental {
 
   bool ROOT_RField_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
   {
-    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+    std::scoped_lock guard(root_rfield_read_mutex());
 
     //Connect to file at the last possible moment at the cost of a little run-time branching
     if (!m_view) {
       createView(type);
     }
 
-    if (id >= static_cast<int>(m_reader->GetNEntries())) {
+    if (std::cmp_greater_equal(id, m_reader->GetNEntries())) {
       return false;
     }
 
@@ -103,7 +102,7 @@ namespace form::detail::experimental {
 
   int ROOT_RField_Read_ContainerImp::entries()
   {
-    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+    std::scoped_lock guard(root_rfield_read_mutex());
 
     if (!m_reader) {
       if (!m_tfile) {

@@ -26,7 +26,6 @@ namespace form::detail::experimental {
   void ROOT_RNTuple_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
   {
     Storage_Write_Container::setFile(file);
-    return;
   }
 
   std::uint64_t ROOT_RNTuple_Write_ContainerImp::fill(void const* /*data*/)
@@ -39,5 +38,5 @@ namespace form::detail::experimental {
     throw std::runtime_error("ROOT_RNTuple_Write_ContainerImp::commit not implemented");
   }
 
-  void ROOT_RNTuple_Write_ContainerImp::setupWrite(std::type_info const& /*type*/) { return; }
+  void ROOT_RNTuple_Write_ContainerImp::setupWrite(std::type_info const& /*type*/) {}
 }
