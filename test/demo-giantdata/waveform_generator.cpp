@@ -7,8 +7,6 @@
 
 demo::waveform_generator::waveform_generator(wgi const& wgi) : maxsize_{wgi.size} {}
 
-demo::waveform_generator::~waveform_generator() = default;
-
 std::size_t demo::waveform_generator::initial_value() const { return 0; }
 
 bool demo::waveform_generator::predicate(std::size_t made_so_far) const

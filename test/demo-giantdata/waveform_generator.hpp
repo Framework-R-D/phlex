@@ -21,7 +21,7 @@ namespace demo {
     waveform_generator(waveform_generator&&) = delete;
     waveform_generator& operator=(waveform_generator const&) = delete;
     waveform_generator& operator=(waveform_generator&&) = delete;
-    ~waveform_generator();
+    ~waveform_generator() = default;
 
     std::size_t initial_value() const;
 
