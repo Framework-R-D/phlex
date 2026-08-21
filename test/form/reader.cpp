@@ -97,7 +97,7 @@ int main(int argc, char** argv)
       std::string const creator = "Toy_Tracker";
 
       form::experimental::product_with_name pb = {
-        "trackStart", rawPtr, &typeid(std::vector<float>)};
+        .label = "trackStart", .data = rawPtr, .type = &typeid(std::vector<float>)};
 
       form.read(creator, segment_id, pb);
       std::unique_ptr<std::vector<float> const> track_start_x(
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 
       rawPtr = nullptr;
       form::experimental::product_with_name pb_int = {
-        "trackNumberHits", rawPtr, &typeid(std::vector<int>)};
+        .label = "trackNumberHits", .data = rawPtr, .type = &typeid(std::vector<int>)};
 
       form.read(creator, segment_id, pb_int);
       std::unique_ptr<std::vector<int> const> track_n_hits(
@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 
       rawPtr = nullptr;
       form::experimental::product_with_name pb_points = {
-        "trackStartPoints", rawPtr, &typeid(std::vector<TrackStart>)};
+        .label = "trackStartPoints", .data = rawPtr, .type = &typeid(std::vector<TrackStart>)};
 
       form.read(creator, segment_id, pb_points);
       std::unique_ptr<std::vector<TrackStart> const> start_points(
@@ -169,7 +169,7 @@ int main(int argc, char** argv)
 
     void const* rawEvtPtr = nullptr;
     form::experimental::product_with_name pb = {
-      "trackStartX", rawEvtPtr, &typeid(std::vector<float>)};
+      .label = "trackStartX", .data = rawEvtPtr, .type = &typeid(std::vector<float>)};
 
     form.read(creator, event_id, pb);
     track_x.reset(static_cast<std::vector<float> const*>(pb.data));

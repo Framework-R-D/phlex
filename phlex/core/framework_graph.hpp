@@ -76,7 +76,10 @@ namespace phlex::detail {
 
     source_bundle source_proxy(configuration const& config)
     {
-      return {config, graph_, nodes_, registration_errors_};
+      return {.config = config,
+              .graph = graph_,
+              .nodes = nodes_,
+              .registration_errors = registration_errors_};
     }
 
     phlex::detail::driver_proxy driver_proxy(std::vector<std::string> const& strings = {})

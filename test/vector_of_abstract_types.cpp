@@ -40,7 +40,7 @@ namespace {
 TEST_CASE("Test vector of abstract types")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 1u, 1u});
+  gen->add_layer("event", {.parent_layer = "job", .count = 1u, .start_at = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

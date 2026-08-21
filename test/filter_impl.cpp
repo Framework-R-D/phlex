@@ -19,7 +19,7 @@ TEST_CASE("Filter decision", "[filtering]")
 
   SECTION("Test short-circuiting if false predicate result")
   {
-    decisions.update({1, false});
+    decisions.update({.msg_id = 1, .result = false});
     {
       auto const value = decisions.value(1);
       CHECK(is_complete(value));
@@ -29,12 +29,12 @@ TEST_CASE("Filter decision", "[filtering]")
 
   SECTION("Verify once a complete decision is made")
   {
-    decisions.update({3, true});
+    decisions.update({.msg_id = 3, .result = true});
     {
       auto const value = decisions.value(3);
       CHECK(not is_complete(value));
     }
-    decisions.update({3, true});
+    decisions.update({.msg_id = 3, .result = true});
     {
       auto const value = decisions.value(3);
       CHECK(is_complete(value));

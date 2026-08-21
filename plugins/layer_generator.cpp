@@ -93,9 +93,9 @@ namespace phlex::experimental {
 
       auto layer_handle = layers_.extract(old_layer_path);
       layer_handle.key() = new_layer_path;
-      auto const old_parent_path = layer_handle.mapped().parent_layer_name;
+      auto const old_parent_path = layer_handle.mapped().parent_layer;
       auto const new_parent_path = new_layer_path.substr(0, new_layer_path.find_last_of('/'));
-      layer_handle.mapped().parent_layer_name = new_parent_path;
+      layer_handle.mapped().parent_layer = new_parent_path;
       layers_.insert(std::move(layer_handle));
 
       auto emitted_handle = emitted_cells_.extract(old_layer_path);
@@ -110,7 +110,7 @@ namespace phlex::experimental {
 
   void layer_generator::add_layer(std::string layer_name, layer_spec lspec)
   {
-    auto const parent_full_path = parent_path(layer_name, lspec.parent_layer_name);
+    auto const parent_full_path = parent_path(layer_name, lspec.parent_layer);
 
     // We need to make sure that we can distinguish between (e.g.) /events and /run/events.
     // When a layer is added, the parent layers are also included as part of the path.
@@ -118,7 +118,7 @@ namespace phlex::experimental {
 
     auto full_path = parent_full_path + "/" + layer_name;
 
-    lspec.parent_layer_name = parent_full_path;
+    lspec.parent_layer = parent_full_path;
     layers_[full_path] = std::move(lspec);
     emitted_cells_[full_path] = 0ull;
     parent_to_children_[parent_full_path].push_back(std::move(layer_name));
@@ -154,9 +154,9 @@ namespace phlex::experimental {
 
     for (auto const& child : it->second) {
       auto const full_child_path = fmt::format("{}/{}", cell_lp, child);
-      auto const& [_, total_per_parent, starting_value] = layers_.at(full_child_path);
+      auto const& [_, count, start_at] = layers_.at(full_child_path);
       bool const has_children = parent_to_children_.contains(full_child_path);
-      for (unsigned int i : std::views::iota(starting_value, total_per_parent + starting_value)) {
+      for (unsigned int i : std::views::iota(start_at, count + start_at)) {
         auto child_cell = cell->make_child(child, i);
         ++emitted_cells_.at(full_child_path);
         co_yield child_cell;

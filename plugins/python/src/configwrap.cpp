@@ -221,75 +221,69 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
 
 // PyMappingMethods must be non-const; tp_as_mapping in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static PyMappingMethods pcm_as_mapping = {
-  nullptr, reinterpret_cast<binaryfunc>(pcm_subscript), nullptr};
+static PyMappingMethods pcm_as_mapping = {.mp_length = nullptr,
+                                          .mp_subscript =
+                                            reinterpret_cast<binaryfunc>(pcm_subscript),
+                                          .mp_ass_subscript = nullptr};
 
-// clang-format off
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PyTypeObject phlex::experimental::PhlexConfig_Type = {
-  PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  "pyphlex.configuration",                           // tp_name
-  sizeof(py_config_map),                             // tp_basicsize
-  0,                                                 // tp_itemsize
-  reinterpret_cast<destructor>(pcm_dealloc),         // tp_dealloc
-  0,                                                 // tp_vectorcall_offset / tp_print
-  nullptr,                                           // tp_getattr
-  nullptr,                                           // tp_setattr
-  nullptr,                                           // tp_as_async / tp_compare
-  nullptr,                                           // tp_repr
-  nullptr,                                           // tp_as_number
-  nullptr,                                           // tp_as_sequence
-  &pcm_as_mapping,                                   // tp_as_mapping
-  nullptr,                                           // tp_hash
-  nullptr,                                           // tp_call
-  nullptr,                                           // tp_str
-  nullptr,                                           // tp_getattro
-  nullptr,                                           // tp_setattro
-  nullptr,                                           // tp_as_buffer
-  Py_TPFLAGS_DEFAULT,                                // tp_flags
-  "phlex configuration object-as-dictionary",        // tp_doc
-  nullptr,                                           // tp_traverse
-  nullptr,                                           // tp_clear
-  nullptr,                                           // tp_richcompare
-  0,                                                 // tp_weaklistoffset
-  nullptr,                                           // tp_iter
-  nullptr,                                           // tp_iternext
-  nullptr,                                           // tp_methods
-  nullptr,                                           // tp_members
-  nullptr,                                           // tp_getset
-  nullptr,                                           // tp_base
-  nullptr,                                           // tp_dict
-  nullptr,                                           // tp_descr_get
-  nullptr,                                           // tp_descr_set
-  offsetof(py_config_map, ph_config_cache),          // tp_dictoffset
-  nullptr,                                           // tp_init
-  nullptr,                                           // tp_alloc
-  reinterpret_cast<newfunc>(pcm_new),                // tp_new
-  nullptr,                                           // tp_free
-  nullptr,                                           // tp_is_gc
-  nullptr,                                           // tp_bases
-  nullptr,                                           // tp_mro
-  nullptr,                                           // tp_cache
-  nullptr,                                           // tp_subclasses
-  nullptr                                            // tp_weaklist
-#if PY_VERSION_HEX >= 0x02030000
-  , nullptr                                          // tp_del
-#endif
-#if PY_VERSION_HEX >= 0x02060000
-  , 0                                                // tp_version_tag
-#endif
-#if PY_VERSION_HEX >= 0x03040000
-  , nullptr                                          // tp_finalize
-#endif
-#if PY_VERSION_HEX >= 0x03080000
-  , nullptr                                          // tp_vectorcall
-#endif
+  // clang-format off
+  .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
+  .tp_name = "pyphlex.configuration",
+  // clang-format on
+  .tp_basicsize = sizeof(py_config_map),
+  .tp_itemsize = 0,
+  .tp_dealloc = reinterpret_cast<destructor>(pcm_dealloc),
+  .tp_vectorcall_offset = 0,
+  .tp_getattr = nullptr,
+  .tp_setattr = nullptr,
+  .tp_as_async = nullptr,
+  .tp_repr = nullptr,
+  .tp_as_number = nullptr,
+  .tp_as_sequence = nullptr,
+  .tp_as_mapping = &pcm_as_mapping,
+  .tp_hash = nullptr,
+  .tp_call = nullptr,
+  .tp_str = nullptr,
+  .tp_getattro = nullptr,
+  .tp_setattro = nullptr,
+  .tp_as_buffer = nullptr,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = "phlex configuration object-as-dictionary",
+  .tp_traverse = nullptr,
+  .tp_clear = nullptr,
+  .tp_richcompare = nullptr,
+  .tp_weaklistoffset = 0,
+  .tp_iter = nullptr,
+  .tp_iternext = nullptr,
+  .tp_methods = nullptr,
+  .tp_members = nullptr,
+  .tp_getset = nullptr,
+  .tp_base = nullptr,
+  .tp_dict = nullptr,
+  .tp_descr_get = nullptr,
+  .tp_descr_set = nullptr,
+  .tp_dictoffset = offsetof(py_config_map, ph_config_cache),
+  .tp_init = nullptr,
+  .tp_alloc = nullptr,
+  .tp_new = reinterpret_cast<newfunc>(pcm_new),
+  .tp_free = nullptr,
+  .tp_is_gc = nullptr,
+  .tp_bases = nullptr,
+  .tp_mro = nullptr,
+  .tp_cache = nullptr,
+  .tp_subclasses = nullptr,
+  .tp_weaklist = nullptr,
+  .tp_del = nullptr,
+  .tp_version_tag = 0,
+  .tp_finalize = nullptr,
+  .tp_vectorcall = nullptr,
 #if PY_VERSION_HEX >= 0x030c0000
-  , 0                                                // tp_watched
+  .tp_watched = 0,
 #endif
 #if PY_VERSION_HEX >= 0x030d0000
-  , 0                                                // tp_versions_used
+  .tp_versions_used = 0,
 #endif
 };
-// clang-format on

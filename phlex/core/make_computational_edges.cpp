@@ -60,7 +60,8 @@ namespace phlex::detail {
                           input_product.to_string());
             make_edge(matched_provider->output_port(), *port);
           } else {
-            unconsumed_head_ports[node_name].push_back({input_product, port});
+            unconsumed_head_ports[node_name].push_back(
+              {.input_product = input_product, .port = port});
           }
         }
       }
@@ -92,7 +93,8 @@ namespace phlex::detail {
           // If we have a source node that can produce this product, use it.
           auto bundles = find_matching_implicit_providers(sources, input_product);
           if (bundles.empty()) {
-            unconsumed_head_ports[node_name].push_back({input_product, port});
+            unconsumed_head_ports[node_name].push_back(
+              {.input_product = input_product, .port = port});
             continue;
           }
 
@@ -142,7 +144,7 @@ namespace phlex::detail {
           auto const* producer = producers.find_producer(query, node->name());
           if (not producer) {
             // Is there a way to detect mis-specified product dependencies?
-            result[node_name].push_back({query, receiver_port});
+            result[node_name].push_back({.input_product = query, .port = receiver_port});
             continue;
           }
 

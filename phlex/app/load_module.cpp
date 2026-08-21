@@ -126,7 +126,7 @@ namespace phlex::detail {
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto [lib, fn] = plugin_loader<internal::module_creator_t>(spec, "create_module");
-    auto& creator = create_module.emplace_back(module_plugin{std::move(lib), fn});
+    auto& creator = create_module.emplace_back(module_plugin{.lib = std::move(lib), .fn = fn});
 
     configuration const config{adjusted_config};
     creator(g.module_proxy(config), config);
@@ -138,7 +138,7 @@ namespace phlex::detail {
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto [lib, fn] = plugin_loader<internal::source_creator_t>(spec, "create_source");
-    auto& creator = create_source.emplace_back(source_plugin{std::move(lib), fn});
+    auto& creator = create_source.emplace_back(source_plugin{.lib = std::move(lib), .fn = fn});
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
@@ -158,7 +158,7 @@ namespace phlex::detail {
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
     auto [lib, fn] = plugin_loader<internal::driver_shim_t>(spec, "create_driver");
-    create_driver.emplace(driver_plugin{std::move(lib), fn});
+    create_driver.emplace(driver_plugin{.lib = std::move(lib), .fn = fn});
     driver_bundle result;
     (*create_driver)(g.driver_proxy(required_sources), config, &result);
     g.add_driver(result);

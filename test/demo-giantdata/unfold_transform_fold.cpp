@@ -46,9 +46,9 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
 
   // Create data layers using layer generator
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("run", {"job", n_runs});
-  gen->add_layer("subrun", {"run", n_subruns});
-  gen->add_layer("spill", {"subrun", n_spills});
+  gen->add_layer("run", {.parent_layer = "job", .count = n_runs});
+  gen->add_layer("subrun", {.parent_layer = "run", .count = n_subruns});
+  gen->add_layer("spill", {.parent_layer = "subrun", .count = n_spills});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

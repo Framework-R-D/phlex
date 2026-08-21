@@ -194,8 +194,9 @@ TEST_CASE("Factories fallback", "[form]")
 
   // A major FORM doesn't recognize at all must also fail loudly
   // Major has a fixed underlying type, so an out-of-range value is legal at runtime
-  // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
-  auto const unknown_major = form::technology::Id{static_cast<form::technology::Major>(99), 0};
+  auto const unknown_major =
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
+    form::technology::Id{.major = static_cast<form::technology::Major>(99), .minor = 0};
   CHECK_THROWS_AS(createFile(unknown_major, "test.dat", 'o'), std::runtime_error);
   CHECK_THROWS_AS(createReadContainer(unknown_major, "cont"), std::runtime_error);
   CHECK_THROWS_AS(createWriteAssociation(unknown_major, "assoc"), std::runtime_error);
@@ -214,7 +215,8 @@ TEST_CASE("Factories ROOT storage dispatch", "[form]")
   auto wc_ttree = createWriteContainer(form::technology::ROOT_TTREE, "cont");
   CHECK(dynamic_cast<ROOT_TBranch_Write_ContainerImp*>(wc_ttree.get()) != nullptr);
 
-  auto const unsupported_root = form::technology::Id{form::technology::Major::root, 99};
+  auto const unsupported_root =
+    form::technology::Id{.major = form::technology::Major::root, .minor = 99};
   CHECK_THROWS_AS(createReadContainer(unsupported_root, "cont"), std::runtime_error);
   CHECK_THROWS_AS(createWriteAssociation(unsupported_root, "assoc"), std::runtime_error);
   CHECK_THROWS_AS(createWriteContainer(unsupported_root, "cont"), std::runtime_error);
@@ -423,7 +425,8 @@ TEST_CASE("form_reader_interface::read throws for missing product config", "[for
   cfg.addItem("prod", "dummy_reader_test.root", form::technology::Id{});
   form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
 
-  form::experimental::product_with_name product{"missing", nullptr, &typeid(int)};
+  form::experimental::product_with_name product{
+    .label = "missing", .data = nullptr, .type = &typeid(int)};
   CHECK_THROWS_AS(reader.read("creator", "segment", product), std::runtime_error);
 }
 
@@ -435,7 +438,8 @@ TEST_CASE("form_writer_interface handles missing product config without crashing
   cfg.addItem("prod", "dummy_writer_test.root", form::technology::Id{});
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}};
 
-  form::experimental::product_with_name product{"missing", nullptr, &typeid(int)};
+  form::experimental::product_with_name product{
+    .label = "missing", .data = nullptr, .type = &typeid(int)};
   CHECK_NOTHROW(writer.write("creator", "segment", product));
 }
 

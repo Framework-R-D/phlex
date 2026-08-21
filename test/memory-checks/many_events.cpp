@@ -15,7 +15,7 @@ try {
   constexpr auto max_events{100'000u};
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", max_events, 1u});
+  gen->add_layer("event", {.parent_layer = "job", .count = max_events, .start_at = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
