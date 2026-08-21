@@ -5,6 +5,8 @@
 
 #include "phlex/model/product_specification.hpp"
 
+#include <gsl/pointers>
+
 #include <cassert>
 #include <concepts>
 #include <memory>
@@ -87,9 +89,9 @@ namespace phlex::detail {
     template <typename T>
     T const& get(product_specification const& spec) const
     {
-      auto const* available_product = find_product(spec);
+      auto const available_product = find_product(spec);
 
-      if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product)) {
+      if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product.get())) {
         return desired_product->obj;
       }
 
@@ -102,7 +104,9 @@ namespace phlex::detail {
     bool empty() const noexcept;
 
   private:
-    product_base const* find_product(product_specification const& spec) const;
+    // Throws if no product matches the specification; the returned pointer is therefore
+    // never null.
+    gsl::not_null<product_base const*> find_product(product_specification const& spec) const;
     static void throw_mismatched_type [[noreturn]] (product_specification const& spec,
                                                     char const* requested_type,
                                                     char const* available_type);

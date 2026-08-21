@@ -163,6 +163,7 @@ find_package(Boost REQUIRED COMPONENTS json EXPORT)
 find_package(TBB REQUIRED EXPORT)
 find_package(fmt REQUIRED EXPORT)
 find_package(spdlog REQUIRED EXPORT)
+find_package(Microsoft.GSL REQUIRED EXPORT)
 
 # Dependencies required by internal implementation
 find_package(Boost REQUIRED COMPONENTS program_options)

@@ -12,7 +12,8 @@
 #include "boost/mp11/algorithm.hpp"
 #include "fmt/format.h"
 
-#include <cassert>
+#include <gsl/pointers>
+
 #include <concepts>
 #include <cstddef>
 #include <functional>
@@ -35,13 +36,13 @@ namespace phlex::detail {
     using driver_shim_t = void(driver_proxy const&, configuration const&, driver_bundle*);
 
     template <typename SourceType>
-    std::remove_cvref_t<SourceType> const& as_driver_source(source const* src, std::size_t index)
+    std::remove_cvref_t<SourceType> const& as_driver_source(gsl::not_null<source const*> src,
+                                                            std::size_t index)
     {
-      assert(src != nullptr);
-
       using expected_source_t = std::remove_cvref_t<SourceType>;
 
-      if (auto const* casted = dynamic_cast<expected_source_t const*>(src)) {
+      auto const* src_ptr = src.get();
+      if (auto const* casted = dynamic_cast<expected_source_t const*>(src_ptr)) {
         return *casted;
       }
 
@@ -49,7 +50,7 @@ namespace phlex::detail {
         fmt::format("Driver source type mismatch at source index {}: expected '{}' but got '{}'.",
                     index,
                     boost::core::demangle(typeid(expected_source_t).name()),
-                    boost::core::demangle(typeid(*src).name())));
+                    boost::core::demangle(typeid(*src_ptr).name())));
     }
 
     template <typename SourceParameters, typename F, typename FirstArg>

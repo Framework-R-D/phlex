@@ -6,6 +6,8 @@
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/layer_path.hpp"
 
+#include <gsl/pointers>
+
 #include <cstddef>
 #include <initializer_list>
 #include <string>
@@ -37,8 +39,8 @@ namespace phlex {
     data_cell_index_ptr index_;
     // Non-owning pointers to the enclosing hierarchy and driver; data_cell_cursor is a
     // short-lived, freely copyable view and does not manage their lifetimes.
-    fixed_hierarchy const* hierarchy_;
-    detail::framework_driver* driver_;
+    gsl::not_null<fixed_hierarchy const*> hierarchy_;
+    gsl::not_null<detail::framework_driver*> driver_;
   };
 
   /// @brief Callable object that yields data cells to the framework driver.
