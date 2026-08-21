@@ -5,10 +5,13 @@
 #include "form/config.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
+#include "root_storage/root_tfile.hpp"
+#include "root_storage/root_ttree_write_container.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
 
+#include "TBranch.h"
 #include "TFile.h"
 #include "TTree.h"
 
@@ -280,6 +283,68 @@ TEST_CASE("Root TTree write container: fill and commit are not implemented", "[f
   void const* dummy = nullptr;
   CHECK_THROWS_AS(writeAssoc->fill(dummy), std::runtime_error);
   CHECK_THROWS_AS(writeAssoc->commit(), std::runtime_error);
+}
+
+TEST_CASE("Root TBranch fill: throws when TBranch::Fill() reports a write error", "[form]")
+{
+  // Exercises the defensive guard in ROOT_TBranch_Write_ContainerImp::fill():
+  // TBranch::Fill() returns a negative value when a basket flush to disk fails, and
+  // fill() must throw rather than hand back a row id for data that was never persisted.
+  //
+  // TBranch is ROOT_TTREE-specific, so this test hard-codes that technology instead of
+  // using the (CLI-overridable) global `technology`, which may select ROOT_RNTUPLE.
+  //
+  // To provoke a deterministic write failure we (1) shrink the branch basket so that a
+  // handful of fills force a basket flush to disk, and (2) mark the underlying TFile
+  // non-writable so that flush fails and Fill() returns a negative value.
+  auto const tech = form::technology::ROOT_TTREE;
+
+  auto file = createFile(tech, "tbranch_fill_write_error.root", 'o');
+  auto tree = createWriteAssociation(tech, "faketree");
+  auto branch = createWriteContainer(tech, "faketree/fakebranch");
+
+  tree->setFile(file);
+  tree->setupWrite(typeid(double));
+
+  auto branchAssoc = dynamic_pointer_cast<Storage_Associative_Write_Container>(branch);
+  REQUIRE(branchAssoc != nullptr);
+  branchAssoc->setParent(tree);
+  branch->setFile(file);
+  branch->setupWrite(typeid(double));
+
+  // Reach the raw ROOT objects created through the factory wiring above.
+  auto root_file = dynamic_pointer_cast<ROOT_TFileImp>(file);
+  REQUIRE(root_file != nullptr);
+  auto* root_tree = dynamic_cast<ROOT_TTree_Write_ContainerImp*>(tree.get());
+  REQUIRE(root_tree != nullptr);
+
+  TTree* raw_tree = root_tree->getTTree();
+  REQUIRE(raw_tree != nullptr);
+  TBranch* raw_branch = raw_tree->GetBranch("fakebranch");
+  REQUIRE(raw_branch != nullptr);
+
+  // A tiny basket forces a flush after only a few fills. ROOT clamps the minimum to 100
+  // bytes, so a handful of 8-byte doubles is enough to overflow it.
+  raw_branch->SetBasketSize(100);
+
+  // Make the file non-writable so the forced basket flush fails.
+  std::shared_ptr<TFile> raw_tfile = root_file->getTFile();
+  REQUIRE(raw_tfile != nullptr);
+  raw_tfile->SetWritable(false);
+
+  // Keep filling until a basket flush is triggered; the flush cannot reach the read-only
+  // file, TBranch::Fill() returns a negative value, and fill() surfaces it as a throw.
+  double value = std::numbers::pi;
+  CHECK_THROWS_AS(
+    [&] {
+      for (int i = 0; i < 100000; ++i) {
+        branch->fill(&value);
+      }
+    }(),
+    std::runtime_error);
+
+  // Restore writability so container teardown (which writes the tree) does not error.
+  raw_tfile->SetWritable(true);
 }
 
 TEST_CASE("Persistence round-trip: structured index normalization and listing", "[form]")
