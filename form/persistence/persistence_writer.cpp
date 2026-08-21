@@ -48,13 +48,21 @@ void PersistenceWriter::createContainers(
   m_store_writer->createContainers(containers, m_tech_settings);
 }
 
-void PersistenceWriter::registerWrite(std::string const& creator,
-                                      std::string const& label,
-                                      void const* data,
-                                      std::type_info const& type)
+Token PersistenceWriter::registerWrite(std::string const& creator,
+                                       std::string const& label,
+                                       void const* data,
+                                       std::type_info const& type)
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
-  m_store_writer->fillContainer(*plcmnt, data, type);
+  std::uint64_t const row = m_store_writer->fillContainer(*plcmnt, data, type);
+  // A returned Token must locate a readable product: its row is the read-side navigation key.
+  // kInvalidRowId means backend does not address rows,so a product routed there could not be located on read, so throw here for such an unusable Token
+  if (row == kInvalidRowId) {
+    throw std::runtime_error("PersistenceWriter::registerWrite backend for product '" + label +
+                             "' from creator '" + creator + "' does not address rows; " +
+                             "cannot produce a Token locating the written product");
+  }
+  return Token{plcmnt->fileName(), plcmnt->containerName(), plcmnt->technology(), row};
 }
 
 void PersistenceWriter::commitOutput(std::string const& creator, std::string const& id)

@@ -3,6 +3,8 @@
 #ifndef FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 #define FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 
+#include "core/token.hpp"
+
 #include <map>
 #include <memory>
 #include <string>
@@ -27,10 +29,12 @@ namespace form::detail::experimental {
 
     virtual void createContainers(std::string const& creator,
                                   std::map<std::string, std::type_info const*> const& products) = 0;
-    virtual void registerWrite(std::string const& creator,
-                               std::string const& label,
-                               void const* data,
-                               std::type_info const& type) = 0;
+    // Write one product and return a Token locating it: placement plus 0-based row (entry) number
+    // Throws if backend isn't row-addressed, causing Token read lookup to fail
+    virtual Token registerWrite(std::string const& creator,
+                                std::string const& label,
+                                void const* data,
+                                std::type_info const& type) = 0;
     virtual void commitOutput(std::string const& creator, std::string const& id) = 0;
   };
 

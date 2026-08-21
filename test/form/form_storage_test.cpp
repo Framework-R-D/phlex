@@ -5,16 +5,20 @@
 #include "form/config.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
+#include "root_storage/root_tfile.hpp"
+#include "root_storage/root_ttree_write_container.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
 
+#include "TBranch.h"
 #include "TFile.h"
 #include "TTree.h"
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <memory>
 #include <numbers>
 #include <numeric>
 #include <vector>
@@ -281,6 +285,68 @@ TEST_CASE("Root TTree write container: fill and commit are not implemented", "[f
   CHECK_THROWS_AS(writeAssoc->commit(), std::runtime_error);
 }
 
+TEST_CASE("Root TBranch fill: throws when TBranch::Fill() reports a write error", "[form]")
+{
+  // Exercises the defensive guard in ROOT_TBranch_Write_ContainerImp::fill():
+  // TBranch::Fill() returns a negative value when a basket flush to disk fails, and
+  // fill() must throw rather than hand back a row id for data that was never persisted.
+  //
+  // TBranch is ROOT_TTREE-specific, so this test hard-codes that technology instead of
+  // using the (CLI-overridable) global `technology`, which may select ROOT_RNTUPLE.
+  //
+  // To provoke a deterministic write failure we (1) shrink the branch basket so that a
+  // handful of fills force a basket flush to disk, and (2) mark the underlying TFile
+  // non-writable so that flush fails and Fill() returns a negative value.
+  auto const tech = form::technology::ROOT_TTREE;
+
+  auto file = createFile(tech, "tbranch_fill_write_error.root", 'o');
+  auto tree = createWriteAssociation(tech, "faketree");
+  auto branch = createWriteContainer(tech, "faketree/fakebranch");
+
+  tree->setFile(file);
+  tree->setupWrite(typeid(double));
+
+  auto branchAssoc = dynamic_pointer_cast<Storage_Associative_Write_Container>(branch);
+  REQUIRE(branchAssoc != nullptr);
+  branchAssoc->setParent(tree);
+  branch->setFile(file);
+  branch->setupWrite(typeid(double));
+
+  // Reach the raw ROOT objects created through the factory wiring above.
+  auto root_file = dynamic_pointer_cast<ROOT_TFileImp>(file);
+  REQUIRE(root_file != nullptr);
+  auto* root_tree = dynamic_cast<ROOT_TTree_Write_ContainerImp*>(tree.get());
+  REQUIRE(root_tree != nullptr);
+
+  TTree* raw_tree = root_tree->getTTree();
+  REQUIRE(raw_tree != nullptr);
+  TBranch* raw_branch = raw_tree->GetBranch("fakebranch");
+  REQUIRE(raw_branch != nullptr);
+
+  // A tiny basket forces a flush after only a few fills. ROOT clamps the minimum to 100
+  // bytes, so a handful of 8-byte doubles is enough to overflow it.
+  raw_branch->SetBasketSize(100);
+
+  // Make the file non-writable so the forced basket flush fails.
+  std::shared_ptr<TFile> raw_tfile = root_file->getTFile();
+  REQUIRE(raw_tfile != nullptr);
+  raw_tfile->SetWritable(false);
+
+  // Keep filling until a basket flush is triggered; the flush cannot reach the read-only
+  // file, TBranch::Fill() returns a negative value, and fill() surfaces it as a throw.
+  double value = std::numbers::pi;
+  CHECK_THROWS_AS(
+    [&] {
+      for (int i = 0; i < 100000; ++i) {
+        branch->fill(&value);
+      }
+    }(),
+    std::runtime_error);
+
+  // Restore writability so container teardown (which writes the tree) does not error.
+  raw_tfile->SetWritable(true);
+}
+
 TEST_CASE("Persistence round-trip: structured index normalization and listing", "[form]")
 {
   using namespace form::experimental::config;
@@ -329,6 +395,91 @@ TEST_CASE("Persistence round-trip: structured index normalization and listing", 
   auto const* read_first = static_cast<std::vector<int> const*>(raw);
   REQUIRE(read_first != nullptr);
   CHECK((*read_first == first || *read_first == second));
+}
+
+TEST_CASE("registerWrite returns a Token locating the written product", "[form]")
+{
+  using namespace form::experimental::config;
+
+  std::string const file_name =
+    "registerwrite_rowid_" + form::technology::to_string(technology) + ".root";
+  std::string const creator = "rowid_creator";
+  std::string const container = creator + "/prod";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, technology);
+
+  std::vector<int> const first = {11, 22, 33};
+  std::vector<int> const second = {44, 55, 66};
+
+  Token token_first;
+  Token token_second;
+  {
+    auto writer = createPersistenceWriter();
+    REQUIRE(writer != nullptr);
+    writer->configure(cfg);
+    writer->configureTechSettings(tech_setting_config{});
+    writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+
+    token_first = writer->registerWrite(creator, "prod", &first, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[event:1, segment:1]");
+
+    token_second = writer->registerWrite(creator, "prod", &second, typeid(std::vector<int>));
+    writer->commitOutput(creator, "[event:1, segment:2]");
+  }
+
+  // The returned Token carries the placement and the 0-based, monotonically increasing row
+  CHECK(token_first.hasId());
+  CHECK(token_first.id() == 0u);
+  CHECK(token_first.containerName() == container);
+  CHECK(token_second.hasId());
+  CHECK(token_second.id() == 1u);
+
+  // Token returned by the write is directly usable on the read side: no hand-buit Token or re-scan
+  StorageReader reader;
+  tech_setting_config const settings{};
+
+  // readContainer allocates the payload and transfers ownership to the caller.
+  void const* raw = nullptr;
+  reader.readContainer(token_first, &raw, typeid(std::vector<int>), settings);
+  std::unique_ptr<std::vector<int> const> const got_first(
+    static_cast<std::vector<int> const*>(raw));
+  REQUIRE(got_first != nullptr);
+  CHECK(*got_first == first);
+
+  raw = nullptr;
+  reader.readContainer(token_second, &raw, typeid(std::vector<int>), settings);
+  std::unique_ptr<std::vector<int> const> const got_second(
+    static_cast<std::vector<int> const*>(raw));
+  REQUIRE(got_second != nullptr);
+  CHECK(*got_second == second);
+}
+
+TEST_CASE("registerWrite throws when the backend does not address rows", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // The generic ("no technology specified") backend's write container is a no-op whose fill()
+  // returns kInvalidRowId, and its read side is a no-op too, so a product routed there could
+  // never be located on read. registerWrite must reject that rather than return an unusable
+  // Token whose row would later be used as the read-side navigation key.
+  form::technology::Id const generic{};
+  std::string const file_name = "registerwrite_notset_row.generic";
+  std::string const creator = "notset_creator";
+
+  ItemConfig cfg;
+  cfg.addItem("prod", file_name, generic);
+
+  std::vector<int> const payload = {1, 2, 3};
+
+  auto writer = createPersistenceWriter();
+  REQUIRE(writer != nullptr);
+  writer->configure(cfg);
+  writer->configureTechSettings(tech_setting_config{});
+  writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
+
+  CHECK_THROWS_AS(writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>)),
+                  std::runtime_error);
 }
 
 TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")

@@ -388,5 +388,6 @@ void StorageReader::readContainer(Token const& token,
       cont->second->setAttribute(key, value);
     }
   }
-  cont->second->read(token.id(), data, type);
+  // TODO: Token::id() is a 64-bit row; the read container interface still takes an int entry. Narrow explicitly here (exact for all realistic row counts). Widening the read path to 64-bit is a follow-up PR.
+  cont->second->read(static_cast<int>(token.id()), data, type);
 }

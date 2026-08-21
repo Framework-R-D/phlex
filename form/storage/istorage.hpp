@@ -7,12 +7,18 @@
 #include "core/token.hpp"
 #include "form/config.hpp"
 
+#include <cstdint>
+#include <limits>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace form::detail::experimental {
+
+  // Sentinel returned by the write chain when no addressable row was written
+  // (e.g. the generic no-op container). A real row is always < this value.
+  inline constexpr std::uint64_t kInvalidRowId = std::numeric_limits<std::uint64_t>::max();
 
   class IStorageReader {
   public:
@@ -41,9 +47,10 @@ namespace form::detail::experimental {
     virtual void createContainers(
       std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
       form::experimental::config::tech_setting_config const& settings) = 0;
-    virtual void fillContainer(Placement const& plcmnt,
-                               void const* data,
-                               std::type_info const& type) = 0;
+    // Returns the 0-based row (entry) number written, or kInvalidRowId if no rows
+    virtual std::uint64_t fillContainer(Placement const& plcmnt,
+                                        void const* data,
+                                        std::type_info const& type) = 0;
     virtual void commitContainers(Placement const& plcmnt) = 0;
   };
 
@@ -67,7 +74,8 @@ namespace form::detail::experimental {
 
     virtual void setFile(std::shared_ptr<IStorage_File> file) = 0;
     virtual void setupWrite(std::type_info const& type = typeid(void)) = 0;
-    virtual void fill(void const* data) = 0;
+    // Returns the 0-based row (entry) number written, or kInvalidRowId if no rows
+    virtual std::uint64_t fill(void const* data) = 0;
     virtual void commit() = 0;
 
     virtual void setAttribute(std::string const& name, std::string const& value) = 0;
