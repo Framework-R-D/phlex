@@ -30,7 +30,7 @@ namespace form::detail::experimental {
     virtual void createContainers(std::string const& creator,
                                   std::map<std::string, std::type_info const*> const& products) = 0;
     // Write one product and return a Token locating it: placement plus 0-based row (entry) number
-    // If the backend does not address rows, the returned Token has no id set (hasId() == false).
+    // Throws if backend isn't row-addressed, causing Token read lookup to fail
     virtual Token registerWrite(std::string const& creator,
                                 std::string const& label,
                                 void const* data,

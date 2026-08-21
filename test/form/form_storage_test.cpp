@@ -455,16 +455,17 @@ TEST_CASE("registerWrite returns a Token locating the written product", "[form]"
   CHECK(*got_second == second);
 }
 
-TEST_CASE("registerWrite returns a not-set Token when the backend does not address rows", "[form]")
+TEST_CASE("registerWrite throws when the backend does not address rows", "[form]")
 {
   using namespace form::experimental::config;
 
-  // The generic backend's write container is a no-op whose fill() returns kInvalidRowId (no rows)
-  // registerWrite must map that to a Token with the placement filled in but no id set.
+  // The generic ("no technology specified") backend's write container is a no-op whose fill()
+  // returns kInvalidRowId, and its read side is a no-op too, so a product routed there could
+  // never be located on read. registerWrite must reject that rather than return an unusable
+  // Token whose row would later be used as the read-side navigation key.
   form::technology::Id const generic{};
   std::string const file_name = "registerwrite_notset_row.generic";
   std::string const creator = "notset_creator";
-  std::string const container = creator + "/prod";
 
   ItemConfig cfg;
   cfg.addItem("prod", file_name, generic);
@@ -477,12 +478,8 @@ TEST_CASE("registerWrite returns a not-set Token when the backend does not addre
   writer->configureTechSettings(tech_setting_config{});
   writer->createContainers(creator, {{"prod", &typeid(std::vector<int>)}});
 
-  Token const token = writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>));
-
-  CHECK_FALSE(token.hasId());
-  CHECK(token.fileName() == file_name);
-  CHECK(token.containerName() == container);
-  CHECK(token.technology() == generic);
+  CHECK_THROWS_AS(writer->registerWrite(creator, "prod", &payload, typeid(std::vector<int>)),
+                  std::runtime_error);
 }
 
 TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")

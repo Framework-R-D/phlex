@@ -55,11 +55,12 @@ Token PersistenceWriter::registerWrite(std::string const& creator,
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
   std::uint64_t const row = m_store_writer->fillContainer(*plcmnt, data, type);
-  // kInvalidRowId is not an error: it means the backend does not address rows
-  // (e.g. the generic no-op container). Real write failures throw in the backend.
-  // Represent "no addressable row" as a Token with hasId() == false.
+  // A returned Token must locate a readable product: its row is the read-side navigation key.
+  // kInvalidRowId means backend does not address rows,so a product routed there could not be located on read, so throw here for such an unusable Token
   if (row == kInvalidRowId) {
-    return Token{plcmnt->fileName(), plcmnt->containerName(), plcmnt->technology()};
+    throw std::runtime_error("PersistenceWriter::registerWrite backend for product '" + label +
+                             "' from creator '" + creator + "' does not address rows; " +
+                             "cannot produce a Token locating the written product");
   }
   return Token{plcmnt->fileName(), plcmnt->containerName(), plcmnt->technology(), row};
 }
