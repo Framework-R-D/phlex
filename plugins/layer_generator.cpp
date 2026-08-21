@@ -145,7 +145,10 @@ namespace phlex::experimental {
     };
   }
 
-  index_generator layer_generator::execute(data_cell_index_ptr const cell)
+  // Passing the pointer by value is required because this coroutine may outlive its caller;
+  // prioritize preserving ownership in the coroutine frame over the extra shared_ptr copy.
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
+  index_generator layer_generator::execute(data_cell_index_ptr cell)
   {
     // Used in drivers which are close to public API --> easier to stick to strings
     auto cell_lp = cell->layer_path().to_string();
