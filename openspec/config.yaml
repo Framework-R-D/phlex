@@ -1,0 +1,65 @@
+schema: spec-driven
+
+context: |
+  Project: Phlex — Parallel, hierarchical, and layered execution of data-processing algorithms
+  Version: 0.1.0 (active development)
+  License: Apache 2.0
+
+  Tech stack:
+  - C++23 (core framework), Python 3.12+ (plugin support and testing)
+  - CMake 3.31+ build system with cetmodules, built via spack mpd
+  - Intel TBB for parallel graph execution
+  - Boost (json, program_options), fmt, spdlog, jsonnet
+  - Catch2 (C++ tests), pytest (Python tests)
+  - Optional: FORM integration (ROOT file format), Perfetto profiling, cppyy
+
+  Architecture:
+  - Graph-based DAG execution engine with automatic parallelization
+  - Plugin system: dynamic module loading for user algorithms (C++ and Python)
+  - Product store pattern: type-safe data passing between algorithms
+  - Hierarchical data model (e.g. run → subrun → event)
+  - Workflow configuration via Jsonnet files
+
+  Key directories:
+  - phlex/core/: execution engine, algorithm declarations, graph execution
+  - phlex/model/: product store, data layer hierarchy, type system
+  - test/: Catch2 unit tests and pytest integration tests
+  - form/: optional FORM/ROOT persistence layer
+
+  Naming conventions:
+  - C++: lowercase_snake_case for types, functions, variables; UPPER_CASE for macros
+  - Namespaces: phlex:: (core), phlex::experimental:: (experimental)
+  - Python: PEP 8, Google-style docstrings
+  - Header files: .hpp; test files: *_test.cpp or test_*.py
+  - Jsonnet configs for workflow definitions
+  - Terminology: use "callable object", not "functor"
+
+  Code standards:
+  - C++: follow the existing formatting and static-analysis conventions
+  - ruff for Python (99-char line limit, double quotes)
+  - All files must end with exactly one newline, no trailing whitespace
+
+  Validation commands (match VS Code tasks):
+  - Build Phlex (MPD): spack mpd select --project phlex-work-dir && spack mpd build
+  - Test Phlex (MPD): spack mpd select --project phlex-work-dir && spack mpd test -j 12
+  - Build and Test Phlex (MPD): spack mpd select --project phlex-work-dir && spack mpd build && spack mpd test -j 12
+
+rules:
+  proposal:
+    - Always include a "Non-goals" section
+    - Reference affected directories from the key directories list
+  tasks:
+    - Break tasks into independently buildable and testable chunks
+    - Note whether each task requires C++, Python, CMake, or a combination
+    - Flag tasks that affect the public plugin API separately
+
+operations:
+  apply:
+    guidance:
+      - Build C++ changes with the "Build Phlex (MPD)" validation command
+      - Test C++ changes with the "Test Phlex (MPD)" validation command
+      - New C++ files require corresponding CMakeLists.txt entries
+      - Python changes must pass ruff check and ruff format
+  archive:
+    guidance:
+      - Confirm the "Build and Test Phlex (MPD)" validation command passes before archiving
