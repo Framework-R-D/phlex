@@ -55,6 +55,9 @@ Token PersistenceWriter::registerWrite(std::string const& creator,
 {
   std::unique_ptr<Placement> plcmnt = getPlacement(creator, label);
   std::uint64_t const row = m_store_writer->fillContainer(*plcmnt, data, type);
+  // kInvalidRowId is not an error: it means the backend does not address rows
+  // (e.g. the generic no-op container). Real write failures throw in the backend.
+  // Represent "no addressable row" as a Token with hasId() == false.
   if (row == kInvalidRowId) {
     return Token{plcmnt->fileName(), plcmnt->containerName(), plcmnt->technology()};
   }
