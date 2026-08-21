@@ -49,7 +49,7 @@ if(FORM_USE_ROOT_STORAGE)
     target_include_directories("ReadVector_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
     cet_test(
-        "form_root_schema_write_test_${TECH}"
+        "form_root_schema_write_${TECH}"
         SOURCE
         form_root_schema_write_test.cpp
         toy_tracker.cpp
@@ -63,13 +63,10 @@ if(FORM_USE_ROOT_STORAGE)
         TEST_ARGS
         ${TECH}
     )
-    target_include_directories(
-      "form_root_schema_write_test_${TECH}"
-      PRIVATE ${PROJECT_SOURCE_DIR}/form
-    )
+    target_include_directories("form_root_schema_write_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
     cet_test(
-       "form_root_schema_read_test_${TECH}"
+       "form_root_schema_read_${TECH}"
        SOURCE
        form_root_schema_read_test.cpp
        LIBRARIES
@@ -81,14 +78,11 @@ if(FORM_USE_ROOT_STORAGE)
        TEST_WORKDIR
        "form_root_schema_test_${TECH}"
        REQUIRED_FIXTURES
-       "form_root_schema_write_test_${TECH}"
+       "form_root_schema_write_${TECH}"
        TEST_ARGS
        ${TECH}
     )
-    target_include_directories(
-      "form_root_schema_read_test_${TECH}"
-      PRIVATE ${PROJECT_SOURCE_DIR}/form
-    )
+    target_include_directories("form_root_schema_read_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
     cet_test(
       "check_root_schema_evolution_${TECH}"
@@ -104,11 +98,11 @@ if(FORM_USE_ROOT_STORAGE)
       TEST_WORKDIR
       "form_root_schema_test_${TECH}"
       REQUIRED_FIXTURES
-      "form_root_schema_write_test_${TECH}"
-      "form_root_schema_read_test_${TECH}"
+      "form_root_schema_write_${TECH}"
+      "form_root_schema_read_${TECH}"
     )
 
-    cet_test("form_storage_test_${TECH}" USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
+    cet_test("form_storage_${TECH}" USE_CATCH2_MAIN SOURCE form_storage_test.cpp LIBRARIES
              root_storage
              storage
              persistence
@@ -121,7 +115,7 @@ if(FORM_USE_ROOT_STORAGE)
              RESOURCE_LOCK
              "FORMTestFile.root"
     )
-    target_include_directories("form_storage_test_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
+    target_include_directories("form_storage_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
   endforeach()
 endif()
 
@@ -157,14 +151,14 @@ set(form_basics_test_libraries form)
 if(FORM_USE_ROOT_STORAGE)
   list(APPEND form_basics_test_libraries root_storage)
 endif()
-cet_test(form_basics_test USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
+cet_test(form_basics USE_CATCH2_MAIN SOURCE form_basics_test.cpp LIBRARIES
          ${form_basics_test_libraries}
 )
-target_include_directories(form_basics_test PRIVATE ${PROJECT_SOURCE_DIR}/form)
+target_include_directories(form_basics PRIVATE ${PROJECT_SOURCE_DIR}/form)
 if(FORM_USE_ROOT_STORAGE)
-  target_compile_definitions(form_basics_test PRIVATE USE_ROOT_STORAGE)
+  target_compile_definitions(form_basics PRIVATE USE_ROOT_STORAGE)
   if(FORM_USE_RNTUPLE_STORAGE)
-    target_compile_definitions(form_basics_test PRIVATE USE_RNTUPLE_STORAGE)
+    target_compile_definitions(form_basics PRIVATE USE_RNTUPLE_STORAGE)
   endif()
 endif()
 
