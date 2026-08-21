@@ -391,6 +391,11 @@ namespace {
   std::string annotation_as_text(PyObject* pyobj)
   {
     static PyObject* normalizer = nullptr;
+
+    // a return buffer is needed because the normalizer result is a Python
+    // object that needs to be dereferenced before this function returns
+    std::string result;
+
     if (!normalizer) {
       PyObject* phlexmod = PyImport_ImportModule("phlex");
       if (phlexmod) {
@@ -403,23 +408,23 @@ namespace {
       // only exists to get a proper error message instead of a segfault
       // in that rather unlikely case
       if (!normalizer) {
-        return "";
+        return result;
       }
       // LCOV_EXCL_STOP
     }
 
     PyObject* norm = PyObject_CallOneArg(normalizer, pyobj);
     if (!norm) {
-      return "";
+      return result;
     }
 
     char const* ann = PyUnicode_AsUTF8(norm);
-    Py_DECREF(norm);
-    if (!ann) {
-      return "";
+    if (ann) {
+      result = ann;
     }
+    Py_DECREF(norm);
 
-    return ann;
+    return result;
   }
 
   // retrieve C++ (matching) types from annotations
@@ -649,8 +654,7 @@ namespace {
     );                                                                                             \
                                                                                                    \
     if (!np_view) {                                                                                \
-      std::runtime_error("failed to allocate numpy view object");                                  \
-      return dcarg{nullptr};                                                                       \
+      throw std::runtime_error("failed to allocate numpy view object");                            \
     }                                                                                              \
                                                                                                    \
     /* make the data read-only by not making it writable */                                        \
@@ -663,8 +667,7 @@ namespace {
       PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr));                           \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
-      std::runtime_error("failed to allocate lifeline object");                                    \
-      return dcarg{nullptr};                                                                       \
+      throw std::runtime_error("failed to allocate lifeline object");                              \
     }                                                                                              \
     pyll->m_source = v;                                                                            \
     pyll->m_view = np_view; /* steals reference */                                                 \
