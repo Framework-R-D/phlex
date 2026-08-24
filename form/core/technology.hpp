@@ -20,7 +20,12 @@ namespace form::technology {
 
   // Minor variant within a major (e.g. TTree vs RNTuple within ROOT)
   struct id {
-    major major{major::generic};
+    // Member is named 'major' to keep the {major, minor} pair. The type must be
+    // written QUALIFIED: GCC's -Wchanges-meaning rejects an unqualified
+    // 'major major' (the name 'major' would mean the type, then the member),
+    // while a qualified type is looked up in namespace scope and is fine.
+    // clang accepts either, so the unqualified form breaks only in a GCC build.
+    form::technology::major major{}; // value-initializes to major::generic (0)
     int minor{0};
 
     // Exact ordering over (major, minor): lets an id be a std::map key and drives backend dispatch
