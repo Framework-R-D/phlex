@@ -1,12 +1,11 @@
 #include "phlex/core/detail/accumulator_node.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "test/ostream_logger.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_string.hpp"
 #include "oneapi/tbb/flow_graph.h"
-#include "spdlog/sinks/ostream_sink.h"
-#include "spdlog/spdlog.h"
 
 #include <atomic>
 #include <cassert>
@@ -58,13 +57,6 @@ namespace {
   private:
     std::map<std::size_t, message> messages_;
   };
-
-  void use_ostream_logger(std::ostringstream& oss)
-  {
-    auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt>(oss);
-    auto ostream_logger = std::make_shared<spdlog::logger>("my_logger", ostream_sink);
-    spdlog::set_default_logger(ostream_logger);
-  }
 
   // Fold function: increments the accumulator by 1 per call. The accumulated value thus equals
   // the number of data cells processed.
@@ -212,7 +204,7 @@ TEST_CASE("Test accumulator with index messages before partition", "[multithread
 TEST_CASE("Test accumulator warning message if cache is not flushed", "[multithreading]")
 {
   std::ostringstream oss;
-  use_ostream_logger(oss);
+  auto logger = phlex::test::use_ostream_logger(oss);
 
   tbb::flow::graph g;
   auto accumulator = std::make_unique<internal::accumulator_node<int>>(
