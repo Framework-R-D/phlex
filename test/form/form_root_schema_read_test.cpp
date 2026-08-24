@@ -14,12 +14,12 @@ int main(int const argc, char const** argv)
   std::string const tech_string = (argc > 1) ? argv[1] : "ROOT_TTREE";
 
   try {
-    auto const technology = getTechnology(tech_string);
+    auto const technology = get_technology(tech_string);
 
-    auto const& [prods] = read<std::vector<TrackStart>>(technology);
-    std::ofstream outFile("form_root_schema_read_log_" + tech_string + ".txt");
+    auto const& [prods] = read<std::vector<track_start>>(technology);
+    std::ofstream out_file("form_root_schema_read_log_" + tech_string + ".txt");
     for (auto const& prod : *prods) {
-      outFile << prod << '\n';
+      out_file << prod << '\n';
     }
   } catch (std::exception const& e) {
     std::cerr << "Exception caught in main: " << e.what() << '\n';

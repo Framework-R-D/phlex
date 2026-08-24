@@ -7,25 +7,25 @@
 
 using namespace form::detail::experimental;
 
-Storage_Write_Container::Storage_Write_Container(std::string name) :
-  m_name(std::move(name)), m_file(nullptr)
+storage_write_container::storage_write_container(std::string name) :
+  name_(std::move(name)), file_(nullptr)
 {
 }
 
-std::string const& Storage_Write_Container::name() { return m_name; }
+std::string const& storage_write_container::name() { return name_; }
 
-void Storage_Write_Container::setFile(std::shared_ptr<IStorage_File> file) { m_file = file; }
+void storage_write_container::set_file(std::shared_ptr<i_storage_file> file) { file_ = file; }
 
-void Storage_Write_Container::setupWrite(std::type_info const& /* type*/) {}
+void storage_write_container::setup_write(std::type_info const& /* type*/) {}
 
-std::uint64_t Storage_Write_Container::fill(void const* /* data*/) { return kInvalidRowId; }
+std::uint64_t storage_write_container::fill(void const* /* data*/) { return invalid_row_id; }
 
-void Storage_Write_Container::commit() {}
+void storage_write_container::commit() {}
 
-void Storage_Write_Container::setAttribute(std::string const& /*name*/,
-                                           std::string const& /*value*/)
+void storage_write_container::set_attribute(std::string const& /*name*/,
+                                            std::string const& /*value*/)
 {
   throw std::runtime_error(
-    "Storage_Write_Container::setAttribute does not accept any attributes for a container named " +
-    m_name);
+    "storage_write_container::set_attribute does not accept any attributes for a container named " +
+    name_);
 }

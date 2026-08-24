@@ -14,43 +14,44 @@
 
 using namespace form::detail::experimental;
 
-ROOT_TBranch_Write_ContainerImp::ROOT_TBranch_Write_ContainerImp(std::string const& name) :
-  Storage_Associative_Write_Container(name)
+root_tbranch_write_container_imp::root_tbranch_write_container_imp(std::string const& name) :
+  storage_associative_write_container(name)
 {
 }
 
-void ROOT_TBranch_Write_ContainerImp::setAttribute(std::string const& key, std::string const& value)
+void root_tbranch_write_container_imp::set_attribute(std::string const& key,
+                                                     std::string const& value)
 {
   if (key == "auto_flush") {
-    m_tree->SetAutoFlush(std::stol(value));
+    tree_->SetAutoFlush(std::stol(value));
   } else {
-    throw std::runtime_error("ROOT_TTree_Write_ContainerImp accepts some attributes, but not " +
+    throw std::runtime_error("root_ttree_write_container_imp accepts some attributes, but not " +
                              key);
   }
 }
 
-void ROOT_TBranch_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
+void root_tbranch_write_container_imp::set_file(std::shared_ptr<i_storage_file> file)
 {
-  this->Storage_Associative_Write_Container::setFile(file);
-  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
-  if (root_tfile_imp == nullptr) {
+  this->storage_associative_write_container::set_file(file);
+  auto* root_file = dynamic_cast<root_tfile_imp*>(file.get());
+  if (root_file == nullptr) {
     throw std::runtime_error(
-      "ROOT_TBranch_Write_ContainerImp::setFile can't attach to non-ROOT file");
+      "root_tbranch_write_container_imp::set_file can't attach to non-ROOT file");
   }
-  m_tfile = root_tfile_imp->getTFile();
+  tfile_ = root_file->get_tfile();
 }
 
-void ROOT_TBranch_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_Container> parent)
+void root_tbranch_write_container_imp::set_parent(std::shared_ptr<i_storage_write_container> parent)
 {
-  this->Storage_Associative_Write_Container::setParent(parent);
-  auto* root_ttree_imp = dynamic_cast<ROOT_TTree_Write_ContainerImp*>(parent.get());
+  this->storage_associative_write_container::set_parent(parent);
+  auto* root_ttree_imp = dynamic_cast<root_ttree_write_container_imp*>(parent.get());
   if (root_ttree_imp == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setParent");
+    throw std::runtime_error("root_tbranch_write_container_imp::set_parent");
   }
-  m_tree = root_ttree_imp->getTTree();
+  tree_ = root_ttree_imp->get_ttree();
 }
 
-void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
+void root_tbranch_write_container_imp::setup_write(std::type_info const& type)
 {
   //Type name conversion based on https://root.cern.ch/doc/master/classTTree.html#ac1fa9466ce018d4aa739b357f981c615
   //An empty leaf list (i.e. for a type not in this map) defaults to Float_t; this is intentional.
@@ -68,33 +69,34 @@ void ROOT_TBranch_Write_ContainerImp::setupWrite(std::type_info const& type)
                                                                 {kULong64_t, "/l"},
                                                                 {kBool_t, "/O"}};
 
-  if (m_tree == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no tree found");
+  if (tree_ == nullptr) {
+    throw std::runtime_error("root_tbranch_write_container_imp::setup_write no tree found");
   }
 
-  auto* dictInfo = TDictionary::GetDictionary(type);
-  if (m_branch == nullptr) {
-    if (!dictInfo) {
-      throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite unsupported type: " +
-                               DemangleName(type));
+  auto* dict_info = TDictionary::GetDictionary(type);
+  if (branch_ == nullptr) {
+    if (!dict_info) {
+      throw std::runtime_error("root_tbranch_write_container_imp::setup_write unsupported type: " +
+                               demangle_name(type));
     }
-    if (dictInfo->Property() & EProperty::kIsFundamental) {
-      m_branch = m_tree->Branch(
+    if (dict_info->Property() & EProperty::kIsFundamental) {
+      branch_ = tree_->Branch(
         col_name().c_str(),
         static_cast<void*>(nullptr), // Overload selection
         //NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        (col_name() + type_name_to_leaf_list[static_cast<TDataType*>(dictInfo)->GetType()]).c_str(),
+        (col_name() + type_name_to_leaf_list[static_cast<TDataType*>(dict_info)->GetType()])
+          .c_str(),
         4096);
     } else {
-      m_branch = m_tree->Branch(col_name().c_str(), dictInfo->GetName(), nullptr);
+      branch_ = tree_->Branch(col_name().c_str(), dict_info->GetName(), nullptr);
     }
   }
-  if (m_branch == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::setupWrite no branch created");
+  if (branch_ == nullptr) {
+    throw std::runtime_error("root_tbranch_write_container_imp::setup_write no branch created");
   }
 }
 
-std::uint64_t ROOT_TBranch_Write_ContainerImp::fill(void const* data)
+std::uint64_t root_tbranch_write_container_imp::fill(void const* data)
 {
   // NOTE: incoming parameter `data` is `const` due to the constraints on how we
   // expect users to interact with the data; however, ROOT's SetBranchAddress
@@ -102,45 +104,45 @@ std::uint64_t ROOT_TBranch_Write_ContainerImp::fill(void const* data)
   // it. We will ensure that we do not modify the data through this pointer, and
   // we will reset the branch address after reading to avoid any unintended
   // consequences of casting away the `const`ness.
-  if (m_branch == nullptr) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::fill no branch found");
+  if (branch_ == nullptr) {
+    throw std::runtime_error("root_tbranch_write_container_imp::fill no branch found");
   }
-  TLeaf* leaf = m_branch->GetLeaf(col_name().c_str());
+  TLeaf* leaf = branch_->GetLeaf(col_name().c_str());
   if (leaf != nullptr &&
       TDictionary::GetDictionary(leaf->GetTypeName())->Property() & EProperty::kIsFundamental) {
-    m_branch->SetAddress(const_cast<void*>(data));
+    branch_->SetAddress(const_cast<void*>(data));
   } else {
-    m_branch->SetAddress(reinterpret_cast<void*>(&data));
+    branch_->SetAddress(reinterpret_cast<void*>(&data));
   }
   // TBranch::Fill() returns the number of bytes committed, or a negative value on a write error.
   // ROOT increments entry count before a basket write can fail, so check return value first
-  Int_t const nbytes = m_branch->Fill();
-  m_branch->ResetAddress();
+  Int_t const nbytes = branch_->Fill();
+  branch_->ResetAddress();
   if (nbytes < 0) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::fill TBranch::Fill() failed for " +
+    throw std::runtime_error("root_tbranch_write_container_imp::fill TBranch::Fill() failed for " +
                              col_name());
   }
 
   // 0-based entries: GetEntries() is the total count after this Fill(); row = count - 1.
   // GetEntries() >= 1 here (Fill() succeeded), so the row is non-negative.
-  return static_cast<std::uint64_t>(m_branch->GetEntries() - 1);
+  return static_cast<std::uint64_t>(branch_->GetEntries() - 1);
 }
 
-void ROOT_TBranch_Write_ContainerImp::commit()
+void root_tbranch_write_container_imp::commit()
 {
   // Forward the tree
-  if (!m_tree) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit no tree attached");
+  if (!tree_) {
+    throw std::runtime_error("root_tbranch_write_container_imp::commit no tree attached");
   }
 
-  if (!m_branch) {
-    throw std::runtime_error("ROOT_TBranch_Write_ContainerImp::commit no branch found");
+  if (!branch_) {
+    throw std::runtime_error("root_tbranch_write_container_imp::commit no branch found");
   }
 
-  if (m_branch->GetEntries() == m_tree->GetEntries()) {
+  if (branch_->GetEntries() == tree_->GetEntries()) {
     throw std::runtime_error(
-      "ROOT_TBranch_Write_ContainerImp::commit called without new entries since last fill/commit");
+      "root_tbranch_write_container_imp::commit called without new entries since last fill/commit");
   }
 
-  m_tree->SetEntries(m_branch->GetEntries());
+  tree_->SetEntries(branch_->GetEntries());
 }

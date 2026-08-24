@@ -10,10 +10,10 @@
 
 namespace form::detail::experimental {
 
-  class Storage_Read_Container : public IStorage_Read_Container {
+  class storage_read_container : public i_storage_read_container {
   public:
-    explicit Storage_Read_Container(std::string const& name);
-    ~Storage_Read_Container() override = default;
+    explicit storage_read_container(std::string const& name);
+    ~storage_read_container() override = default;
 
     std::string const& name() override;
 
@@ -21,19 +21,19 @@ namespace form::detail::experimental {
 
     std::string const& col_name();
 
-    void setFile(std::shared_ptr<IStorage_File> file) override;
+    void set_file(std::shared_ptr<i_storage_file> file) override;
     void prime(std::type_info const& type) override;
 
     bool read(int id, void const** data, std::type_info const& type) override;
     int entries() override;
 
-    void setAttribute(std::string const& name, std::string const& value) override;
+    void set_attribute(std::string const& name, std::string const& value) override;
 
   private:
-    std::string m_name;
-    std::string m_tName;
-    std::string m_cName;
-    std::shared_ptr<IStorage_File> m_file;
+    std::string name_;
+    std::string t_name_;
+    std::string c_name_;
+    std::shared_ptr<i_storage_file> file_;
   };
 } // namespace form::detail::experimental
 

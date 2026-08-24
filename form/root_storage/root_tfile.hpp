@@ -12,17 +12,17 @@ class TFile;
 
 namespace form::detail::experimental {
 
-  class ROOT_TFileImp : public Storage_File {
+  class root_tfile_imp : public storage_file {
   public:
-    ROOT_TFileImp(std::string const& name, char mode);
-    ~ROOT_TFileImp() override;
+    root_tfile_imp(std::string const& name, char mode);
+    ~root_tfile_imp() override;
 
-    void setAttribute(std::string const& key, std::string const& value) override;
+    void set_attribute(std::string const& key, std::string const& value) override;
 
-    std::shared_ptr<TFile> getTFile();
+    std::shared_ptr<TFile> get_tfile();
 
   private:
-    std::shared_ptr<TFile> m_file;
+    std::shared_ptr<TFile> file_;
   };
 
 } // namespace form::detail::experimental

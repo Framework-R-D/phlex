@@ -12,110 +12,111 @@
 #include <iostream>
 
 namespace form::detail::experimental {
-  ROOT_RField_Write_ContainerImp::ROOT_RField_Write_ContainerImp(std::string const& name) :
-    Storage_Associative_Write_Container(name)
+  root_rfield_write_container_imp::root_rfield_write_container_imp(std::string const& name) :
+    storage_associative_write_container(name)
   {
   }
 
-  void ROOT_RField_Write_ContainerImp::setAttribute(std::string const& key,
-                                                    std::string const& value)
+  void root_rfield_write_container_imp::set_attribute(std::string const& key,
+                                                      std::string const& value)
   {
     if (key == "force_streamer_field" && value == "true") {
-      m_force_streamer_field = true;
+      force_streamer_field_ = true;
     } else {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp supports some attributes, but not " +
-                               key);
+      throw std::runtime_error(
+        "root_rfield_write_container_imp supports some attributes, but not " + key);
     }
   }
 
-  void ROOT_RField_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
+  void root_rfield_write_container_imp::set_file(std::shared_ptr<i_storage_file> file)
   {
-    Storage_Write_Container::setFile(file);
+    storage_write_container::set_file(file);
 
-    auto form_root_file = dynamic_pointer_cast<ROOT_TFileImp>(file);
+    auto form_root_file = dynamic_pointer_cast<root_tfile_imp>(file);
     if (form_root_file) {
-      m_tfile = form_root_file->getTFile();
+      tfile_ = form_root_file->get_tfile();
     } else {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp::setFile failed to convert an "
-                               "IStorage_File to a ROOT_TFileImp.  "
-                               "ROOT_RField_Write_ContainerImp only works with TFiles.");
+      throw std::runtime_error("root_rfield_write_container_imp::set_file failed to convert an "
+                               "i_storage_file to a root_tfile_imp.  "
+                               "root_rfield_write_container_imp only works with TFiles.");
     }
 
-    if (!m_tfile) {
+    if (!tfile_) {
       throw std::runtime_error(
-        "ROOT_RField_Write_ContainerImp::setFile failed to get a TFile from a ROOT_TFileImp");
+        "root_rfield_write_container_imp::set_file failed to get a TFile from a root_tfile_imp");
     }
 
     return;
   }
 
-  void ROOT_RField_Write_ContainerImp::setParent(std::shared_ptr<IStorage_Write_Container> parent)
+  void root_rfield_write_container_imp::set_parent(
+    std::shared_ptr<i_storage_write_container> parent)
   {
-    this->Storage_Associative_Write_Container::setParent(parent);
-    auto parentDerived = dynamic_pointer_cast<ROOT_RNTuple_Write_ContainerImp>(parent);
-    if (!parentDerived) {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp::setParent parent is not a "
-                               "ROOT_RNTuple_Write_ContainerImp!  Something "
+    this->storage_associative_write_container::set_parent(parent);
+    auto parent_derived = dynamic_pointer_cast<root_rntuple_write_container_imp>(parent);
+    if (!parent_derived) {
+      throw std::runtime_error("root_rfield_write_container_imp::set_parent parent is not a "
+                               "root_rntuple_write_container_imp!  Something "
                                "may be wrong with how Storage works.");
     }
-    m_rntuple_parent = parentDerived;
+    rntuple_parent_ = parent_derived;
   }
 
-  std::uint64_t ROOT_RField_Write_ContainerImp::fill(void const* data)
+  std::uint64_t root_rfield_write_container_imp::fill(void const* data)
   {
-    if (!m_rntuple_parent) {
+    if (!rntuple_parent_) {
       throw std::runtime_error(
-        "ROOT_RField_Write_ContainerImp::fill No parent RNTuple set up before first fill() call");
+        "root_rfield_write_container_imp::fill No parent RNTuple set up before first fill() call");
     }
 
-    if (!m_rntuple_parent->m_writer) {
-      if (!m_tfile) {
+    if (!rntuple_parent_->writer_) {
+      if (!tfile_) {
         throw std::runtime_error(
-          "ROOT_RField_Write_ContainerImp::fill No file loaded to write to on first fill() call");
+          "root_rfield_write_container_imp::fill No file loaded to write to on first fill() call");
       }
 
-      m_rntuple_parent->m_writer =
-        ROOT::RNTupleWriter::Append(std::move(m_rntuple_parent->m_model), top_name(), *m_tfile);
-      m_rntuple_parent->m_entry = m_rntuple_parent->m_writer->CreateRawPtrWriteEntry();
+      rntuple_parent_->writer_ =
+        ROOT::RNTupleWriter::Append(std::move(rntuple_parent_->model_), top_name(), *tfile_);
+      rntuple_parent_->entry_ = rntuple_parent_->writer_->CreateRawPtrWriteEntry();
     }
-    m_rntuple_parent->m_entry->BindRawPtr(col_name(), data);
+    rntuple_parent_->entry_->BindRawPtr(col_name(), data);
 
     // Unlike a TBranch, an RNTuple entry is only written on commit();
     // every field bound before that commit shares one entry.
     // Return the 0-based index that pending entry will occupy (the current entry count).
-    return static_cast<std::uint64_t>(m_rntuple_parent->m_writer->GetNEntries());
+    return static_cast<std::uint64_t>(rntuple_parent_->writer_->GetNEntries());
   }
 
-  void ROOT_RField_Write_ContainerImp::commit()
+  void root_rfield_write_container_imp::commit()
   {
-    if (!m_rntuple_parent) {
-      throw std::runtime_error("ROOT_RField_Write_ContainerImp::commit No parent RNTuple set up.  "
-                               "You may have called commit() without calling setParent() first.");
+    if (!rntuple_parent_) {
+      throw std::runtime_error("root_rfield_write_container_imp::commit No parent RNTuple set up.  "
+                               "You may have called commit() without calling set_parent() first.");
     }
 
-    if (!m_rntuple_parent->m_entry) {
+    if (!rntuple_parent_->entry_) {
       throw std::runtime_error(
-        "ROOT_RField_Write_ContainerImp::commit No RRawPtrWriteEntry set up.  "
+        "root_rfield_write_container_imp::commit No RRawPtrWriteEntry set up.  "
         "You may have called commit() without calling fill() first.");
     }
-    assert(m_rntuple_parent->m_writer); //m_write and m_entry are set in the same place: fill()
-    m_rntuple_parent->m_writer->Fill(*m_rntuple_parent->m_entry);
+    assert(rntuple_parent_->writer_); //writer_ and entry_ are set in the same place: fill()
+    rntuple_parent_->writer_->Fill(*rntuple_parent_->entry_);
   }
 
-  //setupWrite() may not be called after the first time fill() is called.
+  //setup_write() may not be called after the first time fill() is called.
   //If needed in the future, this can be changed by using RNTupleModels' updater facilities.
-  void ROOT_RField_Write_ContainerImp::setupWrite(std::type_info const& type)
+  void root_rfield_write_container_imp::setup_write(std::type_info const& type)
   {
-    if (!m_rntuple_parent) {
+    if (!rntuple_parent_) {
       throw std::runtime_error(
-        "ROOT_RField_Write_ContainerImp::setupWrite No parent RNTuple set up.  "
-        "You may have called setupWrite() before setParent().");
+        "root_rfield_write_container_imp::setup_write No parent RNTuple set up.  "
+        "You may have called setup_write() before set_parent().");
     }
 
-    auto const& type_name = DemangleName(type);
+    auto const& type_name = demangle_name(type);
     std::unique_ptr<ROOT::RFieldBase> field;
 
-    if (m_force_streamer_field) {
+    if (force_streamer_field_) {
       field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
     } else {
       auto field_result = ROOT::RFieldBase::Create(col_name(), type_name);
@@ -123,7 +124,8 @@ namespace form::detail::experimental {
         field = field_result.Unwrap();
       } else {
         std::cerr
-          << "ROOT_RField_Write_ContainerImp::setupWrite could not create column-wise storage for "
+          << "root_rfield_write_container_imp::setup_write could not create column-wise storage "
+             "for "
           << type_name
           << ".  This class is probably using something obsolete like TLorentzVector.  Storing it "
              "in streamer mode to keep the application going."
@@ -132,7 +134,7 @@ namespace form::detail::experimental {
       }
     }
 
-    m_rntuple_parent->m_model->AddField(std::move(field));
+    rntuple_parent_->model_->AddField(std::move(field));
   }
 
 }

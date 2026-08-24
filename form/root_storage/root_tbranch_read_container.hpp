@@ -14,21 +14,21 @@ class TBranch;
 
 namespace form::detail::experimental {
 
-  class ROOT_TBranch_Read_ContainerImp : public Storage_Read_Container {
+  class root_tbranch_read_container_imp : public storage_read_container {
   public:
-    explicit ROOT_TBranch_Read_ContainerImp(std::string const& name);
-    ~ROOT_TBranch_Read_ContainerImp() override = default;
+    explicit root_tbranch_read_container_imp(std::string const& name);
+    ~root_tbranch_read_container_imp() override = default;
 
-    void setFile(std::shared_ptr<IStorage_File> file) override;
+    void set_file(std::shared_ptr<i_storage_file> file) override;
     void prime(std::type_info const& type) override;
 
     bool read(int id, void const** data, std::type_info const& type) override;
     int entries() override;
 
   private:
-    std::shared_ptr<TFile> m_tfile;
-    TTree* m_tree{nullptr};
-    TBranch* m_branch{nullptr};
+    std::shared_ptr<TFile> tfile_;
+    TTree* tree_{nullptr};
+    TBranch* branch_{nullptr};
   };
 
 } // namespace form::detail::experimental

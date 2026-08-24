@@ -8,19 +8,19 @@
 #include <string>
 
 namespace form::detail::experimental {
-  class Storage_File : public IStorage_File {
+  class storage_file : public i_storage_file {
   public:
-    Storage_File(std::string name, char mode);
-    ~Storage_File() override = default;
+    storage_file(std::string name, char mode);
+    ~storage_file() override = default;
 
     std::string const& name() override;
     char mode() override;
 
-    void setAttribute(std::string const& name, std::string const& value) override;
+    void set_attribute(std::string const& name, std::string const& value) override;
 
   private:
-    std::string m_name;
-    char m_mode;
+    std::string name_;
+    char mode_;
   };
 } // namespace form::detail::experimental
 

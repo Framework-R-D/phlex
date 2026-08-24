@@ -6,14 +6,14 @@
 
 using namespace form::detail::experimental;
 
-Storage_File::Storage_File(std::string name, char mode) : m_name(std::move(name)), m_mode(mode) {}
+storage_file::storage_file(std::string name, char mode) : name_(std::move(name)), mode_(mode) {}
 
-std::string const& Storage_File::name() { return m_name; }
+std::string const& storage_file::name() { return name_; }
 
-char Storage_File::mode() { return m_mode; }
+char storage_file::mode() { return mode_; }
 
-void Storage_File::setAttribute(std::string const& /*name*/, std::string const& /*value*/)
+void storage_file::set_attribute(std::string const& /*name*/, std::string const& /*value*/)
 {
   throw std::runtime_error(
-    "StorageFile::setAttribute does not accept any attributes for a file named " + m_name);
+    "StorageFile::set_attribute does not accept any attributes for a file named " + name_);
 }

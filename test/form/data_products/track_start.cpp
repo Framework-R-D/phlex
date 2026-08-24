@@ -1,35 +1,35 @@
 #include "track_start.hpp"
 
-TrackStart::TrackStart() : m_x(0), m_y(0), m_z(0) {}
+track_start::track_start() : x_(0), y_(0), z_(0) {}
 
-TrackStart::TrackStart(float x, float y, float z) : m_x(x), m_y(y), m_z(z) {}
+track_start::track_start(float x, float y, float z) : x_(x), y_(y), z_(z) {}
 
-float TrackStart::getX() const { return m_x; }
+float track_start::get_x() const { return x_; }
 
-float TrackStart::getY() const { return m_y; }
+float track_start::get_y() const { return y_; }
 
-float TrackStart::getZ() const { return m_z; }
+float track_start::get_z() const { return z_; }
 
-TrackStart TrackStart::operator+(TrackStart const& other) const
+track_start track_start::operator+(track_start const& other) const
 {
-  return {m_x + other.m_x, m_y + other.m_y, m_z + other.m_z};
+  return {x_ + other.x_, y_ + other.y_, z_ + other.z_};
 }
 
-TrackStart& TrackStart::operator+=(TrackStart const& other)
+track_start& track_start::operator+=(track_start const& other)
 {
-  m_x += other.m_x;
-  m_y += other.m_y;
-  m_z += other.m_z;
+  x_ += other.x_;
+  y_ += other.y_;
+  z_ += other.z_;
   return *this;
 }
 
-TrackStart TrackStart::operator-(TrackStart const& other) const
+track_start track_start::operator-(track_start const& other) const
 {
-  return {m_x - other.m_x, m_y - other.m_y, m_z - other.m_z};
+  return {x_ - other.x_, y_ - other.y_, z_ - other.z_};
 }
 
-std::ostream& operator<<(std::ostream& os, TrackStart const& track)
+std::ostream& operator<<(std::ostream& os, track_start const& track)
 {
-  os << "TrackStart{" << track.getX() << ", " << track.getY() << ", " << track.getZ() << "}";
+  os << "track_start{" << track.get_x() << ", " << track.get_y() << ", " << track.get_z() << "}";
   return os;
 }

@@ -1,4 +1,4 @@
-//A ROOT_RNTuple_ContainerImp is a Storage_Write_Association (and therefore a Storage_Container) that coordinates the file accesses shared by several ROOT_RField_ContainerImps.  It only coordinates RNTuple-specific file-based resources and doesn't actually implement write() or read() for example.  This matches the early design of the TTree associative container.
+//A root_rntuple_container_imp is a storage_write_association (and therefore a storage_container) that coordinates the file accesses shared by several root_rfield_container_imps.  It only coordinates RNTuple-specific file-based resources and doesn't actually implement write() or read() for example.  This matches the early design of the TTree associative container.
 
 #ifndef FORM_ROOT_STORAGE_ROOT_RNTUPLE_WRITE_CONTAINER_HPP
 #define FORM_ROOT_STORAGE_ROOT_RNTUPLE_WRITE_CONTAINER_HPP
@@ -38,27 +38,27 @@ namespace form::detail::experimental {
   using RRawPtrWriteEntry = ROOT::Experimental::Detail::RRawPtrWriteEntry;
 #endif
 
-  class ROOT_RNTuple_Write_ContainerImp : public Storage_Write_Association {
+  class root_rntuple_write_container_imp : public storage_write_association {
   public:
-    ROOT_RNTuple_Write_ContainerImp(std::string const& name);
-    ~ROOT_RNTuple_Write_ContainerImp() override;
+    root_rntuple_write_container_imp(std::string const& name);
+    ~root_rntuple_write_container_imp() override;
 
     //Rule of five
-    ROOT_RNTuple_Write_ContainerImp(ROOT_RNTuple_Write_ContainerImp const& other) = delete;
-    ROOT_RNTuple_Write_ContainerImp(ROOT_RNTuple_Write_ContainerImp&& other) = delete;
-    ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp const& other) =
+    root_rntuple_write_container_imp(root_rntuple_write_container_imp const& other) = delete;
+    root_rntuple_write_container_imp(root_rntuple_write_container_imp&& other) = delete;
+    root_rntuple_write_container_imp& operator=(root_rntuple_write_container_imp const& other) =
       delete;
-    ROOT_RNTuple_Write_ContainerImp& operator=(ROOT_RNTuple_Write_ContainerImp&& other) = delete;
+    root_rntuple_write_container_imp& operator=(root_rntuple_write_container_imp&& other) = delete;
 
-    void setFile(std::shared_ptr<IStorage_File> file) override;
-    void setupWrite(std::type_info const& type) override;
+    void set_file(std::shared_ptr<i_storage_file> file) override;
+    void setup_write(std::type_info const& type) override;
     std::uint64_t fill(void const* data) override;
     void commit() override;
 
-    //State shared by ROOT_RField_ContainerImps
-    std::unique_ptr<ROOT::RNTupleWriter> m_writer;
-    std::unique_ptr<ROOT::RNTupleModel> m_model;
-    std::unique_ptr<RRawPtrWriteEntry> m_entry;
+    //State shared by root_rfield_container_imps
+    std::unique_ptr<ROOT::RNTupleWriter> writer_;
+    std::unique_ptr<ROOT::RNTupleModel> model_;
+    std::unique_ptr<RRawPtrWriteEntry> entry_;
   };
 }
 

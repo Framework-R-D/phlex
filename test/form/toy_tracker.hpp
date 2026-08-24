@@ -5,14 +5,14 @@
 #include <random>
 #include <vector>
 
-class TrackStart;
+class track_start;
 
-class ToyTracker {
+class toy_tracker {
 public:
-  explicit ToyTracker(int max_tracks);
-  ~ToyTracker() = default;
+  explicit toy_tracker(int max_tracks);
+  ~toy_tracker() = default;
 
-  std::vector<TrackStart> operator()();
+  std::vector<track_start> operator()();
 
 private:
   std::mt19937 gen_;

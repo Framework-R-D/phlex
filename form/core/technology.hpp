@@ -12,34 +12,34 @@
 namespace form::technology {
 
   // Major storage type (ROOT, HDF5, ...)
-  enum class Major : std::uint8_t {
+  enum class major : std::uint8_t {
     generic = 0, // no specific technology requested
     root = 1,
     hdf5 = 2,
   };
 
-  // Minor variant within a Major (e.g. TTree vs RNTuple within ROOT)
-  struct Id {
-    Major major{Major::generic};
+  // Minor variant within a major (e.g. TTree vs RNTuple within ROOT)
+  struct id {
+    major major{major::generic};
     int minor{0};
 
-    // Exact ordering over (major, minor): lets an Id be a std::map key and drives backend dispatch
-    constexpr auto operator<=>(Id const&) const = default;
+    // Exact ordering over (major, minor): lets an id be a std::map key and drives backend dispatch
+    constexpr auto operator<=>(id const&) const = default;
   };
 
-  // Backends: valid (major, minor) pairs, stable numeric values as a future Token may persist them
-  inline constexpr Id ROOT_TTREE{.major = Major::root, .minor = 1};
-  inline constexpr Id ROOT_RNTUPLE{.major = Major::root, .minor = 2};
-  inline constexpr Id HDF5{.major = Major::hdf5, .minor = 1};
+  // Backends: valid (major, minor) pairs, stable numeric values as a future token may persist them
+  inline constexpr id root_ttree{.major = major::root, .minor = 1};
+  inline constexpr id root_rntuple{.major = major::root, .minor = 2};
+  inline constexpr id hdf5{.major = major::hdf5, .minor = 1};
 
   // Canonical string -> technology mapping: the single place a technology string is parsed, replacing the copies that used to live in each module/source/test
-  inline Id from_string(std::string_view name)
+  inline id from_string(std::string_view name)
   {
     if (name == "ROOT_TTREE") {
-      return ROOT_TTREE;
+      return root_ttree;
     }
     if (name == "ROOT_RNTUPLE") {
-      return ROOT_RNTUPLE;
+      return root_rntuple;
     }
     if (name == "HDF5") {
       // HDF5 is a reserved technology but has no backend yet: reject it at parse time
@@ -49,15 +49,15 @@ namespace form::technology {
   }
 
   // Canonical technology -> string mapping
-  inline std::string to_string(Id tech)
+  inline std::string to_string(id tech)
   {
-    if (tech == ROOT_TTREE) {
+    if (tech == root_ttree) {
       return "ROOT_TTREE";
     }
-    if (tech == ROOT_RNTUPLE) {
+    if (tech == root_rntuple) {
       return "ROOT_RNTUPLE";
     }
-    if (tech == HDF5) {
+    if (tech == hdf5) {
       return "HDF5";
     }
     return "UNKNOWN";

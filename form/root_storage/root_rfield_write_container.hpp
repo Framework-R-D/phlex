@@ -1,4 +1,4 @@
-//A ROOT_RField_Write_Container is a Storage_Write_Container that uses a shared RNTuple to write data products to disk.  A single Storage_Write_Container encapsulates the location where a collection of data products of a single type is stored.
+//A root_rfield_write_container is a storage_write_container that uses a shared RNTuple to write data products to disk.  A single storage_write_container encapsulates the location where a collection of data products of a single type is stored.
 
 #ifndef FORM_ROOT_STORAGE_ROOT_RFIELD_WRITE_CONTAINER_HPP
 #define FORM_ROOT_STORAGE_ROOT_RFIELD_WRITE_CONTAINER_HPP
@@ -11,26 +11,26 @@
 class TFile;
 
 namespace form::detail::experimental {
-  class ROOT_RNTuple_Write_ContainerImp;
+  class root_rntuple_write_container_imp;
 
-  class ROOT_RField_Write_ContainerImp : public Storage_Associative_Write_Container {
+  class root_rfield_write_container_imp : public storage_associative_write_container {
   public:
-    ROOT_RField_Write_ContainerImp(std::string const& name);
-    ~ROOT_RField_Write_ContainerImp() override = default;
+    root_rfield_write_container_imp(std::string const& name);
+    ~root_rfield_write_container_imp() override = default;
 
-    void setAttribute(std::string const& key, std::string const& value) override;
+    void set_attribute(std::string const& key, std::string const& value) override;
 
-    void setFile(std::shared_ptr<IStorage_File> file) override;
-    void setupWrite(std::type_info const& type) override;
-    void setParent(std::shared_ptr<IStorage_Write_Container> const parent) override;
+    void set_file(std::shared_ptr<i_storage_file> file) override;
+    void setup_write(std::type_info const& type) override;
+    void set_parent(std::shared_ptr<i_storage_write_container> const parent) override;
     std::uint64_t fill(void const* data) override;
     void commit() override;
 
   private:
-    std::shared_ptr<TFile> m_tfile;
-    std::shared_ptr<ROOT_RNTuple_Write_ContainerImp> m_rntuple_parent;
+    std::shared_ptr<TFile> tfile_;
+    std::shared_ptr<root_rntuple_write_container_imp> rntuple_parent_;
 
-    bool m_force_streamer_field = false;
+    bool force_streamer_field_ = false;
   };
 }
 

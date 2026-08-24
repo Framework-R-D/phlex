@@ -11,18 +11,18 @@
 
 namespace form::detail::experimental {
 
-  std::shared_ptr<IStorage_File> createFile(form::technology::Id tech,
-                                            std::string const& name,
-                                            char mode);
+  std::shared_ptr<i_storage_file> create_file(form::technology::id tech,
+                                              std::string const& name,
+                                              char mode);
 
-  std::shared_ptr<IStorage_Write_Container> createWriteAssociation(form::technology::Id tech,
-                                                                   std::string const& name);
+  std::shared_ptr<i_storage_write_container> create_write_association(form::technology::id tech,
+                                                                      std::string const& name);
 
-  std::shared_ptr<IStorage_Read_Container> createReadContainer(form::technology::Id tech,
-                                                               std::string const& name);
+  std::shared_ptr<i_storage_read_container> create_read_container(form::technology::id tech,
+                                                                  std::string const& name);
 
-  std::shared_ptr<IStorage_Write_Container> createWriteContainer(form::technology::Id tech,
-                                                                 std::string const& name);
+  std::shared_ptr<i_storage_write_container> create_write_container(form::technology::id tech,
+                                                                    std::string const& name);
 
 } // namespace form::detail::experimental
 #endif // FORM_STORAGE_FACTORIES_HPP

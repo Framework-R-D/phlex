@@ -11,34 +11,34 @@
 #include <typeinfo>
 
 namespace form::experimental::config {
-  class ItemConfig;
+  class item_config;
   struct tech_setting_config;
 }
 
 namespace form::detail::experimental {
 
-  class IPersistenceWriter {
+  class i_persistence_writer {
   public:
-    IPersistenceWriter() = default;
-    virtual ~IPersistenceWriter() = default;
+    i_persistence_writer() = default;
+    virtual ~i_persistence_writer() = default;
 
-    virtual void configureTechSettings(
+    virtual void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
-    virtual void configure(form::experimental::config::ItemConfig const& configItems) = 0;
+    virtual void configure(form::experimental::config::item_config const& config_items) = 0;
 
-    virtual void createContainers(std::string const& creator,
-                                  std::map<std::string, std::type_info const*> const& products) = 0;
-    // Write one product and return a Token locating it: placement plus 0-based row (entry) number
-    // Throws if backend isn't row-addressed, causing Token read lookup to fail
-    virtual Token registerWrite(std::string const& creator,
-                                std::string const& label,
-                                void const* data,
-                                std::type_info const& type) = 0;
-    virtual void commitOutput(std::string const& creator, std::string const& id) = 0;
+    virtual void create_containers(
+      std::string const& creator, std::map<std::string, std::type_info const*> const& products) = 0;
+    // Write one product and return a token locating it: placement plus 0-based row (entry) number
+    // Throws if backend isn't row-addressed, causing token read lookup to fail
+    virtual token register_write(std::string const& creator,
+                                 std::string const& label,
+                                 void const* data,
+                                 std::type_info const& type) = 0;
+    virtual void commit_output(std::string const& creator, std::string const& id) = 0;
   };
 
-  std::unique_ptr<IPersistenceWriter> createPersistenceWriter();
+  std::unique_ptr<i_persistence_writer> create_persistence_writer();
 
 } // namespace form::detail::experimental
 
