@@ -1099,24 +1099,67 @@ class TestBuildMessagesMaxDiffChars:
 class TestKiloConfig:
     """Tests for kilo config loading and model resolution."""
 
-    def test_kilo_config_path(self) -> None:
-        """_KILO_CONFIG_PATH points to ~/.config/kilo/kilo.jsonc."""
+    def test_kilo_config_candidates_check_json_before_jsonc(self) -> None:
+        """_KILO_CONFIG_CANDIDATES tries kilo.json before kilo.jsonc."""
         from pathlib import Path
 
-        expected = Path.home() / ".config" / "kilo" / "kilo.jsonc"
-        assert _M._KILO_CONFIG_PATH == expected  # type: ignore[attr-defined]
+        expected_dir = Path.home() / ".config" / "kilo"
+        assert _M._KILO_CONFIG_DIR == expected_dir  # type: ignore[attr-defined]
+        candidates = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        assert candidates == (expected_dir / "kilo.json", expected_dir / "kilo.jsonc")
+
+    def test_kilo_config_path_missing_returns_none(self, tmp_path: Path) -> None:
+        """_kilo_config_path returns None when neither kilo.json nor kilo.jsonc exists."""
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        try:
+            _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+                tmp_path / "kilo.json",
+                tmp_path / "kilo.jsonc",
+            )
+            assert _M._kilo_config_path() is None  # type: ignore[attr-defined]
+        finally:
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
+
+    def test_kilo_config_path_prefers_json_over_jsonc(self, tmp_path: Path) -> None:
+        """_kilo_config_path returns kilo.json when both kilo.json and kilo.jsonc exist."""
+        json_file = tmp_path / "kilo.json"
+        jsonc_file = tmp_path / "kilo.jsonc"
+        json_file.write_text("{}", encoding="utf-8")
+        jsonc_file.write_text("{}", encoding="utf-8")
+
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        try:
+            _M._KILO_CONFIG_CANDIDATES = (json_file, jsonc_file)  # type: ignore[attr-defined]
+            assert _M._kilo_config_path() == json_file  # type: ignore[attr-defined]
+        finally:
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
+
+    def test_kilo_config_path_falls_back_to_jsonc(self, tmp_path: Path) -> None:
+        """_kilo_config_path returns kilo.jsonc when only it exists."""
+        json_file = tmp_path / "kilo.json"
+        jsonc_file = tmp_path / "kilo.jsonc"
+        jsonc_file.write_text("{}", encoding="utf-8")
+
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        try:
+            _M._KILO_CONFIG_CANDIDATES = (json_file, jsonc_file)  # type: ignore[attr-defined]
+            assert _M._kilo_config_path() == jsonc_file  # type: ignore[attr-defined]
+        finally:
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
     def test_load_kilo_config_missing_file_returns_empty(self, tmp_path: Path) -> None:
-        """_load_kilo_config returns empty config when file doesn't exist."""
-        # Use a temp path that doesn't exist
-        non_existent = tmp_path / "nonexistent" / "kilo.jsonc"
-        original = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
+        """_load_kilo_config returns empty config when no config file exists."""
+        non_existent = tmp_path / "nonexistent"
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
         try:
-            _M._KILO_CONFIG_PATH = non_existent  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+                non_existent / "kilo.json",
+                non_existent / "kilo.jsonc",
+            )
             result = _M._load_kilo_config()  # type: ignore[attr-defined]
             assert result == {"disabled_providers": [], "provider": {}}
         finally:
-            _M._KILO_CONFIG_PATH = original  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
     def test_load_kilo_config_with_models_maps_providers(
         self, monkeypatch: pytest.MonkeyPatch
@@ -1157,6 +1200,33 @@ class TestKiloConfig:
         result = _M._resolve_kilo_model("fnal-ow/qwen3-coder-next")
         assert result == "fnal-ow/qwen3-coder-next"
 
+    def test_resolve_kilo_model_known_provider_prefix_matches_by_id(self) -> None:
+        """With a known provider prefix, the remainder may match via "id" (not just key)."""
+        # Real kilo.json entries store a short config key (e.g. "haiku-4-5") plus
+        # an "id"/"name" holding the provider-qualified model id
+        # (e.g. "azure/claude-haiku-4-5"). `kilo run -m` only accepts the key,
+        # so a match on "id" must still resolve to "provider/key".
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-anthropic": {
+                    "models": {
+                        "haiku-4-5": {
+                            "id": "azure/claude-haiku-4-5",
+                            "name": "azure/claude-haiku-4-5",
+                        },
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
+        try:
+            result = _M._resolve_kilo_model("fnal-anthropic/azure/claude-haiku-4-5")
+            assert result == "fnal-anthropic/haiku-4-5"
+        finally:
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
+
     def test_resolve_kilo_model_disabled_provider_prefix_is_treated_as_model_name(self) -> None:
         """If provider prefix is disabled, it's treated as part of the model name."""
         mock_config = {
@@ -1164,7 +1234,7 @@ class TestKiloConfig:
             "provider": {
                 "enabled-prov": {
                     "models": {
-                        "disabled-prov/model-x": {},
+                        "model-x": {"id": "disabled-prov/model-x"},
                     }
                 },
                 "disabled-prov": {
@@ -1178,24 +1248,26 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             # "disabled-prov" is disabled, so it's not a "known provider".
-            # "disabled-prov/model-x" is looked up as a whole.
-            # It's found in "enabled-prov".
+            # "disabled-prov/model-x" is looked up as a whole, matching
+            # "enabled-prov"'s "model-x" entry by its "id" field.
             result = _M._resolve_kilo_model("disabled-prov/model-x")
-            assert result == "enabled-prov/disabled-prov/model-x"
+            assert result == "enabled-prov/model-x"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_unknown_provider_prefix_looks_up_model(
         self,
     ) -> None:
-        """Model with unknown prefix (qwen/) is looked up in config."""
-        # qwen is NOT a known provider, so "qwen/qwen3-coder-next" is looked up
+        """Model with unknown prefix (qwen/) is looked up in config, by id, across providers."""
+        # qwen is NOT a known provider, so "qwen/qwen3-coder-next" (an id/name
+        # value) is looked up as a whole and matched against the "fnal-ow"
+        # provider's "qwen3-coder-next" key via its "id" field.
         mock_config = {
             "disabled_providers": [],
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
             },
@@ -1204,21 +1276,18 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("qwen/qwen3-coder-next")
-            assert result == "fnal-ow/qwen/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
-    def test_resolve_kilo_model_without_provider_prefix_looks_up(self) -> None:
-        """_resolve_kilo_model adds provider prefix when missing."""
-        # "qwen3-coder-next" (short name) is looked up and found under fnal-ow
-        # as "fnal-ow/qwen/qwen3-coder-next" (full name), so result is:
-        # fnal-ow/qwen/qwen3-coder-next
+    def test_resolve_kilo_model_without_provider_prefix_looks_up_by_key(self) -> None:
+        """_resolve_kilo_model adds provider prefix when the input matches a config key."""
         mock_config = {
             "disabled_providers": [],
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
             },
@@ -1227,7 +1296,28 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("qwen3-coder-next")
-            assert result == "fnal-ow/qwen/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
+        finally:
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
+
+    def test_resolve_kilo_model_without_provider_prefix_looks_up_by_id(self) -> None:
+        """_resolve_kilo_model adds provider prefix when the input matches "id" (or "name")."""
+        # A bare (no "/") id/name value should still resolve to the config key.
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "ollama": {
+                    "models": {
+                        "codestral:22b": {"name": "codestral:22b-instruct"},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
+        try:
+            result = _M._resolve_kilo_model("codestral:22b-instruct")
+            assert result == "ollama/codestral:22b"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
@@ -1247,12 +1337,12 @@ class TestKiloConfig:
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
                 "fnal-azure": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
             },
@@ -1262,7 +1352,7 @@ class TestKiloConfig:
         try:
             # Only fnal-ow is enabled, so resolution should succeed.
             result = _M._resolve_kilo_model("qwen3-coder-next")
-            assert result == "fnal-ow/qwen/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
@@ -1271,8 +1361,8 @@ class TestKiloConfig:
         mock_config = {
             "disabled_providers": [],
             "provider": {
-                "fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}},
-                "fnal-azure": {"models": {"qwen/qwen3-coder-next": {}}},
+                "fnal-ow": {"models": {"qwen3-coder-next": {"id": "qwen/qwen3-coder-next"}}},
+                "fnal-azure": {"models": {"qwen3-coder-next": {"id": "qwen/qwen3-coder-next"}}},
             },
         }
         original_load = _M._load_kilo_config  # type: ignore[attr-defined]
@@ -1288,13 +1378,13 @@ class TestKiloConfig:
     ) -> None:
         """Model with non-provider prefix is looked up and prefix added."""
         # "unknown-ow" is not a known provider, so model name
-        # "unknown-ow/qwen3-coder-next" is looked up in config
+        # "unknown-ow/qwen3-coder-next" is looked up in config, matching by "id".
         mock_config = {
             "disabled_providers": [],
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "unknown-ow/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "unknown-ow/qwen3-coder-next"},
                     }
                 },
             },
@@ -1303,7 +1393,7 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("unknown-ow/qwen3-coder-next")
-            assert result == "fnal-ow/unknown-ow/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
@@ -1541,8 +1631,11 @@ class TestCapSelection:
         config_file = tmp_path / "kilo.jsonc"
         config_file.write_text(jsonc_content, encoding="utf-8")
 
-        original_path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
-        _M._KILO_CONFIG_PATH = config_file  # type: ignore[attr-defined]
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+            tmp_path / "kilo.json",
+            config_file,
+        )
         try:
             result = _M._load_kilo_config()  # type: ignore[attr-defined]
             assert (
@@ -1551,20 +1644,23 @@ class TestCapSelection:
             )
             assert "disabled_providers" in result
         finally:
-            _M._KILO_CONFIG_PATH = original_path  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
     def test_load_kilo_config_invalid_json_returns_empty(self, tmp_path: Path) -> None:
         """Invalid JSON returns the default empty config."""
         config_file = tmp_path / "kilo.jsonc"
         config_file.write_text("{ invalid json }")
 
-        original_path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
-        _M._KILO_CONFIG_PATH = config_file  # type: ignore[attr-defined]
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+            tmp_path / "kilo.json",
+            config_file,
+        )
         try:
             result = _M._load_kilo_config()  # type: ignore[attr-defined]
             assert result == {"disabled_providers": [], "provider": {}}
         finally:
-            _M._KILO_CONFIG_PATH = original_path  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
 
 class TestModelResolution:
@@ -1644,15 +1740,18 @@ class TestKiloBackend:
         monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
 
         # Mock kilo config to ensure consistent model resolution.
-        # Uses fnal-ow provider with qwen/qwen3-coder-next model (same as CI config).
+        # Uses fnal-ow provider with a "qwen3-coder-next" config key whose
+        # "id" holds the provider-qualified value (matches real kilo.json).
         mock_config: dict[str, object] = {
             "disabled_providers": [],
-            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}},
+            "provider": {
+                "fnal-ow": {"models": {"qwen3-coder-next": {"id": "qwen/qwen3-coder-next"}}}
+            },
         }
         monkeypatch.setattr(_M, "_load_kilo_config", lambda: mock_config)
 
         mock_completed = subprocess.CompletedProcess(
-            args=["kilo", "run", "--agent=code", "-m", "fnal-ow/qwen/qwen3-coder-next"],
+            args=["kilo", "run", "--agent=code", "-m", "fnal-ow/qwen3-coder-next"],
             returncode=0,
             stdout="Generated Commit Message\n",
             stderr="",
@@ -1668,7 +1767,7 @@ class TestKiloBackend:
             # Verify the model was resolved with provider prefix
             assert "-m" in cmd_list
             model_idx = cmd_list.index("-m")
-            assert cmd_list[model_idx + 1] == "fnal-ow/qwen/qwen3-coder-next"
+            assert cmd_list[model_idx + 1] == "fnal-ow/qwen3-coder-next"
 
     def test_chat_kilo_passes_token_as_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """_chat_kilo passes token via KILO_SERVER_PASSWORD env var."""
