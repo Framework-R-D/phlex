@@ -19,18 +19,18 @@
 #include <ranges>
 #include <vector>
 
-static int const NUMBER_EVENT = 4;
-static int const NUMBER_SEGMENT = 15;
+static int const number_event = 4;
+static int const number_segment = 15;
 
-struct Generator {
-  Generator() : gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
+struct generator {
+  generator() : gen_(std::chrono::system_clock::now().time_since_epoch().count()), dist_(0, 1) {}
 
   void operator()(std::vector<float>& vrand, int size)
   {
     assert(size > 1);
     std::uniform_int_distribution size_dist(0, size - 1);
-    size_t const howMany = size_dist(gen_);
-    vrand.resize(howMany);
+    size_t const how_many = size_dist(gen_);
+    vrand.resize(how_many);
 
     for (auto& rand : vrand) {
       rand = dist_(gen_);
@@ -48,25 +48,25 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
-  auto const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
+  auto const technology = form::test::get_technology((argc > 3) ? argv[3] : "ROOT_TTREE");
 
   // TODO: Read configuration from config file instead of hardcoding
-  form::experimental::config::ItemConfig config_items;
-  config_items.addItem("trackStart", filename, technology);
-  config_items.addItem("trackNumberHits", filename, technology);
-  config_items.addItem("trackStartPoints", filename, technology);
-  config_items.addItem("trackStartX", filename, technology);
+  form::experimental::config::item_config config_items;
+  config_items.add_item("trackStart", filename, technology);
+  config_items.add_item("trackNumberHits", filename, technology);
+  config_items.add_item("trackStartPoints", filename, technology);
+  config_items.add_item("trackStartX", filename, technology);
 
   form::experimental::config::tech_setting_config tech_config;
-  tech_config.container_settings[form::technology::ROOT_TTREE]["trackStart"].emplace_back(
+  tech_config.container_settings[form::technology::root_ttree]["trackStart"].emplace_back(
     "auto_flush", "1");
   tech_config.file_settings[technology]["toy.root"].emplace_back("compression", "kZSTD");
-  tech_config.container_settings[form::technology::ROOT_RNTUPLE]["Toy_Tracker/trackStartPoints"]
+  tech_config.container_settings[form::technology::root_rntuple]["Toy_Tracker/trackStartPoints"]
     .emplace_back("force_streamer_field", "true");
 
   form::experimental::form_writer_interface form(config_items, tech_config);
 
-  ToyTracker tracker(4 * 1024);
+  toy_tracker tracker(4 * 1024);
 
   // Open checksum file for writing
   std::ofstream checksum_file(checksum_filename);
@@ -75,14 +75,14 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  Generator generate;
+  generator generate;
 
-  for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
+  for (int nevent = 0; nevent < number_event; nevent++) {
     std::cout << "PHLEX: Write Event No. " << nevent << '\n';
 
     std::vector<float> track_x;
 
-    for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
+    for (int nseg = 0; nseg < number_segment; nseg++) {
 
       std::vector<float> track_start_x;
       generate(track_start_x, 4 * 1024 /* * 1024*/); // sub-event processing
@@ -115,25 +115,25 @@ int main(int argc, char** argv)
         .label = "trackNumberHits", .data = &track_n_hits, .type = &typeid(std::vector<int>)};
       products.push_back(pb_int);
 
-      std::vector<TrackStart> start_points = tracker();
-      TrackStart checkPoints;
-      for (TrackStart const& point : start_points) {
-        checkPoints += point;
+      std::vector<track_start> start_points = tracker();
+      track_start check_points;
+      for (track_start const& point : start_points) {
+        check_points += point;
       }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", checkPoints = " << checkPoints << '\n';
+                << ", check_points = " << check_points << '\n';
 
       form::experimental::product_with_name pb_points = {.label = "trackStartPoints",
                                                          .data = &start_points,
-                                                         .type = &typeid(std::vector<TrackStart>)};
+                                                         .type = &typeid(std::vector<track_start>)};
       products.push_back(pb_points);
 
       form.write(creator, segment_id, products);
 
       // Save segment checksums
       checksum_file << std::setprecision(10) << "SEG " << nevent << " " << nseg << " " << check
-                    << " " << checkPoints.getX() << " " << checkPoints.getY() << " "
-                    << checkPoints.getZ() << "\n";
+                    << " " << check_points.get_x() << " " << check_points.get_y() << " "
+                    << check_points.get_z() << "\n";
       track_x.insert(track_x.end(), track_start_x.begin(), track_start_x.end());
     }
 

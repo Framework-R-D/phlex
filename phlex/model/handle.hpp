@@ -5,6 +5,8 @@
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/product_specification.hpp"
 
+#include <gsl/pointers>
+
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -83,7 +85,7 @@ namespace phlex {
     handle(handle&&) noexcept = default;
     handle& operator=(handle&&) noexcept = default;
 
-    const_pointer operator->() const noexcept { return product_; }
+    const_pointer operator->() const noexcept { return product_.get(); }
     [[nodiscard]] const_reference operator*() const noexcept { return *operator->(); }
     // NOLINTBEGIN(google-explicit-constructor) - Implicit conversion is intentional
     operator const_reference() const noexcept { return operator*(); }
@@ -116,8 +118,10 @@ namespace phlex {
     }
 
   private:
-    const_pointer product_;           // Non-null, by construction
-    class data_cell_index const* id_; // Non-null, by construction
+    // Non-owning pointers to the product and its data-cell index; both are non-null by
+    // construction, as enforced by gsl::not_null.
+    gsl::not_null<const_pointer> product_;
+    gsl::not_null<class data_cell_index const*> id_;
     experimental::identifier creator_plugin_;
     experimental::identifier creator_algorithm_;
     experimental::identifier suffix_;

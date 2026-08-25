@@ -1,4 +1,4 @@
-//A ROOT_RField_Read_Container reads data products of a single type from vectors stored in an RNTuple field on disk.
+//A root_rfield_read_container reads data products of a single type from vectors stored in an RNTuple field on disk.
 
 #include "root_rfield_read_container.hpp"
 #include "demangle_name.hpp"
@@ -21,77 +21,77 @@ namespace {
 }
 
 namespace form::detail::experimental {
-  ROOT_RField_Read_ContainerImp::ROOT_RField_Read_ContainerImp(std::string const& name) :
-    Storage_Read_Container(name)
+  root_rfield_read_container_imp::root_rfield_read_container_imp(std::string const& name) :
+    storage_read_container(name)
   {
   }
 
-  ROOT_RField_Read_ContainerImp::~ROOT_RField_Read_ContainerImp() {}
+  root_rfield_read_container_imp::~root_rfield_read_container_imp() {}
 
-  void ROOT_RField_Read_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
+  void root_rfield_read_container_imp::set_file(std::shared_ptr<i_storage_file> file)
   {
-    Storage_Read_Container::setFile(file);
+    storage_read_container::set_file(file);
 
-    auto form_root_file = dynamic_cast<ROOT_TFileImp*>(file.get());
+    auto form_root_file = dynamic_cast<root_tfile_imp*>(file.get());
     if (form_root_file) {
-      m_tfile = form_root_file->getTFile();
+      tfile_ = form_root_file->get_tfile();
     } else {
-      throw std::runtime_error("ROOT_RField_Read_ContainerImp::setFile failed to convert an "
-                               "IStorage_File to a ROOT_TFileImp.  "
-                               "ROOT_RField_Read_ContainerImp only works with TFiles.");
+      throw std::runtime_error("root_rfield_read_container_imp::set_file failed to convert an "
+                               "i_storage_file to a root_tfile_imp.  "
+                               "root_rfield_read_container_imp only works with TFiles.");
     }
 
-    if (!m_tfile) {
+    if (!tfile_) {
       throw std::runtime_error(
-        "ROOT_RField_Read_ContainerImp::setFile failed to get a TFile from a ROOT_TFileImp");
+        "root_rfield_read_container_imp::set_file failed to get a TFile from a root_tfile_imp");
     }
 
     return;
   }
 
-  void ROOT_RField_Read_ContainerImp::prime(std::type_info const& type)
+  void root_rfield_read_container_imp::prime(std::type_info const& type)
   {
     std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
 
-    if (!m_tfile) {
-      throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime No file loaded");
+    if (!tfile_) {
+      throw std::runtime_error("root_rfield_read_container_imp::prime No file loaded");
     }
 
-    if (!m_reader) {
-      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+    if (!reader_) {
+      reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
     }
 
-    if (!m_view) {
-      createView(type);
+    if (!view_) {
+      create_view(type);
     }
 
     if (!TDictionary::GetDictionary(type)) {
-      throw std::runtime_error("ROOT_RField_Read_ContainerImp::prime unsupported type");
+      throw std::runtime_error("root_rfield_read_container_imp::prime unsupported type");
     }
   }
 
-  bool ROOT_RField_Read_ContainerImp::read(int id, void const** data, std::type_info const& type)
+  bool root_rfield_read_container_imp::read(int id, void const** data, std::type_info const& type)
   {
     std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
 
     //Connect to file at the last possible moment at the cost of a little run-time branching
-    if (!m_view) {
-      createView(type);
+    if (!view_) {
+      create_view(type);
     }
 
-    if (id >= static_cast<int>(m_reader->GetNEntries())) {
+    if (id >= static_cast<int>(reader_->GetNEntries())) {
       return false;
     }
 
     //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
-    auto buffer = m_view->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
+    auto buffer = view_->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
     assert(buffer);
 
-    m_view->BindRawPtr(buffer.get());
+    view_->BindRawPtr(buffer.get());
     try {
-      (*m_view)(id);
+      (*view_)(id);
     } catch (ROOT::RException const& e) {
-      throw std::runtime_error("ROOT_RField_Read_ContainerImp::read got a ROOT exception: " +
+      throw std::runtime_error("root_rfield_read_container_imp::read got a ROOT exception: " +
                                std::string(e.what()));
     }
     *data =
@@ -101,53 +101,53 @@ namespace form::detail::experimental {
     return true;
   }
 
-  int ROOT_RField_Read_ContainerImp::entries()
+  int root_rfield_read_container_imp::entries()
   {
     std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
 
-    if (!m_reader) {
-      if (!m_tfile) {
-        throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries No file loaded");
+    if (!reader_) {
+      if (!tfile_) {
+        throw std::runtime_error("root_rfield_read_container_imp::entries No file loaded");
       }
-      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+      reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
     }
 
-    if (!m_view &&
-        (m_reader->GetDescriptor().FindFieldId(col_name()) == ROOT::kInvalidDescriptorId)) {
-      throw std::runtime_error("ROOT_RField_Read_ContainerImp::entries field " + col_name() +
+    if (!view_ &&
+        (reader_->GetDescriptor().FindFieldId(col_name()) == ROOT::kInvalidDescriptorId)) {
+      throw std::runtime_error("root_rfield_read_container_imp::entries field " + col_name() +
                                " does not exist");
     }
 
-    return static_cast<int>(m_reader->GetNEntries());
+    return static_cast<int>(reader_->GetNEntries());
   }
 
-  void ROOT_RField_Read_ContainerImp::createView(std::type_info const& type)
+  void root_rfield_read_container_imp::create_view(std::type_info const& type)
   {
-    if (!m_reader) { //First time this RNTuple is read this job
-      if (!m_tfile) {
-        throw std::runtime_error("ROOT_RField_Read_ContainerImp::createView No file loaded to read "
-                                 "from on first read() call!");
+    if (!reader_) { //First time this RNTuple is read this job
+      if (!tfile_) {
+        throw std::runtime_error(
+          "root_rfield_read_container_imp::create_view No file loaded to read "
+          "from on first read() call!");
       }
 
-      m_reader = ROOT::RNTupleReader::Open(top_name(), m_tfile->GetName());
+      reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
     }
 
     try {
-      m_view =
-        std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, type));
+      view_ =
+        std::make_unique<ROOT::RNTupleView<void>>(reader_->GetView(col_name(), nullptr, type));
     } catch (ROOT::RException const& e) {
       //RNTupleView<void> will fail to create a field for fields written in streamer mode or for which type does not match the field's type on disk.  Passing an empty string for type forces it to create the same type of field as the object on disk.  Do this to handle streamer fields, then perform our own type check.
-      m_view =
-        std::make_unique<ROOT::RNTupleView<void>>(m_reader->GetView(col_name(), nullptr, ""));
+      view_ = std::make_unique<ROOT::RNTupleView<void>>(reader_->GetView(col_name(), nullptr, ""));
       //TClass takes the "std::" off of "std::vector<>" when RNTuple's on-disk format doesn't.  Convert RNTuple's type name to match TClass for manual type check because our dictionary of choice will likely be the same as TClass.
       if (!TDictionary::GetDictionary(type) ||
-          !TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str()) ||
-          (strcmp(TDictionary::GetDictionary(m_view->GetField().GetTypeName().c_str())->GetName(),
+          !TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str()) ||
+          (strcmp(TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str())->GetName(),
                   TDictionary::GetDictionary(type)->GetName()) != 0)) {
         throw std::runtime_error(
-          "ROOT_RField_Read_ContainerImp::createView type " + DemangleName(type) +
+          "root_rfield_read_container_imp::create_view type " + demangle_name(type) +
           " requested for a field named " + col_name() +
-          " does not match the type in the file: " + m_view->GetField().GetTypeName());
+          " does not match the type in the file: " + view_->GetField().GetTypeName());
       }
     }
   }

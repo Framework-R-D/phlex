@@ -14,20 +14,20 @@
 
 // forward declaration for form config
 namespace form::experimental::config {
-  class ItemConfig;
+  class item_config;
   struct tech_setting_config;
 }
 
 namespace form::detail::experimental {
 
-  class PersistenceReader : public IPersistenceReader {
+  class persistence_reader : public i_persistence_reader {
   public:
-    PersistenceReader();
-    ~PersistenceReader() override = default;
-    void configureTechSettings(
+    persistence_reader();
+    ~persistence_reader() override = default;
+    void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 
-    void configure(form::experimental::config::ItemConfig const& config_items) override;
+    void configure(form::experimental::config::item_config const& config_items) override;
 
     void read(std::string const& creator,
               std::string const& label,
@@ -39,17 +39,17 @@ namespace form::detail::experimental {
                std::string const& label,
                std::type_info const& type) override;
 
-    std::vector<std::string> listIndices(std::string const& creator,
-                                         std::string const& label) override;
+    std::vector<std::string> list_indices(std::string const& creator,
+                                          std::string const& label) override;
 
   private:
-    std::unique_ptr<Token> getToken(std::string const& creator,
-                                    std::string const& label,
-                                    std::string const& id);
+    std::unique_ptr<token> get_token(std::string const& creator,
+                                     std::string const& label,
+                                     std::string const& id);
 
-    std::unique_ptr<IStorageReader> m_store_reader;
-    form::experimental::config::ItemConfig m_config_items;
-    form::experimental::config::tech_setting_config m_tech_settings;
+    std::unique_ptr<i_storage_reader> store_reader_;
+    form::experimental::config::item_config config_items_;
+    form::experimental::config::tech_setting_config tech_settings_;
   };
 
 } // namespace form::detail::experimental

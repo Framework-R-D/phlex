@@ -17,7 +17,7 @@ using namespace form::detail::experimental;
 namespace {
   form::experimental::config::tech_setting_config::table_t get_file_table(
     form::experimental::config::tech_setting_config const& settings,
-    form::technology::Id technology,
+    form::technology::id technology,
     std::string const& file_name)
   {
     auto const per_tech = settings.file_settings.find(technology);
@@ -33,7 +33,7 @@ namespace {
 
   form::experimental::config::tech_setting_config::table_t get_container_table(
     form::experimental::config::tech_setting_config const& settings,
-    form::technology::Id technology,
+    form::technology::id technology,
     std::string const& container_name)
   {
     auto const per_tech = settings.container_settings.find(technology);
@@ -186,69 +186,71 @@ namespace {
 }
 // Factory function implementation
 namespace form::detail::experimental {
-  std::unique_ptr<IStorageReader> createStorageReader()
+  std::unique_ptr<i_storage_reader> create_storage_reader()
   {
-    return std::unique_ptr<IStorageReader>(new StorageReader());
+    return std::unique_ptr<i_storage_reader>(new storage_reader());
   }
 }
 
-int StorageReader::getIndex(Token const& token,
-                            std::string const& id,
-                            form::experimental::config::tech_setting_config const& settings)
+int storage_reader::get_index(token const& token,
+                              std::string const& id,
+                              form::experimental::config::tech_setting_config const& settings)
 {
   if (auto row = sequential_row_from_index_id(id)) {
     return *row;
   }
 
-  if (m_indexMaps[token.containerName()].empty()) {
-    auto contKey = std::make_pair(token.fileName(), token.containerName());
-    auto cont = m_read_containers.find(contKey);
-    if (cont == m_read_containers.end()) {
-      auto file = m_files.find(token.fileName());
-      if (file == m_files.end()) {
+  if (index_maps_[token.container_name()].empty()) {
+    auto cont_key = std::make_pair(token.file_name(), token.container_name());
+    auto cont = read_containers_.find(cont_key);
+    if (cont == read_containers_.end()) {
+      auto file = files_.find(token.file_name());
+      if (file == files_.end()) {
         file =
-          m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
+          files_
+            .insert({token.file_name(), create_file(token.technology(), token.file_name(), 'i')})
             .first;
         for (auto const& [key, value] :
-             get_file_table(settings, token.technology(), token.fileName())) {
-          file->second->setAttribute(key, value);
+             get_file_table(settings, token.technology(), token.file_name())) {
+          file->second->set_attribute(key, value);
         }
       }
-      cont = m_read_containers
-               .insert({contKey, createReadContainer(token.technology(), token.containerName())})
-               .first;
+      cont =
+        read_containers_
+          .insert({cont_key, create_read_container(token.technology(), token.container_name())})
+          .first;
       for (auto const& [key, value] :
-           get_container_table(settings, token.technology(), token.containerName())) {
-        cont->second->setAttribute(key, value);
+           get_container_table(settings, token.technology(), token.container_name())) {
+        cont->second->set_attribute(key, value);
       }
-      cont->second->setFile(file->second);
+      cont->second->set_file(file->second);
     }
     auto const& type = typeid(std::string);
     int entry = 0;
-    void const* rawData = nullptr;
-    while (cont->second->read(entry, &rawData, type)) {
-      std::unique_ptr<std::string const> data(static_cast<std::string const*>(rawData));
-      m_indexMaps[token.containerName()].insert(std::make_pair(*data, entry));
+    void const* raw_data = nullptr;
+    while (cont->second->read(entry, &raw_data, type)) {
+      std::unique_ptr<std::string const> data(static_cast<std::string const*>(raw_data));
+      index_maps_[token.container_name()].insert(std::make_pair(*data, entry));
       entry++;
     }
 
-    if (m_indexMaps[token.containerName()].empty()) {
+    if (index_maps_[token.container_name()].empty()) {
       if (!is_structured_index_id(id)) {
         return 0;
       }
       throw std::runtime_error("Unable to read index data from container: " +
-                               token.containerName());
+                               token.container_name());
     }
   }
 
-  auto const found = m_indexMaps[token.containerName()].find(id);
-  if (found != m_indexMaps[token.containerName()].end()) {
+  auto const found = index_maps_[token.container_name()].find(id);
+  if (found != index_maps_[token.container_name()].end()) {
     return found->second;
   }
 
   auto const normalized_query = normalize_structured_index(id);
   if (normalized_query) {
-    for (auto const& [existing_id, entry] : m_indexMaps[token.containerName()]) {
+    for (auto const& [existing_id, entry] : index_maps_[token.container_name()]) {
       auto const normalized_existing = normalize_structured_index(existing_id);
       if (normalized_existing && *normalized_existing == *normalized_query) {
         return entry;
@@ -256,8 +258,8 @@ int StorageReader::getIndex(Token const& token,
     }
 
     if (all_components_zero(*normalized_query)) {
-      auto const empty_key = m_indexMaps[token.containerName()].find("");
-      if (empty_key != m_indexMaps[token.containerName()].end()) {
+      auto const empty_key = index_maps_[token.container_name()].find("");
+      if (empty_key != index_maps_[token.container_name()].end()) {
         return 0;
       }
 
@@ -271,83 +273,86 @@ int StorageReader::getIndex(Token const& token,
     return 0;
   }
 
-  throw std::runtime_error("Index id not found: " + id + " in container: " + token.containerName());
+  throw std::runtime_error("Index id not found: " + id +
+                           " in container: " + token.container_name());
 }
 
-void StorageReader::prime(Token const& token,
-                          std::type_info const& type,
-                          form::experimental::config::tech_setting_config const& settings)
+void storage_reader::prime(token const& token,
+                           std::type_info const& type,
+                           form::experimental::config::tech_setting_config const& settings)
 {
-  auto contKey = std::make_pair(token.fileName(), token.containerName());
-  auto cont = m_read_containers.find(contKey);
-  if (cont == m_read_containers.end()) {
-    auto file = m_files.find(token.fileName());
-    if (file == m_files.end()) {
+  auto cont_key = std::make_pair(token.file_name(), token.container_name());
+  auto cont = read_containers_.find(cont_key);
+  if (cont == read_containers_.end()) {
+    auto file = files_.find(token.file_name());
+    if (file == files_.end()) {
       file =
-        m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
+        files_.insert({token.file_name(), create_file(token.technology(), token.file_name(), 'i')})
           .first;
       for (auto const& [key, value] :
-           get_file_table(settings, token.technology(), token.fileName())) {
-        file->second->setAttribute(key, value);
+           get_file_table(settings, token.technology(), token.file_name())) {
+        file->second->set_attribute(key, value);
       }
     }
-    cont = m_read_containers
-             .insert({contKey, createReadContainer(token.technology(), token.containerName())})
+    cont = read_containers_
+             .insert({cont_key, create_read_container(token.technology(), token.container_name())})
              .first;
-    cont->second->setFile(file->second);
+    cont->second->set_file(file->second);
     for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.containerName())) {
-      cont->second->setAttribute(key, value);
+         get_container_table(settings, token.technology(), token.container_name())) {
+      cont->second->set_attribute(key, value);
     }
   }
   cont->second->prime(type);
 }
 
-std::vector<std::string> StorageReader::listIndices(
-  Token const& token, form::experimental::config::tech_setting_config const& settings)
+std::vector<std::string> storage_reader::list_indices(
+  token const& token, form::experimental::config::tech_setting_config const& settings)
 {
-  if (m_indexMaps[token.containerName()].empty()) {
-    auto contKey = std::make_pair(token.fileName(), token.containerName());
-    auto cont = m_read_containers.find(contKey);
-    if (cont == m_read_containers.end()) {
-      auto file = m_files.find(token.fileName());
-      if (file == m_files.end()) {
+  if (index_maps_[token.container_name()].empty()) {
+    auto cont_key = std::make_pair(token.file_name(), token.container_name());
+    auto cont = read_containers_.find(cont_key);
+    if (cont == read_containers_.end()) {
+      auto file = files_.find(token.file_name());
+      if (file == files_.end()) {
         file =
-          m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
+          files_
+            .insert({token.file_name(), create_file(token.technology(), token.file_name(), 'i')})
             .first;
         for (auto const& [key, value] :
-             get_file_table(settings, token.technology(), token.fileName())) {
-          file->second->setAttribute(key, value);
+             get_file_table(settings, token.technology(), token.file_name())) {
+          file->second->set_attribute(key, value);
         }
       }
-      cont = m_read_containers
-               .insert({contKey, createReadContainer(token.technology(), token.containerName())})
-               .first;
+      cont =
+        read_containers_
+          .insert({cont_key, create_read_container(token.technology(), token.container_name())})
+          .first;
       for (auto const& [key, value] :
-           get_container_table(settings, token.technology(), token.containerName())) {
-        cont->second->setAttribute(key, value);
+           get_container_table(settings, token.technology(), token.container_name())) {
+        cont->second->set_attribute(key, value);
       }
-      cont->second->setFile(file->second);
+      cont->second->set_file(file->second);
     }
 
     auto const& type = typeid(std::string);
     int entry = 0;
-    void const* rawData = nullptr;
-    while (cont->second->read(entry, &rawData, type)) {
-      std::unique_ptr<std::string const> data(static_cast<std::string const*>(rawData));
-      m_indexMaps[token.containerName()].insert(std::make_pair(*data, entry));
+    void const* raw_data = nullptr;
+    while (cont->second->read(entry, &raw_data, type)) {
+      std::unique_ptr<std::string const> data(static_cast<std::string const*>(raw_data));
+      index_maps_[token.container_name()].insert(std::make_pair(*data, entry));
       entry++;
     }
 
-    if (m_indexMaps[token.containerName()].empty()) {
+    if (index_maps_[token.container_name()].empty()) {
       throw std::runtime_error("Unable to enumerate indices from container: " +
-                               token.containerName());
+                               token.container_name());
     }
   }
 
   std::vector<std::pair<int, std::string>> ordered;
-  ordered.reserve(m_indexMaps[token.containerName()].size());
-  for (auto const& [index_string, entry] : m_indexMaps[token.containerName()]) {
+  ordered.reserve(index_maps_[token.container_name()].size());
+  for (auto const& [index_string, entry] : index_maps_[token.container_name()]) {
     ordered.emplace_back(entry, index_string);
   }
   std::ranges::sort(ordered,
@@ -361,33 +366,33 @@ std::vector<std::string> StorageReader::listIndices(
   return result;
 }
 
-void StorageReader::readContainer(Token const& token,
-                                  void const** data,
-                                  std::type_info const& type,
-                                  form::experimental::config::tech_setting_config const& settings)
+void storage_reader::read_container(token const& token,
+                                    void const** data,
+                                    std::type_info const& type,
+                                    form::experimental::config::tech_setting_config const& settings)
 {
-  auto contKey = std::make_pair(token.fileName(), token.containerName());
-  auto cont = m_read_containers.find(contKey);
-  if (cont == m_read_containers.end()) {
-    auto file = m_files.find(token.fileName());
-    if (file == m_files.end()) {
+  auto cont_key = std::make_pair(token.file_name(), token.container_name());
+  auto cont = read_containers_.find(cont_key);
+  if (cont == read_containers_.end()) {
+    auto file = files_.find(token.file_name());
+    if (file == files_.end()) {
       file =
-        m_files.insert({token.fileName(), createFile(token.technology(), token.fileName(), 'i')})
+        files_.insert({token.file_name(), create_file(token.technology(), token.file_name(), 'i')})
           .first;
       for (auto const& [key, value] :
-           get_file_table(settings, token.technology(), token.fileName())) {
-        file->second->setAttribute(key, value);
+           get_file_table(settings, token.technology(), token.file_name())) {
+        file->second->set_attribute(key, value);
       }
     }
-    cont = m_read_containers
-             .insert({contKey, createReadContainer(token.technology(), token.containerName())})
+    cont = read_containers_
+             .insert({cont_key, create_read_container(token.technology(), token.container_name())})
              .first;
-    cont->second->setFile(file->second);
+    cont->second->set_file(file->second);
     for (auto const& [key, value] :
-         get_container_table(settings, token.technology(), token.containerName())) {
-      cont->second->setAttribute(key, value);
+         get_container_table(settings, token.technology(), token.container_name())) {
+      cont->second->set_attribute(key, value);
     }
   }
-  // TODO: Token::id() is a 64-bit row; the read container interface still takes an int entry. Narrow explicitly here (exact for all realistic row counts). Widening the read path to 64-bit is a follow-up PR.
+  // TODO: token::id() is a 64-bit row; the read container interface still takes an int entry. Narrow explicitly here (exact for all realistic row counts). Widening the read path to 64-bit is a follow-up PR.
   cont->second->read(static_cast<int>(token.id()), data, type);
 }

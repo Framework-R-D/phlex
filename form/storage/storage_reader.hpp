@@ -14,33 +14,33 @@
 
 namespace form::detail::experimental {
 
-  class StorageReader : public IStorageReader {
+  class storage_reader : public i_storage_reader {
   public:
-    StorageReader() = default;
-    ~StorageReader() override = default;
+    storage_reader() = default;
+    ~storage_reader() override = default;
 
     using table_t = form::experimental::config::tech_setting_config::table_t;
 
-    int getIndex(Token const& token,
-                 std::string const& id,
-                 form::experimental::config::tech_setting_config const& settings) override;
-    void prime(Token const& token,
+    int get_index(token const& token,
+                  std::string const& id,
+                  form::experimental::config::tech_setting_config const& settings) override;
+    void prime(token const& token,
                std::type_info const& type,
                form::experimental::config::tech_setting_config const& settings) override;
-    std::vector<std::string> listIndices(
-      Token const& token, form::experimental::config::tech_setting_config const& settings) override;
-    void readContainer(Token const& token,
-                       void const** data,
-                       std::type_info const& type,
-                       form::experimental::config::tech_setting_config const& settings) override;
+    std::vector<std::string> list_indices(
+      token const& token, form::experimental::config::tech_setting_config const& settings) override;
+    void read_container(token const& token,
+                        void const** data,
+                        std::type_info const& type,
+                        form::experimental::config::tech_setting_config const& settings) override;
 
   private:
-    std::map<std::string, std::shared_ptr<IStorage_File>> m_files;
+    std::map<std::string, std::shared_ptr<i_storage_file>> files_;
     std::unordered_map<std::pair<std::string, std::string>,
-                       std::shared_ptr<IStorage_Read_Container>,
+                       std::shared_ptr<i_storage_read_container>,
                        pair_hash>
-      m_read_containers;
-    std::map<std::string, std::map<std::string, int>> m_indexMaps;
+      read_containers_;
+    std::map<std::string, std::map<std::string, int>> index_maps_;
   };
 
 } // namespace form::detail::experimental

@@ -1,7 +1,7 @@
 cet_test(
   many_events
   SOURCE
-  many_events.cpp
+  many_events_test.cpp
   LIBRARIES
   Boost::json
   phlex::core

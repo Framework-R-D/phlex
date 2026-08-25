@@ -3,5 +3,5 @@
 
 namespace form::detail::experimental {
   // Return the demangled type name
-  std::string DemangleName(std::type_info const& type);
+  std::string demangle_name(std::type_info const& type);
 }

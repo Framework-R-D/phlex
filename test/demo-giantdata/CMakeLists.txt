@@ -11,7 +11,7 @@ target_link_libraries(giantdata PRIVATE TBB::tbb)
 cet_test(
   unfold_transform_fold
   SOURCE
-  unfold_transform_fold.cpp
+  unfold_transform_fold_test.cpp
   LIBRARIES
   giantdata
   phlex::core

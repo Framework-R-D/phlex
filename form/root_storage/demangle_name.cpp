@@ -7,27 +7,28 @@
 namespace {
   class char_string_holder {
   public:
-    explicit char_string_holder(char* cstr) : m_cstr(cstr, std::free) {}
+    explicit char_string_holder(char* cstr) : cstr_(cstr, std::free) {}
     // Implicit conversion from char* to allow direct return of
     // the result of TClassEdit::DemangleTypeIdName.
-    operator char const*() const { return m_cstr.get(); } // NOLINT(google-explicit-constructor)
+    operator char const*() const { return cstr_.get(); } // NOLINT(google-explicit-constructor)
   private:
-    std::unique_ptr<char, decltype(&std::free)> m_cstr;
+    std::unique_ptr<char, decltype(&std::free)> cstr_;
   };
 }
 
 namespace form::detail::experimental {
   // Return the demangled type name
-  std::string DemangleName(std::type_info const& type)
+  std::string demangle_name(std::type_info const& type)
   {
-    int errorCode{};
+    int error_code{};
     // The TClassEdit version works on both linux and Windows.
-    auto const demangledName = char_string_holder{TClassEdit::DemangleTypeIdName(type, errorCode)};
-    if (errorCode != 0) {
+    auto const demangled_name =
+      char_string_holder{TClassEdit::DemangleTypeIdName(type, error_code)};
+    if (error_code != 0) {
       // NOTE: Instead of throwing, we could return the mangled name as a fallback.
       throw std::runtime_error("Failed to demangle type name");
     }
-    std::string result(demangledName);
+    std::string result(demangled_name);
     return result;
   }
 }

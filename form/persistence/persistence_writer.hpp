@@ -14,35 +14,35 @@
 
 // forward declaration for form config
 namespace form::experimental::config {
-  class ItemConfig;
+  class item_config;
   struct tech_setting_config;
 }
 
 namespace form::detail::experimental {
 
-  class PersistenceWriter : public IPersistenceWriter {
+  class persistence_writer : public i_persistence_writer {
   public:
-    PersistenceWriter();
-    ~PersistenceWriter() override = default;
-    void configureTechSettings(
+    persistence_writer();
+    ~persistence_writer() override = default;
+    void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 
-    void configure(form::experimental::config::ItemConfig const& config_items) override;
+    void configure(form::experimental::config::item_config const& config_items) override;
 
-    void createContainers(std::string const& creator,
-                          std::map<std::string, std::type_info const*> const& products) override;
-    Token registerWrite(std::string const& creator,
-                        std::string const& label,
-                        void const* data,
-                        std::type_info const& type) override;
-    void commitOutput(std::string const& creator, std::string const& id) override;
+    void create_containers(std::string const& creator,
+                           std::map<std::string, std::type_info const*> const& products) override;
+    token register_write(std::string const& creator,
+                         std::string const& label,
+                         void const* data,
+                         std::type_info const& type) override;
+    void commit_output(std::string const& creator, std::string const& id) override;
 
   private:
-    std::unique_ptr<Placement> getPlacement(std::string const& creator, std::string const& label);
+    std::unique_ptr<placement> get_placement(std::string const& creator, std::string const& label);
 
-    std::unique_ptr<IStorageWriter> m_store_writer;
-    form::experimental::config::ItemConfig m_config_items;
-    form::experimental::config::tech_setting_config m_tech_settings;
+    std::unique_ptr<i_storage_writer> store_writer_;
+    form::experimental::config::item_config config_items_;
+    form::experimental::config::tech_setting_config tech_settings_;
   };
 
 } // namespace form::detail::experimental

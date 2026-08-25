@@ -12,7 +12,7 @@ using namespace form::detail::experimental;
 namespace {
   form::experimental::config::tech_setting_config::table_t get_file_table(
     form::experimental::config::tech_setting_config const& settings,
-    form::technology::Id technology,
+    form::technology::id technology,
     std::string const& file_name)
   {
     auto const per_tech = settings.file_settings.find(technology);
@@ -28,7 +28,7 @@ namespace {
 
   form::experimental::config::tech_setting_config::table_t get_container_table(
     form::experimental::config::tech_setting_config const& settings,
-    form::technology::Id technology,
+    form::technology::id technology,
     std::string const& container_name)
   {
     auto const per_tech = settings.container_settings.find(technology);
@@ -45,82 +45,82 @@ namespace {
 
 // Factory function implementation
 namespace form::detail::experimental {
-  std::unique_ptr<IStorageWriter> createStorageWriter()
+  std::unique_ptr<i_storage_writer> create_storage_writer()
   {
-    return std::unique_ptr<IStorageWriter>(new StorageWriter());
+    return std::unique_ptr<i_storage_writer>(new storage_writer());
   }
 }
 
-void StorageWriter::createContainers(
-  std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
+void storage_writer::create_containers(
+  std::map<std::unique_ptr<placement>, std::type_info const*> const& containers,
   form::experimental::config::tech_setting_config const& settings)
 {
   for (auto const& [plcmnt, type] : containers) {
     // Use file+container as composite key
-    auto contKey = std::make_pair(plcmnt->fileName(), plcmnt->containerName());
-    auto cont = m_write_containers.find(contKey);
-    if (cont == m_write_containers.end()) {
+    auto cont_key = std::make_pair(plcmnt->file_name(), plcmnt->container_name());
+    auto cont = write_containers_.find(cont_key);
+    if (cont == write_containers_.end()) {
       // Ensure the file exists
-      auto file = m_files.find(plcmnt->fileName());
-      if (file == m_files.end()) {
-        file =
-          m_files
-            .insert({plcmnt->fileName(), createFile(plcmnt->technology(), plcmnt->fileName(), 'o')})
-            .first;
+      auto file = files_.find(plcmnt->file_name());
+      if (file == files_.end()) {
+        file = files_
+                 .insert({plcmnt->file_name(),
+                          create_file(plcmnt->technology(), plcmnt->file_name(), 'o')})
+                 .first;
         for (auto const& [key, value] :
-             get_file_table(settings, plcmnt->technology(), plcmnt->fileName())) {
-          file->second->setAttribute(key, value);
+             get_file_table(settings, plcmnt->technology(), plcmnt->file_name())) {
+          file->second->set_attribute(key, value);
         }
       }
       // Create and bind container to file
-      auto container = createWriteContainer(plcmnt->technology(), plcmnt->containerName());
-      m_write_containers.insert({contKey, container});
+      auto container = create_write_container(plcmnt->technology(), plcmnt->container_name());
+      write_containers_.insert({cont_key, container});
       // For associative container, create association layer
       auto associative_container =
-        dynamic_pointer_cast<Storage_Associative_Write_Container>(container);
+        dynamic_pointer_cast<storage_associative_write_container>(container);
       if (associative_container) {
-        auto parent_key = std::make_pair(plcmnt->fileName(), associative_container->top_name());
-        auto parent = m_write_containers.find(parent_key);
-        if (parent == m_write_containers.end()) {
+        auto parent_key = std::make_pair(plcmnt->file_name(), associative_container->top_name());
+        auto parent = write_containers_.find(parent_key);
+        if (parent == write_containers_.end()) {
           auto parent_cont =
-            createWriteAssociation(plcmnt->technology(), associative_container->top_name());
-          m_write_containers.insert({parent_key, parent_cont});
-          parent_cont->setFile(file->second);
-          parent_cont->setupWrite();
-          associative_container->setParent(parent_cont);
+            create_write_association(plcmnt->technology(), associative_container->top_name());
+          write_containers_.insert({parent_key, parent_cont});
+          parent_cont->set_file(file->second);
+          parent_cont->setup_write();
+          associative_container->set_parent(parent_cont);
         } else {
-          associative_container->setParent(parent->second);
+          associative_container->set_parent(parent->second);
         }
       }
 
       for (auto const& [key, value] :
-           get_container_table(settings, plcmnt->technology(), plcmnt->containerName())) {
-        container->setAttribute(key, value);
+           get_container_table(settings, plcmnt->technology(), plcmnt->container_name())) {
+        container->set_attribute(key, value);
       }
-      container->setFile(file->second);
-      container->setupWrite(*type);
+      container->set_file(file->second);
+      container->setup_write(*type);
     }
   }
 }
 
-std::uint64_t StorageWriter::fillContainer(Placement const& plcmnt,
-                                           void const* data,
-                                           std::type_info const& /* type*/)
+std::uint64_t storage_writer::fill_container(placement const& plcmnt,
+                                             void const* data,
+                                             std::type_info const& /* type*/)
 {
   // Use file+container as composite key
-  auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
-  auto cont = m_write_containers.find(contKey);
-  if (cont == m_write_containers.end()) {
+  auto cont_key = std::make_pair(plcmnt.file_name(), plcmnt.container_name());
+  auto cont = write_containers_.find(cont_key);
+  if (cont == write_containers_.end()) {
     // FIXME: For now throw an exception here, but in future, we may have storage technology do that.
-    throw std::runtime_error("StorageWriter::fillContainer Container doesn't exist: " +
-                             plcmnt.containerName());
+    throw std::runtime_error("storage_writer::fill_container Container doesn't exist: " +
+                             plcmnt.container_name());
   }
   return cont->second->fill(data);
 }
 
-void StorageWriter::commitContainers(Placement const& plcmnt)
+void storage_writer::commit_containers(placement const& plcmnt)
 {
-  auto contKey = std::make_pair(plcmnt.fileName(), plcmnt.containerName());
-  auto cont = m_write_containers.find(contKey);
+  auto cont_key = std::make_pair(plcmnt.file_name(), plcmnt.container_name());
+  auto cont = write_containers_.find(cont_key);
   cont->second->commit();
 }

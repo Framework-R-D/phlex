@@ -15,18 +15,18 @@
 #include <utility>
 #include <vector>
 
-static int const NUMBER_EVENT = 4;
-static int const NUMBER_SEGMENT = 15;
+static int const number_event = 4;
+static int const number_segment = 15;
 
-static float const TOLERANCE = 1e-3f;
+static float const tolerance = 1e-3f;
 
 // Structs to hold expected checksums
-struct SegChecksum {
+struct seg_checksum {
   float check;
   float cpx, cpy, cpz;
 };
 
-struct EvtChecksum {
+struct evt_checksum {
   float check;
 };
 
@@ -36,11 +36,11 @@ int main(int argc, char** argv)
 
   std::string const filename = (argc > 1) ? argv[1] : "toy.root";
   std::string const checksum_filename = (argc > 2) ? argv[2] : "toy_checksums.txt";
-  auto const technology = form::test::getTechnology((argc > 3) ? argv[3] : "ROOT_TTREE");
+  auto const technology = form::test::get_technology((argc > 3) ? argv[3] : "ROOT_TTREE");
 
   // Load expected checksums from file
-  std::map<std::pair<int, int>, SegChecksum> expected_seg;
-  std::map<int, EvtChecksum> expected_evt;
+  std::map<std::pair<int, int>, seg_checksum> expected_seg;
+  std::map<int, evt_checksum> expected_evt;
 
   std::ifstream checksum_file(checksum_filename);
   if (!checksum_file.is_open()) {
@@ -54,13 +54,13 @@ int main(int argc, char** argv)
     std::string type;
     iss >> type;
     if (type == "SEG") {
-      SegChecksum cs{};
+      seg_checksum cs{};
       int nevent{};
       int nseg{};
       iss >> nevent >> nseg >> cs.check >> cs.cpx >> cs.cpy >> cs.cpz;
       expected_seg[{nevent, nseg}] = cs;
     } else if (type == "EVT") {
-      EvtChecksum cs{};
+      evt_checksum cs{};
       int nevent{};
       iss >> nevent >> cs.check;
       expected_evt[nevent] = cs;
@@ -69,11 +69,11 @@ int main(int argc, char** argv)
   checksum_file.close();
 
   // TODO: Read configuration from config file instead of hardcoding
-  form::experimental::config::ItemConfig config_items;
-  config_items.addItem("trackStart", filename, technology);
-  config_items.addItem("trackNumberHits", filename, technology);
-  config_items.addItem("trackStartPoints", filename, technology);
-  config_items.addItem("trackStartX", filename, technology);
+  form::experimental::config::item_config config_items;
+  config_items.add_item("trackStart", filename, technology);
+  config_items.add_item("trackNumberHits", filename, technology);
+  config_items.add_item("trackStartPoints", filename, technology);
+  config_items.add_item("trackStartX", filename, technology);
 
   form::experimental::config::tech_setting_config tech_config;
 
@@ -81,14 +81,14 @@ int main(int argc, char** argv)
 
   bool all_passed = true;
 
-  for (int nevent = 0; nevent < NUMBER_EVENT; nevent++) {
+  for (int nevent = 0; nevent < number_event; nevent++) {
     std::cout << "PHLEX: Read Event No. " << nevent << '\n';
 
     std::unique_ptr<std::vector<float> const> track_x;
 
-    for (int nseg = 0; nseg < NUMBER_SEGMENT; nseg++) {
+    for (int nseg = 0; nseg < number_segment; nseg++) {
 
-      void const* rawPtr = nullptr;
+      void const* raw_ptr = nullptr;
       // Must match the canonical format emitted by writer.cpp (phlex data_cell_index format)
       std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
 
@@ -97,27 +97,27 @@ int main(int argc, char** argv)
       std::string const creator = "Toy_Tracker";
 
       form::experimental::product_with_name pb = {
-        .label = "trackStart", .data = rawPtr, .type = &typeid(std::vector<float>)};
+        .label = "trackStart", .data = raw_ptr, .type = &typeid(std::vector<float>)};
 
       form.read(creator, segment_id, pb);
       std::unique_ptr<std::vector<float> const> track_start_x(
         static_cast<std::vector<float> const*>(pb.data));
 
-      rawPtr = nullptr;
+      raw_ptr = nullptr;
       form::experimental::product_with_name pb_int = {
-        .label = "trackNumberHits", .data = rawPtr, .type = &typeid(std::vector<int>)};
+        .label = "trackNumberHits", .data = raw_ptr, .type = &typeid(std::vector<int>)};
 
       form.read(creator, segment_id, pb_int);
       std::unique_ptr<std::vector<int> const> track_n_hits(
         static_cast<std::vector<int> const*>(pb_int.data));
 
-      rawPtr = nullptr;
+      raw_ptr = nullptr;
       form::experimental::product_with_name pb_points = {
-        .label = "trackStartPoints", .data = rawPtr, .type = &typeid(std::vector<TrackStart>)};
+        .label = "trackStartPoints", .data = raw_ptr, .type = &typeid(std::vector<track_start>)};
 
       form.read(creator, segment_id, pb_points);
-      std::unique_ptr<std::vector<TrackStart> const> start_points(
-        static_cast<std::vector<TrackStart> const*>(pb_points.data));
+      std::unique_ptr<std::vector<track_start> const> start_points(
+        static_cast<std::vector<track_start> const*>(pb_points.data));
 
       float check = 0.0;
       for (float val : *track_start_x) {
@@ -126,31 +126,31 @@ int main(int argc, char** argv)
       for (int val : *track_n_hits) {
         check += static_cast<float>(val);
       }
-      TrackStart checkPoints;
-      for (TrackStart val : *start_points) {
-        checkPoints += val;
+      track_start check_points;
+      for (track_start val : *start_points) {
+        check_points += val;
       }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
                 << ", check = " << check << '\n';
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
-                << ", checkPoints = " << checkPoints << '\n';
+                << ", check_points = " << check_points << '\n';
 
       // Verify segment checksums
       auto key = std::make_pair(nevent, nseg);
       if (expected_seg.contains(key)) {
         auto const& exp = expected_seg[key];
-        bool seg_ok = (std::fabs(check - exp.check) <= TOLERANCE) &&
-                      (std::fabs(checkPoints.getX() - exp.cpx) <= TOLERANCE) &&
-                      (std::fabs(checkPoints.getY() - exp.cpy) <= TOLERANCE) &&
-                      (std::fabs(checkPoints.getZ() - exp.cpz) <= TOLERANCE);
+        bool seg_ok = (std::fabs(check - exp.check) <= tolerance) &&
+                      (std::fabs(check_points.get_x() - exp.cpx) <= tolerance) &&
+                      (std::fabs(check_points.get_y() - exp.cpy) <= tolerance) &&
+                      (std::fabs(check_points.get_z() - exp.cpz) <= tolerance);
         if (seg_ok) {
           std::cout << "VERIFY PASS: event=" << nevent << " seg=" << nseg << '\n';
         } else {
           std::cerr << "VERIFY FAIL: event=" << nevent << " seg=" << nseg
                     << " expected check=" << exp.check << " got=" << check
-                    << " expected cpx=" << exp.cpx << " got=" << checkPoints.getX()
-                    << " expected cpy=" << exp.cpy << " got=" << checkPoints.getY()
-                    << " expected cpz=" << exp.cpz << " got=" << checkPoints.getZ() << '\n';
+                    << " expected cpx=" << exp.cpx << " got=" << check_points.get_x()
+                    << " expected cpy=" << exp.cpy << " got=" << check_points.get_y()
+                    << " expected cpz=" << exp.cpz << " got=" << check_points.get_z() << '\n';
           all_passed = false;
         }
       } else {
@@ -167,9 +167,9 @@ int main(int argc, char** argv)
 
     std::string const creator = "Toy_Tracker_Event";
 
-    void const* rawEvtPtr = nullptr;
+    void const* raw_evt_ptr = nullptr;
     form::experimental::product_with_name pb = {
-      .label = "trackStartX", .data = rawEvtPtr, .type = &typeid(std::vector<float>)};
+      .label = "trackStartX", .data = raw_evt_ptr, .type = &typeid(std::vector<float>)};
 
     form.read(creator, event_id, pb);
     track_x.reset(static_cast<std::vector<float> const*>(pb.data));
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
     // Verify event checksum
     if (expected_evt.contains(nevent)) {
       auto const& exp = expected_evt[nevent];
-      bool evt_ok = (std::fabs(check - exp.check) <= TOLERANCE);
+      bool evt_ok = (std::fabs(check - exp.check) <= tolerance);
       if (evt_ok) {
         std::cout << "VERIFY PASS: event=" << nevent << '\n';
       } else {
