@@ -1,6 +1,7 @@
 #include "phlex/model/data_product_concept_registry.hpp"
 
 #include <algorithm>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 
