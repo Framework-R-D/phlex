@@ -5,21 +5,34 @@
 # environments and ad-hoc installs inherit these settings without
 # needing to repeat them in every spack.yaml.
 #
+# Architecture-aware configuration via PHLEX_SPACK_TARGET environment
+# variable (set in Dockerfile/DockerBuild):
+#   - amd64: x86_64_v3
+#   - arm64: aarch64
+#
+# When PHLEX_SPACK_TARGET is not set, amd64:x86_64_v3 is assumed.
+#
 # Design notes:
-#   - All packages default to target x86_64_v3 and compiler gcc@13.
+#   - All packages default to target (x86_64_v3 or aarch64) and compiler gcc@13.
 #     This covers root's own dependencies (e.g. zlib, python, xrootd)
 #     which do not need to share the gcc@15 ABI of root itself.
-#   - root and its dependents (phlex) require gcc@15; those overrides
-#     live in each environment's spack.yaml, not here.
+#   - root and its dependents (phlex) require gcc@15 or clang depending on
+#     architecture; those overrides are handled in each environment's spack.yaml
+#     via spack config add commands applied before concretization.
 #   - System zlib is declared external so Spack does not build its own
 #     zlib / zlib-ng, eliminating duplicate virtual-provider builds.
+#   - PHLEX_SPACK_TARGET is set via spack config add in entrypoint.sh before
+#     concretization, and here via Spack variable substitution when the
+#     packages.yaml is read from the environment.
 
 packages:
   all:
-    require:
-      - target=x86_64_v3
+    # Target and compiler are set at runtime via spack config add in entrypoint.sh
+    # This provides architecture-aware configuration without modifying this file.
     providers:
       "zlib-api:": [zlib]
+    # Apply PHLEX_SPACK_TARGET to all packages via Spack variable substitution
+    target: ${PHLEX_SPACK_TARGET}
 
   c:
     prefer: ["gcc@13"]
