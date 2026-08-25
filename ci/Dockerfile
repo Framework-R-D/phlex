@@ -56,8 +56,23 @@ ENV LC_ALL=en_US.UTF-8
 ENV SPACK_USER_CONFIG_PATH=/dev/null
 ENV SPACK_DISABLE_LOCAL_CONFIG=true
 ENV PHLEX_SPACK_ENV=/opt/spack-environments/phlex-ci
+ENV PHLEX_SPACK_TARGET=${PHLEX_SPACK_TARGET:-amd64}
+ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER:-gcc}
 
 SHELL ["/bin/bash", "-c"]
+
+# Validate architecture mapping: amd64 -> x86_64_v3, arm64 -> aarch64
+RUN <<'ARCH_MAP_VALIDATE'
+set -euo pipefail
+case "$PHLEX_SPACK_TARGET" in
+  amd64|arm64|x86_64_v3|aarch64) ;;
+  *)
+    echo "ERROR: PHLEX_SPACK_TARGET must be 'amd64', 'arm64', 'x86_64_v3', or 'aarch64'" >&2
+    echo "       Got: '$PHLEX_SPACK_TARGET'" >&2
+    exit 1
+    ;;
+esac
+ARCH_MAP_VALIDATE
 
 ########################################################################
 # Install essential build tools, git, and Python
@@ -225,9 +240,21 @@ set -euo pipefail
 # Install GCC outside the Phlex development environment.
 . /spack/share/spack/setup-env.sh
 
+# Map PHLEX_SPACK_TARGET to Spack's internal target names for GCC bootstrap
+# amd64 -> x86_64_v3, arm64 -> aarch64
+GCC_TARGET="${PHLEX_SPACK_TARGET}"
+case "$GCC_TARGET" in
+  amd64)
+    GCC_TARGET="x86_64_v3"
+    ;;
+  arm64)
+    GCC_TARGET="aarch64"
+    ;;
+esac
+
 spack --timestamp install --fail-fast -j "$(nproc)" \
       --no-check-signature \
-      gcc@15.3 target=x86_64_v3 \
+      gcc@15.3 target="${GCC_TARGET}" \
       +binutils+graphite~nvptx+piclibs+strip \
       build_type=Release \
       languages=c,c++,fortran,lto \
@@ -343,8 +370,21 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
+# Map PHLEX_SPACK_TARGET to LLVM target architecture
+# amd64 -> x86, arm64 -> AArch64
+LLVM_TARGET="${PHLEX_LLVM_TARGET:-x86}"
+case "$PHLEX_SPACK_TARGET" in
+  arm64)
+    LLVM_TARGET="AArch64"
+    ;;
+  *)
+    LLVM_TARGET="x86"
+    ;;
+esac
+
 spack --timestamp install --fail-fast -j $(nproc) \
-  --no-add --only-concrete --no-check-signature llvm
+  --no-add --only-concrete --no-check-signature \
+  llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets="${LLVM_TARGET}"
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -455,6 +495,7 @@ WRITE_BUILDCACHE
 # Install Perfetto SDK for profiling
 
 ARG INSTALL_TRACEBOX=true
+ARG INSTALL_TRACEBOX_ARM64=false
 
 RUN <<'INSTALL_PERFETTO'
 set -euo pipefail
@@ -566,11 +607,22 @@ RUN <<'INSTALL_ACT'
 set -euo pipefail
 
 # Install GitHub's act CLI for local workflow testing
+# Download architecture-specific binary: Linux_amd64 or Linux_arm64
+ARCHIVE arch=$(dpkg --print-architecture)
+case "$ARCH" in
+  amd64) ARCHIVE="Linux_x86_64" ;;
+  arm64|arm64) ARCHIVE="Linux_arm64" ;;
+  *)
+    echo "ERROR: Unsupported architecture '$ARCH' for act download" >&2
+    exit 1
+    ;;
+esac
+
 download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
-  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.' | \
+  grep -Ee "\"browser_download_url\": .*/act_${ARCHIVE}\\." | \
   cut -d '"' -f 4)
 if [ -z "$download_url" ]; then
-  echo "Failed to determine act download URL" >&2
+  echo "Failed to determine act download URL for architecture '$ARCH'" >&2
   exit 1
 fi
 curl -sfSL "$download_url" | tar -C /usr/local/bin -zx act
