@@ -10,54 +10,54 @@
 
 using namespace form::detail::experimental;
 
-ROOT_TTree_Write_ContainerImp::ROOT_TTree_Write_ContainerImp(std::string const& name) :
-  Storage_Write_Association(name)
+root_ttree_write_container_imp::root_ttree_write_container_imp(std::string const& name) :
+  storage_write_association(name)
 {
 }
 
-void ROOT_TTree_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
+void root_ttree_write_container_imp::set_file(std::shared_ptr<i_storage_file> file)
 {
-  this->Storage_Write_Association::setFile(file);
-  auto* root_tfile_imp = dynamic_cast<ROOT_TFileImp*>(file.get());
-  if (root_tfile_imp == nullptr) {
+  this->storage_write_association::set_file(file);
+  auto* root_file = dynamic_cast<root_tfile_imp*>(file.get());
+  if (root_file == nullptr) {
     throw std::runtime_error(
-      "ROOT_TTree_Write_ContainerImp::setFile can't attach to non-ROOT file");
+      "root_ttree_write_container_imp::set_file can't attach to non-ROOT file");
   }
-  m_tfile = root_tfile_imp->getTFile();
+  tfile_ = root_file->get_tfile();
 }
 
-void ROOT_TTree_Write_ContainerImp::setupWrite(std::type_info const& /* type*/)
+void root_ttree_write_container_imp::setup_write(std::type_info const& /* type*/)
 {
-  if (m_tfile == nullptr) {
-    throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no file attached");
+  if (tfile_ == nullptr) {
+    throw std::runtime_error("root_ttree_write_container_imp::setup_write no file attached");
   }
-  if (m_tree == nullptr) {
-    m_tree.reset(m_tfile->Get<TTree>(name().c_str()));
+  if (tree_ == nullptr) {
+    tree_.reset(tfile_->Get<TTree>(name().c_str()));
   }
-  if (m_tree == nullptr) {
+  if (tree_ == nullptr) {
     // Mark the raw allocation as an owning pointer before transferring it.
     // NOLINTNEXTLINE(readability-redundant-casting)
-    m_tree.reset(gsl::owner<TTree*>{new TTree(name().c_str(), name().c_str())});
-    m_tree->SetDirectory(m_tfile.get());
+    tree_.reset(gsl::owner<TTree*>{new TTree(name().c_str(), name().c_str())});
+    tree_->SetDirectory(tfile_.get());
   }
-  if (m_tree == nullptr) {
-    throw std::runtime_error("ROOT_TTree_Write_ContainerImp::setupWrite no tree created");
+  if (tree_ == nullptr) {
+    throw std::runtime_error("root_ttree_write_container_imp::setup_write no tree created");
   }
 }
 
-std::uint64_t ROOT_TTree_Write_ContainerImp::fill(void const* /* data*/)
+std::uint64_t root_ttree_write_container_imp::fill(void const* /* data*/)
 {
-  throw std::runtime_error("ROOT_TTree_Write_ContainerImp::fill not implemented");
+  throw std::runtime_error("root_ttree_write_container_imp::fill not implemented");
 }
 
-void ROOT_TTree_Write_ContainerImp::commit()
+void root_ttree_write_container_imp::commit()
 {
-  throw std::runtime_error("ROOT_TTree_Write_ContainerImp::commit not implemented");
+  throw std::runtime_error("root_ttree_write_container_imp::commit not implemented");
 }
 
-TTree* ROOT_TTree_Write_ContainerImp::getTTree() { return m_tree.get(); }
+TTree* root_ttree_write_container_imp::get_ttree() { return tree_.get(); }
 
-void ROOT_TTree_Write_ContainerImp::TTreeDeleter::operator()(gsl::owner<TTree*> t) const
+void root_ttree_write_container_imp::ttree_deleter::operator()(gsl::owner<TTree*> t) const
 {
   if (t) {
     t->GetDirectory()->WriteTObject(t);

@@ -31,296 +31,299 @@
 
 using namespace form::detail::experimental;
 
-TEST_CASE("Token default constructor", "[form]")
+TEST_CASE("token default constructor", "[form]")
 {
-  Token t;
-  CHECK(t.fileName().empty());
-  CHECK(t.containerName().empty());
-  CHECK(t.technology() == form::technology::Id{});
+  token t;
+  CHECK(t.file_name().empty());
+  CHECK(t.container_name().empty());
+  CHECK(t.technology() == form::technology::id{});
   // Default-constructed token has no id set
-  CHECK_FALSE(t.hasId());
+  CHECK_FALSE(t.has_id());
 }
 
-TEST_CASE("Token basics", "[form]")
+TEST_CASE("token basics", "[form]")
 {
-  Token t("file.root", "container", form::technology::ROOT_TTREE, 42);
-  CHECK(t.fileName() == "file.root");
-  CHECK(t.containerName() == "container");
-  CHECK(t.technology() == form::technology::ROOT_TTREE);
-  CHECK(t.hasId());
+  token t("file.root", "container", form::technology::root_ttree, 42);
+  CHECK(t.file_name() == "file.root");
+  CHECK(t.container_name() == "container");
+  CHECK(t.technology() == form::technology::root_ttree);
+  CHECK(t.has_id());
   CHECK(t.id() == 42u);
 }
 
-TEST_CASE("technology::Id string conversions", "[form]")
+TEST_CASE("technology::id string conversions", "[form]")
 {
   using namespace form::technology;
 
   // Round-trip the implemented backends through from_string / to_string
-  CHECK(from_string("ROOT_TTREE") == ROOT_TTREE);
-  CHECK(from_string("ROOT_RNTUPLE") == ROOT_RNTUPLE);
+  CHECK(from_string("ROOT_TTREE") == root_ttree);
+  CHECK(from_string("ROOT_RNTUPLE") == root_rntuple);
 
-  CHECK(to_string(ROOT_TTREE) == "ROOT_TTREE");
-  CHECK(to_string(ROOT_RNTUPLE) == "ROOT_RNTUPLE");
-  CHECK(to_string(HDF5) == "HDF5"); // reserved: still names itself for diagnostics
+  CHECK(to_string(root_ttree) == "ROOT_TTREE");
+  CHECK(to_string(root_rntuple) == "ROOT_RNTUPLE");
+  CHECK(to_string(hdf5) == "HDF5"); // reserved: still names itself for diagnostics
 
   // HDF5 is reserved but unimplemented: reject it at parse time rather than
   // silently falling back to a different storage.
   CHECK_THROWS_AS(from_string("HDF5"), std::runtime_error);
 
-  // An unknown name throws; an unknown Id stringifies to the sentinel
+  // An unknown name throws; an unknown id stringifies to the sentinel
   CHECK_THROWS_AS(from_string("NOT_A_TECH"), std::runtime_error);
-  CHECK(to_string(Id{}) == "UNKNOWN");
+  CHECK(to_string(id{}) == "UNKNOWN");
 }
 
-TEST_CASE("technology::Id members and ordering", "[form]")
+TEST_CASE("technology::id members and ordering", "[form]")
 {
   using namespace form::technology;
 
   // (major, minor) decomposition
-  CHECK(ROOT_TTREE.major == Major::root);
-  CHECK(ROOT_TTREE.minor == 1);
-  CHECK(ROOT_RNTUPLE.major == Major::root);
-  CHECK(ROOT_RNTUPLE.minor == 2);
-  CHECK(HDF5.major == Major::hdf5);
-  CHECK(Id{}.major == Major::generic);
+  CHECK(root_ttree.major == major::root);
+  CHECK(root_ttree.minor == 1);
+  CHECK(root_rntuple.major == major::root);
+  CHECK(root_rntuple.minor == 2);
+  CHECK(hdf5.major == major::hdf5);
+  CHECK(id{}.major == major::generic);
 
   // operator<=> compares BOTH parts: same major, different minor stay distinct
-  CHECK(ROOT_TTREE != ROOT_RNTUPLE);
-  CHECK(ROOT_TTREE < ROOT_RNTUPLE);
-  CHECK(Id{} == Id{Major::generic, 0});
+  CHECK(root_ttree != root_rntuple);
+  CHECK(root_ttree < root_rntuple);
+  CHECK(id{} == id{major::generic, 0});
 }
 
-TEST_CASE("Storage_File basics", "[form]")
+TEST_CASE("storage_file basics", "[form]")
 {
-  Storage_File f("test.root", 'o');
+  storage_file f("test.root", 'o');
   CHECK(f.name() == "test.root");
   CHECK(f.mode() == 'o');
-  CHECK_THROWS_AS(f.setAttribute("key", "value"), std::runtime_error);
+  CHECK_THROWS_AS(f.set_attribute("key", "value"), std::runtime_error);
 }
 
-TEST_CASE("Storage_Read_Container basics", "[form]")
+TEST_CASE("storage_read_container basics", "[form]")
 {
-  Storage_Read_Container c("my_container");
+  storage_read_container c("my_container");
   CHECK(c.name() == "my_container");
 
-  auto f = std::make_shared<Storage_File>("test.root", 'o');
-  c.setFile(f);
+  auto f = std::make_shared<storage_file>("test.root", 'o');
+  c.set_file(f);
 
   void const* data = nullptr;
   CHECK_FALSE(c.read(1, &data, typeid(int)));
   c.prime(typeid(int));
   CHECK(c.entries() == 0);
 
-  CHECK_THROWS_AS(c.setAttribute("key", "value"), std::runtime_error);
+  CHECK_THROWS_AS(c.set_attribute("key", "value"), std::runtime_error);
 
   SECTION("With slash")
   {
-    Storage_Read_Container c("parent/child");
+    storage_read_container c("parent/child");
     CHECK(c.top_name() == "parent");
     CHECK(c.col_name() == "child");
   }
   SECTION("Without slash")
   {
-    Storage_Read_Container c("no_slash");
+    storage_read_container c("no_slash");
     CHECK(c.top_name() == "no_slash");
     CHECK(c.col_name() == "Main");
   }
 }
 
-TEST_CASE("Storage_Write_Container basics", "[form]")
+TEST_CASE("storage_write_container basics", "[form]")
 {
-  Storage_Write_Container c("my_container");
+  storage_write_container c("my_container");
   CHECK(c.name() == "my_container");
 
-  auto f = std::make_shared<Storage_File>("test.root", 'o');
-  c.setFile(f);
+  auto f = std::make_shared<storage_file>("test.root", 'o');
+  c.set_file(f);
 
-  c.setupWrite(typeid(int));
+  c.setup_write(typeid(int));
   int value = 0;
   c.fill(&value);
   c.commit();
 
-  CHECK_THROWS_AS(c.setAttribute("key", "value"), std::runtime_error);
+  CHECK_THROWS_AS(c.set_attribute("key", "value"), std::runtime_error);
 }
 
-TEST_CASE("Storage_Write_Association basics", "[form]")
+TEST_CASE("storage_write_association basics", "[form]")
 {
-  Storage_Write_Association a("my_assoc/extra");
+  storage_write_association a("my_assoc/extra");
   CHECK(a.name() == "my_assoc"); // maybe_remove_suffix should remove /extra
 
-  a.setAttribute("key", "value"); // Storage_Write_Association overrides setAttribute to do nothing
+  a.set_attribute("key",
+                  "value"); // storage_write_association overrides set_attribute to do nothing
 }
 
-TEST_CASE("Storage_Associative_Write_Container basics", "[form]")
+TEST_CASE("storage_associative_write_container basics", "[form]")
 {
   SECTION("With slash")
   {
-    Storage_Associative_Write_Container c("parent/child");
+    storage_associative_write_container c("parent/child");
     CHECK(c.top_name() == "parent");
     CHECK(c.col_name() == "child");
   }
   SECTION("Without slash")
   {
-    Storage_Associative_Write_Container c("no_slash");
+    storage_associative_write_container c("no_slash");
     CHECK(c.top_name() == "no_slash");
     CHECK(c.col_name() == "Main");
   }
 
-  Storage_Associative_Write_Container c("p/c");
-  auto parent = std::make_shared<Storage_Write_Container>("p");
-  c.setParent(parent);
+  storage_associative_write_container c("p/c");
+  auto parent = std::make_shared<storage_write_container>("p");
+  c.set_parent(parent);
 }
 
 TEST_CASE("Factories fallback", "[form]")
 {
-  auto f = createFile(form::technology::Id{}, "test.root", 'o');
-  CHECK(dynamic_cast<Storage_File*>(f.get()) != nullptr);
+  auto f = create_file(form::technology::id{}, "test.root", 'o');
+  CHECK(dynamic_cast<storage_file*>(f.get()) != nullptr);
 
-  auto rc = createReadContainer(form::technology::Id{}, "cont");
-  CHECK(dynamic_cast<Storage_Read_Container*>(rc.get()) != nullptr);
+  auto rc = create_read_container(form::technology::id{}, "cont");
+  CHECK(dynamic_cast<storage_read_container*>(rc.get()) != nullptr);
 
-  auto wa = createWriteAssociation(form::technology::Id{}, "assoc");
-  CHECK(dynamic_cast<Storage_Write_Association*>(wa.get()) != nullptr);
+  auto wa = create_write_association(form::technology::id{}, "assoc");
+  CHECK(dynamic_cast<storage_write_association*>(wa.get()) != nullptr);
 
-  auto wc = createWriteContainer(form::technology::Id{}, "cont");
-  CHECK(dynamic_cast<Storage_Write_Container*>(wc.get()) != nullptr);
+  auto wc = create_write_container(form::technology::id{}, "cont");
+  CHECK(dynamic_cast<storage_write_container*>(wc.get()) != nullptr);
 
   // HDF5 is reserved but unimplemented: every factory must fail loudly on the
   // hdf5 dispatch branch rather than silently return generic storage.
-  CHECK_THROWS_AS(createFile(form::technology::HDF5, "test.h5", 'o'), std::runtime_error);
-  CHECK_THROWS_AS(createReadContainer(form::technology::HDF5, "cont"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteAssociation(form::technology::HDF5, "assoc"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteContainer(form::technology::HDF5, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(create_file(form::technology::hdf5, "test.h5", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(create_read_container(form::technology::hdf5, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_association(form::technology::hdf5, "assoc"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_container(form::technology::hdf5, "cont"), std::runtime_error);
 
   // A major FORM doesn't recognize at all must also fail loudly
-  // Major has a fixed underlying type, so an out-of-range value is legal at runtime
+  // major has a fixed underlying type, so an out-of-range value is legal at runtime
   auto const unknown_major =
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
-    form::technology::Id{.major = static_cast<form::technology::Major>(99), .minor = 0};
-  CHECK_THROWS_AS(createFile(unknown_major, "test.dat", 'o'), std::runtime_error);
-  CHECK_THROWS_AS(createReadContainer(unknown_major, "cont"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteAssociation(unknown_major, "assoc"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteContainer(unknown_major, "cont"), std::runtime_error);
+    form::technology::id{.major = static_cast<form::technology::major>(99), .minor = 0};
+  CHECK_THROWS_AS(create_file(unknown_major, "test.dat", 'o'), std::runtime_error);
+  CHECK_THROWS_AS(create_read_container(unknown_major, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_association(unknown_major, "assoc"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_container(unknown_major, "cont"), std::runtime_error);
 }
 
 TEST_CASE("Factories ROOT storage dispatch", "[form]")
 {
 #ifdef USE_ROOT_STORAGE
-  auto rc_ttree = createReadContainer(form::technology::ROOT_TTREE, "cont");
-  CHECK(dynamic_cast<ROOT_TBranch_Read_ContainerImp*>(rc_ttree.get()) != nullptr);
+  auto rc_ttree = create_read_container(form::technology::root_ttree, "cont");
+  CHECK(dynamic_cast<root_tbranch_read_container_imp*>(rc_ttree.get()) != nullptr);
 
-  auto wa_ttree = createWriteAssociation(form::technology::ROOT_TTREE, "assoc");
-  CHECK(dynamic_cast<ROOT_TTree_Write_ContainerImp*>(wa_ttree.get()) != nullptr);
+  auto wa_ttree = create_write_association(form::technology::root_ttree, "assoc");
+  CHECK(dynamic_cast<root_ttree_write_container_imp*>(wa_ttree.get()) != nullptr);
 
-  auto wc_ttree = createWriteContainer(form::technology::ROOT_TTREE, "cont");
-  CHECK(dynamic_cast<ROOT_TBranch_Write_ContainerImp*>(wc_ttree.get()) != nullptr);
+  auto wc_ttree = create_write_container(form::technology::root_ttree, "cont");
+  CHECK(dynamic_cast<root_tbranch_write_container_imp*>(wc_ttree.get()) != nullptr);
 
   auto const unsupported_root =
-    form::technology::Id{.major = form::technology::Major::root, .minor = 99};
-  CHECK_THROWS_AS(createReadContainer(unsupported_root, "cont"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteAssociation(unsupported_root, "assoc"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteContainer(unsupported_root, "cont"), std::runtime_error);
+    form::technology::id{.major = form::technology::major::root, .minor = 99};
+  CHECK_THROWS_AS(create_read_container(unsupported_root, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_association(unsupported_root, "assoc"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_container(unsupported_root, "cont"), std::runtime_error);
 #else
-  CHECK_THROWS_AS(createReadContainer(form::technology::ROOT_TTREE, "cont"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteAssociation(form::technology::ROOT_TTREE, "assoc"),
+  CHECK_THROWS_AS(create_read_container(form::technology::root_ttree, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_association(form::technology::root_ttree, "assoc"),
                   std::runtime_error);
-  CHECK_THROWS_AS(createWriteContainer(form::technology::ROOT_TTREE, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_container(form::technology::root_ttree, "cont"), std::runtime_error);
 #endif
 }
 
 TEST_CASE("Factories RNTuple storage dispatch", "[form]")
 {
 #ifdef USE_RNTUPLE_STORAGE
-  auto rc_rntuple = createReadContainer(form::technology::ROOT_RNTUPLE, "cont");
-  CHECK(dynamic_cast<ROOT_RField_Read_ContainerImp*>(rc_rntuple.get()) != nullptr);
+  auto rc_rntuple = create_read_container(form::technology::root_rntuple, "cont");
+  CHECK(dynamic_cast<root_rfield_read_container_imp*>(rc_rntuple.get()) != nullptr);
 
-  auto wa_rntuple = createWriteAssociation(form::technology::ROOT_RNTUPLE, "assoc");
-  CHECK(dynamic_cast<ROOT_RNTuple_Write_ContainerImp*>(wa_rntuple.get()) != nullptr);
+  auto wa_rntuple = create_write_association(form::technology::root_rntuple, "assoc");
+  CHECK(dynamic_cast<root_rntuple_write_container_imp*>(wa_rntuple.get()) != nullptr);
 
-  auto wc_rntuple = createWriteContainer(form::technology::ROOT_RNTUPLE, "cont");
-  CHECK(dynamic_cast<ROOT_RField_Write_ContainerImp*>(wc_rntuple.get()) != nullptr);
+  auto wc_rntuple = create_write_container(form::technology::root_rntuple, "cont");
+  CHECK(dynamic_cast<root_rfield_write_container_imp*>(wc_rntuple.get()) != nullptr);
 #else
-  CHECK_THROWS_AS(createReadContainer(form::technology::ROOT_RNTUPLE, "cont"), std::runtime_error);
-  CHECK_THROWS_AS(createWriteAssociation(form::technology::ROOT_RNTUPLE, "assoc"),
+  CHECK_THROWS_AS(create_read_container(form::technology::root_rntuple, "cont"),
                   std::runtime_error);
-  CHECK_THROWS_AS(createWriteContainer(form::technology::ROOT_RNTUPLE, "cont"), std::runtime_error);
+  CHECK_THROWS_AS(create_write_association(form::technology::root_rntuple, "assoc"),
+                  std::runtime_error);
+  CHECK_THROWS_AS(create_write_container(form::technology::root_rntuple, "cont"),
+                  std::runtime_error);
 #endif
 }
 
-TEST_CASE("StorageReader basic operations", "[form]")
+TEST_CASE("storage_reader basic operations", "[form]")
 {
-  auto storage = createStorageReader();
+  auto storage = create_storage_reader();
   REQUIRE(storage != nullptr);
 
   form::experimental::config::tech_setting_config settings;
 
-  Token token("file.root", "cont", form::technology::Id{}, 1);
+  token product_token("file.root", "cont", form::technology::id{}, 1);
   void const* read_data = nullptr;
-  storage->readContainer(token, &read_data, typeid(int), settings);
+  storage->read_container(product_token, &read_data, typeid(int), settings);
 
-  int index = storage->getIndex(token, "some_id", settings);
+  int index = storage->get_index(product_token, "some_id", settings);
   CHECK(index == 0);
 }
 
-TEST_CASE("StorageWriter basic operations", "[form]")
+TEST_CASE("storage_writer basic operations", "[form]")
 {
-  auto storage = createStorageWriter();
+  auto storage = create_storage_writer();
   REQUIRE(storage != nullptr);
 
   form::experimental::config::tech_setting_config settings;
 
-  std::map<std::unique_ptr<Placement>, std::type_info const*> containers;
-  auto p = std::make_unique<Placement>("file.root", "cont", form::technology::Id{});
+  std::map<std::unique_ptr<placement>, std::type_info const*> containers;
+  auto p = std::make_unique<placement>("file.root", "cont", form::technology::id{});
   containers.emplace(std::move(p), &typeid(int));
 
-  storage->createContainers(containers, settings);
+  storage->create_containers(containers, settings);
 
-  Placement p2("file.root", "cont", form::technology::Id{});
+  placement p2("file.root", "cont", form::technology::id{});
   int data = 42;
-  storage->fillContainer(p2, &data, typeid(int));
-  storage->commitContainers(p2);
+  storage->fill_container(p2, &data, typeid(int));
+  storage->commit_containers(p2);
 }
 
-TEST_CASE("PersistenceReader basic operations", "[form]")
+TEST_CASE("persistence_reader basic operations", "[form]")
 {
-  auto p = createPersistenceReader();
+  auto p = create_persistence_reader();
   REQUIRE(p != nullptr);
 
   using namespace form::experimental::config;
-  ItemConfig out_cfg;
-  out_cfg.addItem("prod", "file.root", form::technology::Id{});
-  out_cfg.addItem("parent/child", "file.root", form::technology::Id{});
+  item_config out_cfg;
+  out_cfg.add_item("prod", "file.root", form::technology::id{});
+  out_cfg.add_item("parent/child", "file.root", form::technology::id{});
   p->configure(out_cfg);
 
   tech_setting_config tech_cfg;
-  p->configureTechSettings(tech_cfg);
+  p->configure_tech_settings(tech_cfg);
 
   SECTION("Full Lifecycle")
   {
     void const* data = nullptr;
-    // This will call getToken -> getIndex (returns 0 for Storage_Container) -> readContainer
+    // This will call get_token -> get_index (returns 0 for Storage_Container) -> read_container
     CHECK_NOTHROW(p->read("my_creator", "prod", "event_1", &data, typeid(int)));
   }
 }
 
-TEST_CASE("PersistenceWriter basic operations", "[form]")
+TEST_CASE("persistence_writer basic operations", "[form]")
 {
-  auto p = createPersistenceWriter();
+  auto p = create_persistence_writer();
   REQUIRE(p != nullptr);
 
   using namespace form::experimental::config;
-  ItemConfig out_cfg;
-  out_cfg.addItem("prod", "file.root", form::technology::Id{});
-  out_cfg.addItem("parent/child", "file.root", form::technology::Id{});
+  item_config out_cfg;
+  out_cfg.add_item("prod", "file.root", form::technology::id{});
+  out_cfg.add_item("parent/child", "file.root", form::technology::id{});
   p->configure(out_cfg);
 
   tech_setting_config tech_cfg;
-  p->configureTechSettings(tech_cfg);
+  p->configure_tech_settings(tech_cfg);
 
   SECTION("Errors")
   {
     int val = 42;
-    CHECK_THROWS_AS(p->registerWrite("my_creator", "unknown", &val, typeid(int)),
+    CHECK_THROWS_AS(p->register_write("my_creator", "unknown", &val, typeid(int)),
                     std::runtime_error);
   }
 }
@@ -329,31 +332,31 @@ TEST_CASE("form::experimental::config tests", "[form]")
 {
   using namespace form::experimental::config;
 
-  SECTION("ItemConfig")
+  SECTION("item_config")
   {
-    ItemConfig cfg;
-    cfg.addItem("prod1", "file1.root", form::technology::ROOT_TTREE);
+    item_config cfg;
+    cfg.add_item("prod1", "file1.root", form::technology::root_ttree);
 
-    auto item = cfg.findItem("prod1");
+    auto item = cfg.find_item("prod1");
     REQUIRE(item);
     // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- `REQUIRE` protects against incorrect access
     CHECK(item->product_name == "prod1");
 
-    CHECK_FALSE(cfg.findItem("nonexistent").has_value());
+    CHECK_FALSE(cfg.find_item("nonexistent").has_value());
   }
 
   SECTION("tech_setting_config")
   {
     tech_setting_config cfg;
-    cfg.file_settings[form::technology::ROOT_TTREE]["file1.root"] = {{"attr", "val"}};
-    cfg.container_settings[form::technology::ROOT_TTREE]["cont1"] = {{"cattr", "cval"}};
+    cfg.file_settings[form::technology::root_ttree]["file1.root"] = {{"attr", "val"}};
+    cfg.container_settings[form::technology::root_ttree]["cont1"] = {{"cattr", "cval"}};
 
-    auto ftable = cfg.getFileTable(form::technology::ROOT_TTREE, "file1.root");
+    auto ftable = cfg.get_file_table(form::technology::root_ttree, "file1.root");
     REQUIRE(ftable.size() == 1);
     CHECK(ftable[0].first == "attr");
     CHECK(ftable[0].second == "val");
 
-    auto ctable = cfg.getContainerTable(form::technology::ROOT_TTREE, "cont1");
+    auto ctable = cfg.get_container_table(form::technology::root_ttree, "cont1");
     REQUIRE(ctable.size() == 1);
     CHECK(ctable[0].first == "cattr");
     CHECK(ctable[0].second == "cval");
@@ -362,15 +365,15 @@ TEST_CASE("form::experimental::config tests", "[form]")
 
 TEST_CASE("FORM source registry prefers exact type matches", "[form]")
 {
-  struct LocalProduct {
+  struct local_product {
     int value{};
   };
 
-  constexpr char const* local_name = "std::vector<LocalProduct>";
+  constexpr char const* local_name = "std::vector<local_product>";
 
-  form::experimental::register_form_vector_product_type<LocalProduct>(local_name);
+  form::experimental::register_form_vector_product_type<local_product>(local_name);
 
-  auto const local_type = phlex::detail::make_type_id<std::vector<LocalProduct>>();
+  auto const local_type = phlex::detail::make_type_id<std::vector<local_product>>();
   auto const* resolved_name = form::experimental::find_form_product_type_name(local_type);
 
   REQUIRE(resolved_name != nullptr);
@@ -379,7 +382,7 @@ TEST_CASE("FORM source registry prefers exact type matches", "[form]")
   auto const* entry = form::experimental::find_form_product_type(*resolved_name);
   REQUIRE(entry != nullptr);
   REQUIRE(entry->cpp_type != nullptr);
-  CHECK(*entry->cpp_type == typeid(std::vector<LocalProduct>));
+  CHECK(*entry->cpp_type == typeid(std::vector<local_product>));
 }
 
 TEST_CASE("FORM source registry keeps builtin mappings", "[form]")
@@ -391,28 +394,28 @@ TEST_CASE("FORM source registry keeps builtin mappings", "[form]")
   CHECK(*resolved_name == "std::vector<bool>");
 }
 
-TEST_CASE("PersistenceReader: throws for missing product in config", "[form]")
+TEST_CASE("persistence_reader: throws for missing product in config", "[form]")
 {
   using namespace form::experimental::config;
 
-  auto reader = form::detail::experimental::createPersistenceReader();
+  auto reader = form::detail::experimental::create_persistence_reader();
   REQUIRE(reader != nullptr);
-  reader->configure(ItemConfig{});
-  reader->configureTechSettings(tech_setting_config{});
+  reader->configure(item_config{});
+  reader->configure_tech_settings(tech_setting_config{});
 
   CHECK_THROWS_AS(reader->prime("creator", "nonexistent", typeid(int)), std::runtime_error);
-  CHECK_THROWS_AS(reader->listIndices("creator", "nonexistent"), std::runtime_error);
+  CHECK_THROWS_AS(reader->list_indices("creator", "nonexistent"), std::runtime_error);
 }
 
-TEST_CASE("form_reader_interface::indices exercises persistence listIndices path", "[form]")
+TEST_CASE("form_reader_interface::indices exercises persistence list_indices path", "[form]")
 {
   using namespace form::experimental::config;
 
-  ItemConfig cfg;
-  cfg.addItem("prod", "dummy_reader_test.root", form::technology::Id{});
+  item_config cfg;
+  cfg.add_item("prod", "dummy_reader_test.root", form::technology::id{});
   form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
 
-  // indices() calls persistence listIndices; with tech=0 the index container is
+  // indices() calls persistence list_indices; with tech=0 the index container is
   // always empty, so it throws -- but the call itself covers form_reader.cpp L48.
   CHECK_THROWS_AS(reader.indices("creator", "prod"), std::runtime_error);
 }
@@ -421,8 +424,8 @@ TEST_CASE("form_reader_interface::read throws for missing product config", "[for
 {
   using namespace form::experimental::config;
 
-  ItemConfig cfg;
-  cfg.addItem("prod", "dummy_reader_test.root", form::technology::Id{});
+  item_config cfg;
+  cfg.add_item("prod", "dummy_reader_test.root", form::technology::id{});
   form::experimental::form_reader_interface reader{cfg, tech_setting_config{}};
 
   form::experimental::product_with_name product{
@@ -434,8 +437,8 @@ TEST_CASE("form_writer_interface handles missing product config without crashing
 {
   using namespace form::experimental::config;
 
-  ItemConfig cfg;
-  cfg.addItem("prod", "dummy_writer_test.root", form::technology::Id{});
+  item_config cfg;
+  cfg.add_item("prod", "dummy_writer_test.root", form::technology::id{});
   form::experimental::form_writer_interface writer{cfg, tech_setting_config{}};
 
   form::experimental::product_with_name product{
@@ -459,8 +462,8 @@ TEST_CASE("FORM source registry: unregistered type returns nullptr", "[form]")
 {
   // find_form_product_type_name returns nullptr for a type never registered.
   // Exercises the null-return path form_source::create_providers checks at L76-77.
-  struct NeverRegistered {};
-  auto const unknown_type = phlex::detail::make_type_id<NeverRegistered>();
+  struct never_registered {};
+  auto const unknown_type = phlex::detail::make_type_id<never_registered>();
   CHECK(form::experimental::find_form_product_type_name(unknown_type) == nullptr);
 }
 

@@ -13,22 +13,22 @@ class TTree;
 
 namespace form::detail::experimental {
 
-  class ROOT_TTree_Write_ContainerImp : public Storage_Write_Association {
+  class root_ttree_write_container_imp : public storage_write_association {
   public:
-    explicit ROOT_TTree_Write_ContainerImp(std::string const& name);
-    ~ROOT_TTree_Write_ContainerImp() override = default;
+    explicit root_ttree_write_container_imp(std::string const& name);
+    ~root_ttree_write_container_imp() override = default;
 
-    ROOT_TTree_Write_ContainerImp(ROOT_TTree_Write_ContainerImp const&) = delete;
-    ROOT_TTree_Write_ContainerImp& operator=(ROOT_TTree_Write_ContainerImp const&) = delete;
-    ROOT_TTree_Write_ContainerImp(ROOT_TTree_Write_ContainerImp&&) = delete;
-    ROOT_TTree_Write_ContainerImp& operator=(ROOT_TTree_Write_ContainerImp&&) = delete;
+    root_ttree_write_container_imp(root_ttree_write_container_imp const&) = delete;
+    root_ttree_write_container_imp& operator=(root_ttree_write_container_imp const&) = delete;
+    root_ttree_write_container_imp(root_ttree_write_container_imp&&) = delete;
+    root_ttree_write_container_imp& operator=(root_ttree_write_container_imp&&) = delete;
 
-    void setFile(std::shared_ptr<IStorage_File> file) override;
-    void setupWrite(std::type_info const& type) override;
+    void set_file(std::shared_ptr<i_storage_file> file) override;
+    void setup_write(std::type_info const& type) override;
     std::uint64_t fill(void const* data) override;
     void commit() override;
 
-    TTree* getTTree();
+    TTree* get_ttree();
 
   private:
     // Be absolutely explicit about the ownership semantics of TTree*,
@@ -36,14 +36,14 @@ namespace form::detail::experimental {
     // practice we need to ensure objects are written to the TTree—and
     // the TTree itself is deleted—at the right time i.e. before its
     //  containing TFile is deleted.
-    struct TTreeDeleter {
+    struct ttree_deleter {
       void operator()(TTree* t) const;
     };
 
     // Ordering of members is critical here:
     // the TTree must be deleted before the TFile.
-    std::shared_ptr<TFile> m_tfile;
-    std::unique_ptr<TTree, TTreeDeleter> m_tree;
+    std::shared_ptr<TFile> tfile_;
+    std::unique_ptr<TTree, ttree_deleter> tree_;
   };
 
 } //namespace form::detail::experimental

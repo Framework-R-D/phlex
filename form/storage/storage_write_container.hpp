@@ -10,24 +10,24 @@
 
 namespace form::detail::experimental {
 
-  class Storage_Write_Container : public IStorage_Write_Container {
+  class storage_write_container : public i_storage_write_container {
   public:
-    explicit Storage_Write_Container(std::string name);
-    ~Storage_Write_Container() override = default;
+    explicit storage_write_container(std::string name);
+    ~storage_write_container() override = default;
 
     std::string const& name() override;
 
-    void setFile(std::shared_ptr<IStorage_File> file) override;
+    void set_file(std::shared_ptr<i_storage_file> file) override;
 
-    void setupWrite(std::type_info const& type = typeid(void)) override;
+    void setup_write(std::type_info const& type = typeid(void)) override;
     std::uint64_t fill(void const* data) override;
     void commit() override;
 
-    void setAttribute(std::string const& name, std::string const& value) override;
+    void set_attribute(std::string const& name, std::string const& value) override;
 
   private:
-    std::string m_name;
-    std::shared_ptr<IStorage_File> m_file;
+    std::string name_;
+    std::shared_ptr<i_storage_file> file_;
   };
 } // namespace form::detail::experimental
 

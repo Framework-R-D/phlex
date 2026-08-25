@@ -7,19 +7,19 @@
 
 namespace form::experimental {
 
-  form_reader_interface::form_reader_interface(config::ItemConfig const& config_item,
+  form_reader_interface::form_reader_interface(config::item_config const& config_item,
                                                config::tech_setting_config const& tech_config) :
-    m_pers_reader(nullptr)
+    pers_reader_(nullptr)
   {
-    for (auto const& item : config_item.getItems()) {
-      m_product_to_config.emplace(item.product_name,
-                                  form::experimental::config::PersistenceItem(
-                                    item.product_name, item.file_name, item.technology));
+    for (auto const& item : config_item.get_items()) {
+      product_to_config_.emplace(item.product_name,
+                                 form::experimental::config::persistence_item(
+                                   item.product_name, item.file_name, item.technology));
     }
 
-    m_pers_reader = form::detail::experimental::createPersistenceReader();
-    m_pers_reader->configure(config_item);
-    m_pers_reader->configureTechSettings(tech_config);
+    pers_reader_ = form::detail::experimental::create_persistence_reader();
+    pers_reader_->configure(config_item);
+    pers_reader_->configure_tech_settings(tech_config);
   }
 
   void form_reader_interface::read(std::string const& creator,
@@ -27,24 +27,24 @@ namespace form::experimental {
                                    product_with_name& product)
   {
 
-    auto config_it = m_product_to_config.find(product.label);
-    if (config_it == m_product_to_config.end()) {
+    auto config_it = product_to_config_.find(product.label);
+    if (config_it == product_to_config_.end()) {
       throw std::runtime_error("No configuration found for product: " + product.label);
     }
 
-    m_pers_reader->read(creator, product.label, segment_id, &product.data, *product.type);
+    pers_reader_->read(creator, product.label, segment_id, &product.data, *product.type);
   }
 
   void form_reader_interface::prime(std::string const& creator,
                                     std::string const& product_name,
                                     std::type_info const& type)
   {
-    m_pers_reader->prime(creator, product_name, type);
+    pers_reader_->prime(creator, product_name, type);
   }
 
   std::vector<std::string> form_reader_interface::indices(std::string const& creator,
                                                           std::string const& product_name)
   {
-    return m_pers_reader->listIndices(creator, product_name);
+    return pers_reader_->list_indices(creator, product_name);
   }
 }

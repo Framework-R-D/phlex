@@ -1,49 +1,48 @@
 #include "track_start.hpp"
 
-TrackStart::TrackStart() : m_x(0), m_y(0), m_z(0), m_index(0) {}
+track_start::track_start() : x_(0), y_(0), z_(0), index_(0) {}
 
-TrackStart::TrackStart(float x, float y, float z, int index) :
-  m_x(x), m_y(y), m_z(z), m_index(index)
+track_start::track_start(float x, float y, float z, int index) : x_(x), y_(y), z_(z), index_(index)
 {
 }
 
-float TrackStart::getX() const { return m_x; }
+float track_start::get_x() const { return x_; }
 
-float TrackStart::getY() const { return m_y; }
+float track_start::get_y() const { return y_; }
 
-float TrackStart::getZ() const { return m_z; }
+float track_start::get_z() const { return z_; }
 
-int TrackStart::getIndex() const { return m_index; }
+int track_start::get_index() const { return index_; }
 
-void TrackStart::setX(float x) { m_x = x; }
+void track_start::set_x(float x) { x_ = x; }
 
-void TrackStart::setY(float y) { m_y = y; }
+void track_start::set_y(float y) { y_ = y; }
 
-void TrackStart::setZ(float z) { m_z = z; }
+void track_start::set_z(float z) { z_ = z; }
 
-void TrackStart::setIndex(int index) { m_index = index; }
+void track_start::set_index(int index) { index_ = index; }
 
-TrackStart TrackStart::operator+(TrackStart const& other) const
+track_start track_start::operator+(track_start const& other) const
 {
-  return {m_x + other.m_x, m_y + other.m_y, m_z + other.m_z, m_index + other.m_index};
+  return {x_ + other.x_, y_ + other.y_, z_ + other.z_, index_ + other.index_};
 }
 
-TrackStart& TrackStart::operator+=(TrackStart const& other)
+track_start& track_start::operator+=(track_start const& other)
 {
-  m_x += other.m_x;
-  m_y += other.m_y;
-  m_z += other.m_z;
-  m_index += other.m_index;
+  x_ += other.x_;
+  y_ += other.y_;
+  z_ += other.z_;
+  index_ += other.index_;
   return *this;
 }
 
-TrackStart TrackStart::operator-(TrackStart const& other) const
+track_start track_start::operator-(track_start const& other) const
 {
-  return {m_x - other.m_x, m_y - other.m_y, m_z - other.m_z, m_index - other.m_index};
+  return {x_ - other.x_, y_ - other.y_, z_ - other.z_, index_ - other.index_};
 }
 
-std::ostream& operator<<(std::ostream& os, TrackStart const& track)
+std::ostream& operator<<(std::ostream& os, track_start const& track)
 {
-  os << "TrackStart{" << track.getX() << ", " << track.getY() << ", " << track.getZ() << "}";
+  os << "track_start{" << track.get_x() << ", " << track.get_y() << ", " << track.get_z() << "}";
   return os;
 }

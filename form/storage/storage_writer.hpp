@@ -14,27 +14,27 @@
 
 namespace form::detail::experimental {
 
-  class StorageWriter : public IStorageWriter {
+  class storage_writer : public i_storage_writer {
   public:
-    StorageWriter() = default;
-    ~StorageWriter() override = default;
+    storage_writer() = default;
+    ~storage_writer() override = default;
 
     using table_t = form::experimental::config::tech_setting_config::table_t;
-    void createContainers(
-      std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
+    void create_containers(
+      std::map<std::unique_ptr<placement>, std::type_info const*> const& containers,
       form::experimental::config::tech_setting_config const& settings) override;
-    std::uint64_t fillContainer(Placement const& plcmnt,
-                                void const* data,
-                                std::type_info const& type) override;
-    void commitContainers(Placement const& plcmnt) override;
+    std::uint64_t fill_container(placement const& plcmnt,
+                                 void const* data,
+                                 std::type_info const& type) override;
+    void commit_containers(placement const& plcmnt) override;
 
   private:
-    std::map<std::string, std::shared_ptr<IStorage_File>> m_files;
+    std::map<std::string, std::shared_ptr<i_storage_file>> files_;
     std::unordered_map<std::pair<std::string, std::string>,
-                       std::shared_ptr<IStorage_Write_Container>,
+                       std::shared_ptr<i_storage_write_container>,
                        pair_hash>
-      m_write_containers;
-    std::map<std::string, std::map<std::string, int>> m_indexMaps;
+      write_containers_;
+    std::map<std::string, std::map<std::string, int>> index_maps_;
   };
 
 } // namespace form::detail::experimental

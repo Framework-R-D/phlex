@@ -7,33 +7,33 @@
 
 #include <string>
 
-/* @class Placement
+/* @class placement
  * @brief This class holds all the necessary information to guide the writing of an object in a physical file.
  */
 namespace form::detail::experimental {
 
-  class Placement {
+  class placement {
   public:
     /// Default Constructor
-    Placement() = default;
+    placement() = default;
 
     /// Constructor with initialization
-    Placement(std::string fileName, std::string containerName, technology::Id technology);
+    placement(std::string file_name, std::string container_name, technology::id technology);
 
     /// Access file name
-    std::string const& fileName() const;
+    std::string const& file_name() const;
     /// Access container name
-    std::string const& containerName() const;
+    std::string const& container_name() const;
     /// Access technology type
-    technology::Id technology() const;
+    technology::id technology() const;
 
   private:
     /// Technology identifier
-    technology::Id m_technology{};
+    technology::id technology_{};
     /// File name
-    std::string m_fileName;
+    std::string file_name_;
     /// Container name
-    std::string m_containerName;
+    std::string container_name_;
   };
 } // namespace form::detail::experimental
 

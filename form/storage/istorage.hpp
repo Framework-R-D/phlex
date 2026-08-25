@@ -18,86 +18,87 @@ namespace form::detail::experimental {
 
   // Sentinel returned by the write chain when no addressable row was written
   // (e.g. the generic no-op container). A real row is always < this value.
-  inline constexpr std::uint64_t kInvalidRowId = std::numeric_limits<std::uint64_t>::max();
+  inline constexpr std::uint64_t invalid_row_id = std::numeric_limits<std::uint64_t>::max();
 
-  class IStorageReader {
+  class i_storage_reader {
   public:
-    IStorageReader() = default;
-    virtual ~IStorageReader() = default;
+    i_storage_reader() = default;
+    virtual ~i_storage_reader() = default;
 
-    virtual int getIndex(Token const& token,
-                         std::string const& id,
-                         form::experimental::config::tech_setting_config const& settings) = 0;
-    virtual void prime(Token const& token,
+    virtual int get_index(token const& token,
+                          std::string const& id,
+                          form::experimental::config::tech_setting_config const& settings) = 0;
+    virtual void prime(token const& token,
                        std::type_info const& type,
                        form::experimental::config::tech_setting_config const& settings) = 0;
-    virtual std::vector<std::string> listIndices(
-      Token const& token, form::experimental::config::tech_setting_config const& settings) = 0;
-    virtual void readContainer(Token const& token,
-                               void const** data,
-                               std::type_info const& type,
-                               form::experimental::config::tech_setting_config const& settings) = 0;
-  };
-
-  class IStorageWriter {
-  public:
-    IStorageWriter() = default;
-    virtual ~IStorageWriter() = default;
-
-    virtual void createContainers(
-      std::map<std::unique_ptr<Placement>, std::type_info const*> const& containers,
+    virtual std::vector<std::string> list_indices(
+      token const& token, form::experimental::config::tech_setting_config const& settings) = 0;
+    virtual void read_container(
+      token const& token,
+      void const** data,
+      std::type_info const& type,
       form::experimental::config::tech_setting_config const& settings) = 0;
-    // Returns the 0-based row (entry) number written, or kInvalidRowId if no rows
-    virtual std::uint64_t fillContainer(Placement const& plcmnt,
-                                        void const* data,
-                                        std::type_info const& type) = 0;
-    virtual void commitContainers(Placement const& plcmnt) = 0;
   };
 
-  class IStorage_File {
+  class i_storage_writer {
   public:
-    IStorage_File() = default;
-    virtual ~IStorage_File() = default;
+    i_storage_writer() = default;
+    virtual ~i_storage_writer() = default;
+
+    virtual void create_containers(
+      std::map<std::unique_ptr<placement>, std::type_info const*> const& containers,
+      form::experimental::config::tech_setting_config const& settings) = 0;
+    // Returns the 0-based row (entry) number written, or invalid_row_id if no rows
+    virtual std::uint64_t fill_container(placement const& plcmnt,
+                                         void const* data,
+                                         std::type_info const& type) = 0;
+    virtual void commit_containers(placement const& plcmnt) = 0;
+  };
+
+  class i_storage_file {
+  public:
+    i_storage_file() = default;
+    virtual ~i_storage_file() = default;
 
     virtual std::string const& name() = 0;
     virtual char mode() = 0;
 
-    virtual void setAttribute(std::string const& name, std::string const& value) = 0;
+    virtual void set_attribute(std::string const& name, std::string const& value) = 0;
   };
 
-  class IStorage_Write_Container {
+  class i_storage_write_container {
   public:
-    IStorage_Write_Container() = default;
-    virtual ~IStorage_Write_Container() = default;
+    i_storage_write_container() = default;
+    virtual ~i_storage_write_container() = default;
 
     virtual std::string const& name() = 0;
 
-    virtual void setFile(std::shared_ptr<IStorage_File> file) = 0;
-    virtual void setupWrite(std::type_info const& type = typeid(void)) = 0;
-    // Returns the 0-based row (entry) number written, or kInvalidRowId if no rows
+    virtual void set_file(std::shared_ptr<i_storage_file> file) = 0;
+    virtual void setup_write(std::type_info const& type = typeid(void)) = 0;
+    // Returns the 0-based row (entry) number written, or invalid_row_id if no rows
     virtual std::uint64_t fill(void const* data) = 0;
     virtual void commit() = 0;
 
-    virtual void setAttribute(std::string const& name, std::string const& value) = 0;
+    virtual void set_attribute(std::string const& name, std::string const& value) = 0;
   };
 
-  class IStorage_Read_Container {
+  class i_storage_read_container {
   public:
-    IStorage_Read_Container() = default;
-    virtual ~IStorage_Read_Container() = default;
+    i_storage_read_container() = default;
+    virtual ~i_storage_read_container() = default;
 
     virtual std::string const& name() = 0;
 
-    virtual void setFile(std::shared_ptr<IStorage_File> file) = 0;
+    virtual void set_file(std::shared_ptr<i_storage_file> file) = 0;
     virtual void prime(std::type_info const& type) = 0;
     virtual bool read(int id, void const** data, std::type_info const& type) = 0;
     virtual int entries() = 0;
 
-    virtual void setAttribute(std::string const& name, std::string const& value) = 0;
+    virtual void set_attribute(std::string const& name, std::string const& value) = 0;
   };
 
-  std::unique_ptr<IStorageReader> createStorageReader();
-  std::unique_ptr<IStorageWriter> createStorageWriter();
+  std::unique_ptr<i_storage_reader> create_storage_reader();
+  std::unique_ptr<i_storage_writer> create_storage_writer();
 
 } // namespace form::detail::experimental
 

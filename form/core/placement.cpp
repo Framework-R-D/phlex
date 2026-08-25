@@ -7,16 +7,16 @@
 using namespace form::detail::experimental;
 
 /// Constructor with initialization
-Placement::Placement(std::string fileName, std::string containerName, technology::Id technology) :
-  m_technology(technology),
-  m_fileName(std::move(fileName)),
-  m_containerName(std::move(containerName))
+placement::placement(std::string file_name, std::string container_name, technology::id technology) :
+  technology_(technology),
+  file_name_(std::move(file_name)),
+  container_name_(std::move(container_name))
 {
 }
 
 /// Access file name
-std::string const& Placement::fileName() const { return m_fileName; }
+std::string const& placement::file_name() const { return file_name_; }
 /// Access container name
-std::string const& Placement::containerName() const { return m_containerName; }
+std::string const& placement::container_name() const { return container_name_; }
 /// Access technology type
-form::technology::Id Placement::technology() const { return m_technology; }
+form::technology::id placement::technology() const { return technology_; }

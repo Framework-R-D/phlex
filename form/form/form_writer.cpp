@@ -8,19 +8,19 @@
 
 namespace form::experimental {
 
-  form_writer_interface::form_writer_interface(config::ItemConfig const& config_item,
+  form_writer_interface::form_writer_interface(config::item_config const& config_item,
                                                config::tech_setting_config const& tech_config) :
-    m_pers_writer(nullptr)
+    pers_writer_(nullptr)
   {
-    for (auto const& item : config_item.getItems()) {
-      m_product_to_config.emplace(item.product_name,
-                                  form::experimental::config::PersistenceItem(
-                                    item.product_name, item.file_name, item.technology));
+    for (auto const& item : config_item.get_items()) {
+      product_to_config_.emplace(item.product_name,
+                                 form::experimental::config::persistence_item(
+                                   item.product_name, item.file_name, item.technology));
     }
 
-    m_pers_writer = form::detail::experimental::createPersistenceWriter();
-    m_pers_writer->configure(config_item);
-    m_pers_writer->configureTechSettings(tech_config);
+    pers_writer_ = form::detail::experimental::create_persistence_writer();
+    pers_writer_->configure(config_item);
+    pers_writer_->configure_tech_settings(tech_config);
   }
 
   void form_writer_interface::write(std::string const& creator,
@@ -28,18 +28,18 @@ namespace form::experimental {
                                     product_with_name const& product)
   {
 
-    auto config_it = m_product_to_config.find(product.label);
-    if (config_it == m_product_to_config.end()) {
+    auto config_it = product_to_config_.find(product.label);
+    if (config_it == product_to_config_.end()) {
       std::cerr << "No configuration found for product: " << product.label << '\n';
       return;
     }
 
     std::map<std::string, std::type_info const*> products = {{product.label, product.type}};
-    m_pers_writer->createContainers(creator, products);
+    pers_writer_->create_containers(creator, products);
 
-    m_pers_writer->registerWrite(creator, product.label, product.data, *product.type);
+    pers_writer_->register_write(creator, product.label, product.data, *product.type);
 
-    m_pers_writer->commitOutput(creator, segment_id);
+    pers_writer_->commit_output(creator, segment_id);
   }
 
   void form_writer_interface::write(std::string const& creator,
@@ -51,8 +51,8 @@ namespace form::experimental {
       return;
     }
 
-    auto config_it = m_product_to_config.find(products[0].label);
-    if (config_it == m_product_to_config.end()) {
+    auto config_it = product_to_config_.find(products[0].label);
+    if (config_it == product_to_config_.end()) {
       std::cerr << "No configuration found for product: " << products[0].label << '\n';
       return;
     }
@@ -63,14 +63,14 @@ namespace form::experimental {
       product_types.insert(std::make_pair(pb.label, pb.type));
     }
 
-    m_pers_writer->createContainers(creator, product_types);
+    pers_writer_->create_containers(creator, product_types);
 
     for (auto const& pb : products) {
       // FIXME: We could consider checking id to be identical for all product bases here
-      m_pers_writer->registerWrite(creator, pb.label, pb.data, *pb.type);
+      pers_writer_->register_write(creator, pb.label, pb.data, *pb.type);
     }
 
-    m_pers_writer->commitOutput(creator, segment_id);
+    pers_writer_->commit_output(creator, segment_id);
   }
 
 }

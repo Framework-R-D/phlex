@@ -5,19 +5,19 @@
 #include "TFile.h"
 
 using namespace form::detail::experimental;
-ROOT_TFileImp::ROOT_TFileImp(std::string const& name, char mode) :
-  Storage_File(name, mode), m_file(nullptr)
+root_tfile_imp::root_tfile_imp(std::string const& name, char mode) :
+  storage_file(name, mode), file_(nullptr)
 {
   if (mode == 'c' || mode == 'r' || mode == 'o') {
-    m_file.reset(TFile::Open(name.c_str(), "RECREATE"));
+    file_.reset(TFile::Open(name.c_str(), "RECREATE"));
   } else {
-    m_file.reset(TFile::Open(name.c_str(), "READ"));
+    file_.reset(TFile::Open(name.c_str(), "READ"));
   }
 }
 
-ROOT_TFileImp::~ROOT_TFileImp() = default;
+root_tfile_imp::~root_tfile_imp() = default;
 
-void ROOT_TFileImp::setAttribute(std::string const& key, std::string const& value)
+void root_tfile_imp::set_attribute(std::string const& key, std::string const& value)
 {
   if (key == "compression") {
     using RComp = ROOT::RCompressionSetting::EAlgorithm;
@@ -35,10 +35,10 @@ void ROOT_TFileImp::setAttribute(std::string const& key, std::string const& valu
     } else { // leave compression as kUndefined, which will use ROOT's default
     }
 
-    m_file->SetCompressionAlgorithm(compression);
+    file_->SetCompressionAlgorithm(compression);
   } else {
-    throw std::runtime_error("ROOT_TFileImp does not recognize an attribute named " + key);
+    throw std::runtime_error("root_tfile_imp does not recognize an attribute named " + key);
   }
 }
 
-std::shared_ptr<TFile> ROOT_TFileImp::getTFile() { return m_file; }
+std::shared_ptr<TFile> root_tfile_imp::get_tfile() { return file_; }

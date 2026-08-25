@@ -17,7 +17,7 @@ namespace form::experimental {
 
   class form_reader_interface {
   public:
-    form_reader_interface(config::ItemConfig const& config_item,
+    form_reader_interface(config::item_config const& config_item,
                           config::tech_setting_config const& tech_config);
     ~form_reader_interface() = default;
 
@@ -32,8 +32,8 @@ namespace form::experimental {
     std::vector<std::string> indices(std::string const& creator, std::string const& product_name);
 
   private:
-    std::unique_ptr<form::detail::experimental::IPersistenceReader> m_pers_reader;
-    std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
+    std::unique_ptr<form::detail::experimental::i_persistence_reader> pers_reader_;
+    std::map<std::string, form::experimental::config::persistence_item> product_to_config_;
   };
 }
 

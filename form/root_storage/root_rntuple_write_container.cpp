@@ -1,4 +1,4 @@
-//A ROOT_RNTuple_Write_Container reads data products of a single type from vectors stored in an RNTuple field on disk.
+//A root_rntuple_write_container_imp is a storage_write_association that coordinates the RNTuple-specific, file-based resources (writer, model, entry) shared by several root_rfield_write_container_imps; it does not itself write a data product (see root_rfield_write_container_imp for the per-field write path).
 
 #include "root_rntuple_write_container.hpp"
 #include "root_tfile.hpp"
@@ -11,33 +11,33 @@
 #include <exception>
 
 namespace form::detail::experimental {
-  ROOT_RNTuple_Write_ContainerImp::ROOT_RNTuple_Write_ContainerImp(std::string const& name) :
-    Storage_Write_Association(name), m_model(ROOT::RNTupleModel::Create())
+  root_rntuple_write_container_imp::root_rntuple_write_container_imp(std::string const& name) :
+    storage_write_association(name), model_(ROOT::RNTupleModel::Create())
   {
   }
 
-  ROOT_RNTuple_Write_ContainerImp::~ROOT_RNTuple_Write_ContainerImp()
+  root_rntuple_write_container_imp::~root_rntuple_write_container_imp()
   {
-    if (m_writer) {
-      m_writer->CommitDataset();
+    if (writer_) {
+      writer_->CommitDataset();
     }
   }
 
-  void ROOT_RNTuple_Write_ContainerImp::setFile(std::shared_ptr<IStorage_File> file)
+  void root_rntuple_write_container_imp::set_file(std::shared_ptr<i_storage_file> file)
   {
-    Storage_Write_Container::setFile(file);
+    storage_write_container::set_file(file);
     return;
   }
 
-  std::uint64_t ROOT_RNTuple_Write_ContainerImp::fill(void const* /*data*/)
+  std::uint64_t root_rntuple_write_container_imp::fill(void const* /*data*/)
   {
-    throw std::runtime_error("ROOT_RNTuple_Write_ContainerImp::fill not implemented");
+    throw std::runtime_error("root_rntuple_write_container_imp::fill not implemented");
   }
 
-  void ROOT_RNTuple_Write_ContainerImp::commit()
+  void root_rntuple_write_container_imp::commit()
   {
-    throw std::runtime_error("ROOT_RNTuple_Write_ContainerImp::commit not implemented");
+    throw std::runtime_error("root_rntuple_write_container_imp::commit not implemented");
   }
 
-  void ROOT_RNTuple_Write_ContainerImp::setupWrite(std::type_info const& /*type*/) { return; }
+  void root_rntuple_write_container_imp::setup_write(std::type_info const& /*type*/) { return; }
 }

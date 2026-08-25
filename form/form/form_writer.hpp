@@ -16,7 +16,7 @@ namespace form::experimental {
 
   class form_writer_interface {
   public:
-    form_writer_interface(config::ItemConfig const& config_item,
+    form_writer_interface(config::item_config const& config_item,
                           config::tech_setting_config const& tech_config);
     ~form_writer_interface() = default;
 
@@ -29,8 +29,8 @@ namespace form::experimental {
                std::vector<product_with_name> const& products);
 
   private:
-    std::unique_ptr<form::detail::experimental::IPersistenceWriter> m_pers_writer;
-    std::map<std::string, form::experimental::config::PersistenceItem> m_product_to_config;
+    std::unique_ptr<form::detail::experimental::i_persistence_writer> pers_writer_;
+    std::map<std::string, form::experimental::config::persistence_item> product_to_config_;
   };
 }
 

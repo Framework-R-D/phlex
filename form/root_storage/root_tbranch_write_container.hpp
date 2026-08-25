@@ -14,24 +14,24 @@ class TBranch;
 
 namespace form::detail::experimental {
 
-  class ROOT_TBranch_Write_ContainerImp : public Storage_Associative_Write_Container {
+  class root_tbranch_write_container_imp : public storage_associative_write_container {
   public:
-    explicit ROOT_TBranch_Write_ContainerImp(std::string const& name);
-    ~ROOT_TBranch_Write_ContainerImp() override = default;
+    explicit root_tbranch_write_container_imp(std::string const& name);
+    ~root_tbranch_write_container_imp() override = default;
 
-    void setAttribute(std::string const& key, std::string const& value) override;
+    void set_attribute(std::string const& key, std::string const& value) override;
 
-    void setFile(std::shared_ptr<IStorage_File> file) override;
-    void setParent(std::shared_ptr<IStorage_Write_Container> parent) override;
+    void set_file(std::shared_ptr<i_storage_file> file) override;
+    void set_parent(std::shared_ptr<i_storage_write_container> parent) override;
 
-    void setupWrite(std::type_info const& type = typeid(void)) override;
+    void setup_write(std::type_info const& type = typeid(void)) override;
     std::uint64_t fill(void const* data) override;
     void commit() override;
 
   private:
-    std::shared_ptr<TFile> m_tfile;
-    TTree* m_tree{nullptr};
-    TBranch* m_branch{nullptr};
+    std::shared_ptr<TFile> tfile_;
+    TTree* tree_{nullptr};
+    TBranch* branch_{nullptr};
   };
 
 } // namespace form::detail::experimental
