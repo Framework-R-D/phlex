@@ -16,7 +16,7 @@ spack:
     - py-pytest-cov # Needed for Python coverage reports
     - py-pyyaml # Needed by run-clang-tidy --export-fixes to merge per-TU fix files
     - |
-      llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
+      llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=${PHLEX_LLVM_TARGET:-x86}
 
   view:
     default:
@@ -38,11 +38,11 @@ spack:
       require:
         - "~qtgui"
         - "@4:"
-        - "target=x86_64_v3"
+        - "target=${PHLEX_SPACK_TARGET:-x86_64_v3}"
 
     llvm:
       require:
-        - "target=x86_64_v3"
+        - "target=${PHLEX_SPACK_TARGET:-x86_64_v3}"
         - "%c,cxx=gcc@15"
 
     phlex:
