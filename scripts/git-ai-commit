@@ -1519,7 +1519,6 @@ def main() -> None:
         return
 
     if args.edit:
-        # Open editor automatically and bypass confirmation.
         try:
             message = _edit(message)
         except _Error as exc:
@@ -1531,34 +1530,10 @@ def main() -> None:
         _print_rule(message)
     else:
         _print_rule(message)
-        if not args.yes:
-            # Prompt user with extended options: yes, no, edit.
-            print("Commit with this message? [y/N/e] ", end="", flush=True)
-            try:
-                with contextlib.ExitStack() as stack:
-                    if sys.stdin.isatty():
-                        source = sys.stdin
-                    else:
-                        source = stack.enter_context(open("/dev/tty", encoding="utf-8"))
-                    reply = source.readline().strip().lower()
-            except (EOFError, KeyboardInterrupt, OSError):
-                print()
-                reply = ""
-            if reply in ("y", "yes"):
-                pass  # proceed to commit
-            elif reply in ("e", "edit"):
-                try:
-                    message = _edit(message)
-                except _Error as exc:
-                    print(f"git-ai-commit: {exc}", file=sys.stderr)
-                    sys.exit(1)
-                if not message.strip():
-                    print("Empty message — aborting.", file=sys.stderr)
-                    sys.exit(0)
-                _print_rule(message)
-            else:
-                print("Aborted.", file=sys.stderr)
-                sys.exit(0)
+
+    if not args.yes and not _confirm("Commit with this message?"):
+        print("Aborted.", file=sys.stderr)
+        sys.exit(0)
 
     cmd = ["git", "commit"]
     if args.amend:
