@@ -42,11 +42,10 @@ _codeql_detected_source_root
 .\#*
 \#*#
 
-# Python caches
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
-.mypy_cache/
 
 # Documentation build output
 docs/doxygen/
