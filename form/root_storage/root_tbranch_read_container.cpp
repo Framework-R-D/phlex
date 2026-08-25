@@ -106,8 +106,9 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
   int branch_status = 0;
 
   if (!dict_info) {
-    throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read unsupported type: "} +
-                             demangle_name(type));
+    throw std::runtime_error(
+      std::string{"root_tbranch_read_container_imp::read unsupported type: "} +
+      demangle_name(type));
   }
 
   if (dict_info->Property() & EProperty::kIsFundamental) {
@@ -155,7 +156,7 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
       break;
     default:
       throw std::runtime_error(
-        std::string{"ROOT_TBranch_ContainerImp::read unsupported fundamental type: "} +
+        std::string{"root_tbranch_read_container_imp::read unsupported fundamental type: "} +
         demangle_name(type));
     };
     branch_status = tree_->SetBranchAddress(
@@ -163,7 +164,7 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
   } else {
     auto* klass = TClass::GetClass(type);
     if (!klass) {
-      throw std::runtime_error(std::string{"ROOT_TBranch_ContainerImp::read missing TClass"} +
+      throw std::runtime_error(std::string{"root_tbranch_read_container_imp::read missing TClass"} +
                                " (col_name='" + col_name() + "', type='" + demangle_name(type) +
                                "')");
     }
@@ -179,8 +180,8 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
 
   if (branch_status < 0) {
     throw std::runtime_error(
-      std::string{"ROOT_TBranch_ContainerImp::read SetBranchAddress() failed"} + " (col_name='" +
-      col_name() + "', type='" + demangle_name(type) + "')" + " with error code " +
+      std::string{"root_tbranch_read_container_imp::read SetBranchAddress() failed"} +
+      " (col_name='" + col_name() + "', type='" + demangle_name(type) + "')" + " with error code " +
       std::to_string(branch_status));
   }
 

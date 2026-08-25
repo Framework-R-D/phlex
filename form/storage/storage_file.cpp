@@ -15,5 +15,5 @@ char storage_file::mode() { return mode_; }
 void storage_file::set_attribute(std::string const& /*name*/, std::string const& /*value*/)
 {
   throw std::runtime_error(
-    "StorageFile::set_attribute does not accept any attributes for a file named " + name_);
+    "storage_file::set_attribute does not accept any attributes for a file named " + name_);
 }
