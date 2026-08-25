@@ -19,25 +19,6 @@
 #
 # where <tag> is the date (e.g. "2025-08-12").
 #
-# Build arguments:
-#   PHLEX_SPACK_TARGET: Target architecture (default: auto-detected or x86_64_v3)
-#   PHLEX_SPACK_COMPILER: Compiler for Spack builds (default: gcc)
-#   INSTALL_ACT: Install act CLI (default: true). Set to false for arm64 builds
-#                or when act is not available for your architecture.
-#   INSTALL_TRACEBOX: Install tracebox profiling tool (default: true)
-#   GPG_KEY_ID: GPG key ID for signing buildcache packages (optional)
-#
-# act availability:
-#   The act CLI is automatically detected for supported architectures (x86_64, aarch64).
-#   For arm64 builds, act is downloaded if available; otherwise installation is skipped.
-#   Set --build-arg INSTALL_ACT=false to explicitly skip act installation.
-#   Alternatively, use the host's act via DOCKER_HOST and a socket bind-mount.
-#
-# tracebox availability:
-#   tracebox from get.perfetto.dev is x86_64 only. For arm64 builds, it is
-#   automatically skipped. Set --build-arg INSTALL_TRACEBOX=false to explicitly
-#   skip tracebox installation.
-#
 # Binary package signing (optional):
 #   When -v <local-spack-cache>:/build-cache is supplied, newly built
 #   packages are pushed to that cache.  They are signed when a GPG
@@ -67,13 +48,6 @@
 #   Host prerequisite: systemctl --user enable --now podman.socket
 
 ARG GPG_KEY_ID
-ARG PHLEX_SPACK_TARGET
-ARG PHLEX_SPACK_COMPILER
-ARG INSTALL_ACT=true
-ARG INSTALL_TRACEBOX=true
-
-# Detect architecture from build context if not explicitly set
-# Build arguments are string type, empty string check is done at runtime
 FROM ubuntu:24.04 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -82,7 +56,6 @@ ENV LC_ALL=en_US.UTF-8
 ENV SPACK_USER_CONFIG_PATH=/dev/null
 ENV SPACK_DISABLE_LOCAL_CONFIG=true
 ENV PHLEX_SPACK_ENV=/opt/spack-environments/phlex-ci
-ENV INSTALL_ACT=${INSTALL_ACT:-true}
 
 SHELL ["/bin/bash", "-c"]
 
@@ -252,25 +225,9 @@ set -euo pipefail
 # Install GCC outside the Phlex development environment.
 . /spack/share/spack/setup-env.sh
 
-# Determine GCC bootstrap target based on host architecture
-# x86_64 -> x86_64_v3 (AMD64 with SSE4.2)
-# aarch64 -> aarch64 (ARM64)
-case "$(uname -m)" in
-  x86_64)
-    BOOTSTRAP_TARGET=x86_64_v3
-    ;;
-  aarch64|arm64)
-    BOOTSTRAP_TARGET=aarch64
-    ;;
-  *)
-    echo "ERROR: Unsupported architecture for GCC bootstrap: $(uname -m)" >&2
-    exit 1
-    ;;
-esac
-
 spack --timestamp install --fail-fast -j "$(nproc)" \
       --no-check-signature \
-      gcc@15.3 target=${BOOTSTRAP_TARGET} \
+      gcc@15.3 target=x86_64_v3 \
       +binutils+graphite~nvptx+piclibs+strip \
       build_type=Release \
       languages=c,c++,fortran,lto \
@@ -386,25 +343,8 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-# Determine LLVM backend targets based on host architecture
-# x86_64 -> X86 backend
-# aarch64 -> AArch64 backend
-case "$(uname -m)" in
-  x86_64)
-    LLVM_TARGETS="X86"
-    ;;
-  aarch64|arm64)
-    LLVM_TARGETS="AArch64"
-    ;;
-  *)
-    echo "ERROR: Unsupported architecture for LLVM: $(uname -m)" >&2
-    exit 1
-    ;;
-esac
-
 spack --timestamp install --fail-fast -j $(nproc) \
-  --no-add --only-concrete --no-check-signature \
-  "llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=${LLVM_TARGETS}"
+  --no-add --only-concrete --no-check-signature llvm
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -514,6 +454,8 @@ WRITE_BUILDCACHE
 ########################################################################
 # Install Perfetto SDK for profiling
 
+ARG INSTALL_TRACEBOX=true
+
 RUN <<'INSTALL_PERFETTO'
 set -euo pipefail
 
@@ -537,24 +479,15 @@ echo "${PERFETTO_CC_SHA256}  perfetto.cc" | sha256sum -c -
 
 chmod 644 perfetto.h perfetto.cc
 
-# tracebox is downloaded from get.perfetto.dev/tracebox, which currently
-# serves the latest binary with no versioned or checksum-verifiable download
-# offered by the Perfetto project.  Opt out with --build-arg INSTALL_TRACEBOX=false
-# if supply-chain policy requires a verifiable artifact.  Revisit when the
-# project provides versioned tracebox releases with integrity metadata.
-# NOTE: The tracebox binary from get.perfetto.dev is x86_64 only. For arm64
-# builds, set INSTALL_TRACEBOX=false to skip installation.
 if [ "${INSTALL_TRACEBOX}" = "true" ]; then
-  if [ "$(uname -m)" != "x86_64" ]; then
-    echo "WARNING: tracebox only supports x86_64, found architecture: $(uname -m)" >&2
-    echo "Skipping tracebox installation (unsupported architecture)" >&2
-  else
-    curl -fsSL -o tracebox https://get.perfetto.dev/tracebox
-    chmod +x tracebox
-    mv tracebox /usr/local/bin/
-  fi
-else
-  echo "Skipping tracebox installation (INSTALL_TRACEBOX=false)"
+  # tracebox is downloaded from get.perfetto.dev/tracebox, which currently
+  # serves the latest binary with no versioned or checksum-verifiable download
+  # offered by the Perfetto project.  Opt out with --build-arg INSTALL_TRACEBOX=false
+  # if supply-chain policy requires a verifiable artifact.  Revisit when the
+  # project provides versioned tracebox releases with integrity metadata.
+  curl -fsSL -o tracebox https://get.perfetto.dev/tracebox
+  chmod +x tracebox
+  mv tracebox /usr/local/bin/
 fi
 INSTALL_PERFETTO
 
@@ -633,39 +566,15 @@ RUN <<'INSTALL_ACT'
 set -euo pipefail
 
 # Install GitHub's act CLI for local workflow testing
-# Opt-out via: --build-arg INSTALL_ACT=false
-if [ "${INSTALL_ACT}" = "true" ]; then
-  # Detect architecture and select the appropriate act binary
-  HOST_ARCH=$(uname -m)
-  case "$HOST_ARCH" in
-    x86_64)
-      ARCH_NAME="Linux_x86_64"
-      ;;
-    aarch64|arm64)
-      ARCH_NAME="Linux_arm64"
-      ;;
-    *)
-      echo "WARNING: act only supports x86_64 and aarch64 architectures, found: $HOST_ARCH" >&2
-      echo "Skipping act installation (unsupported architecture)" >&2
-      exit 0
-      ;;
-  esac
-
-  download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
-    grep -Ee "\"browser_download_url\": .*/act_${ARCH_NAME}\\." | \
-    head -n 1 | \
-    cut -d '"' -f 4)
-  if [ -z "$download_url" ]; then
-    echo "WARNING: Failed to determine act download URL for ${ARCH_NAME}" >&2
-    echo "Skipping act installation" >&2
-    exit 0
-  fi
-  curl -sfSL "$download_url" | tar -C /usr/local/bin -zx act
-  chmod +x /usr/local/bin/act
-  echo "act installed successfully"
-else
-  echo "Skipping act installation (INSTALL_ACT=false)"
+download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest | \
+  grep -Ee '"browser_download_url": .*/act_Linux_x86_64\.' | \
+  cut -d '"' -f 4)
+if [ -z "$download_url" ]; then
+  echo "Failed to determine act download URL" >&2
+  exit 1
 fi
+curl -sfSL "$download_url" | tar -C /usr/local/bin -zx act
+chmod +x /usr/local/bin/act
 INSTALL_ACT
 
 ########################################################################

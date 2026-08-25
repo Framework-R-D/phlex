@@ -1,18 +1,7 @@
 # ######################################################################
-# Spack environment configuration for Phlex.
-#
-# Architecture-aware configuration via PHLEX_SPACK_TARGET environment
-# variable (set in Dockerfile/DockerBuild):
-#   - amd64: x86_64_v3 (GCC 15)
-#   - arm64: aarch64 (Spack Clang)
-#
-# Compiler selection is driven by PHLEX_SPACK_COMPILER and PHLEX_DEFAULT_COMPILER:
-#   - amd64 (CI): gcc@15 (default if not set, PHLEX_DEFAULT_COMPILER=gcc)
-#   - arm64 (dev): clang (Spack-provided, PHLEX_DEFAULT_COMPILER=clang)
-#
-# When PHLEX_SPACK_TARGET is not set, architecture detection sets defaults:
-#   - x86_64 -> x86_64_v3
-#   - aarch64/arm64 -> aarch64
+# In this environment, we specify that some packages be built with the
+# native compiler (currently GCC 13 on Ubuntu 24.04), and others with
+# the compiler required to build Phlex (currently GCC 15).
 # ######################################################################
 
 spack:
@@ -26,7 +15,8 @@ spack:
     - py-gcovr
     - py-pytest-cov # Needed for Python coverage reports
     - py-pyyaml # Needed by run-clang-tidy --export-fixes to merge per-TU fix files
-    - llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb
+    - |
+      llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=x86
 
   view:
     default:
@@ -48,62 +38,49 @@ spack:
       require:
         - "~qtgui"
         - "@4:"
-        - "target=${PHLEX_SPACK_TARGET}"
+        - "target=x86_64_v3"
 
     llvm:
       require:
-        - "@22.1.8"
-        - "target=${PHLEX_SPACK_TARGET}"
+        - "target=x86_64_v3"
+        - "%c,cxx=gcc@15"
 
     phlex:
       require:
         - "@develop"
         - "+form"
         - "cxxstd=23"
-        - "target=${PHLEX_SPACK_TARGET}"
+        - "%cxx=gcc@15"
+        - "^intel-tbb@2023.0.0:"
 
     py-cython:
       require:
         - "build_system=python_pip"
-        - "target=${PHLEX_SPACK_TARGET}"
 
     py-gcovr:
       require:
         - "build_system=python_pip"
-        - "target=${PHLEX_SPACK_TARGET}"
 
     py-pytest-cov:
       require:
         - "build_system=python_pip"
-        - "target=${PHLEX_SPACK_TARGET}"
 
     py-pyyaml:
       require:
         - "build_system=python_pip"
-        - "target=${PHLEX_SPACK_TARGET}"
 
     # Temporary version pin for C-API `char const *` consistency
     python:
       require:
         - "@3.12"
-        - "target=${PHLEX_SPACK_TARGET}"
 
-    # root and its dependents (phlex) must share a single ABI.
-    # Compiler selection is driven by PHLEX_DEFAULT_COMPILER:
-    #   - amd64 (CI): gcc@15 (PHLEX_DEFAULT_COMPILER=gcc)
-    #   - arm64 (dev): clang (PHLEX_DEFAULT_COMPILER=clang)
+    # root and its dependents (phlex) must be built with gcc@15 so
+    # they share a single ABI.  root's own dependencies (e.g. zlib,
+    # python, xrootd) inherit the gcc@13 site default instead.
+    # ROOT should be built with the same version of the C++ standard
+    # as will be used by Phlex (C++23 for now).
     root:
       require:
         - "~x" # No graphics libraries required
         - "cxxstd=23"
-        - "target=${PHLEX_SPACK_TARGET}"
-
-# Target and compiler defaults when PHLEX_SPACK_TARGET/PHLEX_SPACK_COMPILER
-# are not set. These are applied via spack config add in entrypoint.sh.
-# CI uses amd64:x86_64_v3:GCC; dev uses arm64:aarch64:Spack Clang.
-config:
-  concretizer:
-    targets:
-      arch: ${PHLEX_SPACK_TARGET}
-    compiler:
-      name: ${PHLEX_SPACK_COMPILER}
+        - "%c,cxx=gcc@15"
