@@ -191,6 +191,9 @@ cet_test(product_handle USE_CATCH2_MAIN SOURCE product_handle_test.cpp LIBRARIES
 cet_test(product_store USE_CATCH2_MAIN SOURCE product_store_test.cpp LIBRARIES
          phlex::core_internal
 )
+cet_test(products USE_CATCH2_MAIN SOURCE products_test.cpp LIBRARIES
+         phlex::model_internal
+)
 cet_test(
   fold
   USE_CATCH2_MAIN
