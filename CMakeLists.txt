@@ -22,12 +22,12 @@ FetchContent_Declare(
 )
 # ... and Microsoft's C++ Guideline Support Library
 FetchContent_Declare(
-  GSL
+  Microsoft.GSL
   GIT_REPOSITORY https://github.com/microsoft/GSL
   GIT_TAG v4.2.0
   GIT_SHALLOW ON
   EXCLUDE_FROM_ALL # Do not install
-  FIND_PACKAGE_ARGS NAMES Microsoft.GSL
+  FIND_PACKAGE_ARGS
 )
 # ... and the Mimic C++ mocking framework
 FetchContent_Declare(
@@ -90,7 +90,7 @@ set(DART_TESTING_TIMEOUT 90 CACHE STRING "Timeout (s) for Dart/CTest runs")
 set(CTEST_TEST_TIMEOUT 90 CACHE STRING "Per-test timeout (s) for CTest")
 
 # Make tools available
-FetchContent_MakeAvailable(Catch2 GSL mimicpp)
+FetchContent_MakeAvailable(Catch2 Microsoft.GSL mimicpp)
 # Avoid use of __COUNTER__ to prevent -pedantic warnings in Catch2's TEST_CASE macro
 set(CATCH_CONFIG_COUNTER OFF)
 
