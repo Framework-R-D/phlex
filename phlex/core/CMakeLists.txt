@@ -79,6 +79,7 @@ install(
   DESTINATION include/phlex/core/detail
 )
 target_include_directories(phlex_core PRIVATE ${PROJECT_SOURCE_DIR})
+target_compile_definitions(phlex_core PUBLIC TBB_PREVIEW_FLOW_GRAPH_RESOURCE_LIMITING=1)
 phlex_apply_symbol_visibility(phlex_core)
 phlex_apply_optimizations(phlex_core)
 
@@ -95,6 +96,10 @@ phlex_make_internal_library(
   LIBRARIES
   PUBLIC TBB::tbb phlex::metaprogramming phlex_model_internal phlex_utilities_internal
   PRIVATE Boost::json spdlog::spdlog
+)
+target_compile_definitions(
+  phlex_core_internal
+  INTERFACE TBB_PREVIEW_FLOW_GRAPH_RESOURCE_LIMITING=1
 )
 add_library(phlex::core_internal ALIAS phlex_core_internal)
 

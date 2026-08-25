@@ -157,10 +157,13 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 # add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
 
 list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Modules)
+include(${PROJECT_SOURCE_DIR}/Modules/private/PhlexTBB.cmake)
 
 # Dependencies required by public API
 find_package(Boost REQUIRED COMPONENTS json EXPORT)
 find_package(TBB REQUIRED EXPORT)
+phlex_check_tbb_resource_limiting()
+
 find_package(fmt REQUIRED EXPORT)
 find_package(spdlog REQUIRED EXPORT)
 find_package(Microsoft.GSL REQUIRED EXPORT)
