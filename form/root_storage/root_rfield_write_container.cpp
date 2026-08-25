@@ -1,4 +1,4 @@
-//A ROOT_RField_Write_Container writes data products of a single type from vectors stored in an RNTuple field on disk.
+//A root_rfield_write_container_imp writes data products of a single type from vectors stored in an RNTuple field on disk.
 
 #include "root_rfield_write_container.hpp"
 #include "demangle_name.hpp"

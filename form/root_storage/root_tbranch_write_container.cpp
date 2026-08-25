@@ -25,7 +25,7 @@ void root_tbranch_write_container_imp::set_attribute(std::string const& key,
   if (key == "auto_flush") {
     tree_->SetAutoFlush(std::stol(value));
   } else {
-    throw std::runtime_error("root_ttree_write_container_imp accepts some attributes, but not " +
+    throw std::runtime_error("root_tbranch_write_container_imp accepts some attributes, but not " +
                              key);
   }
 }
