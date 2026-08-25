@@ -206,4 +206,250 @@ ensure_bind_dir -m 0700 "$HOME/.vscode-remote-user-data"
 ensure_bind_dir -m 0700 "$HOME/.local/share/kilo"
 ensure_bind_dir -m 0700 "$HOME/.phlex-devcontainer-tmp"
 
+# --- Bounded Host Relay Management ---
+#
+# PHLEX_HOST_RELAY_PORTS specifies explicit port mappings to relay through
+# the host loopback. Format: comma-separated SOURCE=DEST pairs where both
+# SOURCE and DEST are numeric ports. No wildcards or arbitrary host scan.
+#
+# Examples:
+#   PHLEX_HOST_RELAY_PORTS="11434=21434,3000=13000"
+#   PHLEX_HOST_RELAY_PORTS="3000=13000"
+#
+# Validation rules:
+#   - Each entry must be NUMERIC=NUMERIC (e.g., 11434=21434)
+#   - Both ports must be non-privileged (>= 1024)
+#   - No duplicates (same SOURCE in multiple entries)
+#   - No source=relay mappings (SOURCE must be numeric)
+#   - SOURCE port must be listening on loopback (127.0.0.1 or ::1)
+#   - Darwin relays bind to 127.0.0.1 explicitly for --net=pasta compatibility
+#
+# Output files (always written, deterministic empty or populated):
+#   ~/.phlex-devcontainer-tmp/relays/relay-map.json  - JSON map of SOURCE->DEST
+#   ~/.phlex-devcontainer-tmp/relays/relay-map.env   - SHELL_ENV KEY=VALUE pairs
+#   PHLEX_HOST_GATEWAY                               - host.docker.internal or host.containers.internal
+#   PHLEX_HOST_RELAY_FILE                            - path to JSON map
+#   PHLEX_HOST_RELAYS_ENV                            - path to env map
+#   PHLEX_PODMAN_SOCKET_SOURCE                       - socket source identifier
+
+RELAYS_DIR="$HOME/.phlex-devcontainer-tmp/relays"
+mkdir -p "$RELAYS_DIR"
+
+RELAY_MAP_JSON="${RELAYS_DIR}/relay-map.json"
+RELAY_MAP_ENV="${RELAYS_DIR}/relay-map.env"
+RELAY_PID_DIR="${RELAYS_DIR}/pids"
+mkdir -p "$RELAY_PID_DIR"
+
+# Initialize empty maps
+echo '{}' > "$RELAY_MAP_JSON"
+: > "$RELAY_MAP_ENV"
+
+# Export defaults (will be updated if relays configured)
+export PHLEX_HOST_GATEWAY="host.docker.internal"
+export PHLEX_HOST_RELAY_FILE="$RELAY_MAP_JSON"
+export PHLEX_HOST_RELAYS_ENV="$RELAY_MAP_ENV"
+export PHLEX_PODMAN_SOCKET_SOURCE="podman-machine"
+
+# Track PIDs for per-relay cleanup
+declare -A relay_pids
+
+# cleanup_relay SOURCE_PORT - kill only the process owned by this relay
+cleanup_relay() {
+  local source_port="$1"
+  local pid="${relay_pids[$source_port]:-}"
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    rm -f "${RELAY_PID_DIR}/${source_port}"
+    unset "relay_pids[$source_port]"
+  fi
+}
+
+# Cleanup function for exit
+cleanup_relays() {
+  for source_port in "${!relay_pids[@]}"; do
+    cleanup_relay "$source_port"
+  done
+}
+
+# Register cleanup on exit
+trap cleanup_relays EXIT
+
+# Parse PHLEX_HOST_RELAY_PORTS if set
+if [ -n "${PHLEX_HOST_RELAY_PORTS:-}" ]; then
+  # Track source ports to detect duplicates
+  declare -A seen_sources
+  relay_json_entries=()
+  relay_env_lines=()
+
+  # Split by comma
+  IFS=',' read -ra relay_pairs <<< "$PHLEX_HOST_RELAY_PORTS"
+
+  for pair in "${relay_pairs[@]}"; do
+    # Trim whitespace
+    pair=$(echo "$pair" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    # Must contain exactly one equals sign
+    if [[ ! "$pair" =~ ^[^=]+=[^=]+$ ]]; then
+      echo "ERROR: malformed relay mapping: '$pair' (expected SOURCE=DEST)" >&2
+      continue
+    fi
+
+    source_port="${pair%%=*}"
+    dest_port="${pair#*=}"
+
+    # Both must be numeric
+    if [[ ! "$source_port" =~ ^[0-9]+$ ]] || [[ ! "$dest_port" =~ ^[0-9]+$ ]]; then
+      echo "ERROR: relay mapping ports must be numeric: '$pair'" >&2
+      continue
+    fi
+
+    # Reject source=relay or source=hostname entries - SOURCE must be numeric
+    if [[ "$source_port" == "relay" ]] || [[ "$source_port" =~ ^[a-zA-Z] ]]; then
+      echo "ERROR: relay source must be numeric port, not 'relay' or hostname: '$pair'" >&2
+      continue
+    fi
+
+    # Check for non-privileged ports (both must be >= 1024)
+    if (( source_port < 1024 || dest_port < 1024 )); then
+      echo "ERROR: relay ports must be non-privileged (>= 1024): '$pair'" >&2
+      continue
+    fi
+
+    # Check for duplicate source ports
+    if [[ -n "${seen_sources[$source_port]+isset}" ]]; then
+      echo "ERROR: duplicate source port in relay mappings: '$source_port'" >&2
+      continue
+    fi
+    seen_sources[$source_port]=1
+
+    # Check if source port is actually listening on loopback (127.0.0.1 or ::1)
+    source_listening=false
+    if ss -tlnp 2>/dev/null | grep -qE "(127\.0\.0\.1|::1):${source_port} "; then
+      source_listening=true
+    fi
+
+    if [ "$source_listening" = false ]; then
+      echo "WARNING: source port $source_port not listening on loopback; skipping relay" >&2
+      continue
+    fi
+
+    # Darwin-specific: bind the relay listener to 127.0.0.1 explicitly
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      relay_bind_addr="127.0.0.1:${dest_port}"
+      listen_spec="TCP-LISTEN:${relay_bind_addr},fork,reuseaddr"
+    else
+      # Linux: bind to 0.0.0.0 for container reachability via host.containers.internal
+      relay_bind_addr="0.0.0.0:${dest_port}"
+      listen_spec="TCP-LISTEN:${dest_port},fork,reuseaddr"
+    fi
+
+    # Start the relay - source is 127.0.0.1:source_port, destination is relay_bind_addr
+    kill_pattern="socat.*TCP:127.0.0.1:${source_port}"
+    logfile="${RELAYS_DIR}/relay-${source_port}-${dest_port}.log"
+
+    if command -v socat >/dev/null 2>&1; then
+      echo "Starting host relay: 127.0.0.1:${source_port} -> ${relay_bind_addr}"
+      nohup setsid socat "TCP:127.0.0.1:${source_port}" "${listen_spec}" > "$logfile" 2>&1 &
+      local pid=$!
+      relay_pids[$source_port]=$pid
+
+      # Store PID for cleanup
+      echo "$pid" > "${RELAY_PID_DIR}/${source_port}"
+
+      # Wait briefly for relay to start
+      sleep 0.2
+
+      # Verify relay is listening
+      if ss -tlnp 2>/dev/null | grep -qE "${relay_bind_addr} "; then
+        echo "Host relay $source_port -> $dest_port ready"
+      else
+        echo "WARNING: host relay $source_port -> $dest_port did not start in time" >&2
+        cleanup_relay "$source_port"
+      fi
+    else
+      echo "WARNING: socat not found; cannot start relay $source_port -> $dest_port" >&2
+    fi
+
+    # Record the relay mapping for JSON and env files
+    relay_json_entries+=("\"${source_port}\": \"${dest_port}\"")
+    relay_env_lines+=("PHLEX_HOST_RELAY_${source_port}=${dest_port}")
+  done
+
+  # Write JSON map (empty object if no valid entries)
+  if [ ${#relay_json_entries[@]} -gt 0 ]; then
+    json_content="{"
+    first=true
+    for entry in "${relay_json_entries[@]}"; do
+      if [ "$first" = true ]; then
+        first=false
+      else
+        json_content+=", "
+      fi
+      json_content+="$entry"
+    done
+    json_content+="}"
+    echo "$json_content" > "$RELAY_MAP_JSON"
+  fi
+
+  # Write env map (empty file if no valid entries)
+  if [ ${#relay_env_lines[@]} -gt 0 ]; then
+    printf '%s\n' "${relay_env_lines[@]}" > "$RELAY_MAP_ENV"
+  fi
+
+  # Update exports based on relay configuration
+  export PHLEX_HOST_RELAY_FILE="$RELAY_MAP_JSON"
+  export PHLEX_HOST_RELAYS_ENV="$RELAY_MAP_ENV"
+fi
+
+# Darwin-specific relay binding with --net=pasta guard
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # Darwin guard: require a real VM-side socket when Podman is actually in use
+  VM_SOCKET_PATH="${PODMAN_REAL_SOCKET:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock}"
+  PODMAN_IN_USE=false
+
+  if command -v podman >/dev/null 2>&1; then
+    # Check if podman machine is running
+    if podman machine list 2>/dev/null | grep -qE 'Running|Started'; then
+      # Podman machine is running - verify VM-side socket via ssh
+      if podman machine ssh test -S "$VM_SOCKET_PATH" 2>/dev/null; then
+        export PHLEX_PODMAN_SOCKET_SOURCE="podman-machine:ssh"
+        export PHLEX_DEV_NETWORK_MODE="pasta"
+        export PHLEX_HOST_GATEWAY="host.docker.internal"
+        PODMAN_IN_USE=true
+      else
+        echo "WARNING: Darwin podman machine socket not accessible via 'podman machine ssh -S'" >&2
+        echo "  Tested path: $VM_SOCKET_PATH" >&2
+        echo "  Nested container support (act) may not work" >&2
+        export PHLEX_PODMAN_SOCKET_SOURCE="podman-machine:missing"
+        export PHLEX_DEV_NETWORK_MODE="pasta"
+        export PHLEX_HOST_GATEWAY="host.docker.internal"
+      fi
+    else
+      # Not in podman machine, check for native socket
+      if [ -S "$VM_SOCKET_PATH" ]; then
+        export PHLEX_PODMAN_SOCKET_SOURCE="host:direct"
+        export PHLEX_DEV_NETWORK_MODE="pasta"
+        export PHLEX_HOST_GATEWAY="host.docker.internal"
+        PODMAN_IN_USE=true
+      else
+        echo "WARNING: Darwin socket not found at $VM_SOCKET_PATH" >&2
+        echo "  Nested container support (act) may not work" >&2
+        export PHLEX_PODMAN_SOCKET_SOURCE="host:missing"
+        export PHLEX_DEV_NETWORK_MODE="pasta"
+        export PHLEX_HOST_GATEWAY="host.docker.internal"
+      fi
+    fi
+  else
+    echo "WARNING: podman not found - assuming no Podman usage" >&2
+    export PHLEX_PODMAN_SOCKET_SOURCE="none"
+    export PHLEX_DEV_NETWORK_MODE="pasta"
+    export PHLEX_HOST_GATEWAY="host.docker.internal"
+  fi
+else
+  # Linux: preserve existing proxy behavior
+  export PHLEX_PODMAN_SOCKET_SOURCE="host:direct"
+  export PHLEX_DEV_NETWORK_MODE="bridge"
+  export PHLEX_HOST_GATEWAY="host.containers.internal"
+fi
+
 echo "SUCCESS: .devcontainer/ensure-repos.sh completed successfully"
