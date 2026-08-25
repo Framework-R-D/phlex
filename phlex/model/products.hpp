@@ -10,6 +10,7 @@
 #include <cassert>
 #include <concepts>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <typeinfo>
 #include <utility>
@@ -48,7 +49,10 @@ namespace phlex::detail {
   product_ptr product_for(T&& t)
   {
     if constexpr (std::convertible_to<T, product_ptr>) {
-      return std::forward<T>(t);
+      if (auto product = product_ptr{std::forward<T>(t)}) {
+        return product;
+      }
+      throw std::runtime_error("Cannot store a null product pointer.");
     } else {
       return std::make_unique<product<std::remove_cvref_t<T>>>(std::forward<T>(t));
     }
