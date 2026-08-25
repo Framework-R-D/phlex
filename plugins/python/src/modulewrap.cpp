@@ -905,6 +905,7 @@ static bool insert_input_converters(py_phlex_module* mod,
                                     concurrency nc)
 {
   // insert input converter nodes into the graph
+  // NOLINTNEXTLINE(readability-use-anyofallof): side effects and short-circuiting are intentional.
   for (auto const [i, inp_pq, inp_type] :
        std::views::zip(std::views::iota(size_t{}), input_selectors, input_types)) {
     // TODO: this seems overly verbose and inefficient, but the function needs
