@@ -14,16 +14,39 @@
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 
+#include <array>
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string_view>
+#include <tuple>
+#include <type_traits>
+#include <utility>
 
 namespace phlex {
   class configuration;
 }
 
 namespace phlex::detail {
+
+  template <typename T>
+  concept selector_or_resource =
+    std::same_as<std::remove_cvref_t<T>, product_selector> || is_resource<T>;
+
+  template <typename Split, typename... Args>
+  auto partition_selectors_and_resources(Args&&... args)
+  {
+    auto all = std::forward_as_tuple(std::forward<Args>(args)...);
+    auto selectors = [&all]<std::size_t... Is>(std::index_sequence<Is...>) {
+      return std::array<product_selector, Split::number_selectors>{std::move(std::get<Is>(all))...};
+    }(std::make_index_sequence<Split::number_selectors>{});
+    auto resources = [&all]<std::size_t... Is>(std::index_sequence<Is...>) {
+      return
+        typename Split::resources_type{std::move(std::get<Is + Split::number_selectors>(all))...};
+    }(std::make_index_sequence<Split::number_resources>{});
+    return std::pair{std::move(selectors), std::move(resources)};
+  }
 
   // ====================================================================================
   // Registration API
@@ -36,6 +59,8 @@ namespace phlex::detail {
 
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = hof_type::number_output_products;
+
+    static_assert(num_inputs > 0, "input_family requires at least one product selector.");
 
   public:
     registration_api(configuration const* config,
@@ -56,41 +81,68 @@ namespace phlex::detail {
     {
     }
 
-    auto input_family(std::array<product_selector, num_inputs> input_args)
+    template <std::size_t NProducts, typename... Resources>
+    auto input_family(std::array<product_selector, NProducts> input_args, std::tuple<Resources...>)
     {
-      populate_types<input_parameter_types>(input_args);
+      static_assert((is_resource<Resources> && ...),
+                    "The second argument to input_family(...) must be a tuple of resources.");
+      static_assert(num_inputs == NProducts + sizeof...(Resources),
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
+
+      populate_types<boost::mp11::mp_take_c<input_parameter_types, NProducts>>(input_args);
 
       if constexpr (num_outputs == 0ull) {
         registrar_.set_creator([this, inputs = std::move(input_args)](
                                  auto predicates, auto const& /* output_product_suffixes */) {
-          return std::make_unique<hof_type>(std::move(name_),
-                                            concurrency_.value,
-                                            std::move(predicates),
-                                            graph_,
-                                            std::move(alg_),
-                                            std::vector(inputs.begin(), inputs.end()));
+          using node_type = HOF<AlgorithmBits, internal::resource_type_t<Resources>...>;
+          return std::make_unique<node_type>(std::move(name_),
+                                             concurrency_.value,
+                                             std::move(predicates),
+                                             graph_,
+                                             std::move(alg_),
+                                             std::vector(std::from_range, std::move(inputs)),
+                                             resources_);
         });
       } else {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
-            return std::make_unique<hof_type>(std::move(name_),
-                                              concurrency_.value,
-                                              std::move(predicates),
-                                              graph_,
-                                              std::move(alg_),
-                                              std::vector(inputs.begin(), inputs.end()),
-                                              std::move(output_product_suffixes));
+            using node_type = HOF<AlgorithmBits, internal::resource_type_t<Resources>...>;
+            return std::make_unique<node_type>(std::move(name_),
+                                               concurrency_.value,
+                                               std::move(predicates),
+                                               graph_,
+                                               std::move(alg_),
+                                               std::vector(std::from_range, std::move(inputs)),
+                                               std::move(output_product_suffixes),
+                                               resources_);
           });
       }
       return upstream_predicates<node_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
-    auto input_family(std::same_as<product_selector> auto... input_args)
+    auto input_family(std::array<product_selector, num_inputs> input_args)
     {
-      static_assert(num_inputs == sizeof...(input_args),
+      return input_family(std::move(input_args), std::tuple<>{});
+    }
+
+    // These values are moved into registration state; clang-tidy incorrectly reports the
+    // by-value parameters as unnecessary copies.
+    auto input_family(
+      product_selector first_selector,              // NOLINT(performance-unnecessary-value-param)
+      selector_or_resource auto... additional_args) // NOLINT(performance-unnecessary-value-param)
+    {
+      using split = resource_split<decltype(first_selector), decltype(additional_args)...>;
+      static_assert(split::resources_are_last,
+                    "All resource<T> arguments to input_family(...) must follow the "
+                    "product_selector arguments.");
+      static_assert(num_inputs == split::number_selectors + split::number_resources,
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input_family({std::move(input_args)...});
+
+      auto [selectors, resources] = partition_selectors_and_resources<split>(
+        std::move(first_selector), std::move(additional_args)...);
+      return input_family(std::move(selectors), std::move(resources));
     }
 
   private:
@@ -193,6 +245,8 @@ namespace phlex::detail {
     static constexpr auto num_inputs = AlgorithmBits::number_inputs;
     static constexpr auto num_outputs = 1; // For now
 
+    static_assert(num_inputs > 1, "input_family requires at least one product selector.");
+
   public:
     fold_api(configuration const* config,
              std::string_view name,
@@ -216,32 +270,58 @@ namespace phlex::detail {
     {
     }
 
-    auto input_family(std::array<product_selector, num_inputs - 1> input_args)
+    template <std::size_t NProducts, typename... Resources>
+    auto input_family(std::array<product_selector, NProducts> input_args, std::tuple<Resources...>)
     {
-      populate_types<input_parameter_types>(input_args);
+      static_assert((is_resource<Resources> && ...),
+                    "The second argument to input_family(...) must be a tuple of resources.");
+      static_assert(num_inputs - 1 == NProducts + sizeof...(Resources),
+                    "The number of fold product parameters is not the same as the number of "
+                    "specified input arguments.");
+
+      using product_parameter_types = boost::mp11::mp_take_c<input_parameter_types, NProducts>;
+      populate_types<product_parameter_types>(input_args);
 
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
-          return std::make_unique<fold_node<AlgorithmBits, init_tuple>>(
-            std::move(name_),
-            concurrency_.value,
-            std::move(predicates),
-            graph_,
-            std::move(alg_),
-            std::move(init_),
-            std::vector(inputs.begin(), inputs.end()),
-            std::move(output_product_suffixes),
-            std::move(partition_));
+          using node_type =
+            fold_node<AlgorithmBits, init_tuple, internal::resource_type_t<Resources>...>;
+          return std::make_unique<node_type>(std::move(name_),
+                                             concurrency_.value,
+                                             std::move(predicates),
+                                             graph_,
+                                             std::move(alg_),
+                                             std::move(init_),
+                                             std::vector(std::from_range, std::move(inputs)),
+                                             std::move(output_product_suffixes),
+                                             std::move(partition_),
+                                             resources_);
         });
       return upstream_predicates<declared_fold_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
-    auto input_family(std::same_as<product_selector> auto... input_args)
+    auto input_family(std::array<product_selector, num_inputs - 1> input_args)
     {
-      static_assert(num_inputs - 1 == sizeof...(input_args),
+      return input_family(std::move(input_args), std::tuple<>{});
+    }
+
+    // These values are moved into registration state; clang-tidy incorrectly reports the
+    // by-value parameters as unnecessary copies.
+    auto input_family(
+      product_selector first_selector,              // NOLINT(performance-unnecessary-value-param)
+      selector_or_resource auto... additional_args) // NOLINT(performance-unnecessary-value-param)
+    {
+      using split = resource_split<decltype(first_selector), decltype(additional_args)...>;
+      static_assert(split::resources_are_last,
+                    "All resource<T> arguments to input_family(...) must follow the "
+                    "product_selector arguments.");
+      static_assert(num_inputs - 1 == split::number_selectors + split::number_resources,
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input_family({std::move(input_args)...});
+
+      auto [selectors, resources] = partition_selectors_and_resources<split>(
+        std::move(first_selector), std::move(additional_args)...);
+      return input_family(std::move(selectors), std::move(resources));
     }
 
   private:
@@ -262,10 +342,12 @@ namespace phlex::detail {
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_api {
-    using input_parameter_types = constructor_parameter_types<Object>;
+    using all_input_parameter_types = constructor_parameter_types<Object>;
 
-    static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
+    static constexpr auto num_inputs = std::tuple_size_v<all_input_parameter_types>;
     static constexpr std::size_t num_outputs = number_output_objects<Unfold>;
+
+    static_assert(num_inputs > 0, "input_family requires at least one product selector.");
 
     // FIXME: Should maybe use some type of static assert, but not in a way that
     //        constrains the arguments of the Predicate and the Unfold to be the same.
@@ -296,32 +378,62 @@ namespace phlex::detail {
     {
     }
 
-    auto input_family(std::array<product_selector, num_inputs> input_args)
+    // The selectors configure Object's constructor while trailing resources configure Unfold.
+    // FIXME: Evaluate whether input_family(...) should apply only to the constructor and a
+    // separate registration clause should declare resources for the unfold operation.
+    template <std::size_t NProducts, typename... Resources>
+    auto input_family(std::array<product_selector, NProducts> input_args, std::tuple<Resources...>)
     {
-      populate_types<input_parameter_types>(input_args);
+      static_assert((is_resource<Resources> && ...),
+                    "The second argument to input_family(...) must be a tuple of resources.");
+      static_assert(num_inputs == NProducts,
+                    "The number of generator constructor parameters is not the same as the number "
+                    "of specified product selectors.");
+
+      using product_parameter_types = boost::mp11::mp_take_c<all_input_parameter_types, NProducts>;
+      populate_types<product_parameter_types>(input_args);
 
       registrar_.set_creator([this, inputs = std::move(input_args)](auto upstream_predicates,
                                                                     auto output_product_suffixes) {
-        return std::make_unique<unfold_node<Object, Predicate, Unfold>>(
-          std::move(name_),
-          concurrency_,
-          std::move(upstream_predicates),
-          graph_,
-          std::move(predicate_),
-          std::move(unfold_),
-          std::vector(inputs.begin(), inputs.end()),
-          std::move(output_product_suffixes),
-          std::move(destination_layer_));
+        using node_type =
+          unfold_node<Object, Predicate, Unfold, internal::resource_type_t<Resources>...>;
+        return std::make_unique<node_type>(std::move(name_),
+                                           concurrency_,
+                                           std::move(upstream_predicates),
+                                           graph_,
+                                           std::move(predicate_),
+                                           std::move(unfold_),
+                                           std::vector(std::from_range, std::move(inputs)),
+                                           std::move(output_product_suffixes),
+                                           std::move(destination_layer_),
+                                           resources_);
       });
       return upstream_predicates<declared_unfold_ptr, num_outputs>{std::move(registrar_), config_};
     }
 
-    auto input_family(std::same_as<product_selector> auto... input_args)
+    auto input_family(std::array<product_selector, num_inputs> input_args)
     {
-      static_assert(num_inputs == sizeof...(input_args),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      return input_family({std::move(input_args)...});
+      return input_family(std::move(input_args), std::tuple<>{});
+    }
+
+    // These values are moved into registration state; clang-tidy incorrectly reports the
+    // by-value parameters as unnecessary copies.
+    auto input_family(
+      product_selector first_selector,              // NOLINT(performance-unnecessary-value-param)
+      selector_or_resource auto... additional_args) // NOLINT(performance-unnecessary-value-param)
+    {
+      using split = resource_split<decltype(first_selector), decltype(additional_args)...>;
+      static_assert(
+        num_inputs == split::number_selectors,
+        "The number of generator constructor parameters is not the same as the number of "
+        "specified input arguments.");
+      static_assert(split::resources_are_last,
+                    "All resource<T> arguments to input_family(...) must follow the "
+                    "product_selector arguments.");
+
+      auto [selectors, resources] = partition_selectors_and_resources<split>(
+        std::move(first_selector), std::move(additional_args)...);
+      return input_family(std::move(selectors), std::move(resources));
     }
 
   private:
