@@ -24,7 +24,10 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/utilities/sleep_for.hpp"
+#include "phlex/utilities/thread_counter.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
@@ -35,6 +38,7 @@
 #include <vector>
 
 using namespace phlex;
+using namespace std::chrono_literals;
 
 namespace {
   void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
@@ -53,6 +57,14 @@ namespace {
 
   // Provider algorithm
   unsigned int provide_number(data_cell_index const& id) { return id.number(); }
+
+  struct fold_resource_1 {
+    using token_type = fold_resource_1 const*;
+  };
+
+  struct fold_resource_2 {
+    using token_type = fold_resource_2 const*;
+  };
 }
 
 TEST_CASE("Different data layers of fold", "[graph]")
@@ -126,4 +138,43 @@ TEST_CASE("Fold output without send consumed downstream", "[graph]")
 
   CHECK(g.execution_count("collect_numbers") == std::size_t{index_limit} * number_limit);
   CHECK(g.execution_count("verify_collected_numbers") == index_limit);
+}
+
+TEST_CASE("Fold receives a resource token", "[graph][fold][resource]")
+{
+  constexpr auto number_runs = 2u;
+  constexpr auto number_events = 5u;
+
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("run", {.parent_layer = "job", .count = number_runs});
+  gen->add_layer("event", {.parent_layer = "run", .count = number_events});
+
+  auto g = phlex::detail::framework_graph::without_driver();
+  g.add_driver(gen);
+  g.add_resource<fold_resource_1>();
+  g.add_resource<fold_resource_2>();
+
+  g.provide("provide_number", provide_number, concurrency::unlimited)
+    .output_product("input", "number", "event");
+
+  auto counter = detail::thread_counter::counter_type{};
+  auto add_with_resources = [&counter](std::atomic<unsigned int>& sum,
+                                       unsigned int number,
+                                       fold_resource_1 const*,
+                                       fold_resource_2 const*) {
+    detail::thread_counter throw_if_more_than_one_thread{counter};
+    detail::spin_for(5ms);
+    sum += number;
+  };
+
+  auto const input = product_selector{.creator = "input", .layer = "event", .suffix = "number"};
+  g.fold("resource_add", add_with_resources, concurrency::unlimited, "run")
+    .input_family(input, resource<fold_resource_1>{}, resource<fold_resource_2>{});
+  g.observe("verify_resource_sum", [](unsigned int actual) { CHECK(actual == 10u); })
+    .input_family(product_selector{.creator = "resource_add", .layer = "run"});
+
+  g.execute();
+
+  CHECK(g.execution_count("resource_add") == std::size_t{number_runs} * number_events);
+  CHECK(g.execution_count("verify_resource_sum") == number_runs);
 }
