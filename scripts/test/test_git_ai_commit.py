@@ -695,6 +695,390 @@ def _raise_exception() -> str:
 
 
 # ===========================================================================
+# main() with --edit flag
+# ===========================================================================
+
+
+class TestEditFlag:
+    """Tests for the -e/--edit flag behavior in main()."""
+
+    def test_edit_flag_invokes_editor(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """When --edit is set, the editor is invoked on the AI-generated message."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        editor_cmd: list[str] = []
+        call_count = [0]
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            call_count[0] += 1
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(
+                    cmd, 0, stdout="feat: original message", stderr=""
+                )
+            elif cmd[0] == "vi":
+                editor_cmd.extend(cmd)
+                # Simulate user editing
+                Path(cmd[-1]).write_text(
+                    "feat: edited message\n# comment to strip", encoding="utf-8"
+                )
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert editor_cmd[0] == "vi"
+
+    def test_edit_flag_strips_comment_lines(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """When --edit is set, comment lines are stripped from the edited message."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        captured_message: list[str] = []
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                # Return a mock kilo response
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                Path(cmd[-1]).write_text(
+                    "feat: final message\n# this is a comment\n\n# another comment",
+                    encoding="utf-8",
+                )
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                msg_idx = cmd.index("-m") + 1
+                captured_message.append(cmd[msg_idx])
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert len(captured_message) == 1
+        # Comment lines should be stripped
+        assert "# this is a comment" not in captured_message[0]
+        assert "# another comment" not in captured_message[0]
+        assert "feat: final message" in captured_message[0]
+
+    def test_edit_flag_tempfile_cleaned_up(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The temporary file used by _edit is removed after editing."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        recorded_tmpfile: list[Path] = []
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                recorded_tmpfile.append(Path(cmd[-1]))
+                Path(cmd[-1]).write_text("feat: edited", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert len(recorded_tmpfile) == 1
+        assert not recorded_tmpfile[0].exists(), "temp file was not cleaned up"
+
+    def test_edit_flag_empty_message_aborts(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """An empty message after editing (only comments or whitespace) aborts the commit."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                # User enters only comments
+                Path(cmd[-1]).write_text("# only comments\n# nothing else", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            with pytest.raises(SystemExit) as exc:
+                _M.main()
+
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "Empty message" in captured.err
+
+    def test_edit_flag_with_short_option(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The -e short option works the same as --edit."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "-e", "--yes"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        editor_called = False
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            nonlocal editor_called
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                editor_called = True
+                Path(cmd[-1]).write_text("feat: via -e", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert editor_called, "editor was not called with -e flag"
+
+
+# ===========================================================================
+# main() with 'e' prompt response (interactive mode)
+# ===========================================================================
+
+
+class TestEPromptResponse:
+    """Tests for 'e' (edit) response to the interactive y/N/e prompt."""
+
+    def test_e_prompt_invokes_editor(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """When 'e' is entered at the prompt, the editor is invoked."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        editor_called = False
+        call_count = [0]
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            call_count[0] += 1
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                nonlocal editor_called
+                editor_called = True
+                Path(cmd[-1]).write_text("feat: edited via prompt\n# comment", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[:2] == ["git", "commit"]:
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                _M.main()
+
+        assert editor_called, "editor was not called when 'e' was entered at prompt"
+
+    def test_e_prompt_strips_comment_lines(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Comment lines are stripped from edited message when 'e' is entered at prompt."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        captured_message: list[str] = []
+        call_count = [0]
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            call_count[0] += 1
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                Path(cmd[-1]).write_text("feat: via prompt\n# comment line", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[:2] == ["git", "commit"]:
+                msg_idx = cmd.index("-m") + 1
+                captured_message.append(cmd[msg_idx])
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                _M.main()
+
+        assert len(captured_message) == 1
+        # Comment should be stripped
+        assert "# comment line" not in captured_message[0]
+        assert "feat: via prompt" in captured_message[0]
+
+    def test_e_prompt_tempfile_cleaned_up(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The temporary file is removed after editing via 'e' prompt."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        recorded_tmpfile: list[Path] = []
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                recorded_tmpfile.append(Path(cmd[-1]))
+                Path(cmd[-1]).write_text("feat: edited", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[:2] == ["git", "commit"]:
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                _M.main()
+
+        assert len(recorded_tmpfile) == 1
+        assert not recorded_tmpfile[0].exists(), "temp file was not cleaned up after 'e' prompt"
+
+    def test_e_prompt_empty_message_aborts(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """An empty message after editing via 'e' prompt aborts the commit."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                # User enters only comments
+                Path(cmd[-1]).write_text("# nothing\n# just comments", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                with pytest.raises(SystemExit) as exc:
+                    _M.main()
+
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "Empty message" in captured.err
+
+
+# ===========================================================================
 # main() with --amend and empty diff
 # ===========================================================================
 
