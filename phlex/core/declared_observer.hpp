@@ -52,7 +52,6 @@ namespace phlex::detail {
 
   public:
     static constexpr auto number_output_products = 0;
-    using node_ptr_type = declared_observer_ptr;
 
     observer_node(phlex::experimental::algorithm_name algo_name,
                   std::size_t concurrency,

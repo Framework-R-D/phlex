@@ -64,7 +64,6 @@ namespace phlex::detail {
     static constexpr auto num_outputs = number_output_objects<function_t>;
 
   public:
-    using node_ptr_type = declared_transform_ptr;
     static constexpr auto number_output_products = num_outputs;
 
     transform_node(phlex::experimental::algorithm_name algo_name,
