@@ -76,7 +76,7 @@ _KILO_CONFIG_CANDIDATES = (
 def _kilo_config_path() -> Path | None:
     """Return the first existing kilo config file, or None if neither exists."""
     for candidate in _KILO_CONFIG_CANDIDATES:
-        if candidate.exists():
+        if candidate.is_file():
             return candidate
     return None
 
