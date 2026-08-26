@@ -60,6 +60,7 @@ install(
     message.hpp
     multilayer_join_node.hpp
     index_router.hpp
+    node_builder.hpp
     node_catalog.hpp
     product_selector.hpp
     products_consumer.hpp
