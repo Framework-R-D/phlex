@@ -223,6 +223,7 @@ cet_test(
   LIBRARIES
   phlex::core_internal
 )
+cet_test(node_builder USE_CATCH2_MAIN SOURCE node_builder_test.cpp LIBRARIES phlex::core_internal)
 cet_test(
   multilayer_join
   USE_CATCH2_MAIN
