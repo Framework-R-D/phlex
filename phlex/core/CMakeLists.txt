@@ -31,6 +31,7 @@ cet_make_library(
   LIBRARIES
   PUBLIC
   TBB::tbb
+  Microsoft.GSL::GSL
   phlex::metaprogramming
   phlex::model
   phlex::utilities
@@ -65,11 +66,21 @@ install(
     provider_node.hpp
     registrar.hpp
     registration_api.hpp
+    resource_api.hpp
     source.hpp
     upstream_predicates.hpp
   DESTINATION include/phlex/core
 )
 install(FILES fold/send.hpp DESTINATION include/phlex/core/fold)
+install(
+  FILES
+    resource/catalog.hpp
+    resource/concepts.hpp
+    resource/dependencies.hpp
+    resource/entries.hpp
+    resource/index_sequences.hpp
+  DESTINATION include/phlex/core/resource
+)
 install(
   FILES
     detail/filter_impl.hpp
@@ -94,7 +105,12 @@ endif()
 phlex_make_internal_library(
   phlex_core
   LIBRARIES
-  PUBLIC TBB::tbb phlex::metaprogramming phlex_model_internal phlex_utilities_internal
+  PUBLIC
+  TBB::tbb
+  Microsoft.GSL::GSL
+  phlex::metaprogramming
+  phlex_model_internal
+  phlex_utilities_internal
   PRIVATE Boost::json spdlog::spdlog
 )
 target_compile_definitions(
@@ -117,5 +133,6 @@ cet_make_library(
   phlex::model
   phlex::utilities
   Boost::json
+  Microsoft.GSL::GSL
   TBB::tbb
 )

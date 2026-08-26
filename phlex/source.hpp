@@ -17,6 +17,7 @@ namespace phlex::detail {
     configuration const& config;
     tbb::flow::graph& graph;
     node_catalog& nodes;
+    resource_catalog& resources;
     std::vector<std::string>& registration_errors;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
@@ -31,7 +32,7 @@ namespace phlex::detail {
 
   public:
     providers_graph_proxy(source_bundle bundle) :
-      base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors}
+      base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors, bundle.resources}
     {
     }
 
@@ -58,7 +59,7 @@ namespace phlex::detail {
 
   public:
     source_graph_proxy(source_bundle bundle) :
-      base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors}
+      base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors, bundle.resources}
     {
     }
 
