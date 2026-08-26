@@ -8,6 +8,7 @@
 #include "phlex/core/declared_fold.hpp"
 #include "phlex/core/detail/make_algorithm_name.hpp"
 #include "phlex/core/node_catalog.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/core/upstream_predicates.hpp"
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
@@ -43,13 +44,15 @@ namespace phlex::detail {
                      concurrency c,
                      tbb::flow::graph& g,
                      node_catalog& nodes,
-                     std::vector<std::string>& errors) :
+                     std::vector<std::string>& errors,
+                     resource_catalog& resources) :
       config_{config},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
-      registrar_{nodes.registrar_for<node_ptr>(errors)}
+      registrar_{nodes.registrar_for<node_ptr>(errors)},
+      resources_{resources}
     {
     }
 
@@ -98,6 +101,7 @@ namespace phlex::detail {
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     registrar<node_ptr> registrar_;
+    resource_catalog& resources_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   template <template <typename...> typename HOF, typename AlgorithmBits>
@@ -107,9 +111,11 @@ namespace phlex::detail {
                          concurrency c,
                          tbb::flow::graph& g,
                          node_catalog& nodes,
-                         std::vector<std::string>& errors)
+                         std::vector<std::string>& errors,
+                         resource_catalog& resources)
   {
-    return registration_api<HOF, AlgorithmBits>{config, name, std::move(alg), c, g, nodes, errors};
+    return registration_api<HOF, AlgorithmBits>{
+      config, name, std::move(alg), c, g, nodes, errors, resources};
   }
 
   // ====================================================================================
@@ -124,13 +130,15 @@ namespace phlex::detail {
                  concurrency c,
                  tbb::flow::graph& g,
                  node_catalog& nodes,
-                 std::vector<std::string>& errors) :
+                 std::vector<std::string>& errors,
+                 resource_catalog& resources) :
       config_{config},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
-      registrar_{nodes.registrar_for<provider_node_ptr>(errors)}
+      registrar_{nodes.registrar_for<provider_node_ptr>(errors)},
+      resources_{resources}
     {
     }
 
@@ -173,6 +181,7 @@ namespace phlex::detail {
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     registrar<provider_node_ptr> registrar_;
+    resource_catalog& resources_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   // ====================================================================================
@@ -194,6 +203,7 @@ namespace phlex::detail {
              tbb::flow::graph& g,
              node_catalog& nodes,
              std::vector<std::string>& errors,
+             resource_catalog& resources,
              std::string partition,
              InitArgs&&... init_args) :
       config_{config},
@@ -203,7 +213,8 @@ namespace phlex::detail {
       graph_{g},
       partition_{std::move(partition)},
       init_{std::forward<InitArgs>(init_args)...},
-      registrar_{nodes.registrar_for<declared_fold_ptr>(errors)}
+      registrar_{nodes.registrar_for<declared_fold_ptr>(errors)},
+      resources_{resources}
     {
     }
 
@@ -245,6 +256,7 @@ namespace phlex::detail {
     std::string partition_;
     init_tuple init_;
     registrar<declared_fold_ptr> registrar_;
+    resource_catalog& resources_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   // ====================================================================================
@@ -272,6 +284,7 @@ namespace phlex::detail {
                tbb::flow::graph& g,
                node_catalog& nodes,
                std::vector<std::string>& errors,
+               resource_catalog& resources,
                std::string destination_data_layer) :
       config_{config},
       registrar_{nodes.registrar_for<declared_unfold_ptr>(errors)},
@@ -280,7 +293,8 @@ namespace phlex::detail {
       graph_{g},
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
-      destination_layer_{std::move(destination_data_layer)}
+      destination_layer_{std::move(destination_data_layer)},
+      resources_{resources}
     {
     }
 
@@ -322,6 +336,7 @@ namespace phlex::detail {
     Predicate predicate_;
     Unfold unfold_;
     std::string destination_layer_;
+    resource_catalog& resources_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   // ====================================================================================

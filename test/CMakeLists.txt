@@ -268,6 +268,9 @@ cet_test(
   phlex::core_internal
   layer_generator_internal
 )
+cet_test(resources USE_CATCH2_MAIN SOURCE resources_test.cpp LIBRARIES
+         phlex::core_internal
+)
 cet_test(
   type_distinction
   USE_CATCH2_MAIN
