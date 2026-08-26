@@ -227,8 +227,7 @@ def _find_model_key(models: dict[str, dict[str, Any]], model: str) -> str | None
         # malformed file could put a non-dict value here despite the type hint.
         if not isinstance(entry, dict):
             continue  # type: ignore[unreachable]
-        identifier = entry.get("id") or entry.get("name")
-        if identifier == model:
+        if entry.get("id") == model or entry.get("name") == model:
             return key
     return None
 

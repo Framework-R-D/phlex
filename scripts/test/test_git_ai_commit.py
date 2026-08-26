@@ -238,6 +238,23 @@ class TestCleanMessage:
         expected = "feat: add new feature"
         assert _clean_message(raw) == expected
 
+    def test_long_first_line_stripped(self) -> None:
+        """First line >72 chars (without prefix) is stripped as preamble."""
+        long_line = (
+            "This is a very long first line that exceeds seventy two characters and should "
+            "be treated as preamble"
+        )
+        assert len(long_line) > 72
+        raw = f"{long_line}\n\nfeat: add new feature\n\nBody content."
+        expected = "feat: add new feature\n\nBody content."
+        assert _clean_message(raw) == expected
+
+    def test_prefix_first_line_stripped(self) -> None:
+        """First line starting with prefix (but <=72 chars) is stripped as preamble."""
+        raw = "Here is the commit message\n\nfeat: add new feature\n\nBody content."
+        expected = "feat: add new feature\n\nBody content."
+        assert _clean_message(raw) == expected
+
     def test_no_preamble_returns_cleaned(self) -> None:
         """Message without preamble is returned stripped."""
         raw = "feat: add new feature  \n  \n  Some context.\n  "
