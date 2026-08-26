@@ -90,14 +90,15 @@ namespace phlex::detail {
                  concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<observer_node>(config_,
-                                              name,
-                                              algorithm_bits{bound_obj_, std::move(f)},
-                                              c,
-                                              graph_,
-                                              nodes_,
-                                              errors_,
-                                              resources_);
+      return make_registration<observer_node, declared_observer_ptr>(
+        config_,
+        name,
+        algorithm_bits{bound_obj_, std::move(f)},
+        c,
+        graph_,
+        nodes_,
+        errors_,
+        resources_);
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -126,14 +127,15 @@ namespace phlex::detail {
                    concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<transform_node>(config_,
-                                               name,
-                                               algorithm_bits{bound_obj_, std::move(f)},
-                                               c,
-                                               graph_,
-                                               nodes_,
-                                               errors_,
-                                               resources_);
+      return make_registration<transform_node, declared_transform_ptr>(
+        config_,
+        name,
+        algorithm_bits{bound_obj_, std::move(f)},
+        c,
+        graph_,
+        nodes_,
+        errors_,
+        resources_);
     }
 
     // 'f' is a by-value sink: it is moved into algorithm_bits.  The clang-tidy
@@ -144,14 +146,15 @@ namespace phlex::detail {
                    concurrency c)
     {
       internal::verify_name(name, config_);
-      return make_registration<predicate_node>(config_,
-                                               name,
-                                               algorithm_bits{bound_obj_, std::move(f)},
-                                               c,
-                                               graph_,
-                                               nodes_,
-                                               errors_,
-                                               resources_);
+      return make_registration<predicate_node, declared_predicate_ptr>(
+        config_,
+        name,
+        algorithm_bits{bound_obj_, std::move(f)},
+        c,
+        graph_,
+        nodes_,
+        errors_,
+        resources_);
     }
 
     auto unfold(std::string_view name,

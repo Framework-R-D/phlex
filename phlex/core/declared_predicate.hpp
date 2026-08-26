@@ -57,7 +57,6 @@ namespace phlex::detail {
 
   public:
     static constexpr auto number_output_products = 0ull;
-    using node_ptr_type = declared_predicate_ptr;
 
     predicate_node(phlex::experimental::algorithm_name algo_name,
                    std::size_t concurrency,
