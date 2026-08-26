@@ -8,8 +8,10 @@
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
+#include "phlex/core/node_builder.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
@@ -44,11 +46,15 @@ namespace phlex::detail {
 
   // =====================================================================================
 
-  template <typename AlgorithmBits>
+  template <typename AlgorithmBits, typename... Resources>
   class observer_node : public declared_observer {
-    using input_args = AlgorithmBits::input_parameter_types;
     using function_t = AlgorithmBits::bound_type;
-    static constexpr auto num_inputs = AlgorithmBits::number_inputs;
+    static constexpr auto num_resources = sizeof...(Resources);
+    static constexpr auto num_products = AlgorithmBits::number_inputs - num_resources;
+    using input_product_types = AlgorithmBits::template input_parameters<num_products>;
+    using builder =
+      node_builder<messages_t<num_products>, function_t, no_outputs_t, std::tuple<Resources...>>;
+    using node_t = builder::node_t;
 
   public:
     static constexpr auto number_output_products = 0;
@@ -59,19 +65,23 @@ namespace phlex::detail {
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
                   AlgorithmBits alg,
-                  product_selectors input_products) :
+                  product_selectors input_products,
+                  resource_catalog& resources) :
       declared_observer{std::move(algo_name), std::move(predicates), std::move(input_products)},
-      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
-      observer_{g,
-                concurrency,
-                [this, ft = alg.release_algorithm()](
-                  messages_t<num_inputs> const& messages) -> oneapi::tbb::flow::continue_msg {
-                  call(ft, messages, std::make_index_sequence<num_inputs>{});
-                  ++calls_;
-                  return {};
-                }}
+      join_{make_join_or_none<num_products>(g, name().to_string(), layers())},
+      observer_{builder::make(
+        g,
+        concurrency,
+        resources,
+        alg.release_algorithm(),
+        [this](function_t const& ft,
+               messages_t<num_products> const& messages,
+               auto&&... resource_tokens) {
+          call(ft, messages, std::make_index_sequence<num_products>{}, resource_tokens...);
+          ++calls_;
+        })}
     {
-      if constexpr (num_inputs > 1ull) {
+      if constexpr (num_products > 1ull) {
         make_edge(join_, observer_);
       }
     }
@@ -79,32 +89,34 @@ namespace phlex::detail {
   private:
     tbb::flow::receiver<message>& port_for(product_selector const& input_product) override
     {
-      return receiver_for<num_inputs>(join_, input(), input_product, observer_);
+      return receiver_for<num_products>(join_, input(), input_product, observer_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
-      return input_ports<num_inputs>(join_, observer_);
+      return input_ports<num_products>(join_, observer_);
     }
 
     template <std::size_t... Is>
     void call(function_t const& ft,
-              messages_t<num_inputs> const& messages,
-              std::index_sequence<Is...>)
+              messages_t<num_products> const& messages,
+              std::index_sequence<Is...>,
+              auto&&... resource_tokens)
     {
-      if constexpr (num_inputs == 1ull) {
-        std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
+      if constexpr (num_products == 1ull) {
+        std::invoke(ft, std::get<Is>(input_).retrieve(messages)..., resource_tokens...);
       } else {
-        std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+        std::invoke(
+          ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))..., resource_tokens...);
       }
     }
 
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
 
-    input_retriever_types<input_args> input_{input_arguments<input_args>()};
-    join_or_none_t<num_inputs> join_;
-    tbb::flow::function_node<messages_t<num_inputs>> observer_;
+    input_retriever_types<input_product_types> input_{input_arguments<input_product_types>()};
+    join_or_none_t<num_products> join_;
+    node_t observer_;
     std::atomic<std::size_t> calls_;
   };
 }
