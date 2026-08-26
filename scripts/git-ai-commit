@@ -8,7 +8,6 @@ See `git-ai-commit --help` for full usage.
 from __future__ import annotations
 
 import argparse
-import contextlib
 import json
 import os
 import re
@@ -1253,17 +1252,13 @@ def _edit(text: str) -> str:
 def _confirm(prompt: str) -> bool:
     """Prompt for y/N, opening /dev/tty if stdin is a pipe."""
     try:
-        with contextlib.ExitStack() as stack:
-            if sys.stdin.isatty():
-                source = sys.stdin
-            else:
-                # enter_context registers the file's __exit__ on the stack, so
-                # the file is closed automatically when the `with` block exits.
-                # codeql[py/file-not-closed]
-                source = stack.enter_context(open("/dev/tty", encoding="utf-8"))  # noqa: SIM115
-            print(f"{prompt} [y/N] ", end="", flush=True)
-            reply = source.readline().strip().lower()
-            return reply in ("y", "yes")
+        print(f"{prompt} [y/N] ", end="", flush=True)
+        if sys.stdin.isatty():
+            reply = sys.stdin.readline().strip().lower()
+        else:
+            with open("/dev/tty", encoding="utf-8") as source:
+                reply = source.readline().strip().lower()
+        return reply in ("y", "yes")
     except (EOFError, KeyboardInterrupt, OSError):
         print()
         return False
@@ -1535,15 +1530,11 @@ def main() -> None:
             # Prompt user with extended options: yes, no, edit.
             print("Commit with this message? [y/N/e] ", end="", flush=True)
             try:
-                with contextlib.ExitStack() as stack:
-                    if sys.stdin.isatty():
-                        source = sys.stdin
-                    else:
-                        # enter_context registers the file's __exit__ on the stack, so
-                        # the file is closed automatically when the `with` block exits.
-                        # codeql[py/file-not-closed]
-                        source = stack.enter_context(open("/dev/tty", encoding="utf-8"))  # noqa: SIM115
-                    reply = source.readline().strip().lower()
+                if sys.stdin.isatty():
+                    reply = sys.stdin.readline().strip().lower()
+                else:
+                    with open("/dev/tty", encoding="utf-8") as source:
+                        reply = source.readline().strip().lower()
             except (EOFError, KeyboardInterrupt, OSError):
                 print()
                 reply = ""
