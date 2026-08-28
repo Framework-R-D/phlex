@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "plugins/layer_generator.hpp"
@@ -11,7 +12,7 @@
 #include "spdlog/spdlog.h"
 
 using namespace phlex;
-using namespace oneapi::tbb;
+using namespace phlex::detail;
 
 namespace {
   // Provider algorithms
@@ -109,6 +110,38 @@ namespace {
     unsigned int const end_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
+
+  struct predicate_resource {
+    using token_type = predicate_resource const*;
+  };
+
+  bool evens_with_resource(unsigned int const value, predicate_resource const*)
+  {
+    return value % 2u == 0u;
+  }
+}
+
+TEST_CASE("Predicate receives a resource token", "[filtering][resource]")
+{
+  auto gen = experimental::layer_generator::make();
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
+  auto g = phlex::detail::framework_graph::without_driver();
+  g.add_driver(gen);
+  g.add_resource<predicate_resource>();
+  g.provide("provide_num", give_me_nums, concurrency::unlimited)
+    .output_product("input", "num", "event");
+  g.predicate("evens_with_resource", evens_with_resource, concurrency::unlimited)
+    .input_family({.creator = "input", .layer = "event", .suffix = "num"},
+                  resource<predicate_resource>{});
+  g.observe(
+     "collect_evens", [](unsigned int) {}, concurrency::unlimited)
+    .input_family({.creator = "input", .layer = "event", .suffix = "num"})
+    .experimental_when("evens_with_resource");
+
+  g.execute();
+
+  CHECK(g.execution_count("evens_with_resource") == 10);
+  CHECK(g.execution_count("collect_evens") == 5);
 }
 
 TEST_CASE("Two predicates", "[filtering]")
