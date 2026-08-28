@@ -6,6 +6,7 @@
 #include "core/technology.hpp"
 
 #include <string>
+#include <string_view>
 
 /* @class placement
  * @brief This class holds all the necessary information to guide the writing of an object in a physical file.
@@ -35,6 +36,11 @@ namespace form::detail::experimental {
     /// Container name
     std::string container_name_;
   };
+
+  /// The container-name convention shared by writer and reader: creator and label joined as
+  /// "creator/label". FORM builds a placement's container name with it; the reader resolves the
+  /// same name back. Lives here, next to placement, so neither side owns the other's vocabulary.
+  std::string build_full_label(std::string_view creator, std::string_view label);
 } // namespace form::detail::experimental
 
 #endif // FORM_CORE_PLACEMENT_HPP

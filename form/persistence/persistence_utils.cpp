@@ -16,14 +16,4 @@ namespace form::detail::experimental {
 
     return config.find_item(label);
   }
-
-  std::string build_full_label(std::string_view creator, std::string_view label)
-  {
-    std::string result;
-    result.reserve(creator.size() + 1 + label.size());
-    result += creator;
-    result += '/';
-    result += label;
-    return result;
-  }
 }

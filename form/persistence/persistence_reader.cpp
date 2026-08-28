@@ -3,6 +3,8 @@
 #include "persistence_reader.hpp"
 #include "persistence_utils.hpp"
 
+#include "core/placement.hpp" // build_full_label
+
 #include <algorithm>
 #include <cstring>
 #include <stdexcept>
