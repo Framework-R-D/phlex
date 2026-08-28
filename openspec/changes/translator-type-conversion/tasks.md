@@ -27,15 +27,15 @@
       creator and suffix, and to construct the output store with the input's layer and stage
 - [ ] 3.7 Record the translator identity on each output product
 - [ ] 3.8 Add a retained-source-store member to `product_store` and set it from `translator_node`
-      when the conversion was registered as aliasing
-- [ ] 3.9 Remove any source/target equality checking from `translator_node` (enforced at the
-      concept)
+      when the conversion was registered non-owning
 
 ## 4. Registration API
 
 - [ ] 4.1 Change `glue::translate` to register the conversion function with a named concept instead
       of calling `make_registration<translator_node>`
-- [ ] 4.2 Extend the `translate()` signature with the concept name and the aliasing indication;
+- [ ] 4.1a Add `enum class result_storage { owned, borrowed };` in the model layer, alongside the
+      other translator-registration types
+- [ ] 4.2 Extend the `translate()` signature with the concept name and a `result_storage` value;
       remove input selectors and output suffixes
 - [ ] 4.3 Make `graph_proxy::translate` const and take `std::string_view`, matching its siblings
 - [ ] 4.4 Add `using base::translate;` to `module_graph_proxy` so it is reachable from
@@ -55,7 +55,7 @@
 - [ ] 5.8 Test conversion via a callable object or lambda
 - [ ] 5.9 Test that the output product inherits creator, suffix, layer, and stage
 - [ ] 5.10 Test that the output product records the translator identity
-- [ ] 5.11 Test that an aliasing conversion retains the input store and a non-aliasing one does not
+- [ ] 5.11 Test that a non-owning conversion retains the input store and an owning one does not
 - [ ] 5.12 Test concurrent execution with `concurrency::unlimited`
 
 ## 6. Documentation
@@ -63,7 +63,8 @@
 - [ ] 6.1 Update `translator_node` class documentation in `declared_translator.hpp`
 - [ ] 6.2 Update `translate()` documentation in `glue.hpp` to describe registration-only semantics
 - [ ] 6.3 Document inherited output creator, suffix, layer, stage, and distinct target type
-- [ ] 6.4 Document the aliasing indication and that retention is whole-store
+- [ ] 6.4 Document `result_storage`, the owning/non-owning distinction, and that retention is
+      whole-store
 - [ ] 6.5 Document the invariants enforced by concept-level registration
 - [ ] 6.6 Add a section explaining translator versus transform usage
 

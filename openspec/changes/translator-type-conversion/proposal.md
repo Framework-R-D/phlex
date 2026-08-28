@@ -31,7 +31,8 @@ This change:
   named concept and creates no graph node
 
 Registration must supply the translator name, the conversion function, the concept modeled by the
-input and output types, and whether the conversion's result aliases the input product's storage.
+input and output types, and a `result_storage` value stating whether the conversion is *owning*
+(its result owns its storage) or *non-owning* (its result refers into the input product's storage).
 
 ## What Changes
 
@@ -39,7 +40,7 @@ input and output types, and whether the conversion's result aliases the input pr
   - Source type deduced from the function's only parameter; target type from its return type
   - Output product preserves the input product's creator, suffix, layer, and stage
   - Output product records the translator identity
-  - Output store optionally retains the input store when the conversion aliases input storage
+  - Output store retains the input store when the conversion is non-owning
 - Add translator-function storage to `data_product_concept`, keyed by the input and output
   `concrete_product_id`, which rejects a registration when
   - the source and target types are identical
@@ -54,7 +55,7 @@ input and output types, and whether the conversion's result aliases the input pr
 
 **BREAKING**: `translate()` no longer creates a graph node and no longer accepts input selectors
 or output suffixes. It now expects a conversion function with signature
-`TargetType convert(SourceType const&)`, a concept name, and an aliasing indicator.
+`TargetType convert(SourceType const&)`, a concept name, and a `result_storage` value.
 
 No public API creates a `translator_node` in this change; nodes are created by the graph builder
 in a follow-up change. Node behavior is verified by tests that construct `translator_node`
@@ -88,7 +89,7 @@ None
 **API changes:**
 
 - Registrants provide conversion functions with explicit source→target signatures, the concept
-  name, and whether the result aliases input storage
+  name, and a `result_storage` value declaring the conversion owning or non-owning
 - Both the source and target types must already be registered as concrete types of the named
   concept before a translator between them can be registered
 - Output product inherits creator, suffix, layer, and stage from the input product; callers do not
@@ -99,9 +100,9 @@ None
 **Memory behavior:**
 
 - Products are owned by their store and cannot be retained individually. When a conversion is
-  declared to alias input storage, the output store retains the **entire** input store, keeping
-  every product in it alive for as long as the output lives. Chained aliasing translators retain a
-  chain of stores.
+  declared non-owning, the output store retains the **entire** input store, keeping every product
+  in it alive for as long as the output lives. Chained non-owning translators retain a chain of
+  stores.
 
 **Non-goals:**
 

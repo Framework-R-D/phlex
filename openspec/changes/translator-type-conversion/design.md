@@ -134,7 +134,8 @@ it, and nothing more.
 
 - Enables tracking of data product lineage through the graph
 - Supports FORM I/O and product identification
-- Required by translator node semantics (see design_wiki/seeds/the-nature-of-translator-nodes.md)
+- Required by translator node semantics (see `design_wiki/seeds/the-nature-of-translator-nodes.md`
+  in the separate `phlex-design` repo, items 9 and 11)
 
 **Implementation approach**: Add a translator-identity field to the output product model and
 populate it when `translator_node` creates each output product.
@@ -144,10 +145,11 @@ populate it when `translator_node` creates each output product.
 elements, so an individual product cannot be referenced or shared across stores. Where a reference
 to the source is needed for data validity, it is handled at store granularity by Decision 6.
 
-### 6. Source Retention For Aliasing Conversions
+### 6. Source Retention For Non-Owning Conversions
 
-**Decision**: Registration declares whether the conversion's result refers to storage owned by the
-input product. When it does, the output store retains the input store.
+**Decision**: Registration declares, through a `result_storage` value, whether a conversion is
+*owning* (its result owns its storage) or *non-owning* (its result refers to storage owned by the
+input product). For a non-owning conversion, the output store retains the input store.
 
 **Rationale**:
 
@@ -155,17 +157,32 @@ input product. When it does, the output store retains the input store.
   in which case the result dangles if the source is released
 - This cannot be deduced: `std::span` is detectable, but a user-defined type holding a pointer into
   the source is not, so it must be declared
-- This is a correctness precondition, not a tuning knob: registering an aliasing conversion without
-  the indication is a defect the framework cannot detect
-- It is opt-in so that ordinary self-contained conversions do not pin stores unnecessarily
+- This is a correctness precondition, not a tuning knob: registering a non-owning conversion as
+  owning is a defect the framework cannot detect
+- Ordinary owning conversions do not pin stores, so retention costs nothing in the common case
+
+**Naming**: "owning" and "non-owning" describe the result's relationship to its storage, which is
+what the registrant actually knows and what determines the lifetime obligation. The earlier term
+"aliasing" was avoided because in C++ it is preloaded with type-based alias analysis and strict
+aliasing, neither of which is meant here.
+
+**Interface**: the declaration is a two-valued enum, not a `bool`:
+
+```cpp
+enum class result_storage { owned, borrowed };
+```
+
+A call site reads `result_storage::borrowed` rather than a bare `true`, which matters because
+misdeclaring the value is undetectable by the framework. The enumerators name the storage of the
+result; `owned` is the ordinary case.
 
 **Implementation approach**: Add a retained-source-store member of type `product_store_const_ptr`
-to `product_store`, set by `translator_node` when the conversion was registered as aliasing. This
+to `product_store`, set by `translator_node` when the conversion was registered non-owning. This
 mirrors `unfold_node`, which already holds its parent store alive.
 
 **Granularity**: retention is necessarily whole-store. Products are owned by value inside their
-store and only the store is shareable, so retaining the aliased product retains every product in
-its store. A chain of aliasing translators retains a chain of stores.
+store and only the store is shareable, so retaining the referenced product retains every product in
+its store. A chain of non-owning translators retains a chain of stores.
 
 This mechanism is independent of Decision 5: provenance is informational and always present;
 retention is about data validity and is conditional.
@@ -222,13 +239,13 @@ types to the concept.
 unambiguous. If ordering proves burdensome in practice, revisit whether translator registration
 should add missing types.
 
-### [Risk] Aliasing conversions pin whole stores
+### [Risk] Non-owning conversions pin whole stores
 
-Retention is whole-store, so an aliasing translator keeps every product in its input store alive,
-and chained aliasing translators keep a chain alive.
+Retention is whole-store, so a non-owning translator keeps every product in its input store alive,
+and chained non-owning translators keep a chain alive.
 
-**Mitigation**: Keep retention opt-in, and document the granularity so registrants can prefer
-self-contained conversions where practical.
+**Mitigation**: Confine retention to conversions declared non-owning, and document the granularity
+so registrants can prefer owning conversions where practical.
 
 ### [Risk] No public creation path in this change
 

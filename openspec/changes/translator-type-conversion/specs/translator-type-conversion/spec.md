@@ -72,28 +72,29 @@ produced it.
 - **WHEN** a translator node named "int_to_double" completes a conversion
 - **THEN** the output product records "int_to_double" as the translator that produced it
 
-### Requirement: Conversions that alias input storage retain the input store
+### Requirement: Non-owning conversions retain the input store
 
-Registration SHALL accept an indication of whether the conversion's result refers to storage owned
-by the input product. When so indicated, the output product's store SHALL retain the input store
-for at least as long as the output store is alive.
+Registration SHALL accept a `result_storage` value declaring the conversion either *owning*, when
+its result owns its storage, or *non-owning*, when its result refers to storage owned by the input
+product. When a conversion is declared non-owning, the output product's store SHALL retain the
+input store for at least as long as the output store is alive.
 
-#### Scenario: Aliasing conversion retains its source
+#### Scenario: Non-owning conversion retains its source
 
-- **WHEN** a conversion is registered as producing a result that refers into the input product's
-  storage
+- **WHEN** a conversion is registered as non-owning, because its result refers into the input
+  product's storage
 - **THEN** the store holding the output product retains the store holding the input product
 - **AND** every product in the retained input store stays alive for as long as the output store
 
-#### Scenario: Non-aliasing conversion does not retain its source
+#### Scenario: Owning conversion does not retain its source
 
-- **WHEN** a conversion is registered as producing a self-contained result
+- **WHEN** a conversion is registered as owning, because its result is self-contained
 - **THEN** the store holding the output product does not retain the input store
 
 ### Requirement: Conversion functions are registered with a data-product concept
 
 A conversion function SHALL be registered with a named data-product concept, together with the
-translator name and the aliasing indication. Registration SHALL NOT create a graph node.
+translator name and its `result_storage` value. Registration SHALL NOT create a graph node.
 
 #### Scenario: Successful registration
 
