@@ -11,8 +11,10 @@
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
+#include "phlex/core/node_builder.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
@@ -33,6 +35,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -55,13 +58,19 @@ namespace phlex::detail {
 
   // =====================================================================================
 
-  template <typename AlgorithmBits>
+  template <typename AlgorithmBits, typename... Resources>
   class transform_node : public declared_transform {
     using function_t = AlgorithmBits::bound_type;
-    using input_parameter_types = AlgorithmBits::input_parameter_types;
 
-    static constexpr auto num_inputs = AlgorithmBits::number_inputs;
-    static constexpr auto num_outputs = number_output_objects<function_t>;
+    static constexpr auto num_resources = sizeof...(Resources);
+    static constexpr auto num_products = AlgorithmBits::number_inputs - num_resources;
+    static constexpr auto num_outputs = AlgorithmBits::number_outputs;
+    using input_product_types = AlgorithmBits::template input_parameters<num_products>;
+    using builder = node_builder<messages_t<num_products>,
+                                 function_t,
+                                 std::tuple<message>,
+                                 std::tuple<Resources...>>;
+    using node_t = builder::node_t;
 
   public:
     using node_ptr_type = declared_transform_ptr;
@@ -73,20 +82,26 @@ namespace phlex::detail {
                    tbb::flow::graph& g,
                    AlgorithmBits alg,
                    product_selectors input_products,
-                   std::vector<std::string> output) :
+                   std::vector<std::string> output,
+                   resource_catalog& resources) :
       declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products)},
       output_{
         to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
-      join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
-      transform_{
+      join_{make_join_or_none<num_products>(g, name().to_string(), layers())},
+      transform_{builder::make(
         g,
         concurrency,
-        [this, ft = alg.release_algorithm()](messages_t<num_inputs> const& messages) -> message {
+        resources,
+        alg.release_algorithm(),
+        [this](function_t const& ft,
+               messages_t<num_products> const& messages,
+               auto&&... resource_tokens) -> message {
           using namespace phlex::experimental::detail;
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
 
-          auto result = call(ft, messages, std::make_index_sequence<num_inputs>{});
+          auto result =
+            call(ft, messages, std::make_index_sequence<num_products>{}, resource_tokens...);
           ++calls_;
           ++product_count_[store->index()->layer_hash()];
 
@@ -96,9 +111,9 @@ namespace phlex::detail {
             store->index(), name(), std::move(new_products));
 
           return {.store = std::move(new_store), .id = message_id};
-        }}
+        })}
     {
-      if constexpr (num_inputs > 1ull) {
+      if constexpr (num_products > 1ull) {
         make_edge(join_, transform_);
       }
     }
@@ -106,26 +121,28 @@ namespace phlex::detail {
   private:
     tbb::flow::receiver<message>& port_for(product_selector const& input_product) override
     {
-      return receiver_for<num_inputs>(join_, input(), input_product, transform_);
+      return receiver_for<num_products>(join_, input(), input_product, transform_);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override
     {
-      return input_ports<num_inputs>(join_, transform_);
+      return input_ports<num_products>(join_, transform_);
     }
 
-    tbb::flow::sender<message>& output_port() override { return transform_; }
+    tbb::flow::sender<message>& output_port() override { return builder::output_port(transform_); }
     product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     auto call(function_t const& ft,
-              messages_t<num_inputs> const& messages,
-              std::index_sequence<Is...>)
+              messages_t<num_products> const& messages,
+              std::index_sequence<Is...>,
+              auto&&... resource_tokens)
     {
-      if constexpr (num_inputs == 1ull) {
-        return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
+      if constexpr (num_products == 1ull) {
+        return std::invoke(ft, std::get<Is>(input_).retrieve(messages)..., resource_tokens...);
       } else {
-        return std::invoke(ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))...);
+        return std::invoke(
+          ft, std::get<Is>(input_).retrieve(std::get<Is>(messages))..., resource_tokens...);
       }
     }
 
@@ -140,10 +157,10 @@ namespace phlex::detail {
       return result;
     }
 
-    input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
+    input_retriever_types<input_product_types> input_{input_arguments<input_product_types>()};
     product_specifications output_;
-    join_or_none_t<num_inputs> join_;
-    tbb::flow::function_node<messages_t<num_inputs>, message> transform_;
+    join_or_none_t<num_products> join_;
+    node_t transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };
