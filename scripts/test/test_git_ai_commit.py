@@ -238,6 +238,23 @@ class TestCleanMessage:
         expected = "feat: add new feature"
         assert _clean_message(raw) == expected
 
+    def test_long_first_line_stripped(self) -> None:
+        """First line >72 chars (without prefix) is stripped as preamble."""
+        long_line = (
+            "This is a very long first line that exceeds seventy two characters and should "
+            "be treated as preamble"
+        )
+        assert len(long_line) > 72
+        raw = f"{long_line}\n\nfeat: add new feature\n\nBody content."
+        expected = "feat: add new feature\n\nBody content."
+        assert _clean_message(raw) == expected
+
+    def test_prefix_first_line_stripped(self) -> None:
+        """First line starting with prefix (but <=72 chars) is stripped as preamble."""
+        raw = "Here is the commit message\n\nfeat: add new feature\n\nBody content."
+        expected = "feat: add new feature\n\nBody content."
+        assert _clean_message(raw) == expected
+
     def test_no_preamble_returns_cleaned(self) -> None:
         """Message without preamble is returned stripped."""
         raw = "feat: add new feature  \n  \n  Some context.\n  "
@@ -695,6 +712,390 @@ def _raise_exception() -> str:
 
 
 # ===========================================================================
+# main() with --edit flag
+# ===========================================================================
+
+
+class TestEditFlag:
+    """Tests for the -e/--edit flag behavior in main()."""
+
+    def test_edit_flag_invokes_editor(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """When --edit is set, the editor is invoked on the AI-generated message."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        editor_cmd: list[str] = []
+        call_count = [0]
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            call_count[0] += 1
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(
+                    cmd, 0, stdout="feat: original message", stderr=""
+                )
+            elif cmd[0] == "vi":
+                editor_cmd.extend(cmd)
+                # Simulate user editing
+                Path(cmd[-1]).write_text(
+                    "feat: edited message\n# comment to strip", encoding="utf-8"
+                )
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert editor_cmd[0] == "vi"
+
+    def test_edit_flag_strips_comment_lines(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """When --edit is set, comment lines are stripped from the edited message."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        captured_message: list[str] = []
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                # Return a mock kilo response
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                Path(cmd[-1]).write_text(
+                    "feat: final message\n# this is a comment\n\n# another comment",
+                    encoding="utf-8",
+                )
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                msg_idx = cmd.index("-m") + 1
+                captured_message.append(cmd[msg_idx])
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert len(captured_message) == 1
+        # Comment lines should be stripped
+        assert "# this is a comment" not in captured_message[0]
+        assert "# another comment" not in captured_message[0]
+        assert "feat: final message" in captured_message[0]
+
+    def test_edit_flag_tempfile_cleaned_up(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The temporary file used by _edit is removed after editing."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        recorded_tmpfile: list[Path] = []
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                recorded_tmpfile.append(Path(cmd[-1]))
+                Path(cmd[-1]).write_text("feat: edited", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert len(recorded_tmpfile) == 1
+        assert not recorded_tmpfile[0].exists(), "temp file was not cleaned up"
+
+    def test_edit_flag_empty_message_aborts(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """An empty message after editing (only comments or whitespace) aborts the commit."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo", "--yes", "--edit"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                # User enters only comments
+                Path(cmd[-1]).write_text("# only comments\n# nothing else", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            with pytest.raises(SystemExit) as exc:
+                _M.main()
+
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "Empty message" in captured.err
+
+    def test_edit_flag_with_short_option(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The -e short option works the same as --edit."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "-e", "--yes"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.setenv("EDITOR", "vi")
+
+        editor_called = False
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            nonlocal editor_called
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                editor_called = True
+                Path(cmd[-1]).write_text("feat: via -e", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[0] == "git" and cmd[1] == "commit":
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            _M.main()
+
+        assert editor_called, "editor was not called with -e flag"
+
+
+# ===========================================================================
+# main() with 'e' prompt response (interactive mode)
+# ===========================================================================
+
+
+class TestEPromptResponse:
+    """Tests for 'e' (edit) response to the interactive y/N/e prompt."""
+
+    def test_e_prompt_invokes_editor(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """When 'e' is entered at the prompt, the editor is invoked."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        editor_called = False
+        call_count = [0]
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            call_count[0] += 1
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                nonlocal editor_called
+                editor_called = True
+                Path(cmd[-1]).write_text("feat: edited via prompt\n# comment", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[:2] == ["git", "commit"]:
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                _M.main()
+
+        assert editor_called, "editor was not called when 'e' was entered at prompt"
+
+    def test_e_prompt_strips_comment_lines(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Comment lines are stripped from edited message when 'e' is entered at prompt."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        captured_message: list[str] = []
+        call_count = [0]
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            call_count[0] += 1
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                Path(cmd[-1]).write_text("feat: via prompt\n# comment line", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[:2] == ["git", "commit"]:
+                msg_idx = cmd.index("-m") + 1
+                captured_message.append(cmd[msg_idx])
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                _M.main()
+
+        assert len(captured_message) == 1
+        # Comment should be stripped
+        assert "# comment line" not in captured_message[0]
+        assert "feat: via prompt" in captured_message[0]
+
+    def test_e_prompt_tempfile_cleaned_up(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The temporary file is removed after editing via 'e' prompt."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        recorded_tmpfile: list[Path] = []
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                recorded_tmpfile.append(Path(cmd[-1]))
+                Path(cmd[-1]).write_text("feat: edited", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            elif cmd[:2] == ["git", "commit"]:
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                _M.main()
+
+        assert len(recorded_tmpfile) == 1
+        assert not recorded_tmpfile[0].exists(), "temp file was not cleaned up after 'e' prompt"
+
+    def test_e_prompt_empty_message_aborts(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """An empty message after editing via 'e' prompt aborts the commit."""
+        monkeypatch.setattr(sys, "argv", ["git-ai-commit", "--backend", "kilo"])
+        monkeypatch.setattr(_M, "_git_root", lambda: tmp_path)
+        monkeypatch.setattr(_M, "_staged_diff", lambda _amend=False: "diff content")
+        monkeypatch.setattr(_M, "_status", lambda: "")
+        monkeypatch.setattr(_M, "_recent_log", lambda: "")
+        monkeypatch.setattr(_M, "_get_instructions", lambda _root: "")
+        monkeypatch.setattr(_M, "_token", lambda _backend, _model: "tok")
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
+        monkeypatch.delenv("VISUAL", raising=False)
+        monkeypatch.setenv("EDITOR", "vi")
+
+        def _mock_subprocess(
+            cmd: list[str], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            if cmd[0] == "kilo":
+                return subprocess.CompletedProcess(cmd, 0, stdout="feat: ai generated", stderr="")
+            elif cmd[0] == "vi":
+                # User enters only comments
+                Path(cmd[-1]).write_text("# nothing\n# just comments", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0)
+            raise AssertionError(f"Unexpected command: {cmd}")
+
+        with patch("subprocess.run", side_effect=_mock_subprocess):
+            # Simulate stdin with 'e' response - create stdin with isatty() method
+            stdin_mock = io.StringIO("e\n")
+            monkeypatch.setattr(stdin_mock, "isatty", lambda: True)
+            with patch.object(sys, "stdin", stdin_mock):
+                with pytest.raises(SystemExit) as exc:
+                    _M.main()
+
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "Empty message" in captured.err
+
+
+# ===========================================================================
 # main() with --amend and empty diff
 # ===========================================================================
 
@@ -1099,24 +1500,67 @@ class TestBuildMessagesMaxDiffChars:
 class TestKiloConfig:
     """Tests for kilo config loading and model resolution."""
 
-    def test_kilo_config_path(self) -> None:
-        """_KILO_CONFIG_PATH points to ~/.config/kilo/kilo.jsonc."""
+    def test_kilo_config_candidates_check_json_before_jsonc(self) -> None:
+        """_KILO_CONFIG_CANDIDATES tries kilo.json before kilo.jsonc."""
         from pathlib import Path
 
-        expected = Path.home() / ".config" / "kilo" / "kilo.jsonc"
-        assert _M._KILO_CONFIG_PATH == expected  # type: ignore[attr-defined]
+        expected_dir = Path.home() / ".config" / "kilo"
+        assert _M._KILO_CONFIG_DIR == expected_dir  # type: ignore[attr-defined]
+        candidates = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        assert candidates == (expected_dir / "kilo.json", expected_dir / "kilo.jsonc")
+
+    def test_kilo_config_path_missing_returns_none(self, tmp_path: Path) -> None:
+        """_kilo_config_path returns None when neither kilo.json nor kilo.jsonc exists."""
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        try:
+            _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+                tmp_path / "kilo.json",
+                tmp_path / "kilo.jsonc",
+            )
+            assert _M._kilo_config_path() is None  # type: ignore[attr-defined]
+        finally:
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
+
+    def test_kilo_config_path_prefers_json_over_jsonc(self, tmp_path: Path) -> None:
+        """_kilo_config_path returns kilo.json when both kilo.json and kilo.jsonc exist."""
+        json_file = tmp_path / "kilo.json"
+        jsonc_file = tmp_path / "kilo.jsonc"
+        json_file.write_text("{}", encoding="utf-8")
+        jsonc_file.write_text("{}", encoding="utf-8")
+
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        try:
+            _M._KILO_CONFIG_CANDIDATES = (json_file, jsonc_file)  # type: ignore[attr-defined]
+            assert _M._kilo_config_path() == json_file  # type: ignore[attr-defined]
+        finally:
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
+
+    def test_kilo_config_path_falls_back_to_jsonc(self, tmp_path: Path) -> None:
+        """_kilo_config_path returns kilo.jsonc when only it exists."""
+        json_file = tmp_path / "kilo.json"
+        jsonc_file = tmp_path / "kilo.jsonc"
+        jsonc_file.write_text("{}", encoding="utf-8")
+
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        try:
+            _M._KILO_CONFIG_CANDIDATES = (json_file, jsonc_file)  # type: ignore[attr-defined]
+            assert _M._kilo_config_path() == jsonc_file  # type: ignore[attr-defined]
+        finally:
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
     def test_load_kilo_config_missing_file_returns_empty(self, tmp_path: Path) -> None:
-        """_load_kilo_config returns empty config when file doesn't exist."""
-        # Use a temp path that doesn't exist
-        non_existent = tmp_path / "nonexistent" / "kilo.jsonc"
-        original = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
+        """_load_kilo_config returns empty config when no config file exists."""
+        non_existent = tmp_path / "nonexistent"
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
         try:
-            _M._KILO_CONFIG_PATH = non_existent  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+                non_existent / "kilo.json",
+                non_existent / "kilo.jsonc",
+            )
             result = _M._load_kilo_config()  # type: ignore[attr-defined]
             assert result == {"disabled_providers": [], "provider": {}}
         finally:
-            _M._KILO_CONFIG_PATH = original  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
     def test_load_kilo_config_with_models_maps_providers(
         self, monkeypatch: pytest.MonkeyPatch
@@ -1157,6 +1601,33 @@ class TestKiloConfig:
         result = _M._resolve_kilo_model("fnal-ow/qwen3-coder-next")
         assert result == "fnal-ow/qwen3-coder-next"
 
+    def test_resolve_kilo_model_known_provider_prefix_matches_by_id(self) -> None:
+        """With a known provider prefix, the remainder may match via "id" (not just key)."""
+        # Real kilo.json entries store a short config key (e.g. "haiku-4-5") plus
+        # an "id"/"name" holding the provider-qualified model id
+        # (e.g. "azure/claude-haiku-4-5"). `kilo run -m` only accepts the key,
+        # so a match on "id" must still resolve to "provider/key".
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "fnal-anthropic": {
+                    "models": {
+                        "haiku-4-5": {
+                            "id": "azure/claude-haiku-4-5",
+                            "name": "azure/claude-haiku-4-5",
+                        },
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
+        try:
+            result = _M._resolve_kilo_model("fnal-anthropic/azure/claude-haiku-4-5")
+            assert result == "fnal-anthropic/haiku-4-5"
+        finally:
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
+
     def test_resolve_kilo_model_disabled_provider_prefix_is_treated_as_model_name(self) -> None:
         """If provider prefix is disabled, it's treated as part of the model name."""
         mock_config = {
@@ -1164,7 +1635,7 @@ class TestKiloConfig:
             "provider": {
                 "enabled-prov": {
                     "models": {
-                        "disabled-prov/model-x": {},
+                        "model-x": {"id": "disabled-prov/model-x"},
                     }
                 },
                 "disabled-prov": {
@@ -1178,24 +1649,26 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             # "disabled-prov" is disabled, so it's not a "known provider".
-            # "disabled-prov/model-x" is looked up as a whole.
-            # It's found in "enabled-prov".
+            # "disabled-prov/model-x" is looked up as a whole, matching
+            # "enabled-prov"'s "model-x" entry by its "id" field.
             result = _M._resolve_kilo_model("disabled-prov/model-x")
-            assert result == "enabled-prov/disabled-prov/model-x"
+            assert result == "enabled-prov/model-x"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
     def test_resolve_kilo_model_unknown_provider_prefix_looks_up_model(
         self,
     ) -> None:
-        """Model with unknown prefix (qwen/) is looked up in config."""
-        # qwen is NOT a known provider, so "qwen/qwen3-coder-next" is looked up
+        """Model with unknown prefix (qwen/) is looked up in config, by id, across providers."""
+        # qwen is NOT a known provider, so "qwen/qwen3-coder-next" (an id/name
+        # value) is looked up as a whole and matched against the "fnal-ow"
+        # provider's "qwen3-coder-next" key via its "id" field.
         mock_config = {
             "disabled_providers": [],
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
             },
@@ -1204,21 +1677,18 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("qwen/qwen3-coder-next")
-            assert result == "fnal-ow/qwen/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
-    def test_resolve_kilo_model_without_provider_prefix_looks_up(self) -> None:
-        """_resolve_kilo_model adds provider prefix when missing."""
-        # "qwen3-coder-next" (short name) is looked up and found under fnal-ow
-        # as "fnal-ow/qwen/qwen3-coder-next" (full name), so result is:
-        # fnal-ow/qwen/qwen3-coder-next
+    def test_resolve_kilo_model_without_provider_prefix_looks_up_by_key(self) -> None:
+        """_resolve_kilo_model adds provider prefix when the input matches a config key."""
         mock_config = {
             "disabled_providers": [],
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
             },
@@ -1227,7 +1697,28 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("qwen3-coder-next")
-            assert result == "fnal-ow/qwen/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
+        finally:
+            _M._load_kilo_config = original_load  # type: ignore[attr-defined]
+
+    def test_resolve_kilo_model_without_provider_prefix_looks_up_by_id(self) -> None:
+        """_resolve_kilo_model adds provider prefix when the input matches "id" (or "name")."""
+        # A bare (no "/") id/name value should still resolve to the config key.
+        mock_config = {
+            "disabled_providers": [],
+            "provider": {
+                "ollama": {
+                    "models": {
+                        "codestral:22b": {"name": "codestral:22b-instruct"},
+                    }
+                },
+            },
+        }
+        original_load = _M._load_kilo_config  # type: ignore[attr-defined]
+        _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
+        try:
+            result = _M._resolve_kilo_model("codestral:22b-instruct")
+            assert result == "ollama/codestral:22b"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
@@ -1247,12 +1738,12 @@ class TestKiloConfig:
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
                 "fnal-azure": {
                     "models": {
-                        "qwen/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
                     }
                 },
             },
@@ -1262,7 +1753,7 @@ class TestKiloConfig:
         try:
             # Only fnal-ow is enabled, so resolution should succeed.
             result = _M._resolve_kilo_model("qwen3-coder-next")
-            assert result == "fnal-ow/qwen/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
@@ -1271,8 +1762,8 @@ class TestKiloConfig:
         mock_config = {
             "disabled_providers": [],
             "provider": {
-                "fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}},
-                "fnal-azure": {"models": {"qwen/qwen3-coder-next": {}}},
+                "fnal-ow": {"models": {"qwen3-coder-next": {"id": "qwen/qwen3-coder-next"}}},
+                "fnal-azure": {"models": {"qwen3-coder-next": {"id": "qwen/qwen3-coder-next"}}},
             },
         }
         original_load = _M._load_kilo_config  # type: ignore[attr-defined]
@@ -1288,13 +1779,13 @@ class TestKiloConfig:
     ) -> None:
         """Model with non-provider prefix is looked up and prefix added."""
         # "unknown-ow" is not a known provider, so model name
-        # "unknown-ow/qwen3-coder-next" is looked up in config
+        # "unknown-ow/qwen3-coder-next" is looked up in config, matching by "id".
         mock_config = {
             "disabled_providers": [],
             "provider": {
                 "fnal-ow": {
                     "models": {
-                        "unknown-ow/qwen3-coder-next": {},
+                        "qwen3-coder-next": {"id": "unknown-ow/qwen3-coder-next"},
                     }
                 },
             },
@@ -1303,7 +1794,7 @@ class TestKiloConfig:
         _M._load_kilo_config = lambda: mock_config  # type: ignore[attr-defined]
         try:
             result = _M._resolve_kilo_model("unknown-ow/qwen3-coder-next")
-            assert result == "fnal-ow/unknown-ow/qwen3-coder-next"
+            assert result == "fnal-ow/qwen3-coder-next"
         finally:
             _M._load_kilo_config = original_load  # type: ignore[attr-defined]
 
@@ -1541,8 +2032,11 @@ class TestCapSelection:
         config_file = tmp_path / "kilo.jsonc"
         config_file.write_text(jsonc_content, encoding="utf-8")
 
-        original_path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
-        _M._KILO_CONFIG_PATH = config_file  # type: ignore[attr-defined]
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+            tmp_path / "kilo.json",
+            config_file,
+        )
         try:
             result = _M._load_kilo_config()  # type: ignore[attr-defined]
             assert (
@@ -1551,20 +2045,23 @@ class TestCapSelection:
             )
             assert "disabled_providers" in result
         finally:
-            _M._KILO_CONFIG_PATH = original_path  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
     def test_load_kilo_config_invalid_json_returns_empty(self, tmp_path: Path) -> None:
         """Invalid JSON returns the default empty config."""
         config_file = tmp_path / "kilo.jsonc"
         config_file.write_text("{ invalid json }")
 
-        original_path = _M._KILO_CONFIG_PATH  # type: ignore[attr-defined]
-        _M._KILO_CONFIG_PATH = config_file  # type: ignore[attr-defined]
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        _M._KILO_CONFIG_CANDIDATES = (  # type: ignore[attr-defined]
+            tmp_path / "kilo.json",
+            config_file,
+        )
         try:
             result = _M._load_kilo_config()  # type: ignore[attr-defined]
             assert result == {"disabled_providers": [], "provider": {}}
         finally:
-            _M._KILO_CONFIG_PATH = original_path  # type: ignore[attr-defined]
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
 
 class TestModelResolution:
@@ -1644,15 +2141,18 @@ class TestKiloBackend:
         monkeypatch.setenv("GIT_AI_COMMIT_TOKEN", "test_token")
 
         # Mock kilo config to ensure consistent model resolution.
-        # Uses fnal-ow provider with qwen/qwen3-coder-next model (same as CI config).
+        # Uses fnal-ow provider with a "qwen3-coder-next" config key whose
+        # "id" holds the provider-qualified value (matches real kilo.json).
         mock_config: dict[str, object] = {
             "disabled_providers": [],
-            "provider": {"fnal-ow": {"models": {"qwen/qwen3-coder-next": {}}}},
+            "provider": {
+                "fnal-ow": {"models": {"qwen3-coder-next": {"id": "qwen/qwen3-coder-next"}}}
+            },
         }
         monkeypatch.setattr(_M, "_load_kilo_config", lambda: mock_config)
 
         mock_completed = subprocess.CompletedProcess(
-            args=["kilo", "run", "--agent=code", "-m", "fnal-ow/qwen/qwen3-coder-next"],
+            args=["kilo", "run", "--agent=code", "-m", "fnal-ow/qwen3-coder-next"],
             returncode=0,
             stdout="Generated Commit Message\n",
             stderr="",
@@ -1668,7 +2168,7 @@ class TestKiloBackend:
             # Verify the model was resolved with provider prefix
             assert "-m" in cmd_list
             model_idx = cmd_list.index("-m")
-            assert cmd_list[model_idx + 1] == "fnal-ow/qwen/qwen3-coder-next"
+            assert cmd_list[model_idx + 1] == "fnal-ow/qwen3-coder-next"
 
     def test_chat_kilo_passes_token_as_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """_chat_kilo passes token via KILO_SERVER_PASSWORD env var."""
