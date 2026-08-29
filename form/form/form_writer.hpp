@@ -8,16 +8,18 @@
 #include "form/product_with_name.hpp"
 #include "persistence/ipersistence_writer.hpp"
 
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace form::experimental {
 
-  // FORM owns the product configuration: it parses the config once, resolves each product to its
-  // destination placement the first time a creator writes, creates those containers once, and
-  // then just routes writes.
+  // FORM owns the product configuration: it parses the config once, resolves each product to all
+  // of its destination placements the first time a creator writes, creates those containers once,
+  // and then just routes writes.
   class form_writer_interface {
   public:
     form_writer_interface(config::item_config const& config_item,
@@ -40,18 +42,21 @@ namespace form::experimental {
   private:
     // Placements for one creator, resolved from config on first write and reused thereafter.
     struct write_plan {
-      // product label -> its configured destination placement
-      std::unordered_map<std::string, form::detail::experimental::placement> product_places;
-      // this creator's single navigation ("index") placement, created with its first product
-      form::detail::experimental::placement index_place;
-      bool index_created = false;
+      // product label -> all of its configured destination placements (a product may fan out to
+      // several files/backends)
+      std::unordered_map<std::string, std::vector<form::detail::experimental::placement>>
+        product_places;
+      // one navigation ("index") placement per destination place (file + technology): the index
+      // goes alongside the product, and each place is committed on its own, so each needs its own
+      std::map<std::pair<std::string, form::technology::id>, form::detail::experimental::placement>
+        index_places;
     };
 
     void parse_config(config::item_config const& config_item);
 
     std::unique_ptr<form::detail::experimental::i_persistence_writer> pers_writer_;
-    // product label -> its configured destination (parsed once, at construction)
-    std::unordered_map<std::string, config::persistence_item> config_by_product_;
+    // product label -> all of its configured destinations (parsed once, at construction)
+    std::unordered_map<std::string, std::vector<config::persistence_item>> config_by_product_;
     // creator -> its resolved write plan (built lazily on first write)
     std::unordered_map<std::string, write_plan> plans_;
   };

@@ -508,6 +508,36 @@ TEST_CASE("form_writer_interface creates containers once across events", "[form]
   CHECK(spy_raw->commit_calls == 2);
 }
 
+TEST_CASE("form_writer_interface fans a product out to multiple destinations", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // The same product is configured for two destinations.
+  item_config cfg;
+  cfg.add_item("prod", "form_writer_fanout_a.root", form::technology::root_ttree);
+  cfg.add_item("prod", "form_writer_fanout_b.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name product{
+    .label = "prod", .data = &payload, .type = &typeid(int)};
+
+  writer.write("creator", "[event:1]", std::vector{product});
+  writer.write("creator", "[event:2]", std::vector{product});
+
+  // Two product placements plus one index per place (2 + 2), all created once on the first event.
+  CHECK(spy_raw->create_calls == 1);
+  CHECK(spy_raw->created_containers.size() == 4);
+  // The product is filled into both destinations every event (2 places x 2 events)...
+  CHECK(spy_raw->written_containers.size() == 4);
+  // ...and each place's index is committed every event (2 places x 2 events): a place's row is only
+  // written when that place is committed.
+  CHECK(spy_raw->commit_calls == 4);
+}
+
 TEST_CASE("form_writer_interface skips unconfigured products in a vector write", "[form]")
 {
   using namespace form::experimental::config;

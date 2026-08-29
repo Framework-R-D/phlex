@@ -29,9 +29,10 @@ namespace form::experimental {
 
   void form_writer_interface::parse_config(config::item_config const& config_item)
   {
-    // Parse the product configuration exactly once: map each product to its configured destination.
+    // Parse the product configuration exactly once: collect every configured destination for each
+    // product (a product may be written to more than one place).
     for (auto const& item : config_item.get_items()) {
-      config_by_product_.emplace(item.product_name, item);
+      config_by_product_[item.product_name].push_back(item);
     }
   }
 
@@ -53,8 +54,8 @@ namespace form::experimental {
     write_plan& plan = plan_it->second;
 
     // ---- 1. PLAN ----
-    // Resolve every configured product to its placement and create all containers in one shot --
-    // products and the index share a container set that must exist before any fill.
+    // Resolve every configured product to all of its placements and create all containers in one
+    // shot -- the products and the index share a container set that must exist before any fill.
     if (is_new_creator) {
       std::vector<std::pair<placement, std::type_info const*>> new_containers;
       for (auto const& pb : products) {
@@ -66,20 +67,24 @@ namespace form::experimental {
           continue;
         }
 
-        auto const& item = cfg_it->second;
-        placement product_place{
-          item.file_name, build_full_label(creator, pb.label), item.technology};
-        new_containers.emplace_back(product_place, pb.type);
+        // A product may be configured for several destinations; build a placement for each.
+        auto& places = plan.product_places[pb.label];
+        for (auto const& item : cfg_it->second) {
+          placement product_place{
+            item.file_name, build_full_label(creator, pb.label), item.technology};
+          new_containers.emplace_back(product_place, pb.type);
+          places.push_back(std::move(product_place));
 
-        // The index is the creator's navigation container (a table of segments written), not a data
-        // product.
-        if (!plan.index_created) {
-          plan.index_place =
-            placement{item.file_name, build_full_label(creator, "index"), item.technology};
-          new_containers.emplace_back(plan.index_place, &typeid(std::string));
-          plan.index_created = true;
+          // The index (navigation) container goes alongside the product, in the same file and
+          // technology. Products sharing a place share one index; each place is committed on its
+          // own, so each needs its own index.
+          auto const [idx_it, inserted] = plan.index_places.try_emplace(
+            std::make_pair(item.file_name, item.technology),
+            placement{item.file_name, build_full_label(creator, "index"), item.technology});
+          if (inserted) {
+            new_containers.emplace_back(idx_it->second, &typeid(std::string));
+          }
         }
-        plan.product_places.emplace(pb.label, std::move(product_place));
       }
 
       if (!new_containers.empty()) {
@@ -88,19 +93,23 @@ namespace form::experimental {
     }
 
     // ---- 2. WRITE ----
-    // Fill each configured product into its destination; unconfigured products are not in the plan.
+    // Fill each product into every one of its destinations; unconfigured products are not in the
+    // plan.
     for (auto const& pb : products) {
       auto const it = plan.product_places.find(pb.label);
       if (it == plan.product_places.end()) {
         continue; // unconfigured product, not part of this creator's plan
       }
-      pers_writer_->register_write(it->second, pb.data, *pb.type);
+      for (auto const& place : it->second) {
+        pers_writer_->register_write(place, pb.data, *pb.type);
+      }
     }
 
     // ---- 3. COMMIT ----
-    // Record this segment in the creator's index container.
-    if (plan.index_created) {
-      pers_writer_->commit_output(plan.index_place, segment_id);
+    // Record this segment in every destination place's index; committing a place is what writes its
+    // row (RNTuple/TTree only finalize an entry on commit), so each place must be committed.
+    for (auto const& [place_key, index_place] : plan.index_places) {
+      pers_writer_->commit_output(index_place, segment_id);
     }
   }
 }
