@@ -1,12 +1,16 @@
-## 1. Concept-Level Translator Storage
+## 1. Model-Layer Registration Types And Concept Storage
 
-- [ ] 1.1 Add translator-function storage to `data_product_concept`, keyed by the ordered pair of
-      input and output `concrete_product_id`
-- [ ] 1.2 Reject registration when the source and target concrete types are identical (throw)
-- [ ] 1.3 Reject registration when either type is not already a concrete type of the concept (throw)
-- [ ] 1.4 Reject registration of a second translator for an already-registered ordered type pair
+- [x] 1.1 Add `enum class result_storage { owned, borrowed };` in the model layer, alongside the
+      other translator-registration types
+- [x] 1.2 Add translator storage to `data_product_concept`, keyed by the ordered pair of input and
+      output `concrete_product_id`, holding a record of the translator name, the conversion
+      function, and its `result_storage` value
+- [x] 1.3 Reject registration when the source and target concrete types are identical (throw)
+- [x] 1.4 Reject registration when either type is not already a concrete type of the concept (throw)
+- [x] 1.5 Reject registration of a second translator for an already-registered ordered type pair
       (throw)
-- [ ] 1.5 Add an accessor for a stored translator function, sufficient for this change's tests
+- [x] 1.6 Add an accessor returning the stored translator record (name, conversion function, and
+      `result_storage` value), sufficient for this change's tests
 
 ## 2. Core Implementation
 
@@ -27,8 +31,6 @@
 
 - [ ] 3.1 Change `glue::translate` to register the conversion function with a named concept instead
       of calling `make_registration<translator_node>`
-- [ ] 3.1a Add `enum class result_storage { owned, borrowed };` in the model layer, alongside the
-      other translator-registration types
 - [ ] 3.2 Extend the `translate()` signature with the concept name and a `result_storage` value;
       remove input selectors and output suffixes
 - [ ] 3.3 Make `graph_proxy::translate` const and take `std::string_view`, matching its siblings
@@ -38,11 +40,13 @@
 
 ## 4. Testing
 
-- [ ] 4.1 Test registering a conversion function with a concept stores it and creates no node
+- [ ] 4.1 Test registering a conversion function with a concept creates no node and stores a record
+      whose translator name, conversion function, and `result_storage` value round-trip through the
+      accessor
 - [ ] 4.2 Test registration is reachable from a module using `PHLEX_REGISTER_ALGORITHMS`
 - [ ] 4.3 Test rejection of identical source and target types, at compile time and at the concept
-- [ ] 4.4 Test rejection when either type is not a concrete type of the named concept
-- [ ] 4.5 Test rejection of a duplicate translator for the same ordered type pair
+- [x] 4.4 Test rejection when either type is not a concrete type of the named concept
+- [x] 4.5 Test rejection of a duplicate translator for the same ordered type pair
 - [ ] 4.6 Test simple type conversion (int → double) by constructing `translator_node` directly
 - [ ] 4.7 Test container type conversion (`std::vector<int>` → `std::vector<double>`) by direct
       construction
