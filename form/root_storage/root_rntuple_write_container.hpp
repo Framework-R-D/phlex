@@ -43,8 +43,7 @@ namespace form::detail::experimental {
   using RRawPtrWriteEntry = ROOT::Experimental::Detail::RRawPtrWriteEntry;
 #endif
 
-  class root_rntuple_write_container_imp : public storage_write_association {
-  public:
+  struct root_rntuple_write_container_imp : public storage_write_association {
     root_rntuple_write_container_imp(std::string const& name);
     ~root_rntuple_write_container_imp() override;
 
