@@ -107,37 +107,37 @@ namespace {
   {
     PyObject* pyobj = arg.get<PyObject*>();
     if (pyobj && PyObject_TypeCheck(pyobj, &phlex_lifeline_type)) {
-      return dcarg{reinterpret_cast<py_lifeline_t*>(pyobj)->m_view};
+      return dcarg{reinterpret_cast<py_lifeline_t*>(pyobj)->view};
     }
     return arg;
   }
 
   // callable objects managing the callback
   struct py_callback_base {
-    PyObject* m_callable; // owned
-    void* m_ccallback;    // C callable (either dispatcher or direct pointer)
+    PyObject* callable_; // owned
+    void* ccallback_;    // C callable (either dispatcher or direct pointer)
 
-    py_callback_base(PyObject* callable, void* cb) : m_callable(callable), m_ccallback(cb)
+    py_callback_base(PyObject* callable, void* cb) : callable_(callable), ccallback_(cb)
     {
       // callable is always non-null here (validated before construction)
       py_gilraii gil;
-      Py_INCREF(m_callable);
+      Py_INCREF(callable_);
     }
     py_callback_base(py_callback_base const& pc) :
-      m_callable(pc.m_callable), m_ccallback(pc.m_ccallback)
+      callable_(pc.callable_), ccallback_(pc.ccallback_)
     {
       // Must hold GIL when manipulating reference counts
       py_gilraii gil;
-      Py_INCREF(m_callable);
+      Py_INCREF(callable_);
     }
     py_callback_base& operator=(py_callback_base const& pc)
     {
       if (this != &pc) {
         py_gilraii gil;
-        Py_INCREF(pc.m_callable);
-        Py_DECREF(m_callable);
-        m_callable = pc.m_callable;
-        m_ccallback = pc.m_ccallback;
+        Py_INCREF(pc.callable_);
+        Py_DECREF(callable_);
+        callable_ = pc.callable_;
+        ccallback_ = pc.ccallback_;
       }
       return *this;
     }
@@ -168,14 +168,14 @@ namespace {
     {
       dcargs_t argsv;
       argsv.reserve(sizeof...(Is) + 2);
-      argsv.emplace_back(m_callable);
+      argsv.emplace_back(callable_);
       (argsv.push_back(lifeline_transform(args)), ...);
       argsv.emplace_back(nullptr);
 
       py_gilraii gil;
 
       dcarg result{nullptr};
-      dyncall(m_ccallback, result, argsv, 1);
+      dyncall(ccallback_, result, argsv, 1);
 
       std::string error_msg;
       if (!result.get<PyObject*>()) {
@@ -202,7 +202,7 @@ namespace {
     void decref_all(Args... args)
     {
       // helper to decrement reference counts of N arguments
-      (Py_DECREF(reinterpret_cast<PyObject*>(std::get<void*>(args.m_value))), ...);
+      (Py_DECREF(reinterpret_cast<PyObject*>(std::get<void*>(args.value))), ...);
     }
   };
 
@@ -211,21 +211,21 @@ namespace {
 
   template <typename RT, size_t... Is>
   struct jit_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
-    dcarg m_rtype; // dynamic call return type
+    dcarg rtype_; // dynamic call return type
 
     jit_callback_impl(PyObject* callable, void* cb, std::string const& stype) :
-      py_callback_base(callable, cb), m_rtype(dcarg::from_str(stype))
+      py_callback_base(callable, cb), rtype_(dcarg::from_str(stype))
     {
     }
 
     RT operator()(type_repeater<dcarg, Is>... args)
     {
-      dcarg result{m_rtype};
+      dcarg result{rtype_};
       dcargs_t argsv;
       argsv.reserve(sizeof...(Is));
       (argsv.push_back(args), ...);
 
-      dyncall(m_ccallback, result, argsv);
+      dyncall(ccallback_, result, argsv);
       // TODO: error reporting?
 
       if constexpr (!std::is_void_v<RT>) {
@@ -669,8 +669,8 @@ namespace {
       Py_DECREF(np_view);                                                                          \
       throw std::runtime_error("failed to allocate lifeline object");                              \
     }                                                                                              \
-    pyll->m_source = v;                                                                            \
-    pyll->m_view = np_view; /* steals reference */                                                 \
+    pyll->source = v;                                                                              \
+    pyll->view = np_view; /* steals reference */                                                   \
                                                                                                    \
     return dcarg{pyll};                                                                            \
   }

@@ -52,7 +52,7 @@ void* phlex::experimental::dcarg::value_ptr()
         return static_cast<void*>(&val);
       }
     },
-    m_value);
+    value);
 }
 
 namespace {
@@ -96,7 +96,7 @@ namespace {
         }
         // NOLINTEND(bugprone-branch-clone)
       },
-      d.m_value);
+      d.value);
   }
 }
 

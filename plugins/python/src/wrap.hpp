@@ -64,8 +64,8 @@ namespace phlex::experimental {
   // clang-format off
   struct py_lifeline {
     PyObject_HEAD
-    PyObject* m_view;
-    std::shared_ptr<void> m_source;
+    PyObject* view;
+    std::shared_ptr<void> source;
   };
   using py_lifeline_t = py_lifeline;
   // clang-format on
@@ -75,11 +75,11 @@ namespace phlex::experimental {
 
   // RAII helper for GIL handling
   class py_gilraii {
-    PyGILState_STATE m_GILState_;
+    PyGILState_STATE gil_state_;
 
   public:
-    py_gilraii() : m_GILState_(PyGILState_Ensure()) {}
-    ~py_gilraii() { PyGILState_Release(m_GILState_); }
+    py_gilraii() : gil_state_(PyGILState_Ensure()) {}
+    ~py_gilraii() { PyGILState_Release(gil_state_); }
     py_gilraii(py_gilraii const&) = delete;
     py_gilraii& operator=(py_gilraii const&) = delete;
     py_gilraii(py_gilraii&&) = delete;
