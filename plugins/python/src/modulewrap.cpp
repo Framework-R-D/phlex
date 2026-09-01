@@ -114,30 +114,29 @@ namespace {
 
   // callable objects managing the callback
   struct py_callback_base {
-    PyObject* callable_; // owned
-    void* ccallback_;    // C callable (either dispatcher or direct pointer)
+    PyObject* callable; // owned
+    void* ccallback;    // C callable (either dispatcher or direct pointer)
 
-    py_callback_base(PyObject* callable, void* cb) : callable_(callable), ccallback_(cb)
+    py_callback_base(PyObject* callable_object, void* cb) : callable(callable_object), ccallback(cb)
     {
       // callable is always non-null here (validated before construction)
       py_gilraii gil;
-      Py_INCREF(callable_);
+      Py_INCREF(callable);
     }
-    py_callback_base(py_callback_base const& pc) :
-      callable_(pc.callable_), ccallback_(pc.ccallback_)
+    py_callback_base(py_callback_base const& pc) : callable(pc.callable), ccallback(pc.ccallback)
     {
       // Must hold GIL when manipulating reference counts
       py_gilraii gil;
-      Py_INCREF(callable_);
+      Py_INCREF(callable);
     }
     py_callback_base& operator=(py_callback_base const& pc)
     {
       if (this != &pc) {
         py_gilraii gil;
-        Py_INCREF(pc.callable_);
-        Py_DECREF(callable_);
-        callable_ = pc.callable_;
-        ccallback_ = pc.ccallback_;
+        Py_INCREF(pc.callable);
+        Py_DECREF(callable);
+        callable = pc.callable;
+        ccallback = pc.ccallback;
       }
       return *this;
     }
@@ -168,14 +167,14 @@ namespace {
     {
       dcargs_t argsv;
       argsv.reserve(sizeof...(Is) + 2);
-      argsv.emplace_back(callable_);
+      argsv.emplace_back(callable);
       (argsv.push_back(lifeline_transform(args)), ...);
       argsv.emplace_back(nullptr);
 
       py_gilraii gil;
 
       dcarg result{nullptr};
-      dyncall(ccallback_, result, argsv, 1);
+      dyncall(ccallback, result, argsv, 1);
 
       std::string error_msg;
       if (!result.get<PyObject*>()) {
@@ -211,21 +210,21 @@ namespace {
 
   template <typename RT, size_t... Is>
   struct jit_callback_impl<RT, std::index_sequence<Is...>> : public py_callback_base {
-    dcarg rtype_; // dynamic call return type
+    dcarg rtype; // dynamic call return type
 
     jit_callback_impl(PyObject* callable, void* cb, std::string const& stype) :
-      py_callback_base(callable, cb), rtype_(dcarg::from_str(stype))
+      py_callback_base(callable, cb), rtype(dcarg::from_str(stype))
     {
     }
 
     RT operator()(type_repeater<dcarg, Is>... args)
     {
-      dcarg result{rtype_};
+      dcarg result{rtype};
       dcargs_t argsv;
       argsv.reserve(sizeof...(Is));
       (argsv.push_back(args), ...);
 
-      dyncall(ccallback_, result, argsv);
+      dyncall(ccallback, result, argsv);
       // TODO: error reporting?
 
       if constexpr (!std::is_void_v<RT>) {
