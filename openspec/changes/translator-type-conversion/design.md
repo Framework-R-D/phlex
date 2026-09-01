@@ -60,7 +60,9 @@ its return type.
 
 - Explicit template parameters: would require users to specify types twice (function signature plus
   template arguments)
-- Type traits: should be considered if they add flexibility or simplify the design
+- Type traits: rejected. A trait-based indirection would add a customization point that no known
+  case needs, since the signature already carries both types unambiguously. Direct deduction
+  stands; revisit only if a conversion arises that the signature cannot express.
 
 ### 2. Output Product Specification
 
@@ -77,8 +79,10 @@ its return type.
 - The translator is a pass-through for identification metadata
 - Only the concrete type changes, not the logical identity
 - Once translator nodes are placed by the graph builder, a consumer's selector must be satisfied by
-  the translator's output exactly as it would have been by the original producer's; inheriting
-  creator, suffix, layer, and stage is what makes the substitution invisible
+  the translator's output mostly as it would have been by the original producer's; inheriting
+  creator, suffix, layer, and stage is what makes the substitution invisible, but with the intended
+  difference in the concrete type, which does not match for the original producer but does match for
+  the translator.
 
 **Implementation approach**: Construct the output product specification from the input product's
 creator and suffix, substituting only the deduced target type; take layer from the input store's
