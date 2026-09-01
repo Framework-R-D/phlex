@@ -66,10 +66,9 @@ namespace {
       return token{plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology(), 0};
     }
 
-    void commit_output(placement const& /*plcmnt*/, std::string const& /*id*/) override
-    {
-      ++commit_calls;
-    }
+    void fill_index(placement const& /*index_place*/, std::string const& /*id*/) override {}
+
+    void commit_place(placement const& /*plcmnt*/) override { ++commit_calls; }
   };
 }
 

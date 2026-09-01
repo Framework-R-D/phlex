@@ -40,7 +40,11 @@ namespace form::detail::experimental {
                                  void const* data,
                                  std::type_info const& type) = 0;
 
-    virtual void commit_output(placement const& plcmnt, std::string const& id) = 0;
+    // Fill one navigation ("index") entry into the given index container (fills only)
+    virtual void fill_index(placement const& index_place, std::string const& id) = 0;
+
+    // Finalize (commit) the product destination's current row.
+    virtual void commit_place(placement const& plcmnt) = 0;
   };
 
   std::unique_ptr<i_persistence_writer> create_persistence_writer();

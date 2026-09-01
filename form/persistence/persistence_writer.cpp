@@ -61,8 +61,12 @@ token persistence_writer::register_write(placement const& plcmnt,
   return token{plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology(), row};
 }
 
-void persistence_writer::commit_output(placement const& plcmnt, std::string const& id)
+void persistence_writer::fill_index(placement const& index_place, std::string const& id)
 {
-  store_writer_->fill_container(plcmnt, &id, typeid(std::string));
+  store_writer_->fill_container(index_place, &id, typeid(std::string));
+}
+
+void persistence_writer::commit_place(placement const& plcmnt)
+{
   store_writer_->commit_containers(plcmnt);
 }

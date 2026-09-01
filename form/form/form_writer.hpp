@@ -50,6 +50,9 @@ namespace form::experimental {
       // goes alongside the product, and each place is committed on its own, so each needs its own
       std::map<std::pair<std::string, form::technology::id>, form::detail::experimental::placement>
         index_places;
+      // product: committing is once per destination place (file + technology)
+      std::map<std::pair<std::string, form::technology::id>, form::detail::experimental::placement>
+        commit_places;
     };
 
     void parse_config(config::item_config const& config_item);

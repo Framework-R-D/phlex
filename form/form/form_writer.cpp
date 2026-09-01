@@ -73,6 +73,8 @@ namespace form::experimental {
           placement product_place{
             item.file_name, build_full_label(creator, pb.label), item.technology};
           new_containers.emplace_back(product_place, pb.type);
+          plan.commit_places.try_emplace(std::make_pair(item.file_name, item.technology),
+                                         product_place);
           places.push_back(std::move(product_place));
 
           // The index (navigation) container goes alongside the product, in the same file and
@@ -106,10 +108,12 @@ namespace form::experimental {
     }
 
     // ---- 3. COMMIT ----
-    // Record this segment in every destination place's index; committing a place is what writes its
-    // row (RNTuple/TTree only finalize an entry on commit), so each place must be committed.
+    // First record this segment in every place's index (fill only), then commit each place once.
     for (auto const& [place_key, index_place] : plan.index_places) {
-      pers_writer_->commit_output(index_place, segment_id);
+      pers_writer_->fill_index(index_place, segment_id);
+    }
+    for (auto const& [place_key, commit_rep] : plan.commit_places) {
+      pers_writer_->commit_place(commit_rep);
     }
   }
 }

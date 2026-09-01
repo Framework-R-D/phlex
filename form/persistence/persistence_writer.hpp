@@ -31,7 +31,8 @@ namespace form::detail::experimental {
     token register_write(placement const& plcmnt,
                          void const* data,
                          std::type_info const& type) override;
-    void commit_output(placement const& plcmnt, std::string const& id) override;
+    void fill_index(placement const& index_place, std::string const& id) override;
+    void commit_place(placement const& plcmnt) override;
 
   private:
     std::unique_ptr<i_storage_writer> store_writer_;
