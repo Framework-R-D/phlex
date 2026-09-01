@@ -34,6 +34,18 @@ context: |
   - Jsonnet configs for workflow definitions
   - Terminology: use "callable object", not "functor"
 
+  Design references:
+  - The design wiki lives in the separate phlex-design repo, NOT in this repo.
+    Local checkout: /Users/paterno/repos/phlex-design
+    Devcontainer:   /workspaces/phlex-design
+    GitHub:         Framework-R-D/phlex-design
+  - Paths of the form design_wiki/... in OpenSpec artifacts (proposal.md,
+    design.md, spec.md) are relative to the phlex-design repo root, so they
+    resolve to <phlex-design>/design_wiki/... and will NOT be found by
+    searching this repo. Treat such a path as valid until checked there.
+  - design_wiki/seeds/ holds the normative design notes behind many changes;
+    consult the relevant seed before revising a design decision that cites it.
+
   Code standards:
   - C++: follow the existing formatting and static-analysis conventions
   - ruff for Python (99-char line limit, double quotes)
