@@ -12,14 +12,14 @@
 
 namespace form::detail::experimental {
   root_rntuple_write_container_imp::root_rntuple_write_container_imp(std::string const& name) :
-    storage_write_association(name), model_(ROOT::RNTupleModel::Create())
+    storage_write_association(name), model(ROOT::RNTupleModel::Create())
   {
   }
 
   root_rntuple_write_container_imp::~root_rntuple_write_container_imp()
   {
-    if (writer_) {
-      writer_->CommitDataset();
+    if (writer) {
+      writer->CommitDataset();
     }
   }
 

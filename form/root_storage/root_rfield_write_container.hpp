@@ -8,10 +8,13 @@
 #include <memory>
 #include <string>
 
+// NOLINTBEGIN(readability-identifier-naming)
+// Forward declarations of ROOT classes
 class TFile;
+// NOLINTEND(readability-identifier-naming)
 
 namespace form::detail::experimental {
-  class root_rntuple_write_container_imp;
+  struct root_rntuple_write_container_imp;
 
   class root_rfield_write_container_imp : public storage_associative_write_container {
   public:

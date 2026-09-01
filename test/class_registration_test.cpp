@@ -21,7 +21,7 @@ namespace {
 }
 
 namespace {
-  struct A {
+  struct test_struct {
     auto no_framework(int num, double temp, std::string const& name) const
     {
       return std::make_tuple(num, temp, name);
@@ -76,34 +76,39 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   g.provide("provide_name", provide_name, concurrency::unlimited)
     .output_product("input", "name", "job");
 
-  auto glueball = g.make<A>();
+  auto glueball = g.make<test_struct>();
   SECTION("No framework")
   {
-    glueball.transform("no_framework", &A::no_framework, concurrency::unlimited)
+    glueball.transform("no_framework", &test_struct::no_framework, concurrency::unlimited)
       .input_family(input_products)
       .output_product_suffixes(product_suffixes);
   }
   SECTION("No framework, all references")
   {
-    glueball.transform("no_framework_all_refs", &A::no_framework_all_refs, concurrency::unlimited)
+    glueball
+      .transform(
+        "no_framework_all_refs", &test_struct::no_framework_all_refs, concurrency::unlimited)
       .input_family(input_products)
       .output_product_suffixes(product_suffixes);
   }
   SECTION("No framework, all pointers")
   {
-    glueball.transform("no_framework_all_ptrs", &A::no_framework_all_ptrs, concurrency::unlimited)
+    glueball
+      .transform(
+        "no_framework_all_ptrs", &test_struct::no_framework_all_ptrs, concurrency::unlimited)
       .input_family(input_products)
       .output_product_suffixes(product_suffixes);
   }
   SECTION("One framework argument")
   {
-    glueball.transform("one_framework_arg", &A::one_framework_arg, concurrency::unlimited)
+    glueball.transform("one_framework_arg", &test_struct::one_framework_arg, concurrency::unlimited)
       .input_family(input_products)
       .output_product_suffixes(product_suffixes);
   }
   SECTION("All framework arguments")
   {
-    glueball.transform("all_framework_args", &A::all_framework_args, concurrency::unlimited)
+    glueball
+      .transform("all_framework_args", &test_struct::all_framework_args, concurrency::unlimited)
       .input_family(input_products)
       .output_product_suffixes(product_suffixes);
   }

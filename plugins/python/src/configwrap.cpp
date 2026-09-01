@@ -19,8 +19,8 @@ struct phlex::experimental::py_config_map {
 
 PyObject* phlex::experimental::wrap_configuration(configuration const& config)
 {
-  auto* pyconfig =
-    reinterpret_cast<py_config_map*>(PhlexConfig_Type.tp_new(&PhlexConfig_Type, nullptr, nullptr));
+  auto* pyconfig = reinterpret_cast<py_config_map*>(
+    phlex_config_type.tp_new(&phlex_config_type, nullptr, nullptr));
 
   pyconfig->ph_config = &config;
 
@@ -228,7 +228,7 @@ static PyMappingMethods pcm_as_mapping = {.mp_length = nullptr,
 
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-PyTypeObject phlex::experimental::PhlexConfig_Type = {
+PyTypeObject phlex::experimental::phlex_config_type = {
   // clang-format off
   .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
   .tp_name = "pyphlex.configuration",
