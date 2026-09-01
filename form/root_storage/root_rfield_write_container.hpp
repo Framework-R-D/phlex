@@ -14,7 +14,7 @@ class TFile;
 // NOLINTEND(readability-identifier-naming)
 
 namespace form::detail::experimental {
-  struct root_rntuple_write_container_imp;
+  class root_rntuple_write_container_imp;
 
   class root_rfield_write_container_imp : public storage_associative_write_container {
   public:
