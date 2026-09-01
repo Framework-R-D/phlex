@@ -8,8 +8,11 @@
 #include <memory>
 #include <string>
 
+// NOLINTBEGIN(readability-identifier-naming)
+// Forward declarations of ROOT classes
 class TFile;
 class TTree;
+// NOLINTEND(readability-identifier-naming)
 
 namespace form::detail::experimental {
 

@@ -8,10 +8,10 @@ namespace demo {
 
   // This function is used to transform an input Waveforms object into an
   // output Waveforms object. The output is a clamped version of the input.
-  Waveforms clampWaveforms(Waveforms const& input);
+  waveforms clamp_waveforms(waveforms const& input);
 
   // This is the fold operator that will accumulate a SummedClampedWaveforms object.
-  void accumulateSCW(SummedClampedWaveforms& accumulator, Waveforms const& wf);
+  void accumulate_scw(summed_clamped_waveforms& accumulator, waveforms const& wf);
 } // namespace demo
 
 #endif // TEST_DEMO_GIANTDATA_USER_ALGORITHMS_HPP

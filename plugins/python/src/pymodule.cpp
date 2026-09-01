@@ -29,7 +29,7 @@ namespace pymodule_register_providers {
   {
     initialize();
 
-    PyGILRAII g;
+    py_gilraii g;
 
     auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
@@ -69,7 +69,7 @@ namespace pymodule_register_algorithms {
   {
     initialize();
 
-    PyGILRAII g;
+    py_gilraii g;
 
     auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
@@ -176,19 +176,19 @@ static bool initialize()
 
   // LCOV_EXCL_START
   // add custom types
-  if (PyType_Ready(&PhlexConfig_Type) < 0) {
+  if (PyType_Ready(&phlex_config_type) < 0) {
     return false;
   }
-  if (PyType_Ready(&PhlexModule_Type) < 0) {
+  if (PyType_Ready(&phlex_module_type) < 0) {
     return false;
   }
-  if (PyType_Ready(&PhlexSource_Type) < 0) {
+  if (PyType_Ready(&phlex_source_type) < 0) {
     return false;
   }
-  if (PyType_Ready(&PhlexDataCellIndex_Type) < 0) {
+  if (PyType_Ready(&phlex_data_cell_index_type) < 0) {
     return false;
   }
-  if (PyType_Ready(&PhlexLifeline_Type) < 0) {
+  if (PyType_Ready(&phlex_lifeline_type) < 0) {
     return false;
   }
   // LCOV_EXCL_STOP

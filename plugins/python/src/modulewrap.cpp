@@ -65,10 +65,10 @@ struct phlex::experimental::py_phlex_module {
 };
 // clang-format on
 
-PyObject* phlex::experimental::wrap_module(phlex_module_t const& module_)
+PyObject* phlex::experimental::wrap_module(phlex_module_t const& module)
 {
-  py_phlex_module* pymod = PyObject_New(py_phlex_module, &PhlexModule_Type);
-  pymod->ph_module = &module_;
+  py_phlex_module* pymod = PyObject_New(py_phlex_module, &phlex_module_type);
+  pymod->ph_module = &module;
 
   return reinterpret_cast<PyObject*>(pymod);
 }
@@ -83,7 +83,7 @@ struct phlex::experimental::py_phlex_source {
 
 PyObject* phlex::experimental::wrap_source(phlex_source_t const& source)
 {
-  py_phlex_source* pysrc = PyObject_New(py_phlex_source, &PhlexSource_Type);
+  py_phlex_source* pysrc = PyObject_New(py_phlex_source, &phlex_source_type);
   pysrc->ph_source = &source;
 
   return reinterpret_cast<PyObject*>(pysrc);
@@ -106,7 +106,7 @@ namespace {
   inline dcarg lifeline_transform(dcarg arg)
   {
     PyObject* pyobj = arg.get<PyObject*>();
-    if (pyobj && PyObject_TypeCheck(pyobj, &PhlexLifeline_Type)) {
+    if (pyobj && PyObject_TypeCheck(pyobj, &phlex_lifeline_type)) {
       return dcarg{reinterpret_cast<py_lifeline_t*>(pyobj)->m_view};
     }
     return arg;
@@ -120,20 +120,20 @@ namespace {
     py_callback_base(PyObject* callable, void* cb) : m_callable(callable), m_ccallback(cb)
     {
       // callable is always non-null here (validated before construction)
-      PyGILRAII gil;
+      py_gilraii gil;
       Py_INCREF(m_callable);
     }
     py_callback_base(py_callback_base const& pc) :
       m_callable(pc.m_callable), m_ccallback(pc.m_ccallback)
     {
       // Must hold GIL when manipulating reference counts
-      PyGILRAII gil;
+      py_gilraii gil;
       Py_INCREF(m_callable);
     }
     py_callback_base& operator=(py_callback_base const& pc)
     {
       if (this != &pc) {
-        PyGILRAII gil;
+        py_gilraii gil;
         Py_INCREF(pc.m_callable);
         Py_DECREF(m_callable);
         m_callable = pc.m_callable;
@@ -172,7 +172,7 @@ namespace {
       (argsv.push_back(lifeline_transform(args)), ...);
       argsv.emplace_back(nullptr);
 
-      PyGILRAII gil;
+      py_gilraii gil;
 
       dcarg result{nullptr};
       dyncall(m_ccallback, result, argsv, 1);
@@ -584,7 +584,7 @@ namespace {
 #define BASIC_CONVERTER(name, cpptype, topy, frompy)                                               \
   static dcarg name##_to_py(cpptype a)                                                             \
   {                                                                                                \
-    PyGILRAII gil;                                                                                 \
+    py_gilraii gil;                                                                                \
     return dcarg{topy(a)};                                                                         \
   }                                                                                                \
                                                                                                    \
@@ -592,7 +592,7 @@ namespace {
                                                                                                    \
   static cpptype py_to_##name(dcarg a)                                                             \
   {                                                                                                \
-    PyGILRAII gil;                                                                                 \
+    py_gilraii gil;                                                                                \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
     auto i = static_cast<cpptype>(frompy(pyobj));                                                  \
     std::string msg;                                                                               \
@@ -610,7 +610,7 @@ namespace {
     using py_callback<dcarg, 1>::py_callback;                                                      \
     cpptype operator()(data_cell_index const& id)                                                  \
     {                                                                                              \
-      PyGILRAII gil;                                                                               \
+      py_gilraii gil;                                                                              \
       PyObject* arg0 = wrap_dci(id);                                                               \
       dcarg res = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */         \
       PyObject* pyres = res.get<PyObject*>();                                                      \
@@ -636,7 +636,7 @@ namespace {
 #define VECTOR_CONVERTER(name, cpptype, nptype)                                                    \
   static dcarg name##_to_py(std::shared_ptr<std::vector<cpptype>> const& v)                        \
   {                                                                                                \
-    PyGILRAII gil;                                                                                 \
+    py_gilraii gil;                                                                                \
                                                                                                    \
     if (!v) {                                                                                      \
       Py_INCREF(Py_None);                                                                          \
@@ -664,7 +664,7 @@ namespace {
     /* that the callback code needs to pick the data member out of the lifeline object, */         \
     /* when passing it to the registered Python function */                                        \
     py_lifeline_t* pyll = reinterpret_cast<py_lifeline_t*>(                                        \
-      PhlexLifeline_Type.tp_new(&PhlexLifeline_Type, nullptr, nullptr));                           \
+      phlex_lifeline_type.tp_new(&phlex_lifeline_type, nullptr, nullptr));                         \
     if (!pyll) {                                                                                   \
       Py_DECREF(np_view);                                                                          \
       throw std::runtime_error("failed to allocate lifeline object");                              \
@@ -685,7 +685,7 @@ namespace {
 #define NUMPY_ARRAY_CONVERTER(name, cpptype, nptype, frompy)                                       \
   static std::shared_ptr<std::vector<cpptype>> py_to_##name(dcarg a)                               \
   {                                                                                                \
-    PyGILRAII gil;                                                                                 \
+    py_gilraii gil;                                                                                \
                                                                                                    \
     auto vec = std::make_shared<std::vector<cpptype>>();                                           \
     PyObject* pyobj = a.get<PyObject*>();                                                          \
@@ -733,7 +733,7 @@ namespace {
     using py_callback<dcarg, 1>::py_callback;                                                      \
     std::shared_ptr<std::vector<cpptype>> operator()(data_cell_index const& id)                    \
     {                                                                                              \
-      PyGILRAII gil;                                                                               \
+      py_gilraii gil;                                                                              \
       PyObject* arg0 = wrap_dci(id);                                                               \
       dcarg pyres = this->py_callback<dcarg, 1>::operator()(dcarg{arg0}); /* decrefs arg0 */       \
       auto cres = py_to_##name(pyres);                                    /* decrefs pyres */      \
@@ -796,9 +796,16 @@ static PyObject* parse_args(PyObject* args,
   PyObject* input = nullptr;
   PyObject* output = nullptr;
   PyObject* pyname = nullptr;
-  int nconcur_ = -1;
-  if (!PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO|OiO", std::data(kwnames), &callable, &input, &output, &nconcur_, &pyname)) {
+  int nconcurrency = -1;
+  if (!PyArg_ParseTupleAndKeywords(args,
+                                   kwds,
+                                   "OO|OiO",
+                                   std::data(kwnames),
+                                   &callable,
+                                   &input,
+                                   &output,
+                                   &nconcurrency,
+                                   &pyname)) {
     // error already set by argument parser
     return nullptr;
   }
@@ -809,7 +816,7 @@ static PyObject* parse_args(PyObject* args,
   }
 
   // set concurrency, or the default of serial if not set
-  nconcur = nconcur_ > 0 ? concurrency(nconcur_) : concurrency::serial;
+  nconcur = nconcurrency > 0 ? concurrency(nconcur) : concurrency::serial;
 
   // retrieve function name
   if (!pyname) {
@@ -1137,8 +1144,8 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   // LCOV_EXCL_STOP
   // end TODO
 
-  auto transform_N_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
-    constexpr size_t N = sizeof...(Is);
+  auto transform_n_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
+    constexpr size_t n = sizeof...(Is);
 
     auto make_product_selector = [&](size_t i) {
       auto pq = input_selectors[i];
@@ -1157,15 +1164,15 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     };
 
     if (ccallf) {
-      jit_callback<dcarg, N> cb{callable, ccallf, out_type};
+      jit_callback<dcarg, n> cb{callable, ccallf, out_type};
       insert_tranform_for_callback(cb);
     } else {
-      py_callback<dcarg, N> cb{callable};
+      py_callback<dcarg, n> cb{callable};
       insert_tranform_for_callback(cb);
     }
   };
 
-  if (!unroll_switch<max_supported_args>(input_selectors.size(), transform_N_args)) {
+  if (!unroll_switch<max_supported_args>(input_selectors.size(), transform_n_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
@@ -1231,8 +1238,8 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
   }
 
   // register Python observer callbacks
-  auto observe_N_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
-    constexpr size_t N = sizeof...(Is);
+  auto observe_n_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
+    constexpr size_t n = sizeof...(Is);
 
     auto make_product_selector = [&](size_t i) {
       auto pq = input_selectors[i];
@@ -1249,15 +1256,15 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     };
 
     if (ccallf) {
-      jit_callback<void, N> cb{callable, ccallf, "void"};
+      jit_callback<void, n> cb{callable, ccallf, "void"};
       insert_observe_for_callback(cb);
     } else {
-      py_callback<void, N> cb{callable};
+      py_callback<void, n> cb{callable};
       insert_observe_for_callback(cb);
     }
   };
 
-  if (!unroll_switch<max_supported_args>(input_selectors.size(), observe_N_args)) {
+  if (!unroll_switch<max_supported_args>(input_selectors.size(), observe_n_args)) {
     PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
     Py_DECREF(callable);
     return nullptr;
@@ -1282,7 +1289,7 @@ static std::array<PyMethodDef, 3> md_methods{
 
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-PyTypeObject phlex::experimental::PhlexModule_Type = {
+PyTypeObject phlex::experimental::phlex_module_type = {
   // clang-format off
   .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
   .tp_name = "pyphlex.module",
@@ -1508,7 +1515,7 @@ static std::array<PyMethodDef, 2> sc_methods{
 
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-PyTypeObject phlex::experimental::PhlexSource_Type = {
+PyTypeObject phlex::experimental::phlex_source_type = {
   // clang-format off
   .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
   .tp_name = "pyphlex.source",

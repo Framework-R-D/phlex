@@ -11,17 +11,17 @@ namespace demo {
   // when the unfold is stopped.
   // Note that this class knows nothing about "spills" or "APAs". It does not
   // know where the values of maxsize and chunksize come from.
-  class WaveformGenerator {
+  class waveform_generator {
   public:
     // Create a WaveformGenerator that will generate waveforms exactly maxsize
     // waveforms. They will be spread across vectors each of size no more than
     //  chunksize.
-    explicit WaveformGenerator(WGI const& wgi);
-    WaveformGenerator(WaveformGenerator const&) = delete;
-    WaveformGenerator(WaveformGenerator&&) = delete;
-    WaveformGenerator& operator=(WaveformGenerator const&) = delete;
-    WaveformGenerator& operator=(WaveformGenerator&&) = delete;
-    ~WaveformGenerator();
+    explicit waveform_generator(wgi const& wgi);
+    waveform_generator(waveform_generator const&) = delete;
+    waveform_generator(waveform_generator&&) = delete;
+    waveform_generator& operator=(waveform_generator const&) = delete;
+    waveform_generator& operator=(waveform_generator&&) = delete;
+    ~waveform_generator();
 
     std::size_t initial_value() const;
 
@@ -32,7 +32,7 @@ namespace demo {
 
     // Generate the next chunk of waveforms, and update the count of how many
     // waveforms we have made so far.
-    std::pair<std::size_t, Waveforms> op(std::size_t made_so_far, std::size_t chunksize) const;
+    std::pair<std::size_t, waveforms> op(std::size_t made_so_far, std::size_t chunksize) const;
 
   private:
     std::size_t maxsize_; // total number of waveforms to make for the unfold

@@ -40,8 +40,8 @@ namespace phlex {
     using handle_type = std::coroutine_handle<promise_type>;
 
     struct promise_type {
-      data_cell_index_ptr current_;
-      std::exception_ptr exception_{};
+      data_cell_index_ptr current;
+      std::exception_ptr exception{};
 
       index_generator get_return_object()
       {
@@ -51,11 +51,11 @@ namespace phlex {
       static std::suspend_always final_suspend() noexcept { return {}; }
       std::suspend_always yield_value(data_cell_index_ptr value) noexcept
       {
-        current_ = std::move(value);
+        current = std::move(value);
         return {};
       }
       void return_void() noexcept {}
-      void unhandled_exception() noexcept { exception_ = std::current_exception(); }
+      void unhandled_exception() noexcept { exception = std::current_exception(); }
     };
 
     class iterator {
@@ -72,8 +72,8 @@ namespace phlex {
         coroutine_.resume();
         if (coroutine_.done()) {
           auto& promise = coroutine_.promise();
-          if (promise.exception_) {
-            std::rethrow_exception(promise.exception_);
+          if (promise.exception) {
+            std::rethrow_exception(promise.exception);
           }
         }
         return *this;
@@ -81,10 +81,10 @@ namespace phlex {
 
       void operator++(int) { ++(*this); }
 
-      value_type const& operator*() const noexcept { return coroutine_.promise().current_; }
+      value_type const& operator*() const noexcept { return coroutine_.promise().current; }
       value_type const* operator->() const noexcept
       {
-        return std::addressof(coroutine_.promise().current_);
+        return std::addressof(coroutine_.promise().current);
       }
 
       bool operator==(std::default_sentinel_t) const noexcept
@@ -137,8 +137,8 @@ namespace phlex {
       coroutine_.resume();
       if (coroutine_.done()) {
         auto& promise = coroutine_.promise();
-        if (promise.exception_) {
-          std::rethrow_exception(promise.exception_);
+        if (promise.exception) {
+          std::rethrow_exception(promise.exception);
         }
         return iterator{};
       }

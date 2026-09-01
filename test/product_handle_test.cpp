@@ -14,7 +14,7 @@ using spec_t = detail::product_specification;
 using opt_id_t = std::optional<experimental::identifier>;
 
 namespace {
-  struct Composer {
+  struct composer {
     std::string name;
   };
 }
@@ -111,9 +111,9 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
   CHECK(num_ref == number);
   CHECK(*num_ptr == number);
 
-  Composer const composer{"Elgar"};
+  composer const elgar{"Elgar"};
   spec_t composer_spec{"composer"};
-  CHECK(handle{composer, *data_cell_index::job(), composer_spec}->name == "Elgar");
+  CHECK(handle{elgar, *data_cell_index::job(), composer_spec}->name == "Elgar");
 }
 
 TEST_CASE("Retrieve product specification from handle", "[data model]")
