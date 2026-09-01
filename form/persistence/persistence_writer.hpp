@@ -8,6 +8,7 @@
 #include "core/placement.hpp"
 #include "storage/istorage.hpp" // brings in form/config.hpp (tech_setting_config)
 
+#include <map>
 #include <memory>
 #include <string>
 #include <typeinfo>
@@ -31,12 +32,14 @@ namespace form::detail::experimental {
     token register_write(placement const& plcmnt,
                          void const* data,
                          std::type_info const& type) override;
-    void fill_index(placement const& index_place, std::string const& id) override;
-    void commit_place(placement const& plcmnt) override;
+    void commit_place(placement const& plcmnt, std::string const& id) override;
 
   private:
     std::unique_ptr<i_storage_writer> store_writer_;
     form::experimental::config::tech_setting_config tech_settings_;
+    // Product container (file, name) -> its navigation ("index") placement, resolved once when the
+    // product container is created and reused on every commit. Persistence owns the index.
+    std::map<std::pair<std::string, std::string>, placement> index_by_product_;
   };
 
 } // namespace form::detail::experimental

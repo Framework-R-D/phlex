@@ -66,9 +66,10 @@ namespace {
       return token{plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology(), 0};
     }
 
-    void fill_index(placement const& /*index_place*/, std::string const& /*id*/) override {}
-
-    void commit_place(placement const& /*plcmnt*/) override { ++commit_calls; }
+    void commit_place(placement const& /*plcmnt*/, std::string const& /*id*/) override
+    {
+      ++commit_calls;
+    }
   };
 }
 
@@ -527,12 +528,13 @@ TEST_CASE("form_writer_interface fans a product out to multiple destinations", "
   writer.write("creator", "[event:1]", std::vector{product});
   writer.write("creator", "[event:2]", std::vector{product});
 
-  // Two product placements plus one index per place (2 + 2), all created once on the first event.
+  // FORM names only the two product placements (the index is persistence's concern now), created
+  // once on the first event.
   CHECK(spy_raw->create_calls == 1);
-  CHECK(spy_raw->created_containers.size() == 4);
+  CHECK(spy_raw->created_containers.size() == 2);
   // The product is filled into both destinations every event (2 places x 2 events)...
   CHECK(spy_raw->written_containers.size() == 4);
-  // ...and each place's index is committed every event (2 places x 2 events): a place's row is only
+  // ...and each place is committed every event (2 places x 2 events): a place's row is only
   // written when that place is committed.
   CHECK(spy_raw->commit_calls == 4);
 }

@@ -54,8 +54,9 @@ namespace form::experimental {
     write_plan& plan = plan_it->second;
 
     // ---- 1. PLAN ----
-    // Resolve every configured product to all of its placements and create all containers in one
-    // shot -- the products and the index share a container set that must exist before any fill.
+    // Resolve every configured product to all of its placements and create those containers in one
+    // shot. FORM only names product containers; persistence adds the navigation ("index") container
+    // for each place itself, so FORM stays opaque to whether a place is indexed.
     if (is_new_creator) {
       std::vector<std::pair<placement, std::type_info const*>> new_containers;
       for (auto const& pb : products) {
@@ -76,16 +77,6 @@ namespace form::experimental {
           plan.commit_places.try_emplace(std::make_pair(item.file_name, item.technology),
                                          product_place);
           places.push_back(std::move(product_place));
-
-          // The index (navigation) container goes alongside the product, in the same file and
-          // technology. Products sharing a place share one index; each place is committed on its
-          // own, so each needs its own index.
-          auto const [idx_it, inserted] = plan.index_places.try_emplace(
-            std::make_pair(item.file_name, item.technology),
-            placement{item.file_name, build_full_label(creator, "index"), item.technology});
-          if (inserted) {
-            new_containers.emplace_back(idx_it->second, &typeid(std::string));
-          }
         }
       }
 
@@ -108,12 +99,9 @@ namespace form::experimental {
     }
 
     // ---- 3. COMMIT ----
-    // First record this segment in every place's index (fill only), then commit each place once.
-    for (auto const& [place_key, index_place] : plan.index_places) {
-      pers_writer_->fill_index(index_place, segment_id);
-    }
+    // Commit each place once, handing persistence the segment id it records in that place's index.
     for (auto const& [place_key, commit_rep] : plan.commit_places) {
-      pers_writer_->commit_place(commit_rep);
+      pers_writer_->commit_place(commit_rep, segment_id);
     }
   }
 }

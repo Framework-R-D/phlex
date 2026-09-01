@@ -12,6 +12,18 @@
 
 using namespace form::detail::experimental;
 
+namespace {
+  // The navigation ("index") container lives alongside its product.
+  placement index_placement_for(placement const& product_place)
+  {
+    std::string const& name = product_place.container_name();
+    auto const slash = name.find('/');
+    std::string const creator = slash == std::string::npos ? name : name.substr(0, slash);
+    return placement{
+      product_place.file_name(), build_full_label(creator, "index"), product_place.technology()};
+  }
+}
+
 namespace form::detail::experimental {
   std::unique_ptr<i_persistence_writer> create_persistence_writer()
   {
@@ -40,6 +52,15 @@ void persistence_writer::create_containers(
   std::map<std::unique_ptr<placement>, std::type_info const*> storage_containers;
   for (auto const& [plcmnt, type] : containers) {
     storage_containers.insert(std::make_pair(std::make_unique<placement>(plcmnt), type));
+
+    // Persistence owns navigation: every product container gets an index container alongside it.
+    placement index_place = index_placement_for(plcmnt);
+    auto const [it, inserted] = index_by_product_.try_emplace(
+      std::make_pair(plcmnt.file_name(), plcmnt.container_name()), index_place);
+    if (inserted) {
+      storage_containers.insert(
+        std::make_pair(std::make_unique<placement>(std::move(index_place)), &typeid(std::string)));
+    }
   }
   store_writer_->create_containers(storage_containers, tech_settings_);
 }
@@ -61,12 +82,12 @@ token persistence_writer::register_write(placement const& plcmnt,
   return token{plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology(), row};
 }
 
-void persistence_writer::fill_index(placement const& index_place, std::string const& id)
+void persistence_writer::commit_place(placement const& plcmnt, std::string const& id)
 {
+  auto const it =
+    index_by_product_.find(std::make_pair(plcmnt.file_name(), plcmnt.container_name()));
+  placement const index_place =
+    it != index_by_product_.end() ? it->second : index_placement_for(plcmnt);
   store_writer_->fill_container(index_place, &id, typeid(std::string));
-}
-
-void persistence_writer::commit_place(placement const& plcmnt)
-{
   store_writer_->commit_containers(plcmnt);
 }

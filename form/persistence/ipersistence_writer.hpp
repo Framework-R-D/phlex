@@ -29,8 +29,9 @@ namespace form::detail::experimental {
     virtual void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
-    // Create the given containers. FORM has already resolved each (creator, label) to a placement
-    // and calls this only with containers it has not created before.
+    // Create the given product containers. FORM resolves each (creator, label) to a placement and
+    // calls this only with containers it has not created before. Persistence adds the matching
+    // navigation ("index") container for each place itself, so FORM stays opaque to it.
     virtual void create_containers(
       std::vector<std::pair<placement, std::type_info const*>> const& containers) = 0;
 
@@ -40,11 +41,10 @@ namespace form::detail::experimental {
                                  void const* data,
                                  std::type_info const& type) = 0;
 
-    // Fill one navigation ("index") entry into the given index container (fills only)
-    virtual void fill_index(placement const& index_place, std::string const& id) = 0;
-
-    // Finalize (commit) the product destination's current row.
-    virtual void commit_place(placement const& plcmnt) = 0;
+    // Finalize (commit) the product destination's current row, first recording `id` in that
+    // place's navigation ("index") container. Persistence owns the index: it derives the index
+    // container from the product placement, so FORM never names or manages it.
+    virtual void commit_place(placement const& plcmnt, std::string const& id) = 0;
   };
 
   std::unique_ptr<i_persistence_writer> create_persistence_writer();

@@ -46,11 +46,7 @@ namespace form::experimental {
       // several files/backends)
       std::unordered_map<std::string, std::vector<form::detail::experimental::placement>>
         product_places;
-      // one navigation ("index") placement per destination place (file + technology): the index
-      // goes alongside the product, and each place is committed on its own, so each needs its own
-      std::map<std::pair<std::string, form::technology::id>, form::detail::experimental::placement>
-        index_places;
-      // product: committing is once per destination place (file + technology)
+      // Committing is once per destination place (file + technology).
       std::map<std::pair<std::string, form::technology::id>, form::detail::experimental::placement>
         commit_places;
     };
