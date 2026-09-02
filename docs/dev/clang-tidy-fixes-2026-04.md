@@ -201,7 +201,7 @@
   - [PR #716](https://github.com/Framework-R-D/phlex/pull/716)
 - [x] [readability-redundant-typename](https://clang.llvm.org/extra/clang-tidy/checks/readability/redundant-typename.html) (19)
   - [PR #760](https://github.com/Framework-R-D/phlex/pull/760)
-- [ ] [readability-simplify-boolean-expr](https://clang.llvm.org/extra/clang-tidy/checks/readability/simplify-boolean-expr.html) (1)
+- [x] [readability-simplify-boolean-expr](https://clang.llvm.org/extra/clang-tidy/checks/readability/simplify-boolean-expr.html) (1)
 - [x] [readability-static-definition-in-anonymous-namespace](https://clang.llvm.org/extra/clang-tidy/checks/readability/static-definition-in-anonymous-namespace.html) (12)
   - [PR #742](https://github.com/Framework-R-D/phlex/pull/742)
 - [ ] [readability-static-accessed-through-instance](https://clang.llvm.org/extra/clang-tidy/checks/readability/static-accessed-through-instance.html) (10)
