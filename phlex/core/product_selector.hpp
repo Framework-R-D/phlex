@@ -21,8 +21,6 @@ using namespace phlex::experimental::literals;
 
 namespace phlex {
   namespace detail {
-    // The creator_name has to be a template for static_assert(false)
-    template <std::same_as<experimental::identifier> T>
     class creator_name {
     public:
       creator_name() : content_{std::nullopt} {}
@@ -33,7 +31,7 @@ namespace phlex {
         }
       }
       template <typename U>
-        requires std::constructible_from<T, U>
+        requires std::constructible_from<experimental::identifier, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       creator_name(U&& rhs) : content_(std::forward<U>(rhs))
       {
@@ -55,8 +53,6 @@ namespace phlex {
       std::optional<experimental::identifier> content_;
     };
 
-    // The required_layer_name has to be a template for static_assert(false)
-    template <std::same_as<experimental::identifier> T>
     class layer_name {
     public:
       layer_name() : content_(std::nullopt) {}
@@ -67,7 +63,7 @@ namespace phlex {
         }
       }
       template <typename U>
-        requires std::constructible_from<T, U>
+        requires std::constructible_from<experimental::identifier, U>
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
       layer_name(U&& rhs) : content_(std::forward<U>(rhs))
       {
@@ -103,8 +99,8 @@ namespace phlex {
   }
 
   struct PHLEX_CORE_EXPORT product_selector {
-    detail::creator_name<experimental::identifier> creator;
-    detail::layer_name<experimental::identifier> layer;
+    detail::creator_name creator;
+    detail::layer_name layer;
     std::optional<experimental::identifier> suffix;
     std::optional<experimental::identifier> stage;
     detail::type_id type;
