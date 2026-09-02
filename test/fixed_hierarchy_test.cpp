@@ -1,5 +1,6 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fixed_hierarchy.hpp"
+#include "phlex/utilities/resumable_driver.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_string.hpp"
@@ -123,4 +124,22 @@ TEST_CASE("Paths with and without 'job' prefix produce the same hierarchy", "[fi
     CHECK_THROWS_WITH(h->validate(unknown),
                       ContainsSubstring("Layer /job/unknown is not part of the fixed hierarchy"));
   }
+}
+
+TEST_CASE("Cursor yields and traverses child indices", "[fixed_hierarchy]")
+{
+  detail::framework_driver driver{[](detail::framework_driver& d) {
+    fixed_hierarchy const hierarchy{{"run", "subrun"}};
+    auto job_cursor = hierarchy.yield_job(d);
+    auto copied_job_cursor = job_cursor; // Test copy-constructibility of the cursor.
+    auto run_cursor = copied_job_cursor.yield_child("run", 0);
+    run_cursor.yield_child("subrun", 0);
+  }};
+
+  std::vector<experimental::layer_path> yielded;
+  while (auto index = driver()) {
+    yielded.push_back((*index)->layer_path());
+  }
+
+  CHECK(yielded == std::vector<experimental::layer_path>{"/job", "/job/run", "/job/run/subrun"});
 }
