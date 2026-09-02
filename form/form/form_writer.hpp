@@ -3,6 +3,7 @@
 #ifndef FORM_FORM_FORM_WRITER_HPP
 #define FORM_FORM_FORM_WRITER_HPP
 
+#include "core/container_naming.hpp"
 #include "core/placement.hpp"
 #include "form/config.hpp"
 #include "form/product_with_name.hpp"

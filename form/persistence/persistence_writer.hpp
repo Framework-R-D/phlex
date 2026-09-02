@@ -5,6 +5,7 @@
 
 #include "ipersistence_writer.hpp"
 
+#include "core/container_naming.hpp"
 #include "core/placement.hpp"
 #include "storage/istorage.hpp" // brings in form/config.hpp (tech_setting_config)
 
