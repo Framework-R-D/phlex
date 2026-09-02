@@ -44,9 +44,10 @@ namespace {
 
   void verify_results(int number, double temperature, std::string const& name)
   {
-    CHECK(number == 3);
-    CHECK(temperature == 98.5);
-    CHECK(name == "John");
+    // Switch to Catch2's CHECK macro once Catch2's thread-safety assertions are enabled.
+    assert(number == 3);
+    assert(temperature == 98.5);
+    assert(name == "John");
   }
 
   auto make_product_selector(experimental::identifier suffix)
