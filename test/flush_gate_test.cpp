@@ -192,7 +192,7 @@ TEST_CASE("flush_gate: two-layer hierarchy (job -> runs -> spills)", "[flush_gat
   for (auto const& ft : flushed) {
     if (ft->index()->layer_name() == "run"_id) {
       CHECK(ft->expected_total_count() == n_spills);
-      CHECK(ft->committed_count_for_layer(spill_layer_hash) == n_spills);
+      CHECK(std::cmp_equal(ft->committed_count_for_layer(spill_layer_hash), n_spills));
     } else {
       REQUIRE(ft->index() == job);
       job_flushed = ft;
@@ -202,7 +202,7 @@ TEST_CASE("flush_gate: two-layer hierarchy (job -> runs -> spills)", "[flush_gat
   REQUIRE(job_flushed);
   CHECK(job_flushed->expected_total_count() == n_runs);
   // Immediate children (runs) counted directly.
-  CHECK(job_flushed->committed_count_for_layer(run_layer_hash) == n_runs);
+  CHECK(std::cmp_equal(job_flushed->committed_count_for_layer(run_layer_hash), n_runs));
   // Grandchildren (spills) propagated up from the run gates.
   CHECK(job_flushed->committed_count_for_layer(spill_layer_hash) == n_runs * n_spills);
 

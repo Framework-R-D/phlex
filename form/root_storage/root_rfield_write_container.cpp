@@ -45,8 +45,6 @@ namespace form::detail::experimental {
       throw std::runtime_error(
         "root_rfield_write_container_imp::set_file failed to get a TFile from a root_tfile_imp");
     }
-
-    return;
   }
 
   void root_rfield_write_container_imp::set_parent(
@@ -129,7 +127,7 @@ namespace form::detail::experimental {
           << type_name
           << ".  This class is probably using something obsolete like TLorentzVector.  Storing it "
              "in streamer mode to keep the application going."
-          << std::endl;
+          << '\n';
         field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
       }
     }

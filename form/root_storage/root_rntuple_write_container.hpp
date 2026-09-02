@@ -23,10 +23,8 @@ namespace ROOT {
     class RRawPtrWriteEntry;
   }
 #else
-  namespace Experimental {
-    namespace Detail {
-      class RRawPtrWriteEntry;
-    }
+  namespace Experimental::Detail {
+    class RRawPtrWriteEntry;
   }
 #endif
 }

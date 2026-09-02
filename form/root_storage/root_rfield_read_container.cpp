@@ -11,6 +11,7 @@
 
 #include <exception>
 #include <mutex>
+#include <utility>
 
 namespace {
   std::mutex& root_rfield_read_mutex()
@@ -26,13 +27,13 @@ namespace form::detail::experimental {
   {
   }
 
-  root_rfield_read_container_imp::~root_rfield_read_container_imp() {}
+  root_rfield_read_container_imp::~root_rfield_read_container_imp() = default;
 
   void root_rfield_read_container_imp::set_file(std::shared_ptr<i_storage_file> file)
   {
     storage_read_container::set_file(file);
 
-    auto form_root_file = dynamic_cast<root_tfile_imp*>(file.get());
+    auto* form_root_file = dynamic_cast<root_tfile_imp*>(file.get());
     if (form_root_file) {
       tfile_ = form_root_file->get_tfile();
     } else {
@@ -45,13 +46,11 @@ namespace form::detail::experimental {
       throw std::runtime_error(
         "root_rfield_read_container_imp::set_file failed to get a TFile from a root_tfile_imp");
     }
-
-    return;
   }
 
   void root_rfield_read_container_imp::prime(std::type_info const& type)
   {
-    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+    std::scoped_lock guard(root_rfield_read_mutex());
 
     if (!tfile_) {
       throw std::runtime_error("root_rfield_read_container_imp::prime No file loaded");
@@ -72,14 +71,14 @@ namespace form::detail::experimental {
 
   bool root_rfield_read_container_imp::read(int id, void const** data, std::type_info const& type)
   {
-    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+    std::scoped_lock guard(root_rfield_read_mutex());
 
     //Connect to file at the last possible moment at the cost of a little run-time branching
     if (!view_) {
       create_view(type);
     }
 
-    if (id >= static_cast<int>(reader_->GetNEntries())) {
+    if (std::cmp_greater_equal(id, reader_->GetNEntries())) {
       return false;
     }
 
@@ -103,7 +102,7 @@ namespace form::detail::experimental {
 
   int root_rfield_read_container_imp::entries()
   {
-    std::lock_guard<std::mutex> guard(root_rfield_read_mutex());
+    std::scoped_lock guard(root_rfield_read_mutex());
 
     if (!reader_) {
       if (!tfile_) {
