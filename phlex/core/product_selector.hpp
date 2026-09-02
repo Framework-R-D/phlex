@@ -11,7 +11,6 @@
 #include <concepts>
 #include <format>
 #include <optional>
-#include <stacktrace>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -81,9 +80,7 @@ namespace phlex {
       operator T const&() const
       {
         if (!content_.has_value()) {
-          throw std::logic_error(
-            std::format("Cannot retrieve layer from product_selector with no layer\n{}\n",
-                        std::stacktrace::current()));
+          throw std::logic_error("Cannot retrieve layer from product_selector with no layer");
         }
         return content_.operator*();
       }
