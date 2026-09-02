@@ -7,11 +7,13 @@
 
 #include "core/container_naming.hpp"
 #include "core/placement.hpp"
-#include "storage/istorage.hpp" // brings in form/config.hpp (tech_setting_config)
+#include "form/config.hpp"
+#include "storage/istorage.hpp"
 
 #include <map>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <typeinfo>
 #include <utility>
 #include <vector>
@@ -38,9 +40,11 @@ namespace form::detail::experimental {
   private:
     std::unique_ptr<i_storage_writer> store_writer_;
     form::experimental::config::tech_setting_config tech_settings_;
-    // Product container (file, name) -> its navigation ("index") placement, resolved once when the
-    // product container is created and reused on every commit. Persistence owns the index.
-    std::map<std::pair<std::string, std::string>, placement> index_by_product_;
+    // Product container (file, name, technology) -> its navigation ("index") placement, resolved
+    // once when the product container is created and reused on every commit. Technology is part of
+    // the key: the same product written to one file through two technologies gets its own index.
+    // Persistence owns the index.
+    std::map<std::tuple<std::string, std::string, technology::id>, placement> index_by_product_;
   };
 
 } // namespace form::detail::experimental

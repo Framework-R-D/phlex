@@ -562,6 +562,71 @@ TEST_CASE("form_writer_interface skips unconfigured products in a vector write",
   CHECK(spy_raw->commit_calls == 0);
 }
 
+TEST_CASE("form_writer_interface rejects a null injected persistence writer", "[form]")
+{
+  using namespace form::experimental::config;
+
+  item_config cfg;
+  cfg.add_item("prod", "form_writer_null_pers.root", form::technology::root_ttree);
+
+  // The injecting constructor must fail loudly if handed a null persistence writer rather than
+  // store it and crash on first use.
+  CHECK_THROWS_AS((form::experimental::form_writer_interface{
+                    cfg, tech_setting_config{}, std::unique_ptr<i_persistence_writer>{}}),
+                  std::runtime_error);
+}
+
+TEST_CASE("form_writer_interface rejects a product first appearing at a sealed place", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // Two products share one destination (same file + technology), so they land in the same place.
+  item_config cfg;
+  cfg.add_item("early", "form_writer_seal.root", form::technology::root_ttree);
+  cfg.add_item("late", "form_writer_seal.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name early{
+    .label = "early", .data = &payload, .type = &typeid(int)};
+  form::experimental::product_with_name late{
+    .label = "late", .data = &payload, .type = &typeid(int)};
+
+  // Record 1 writes "early", sealing the place's container structure.
+  writer.write("creator", "[event:1]", std::vector{early});
+  // Record 2 introduces "late" at that already-sealed place: FORM rejects it rather than let the
+  // backend crash adding a container after first write.
+  CHECK_THROWS_AS(writer.write("creator", "[event:2]", std::vector{late}), std::runtime_error);
+}
+
+TEST_CASE("form_writer_interface commits only the places written this record", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // Two products go to two distinct destinations, so they occupy two separate places.
+  item_config cfg;
+  cfg.add_item("a", "form_writer_commit_a.root", form::technology::root_ttree);
+  cfg.add_item("b", "form_writer_commit_b.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name a{.label = "a", .data = &payload, .type = &typeid(int)};
+  form::experimental::product_with_name b{.label = "b", .data = &payload, .type = &typeid(int)};
+
+  // Record 1 writes both products: both places are committed.
+  writer.write("creator", "[event:1]", std::vector{a, b});
+  // Record 2 writes only "a": "b"'s place is known but received no data, so it is not committed.
+  writer.write("creator", "[event:2]", std::vector{a});
+
+  // 2 commits on record 1 (a, b) + 1 commit on record 2 (a only) = 3.
+  CHECK(spy_raw->commit_calls == 3);
+}
+
 TEST_CASE("form_source_type_registry product_from_data_fn throws on null data", "[form]")
 {
   using namespace form::experimental;

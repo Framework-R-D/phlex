@@ -11,6 +11,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -50,6 +51,10 @@ namespace form::experimental {
       // Committing is once per destination place (file + technology).
       std::map<std::pair<std::string, form::technology::id>, form::detail::experimental::placement>
         commit_places;
+      // Destination places (file + technology) that have already had data written to them. The
+      // storage backend seals a place's container structure on its first write, so a product that
+      // first appears at a place already in this set cannot be added there -- write() rejects it.
+      std::set<std::pair<std::string, form::technology::id>> sealed_places;
     };
 
     void parse_config(config::item_config const& config_item);

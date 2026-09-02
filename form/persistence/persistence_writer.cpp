@@ -56,7 +56,8 @@ void persistence_writer::create_containers(
     // Persistence owns navigation: every product container gets an index container alongside it.
     placement index_place = index_placement_for(plcmnt);
     auto const [it, inserted] = index_by_product_.try_emplace(
-      std::make_pair(plcmnt.file_name(), plcmnt.container_name()), index_place);
+      std::make_tuple(plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology()),
+      index_place);
     if (inserted) {
       storage_containers.insert(
         std::make_pair(std::make_unique<placement>(std::move(index_place)), &typeid(std::string)));
@@ -84,8 +85,8 @@ token persistence_writer::register_write(placement const& plcmnt,
 
 void persistence_writer::commit_place(placement const& plcmnt, std::string const& id)
 {
-  auto const it =
-    index_by_product_.find(std::make_pair(plcmnt.file_name(), plcmnt.container_name()));
+  auto const it = index_by_product_.find(
+    std::make_tuple(plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology()));
   placement const index_place =
     it != index_by_product_.end() ? it->second : index_placement_for(plcmnt);
   store_writer_->fill_container(index_place, &id, typeid(std::string));
