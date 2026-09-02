@@ -27,9 +27,51 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <typeinfo>
+#include <utility>
 #include <vector>
 
 using namespace form::detail::experimental;
+
+namespace {
+  // Minimal i_persistence_writer that records how it was called, so FORM's "parse once / create
+  // once / skip unconfigured" behavior can be checked without a storage backend.
+  class spy_persistence_writer : public i_persistence_writer {
+  public:
+    int create_calls = 0;
+    std::vector<std::string> created_containers;
+    std::vector<std::string> written_containers;
+    int commit_calls = 0;
+
+    void configure_tech_settings(
+      form::experimental::config::tech_setting_config const& /*settings*/) override
+    {
+    }
+
+    void create_containers(
+      std::vector<std::pair<placement, std::type_info const*>> const& containers) override
+    {
+      ++create_calls;
+      for (auto const& [plcmnt, type] : containers) {
+        created_containers.push_back(plcmnt.container_name());
+      }
+    }
+
+    token register_write(placement const& plcmnt,
+                         void const* /*data*/,
+                         std::type_info const& /*type*/) override
+    {
+      written_containers.push_back(plcmnt.container_name());
+      return token{plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology(), 0};
+    }
+
+    void commit_place(placement const& /*plcmnt*/, std::string const& /*id*/) override
+    {
+      ++commit_calls;
+    }
+  };
+}
 
 TEST_CASE("token default constructor", "[form]")
 {
@@ -306,26 +348,22 @@ TEST_CASE("persistence_reader basic operations", "[form]")
   }
 }
 
-TEST_CASE("persistence_writer basic operations", "[form]")
+TEST_CASE("persistence_writer: register_write rejects a non-row-addressed backend", "[form]")
 {
+  using namespace form::experimental::config;
+
   auto p = create_persistence_writer();
   REQUIRE(p != nullptr);
+  p->configure_tech_settings(tech_setting_config{});
 
-  using namespace form::experimental::config;
-  item_config out_cfg;
-  out_cfg.add_item("prod", "file.root", form::technology::id{});
-  out_cfg.add_item("parent/child", "file.root", form::technology::id{});
-  p->configure(out_cfg);
+  // The generic backend's write container is a no-op whose fill() returns invalid_row_id, so the
+  // resulting token could never locate the product on read: register_write must reject it rather
+  // than return an unusable token.
+  placement const generic{"pw_basics_notset.generic", "my_creator/prod", form::technology::id{}};
+  p->create_containers({{generic, &typeid(int)}});
 
-  tech_setting_config tech_cfg;
-  p->configure_tech_settings(tech_cfg);
-
-  SECTION("Errors")
-  {
-    int val = 42;
-    CHECK_THROWS_AS(p->register_write("my_creator", "unknown", &val, typeid(int)),
-                    std::runtime_error);
-  }
+  int val = 42;
+  CHECK_THROWS_AS(p->register_write(generic, &val, typeid(int)), std::runtime_error);
 }
 
 TEST_CASE("form::experimental::config tests", "[form]")
@@ -444,6 +482,149 @@ TEST_CASE("form_writer_interface handles missing product config without crashing
   form::experimental::product_with_name product{
     .label = "missing", .data = nullptr, .type = &typeid(int)};
   CHECK_NOTHROW(writer.write("creator", "segment", product));
+}
+
+TEST_CASE("form_writer_interface creates containers once across events", "[form]")
+{
+  using namespace form::experimental::config;
+
+  item_config cfg;
+  cfg.add_item("prod", "form_writer_create_once.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name product{
+    .label = "prod", .data = &payload, .type = &typeid(int)};
+
+  writer.write("creator", "[event:1]", std::vector{product});
+  writer.write("creator", "[event:2]", std::vector{product});
+
+  // Containers are created on the first event only; writes and commits still happen every event.
+  CHECK(spy_raw->create_calls == 1);
+  CHECK(spy_raw->written_containers.size() == 2);
+  CHECK(spy_raw->commit_calls == 2);
+}
+
+TEST_CASE("form_writer_interface fans a product out to multiple destinations", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // The same product is configured for two destinations.
+  item_config cfg;
+  cfg.add_item("prod", "form_writer_fanout_a.root", form::technology::root_ttree);
+  cfg.add_item("prod", "form_writer_fanout_b.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name product{
+    .label = "prod", .data = &payload, .type = &typeid(int)};
+
+  writer.write("creator", "[event:1]", std::vector{product});
+  writer.write("creator", "[event:2]", std::vector{product});
+
+  // FORM names only the two product placements (the index is persistence's concern now), created
+  // once on the first event.
+  CHECK(spy_raw->create_calls == 1);
+  CHECK(spy_raw->created_containers.size() == 2);
+  // The product is filled into both destinations every event (2 places x 2 events)...
+  CHECK(spy_raw->written_containers.size() == 4);
+  // ...and each place is committed every event (2 places x 2 events): a place's row is only
+  // written when that place is committed.
+  CHECK(spy_raw->commit_calls == 4);
+}
+
+TEST_CASE("form_writer_interface skips unconfigured products in a vector write", "[form]")
+{
+  using namespace form::experimental::config;
+
+  item_config cfg;
+  cfg.add_item("prod", "form_writer_skip.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name unconfigured{
+    .label = "missing", .data = &payload, .type = &typeid(int)};
+
+  CHECK_NOTHROW(writer.write("creator", "[event:1]", std::vector{unconfigured}));
+
+  // Nothing is configured for "missing": no container created, nothing written or committed.
+  CHECK(spy_raw->create_calls == 0);
+  CHECK(spy_raw->written_containers.empty());
+  CHECK(spy_raw->commit_calls == 0);
+}
+
+TEST_CASE("form_writer_interface rejects a null injected persistence writer", "[form]")
+{
+  using namespace form::experimental::config;
+
+  item_config cfg;
+  cfg.add_item("prod", "form_writer_null_pers.root", form::technology::root_ttree);
+
+  // The injecting constructor must fail loudly if handed a null persistence writer rather than
+  // store it and crash on first use.
+  CHECK_THROWS_AS((form::experimental::form_writer_interface{
+                    cfg, tech_setting_config{}, std::unique_ptr<i_persistence_writer>{}}),
+                  std::runtime_error);
+}
+
+TEST_CASE("form_writer_interface rejects a product first appearing at a sealed place", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // Two products share one destination (same file + technology), so they land in the same place.
+  item_config cfg;
+  cfg.add_item("early", "form_writer_seal.root", form::technology::root_ttree);
+  cfg.add_item("late", "form_writer_seal.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name early{
+    .label = "early", .data = &payload, .type = &typeid(int)};
+  form::experimental::product_with_name late{
+    .label = "late", .data = &payload, .type = &typeid(int)};
+
+  // Record 1 writes "early", sealing the place's container structure.
+  writer.write("creator", "[event:1]", std::vector{early});
+  // Record 2 introduces "late" at that already-sealed place: FORM rejects it rather than let the
+  // backend crash adding a container after first write.
+  CHECK_THROWS_AS(writer.write("creator", "[event:2]", std::vector{late}), std::runtime_error);
+}
+
+TEST_CASE("form_writer_interface commits only the places written this record", "[form]")
+{
+  using namespace form::experimental::config;
+
+  // Two products go to two distinct destinations, so they occupy two separate places.
+  item_config cfg;
+  cfg.add_item("a", "form_writer_commit_a.root", form::technology::root_ttree);
+  cfg.add_item("b", "form_writer_commit_b.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<spy_persistence_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name a{.label = "a", .data = &payload, .type = &typeid(int)};
+  form::experimental::product_with_name b{.label = "b", .data = &payload, .type = &typeid(int)};
+
+  // Record 1 writes both products: both places are committed.
+  writer.write("creator", "[event:1]", std::vector{a, b});
+  // Record 2 writes only "a": "b"'s place is known but received no data, so it is not committed.
+  writer.write("creator", "[event:2]", std::vector{a});
+
+  // 2 commits on record 1 (a, b) + 1 commit on record 2 (a only) = 3.
+  CHECK(spy_raw->commit_calls == 3);
 }
 
 TEST_CASE("form_source_type_registry product_from_data_fn throws on null data", "[form]")

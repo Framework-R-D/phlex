@@ -5,44 +5,46 @@
 
 #include "ipersistence_writer.hpp"
 
+#include "core/container_naming.hpp"
 #include "core/placement.hpp"
+#include "form/config.hpp"
 #include "storage/istorage.hpp"
 
 #include <map>
 #include <memory>
 #include <string>
-
-// forward declaration for form config
-namespace form::experimental::config {
-  class item_config;
-  struct tech_setting_config;
-}
+#include <tuple>
+#include <typeinfo>
+#include <utility>
+#include <vector>
 
 namespace form::detail::experimental {
 
   class persistence_writer : public i_persistence_writer {
   public:
     persistence_writer();
+    // Test seam: inject a storage writer (e.g. a spy) instead of the default backend.
+    explicit persistence_writer(std::unique_ptr<i_storage_writer> store_writer);
     ~persistence_writer() override = default;
+
     void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) override;
 
-    void configure(form::experimental::config::item_config const& config_items) override;
-
-    void create_containers(std::string const& creator,
-                           std::map<std::string, std::type_info const*> const& products) override;
-    token register_write(std::string const& creator,
-                         std::string const& label,
+    void create_containers(
+      std::vector<std::pair<placement, std::type_info const*>> const& containers) override;
+    token register_write(placement const& plcmnt,
                          void const* data,
                          std::type_info const& type) override;
-    void commit_output(std::string const& creator, std::string const& id) override;
+    void commit_place(placement const& plcmnt, std::string const& id) override;
 
   private:
-    std::unique_ptr<placement> get_placement(std::string const& creator, std::string const& label);
-
     std::unique_ptr<i_storage_writer> store_writer_;
-    form::experimental::config::item_config config_items_;
     form::experimental::config::tech_setting_config tech_settings_;
+    // Product container (file, name, technology) -> its navigation ("index") placement, resolved
+    // once when the product container is created and reused on every commit. Technology is part of
+    // the key: the same product written to one file through two technologies gets its own index.
+    // Persistence owns the index.
+    std::map<std::tuple<std::string, std::string, technology::id>, placement> index_by_product_;
   };
 
 } // namespace form::detail::experimental

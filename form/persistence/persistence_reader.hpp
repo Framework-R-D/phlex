@@ -5,6 +5,7 @@
 
 #include "ipersistence_reader.hpp"
 
+#include "core/container_naming.hpp"
 #include "core/token.hpp"
 #include "storage/istorage.hpp"
 
