@@ -125,6 +125,8 @@ namespace phlex::experimental {
     layer_paths_.push_back(full_path);
   }
 
+  // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
+  // NOLINTNEXTLINE(readability-static-accessed-through-instance)
   index_generator layer_generator::indices()
   {
     ++emitted_cells_.at("/job");
@@ -145,9 +147,10 @@ namespace phlex::experimental {
     };
   }
 
+  // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
   // Passing the pointer by value is required because this coroutine may outlive its caller;
   // prioritize preserving ownership in the coroutine frame over the extra shared_ptr copy.
-  // NOLINTNEXTLINE(performance-unnecessary-value-param)
+  // NOLINTNEXTLINE(performance-unnecessary-value-param, readability-static-accessed-through-instance)
   index_generator layer_generator::execute(data_cell_index_ptr cell)
   {
     // Used in drivers which are close to public API --> easier to stick to strings

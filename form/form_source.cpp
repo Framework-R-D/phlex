@@ -124,6 +124,8 @@ namespace {
     }
 
     // TODO: replace with per-container index lookup driven by metadata payload.
+    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     phlex::index_generator indices() override
     {
       if (products_.empty()) {
