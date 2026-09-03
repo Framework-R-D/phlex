@@ -86,7 +86,7 @@ namespace phlex {
         using namespace std::string_view_literals;
         return content_
           .transform([](experimental::identifier const& id) { return std::string_view(id); })
-          .value_or(""sv);
+          .value_or("[ANY]"sv);
       }
       operator bool() const noexcept { return content_.has_value(); }
       auto operator<=>(layer_name const&) const noexcept = default;
