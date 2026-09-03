@@ -26,6 +26,7 @@ namespace phlex::detail {
 
   // The remaining overloads are used for non-static member functions bound to the 'obj' object.
 
+  // - non-noexcept overloads
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...))
   {
@@ -36,6 +37,15 @@ namespace phlex::detail {
 
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...) const)
+  {
+    return std::function{[t = std::move(obj), f](Args... args) mutable -> R {
+      return std::invoke(f, *t, std::forward<Args>(args)...);
+    }};
+  }
+
+  // - noexcept overloads
+  template <typename R, typename T, typename... Args>
+  auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...) noexcept)
   {
     return std::function{[t = std::move(obj), f](Args... args) mutable -> R {
       return std::invoke(f, *t, std::forward<Args>(args)...);
