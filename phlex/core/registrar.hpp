@@ -95,7 +95,6 @@ namespace phlex::detail {
     void set_output_product_suffixes(std::vector<std::string> output_product_suffixes)
     {
       create_node(std::move(output_product_suffixes));
-      creator_ = nullptr;
     }
 
     ~registrar() noexcept(false)
