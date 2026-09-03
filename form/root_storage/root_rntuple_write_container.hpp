@@ -65,7 +65,7 @@ namespace form::detail::experimental {
       //If model_ has been moved from, the c++ standard guarantees it will contain nullptr.
       //This is important for this RNTuple backend to meet FORM's testing
       //requirement that commit() shall fail if fill() has not been called yet.
-      std::unique_ptr<ROOT::RNTupleModel> const& get_model();
+      std::unique_ptr<ROOT::RNTupleModel> const& get_model() const;
       RRawPtrWriteEntry& get_entry();
 
     private:

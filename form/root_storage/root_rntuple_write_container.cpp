@@ -66,7 +66,7 @@ namespace form::detail::experimental {
     return *writer_;
   }
 
-  std::unique_ptr<ROOT::RNTupleModel> const& root_rntuple_write_container_imp::get_model()
+  std::unique_ptr<ROOT::RNTupleModel> const& root_rntuple_write_container_imp::get_model() const
   {
     return model_;
   }
