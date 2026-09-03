@@ -104,6 +104,27 @@ TEST_CASE("Explicit providers")
   CHECK(g.execution_count("verify_explicit_stage") == num_spills);
 }
 
+TEST_CASE("Explicit Provider Ambiguity")
+{
+  auto g = phlex::detail::framework_graph::with_default_driver();
+
+  // Register two providers that can provide the same product
+  g.provide("provide_vertices", give_me_vertices, concurrency::unlimited)
+    .output_product("vertices_maker", "happy_vertices", "job");
+  g.provide("provide_vertices_again", give_me_vertices, concurrency::unlimited)
+    .output_product("vertices_maker", "happy_vertices", "job");
+
+  g.transform("passer", pass_on, concurrency::unlimited)
+    .input_family(
+      product_selector{.creator = "vertices_maker", .layer = "job", .suffix = "happy_vertices"});
+
+  CHECK_THROWS_WITH(
+    g.execute(),
+    ContainsSubstring("Multiple explicit providers found for <suffix happy_vertices") &&
+      ContainsSubstring("by creator vertices_maker") && ContainsSubstring("in layer job") &&
+      ContainsSubstring("spec: vertices_maker/happy_vertices"));
+}
+
 TEST_CASE("Implicit providers")
 {
   constexpr auto num_spills{3u};
