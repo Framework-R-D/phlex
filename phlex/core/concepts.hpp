@@ -56,7 +56,6 @@ namespace phlex::detail {
 
   template <typename T>
   concept is_output_like =
-    std::is_member_function_pointer_v<T> &&
     expects_input_parameters<T, phlex::experimental::product_store const&> && returns<T, void>;
 
   template <typename T>

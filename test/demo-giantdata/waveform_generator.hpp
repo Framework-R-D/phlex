@@ -23,7 +23,7 @@ namespace demo {
     waveform_generator& operator=(waveform_generator&&) = delete;
     ~waveform_generator() = default;
 
-    std::size_t initial_value() const;
+    static std::size_t initial_value();
 
     // When we have made at least as many waveforms as we have been asked to make
     // for this unfold, we are done. The predicate answers the question "should
