@@ -21,7 +21,7 @@ TEST_CASE("Product name with data layer", "[data model]")
 {
   product_selector label({.creator = "creator", .layer = "event", .suffix = "product"});
   CHECK(*label.creator == "creator"_idq);
-  CHECK(label.layer == "event"_idq);
+  CHECK(*label.layer == "event"_idq);
   CHECK(label.suffix == "product"_id);
   // Mismatched creator
   CHECK(!product_selector{.creator = "1", .layer = "event", .suffix = "prod"}.match(

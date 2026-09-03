@@ -25,14 +25,14 @@ namespace phlex::detail {
   products_consumer::products_consumer(phlex::experimental::algorithm_name name,
                                        std::vector<std::string> predicates,
                                        product_selectors input_products,
-                                       layers_required layers_required) :
+                                       require_layers layers_required) :
     consumer{std::move(name), std::move(predicates)},
     input_products_{std::move(input_products)},
     layers_{layers_from(input_products_)}
   {
     using namespace phlex::experimental::literals;
-    if (layers_required == layers_required::always ||
-        (layers_required != layers_required::never && input_products_.size() > 1)) {
+    if (layers_required == require_layers::always ||
+        (layers_required != require_layers::never && input_products_.size() > 1)) {
       std::vector<std::string> err_selectors{};
       for (auto const& p : input_products_) {
         if (!p.layer) {
@@ -41,7 +41,7 @@ namespace phlex::detail {
       }
       if (!err_selectors.empty()) {
         std::string type =
-          layers_required == layers_required::always ? "layer-mandatory" : "multi-input";
+          layers_required == require_layers::always ? "layer-mandatory" : "multi-input";
         std::string error =
           fmt::format("Product selectors in {} algorithm {} must define their layers:\n"
                       "  (Only invalid selectors are listed)\n{}",

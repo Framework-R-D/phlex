@@ -6,7 +6,7 @@ namespace phlex::detail {
                                product_selectors input_products,
                                std::string partition_layer) :
     products_consumer{
-      std::move(name), std::move(predicates), std::move(input_products), layers_required::always},
+      std::move(name), std::move(predicates), std::move(input_products), require_layers::always},
     partition_layer_{std::move(partition_layer)}
   {
   }

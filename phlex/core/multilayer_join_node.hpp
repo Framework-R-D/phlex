@@ -76,7 +76,7 @@ namespace phlex::detail {
       name_{std::move(node_name)},
       layers_{std::move(layer_names)}
     {
-      using namespace experimental::literals;
+      assert(NInputs == layers_.size());
       // Collapse to the set of distinct layer names.  More than one distinct layer means
       // at least one input crosses a layer boundary and therefore every input stream
       // needs a repeater_node.

@@ -41,12 +41,11 @@ namespace phlex {
       }
 
       operator bool() const noexcept { return content_.has_value(); }
-      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
+      experimental::identifier const& operator*() const noexcept { return *content_; }
       friend experimental::identifier format_as(creator_name const& me) noexcept
       {
         return me.content_.value_or("[ANY]");
       }
-      bool operator==(creator_name const&) const noexcept = default;
       auto operator<=>(creator_name const&) const noexcept = default;
 
     private:
@@ -73,15 +72,15 @@ namespace phlex {
       }
 
       // NOLINTNEXTLINE(google-explicit-constructor) - Implicit conversion is intentional
-      operator T const&() const
+      operator experimental::identifier const&() const
       {
         if (!content_.has_value()) {
           throw std::logic_error("Cannot retrieve layer from product_selector with no layer");
         }
-        return content_.operator*();
+        return *content_;
       }
 
-      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
+      experimental::identifier const& operator*() const noexcept { return *content_; }
       explicit operator std::string_view() const noexcept
       {
         using namespace std::string_view_literals;
@@ -90,7 +89,6 @@ namespace phlex {
           .value_or(""sv);
       }
       operator bool() const noexcept { return content_.has_value(); }
-      bool operator==(layer_name const&) const noexcept = default;
       auto operator<=>(layer_name const&) const noexcept = default;
 
     private:
