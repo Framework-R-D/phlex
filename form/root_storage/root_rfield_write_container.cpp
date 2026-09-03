@@ -115,6 +115,7 @@ namespace form::detail::experimental {
       }
     }
 
+    assert(rntuple_parent->get_model());
     rntuple_parent_->get_model()->AddField(std::move(field));
   }
 }
