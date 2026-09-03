@@ -53,8 +53,6 @@ namespace form::detail::experimental {
     throw std::runtime_error("root_rntuple_write_container_imp::commit not implemented");
   }
 
-  void root_rntuple_write_container_imp::setup_write(std::type_info const& /*type*/) { return; }
-
   ROOT::RNTupleWriter& root_rntuple_write_container_imp::get_writer()
   {
     if(!tfile_) throw std::runtime_error("root_rntuple_write_container_imp::setup_write no file loaded to write to on first fill() call");
@@ -79,4 +77,6 @@ namespace form::detail::experimental {
     }
     return *entry_;
   }
+
+  void root_rntuple_write_container_imp::setup_write(std::type_info const& /*type*/) {}
 }

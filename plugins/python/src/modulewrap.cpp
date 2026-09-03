@@ -512,7 +512,7 @@ namespace {
     // range-checking python integer to C++ bool conversion
     long l = PyLong_AsLong(pyobject);
     // fail to pass float -> bool; the problem is rounding (0.1 -> 0 -> False)
-    if (!(l == 0 || l == 1) || PyFloat_Check(pyobject)) {
+    if ((l != 0 && l != 1) || PyFloat_Check(pyobject)) {
       PyErr_SetString(PyExc_ValueError, "boolean value should be bool, or integer 1 or 0");
       return static_cast<bool>(-1);
     }
