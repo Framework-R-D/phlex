@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "plan_id": "1787581717167-native-arm64-podman-devcontainers",
+  "source_sha256": "09d806caf7d9d173e944700b3e2ab646a33adf6a73e577973a1431643f516dae",
+  "status": "failed",
+  "source_verified": {
+    "match": true,
+    "sha256": "09d806caf7d9d173e944700b3e2ab646a33adf6a73e577973a1431643f516dae"
+  },
+  "pre_dispatch_validation": {
+    "status": "passed",
+    "artifact": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers.exec.json",
+    "catalog_sha256": "4d5b7d9b9ec0ca94d9fa0cd48f190d9af2d8da73639696e726881a5d99290bdc",
+    "agents": ["architect", "coder-qwen", "explore-high", "explore", "obsidian-helper", "skill-author-high", "skill-author"]
+  },
+  "completed_ids": [],
+  "pending_ids": ["1", "2", "3a", "3b", "4", "5", "6", "7"],
+  "failure_context": {
+    "step_id": "1",
+    "status": "stopped_by_human",
+    "decision": "stop",
+    "detail": "The operator selected Stop step 1 before host-gate execution and approval.",
+    "runner_sha256": "eeaaba9587d87e6d5d93552733274b6b5bcf4f1ff1c11b2db367407251983c7a"
+  },
+  "step_counts": {
+    "total": 8,
+    "completed": 0,
+    "in_progress": 0,
+    "pending": 7,
+    "failed": 1,
+    "gates": 1
+  },
+  "checkpoint_path": "/Users/greenc/work/cet-is/sources/phlex/phlex/.kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.json",
+  "gate_decisions": [
+    {
+      "step_id": "1",
+      "status": "stopped",
+      "decision": "stop",
+      "runner_sha256": "eeaaba9587d87e6d5d93552733274b6b5bcf4f1ff1c11b2db367407251983c7a",
+      "runner_path": "/var/folders/38/jpqj8dkn323_ws87lqngy9340000j6/T/kilo-execute.WAltfd0G/1787581717167-native-arm64-podman-devcontainers-step-1.sh",
+      "phase_receipts": [],
+      "log_sha256": null
+    }
+  ],
+  "recovery_events": [
+    {
+      "type": "post_execution_architect_review",
+      "status": "completed",
+      "review": "The goal is not achieved. The artifact is valid, but no host gate phase ran and all implementation and acceptance evidence remains absent.",
+      "recommended_action": "human_review",
+      "residual_risk": "Pre-existing worktree changes require provenance review before any resume or baseline re-derivation."
+    }
+  ],
+  "goal_review": {
+    "status": "not_achieved",
+    "evidence": ["Plan and source hash validated.", "Pre-dispatch worker catalog and plan validation passed.", "The first human gate runner validated, but the operator stopped before any phase execution; phase receipts and evidence are absent.", "Architect post-execution review confirmed zero completed steps and no acceptance evidence."],
+    "residual_work": ["All host setup, implementation, static validation, and end-to-end acceptance steps remain."],
+    "risks": ["No evidence exists for native rootless Podman, pasta reachability, architecture-aware images, or the devcontainer runtime.", "Pre-existing worktree changes require provenance determination before resuming; do not restore an entire step file set or infer those changes belong to this run."],
+    "recommended_action": "human_review"
+  },
+  "steps": {
+    "1": {
+      "attempts": 0,
+      "status": "failed",
+      "verification": {
+        "status": "failed",
+        "detail": "Stopped by explicit human gate decision before phase execution."
+      },
+      "outputs": [],
+      "gate": {
+        "runner_sha256": "eeaaba9587d87e6d5d93552733274b6b5bcf4f1ff1c11b2db367407251983c7a",
+        "phase_receipts": [],
+        "decision": "stop"
+      }
+    }
+  }
+}

@@ -1,254 +1,870 @@
-# Plan: Native arm64 Podman Images and VS Code Devcontainers
-
-Workspace root: `/Users/greenc/work/cet-is/sources/phlex/phlex`
+---
+format: kilo-plan/v4
+plan_id: native-arm64-podman-devcontainers
+workspace_root: /Users/greenc/work/cet-is/sources/phlex/phlex
+design_review_status: passed
+design_review_blocking_findings: 0
+max_total_dispatches: 18
+max_consecutive_failures: 3
+---
+# Native arm64 Podman images and VS Code devcontainers
 
 ## Goal
 
-Make the repository's `phlex-ci`, `phlex-dev`, and VS Code devcontainer workflows usable from a rootless Podman machine on an Apple-Silicon Mac, using native `linux/arm64` execution and Spack-installed LLVM/Clang as the default development compiler. Preserve the existing amd64 GitHub CI/reference path, keep the generic CMake default preset compiler-neutral, and keep local arm64 images local-only.
+Make `phlex-ci`, `phlex-dev`, and the VS Code devcontainer workflow usable on an Apple-Silicon Mac with a rootless native `linux/arm64` Podman machine and Spack LLVM/Clang as the developer default, while preserving amd64 GitHub CI, compiler-neutral CMake presets, Linux relay behavior, and local-only arm64 images. Produce receipt-grade evidence for an M8 representative-task case study without claiming an unperformed matched workflow benchmark.
 
-## Recovery posture from the most recent execution
+## Scope
 
-The previous execution approved the native-arm64 host gate, repaired step 2 once, then stopped when the step-3 worker modified prohibited `.devcontainer/post-create.sh`. The recorded state claims steps 1 and 2 completed, but the current worktree still has the original `ci/spack.yaml`, `ci/Dockerfile`, and `ci/entrypoint.sh` architecture/compiler settings and contains no `PHLEX_SPACK_TARGET` or `PHLEX_DEFAULT_COMPILER` implementation. The previous completion evidence is therefore not sufficient to skip implementation or verification.
+Update architecture-aware CI and developer image definitions, Darwin pasta networking and allowlisted TCP relays, write-free Kilo configuration rewriting, Compose mounts and image selection, the local image builder, and Mac documentation. Validate the combined implementation statically and through a native arm64 devcontainer run. Preserve and archive the retired plan source, compiled artifact, and stale state artifacts before direct execution state is created.
 
-This revision changes the plan source, so the existing `.exec.json` and `.state.json` are stale plan-family artifacts. Compilation must replace the stable artifact only after validation and archive the mismatched state; Execute must not resume the old state or reset it. Prior host evidence may inform step 1, but the new runner contract requires step 1 to be rerun and explicitly approved. No step may restore an entire file set after a failure because the worktree contains unrelated changes in `scripts/git-ai-commit` and `scripts/test/test_git_ai_commit.py`; change provenance must be checked per path.
+## Exclusions
 
-The previous `.devcontainer/post-create.sh` edit was functionally unnecessary: its current final comment states that `kilo-env.sh` is installed as `/etc/profile.d/kilo-env.sh`, and the profile script is self-contained. Before dispatching step 1, the primary must inspect this file independently. If its worktree diff is exactly the inert prior execution edit, the primary records the pre-change hash and restores only that file from the matching base revision; if the diff contains anything else, execution stops for human review. The primary must not restore the whole `.devcontainer` directory. Step 6 treats the resulting clean hash as the baseline and rejects any later change to this path.
-
-## Decisions and boundaries
-
-- The Mac path is native arm64. It must not silently select `linux/amd64`, `x86_64_v3`, or an emulated Podman machine.
-- Linux reference/build nodes are amd64-only, but this plan no longer performs a remote amd64 image build. Existing GitHub CI remains the amd64 regression path; this plan performs local static assertions for the amd64-compatible branch and records actual amd64 regression as deferred to the eventual PR CI run.
-- `phlex-ci` remains GCC-default. `phlex-dev` and the locally built VS Code base image default to Spack's `clang` and `clang++`, with Clang explicitly directed to the Spack GCC 15 toolchain and libstdc++. The `default` CMake preset is unchanged. GCC-specific coverage remains available through an explicit GCC environment override.
-- Existing GHCR amd64 images and GitHub workflow definitions are not changed, and no arm64 image is pushed to GHCR.
-- Local VS Code selection uses explicit `PHLEX_DEV_BASE_IMAGE` and `PHLEX_DEV_CONTAINER_IMAGE` variables. The Compose default remains the pinned GHCR image for clean machines and Codespaces.
-- Host TCP services are exposed through an explicit allowlist only. `PHLEX_HOST_RELAY_PORTS` uses comma-separated `source=relay` entries, such as `11434=21434,3000=13000`; no arbitrary host-port scan or wildcard relay is allowed. Headroom's existing ports remain default entries managed by their existing variables.
-- Relay validation and Mac Compose acceptance use Podman's `--net=pasta` path with a host listener bound to `127.0.0.1`. Default Podman networking, a host-interface bind, Thunderbolt Bridge, USB-LAN, and a manually assigned Mac address are not equivalent evidence and are out of scope.
-- The selected gateway is the first resolving documented Podman alias, preferring `host.docker.internal` and otherwise using `host.containers.internal`. Record the hostname, not a resolved IP.
-- `PHLEX_HOST_RELAY_BIND_ADDRESS`, firewall mode (b), `pfctl`, and `socketfilterfw` evidence are removed. macOS relays bind to `127.0.0.1`; the pasta path supplies container reachability and no wildcard host exposure is needed. Linux preserves its existing bind behavior.
-- The relay scope is TCP/HTTP services. MCP servers and LSPs that communicate over stdio remain inside the devcontainer or use VS Code's remote extension process; host Unix sockets are outside this plan.
-- Local `act` remains an optional amd64-emulation path. It is not part of native-arm64 acceptance and `.actrc` is not redesigned.
-- No host machine is initialized, changed to rootful mode, or recreated automatically by repository scripts.
-- On macOS, the host-side Podman API socket is not mounted through the macOS home-directory VM share. The Compose devcontainer requires `PHLEX_PODMAN_SOCKET_SOURCE` to be explicitly set to the verified VM-side rootless socket path before VS Code starts; this optional nested-Podman path grants the container control of the user's rootless Podman machine and ordinary development does not invoke it.
-
-## Repository baseline and change ownership
-
-Implementation surfaces are `ci/Dockerfile`, `ci/spack.yaml`, `ci/packages.yaml`, `ci/entrypoint.sh`, `.devcontainer/ensure-repos.sh`, `.devcontainer/kilo-env.sh`, `.devcontainer/Dockerfile`, `.devcontainer/docker-compose.yml`, `.devcontainer/devcontainer.json`, `scripts/build-container-images.sh`, `scripts/README.md`, and `docs/dev/podman-macos.md`.
-
-The following paths are permanently prohibited: `.github/workflows/*`, `.actrc`, `CMakePresets.json`, `scripts/git-ai-commit`, `scripts/test/test_git_ai_commit.py`, `.devcontainer/post-create.sh`, all `.kilo/*`, `kilo.json`, and `AGENTS.md`. The primary records the pre-dispatch status and hashes of the two unrelated script changes and the post-create disposition. After each delegated step, it asserts that only that step's allowed files changed relative to that baseline plus prior successful implementation changes. An out-of-scope path is a blocking failure; do not automatically revert it or clobber a pre-existing change.
-
-## Human-gate evidence and runner contract
-
-Human gates use the execution-plans human-gate runner contract. Execute materializes the named runner script as `/private/tmp/1787581717167-native-arm64-podman-devcontainers-<step-id>.sh`, validates it with the skill-bundled `execution-plans/scripts/validate_runner.py`, sets owner-only permissions, and records its hash, phase receipts, and log hash. The operator runs phases in order as child processes; no multiline shell transcript is pasted into an interactive shell. Every runner has `preflight` first and `verify` last, uses `run_check`, `finish`, `usage`, `set -uo pipefail`, `umask 077`, no `set -e`, and no credentials or model payloads in logs.
-
-Evidence is written outside the repository under `~/.phlex-devcontainer-tmp/plan-evidence/`. Step 1 owns `step-1.md` and `step-1-values.env`; step 7 owns `step-7.md`. Evidence records UTC time, host identity, allowlisted command/output fields, exit status, phase receipts, and the explicit approve or stop decision. Step 7 sources the values file and never re-derives gateway or socket values. Runner `log_policy` is `allowlisted`; credentials, tokens, model payloads, and raw authenticated responses are suppressed.
-
-## Execution limits and safety
-
-- `max_total_dispatches`: 12
-- `max_consecutive_failures`: 3
-- All implementation and local image-tag operations are idempotent. Re-running a builder may replace only the three declared local tags and reuse build layers.
-- No intentionally non-idempotent operation is included. Human startup of a test service occurs only when its reserved port is free; evidence records ownership and the operator stops only processes started for this gate.
-- A failed arm64 package build leaves source repositories intact. Recovery is to inspect the failing Spack package, adjust machine resources or declared inputs, and rerun the bounded build; never fall back to amd64 emulation.
-- A missing or stale API socket or relay is repaired by rerunning the relevant host phase after the Podman machine is running. Do not expose the Podman API over TCP or switch the machine to rootful mode.
+Do not modify `.github/workflows/*`, `.actrc`, `CMakePresets.json`, `scripts/git-ai-commit`, `scripts/test/test_git_ai_commit.py`, `.devcontainer/post-create.sh`, `.kilo/*` except the named legacy archive and run-evidence outputs, `kilo.json`, or `AGENTS.md`. Do not create a rootful machine, expose a TCP Podman API, add a host interface or wildcard relay, push arm64 images, reuse amd64 caches or binaries for arm64, or invoke `genplan`, `plan-compiler`, `/compile-plan`, `.exec.json`, or legacy state as execution input. Actual amd64 image-build evidence is deferred to existing GitHub CI.
 
 ## Steps
 
-### 1. Verify the native rootless Podman host and Compose pasta path
+### archive-legacy. Archive retired plan artifacts and establish provenance
 
-Executor: `human`
+#### Depends on
 
-Depends on: none.
+none
 
-Allowed files: none
+#### Executor
 
-Runner script: `native-arm64-podman-host.sh`; phases: `preflight`, `inspect-host`, `probe-pasta`, `probe-compose-pasta`, `record-values`, `verify`; log policy: `allowlisted`.
+human
 
-Task: Run the named runner phases in order. `preflight` checks the workspace root, Podman, a Compose provider, `socat`, and writable evidence directories. `inspect-host` checks that the Podman machine is running, native arm64/aarch64, rootless, has at least 8 vCPUs, at least 16 GiB of VM memory, at least 100 GiB of free VM disk, and that `podman machine ssh` confirms the rootless VM socket at `/run/user/<uid>/podman/podman.sock`. If the machine is absent or stopped, perform the documented Podman machine initialization or start operation between `inspect-host` and `probe-pasta`, explicitly retaining rootless mode and the resource thresholds, then rerun `inspect-host`. If Compose or `socat` is absent, install it through the host package-management policy between phases, then rerun `preflight`.
+#### Capabilities
 
-`probe-pasta` starts an allowlisted temporary listener on the Mac at `127.0.0.1:<free-port>` and runs the approved native arm64 Alpine probe with Podman's exact `--net=pasta` option. The probe resolves both documented gateway hostnames, connects through the selected hostname, and requires `phlex-probe-ok`. It does not use the pinned amd64 image, a bridge network, a host-interface address, or repository mounts. Select `PHLEX_HOST_GATEWAY` by preferring a resolving `host.docker.internal` and otherwise using `host.containers.internal`. `probe-compose-pasta` uses the selected Compose provider and `PHLEX_DEV_NETWORK_MODE=pasta` to start a minimal temporary service, then repeats the `127.0.0.1` listener probe through that service. It records the provider name and version and fails if Compose does not actually create the pasta network path. `record-values` writes the selected gateway, provider/version, `PHLEX_PODMAN_SOCKET_SOURCE`, `PHLEX_TEST_RELAY_PORTS=25114=25115,25300=25301`, and approved relay mappings to the owned values file. Interactive machine setup or package installation occurs only between named phases and is followed by the specified phase rerun.
+none
 
-Acceptance:
+#### Allowed files
 
-- The machine is running, native arm64/aarch64, rootless, and has a real VM Unix socket.
-- The machine has at least 8 vCPUs, at least 16 GiB of VM memory, and at least 100 GiB of free VM disk.
-- Compose and `socat` are available.
-- The exact `--net=pasta` arm64 probe reaches the `127.0.0.1` listener and prints `phlex-probe-ok`.
-- The selected Compose provider, with `PHLEX_DEV_NETWORK_MODE=pasta`, reaches the same listener from a temporary service.
-- The selected gateway hostname, provider/version, VM socket path, test relay mappings, approved mappings, machine resources, probe image, and probe port are recorded.
-- No rootful service, TCP Podman API, manually assigned interface address, Thunderbolt Bridge, USB-LAN, or amd64/emulated probe is used.
+- .kilo/plans/legacy-archive/
 
-Verification: Run `verify` after the phase sequence. It rechecks every acceptance condition as individually labelled checks, including each numeric resource threshold and Compose-level pasta reachability, verifies the values file contains only required non-secret fields, writes the step receipt, and waits for the operator's explicit approve or stop decision. On failure, stop and rerun step 1 in full after remediation; silence never advances the gate.
+#### Prohibited changes
 
-Gate: human approval after the runner's `verify` phase and evidence review.
+- .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md
+- all repository source, configuration, workflow, preset, and credential paths
 
-Retry policy: `max_attempts: 1`; `strategy: abort`.
+#### Task
 
-Idempotent: true.
+Run the named runner from the workspace root. The pre-finalization legacy Markdown source is preserved byte-for-byte at `.kilo/plans/1787581717167-native-arm64-podman-devcontainers.legacy-source.md`. Copy the retired `.exec.json` and all four `state.stale-*.json` artifacts into `.kilo/plans/legacy-archive/`, retain originals, and write a SHA-256 receipt. This archive is evidence only and must never create or resume direct state.
 
-### 2. Make the Spack image definition architecture-aware and set the developer compiler default
+#### Context
 
-Executor: `coder-qwen`. This is a bounded subagent implementation task; the primary must enforce the allowed-file boundary and the baseline scope assertion.
+The old source is an untyped pre-v4 plan, so `archive_legacy_source.py` is not applicable. The adjacent legacy-source file is the raw archive. Copy-only archival prevents data loss and preserves the old execution evidence for comparison.
 
-Depends on: step 1.
+#### Acceptance criteria
 
-Allowed files: `ci/Dockerfile`, `ci/spack.yaml`, `ci/packages.yaml`, `ci/entrypoint.sh`.
+- The legacy Markdown archive exists unchanged.
+- The compiled artifact and all four stale states are copied under the legacy archive.
+- The receipt lists every copied file and hash, and every copy matches its source.
+- No unrelated path changes.
 
-Task: Generalize the existing image definitions without splitting CI and developer manifests. Add a validated `PHLEX_SPACK_TARGET` build input with `x86_64_v3` for amd64 and `aarch64` for arm64. Propagate it into every current Spack `target=` constraint, including GCC bootstrap, package defaults, CMake, LLVM, and package-specific requirements. Make LLVM's `targets=` backend list architecture-specific and include AArch64 on arm64; do not confuse that list with Spack's microarchitecture requirement. Reject target and host-architecture mismatches before installation. Keep the GCC 15 ABI and Fermilab mirror behavior, and prevent amd64 build caches from satisfying arm64 concretization.
+#### Verification
 
-Make `act` and tracebox downloads architecture-aware. Select a verified arm64 act artifact when available or accept explicit `INSTALL_ACT=false`; apply the same explicit artifact check or opt-out to tracebox. Add `PHLEX_DEFAULT_COMPILER` to `ci/entrypoint.sh`: CI defaults to GCC 15 with `CC=gcc` and `CXX=g++`; the developer stage activates the Spack view and defaults to `CC=clang` and `CXX=clang++`, while retaining the GCC 15 PATH and adding a reproducible `--gcc-toolchain` binding for Clang. Preserve an explicit GCC override and explain why it is needed when Spack activation selects Clang through compiler virtuals. Do not change `CMakePresets.json`.
+- Run `verify`; require exit 0, zero failures, and explicit approval.
+- Compare all five JSON copies with their originals and record runner, receipt, manifest, and hash evidence.
 
-Acceptance: amd64 renders `x86_64_v3` and remains GCC-default; arm64 renders `aarch64` with no x86 microarchitecture requirement; the arm64 LLVM toolchain includes AArch64; the developer image defaults to Clang; the CI image defaults to GCC; a trivial C++23 compile uses Spack GCC 15 libstdc++; and the `default`, `clang-tidy`, `coverage-clang`, and `coverage-gcc` preset files remain unchanged.
+#### Retry
 
-Prohibited changes: Do not modify any prohibited path listed above, stage, commit, push, push images, mutate the Podman machine, or use an amd64 cache or binary in an arm64 image.
+max_attempts: 1
+strategy: abort
 
-Verification: Run shell syntax checks, inspect effective Spack configuration, run a bounded arm64 concretize-only check inside the native arm64 build context before a full build, and assert the rendered amd64 branch statically selects `x86_64_v3` without running an amd64 container. Run the baseline scope assertion and record the changed-path manifest and verification output. The subagent must not edit `.devcontainer/post-create.sh` or any other out-of-scope path.
+#### Idempotency
 
-Gate: automatic.
+true
 
-Retry policy: `max_attempts: 2`; `strategy: resume_then_narrow`.
+#### Gate
 
-Idempotent: true.
+human
 
-### 3. Implement the allowlisted host relay and map contract
+#### Human runner
 
-Executor: `coder-qwen`. This is a narrow bounded subagent task; the primary must enforce the allowed-file boundary and the baseline scope assertion.
+{
+  "script": "archive-native-arm64-legacy.sh",
+  "log_policy": "suppressed",
+  "cwd": "/Users/greenc/work/cet-is/sources/phlex/phlex",
+  "environment": [],
+  "owned_paths": [".kilo/plans/legacy-archive"],
+  "cleanup_paths": [],
+  "phases": [
+    {"id": "preflight", "command": "test -f .kilo/plans/1787581717167-native-arm64-podman-devcontainers.legacy-source.md && test -f .kilo/plans/1787581717167-native-arm64-podman-devcontainers.exec.json && test -f .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T171324Z.json && test -f .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T200753Z.json && test -f .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T210616Z.json && test -f .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T214254Z.json", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and restore missing inputs without changing their bytes.", "abort": "abort"},
+    {"id": "archive-json", "command": "mkdir -p .kilo/plans/legacy-archive && cp -p .kilo/plans/1787581717167-native-arm64-podman-devcontainers.exec.json .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T171324Z.json .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T200753Z.json .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T210616Z.json .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T214254Z.json .kilo/plans/legacy-archive/ && shasum -a 256 .kilo/plans/legacy-archive/*.json > .kilo/plans/legacy-archive/1787581717167-legacy-archive.sha256", "expected_exit": 0, "expected_output": "none", "remediation": "Stop; do not delete or overwrite originals.", "abort": "abort"},
+    {"id": "verify", "command": "test -s .kilo/plans/legacy-archive/1787581717167-legacy-archive.sha256 && cmp .kilo/plans/1787581717167-native-arm64-podman-devcontainers.exec.json .kilo/plans/legacy-archive/1787581717167-native-arm64-podman-devcontainers.exec.json && cmp .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T171324Z.json .kilo/plans/legacy-archive/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T171324Z.json && cmp .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T200753Z.json .kilo/plans/legacy-archive/1787581717167-native-arm64-podman-devcontainers.state.stale-20260824T200753Z.json && cmp .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T210616Z.json .kilo/plans/legacy-archive/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T210616Z.json && cmp .kilo/plans/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T214254Z.json .kilo/plans/legacy-archive/1787581717167-native-arm64-podman-devcontainers.state.stale-20260901T214254Z.json", "expected_exit": 0, "expected_output": "none", "remediation": "Stop at the first mismatch and do not approve.", "abort": "abort"}
+  ]
+}
 
-Depends on: step 1.
+### baseline. Capture worktree provenance and verification baseline
 
-Allowed files: `.devcontainer/ensure-repos.sh`, `.devcontainer/kilo-env.sh`.
+#### Depends on
 
-Task: Preserve Linux behavior, including its existing relay bind behavior, while adding the Darwin `--net=pasta` path. Refactor only the relay and Kilo environment logic: preserve the two Headroom source variables, parse exact `source=relay` entries from `PHLEX_HOST_RELAY_PORTS`, validate non-privileged numeric ports, reject duplicates and source-equals-relay mappings, require listening loopback sources, bind Darwin relays to `127.0.0.1`, and use per-relay process/PID cleanup. Always write empty or populated JSON and environment maps before Compose starts under `~/.phlex-devcontainer-tmp`; expose gateway and map variables; never scan ports or relay wildcard traffic.
+- archive-legacy
 
-Keep Kilo rewriting write-free. Discover `kilo.json` or `kilo.jsonc`, parse the mounted host configuration, rewrite only approved `127.0.0.1`, `localhost`, and `[::1]` URLs in memory using the generated source-to-relay map, and export `KILO_CONFIG_CONTENT`. Never write or back up the host mount and never edit `.devcontainer/post-create.sh`. Generic HTTP MCP, local-model, indexer, and TCP-LSP clients receive the gateway and maps for manual configuration. Stdio MCP, stdio LSP, and host Unix sockets are not tunneled.
+#### Executor
 
-Acceptance: Linux retains its existing relay behavior; Darwin requires no `systemctl`, Linux runtime socket path, root privilege, host-interface bind, or TCP Podman API; only explicitly listed listening source ports are relayed; maps are deterministic and generated even when empty; and Kilo rewriting is in-memory and map-driven.
+execute
 
-Prohibited changes: Do not modify any prohibited path, especially `.devcontainer/post-create.sh`; do not stage, commit, push, mutate the machine, expose TCP Podman, scan ports, relay wildcard traffic, write host Kilo configuration, or rewrite stdio configuration.
+#### Capabilities
 
-Verification: Run `bash -n` on both shell files, exercise valid/duplicate/malformed/unavailable/unlisted relay mappings without external services, run twice to prove cleanup is limited to owned relays, inspect generated empty and populated maps, test JSON and JSONC Kilo discovery, and run the baseline scope assertion. Do not edit `.devcontainer/post-create.sh`.
+none
 
-Gate: automatic.
+#### Allowed files
 
-Retry policy: `max_attempts: 2`; `strategy: resume_then_narrow`.
+- .kilo/plans/evidence/
 
-Idempotent: true.
+#### Prohibited changes
+
+- all repository files except the bound `.kilo/plans/evidence/<run-id>/` directory
+- all paths in Exclusions
+
+#### Task
+
+Capture an invocation-unique baseline before implementation dispatch. Set `PHLEX_RUN_ID` and `PHLEX_EVIDENCE_DIR` to a new run-specific directory under the declared durable evidence root and record both in the direct checkpoint. Record `git status --short`, SHA-256 for every currently modified or implementation-relevant path, exact pre-existing hashes for `scripts/git-ai-commit`, `scripts/test/test_git_ai_commit.py`, `.devcontainer/post-create.sh`, `CMakePresets.json`, all four CI files, both relay/Kilo files, the three Compose files, and `scripts/README.md`. Record `scripts/build-container-images.sh` and `docs/dev/podman-macos.md` as `{path, state: absent}` when absent. Preserve the baseline and partial diffs under that run directory and do not restore or modify any path.
+
+#### Context
+
+The prior execution left partial changes in the relay/Kilo scripts and unrelated changes in the two git-ai-commit paths. Provenance must be established before ownership is assigned. The baseline is external evidence and not a repository change.
+
+#### Acceptance criteria
+
+- A baseline report, run ID, absolute evidence directory, and manifest exist under the durable evidence root; the direct checkpoint binds them before step 1.
+- The report includes all named paths, `.devcontainer/post-create.sh`, `CMakePresets.json`, complete pre-existing status, and `{path, state: absent}` entries for `scripts/build-container-images.sh` and `docs/dev/podman-macos.md` when absent.
+- A second capture proves the worktree was unchanged.
+
+#### Verification
+
+- Recompute status and hashes immediately after capture and require identical results.
+- Record owner-only evidence files and their hashes in the checkpoint.
+
+#### Retry
+
+max_attempts: 1
+strategy: abort
+
+#### Idempotency
+
+true
+
+#### Gate
+
+automatic
+
+### 1. Verify the native rootless Podman host and pasta path
+
+#### Depends on
+
+- baseline
+
+#### Executor
+
+human
+
+#### Capabilities
+
+none
+
+#### Allowed files
+
+- .kilo/plans/evidence/
+
+#### Prohibited changes
+
+- all repository files except the bound `.kilo/plans/evidence/<run-id>/` directory
+- Podman rootful configuration, TCP API configuration, host interfaces, and unrelated processes
+
+#### Task
+
+From the workspace root, confirm Podman, the pinned `podman-compose` provider, `socat`, `shellcheck`, and Darwin `lsof`. Separately label machine state, native arm64/aarch64 architecture, rootless mode, at least 8 vCPUs, 16 GiB memory, 100 GiB free VM disk, and VM-side rootless socket integrity. Only an explicitly recorded absent or stopped machine may be initialized or started; initialization is rootless with 8 CPUs, 16384 MiB memory, and 100 GiB disk. Tool remediation is per-missing-tool and a guarded no-op when already installed. Run the native `docker.io/library/alpine:3.22` probe and an invocation-unique generated Compose probe at `$PHLEX_EVIDENCE_DIR/compose-probe.yml` with `network_mode: pasta`; do not start the repository `.devcontainer/docker-compose.yml` in this gate. Both probes reach owned loopback listeners, prefer resolving `host.docker.internal` over `host.containers.internal`, and print the required token. Tear down only owned probes and write the gateway, provider/version, local Podman-machine socket, resources, and exact fixtures to the run evidence directory.
+
+#### Context
+
+This is a Darwin host gate. No manually assigned address, bridge, amd64 image, emulated probe, or host-interface bind is equivalent evidence. `PHLEX_PODMAN_SOCKET_SOURCE` is the local `ConnectionInfo.PodmanSocket.Path`; `PHLEX_PODMAN_SOCKET_KIND=vm-rootless`. Set `PHLEX_HOST_REMEDIATION_REASON` only to the inspected `absent` or `stopped` result before remediation.
+
+#### Acceptance criteria
+
+- State, architecture, rootless mode, every resource threshold, and socket integrity pass as separately labelled checks.
+- Compose, `socat`, `shellcheck`, and `lsof` are available.
+- Direct and Compose pasta probes reach owned listeners and print `phlex-probe-ok`.
+- The gateway, provider/version, local socket, VM socket result, and `25114=25115,25300=25301` mappings are recorded with no TCP API or non-loopback exposure.
+
+#### Verification
+
+- Run the declared phases in order; remediation runs only for the stated missing-tool or absent/stopped condition.
+- Every command exits 0; `verify` reports zero failures and records explicit `approve` or `stop`.
+
+#### Retry
+
+max_attempts: 1
+strategy: abort
+
+#### Idempotency
+
+true
+
+#### Gate
+
+human
+
+#### Human runner
+
+{
+  "script": "native-arm64-podman-host.sh",
+  "log_policy": "suppressed",
+  "cwd": "/Users/greenc/work/cet-is/sources/phlex/phlex",
+  "environment": ["PHLEX_RUN_ID", "PHLEX_EVIDENCE_DIR", "PHLEX_HOST_REMEDIATION_REASON", "PHLEX_PODMAN_SOCKET_SOURCE", "PHLEX_PODMAN_SOCKET_KIND", "PHLEX_COMPOSE_PROVIDER", "PHLEX_COMPOSE_VERSION", "PHLEX_MACHINE_CPUS", "PHLEX_MACHINE_MEMORY", "PHLEX_MACHINE_DISK", "PHLEX_TEST_RELAY_PORTS", "PHLEX_HOST_RELAY_PORTS"],
+  "owned_paths": [".kilo/plans/evidence"],
+  "cleanup_paths": [],
+  "phases": [
+    {"id": "preflight", "command": "test -n \"$PHLEX_RUN_ID\" && test -n \"$PHLEX_EVIDENCE_DIR\" && test \"$PHLEX_EVIDENCE_DIR\" = \"$PWD/.kilo/plans/evidence/$PHLEX_RUN_ID\" && test \"$(pwd)\" = \"/Users/greenc/work/cet-is/sources/phlex/phlex\" && mkdir -p \"$PHLEX_EVIDENCE_DIR\" && command -v podman && command -v podman-compose && command -v socat && command -v shellcheck && command -v lsof", "expected_exit": 0, "expected_output": "none", "remediation": "Restore the baseline-bound run identity, then install only a named missing tool and rerun preflight.", "abort": "remediate_then_abort"},
+    {"id": "remediate-tools", "command": "if command -v podman-compose >/dev/null; then :; else brew install podman-compose; fi; if command -v socat >/dev/null; then :; else brew install socat; fi; if command -v shellcheck >/dev/null; then :; else brew install shellcheck; fi", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and record the per-tool package failure.", "abort": "abort"},
+    {"id": "inspect-state", "command": "state=$(podman machine inspect --format '{{.State}}' 2>/dev/null || printf absent); printf '%s\\n' \"$state\" > \"$PHLEX_EVIDENCE_DIR/step-1-machine-state\"; test \"$state\" = running -o \"$state\" = stopped -o \"$state\" = absent", "expected_exit": 0, "expected_output": "none", "remediation": "Use the recorded state file for the guarded remediation phase; any other result aborts.", "abort": "remediate_then_abort"},
+    {"id": "remediate-host", "command": "state=$(cat \"$PHLEX_EVIDENCE_DIR/step-1-machine-state\"); if test \"$state\" = running; then :; elif test \"$state\" = stopped; then podman machine start; elif test \"$state\" = absent; then podman machine init --rootful=false --cpus=8 --memory=16384 --disk-size=100 && podman machine start; else false; fi", "expected_exit": 0, "expected_output": "none", "remediation": "Stop unless the recorded state is running, absent, or stopped; never recreate a mismatched machine.", "abort": "abort"},
+    {"id": "inspect-architecture", "command": "podman info --format '{{.Host.Arch}}' | grep -E '^(arm64|aarch64)$'", "expected_exit": 0, "expected_output": "none", "remediation": "Stop on an architecture mismatch; never emulate or recreate.", "abort": "abort"},
+    {"id": "inspect-rootless", "command": "podman info --format '{{.Host.Security.Rootless}}' | grep -Fx true", "expected_exit": 0, "expected_output": "none", "remediation": "Stop on a rootful result; do not change rootfulness.", "abort": "abort"},
+    {"id": "inspect-resources", "command": "set -- $(podman machine inspect --format '{{.Resources.CPUs}} {{.Resources.Memory}}'); test \"$1\" -ge 8 && test \"$2\" -ge 16384 && test \"$(podman machine ssh df -Pk / | awk 'END {print $4}')\" -ge 104857600", "expected_exit": 0, "expected_output": "none", "remediation": "Stop on a CPU, memory, or free-disk mismatch; do not silently resize.", "abort": "abort"},
+    {"id": "inspect-socket", "command": "podman machine ssh test -S /run/user/$(podman machine ssh id -u)/podman/podman.sock", "expected_exit": 0, "expected_output": "none", "remediation": "Stop on socket-integrity failure; do not enter machine creation.", "abort": "abort"},
+    {"id": "derive-gateway", "command": "gateway=$(podman run --rm --network pasta docker.io/library/alpine:3.22 sh -c 'getent hosts host.docker.internal >/dev/null && printf host.docker.internal || printf host.containers.internal'); test -n \"$gateway\" && printf '%s\\n' \"$gateway\" > \"$PHLEX_EVIDENCE_DIR/step-1-gateway\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop if neither documented gateway resolves; do not choose an address.", "abort": "abort"},
+    {"id": "probe-pasta", "command": "gateway=$(cat \"$PHLEX_EVIDENCE_DIR/step-1-gateway\"); socat TCP-LISTEN:25110,reuseaddr,fork SYSTEM:'printf \"phlex-probe-ok\"' >/dev/null 2>&1 & pid=$!; printf '%s\\n' \"$pid\" > \"$PHLEX_EVIDENCE_DIR/step-1-probe-pids\"; ps -p \"$pid\" -o args= | grep -F 'TCP-LISTEN:25110' && podman run --rm --network pasta docker.io/library/alpine:3.22 sh -c \"printf x | nc $gateway 25110 | grep -Fx phlex-probe-ok\"", "expected_exit": 0, "expected_output": "none", "remediation": "Run teardown-probes for owned listener cleanup, then stop and record the exact probe failure.", "abort": "abort"},
+    {"id": "probe-compose-pasta", "command": "gateway=$(cat \"$PHLEX_EVIDENCE_DIR/step-1-gateway\"); printf 'services:\\n  probe:\\n    image: docker.io/library/alpine:3.22\\n    network_mode: pasta\\n    command: [sh, -c, \"printf x | nc %s 25112 | grep -Fx phlex-probe-ok\"]\\n' \"$gateway\" > \"$PHLEX_EVIDENCE_DIR/compose-probe.yml\"; socat TCP-LISTEN:25112,reuseaddr,fork SYSTEM:'printf \"phlex-probe-ok\"' >/dev/null 2>&1 & pid=$!; printf '%s\\n' \"$pid\" >> \"$PHLEX_EVIDENCE_DIR/step-1-probe-pids\"; ps -p \"$pid\" -o args= | grep -F 'TCP-LISTEN:25112' && podman-compose -f \"$PHLEX_EVIDENCE_DIR/compose-probe.yml\" -p phlex-pasta-probe up --abort-on-container-exit --exit-code-from probe", "expected_exit": 0, "expected_output": "none", "remediation": "Run teardown-probes for owned listener cleanup, then stop and record the Compose failure.", "abort": "abort"},
+    {"id": "teardown-probes", "command": "test -s \"$PHLEX_EVIDENCE_DIR/step-1-probe-pids\" && while read -r pid; do ps -p \"$pid\" -o args= | grep -E 'socat.*TCP-LISTEN:(25110|25112)' && kill \"$pid\"; done < \"$PHLEX_EVIDENCE_DIR/step-1-probe-pids\" && podman-compose -f \"$PHLEX_EVIDENCE_DIR/compose-probe.yml\" -p phlex-pasta-probe down && ! lsof -nP -iTCP:25110 -sTCP:LISTEN && ! lsof -nP -iTCP:25112 -sTCP:LISTEN && : > \"$PHLEX_EVIDENCE_DIR/step-1-probe-pids\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop if ownership cannot be proven or either listener remains.", "abort": "abort"},
+    {"id": "record-values", "command": "gateway=$(cat \"$PHLEX_EVIDENCE_DIR/step-1-gateway\"); test -n \"$gateway\" && test -n \"$PHLEX_PODMAN_SOCKET_SOURCE\" && test \"$PHLEX_PODMAN_SOCKET_KIND\" = vm-rootless && test -n \"$PHLEX_COMPOSE_PROVIDER\" && test -n \"$PHLEX_COMPOSE_VERSION\" && test \"$PHLEX_TEST_RELAY_PORTS\" = 25114=25115,25300=25301 && test \"$PHLEX_HOST_RELAY_PORTS\" = 25114=25115,25300=25301 && printf 'PHLEX_HOST_GATEWAY=%s\\nPHLEX_PODMAN_SOCKET_SOURCE=%s\\nPHLEX_PODMAN_SOCKET_KIND=%s\\nPHLEX_COMPOSE_PROVIDER=%s\\nPHLEX_COMPOSE_VERSION=%s\\nPHLEX_MACHINE_CPUS=%s\\nPHLEX_MACHINE_MEMORY=%s\\nPHLEX_MACHINE_DISK=%s\\nPHLEX_TEST_RELAY_PORTS=%s\\nPHLEX_HOST_RELAY_PORTS=%s\\n' \"$gateway\" \"$PHLEX_PODMAN_SOCKET_SOURCE\" \"$PHLEX_PODMAN_SOCKET_KIND\" \"$PHLEX_COMPOSE_PROVIDER\" \"$PHLEX_COMPOSE_VERSION\" \"$PHLEX_MACHINE_CPUS\" \"$PHLEX_MACHINE_MEMORY\" \"$PHLEX_MACHINE_DISK\" \"$PHLEX_TEST_RELAY_PORTS\" \"$PHLEX_HOST_RELAY_PORTS\" > \"$PHLEX_EVIDENCE_DIR/step-1-values.env\" && printf 'state\\narchitecture\\nrootless\\ncpu-memory-disk\\nsocket\\ngateway\\nprobe-pasta-token\\nprobe-compose-token\\ncompose-provider-version\\nrelay-fixtures\\nno-tcp-api\\nno-nonloopback-exposure\\n' > \"$PHLEX_EVIDENCE_DIR/step-1.md\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and record missing gateway, socket, provider, resource, or fixture values.", "abort": "abort"},
+    {"id": "verify", "command": "test -s \"$PHLEX_EVIDENCE_DIR/step-1-values.env\" && test -s \"$PHLEX_EVIDENCE_DIR/step-1.md\" && for label in state architecture rootless cpu-memory-disk socket gateway probe-pasta-token probe-compose-token compose-provider-version relay-fixtures no-tcp-api no-nonloopback-exposure; do grep -Fx \"$label\" \"$PHLEX_EVIDENCE_DIR/step-1.md\"; done && test ! -s \"$PHLEX_EVIDENCE_DIR/step-1-probe-pids\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop without approval and record the failed labelled condition.", "abort": "abort"}
+  ]
+}
+
+### 2. Make Spack images architecture-aware and set compiler defaults
+
+#### Depends on
+
+- baseline
+
+#### Executor
+
+coder-qwen
+
+#### Capabilities
+
+- filesystem
+- shell
+- tool:bash
+
+#### Allowed files
+
+- ci/Dockerfile
+- ci/spack.yaml
+- ci/packages.yaml
+- ci/entrypoint.sh
+
+#### Prohibited changes
+
+- all paths in Exclusions
+- amd64 caches or binaries in arm64 definitions
+- image pushes, machine mutation, and commits
+
+#### Task
+
+Add validated architecture selection: `x86_64_v3` for amd64 and `aarch64` for arm64. Propagate it through every Spack target constraint, GCC bootstrap, package defaults, CMake, LLVM, and package requirements; include AArch64 in arm64 LLVM backends; reject host/target mismatches; prevent cross-architecture cache reuse; preserve GCC 15 ABI and Fermilab mirror. Make act and tracebox architecture-aware or explicit opt-out. Keep CI GCC-default and make developer images default to Spack LLVM/Clang with a reproducible GCC 15 `--gcc-toolchain` binding and explicit GCC override.
+
+#### Context
+
+The generic CMake default preset remains compiler-neutral. The prior execution changed these four files; verify the baseline hashes before editing and preserve unrelated changes. Linux reference nodes are amd64-only, so use static amd64 rendering and native arm64 concretization only.
+
+#### Acceptance criteria
+
+- amd64 renders only `x86_64_v3`; arm64 renders `aarch64` with no x86 microarchitecture requirement.
+- arm64 LLVM includes AArch64 and compiler defaults match the CI/developer split.
+- A trivial C++23 compile resolves Spack GCC 15 libstdc++ under developer Clang.
+- `CMakePresets.json` is byte-identical to the baseline manifest.
+
+#### Verification
+
+- Verify the baseline hashes, then run shell syntax, effective Spack configuration, and bounded native arm64 concretize-only checks.
+- Assert the amd64 branch statically without starting an amd64 container.
+- Record changed paths, output hashes, and scope results.
+
+#### Retry
+
+max_attempts: 2
+strategy: resume_then_narrow
+
+#### Idempotency
+
+true
+
+#### Gate
+
+automatic
+
+### 3a. Implement the allowlisted host relay contract
+
+#### Depends on
+
+- baseline
+
+#### Executor
+
+coder-qwen
+
+#### Capabilities
+
+- filesystem
+- shell
+- tool:bash
+
+#### Allowed files
+
+- .devcontainer/ensure-repos.sh
+
+#### Prohibited changes
+
+- .devcontainer/kilo-env.sh
+- .devcontainer/post-create.sh
+- all paths in Exclusions
+- wildcard listeners, port scans, TCP APIs, and production evidence paths during tests
+
+#### Task
+
+Preserve Linux behavior and its existing Headroom variables and socket source while adding Darwin pasta. Parse the complete numeric `source=relay` allowlist before starting anything; reject malformed, duplicate, privileged, equal, unavailable, and unlisted mappings; write deterministic empty maps on failure; detect exact listeners with Darwin `lsof` or Linux `ss`; start `socat` listener-first; bind Darwin relays to `127.0.0.1`; record only ready relays; and clean only stale processes whose PID-file command identity proves ownership. Add `PHLEX_RELAY_STATE_DIR`, defaulting to `$HOME/.phlex-devcontainer-tmp/relays`, and exact `relay-map.json` and `relay-map.env` outputs. Implement `--start-test-services`, `--self-test`, and `--cleanup-owned` so later gates can start named loopback fixtures, run the same ownership-safe checks, and clean only proven-owned processes. On Darwin, source step-1 values and fail closed before Compose when the recorded local socket or VM rootless check is invalid. Set Linux `PHLEX_PODMAN_SOCKET_KIND=linux-proxy` without changing the Linux path.
+
+#### Context
+
+The prior combined relay/Kilo dispatch was aborted after partial changes. The pre-dispatch hash from `baseline` is mandatory and the prior aborted attempt is charged to this step, leaving one allowed implementation attempt. Successful relays remain alive for the devcontainer; only `--cleanup-owned` or the final human gate may stop proven-owned relays. No process-wide kill pattern is permitted.
+
+#### Acceptance criteria
+
+- Valid mappings produce sorted deterministic maps only for ready explicitly listed services.
+- Every invalid mapping class fails closed with empty maps and no relay process.
+- Darwin uses loopback plus pasta and the recorded rootless socket; Linux behavior remains intact.
+- Stale cleanup is ownership-proven and no unrelated process is stopped.
+
+#### Verification
+
+- Verify the baseline hash, then run `bash -n` and `shellcheck`.
+- Exercise positive, negative, unavailable, duplicate, privileged, equal-port, deterministic-map, owned-PID, socket-guard, named test-service, `--self-test`, and `--cleanup-owned` cases in a unique external directory.
+- Record pre/post hashes, changed paths, and all test output hashes.
+
+#### Retry
+
+max_attempts: 1
+strategy: resume_then_narrow
+
+#### Idempotency
+
+true
+
+#### Gate
+
+automatic
+
+### 3b. Implement write-free Kilo configuration rewriting
+
+#### Depends on
+
+- baseline
+- 3a
+
+#### Executor
+
+coder-qwen
+
+#### Capabilities
+
+- filesystem
+- shell
+- tool:bash
+
+#### Allowed files
+
+- .devcontainer/kilo-env.sh
+
+#### Prohibited changes
+
+- .devcontainer/ensure-repos.sh
+- .devcontainer/post-create.sh
+- all paths in Exclusions
+- host Kilo mounts, credentials, and repository-local relay fixtures
+
+#### Task
+
+Discover `/root/.config/kilo/kilo.json` or `kilo.jsonc` from the read-only mount and read `/run/phlex-host-relays/relay-map.json` or `relay-map.env`. Parse JSONC in memory, removing comments and trailing commas only outside quoted strings and failing closed on malformed input. Rewrite only HTTP(S) URLs with loopback hosts and source ports in the map, preserve schemes and all other values, and export `KILO_CONFIG_CONTENT` without writing or backing up the mounted host configuration. Implement `--self-test` to exercise JSON and JSONC fixtures, loopback-only rewriting, malformed-input failure, and a no-write assertion. Fixtures live only in the unique external test directory.
+
+#### Context
+
+The relay map interface is exact: host `$HOME/.phlex-devcontainer-tmp/relays`, container `/run/phlex-host-relays`, files `relay-map.json` and `relay-map.env`. Stdio MCP, stdio LSP, and host Unix sockets are not tunneled.
+
+#### Acceptance criteria
+
+- JSON and JSONC rewriting is in-memory, scheme-preserving, loopback-only, and map-driven.
+- Non-loopback URLs and unmapped ports remain unchanged.
+- Malformed input fails closed without partial export.
+- No host Kilo file is written or backed up.
+
+#### Verification
+
+- Verify the baseline hash, then run `bash -n` and `shellcheck`.
+- Test discovery, valid rewrites, unchanged values, malformed input, and no-write behavior with external fixtures.
+- Record fixture/output hashes and the allowed-file assertion.
+
+#### Retry
+
+max_attempts: 2
+strategy: resume_then_narrow
+
+#### Idempotency
+
+true
+
+#### Gate
+
+automatic
 
 ### 4. Wire Compose, socket access, and local image selection
 
-Executor: `coder-qwen`. This is a narrow bounded subagent task; the primary must enforce the allowed-file boundary and the baseline scope assertion.
+#### Depends on
 
-Depends on: steps 1 and 3.
+- baseline
+- 1
+- 3a
+- 3b
 
-Allowed files: `.devcontainer/Dockerfile`, `.devcontainer/docker-compose.yml`, `.devcontainer/devcontainer.json`.
+#### Executor
 
-Task: Add the Compose-selectable `PHLEX_DEV_NETWORK_MODE`, with the Mac workflow resolving to `pasta` and the existing provider-compatible default retained elsewhere. Verify that the chosen Compose provider emits the equivalent Podman network mode. Require `PHLEX_PODMAN_SOCKET_SOURCE` on macOS and use the verified VM-side rootless socket; retain the Linux stable proxy path and warn that the optional mount grants rootless-machine control. Do not mount a Mac home-share API socket, derive a Mac socket from `XDG_RUNTIME_DIR`, call `systemctl`, expose TCP Podman, or change machine rootfulness.
+coder-qwen
 
-Change the devcontainer Dockerfile and Compose variables for the pinned GHCR base, local base image, and distinct final image tag. Mount the relay-map directory read-only at `/run/phlex-host-relays`, expose gateway/map variables, and keep credential mounts and the existing rootless volume layout. Do not make `post-create.sh` part of the solution.
+#### Capabilities
 
-Acceptance: the local arm64 variables resolve to `localhost/phlex-dev:arm64-local` and `localhost/phlex-devcontainer:arm64-local` without overwriting GHCR references; the Mac Compose service resolves `pasta`; Linux and clean-machine defaults remain usable; and the VM-side socket is the only Mac nested-Podman source.
+- filesystem
+- shell
+- tool:bash
 
-Prohibited changes: Do not modify any prohibited path, stage, commit, push, mutate the machine, expose TCP Podman, write host Kilo configuration, or change the relay contract implemented in step 3.
+#### Allowed files
 
-Verification: Parse `devcontainer.json` with `python3 -m json.tool`, resolve Compose with local and default variables, inspect the resolved network mode and socket source, validate read-only relay-map mounting, and run the baseline scope assertion. Container-side reachability is deferred to step 7.
+- .devcontainer/Dockerfile
+- .devcontainer/docker-compose.yml
+- .devcontainer/devcontainer.json
 
-Gate: automatic.
+#### Prohibited changes
 
-Retry policy: `max_attempts: 2`; `strategy: resume_then_narrow`.
+- all paths in Exclusions
+- new nested-Podman mechanisms, host-interface mounts, TCP APIs, and host Kilo writes
 
-Idempotent: true.
+#### Task
 
-### 5. Add an architecture-detecting local image builder and Mac instructions
+Add `PHLEX_DEV_NETWORK_MODE` with `pasta` for Mac while retaining clean-machine and Linux defaults. Retain the existing unconditional `${HOME}/.podman-proxy/podman.sock:/tmp/podman.sock` mount and dummy fallback as the sole nested-Podman mechanism; ordinary development does not require it. Change the host Kilo mount to read-only at `/root/.config/kilo`, add host `$HOME/.phlex-devcontainer-tmp/relays:/run/phlex-host-relays:ro`, and expose gateway, map, socket-source, and socket-kind values. Add distinct local arm64 image variables without overwriting GHCR defaults.
 
-Executor: `coder-qwen`. This is a bounded subagent implementation task; the primary must enforce the allowed-file boundary and the baseline scope assertion.
+#### Context
 
-Depends on: step 4.
+The Darwin socket source is the local Podman machine connection socket, not a VM-internal or home-share socket. When the optional existing proxy socket is used, it grants rootless container-runtime control of the VM and is trusted host access; no new bridge is allowed.
 
-Allowed files: `scripts/build-container-images.sh`, `docs/dev/podman-macos.md`, `scripts/README.md`.
+#### Acceptance criteria
 
-Task: Add an executable repeatable builder that queries the Podman backend architecture, maps amd64 to `x86_64_v3` and arm64 to `aarch64`, refuses unsupported or emulated native-arm64 requests, builds `ci` and `dev` from the correct context with Docker format, and tags only `localhost/phlex-ci:<arch>-local`, `localhost/phlex-dev:<arch>-local`, and `localhost/phlex-devcontainer:<arch>-local`. Build the final layer from the local dev base with the explicit architecture and network variables. Select verified arm64 act and tracebox artifacts or pass explicit opt-outs. Separate an optional arm64 Spack cache from any amd64 cache and preserve optional GPG signing without keys in the repository or output. Never push images or mutate the machine.
+- Local selection resolves to `localhost/phlex-dev:arm64-local` and `localhost/phlex-devcontainer:arm64-local`.
+- Defaults remain pinned GHCR references.
+- `pasta`, read-only Kilo, read-only relay-map, exact source directory and filenames, and distinct socket values resolve.
+- Optional nested Podman is explicitly optional and uses only the existing proxy mount.
 
-Document the complete Mac workflow: native rootless machine and numeric resource gate; Compose, `socat`, VM socket, and preferred gateway checks; the exact `--net=pasta` Compose path; the controlled relay test services; `PHLEX_HOST_RELAY_PORTS='11434=21434,3000=13000'` as a user configuration example; `PHLEX_DEV_NETWORK_MODE=pasta`; local image and socket variables; terminal-launched VS Code with `dev.containers.dockerPath=podman`; devcontainer reopen; generated map contract; stdio limitations; first-listener firewall prompt handling without claiming firewall restriction is required; separate cache and compiler-directory guidance; optional amd64-emulation act; and local-only image policy. Link the guide from `scripts/README.md`.
+#### Verification
 
-Acceptance: the builder produces all three local arm64 tags on a native arm64 backend and corresponding amd64 tags on an amd64 backend without workflow changes. The instructions are sufficient without reconstructing omitted values, and all relay state remains under `~/.phlex-devcontainer-tmp`.
+- Verify Compose with `podman-compose -f .devcontainer/docker-compose.yml config` for local and default variables.
+- Parse `devcontainer.json`; assert exact mounts, network, environment, and absence of home-share/XDG socket mounts.
+- Run the scope assertion and record resolved-config hashes.
 
-Prohibited changes: Do not modify any prohibited path, stage, commit, push, mutate the machine, reuse an amd64 cache for arm64, place GPG keys in the repository or output, or generate repository-local relay state.
+#### Retry
 
-Verification: Run shell syntax checks, relay-only dry-run checks, builder architecture and dry-run checks, documentation link checks, and the baseline scope assertion. Do not start a full package build in this step.
+max_attempts: 2
+strategy: resume_then_narrow
 
-Gate: automatic.
+#### Idempotency
 
-Retry policy: `max_attempts: 2`; `strategy: resume_then_narrow`.
+true
 
-Idempotent: true.
+#### Gate
+
+automatic
+
+### 5. Add the architecture-detecting local image builder and Mac guide
+
+#### Depends on
+
+- 4
+
+#### Executor
+
+coder-qwen
+
+#### Capabilities
+
+- filesystem
+- shell
+- tool:bash
+
+#### Allowed files
+
+- scripts/build-container-images.sh
+- scripts/README.md
+- docs/dev/podman-macos.md
+
+#### Prohibited changes
+
+- all paths in Exclusions
+- image pushes, repository-local relay state, shared amd64 caches, and repository/output GPG keys
+
+#### Task
+
+Implement a repeatable builder that detects Podman backend architecture, maps amd64 to `x86_64_v3` and arm64 to `aarch64`, rejects unsupported or emulated native-arm64 requests, builds CI/dev/final layers with Docker format, and tags only `localhost/phlex-ci:<arch>-local`, `localhost/phlex-dev:<arch>-local`, and `localhost/phlex-devcontainer:<arch>-local`. Use separate arm64 cache state, architecture-appropriate act/tracebox artifacts or explicit opt-outs, and optional signing without keys. Document prerequisites, exact pasta and relay contracts, local image selection, read-only mounts, compiler behavior, cleanup ownership, stdio limits, optional act, and local-only image policy; link the guide from `scripts/README.md`.
+
+#### Context
+
+The guide must be executable without reconstructing omitted values and must distinguish ordinary development, optional nested Podman, and GitHub amd64 regression.
+
+#### Acceptance criteria
+
+- Architecture selection, dry-run arguments, and tags are deterministic for both architectures.
+- `scripts/build-container-images.sh` is executable with mode `0755`.
+- The guide contains all required commands, variables, failure boundaries, cleanup, and limitations.
+- No image is pushed and no production relay state is created by tests.
+
+#### Verification
+
+- Run shell syntax, `test -x scripts/build-container-images.sh`, builder dry-run, relay-only dry-run, documentation-link, and scope checks; record the executable mode.
+- Record the required documentation-section checklist and output hashes.
+
+#### Retry
+
+max_attempts: 2
+strategy: resume_then_narrow
+
+#### Idempotency
+
+true
+
+#### Gate
+
+automatic
 
 ### 6. Validate static configuration and implementation scope
 
-Executor: `orchestrator`. This step performs deterministic checks only and does not edit source files.
+#### Depends on
 
-Depends on: steps 2, 3, 4, and 5.
+- baseline
+- 2
+- 3a
+- 3b
+- 4
+- 5
 
-Allowed files: none
+#### Executor
 
-Task: Validate the combined implementation locally without requiring an unidentified remote amd64 node or manual patch transfer. Parse `.devcontainer/devcontainer.json` as JSON, resolve Compose with local and default image variables, verify the Mac `pasta` network selection and socket variable contract, run separate shell syntax checks for every changed shell file, and run builder and relay dry-run checks. Run repository hooks only in a disposable copy or isolated temporary checkout; no fixer may target the workspace. Assert that the original workspace has no hash or path change caused by the hooks.
+execute
 
-Assert that all implementation changes relative to the pre-dispatch baseline are limited to the union of steps 2-5 allowed files. Tolerate only the two explicitly recorded unrelated script changes. Assert that the primary's post-create disposition is clean and that prohibited workflow, preset, `.actrc`, config, and credential paths remain unchanged. Existing GitHub CI is the amd64 regression mechanism; do not create a branch, commit, push, transfer a patch, or build an amd64 image on an unavailable reference node.
+#### Capabilities
 
-Acceptance: static checks pass, the local image tags and Compose base/network arguments resolve deterministically, hook execution leaves the workspace unchanged, scope and prohibited-path assertions pass, and unrelated worktree changes remain untouched.
+none
 
-Verification: Run `python3 -m json.tool .devcontainer/devcontainer.json`, both Compose config resolutions, `bash -n` on `ci/entrypoint.sh`, `.devcontainer/ensure-repos.sh`, `.devcontainer/kilo-env.sh`, and `scripts/build-container-images.sh`, non-mutating hook validation in the disposable copy, relay and builder dry-run checks, and the path/hash manifest assertion. Any hook or check that modifies the workspace fails this step; do not restore an entire directory. Record before/after manifests and hook output without copying temporary evidence into the repository.
+#### Allowed files
 
-Gate: automatic.
+- .kilo/plans/evidence/
 
-Retry policy: `max_attempts: 1`; `strategy: abort`.
+#### Prohibited changes
 
-Idempotent: true.
+- every source path named by implementation steps except the bound `.kilo/plans/evidence/<run-id>/` directory
+- all paths in Exclusions
+- hook mutations, commits, pushes, and patch transfers
 
-### 7. Perform the native arm64 end-to-end acceptance run
+#### Task
 
-Executor: `human`
+Run JSON and both explicit Compose resolutions with the pinned `podman-compose` provider, pasta and socket checks, shell syntax and `shellcheck` for every changed shell file, the full relay matrix, builder dry-run, documentation checklist, and non-mutating hooks in an invocation-unique disposable copy. Set `PHLEX_RELAY_STATE_DIR` to an invocation-unique external test directory, never `$HOME/.phlex-devcontainer-tmp/relays`, and run the complete relay matrix there. Compare the final manifest with `baseline`, tolerate only the two recorded unrelated script changes at their original hashes, and require `.devcontainer/post-create.sh` and `CMakePresets.json` to retain their baseline hashes. Write the exact final `git status --short` to `PHLEX_EVIDENCE_DIR/step-6-final-status` only after all scope checks pass. Preserve pre-existing changes; never restore whole directories.
 
-Depends on: step 6.
+#### Context
 
-Allowed files: none during validation; ignored local image, VM, cache, and build directories may change. Evidence is written only under `~/.phlex-devcontainer-tmp/plan-evidence/`.
+This is the last automatic gate before end-to-end validation. Existing GitHub CI remains the amd64 regression path; no unavailable remote node or emulated build is substituted.
 
-Runner script: `native-arm64-devcontainer.sh`; phases: `preflight`, `verify-recorded-host`, `build-images`, `create-devcontainer`, `verify-runtime`, `verify-relay`, `verify`; log policy: `allowlisted`.
+#### Acceptance criteria
 
-Task: Run the named runner phases in order. `preflight` checks the values file, native Podman tools, builder, Compose provider, VS Code/Dev Containers prerequisites, and writable evidence paths. `verify-recorded-host` sources the step-1 values, checks the machine, VM socket, provider/version, preferred gateway, and `--net=pasta` probe without changing any selected value. If any recorded host value is stale, stop and rerun step 1; do not choose a replacement address or gateway in step 7.
+- All static, dry-run, hook, documentation, scope, and prohibited-path checks pass.
+- Only the allowed implementation union plus unchanged pre-existing paths remains.
+- The relay matrix leaves no production `relay-map.json` or `relay-map.env` and no test relay listener under the default relay state directory.
+- No hook changed the workspace and all evidence artifacts have verified hashes.
 
-`build-images` runs the architecture-detecting builder with a separate arm64 cache and verifies the three local arm64 tags and architecture labels. Between `build-images` and `create-devcontainer`, start only the two named controlled test services if their reserved ports are free: `phlex-relay-test-model` listens on `127.0.0.1:25114` and returns a fixed non-secret HTTP JSON health response, and `phlex-relay-test-mcp` listens on `127.0.0.1:25300` and returns a fixed non-secret HTTP JSON health response. The runner owns their temporary process IDs and refuses to start over an occupied port; it never stops an existing process. The test mappings are `25114=25115,25300=25301`. Actual user services such as a local model on `11434` and HTTP MCP on `3000` are documented examples, not hidden prerequisites.
+#### Verification
 
-Export the recorded values plus `PHLEX_DEV_NETWORK_MODE=pasta`, `PHLEX_DEV_BASE_IMAGE=localhost/phlex-dev:arm64-local`, and `PHLEX_DEV_CONTAINER_IMAGE=localhost/phlex-devcontainer:arm64-local`, set the host VS Code `dev.containers.dockerPath` to `podman`, launch VS Code from that environment, and reopen the folder between named phases. `create-devcontainer` verifies the Compose service and VM-side socket mount. `verify-runtime` checks the compiler environment, native arm64 image, unchanged compiler-neutral default preset, trivial C++23 compile, configure/build, CTest, GCC override configure, and required developer tools. Network-backed AI availability is reported separately from image correctness.
+- Assert the baseline-bound `PHLEX_RUN_ID` and `PHLEX_EVIDENCE_DIR` are unchanged, then recompute before/after status and SHA-256 manifests and fail on any unexpected path or hash.
+- Record the deterministic verification report, artifact manifest, and final-status receipt consumed by step 7.
 
-`verify-relay` verifies the complete `127.0.0.1` to `socat` to the selected gateway path from inside the final pasta container, checks both controlled test services and the generated source-to-relay map, checks Kilo JSON and JSONC in-memory rewriting, makes non-secret health requests, and verifies that an unlisted host port is absent and unreachable. It verifies that stdio MCP and stdio LSP are treated as in-container processes. Optional nested act testing uses only the recorded VM-side Unix socket. Between `verify-relay` and final `verify`, stop only the two test services and relay processes owned by this gate.
+#### Retry
 
-Acceptance: `phlex-ci`, `phlex-dev`, and the final VS Code devcontainer run as native arm64 images; ordinary development uses Spack LLVM/Clang without changing `CMakePresets.json`; the GCC 15 headers, libraries, and runtime are selected; configure, build, CTest, and explicit `coverage-gcc` GCC-override configure succeed; the Podman machine remains rootless; optional API access uses only the verified VM-side Unix socket; no amd64 image is selected; required developer tools are usable; approved host TCP services are reachable only through explicit relay mappings; unlisted ports are not forwarded; and stdio MCP/LSP remain in-container.
+max_attempts: 1
+strategy: abort
 
-Verification: The final `verify` phase reasserts every acceptance condition as individually labelled checks, captures image inspection, machine/socket state, compiler paths, CMake compiler identification, CTest results, relay maps, listener checks, negative unlisted-port checks, cleanup ownership, and final `git status --short`, writes the step receipt, and waits for explicit operator approval. Any failed build, relay, native-architecture, rootless, or socket check stops the gate and records the owning recovery action; approval requires a successful configure, build, and test run.
+#### Idempotency
 
-Gate: human approval after the runner's `verify` phase and evidence review.
+true
 
-Retry policy: `max_attempts: 1`; `strategy: abort`.
+#### Gate
 
-Idempotent: true.
+automatic
 
-## Outcome evidence
+### 7. Perform native arm64 end-to-end acceptance and outcome review
 
-The goal is achieved only when evidence shows a native rootless arm64 Podman machine and exact pasta probes at both `podman run` and Compose levels, architecture-aware Spack concretization and local image construction, explicit local image selection, Spack LLVM/Clang as the developer default with unchanged CMake presets, a successful native arm64 devcontainer configure/build/test run, safe VM-side optional Podman access, unchanged CI/workflow paths, no GHCR push or required act emulation, and an explicit auditable host-service allowlist with negative unlisted-port evidence. Actual amd64 build regression evidence remains residual work for the eventual PR GitHub CI run.
+#### Depends on
 
-## Failure recovery and post-execution review
+- 6
 
-A delegated-step failure is checkpointed with the changed-path manifest, attempt, verification output, and failure reason. Resume only the first incomplete dependency-ready step after narrowing its task. For an out-of-scope change, stop immediately, preserve pre-existing changes, identify the exact new path and hash, and require a targeted correction before resuming. For a human-gate failure, stop with the runner hash, failed phase receipt, log hash, exact operator action, and rerun phase sequence; never infer approval. After execution, classify the goal as `achieved`, `partially_achieved`, `not_achieved`, or `inconclusive`, record evidence and residual work, and recommend one of `none`, `revise_and_reexecute`, `create_supplemental_plan`, or `human_review`.
+#### Executor
 
-## Cost Estimate
+human
 
-This estimate is advisory. No defensible USD pricing input is available in the repository or current execution context, so dollar amounts are intentionally omitted rather than invented. The principal cost drivers are delegated implementation/review dispatches and native arm64 Spack source builds; configured retry limits bound dispatch count, while local build time and host resources are not converted into a fabricated dollar amount. Compilation must emit no `cost_estimate` object rather than inventing schema values.
+#### Capabilities
 
-## Architect review record
+none
 
-The architect review of the prior artifact reported 8 blocking findings and 7 non-blocking findings. The blocking findings were: oversized step-3 delegation; mutating hooks under an orchestrator with no allowed files; no disposition for the stale `post-create.sh` edit; undefined concretize environments and forbidden amd64 emulation; no Compose-level pasta probe; unnamed step-7 test services; contradictory step-1 remediation phases; and missing explicit numeric resource acceptance checks.
+#### Allowed files
 
-This revision resolves those findings by splitting relay/map work from Compose wiring, isolating hooks in a disposable copy, adding a guarded per-file post-create disposition, replacing amd64 concretization with a static branch assertion, adding a Compose pasta probe, naming controlled test services and ports with ownership cleanup, removing the contradictory remediation phase, and promoting all resource thresholds to individually verified acceptance conditions. It also records the non-blocking corrections: qualified skill-bundled runner tooling, exact step-id runner paths, explicit Linux bind preservation, deferred amd64 CI evidence, and no fabricated cost object.
+- .kilo/plans/evidence/
 
-New or changed implementation surfaces introduced by this revision are: `PHLEX_TEST_RELAY_PORTS` and the reserved test mappings `25114=25115,25300=25301`; the Compose-level temporary pasta probe; the disposable hook-validation copy; the primary's per-file post-create hash/disposition check; split allowed-file boundaries for steps 3 and 4; and step-7 runner/evidence paths. The complete touched-path set remains `ci/Dockerfile`, `ci/spack.yaml`, `ci/packages.yaml`, `ci/entrypoint.sh`, `.devcontainer/ensure-repos.sh`, `.devcontainer/kilo-env.sh`, `.devcontainer/Dockerfile`, `.devcontainer/docker-compose.yml`, `.devcontainer/devcontainer.json`, `scripts/build-container-images.sh`, `scripts/README.md`, and `docs/dev/podman-macos.md`. Prohibited paths remain unchanged and no config-protected path is assigned to a subagent.
+#### Prohibited changes
 
-The plan now has a clean source-lint result. This is a Plan self-review after the architect-driven revision; no second broad architect review is dispatched because the revision removes or narrows the reviewed mechanisms rather than introducing a new security boundary. A targeted human-triggered review is required if execution proposes any new host bind, socket source, provider mechanism, non-loopback listener, or protected path.
+- tracked repository files during validation except the bound `.kilo/plans/evidence/<run-id>/` directory
+- unowned processes, host interfaces, rootful configuration, and TCP Podman APIs
+
+#### Task
+
+From the workspace root, source only the immutable step-1 values, export `PHLEX_DEV_NETWORK_MODE=pasta`, local arm64 image tags, and `25114=25115,25300=25301`. Run the typed phases in order: build and inspect all three native arm64 images; create the devcontainer; verify exact read-only mounts, the optional existing nested-Podman mechanism, Clang/GCC environment, unchanged presets, actual C++23 configure/build/CTest, explicit GCC coverage configure, developer tools, named controlled services, owned relays, deterministic maps, JSON/JSONC rewriting, negative unlisted-port behavior, and in-container stdio MCP/LSP boundaries; then launch VS Code. Between `verify-runtime` and `launch-vscode`, record the SHA-256 of `~/Library/Application Support/Code/User/settings.json` or record `state: absent`, add `"dev.containers.dockerPath": "podman"` through the VS Code settings UI or JSONC-safe editor, and record the post-change hash. After `verify-relay`, run `cleanup`; it stops only PID-file and command-identity-proven owned services and relays, tears down the devcontainer, and verifies no owned listener remains. Restore the settings file to its recorded pre-change bytes or absent state after `launch-vscode` and before `record-metrics`, then write the measured metric table to `$PHLEX_EVIDENCE_DIR/metrics.tsv`, deviations to `deviations.md`, missing measurements to `missing-measurements.md`, source/state/catalog bindings to `bindings.md`, evidence-mode and M8 claim limits to `evidence-mode.md` with literal `mode=evidence_only_case_study`, residual work to `residual-work.md`, and risks to `risks.md`; use `unavailable` rather than inventing values. The `record-metrics` phase then writes the M8 report and artifact manifest under the same run directory with exactly one recommendation from `none`, `revise_and_reexecute`, `create_supplemental_plan`, or `human_review`.
+
+#### Context
+
+Recorded host values are immutable inputs. A stale value routes back to step 1; step 7 may not choose a replacement gateway, socket, or address. Network-backed AI availability is reported separately from image correctness. The existing proxy socket grants rootless container-runtime control of the VM and is optional trusted host access; ordinary development acceptance does not require it. This remains an evidence-only M8 case study unless a separately retained matched native conversational Plan-to-implementation baseline is executed.
+
+#### Acceptance criteria
+
+- Images, devcontainer, compiler environment, actual build/tests, relay path, and cleanup pass natively on rootless arm64.
+- No amd64 selection, prohibited path change, wildcard relay, unlisted-port reachability, or undeclared host configuration write occurs; the declared VS Code setting edit is hash-recorded and restored byte-for-byte or to its recorded absent state.
+- Evidence covers every acceptance condition and terminal outcome is one of the four allowed classifications.
+- `metrics.tsv` contains every key in the `metric-schema` Record as a tab-delimited nonempty value, using literal `unavailable` when a measurement cannot be obtained.
+- The M8 report names supported questions and does not claim criteria 14–15 or global criterion 17 without matched comparison and independent alignment review.
+
+#### Verification
+
+- Run `preflight`, recorded-host comparison against the step-1 values, real image build/inspection, devcontainer creation/mount inspection, runtime build/test, relay/Kilo positive and negative checks, `cleanup`, and final `verify` in order.
+- Require exit 0 for every command, zero final failures, explicit approval, complete `{path, sha256}` evidence, and clean prohibited-path assertions.
+- Record task/run identity, conditions, planning/execution times, dispatches, attempts, retries, reviews, human intervention, verification failures, escaped defects, recovery, available cost, cost per verified step and achieved goal, deviations, missing measurements, residual work, and one recommendation.
+
+#### Retry
+
+max_attempts: 1
+strategy: abort
+
+#### Idempotency
+
+false
+
+#### Gate
+
+human
+
+#### Recovery
+
+If the settings file or relay maps differ from their recorded post-change or pre-change hashes, stop and require conflict-specific human review. Invoke `rollback-vscode-settings` only after VS Code is exited; it restores the recorded settings bytes or absent state and refuses an unrecognized current hash. Relay cleanup refuses pre-existing production maps and removes only maps created by this gate.
+
+#### Human runner
+
+{
+  "script": "native-arm64-devcontainer.sh",
+  "log_policy": "suppressed",
+  "cwd": "/Users/greenc/work/cet-is/sources/phlex/phlex",
+  "environment": ["PHLEX_RUN_ID", "PHLEX_EVIDENCE_DIR", "PHLEX_HOST_GATEWAY", "PHLEX_PODMAN_SOCKET_SOURCE", "PHLEX_PODMAN_SOCKET_KIND", "PHLEX_VSCODE_SETTINGS", "PHLEX_VSCODE_EXITED", "PHLEX_DEV_NETWORK_MODE", "PHLEX_DEV_BASE_IMAGE", "PHLEX_DEV_CONTAINER_IMAGE", "PHLEX_TEST_RELAY_PORTS", "PHLEX_HOST_RELAY_PORTS", "PHLEX_OUTCOME", "PHLEX_RECOMMENDATION"],
+  "owned_paths": [".kilo/plans/evidence"],
+  "cleanup_paths": [],
+  "phases": [
+    {"id": "preflight", "command": "test -n \"$PHLEX_RUN_ID\" && test -n \"$PHLEX_EVIDENCE_DIR\" && test \"$PHLEX_EVIDENCE_DIR\" = \"$PWD/.kilo/plans/evidence/$PHLEX_RUN_ID\" && test -s \"$PHLEX_EVIDENCE_DIR/step-1-values.env\" && test ! -e \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.json\" && test ! -e \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.env\" && printf 'state: absent\\n' > \"$PHLEX_EVIDENCE_DIR/step-7-relay-map-pre\" && command -v podman && command -v podman-compose && command -v devcontainer && command -v jq && command -v code && test -x scripts/build-container-images.sh", "expected_exit": 0, "expected_output": "none", "remediation": "Stop if a pre-existing relay map exists; do not overwrite an active session's state.", "abort": "abort"},
+    {"id": "verify-recorded-host", "command": "set -a && . \"$PHLEX_EVIDENCE_DIR/step-1-values.env\" && set +a && podman info --format '{{.Host.Arch}} {{.Host.Security.Rootless}}' | grep -E '^(arm64|aarch64) true$' && live_socket=$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}') && test \"$live_socket\" = \"$PHLEX_PODMAN_SOCKET_SOURCE\" && live_gateway=$(podman run --rm --network pasta docker.io/library/alpine:3.22 sh -c 'getent hosts host.docker.internal >/dev/null && printf host.docker.internal || printf host.containers.internal') && test \"$live_gateway\" = \"$PHLEX_HOST_GATEWAY\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and rerun step 1; compare live socket and gateway values rather than selecting replacements.", "abort": "abort"},
+    {"id": "build-images", "command": "scripts/build-container-images.sh && test \"$(podman image inspect --format '{{.Architecture}}' localhost/phlex-ci:arm64-local)\" = arm64 && test \"$(podman image inspect --format '{{.Architecture}}' localhost/phlex-dev:arm64-local)\" = arm64 && test \"$(podman image inspect --format '{{.Architecture}}' localhost/phlex-devcontainer:arm64-local)\" = arm64 && printf 'images-arm64-local\\n' > \"$PHLEX_EVIDENCE_DIR/step-7-receipts\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and record architecture, cache, tag, or package failure; never use amd64 fallback.", "abort": "abort"},
+    {"id": "create-devcontainer", "command": "devcontainer up --workspace-folder \"$PWD\" --config .devcontainer/devcontainer.json > \"$PHLEX_EVIDENCE_DIR/container-result.json\" && jq -r '.containerId' \"$PHLEX_EVIDENCE_DIR/container-result.json\" > \"$PHLEX_EVIDENCE_DIR/container-id\" && test -s \"$PHLEX_EVIDENCE_DIR/container-id\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and record the Dev Containers, Compose, or mount failure.", "abort": "abort"},
+    {"id": "verify-runtime", "command": "container=$(cat \"$PHLEX_EVIDENCE_DIR/container-id\"); test \"$(podman inspect \"$container\" --format '{{range .Mounts}}{{if eq .Destination \"/root/.config/kilo\"}}{{.RW}}{{end}}{{end}}')\" = false && test \"$(podman inspect \"$container\" --format '{{range .Mounts}}{{if eq .Destination \"/run/phlex-host-relays\"}}{{.RW}}{{end}}{{end}}')\" = false && podman exec \"$container\" sh -lc 'test \"$CC\" = clang && test \"$CXX\" = clang++ && printf \"\" | c++ -x c++ -std=c++23 -fsyntax-only - && cmake --preset default -B build && cmake --build build && ctest --test-dir build --output-on-failure && cmake --preset coverage-gcc -B build-coverage-gcc' && printf 'mounts-rw-false\\ncompiler-clang\\ncxx23\\nconfigure-build-ctest\\ncoverage-gcc\\n' >> \"$PHLEX_EVIDENCE_DIR/step-7-receipts\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and record mount, compiler, configure, build, test, or preset failure.", "abort": "abort"},
+    {"id": "record-vscode-settings", "command": "settings=\"${PHLEX_VSCODE_SETTINGS:-$HOME/Library/Application Support/Code/User/settings.json}\"; test ! -e \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\" && test ! -e \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.bytes\" && if test -f \"$settings\"; then shasum -a 256 \"$settings\" > \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\" && cp -p \"$settings\" \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.bytes\"; else printf 'state: absent\\n' > \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\"; fi", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and refuse a rerun that would overwrite the pre-change settings evidence.", "abort": "abort"},
+    {"id": "verify-vscode-setting", "command": "settings=\"${PHLEX_VSCODE_SETTINGS:-$HOME/Library/Application Support/Code/User/settings.json}\"; test -f \"$settings\" && grep -E 'dev\\.containers\\.dockerPath.*podman' \"$settings\" && if grep -Fx 'state: absent' \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\"; then :; else test \"$(shasum -a 256 \"$settings\" | cut -d' ' -f1)\" != \"$(cut -d' ' -f1 \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\")\"; fi && shasum -a 256 \"$settings\" > \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-post.sha256\"", "expected_exit": 0, "expected_output": "none", "remediation": "Apply the declared setting interactively and record a changed post-edit hash before launching VS Code.", "abort": "abort"},
+    {"id": "launch-vscode", "command": "code --reuse-window .", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and record the VS Code Dev Containers launch failure.", "abort": "abort"},
+    {"id": "rollback-vscode-settings", "command": "settings=\"${PHLEX_VSCODE_SETTINGS:-$HOME/Library/Application Support/Code/User/settings.json}\"; test \"$PHLEX_VSCODE_EXITED\" = true && if test -f \"$settings\"; then test \"$(shasum -a 256 \"$settings\" | cut -d' ' -f1)\" = \"$(cut -d' ' -f1 \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-post.sha256\")\"; fi && if grep -Fx 'state: absent' \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\"; then rm -f \"$settings\"; else cp -p \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.bytes\" \"$settings\"; fi", "expected_exit": 0, "expected_output": "none", "remediation": "Exit VS Code and refuse restoration when the current hash is not the recorded post-edit hash.", "abort": "abort"},
+    {"id": "start-services", "command": "PHLEX_TEST_RELAY_PORTS=25114=25115,25300=25301 PHLEX_HOST_RELAY_PORTS=25114=25115,25300=25301 PHLEX_RELAY_STATE_DIR=\"$HOME/.phlex-devcontainer-tmp/relays\" .devcontainer/ensure-repos.sh --start-test-services > \"$PHLEX_EVIDENCE_DIR/step-7-owned-services\" && test -s \"$PHLEX_EVIDENCE_DIR/step-7-owned-services\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop if either named service or its command-identity proof is missing.", "abort": "abort"},
+    {"id": "verify-relay", "command": "PHLEX_TEST_RELAY_PORTS=25114=25115,25300=25301 PHLEX_HOST_RELAY_PORTS=25114=25115,25300=25301 PHLEX_RELAY_STATE_DIR=\"$HOME/.phlex-devcontainer-tmp/relays\" .devcontainer/ensure-repos.sh --self-test && .devcontainer/kilo-env.sh --self-test && test -s \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.json\" && test -s \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.env\" && printf 'relay-map-deterministic\\nkilo-json-jsonc\\nunlisted-port-refused\\nstdio-boundary\\n' >> \"$PHLEX_EVIDENCE_DIR/step-7-receipts\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and record relay, map, Kilo, negative-port, or process-boundary failure.", "abort": "abort"},
+    {"id": "cleanup", "command": "PHLEX_RELAY_STATE_DIR=\"$HOME/.phlex-devcontainer-tmp/relays\" .devcontainer/ensure-repos.sh --cleanup-owned && test -s \"$PHLEX_EVIDENCE_DIR/step-7-owned-services\" && while IFS='|' read -r pid service args; do test -n \"$pid\" && test -n \"$service\" && test -n \"$args\" && { if ps -p \"$pid\" -o args= >/dev/null 2>&1; then ps -p \"$pid\" -o args= | grep -F \"$args\" && kill \"$pid\"; fi; }; done < \"$PHLEX_EVIDENCE_DIR/step-7-owned-services\" && devcontainer down --workspace-folder \"$PWD\" && test -z \"$(podman ps -aq --filter label=devcontainer.local_folder=\"$PWD\")\" && ! lsof -nP -iTCP:25114 -sTCP:LISTEN && ! lsof -nP -iTCP:25300 -sTCP:LISTEN && rm -f \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.json\" \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.env\" && test ! -e \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.json\" && test ! -e \"$HOME/.phlex-devcontainer-tmp/relays/relay-map.env\" && printf 'cleanup\\n' >> \"$PHLEX_EVIDENCE_DIR/step-7-receipts\" && : > \"$PHLEX_EVIDENCE_DIR/step-7-owned-services\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop if any PID, service, or command identity is malformed or not owned; an already-exited owned PID is a pass, but unowned processes are never killed.", "abort": "abort"},
+    {"id": "record-metrics", "command": "test -s \"$PHLEX_EVIDENCE_DIR/step-1-values.env\" && test -s \"$PHLEX_EVIDENCE_DIR/step-6-final-status\" && test -s \"$PHLEX_EVIDENCE_DIR/metrics.tsv\" && test -s \"$PHLEX_EVIDENCE_DIR/deviations.md\" && test -s \"$PHLEX_EVIDENCE_DIR/missing-measurements.md\" && test -s \"$PHLEX_EVIDENCE_DIR/bindings.md\" && test -s \"$PHLEX_EVIDENCE_DIR/evidence-mode.md\" && test -s \"$PHLEX_EVIDENCE_DIR/residual-work.md\" && test -s \"$PHLEX_EVIDENCE_DIR/risks.md\" && for key in task_identity run_identity environment_model_conditions planning_elapsed execution_elapsed planning_questions dispatches substantive_attempts retries revisions review_passes human_intervention verification_failures escaped_defects recovery_time available_cost cost_per_verified_step cost_per_achieved_goal deviations missing_measurements terminal_outcome; do awk -F '\\t' -v key=\"$key\" '$1 == key && $2 != \"\" {found=1} END {exit !found}' \"$PHLEX_EVIDENCE_DIR/metrics.tsv\"; done && test \"$PHLEX_OUTCOME\" = achieved -o \"$PHLEX_OUTCOME\" = partially_achieved -o \"$PHLEX_OUTCOME\" = not_achieved -o \"$PHLEX_OUTCOME\" = inconclusive && test \"$PHLEX_RECOMMENDATION\" = none -o \"$PHLEX_RECOMMENDATION\" = revise_and_reexecute -o \"$PHLEX_RECOMMENDATION\" = create_supplemental_plan -o \"$PHLEX_RECOMMENDATION\" = human_review && { cat \"$PHLEX_EVIDENCE_DIR/evidence-mode.md\"; printf 'task/run identity\\nconditions\\n'; cat \"$PHLEX_EVIDENCE_DIR/metrics.tsv\"; printf 'deviations\\n'; cat \"$PHLEX_EVIDENCE_DIR/deviations.md\"; printf 'missing measurements\\n'; cat \"$PHLEX_EVIDENCE_DIR/missing-measurements.md\"; printf 'residual work\\n'; cat \"$PHLEX_EVIDENCE_DIR/residual-work.md\"; printf 'risks\\n'; cat \"$PHLEX_EVIDENCE_DIR/risks.md\"; printf 'bindings\\n'; cat \"$PHLEX_EVIDENCE_DIR/bindings.md\"; printf 'outcome=%s\\nrecommendation=%s\\n' \"$PHLEX_OUTCOME\" \"$PHLEX_RECOMMENDATION\"; } > \"$PHLEX_EVIDENCE_DIR/1787581717167-m8-case-study.md\" && find \"$PHLEX_EVIDENCE_DIR\" -type f ! -name artifact-manifest.sha256 -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256 > \"$PHLEX_EVIDENCE_DIR/artifact-manifest.sha256\" && printf 'metrics-recorded\\n' >> \"$PHLEX_EVIDENCE_DIR/step-7-receipts\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop and complete every metric key, evidence mode, deviations, bindings, residual work, risks, and terminal review before verification.", "abort": "abort"},
+    {"id": "verify", "command": "settings=\"${PHLEX_VSCODE_SETTINGS:-$HOME/Library/Application Support/Code/User/settings.json}\"; test -s \"$PHLEX_EVIDENCE_DIR/step-1-values.env\" && test -s \"$PHLEX_EVIDENCE_DIR/step-6-final-status\" && test \"$(git status --short)\" = \"$(cat \"$PHLEX_EVIDENCE_DIR/step-6-final-status\")\" && test ! -s \"$PHLEX_EVIDENCE_DIR/step-7-owned-services\" && for label in images-arm64-local mounts-rw-false compiler-clang cxx23 configure-build-ctest coverage-gcc relay-map-deterministic kilo-json-jsonc unlisted-port-refused stdio-boundary cleanup metrics-recorded; do grep -Fx \"$label\" \"$PHLEX_EVIDENCE_DIR/step-7-receipts\"; done && for key in task_identity run_identity environment_model_conditions planning_elapsed execution_elapsed planning_questions dispatches substantive_attempts retries revisions review_passes human_intervention verification_failures escaped_defects recovery_time available_cost cost_per_verified_step cost_per_achieved_goal deviations missing_measurements terminal_outcome; do awk -F '\\t' -v key=\"$key\" '$1 == key && $2 != \"\" {found=1} END {exit !found}' \"$PHLEX_EVIDENCE_DIR/metrics.tsv\"; done && if grep -Fx 'state: absent' \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\"; then test ! -e \"$settings\"; else test \"$(shasum -a 256 \"$settings\" | cut -d' ' -f1)\" = \"$(cut -d' ' -f1 \"$PHLEX_EVIDENCE_DIR/step-7-vscode-settings-pre.sha256\")\"; fi && test -s \"$PHLEX_EVIDENCE_DIR/1787581717167-m8-case-study.md\" && test -s \"$PHLEX_EVIDENCE_DIR/artifact-manifest.sha256\" && grep -Fx 'mode=evidence_only_case_study' \"$PHLEX_EVIDENCE_DIR/evidence-mode.md\" && grep -E '^(outcome|recommendation)=' \"$PHLEX_EVIDENCE_DIR/1787581717167-m8-case-study.md\"", "expected_exit": 0, "expected_output": "none", "remediation": "Stop without approval and record the missing receipt, metric key, manifest, baseline match, restored settings, or prohibited-path result.", "abort": "abort"}
+  ]
+}
+
+## Records
+
+### legacy-artifacts. Legacy artifact inventory and archive boundary
+
+#### Kind
+
+archive_boundary
+
+#### Applies to
+
+- archive-legacy
+
+#### Content
+
+The exact pre-v4 Markdown source is archived at `.kilo/plans/1787581717167-native-arm64-podman-devcontainers.legacy-source.md`. The retired JSON artifacts are the `.exec.json` and four `state.stale-*.json` files; they are copied, not deleted, into `.kilo/plans/legacy-archive/` with a SHA-256 receipt. They are non-dispatchable evidence. No `.exec.json` or legacy state is parsed, compiled, migrated, resumed, or reset.
+
+### recovery-provenance. Prior partial execution and safe recovery
+
+#### Kind
+
+recovery_posture
+
+#### Applies to
+
+- baseline
+- 2
+- 3a
+- 3b
+- 6
+
+#### Content
+
+The prior execution approved the host gate, completed the four CI files, and aborted the combined relay/Kilo dispatch after partial changes in `.devcontainer/ensure-repos.sh` and `.devcontainer/kilo-env.sh`. Baseline captures those hashes and unrelated changes in `scripts/git-ai-commit` and `scripts/test/test_git_ai_commit.py`; no whole-directory restore is permitted. The aborted combined dispatch consumed the one remaining attempt charged to step 3a, so this source sets step 3a `max_attempts: 1`; step 3b retains its full budget. An out-of-scope path is a blocking failure. Invalid old artifacts are archived, not reset.
+
+### design-boundaries. Architecture, security, and compatibility decisions
+
+#### Kind
+
+decision_boundary
+
+#### Applies to
+
+- 1
+- 2
+- 3a
+- 3b
+- 4
+- 5
+- 6
+- 7
+
+#### Content
+
+Darwin uses native arm64, rootless Podman, exact pasta, loopback listeners, the documented Podman gateway, and the machine's local connection socket. Relay state is `$HOME/.phlex-devcontainer-tmp/relays/relay-map.json` and `relay-map.env`, mounted read-only at `/run/phlex-host-relays` with those exact filenames. Linux preserves existing relay/proxy behavior. The optional existing `${HOME}/.podman-proxy/podman.sock:/tmp/podman.sock` mount is trusted host access that grants rootless container-runtime control of the VM; ordinary development does not require it and no new bridge or TCP API is allowed. Relays are explicit numeric maps, deterministic, ownership-cleaned, and never wildcard. Kilo is mounted read-only and rewritten in memory; stdio MCP/LSP and host Unix sockets are not tunneled. CMake presets, workflows, `.actrc`, rootfulness, and host interfaces remain outside scope.
+
+### test-fixtures. Deterministic probe and relay fixtures
+
+#### Kind
+
+test_fixture
+
+#### Applies to
+
+- 1
+- 3a
+- 7
+
+#### Content
+
+The direct probe reserves `127.0.0.1:25110`, the Compose probe reserves `127.0.0.1:25112`, and the required token is `phlex-probe-ok`. Step 7 starts only gate-owned `phlex-relay-test-model` at `127.0.0.1:25114` and `phlex-relay-test-mcp` at `127.0.0.1:25300`; both return fixed non-secret health responses. `--start-test-services` writes one line per service as `<pid>|<service-name>|<exact-command-identity>`, with all three fields nonempty and the identity matching `ps -o args=` for that PID. `--cleanup-owned` cleans relay PIDs only and leaves these two service PIDs for the runner cleanup phase. Exact mappings are `25114=25115,25300=25301` and are written to both relay environment variables. The runner performs the explicit interactive VS Code settings action described by step 7, launches `code --reuse-window .`, records service/relay PIDs and ownership proofs, and records final `git status --short`.
+
+### m8-evidence. M8 evidence mode and recording protocol
+
+#### Kind
+
+m8_evidence_protocol
+
+#### Applies to
+
+- archive-legacy
+- baseline
+- 1
+- 2
+- 3a
+- 3b
+- 4
+- 5
+- 6
+- 7
+
+#### Content
+
+This is an evidence-only representative-task case study, not a superiority claim or completed matched benchmark. The durable evidence root is `.kilo/plans/evidence/<run-id>/`; retain it through independent M8 review and do not delete it as ordinary temporary state. Preserve source bytes and hash, canonical digest, direct-state and worker-catalog bindings, runner hashes, receipts, output manifests, sanitized logs, task/run identity, conditions, timing, available cost, cost per verified step and achieved goal, dispatches, attempts, retries, revisions, reviews, human intervention, failures, escaped defects, recovery, deviations, missing measurements, and terminal outcome together. Criteria 1–13 and 16 may be supported; criteria 14–15 require a future equivalent native conversational Plan-to-implementation comparison; global criterion 17 requires independent alignment review. Missing matched evidence is `inconclusive`.
+
+### metric-schema. Required M8 metric keys
+
+#### Kind
+
+metric_schema
+
+#### Applies to
+
+- 7
+
+#### Content
+
+The first column of `metrics.tsv` must contain each key exactly once, followed by a tab and a nonempty value. Permitted values include the literal `unavailable` when measurement is not possible. Required keys are `task_identity`, `run_identity`, `environment_model_conditions`, `planning_elapsed`, `execution_elapsed`, `planning_questions`, `dispatches`, `substantive_attempts`, `retries`, `revisions`, `review_passes`, `human_intervention`, `verification_failures`, `escaped_defects`, `recovery_time`, `available_cost`, `cost_per_verified_step`, `cost_per_achieved_goal`, `deviations`, `missing_measurements`, and `terminal_outcome`.
+
+### evidence-storage. Run-unique external evidence retention
+
+#### Kind
+
+evidence_storage
+
+#### Applies to
+
+- baseline
+- 1
+- 6
+- 7
+
+#### Content
+
+The `baseline` step owns creation of `PHLEX_RUN_ID` and `PHLEX_EVIDENCE_DIR` as `.kilo/plans/evidence/<run-id>/` using an invocation-unique run ID and records both in direct state before step 1. Later steps must consume that exact binding and fail if their environment differs. The directory is retained through independent M8 review. Every step receipt, values file, manifest, report, and evidence artifact is written inside that run directory and recorded in direct state as `{path, sha256}`. Fixed step-1/step-7 filenames are permitted only inside this unique run directory.
+
+### validation-binding. Deterministic validation and execution handoff
+
+#### Kind
+
+validation_protocol
+
+#### Applies to
+
+- archive-legacy
+- baseline
+- 6
+- 7
+
+#### Content
+
+Before execution and every resume, run `python3 ~/.config/kilo/skill/execution-plans/scripts/direct_state.py preflight` with the current worker catalog and config. After every dispatch, gate, result, failure, or review, checkpoint through `direct_state.py checkpoint` with a unique candidate. The raw SHA-256 binds exact approved UTF-8 bytes; the canonical normalized digest binds ordered parsed semantics excluding source-line metadata and presentation-only placement. Keep them separate. Never create a compiled JSON twin; any source, parser, catalog, workspace, or normalized-plan change requires a new approved source.
+
+## Review checkpoints
+
+### implementation-alignment. Independent implementation alignment review
+
+#### After steps
+
+- 2
+- 3a
+- 3b
+- 4
+- 5
+
+#### Gates steps
+
+- 6
+- 7
+
+#### Reviewer
+
+implementation-reviewer
+
+#### Trigger
+
+After implementation steps pass and before static validation or the end-to-end human gate, dispatch the catalog-authorized read-only reviewer. Preserve every finding and hash. A blocking finding gates only steps 6 and 7 and is resolved only by approved repair with fresh verification or a new approved source; findings are never downgraded or deleted.
+
+## Outcome criteria
+
+- The legacy source and retired JSON artifacts are preserved with verified hashes, and direct execution uses only this v4 source and source-suffixed state.
+- Native rootless arm64 Podman, exact pasta probes, architecture-aware images, local selection, Clang defaults, unchanged presets, and native build/test are evidenced.
+- Relay allowlisting, deterministic maps, ownership-safe cleanup, read-only mounts, write-free Kilo rewriting, negative unlisted-port checks, and stdio boundaries are evidenced.
+- The final report has receipt-grade hashes, complete metrics, deviations, missing measurements, terminal outcome, residual work, risks, and exactly one closed-set recommendation.
+- The report is labelled an evidence-only M8 case study unless a retained matched baseline and independent alignment review justify a comparative benchmark claim.

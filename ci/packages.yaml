@@ -6,18 +6,20 @@
 # needing to repeat them in every spack.yaml.
 #
 # Design notes:
-#   - All packages default to target x86_64_v3 and compiler gcc@13.
-#     This covers root's own dependencies (e.g. zlib, python, xrootd)
+#   - All packages default to target derived from PHLEX_SPACK_TARGET (amd64->x86_64_v3, arm64->aarch64)
+#     and compiler gcc@13. This covers root's own dependencies (e.g. zlib, python, xrootd)
 #     which do not need to share the gcc@15 ABI of root itself.
 #   - root and its dependents (phlex) require gcc@15; those overrides
 #     live in each environment's spack.yaml, not here.
 #   - System zlib is declared external so Spack does not build its own
 #     zlib / zlib-ng, eliminating duplicate virtual-provider builds.
+#   - PHLEX_SPACK_TARGET must be set at build time to either "amd64" or "arm64"
+#     to select the appropriate microarchitecture.
 
 packages:
   all:
     require:
-      - target=x86_64_v3
+      - target=${PHLEX_SPACK_TARGET:-x86_64_v3}
     providers:
       "zlib-api:": [zlib]
 
