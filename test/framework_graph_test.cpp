@@ -25,9 +25,6 @@ namespace {
     {
       return {};
     }
-    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    index_generator indices() override { co_return; }
   };
 
   struct other_source final : phlex::source {
@@ -35,9 +32,6 @@ namespace {
     {
       return {};
     }
-    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    index_generator indices() override { co_return; }
   };
 
   struct test_driver_builder {

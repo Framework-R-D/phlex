@@ -67,9 +67,6 @@ namespace {
       }
       return bundles;
     }
-    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    index_generator indices() override { co_return; }
   };
 
   unsigned pass_on(toy::vertex_collection const& vertices) { return vertices.data; }
