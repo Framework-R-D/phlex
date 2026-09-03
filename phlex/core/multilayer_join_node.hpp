@@ -135,7 +135,7 @@ namespace phlex::detail {
     // Stateless placeholder used instead of multilayer_join_node when a node has only a
     // single input (no joining is required).
     struct no_join {
-      named_index_ports index_ports() const { return {}; }
+      static named_index_ports index_ports() { return {}; }
     };
 
     // Maps the number of inputs to the appropriate join type: a real multilayer_join_node

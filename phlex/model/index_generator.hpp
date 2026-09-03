@@ -145,7 +145,7 @@ namespace phlex {
       return iterator{coroutine_};
     }
 
-    std::default_sentinel_t end() const noexcept { return {}; }
+    static std::default_sentinel_t end() noexcept { return {}; }
 
   private:
     handle_type coroutine_;

@@ -41,9 +41,9 @@ namespace {
   };
 
   struct test_driver_builder {
-    [[nodiscard]] fixed_hierarchy hierarchy() const { return {}; }
+    static fixed_hierarchy hierarchy() { return {}; }
 
-    [[nodiscard]] std::function<void(data_cell_yielder const)> driver_function() const
+    static std::function<void(data_cell_yielder const)> driver_function()
     {
       return [](data_cell_yielder const /*yielder*/) {};
     }

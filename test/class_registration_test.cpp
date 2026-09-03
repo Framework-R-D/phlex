@@ -14,12 +14,15 @@ using namespace phlex;
 
 namespace {
   struct test_struct {
-    auto no_framework(int num, double temp, std::string const& name) const
+    // Explicitly test registration of static member function.
+    static auto no_framework(int num, double temp, std::string const& name)
     {
       return std::make_tuple(num, temp, name);
     }
 
-    auto no_framework_all_refs(int const& num, double const& temp, std::string const& name) const
+    // NOLINTBEGIN(readability-convert-member-functions-to-static)
+    // This is a test struct, so it is not important that these functions are non-static.
+    auto no_framework_all_refs(int const& num, double const& temp, std::string const& name)
     {
       return std::make_tuple(num, temp, name);
     }
@@ -40,6 +43,7 @@ namespace {
     {
       return std::make_tuple(*num, *temp, *name);
     }
+    // NOLINTEND(readability-convert-member-functions-to-static)
   };
 
   void verify_results(int number, double temperature, std::string const& name)
@@ -100,13 +104,14 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   auto g = phlex::detail::framework_graph::with_default_driver();
   register_input_providers(g);
 
-  auto glueball = g.make<test_struct>();
-  SECTION("No framework")
+  SECTION("No framework, static member function")
   {
-    glueball.transform("no_framework", &test_struct::no_framework, concurrency::unlimited)
+    g.transform("no_framework", &test_struct::no_framework, concurrency::unlimited)
       .input_family(products)
       .output_product_suffixes(transformed_product_suffixes());
   }
+
+  auto glueball = g.make<test_struct>();
   SECTION("No framework, all references")
   {
     glueball
