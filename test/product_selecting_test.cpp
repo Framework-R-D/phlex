@@ -92,6 +92,16 @@ TEST_CASE("Querying products in different ways", "[graph]")
     .input_family(product_selector{.creator = "input", .suffix = "temperature"})
     .output_product_suffixes("temperature");
 
+  SECTION("All fields")
+  {
+    g.transform("all_fields", [](int const& i) { return i + 1; })
+      .input_family(product_selector{
+        .creator = "input", .layer = "event", .suffix = "evt_number", .stage = "CURRENT"_id})
+      .output_product_suffixes("event_number");
+    g.execute();
+    CHECK(g.execution_count("all_fields") == num_events);
+  }
+
   SECTION("Creator and suffix without layer")
   {
     g.transform("creator_and_suffix_without_layer", [](int const& i) { return i + 1; })
