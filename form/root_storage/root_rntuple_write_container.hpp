@@ -43,26 +43,38 @@ namespace form::detail::experimental {
   using RRawPtrWriteEntry = ROOT::Experimental::Detail::RRawPtrWriteEntry;
 #endif
 
-  struct root_rntuple_write_container_imp : public storage_write_association {
-    root_rntuple_write_container_imp(std::string const& name);
-    ~root_rntuple_write_container_imp() override;
+  class root_rntuple_write_container_imp : public storage_write_association {
+    public:
+      root_rntuple_write_container_imp(std::string const& name);
+      ~root_rntuple_write_container_imp() override;
 
-    //Rule of five
-    root_rntuple_write_container_imp(root_rntuple_write_container_imp const& other) = delete;
-    root_rntuple_write_container_imp(root_rntuple_write_container_imp&& other) = delete;
-    root_rntuple_write_container_imp& operator=(root_rntuple_write_container_imp const& other) =
-      delete;
-    root_rntuple_write_container_imp& operator=(root_rntuple_write_container_imp&& other) = delete;
+      //Rule of five
+      root_rntuple_write_container_imp(root_rntuple_write_container_imp const& other) = delete;
+      root_rntuple_write_container_imp(root_rntuple_write_container_imp&& other) = delete;
+      root_rntuple_write_container_imp& operator=(root_rntuple_write_container_imp const& other) =
+        delete;
+      root_rntuple_write_container_imp& operator=(root_rntuple_write_container_imp&& other) = delete;
 
-    void set_file(std::shared_ptr<i_storage_file> file) override;
-    void setup_write(std::type_info const& type) override;
-    std::uint64_t fill(void const* data) override;
-    void commit() override;
+      void set_file(std::shared_ptr<i_storage_file> file) override;
+      void setup_write(std::type_info const& type) override;
+      std::uint64_t fill(void const* data) override;
+      void commit() override;
 
-    //State shared by root_rfield_write_container_imps
-    std::unique_ptr<ROOT::RNTupleWriter> writer;
-    std::unique_ptr<ROOT::RNTupleModel> model;
-    std::unique_ptr<RRawPtrWriteEntry> entry;
+      ROOT::RNTupleWriter& get_writer();
+      //get_model() also signals whether model_ has already been moved from.
+      //If model_ has been moved from, the c++ standard guarantees it will contain nullptr.
+      //This is important for this RNTuple backend to meet FORM's testing
+      //requirement that commit() shall fail if fill() has not been called yet.
+      std::unique_ptr<ROOT::RNTupleModel> const& get_model();
+      RRawPtrWriteEntry& get_entry();
+
+    private:
+      std::shared_ptr<TFile> tfile_;
+
+      //State shared by root_rfield_write_container_imps
+      std::unique_ptr<ROOT::RNTupleWriter> writer_;
+      std::unique_ptr<ROOT::RNTupleModel> model_;
+      std::unique_ptr<RRawPtrWriteEntry> entry_;
   };
 }
 
