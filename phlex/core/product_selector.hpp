@@ -41,7 +41,7 @@ namespace phlex {
       }
 
       operator bool() const noexcept { return content_.has_value(); }
-      experimental::identifier const& operator*() const noexcept { return *content_; }
+      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
       friend experimental::identifier format_as(creator_name const& me) noexcept
       {
         return me.content_.value_or("[ANY]");
@@ -80,7 +80,7 @@ namespace phlex {
         return *content_;
       }
 
-      experimental::identifier const& operator*() const noexcept { return *content_; }
+      experimental::identifier const& operator*() const noexcept { return content_.operator*(); }
       explicit operator std::string_view() const noexcept
       {
         using namespace std::string_view_literals;
