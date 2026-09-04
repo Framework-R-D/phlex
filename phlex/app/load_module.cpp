@@ -75,7 +75,7 @@ namespace phlex::detail {
       }
 
       std::vector<std::string> subdirs;
-      boost::split(subdirs, plugin_path_ptr, boost::is_any_of(":"));
+      boost::split(subdirs, plugin_path_ptr, [](char const character) { return character == ':'; });
 
       // FIXME: Need to test to ensure that first match wins.
       for (auto const& subdir : subdirs) {

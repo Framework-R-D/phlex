@@ -85,7 +85,7 @@ namespace form::experimental {
       // appears at a place already written to, its container can no longer be added there -- fail
       // clearly here rather than crash deep in the backend.
       for (auto const& item : cfg_it->second) {
-        if (plan.sealed_places.count(std::make_pair(item.file_name, item.technology)) != 0) {
+        if (plan.sealed_places.contains(std::make_pair(item.file_name, item.technology))) {
           throw std::runtime_error(
             "form_writer_interface: product '" + pb.label + "' from creator '" + creator +
             "' first appeared after data was already written to '" + item.file_name +
@@ -136,7 +136,7 @@ namespace form::experimental {
     // Persistence expects one commit per place per record; the commit finalizes this record's write
     // for that place.
     for (auto const& [place_key, commit_rep] : plan.commit_places) {
-      if (written_places.find(place_key) == written_places.end()) {
+      if (!written_places.contains(place_key)) {
         continue; // nothing written to this (file, technology)
       }
       pers_writer_->commit_place(commit_rep, segment_id);
