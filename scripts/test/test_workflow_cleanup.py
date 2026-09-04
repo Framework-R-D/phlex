@@ -14,8 +14,8 @@ WORKFLOWS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / ".github
 
 EXPECTED = {
     "clang-tidy-report.yaml": {
-        "marker": "## Clang-Tidy Check Results\\n\\n",
-        "cleanup_step_name": "Cleanup old clang-tidy comments",
+        "marker": "<!-- phlex-clang-tidy-check -->",
+        "cleanup_step_name": "Update clang-tidy PR comment",
     },
     "codeql-comment.yaml": {
         "marker": "<!-- codeql-alerts -->",

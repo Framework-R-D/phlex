@@ -58,43 +58,94 @@ jobs:
             echo "::warning::pr_number.txt not found in downloaded artifacts; skipping PR comment"
           fi
 
-          fixes_file=$(find artifacts -name "clang-tidy-fixes.yaml" 2>/dev/null | head -1)
           issues_file=$(find artifacts -name "clang-tidy-new-issues.txt" 2>/dev/null | head -1)
-          if [ -n "$fixes_file" ]; then
-            echo "build_path=$(dirname "$fixes_file")" >> "$GITHUB_OUTPUT"
-          elif [ -n "$issues_file" ]; then
-            echo "build_path=$(dirname "$issues_file")" >> "$GITHUB_OUTPUT"
+          if [ -n "$issues_file" ]; then
+            echo "issues_file=$issues_file" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Post clang-tidy results
-        if: steps.locate.outputs.pr_number != '' && steps.locate.outputs.build_path != ''
-        uses: Framework-R-D/action-post-clang-tidy-results@81c1a8f0b9125c701c8535fb63a05b8fdb6d968e # v2
-        with:
-          build-path: ${{ steps.locate.outputs.build_path }}
-          pr-number: ${{ steps.locate.outputs.pr_number }}
-          post-summary: "true"
-
-      - name: Cleanup old clang-tidy comments
+      - name: Update clang-tidy PR comment
         if: steps.locate.outputs.pr_number != ''
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          ARTIFACT_URL:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}#artifacts
+          ISSUES_FILE: ${{ steps.locate.outputs.issues_file }}
           PR_NUMBER: ${{ steps.locate.outputs.pr_number }}
         with:
           script: |
-            const titleMarker = '## Clang-Tidy Check Results\n\n';
+            const marker = '<!-- phlex-clang-tidy-check -->';
+            const legacyTitle = '## Clang-Tidy Check Results';
             const pr = parseInt(process.env.PR_NUMBER, 10);
-            const { data: comments } = await github.rest.issues.listComments({
+            const { data: pull } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: pr
+              pull_number: pr
             });
-            for (const c of comments) {
-              if (c.body && c.body.startsWith(titleMarker)) {
+            if (pull.head.sha !== context.payload.workflow_run.head_sha) {
+              console.log('Skipping stale clang-tidy report for an older PR head.');
+              return;
+            }
+            const fs = require('fs');
+            const issuesFile = process.env.ISSUES_FILE;
+            const issues = issuesFile && fs.existsSync(issuesFile)
+              ? fs.readFileSync(issuesFile, 'utf8').trim()
+              : '';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+              per_page: 100
+            });
+
+            // Also claim comments written by the previous reporting action, so a
+            // clean run removes stale reports created before this workflow change.
+            const previous = comments.filter(c =>
+              c.body && (c.body.includes(marker) || c.body.startsWith(legacyTitle))
+            );
+            if (!issues) {
+              for (const c of previous) {
                 await github.rest.issues.deleteComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   comment_id: c.id
                 });
-                console.log(`Deleted old comment ${c.id}`);
               }
+              console.log('No new issues; removed prior clang-tidy comment(s).');
+              return;
+            }
+
+            const body = `${marker}
+            ## Clang-Tidy Check Results
+
+            Clang-tidy found the following issue(s) on lines changed by this pull request:
+
+            \`\`\`text
+            ${issues}
+            \`\`\`
+
+            [Download clang-tidy artifacts](${process.env.ARTIFACT_URL})`;
+
+            if (previous.length) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: previous[0].id,
+                body
+              });
+              for (const c of previous.slice(1)) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: c.id
+                });
+              }
+              console.log(`Updated clang-tidy comment ${previous[0].id}.`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr,
+                body
+              });
+              console.log('Created clang-tidy comment.');
             }
