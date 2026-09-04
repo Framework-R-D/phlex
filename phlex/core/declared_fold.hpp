@@ -10,6 +10,7 @@
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/input_arguments.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/core/node_builder.hpp"
 #include "phlex/core/product_selector.hpp"
 #include "phlex/core/products_consumer.hpp"
 #include "phlex/model/algorithm_name.hpp"
@@ -73,15 +74,24 @@ namespace phlex::detail {
 
   // =====================================================================================
 
-  template <typename AlgorithmBits, typename InitTuple>
+  template <typename AlgorithmBits, typename InitTuple, typename... Resources>
   class fold_node : public declared_fold {
     using all_parameter_types = AlgorithmBits::input_parameter_types;
     using result_type = std::decay_t<std::tuple_element_t<0, all_parameter_types>>;
-    using input_parameter_types = skip_first_type<all_parameter_types>; // Skip fold object
-    static constexpr auto num_inputs = std::tuple_size_v<input_parameter_types>;
+    using non_result_parameter_types = skip_first_type<all_parameter_types>;
+    static constexpr std::size_t num_resources = sizeof...(Resources);
+    static constexpr std::size_t num_input_products =
+      std::tuple_size_v<non_result_parameter_types> - num_resources;
+    using input_product_types =
+      boost::mp11::mp_take_c<non_result_parameter_types, num_input_products>;
 
     static constexpr std::size_t num_outputs = 1; // hard-coded for now
     using function_t = AlgorithmBits::bound_type;
+    using builder = node_builder<accumulator_with_messages<result_type, num_input_products>,
+                                 function_t,
+                                 no_outputs_t,
+                                 std::tuple<Resources...>>;
+    using node_t = builder::node_t;
 
   public:
     fold_node(phlex::experimental::algorithm_name algo_name,
@@ -92,7 +102,8 @@ namespace phlex::detail {
               InitTuple initializer,
               product_selectors input_products,
               std::vector<std::string> output,
-              std::string partition_layer) :
+              std::string partition_layer,
+              resource_catalog& resources) :
       declared_fold{std::move(algo_name),
                     std::move(predicates),
                     std::move(input_products),
@@ -105,17 +116,20 @@ namespace phlex::detail {
             this->output(),
             make_initializer<result_type>(
               std::move(initializer), std::make_index_sequence<std::tuple_size_v<InitTuple>>{})},
-      fold_{g,
-            concurrency,
-            [this, ft = alg.release_algorithm()](
-              accumulator_with_messages<result_type, num_inputs> const& accum_with_msgs) {
-              std::size_t const partition_hash = apply_fold(ft, accum_with_msgs);
+      fold_{builder::make(
+        g,
+        concurrency,
+        resources,
+        alg.release_algorithm(),
+        [this](function_t const& ft,
+               accumulator_with_messages<result_type, num_input_products> const& accum_with_msgs,
+               auto&&... resource_tokens) {
+          std::size_t const partition_hash = apply_fold(ft, accum_with_msgs, resource_tokens...);
 
-              ++calls_;
+          ++calls_;
 
-              join_.notify_result_repeater_port().try_put(partition_hash);
-              return tbb::flow::continue_msg{};
-            }}
+          join_.notify_result_repeater_port().try_put(partition_hash);
+        })}
     {
       make_edge(join_, fold_);
     }
@@ -138,23 +152,24 @@ namespace phlex::detail {
 
     std::size_t apply_fold(
       function_t const& ft,
-      accumulator_with_messages<result_type, num_inputs> const& accum_with_msgs)
+      accumulator_with_messages<result_type, num_input_products> const& accum_with_msgs,
+      auto&&... resource_tokens)
     {
       // We have to do awkward index management until we can use structured bindings with packs.
       auto& accumulator = std::get<0>(accum_with_msgs);
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         accumulator.partial_result->call(
-          ft, std::get<Is>(input_).retrieve(std::get<Is + 1>(accum_with_msgs))...);
-      }(std::make_index_sequence<num_inputs>{});
+          ft,
+          std::get<Is>(input_).retrieve(std::get<Is + 1>(accum_with_msgs))...,
+          resource_tokens...);
+      }(std::make_index_sequence<num_input_products>{});
       return accumulator.index->hash();
     }
 
-    input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
+    input_retriever_types<input_product_types> input_{input_arguments<input_product_types>()};
     product_specifications output_;
-    fold_join_node<result_type, num_inputs> join_;
-    tbb::flow::function_node<accumulator_with_messages<result_type, num_inputs>,
-                             tbb::flow::continue_msg>
-      fold_;
+    fold_join_node<result_type, num_input_products> join_;
+    node_t fold_;
     std::atomic<std::size_t> calls_;
   };
 }

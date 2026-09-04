@@ -8,6 +8,7 @@
 #include "phlex/core/index_router.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/core/node_catalog.hpp"
+#include "phlex/core/resource_api.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/model/data_cell_tracker.hpp"
 #include "phlex/model/data_layer_hierarchy.hpp"
@@ -31,6 +32,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <typeindex>
 #include <utility>
 #include <vector>
 
@@ -71,7 +73,7 @@ namespace phlex::detail {
 
     module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {
-      return {config, graph_, nodes_, registration_errors_};
+      return {config, graph_, nodes_, registration_errors_, resources_};
     }
 
     source_bundle source_proxy(configuration const& config)
@@ -79,6 +81,7 @@ namespace phlex::detail {
       return {.config = config,
               .graph = graph_,
               .nodes = nodes_,
+              .resources = resources_,
               .registration_errors = registration_errors_};
     }
 
@@ -146,6 +149,13 @@ namespace phlex::detail {
       return make_glue().template add_source<Source>(name, std::forward<Args>(args)...);
     }
 
+    template <typename Resource, typename... Args>
+      requires(!std::is_const_v<Resource> && std::constructible_from<Resource, Args...>)
+    void add_resource(Args&&... args)
+    {
+      resources_.template add<Resource>(std::forward<Args>(args)...);
+    }
+
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
@@ -185,7 +195,7 @@ namespace phlex::detail {
       if constexpr (is_bound_object<T> && Construct) {
         bound_object = std::make_shared<T>(std::forward<Args>(args)...);
       }
-      return {graph_, nodes_, std::move(bound_object), registration_errors_};
+      return {graph_, nodes_, std::move(bound_object), registration_errors_, resources_};
     }
 
     void run();
@@ -200,10 +210,12 @@ namespace phlex::detail {
     resource_usage graph_resource_usage_;
     max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
+    // The graph_ object uses the filters_, nodes_, resources_, and hierarchy_ objects implicitly.
+    // These must be declared before graph_ so that they outlive it during destruction.
     data_layer_hierarchy hierarchy_{};
+    resource_catalog resources_;
     node_catalog nodes_;
     std::map<std::string, filter> filters_;
-    // The graph_ object uses the filters_, nodes_, and hierarchy_ objects implicitly.
     tbb::flow::graph graph_{};
     std::optional<framework_driver> driver_;
     std::vector<std::string> registration_errors_;

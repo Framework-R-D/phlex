@@ -39,8 +39,24 @@ namespace {
     auto operator<=>(output_type_2 const&) const = default;
   };
 
+  struct transform_resource {
+    using token_type = transform_resource const*;
+  };
+
+  struct unlimited_transform_resource {};
+
   output_type_1 double_value(input_type_1 const& input) { return {input.value * 2}; }
 
+  output_type_1 increment_with_resource(input_type_1 const& input, transform_resource const*)
+  {
+    return {input.value + 1};
+  }
+
+  output_type_1 increment_with_unlimited_resource(input_type_1 const& input,
+                                                  unlimited_transform_resource const*)
+  {
+    return {input.value + 1};
+  }
   auto number_and_label(input_type_1 const& input)
   {
     return std::tuple{output_type_1{input.value}, output_type_2{std::to_string(input.value)}};
@@ -79,9 +95,10 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
   auto input_selector = selector<input_type_1>("input", "");
   auto input_store = store_with_product("input", "", input_type_1{21});
   auto alg = algorithm_bits_for(double_value);
+  resource_catalog resources;
 
   transform_node<decltype(alg)> node{
-    algorithm_name{"double_value"}, 1u, {}, graph, std::move(alg), {input_selector}, {}};
+    algorithm_name{"double_value"}, 1u, {}, graph, std::move(alg), {input_selector}, {}, resources};
   declared_transform& transform = node;
 
   auto const& output_specs = transform.output();
@@ -115,6 +132,7 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
   auto input_selector = selector<input_type_1>("input", "");
   auto input_store = store_with_product("input", "", input_type_1{7});
   auto alg = algorithm_bits_for(number_and_label);
+  resource_catalog resources;
 
   transform_node<decltype(alg)> node{algorithm_name{"number_and_label"},
                                      1u,
@@ -122,7 +140,8 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
                                      graph,
                                      std::move(alg),
                                      {input_selector},
-                                     {"number", "label"}};
+                                     {"number", "label"},
+                                     resources};
   declared_transform& transform = node;
 
   oneapi::tbb::flow::queue_node<message> sink{graph};
@@ -148,6 +167,71 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
   CHECK(output.store->get_product<output_type_1>(output_specs[0]) == output_type_1{7});
   CHECK(output.store->get_product<output_type_2>(output_specs[1]) == output_type_2{"7"});
 
+  CHECK(transform.num_calls() == 1u);
+  CHECK(transform.product_count() == 1u);
+}
+TEST_CASE("transform_node receives a resource token", "[transform_node][resource]")
+{
+  oneapi::tbb::flow::graph graph;
+  auto input_selector = selector<input_type_1>("input", "");
+  auto input_store = store_with_product("input", "", input_type_1{21});
+  auto alg = algorithm_bits_for(increment_with_resource);
+  resource_catalog resources;
+  resources.add<transform_resource>();
+
+  transform_node<decltype(alg), transform_resource> node{algorithm_name{"increment_with_resource"},
+                                                         1u,
+                                                         {},
+                                                         graph,
+                                                         std::move(alg),
+                                                         {input_selector},
+                                                         {},
+                                                         resources};
+  declared_transform& transform = node;
+
+  oneapi::tbb::flow::queue_node<message> sink{graph};
+  make_edge(transform.output_port(), sink);
+
+  REQUIRE(node.port(input_selector).try_put({.store = input_store, .id = message_id}));
+  graph.wait_for_all();
+
+  message output;
+  REQUIRE(sink.try_get(output));
+  CHECK(output.store->get_product<output_type_1>(transform.output()[0]) == output_type_1{22});
+  CHECK(transform.num_calls() == 1u);
+  CHECK(transform.product_count() == 1u);
+}
+
+TEST_CASE("transform_node receives an unlimited resource", "[transform_node][resource]")
+{
+  oneapi::tbb::flow::graph graph;
+  auto input_selector = selector<input_type_1>("input", "");
+  auto input_store = store_with_product("input", "", input_type_1{21});
+  auto alg = algorithm_bits_for(increment_with_unlimited_resource);
+  resource_catalog resources;
+  resources.add<unlimited_transform_resource>();
+
+  transform_node<decltype(alg), unlimited_transform_resource> node{
+    algorithm_name{"increment_with_unlimited_resource"},
+    1u,
+    {},
+    graph,
+    std::move(alg),
+    {input_selector},
+    {},
+    resources};
+  declared_transform& transform = node;
+
+  oneapi::tbb::flow::queue_node<message> sink{graph};
+  make_edge(transform.output_port(), sink);
+
+  REQUIRE(node.port(input_selector).try_put({.store = input_store, .id = message_id}));
+  graph.wait_for_all();
+
+  message output;
+  REQUIRE(sink.try_get(output));
+  REQUIRE(output.store);
+  CHECK(output.store->get_product<output_type_1>(transform.output()[0]) == output_type_1{22});
   CHECK(transform.num_calls() == 1u);
   CHECK(transform.product_count() == 1u);
 }
