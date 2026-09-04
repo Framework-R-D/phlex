@@ -159,6 +159,14 @@ namespace phlex::detail {
     internal::index_set_node_ptr index_set_node_for(data_cell_index_ptr const& index);
     std::pair<internal::multilayer_slots_ptr, internal::end_token_entries_ptr> multilayer_slots_for(
       data_cell_index_ptr const& index);
+    struct join_slot_resolution {
+      internal::multilayer_slots message_slots;
+      internal::end_token_entries end_token_entries;
+    };
+    join_slot_resolution resolve_join_slots(data_cell_index_ptr const& index,
+                                            phlex::experimental::layer_path const& layer_path,
+                                            std::size_t layer_hash,
+                                            internal::join_node_slots const& node_slots) const;
     void update_flush_counts(index_flushes const& flushes);
     void apply_expected_count(flush_gate& gate,
                               data_cell_index::hash_type child_layer_hash,
