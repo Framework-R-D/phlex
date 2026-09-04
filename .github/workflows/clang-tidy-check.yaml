@@ -53,8 +53,13 @@ jobs:
 
   clang-tidy-check:
     needs: setup
+    # Pull-request runs must publish an empty issue artifact when all C/C++
+    # changes have been reverted, allowing clang-tidy-report to remove a stale
+    # warning comment.  The run step exits before invoking clang-tidy when no
+    # C/C++ files remain to analyze.
     if: >
-      always() && (github.event_name == 'workflow_dispatch' || needs.setup.outputs.has_changes == 'true')
+      always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' ||
+      needs.setup.outputs.has_changes == 'true')
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
