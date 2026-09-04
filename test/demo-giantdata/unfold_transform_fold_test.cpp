@@ -46,26 +46,26 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
 
   // Create data layers using layer generator
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("run", {"job", n_runs});
-  gen->add_layer("subrun", {"run", n_subruns});
-  gen->add_layer("spill", {"subrun", n_spills});
+  gen->add_layer("run", {.parent_layer = "job", .count = n_runs});
+  gen->add_layer("subrun", {.parent_layer = "run", .count = n_subruns});
+  gen->add_layer("spill", {.parent_layer = "subrun", .count = n_spills});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
 
   g.provide("provide_wgen",
             [](data_cell_index const& spill_index) {
-              return demo::WGI(wires_per_spill,
+              return demo::wgi(wires_per_spill,
                                spill_index.parent()->parent()->number(),
                                spill_index.parent()->number(),
                                spill_index.number());
             })
     .output_product("input", "wgen", "spill");
 
-  g.unfold<demo::WaveformGenerator>(
+  g.unfold<demo::waveform_generator>(
      "WaveformGenerator",
-     &demo::WaveformGenerator::predicate,
-     [&tracker](demo::WaveformGenerator const& wg, std::size_t running_value) {
+     &demo::waveform_generator::predicate,
+     [&tracker](demo::waveform_generator const& wg, std::size_t running_value) {
        auto result = wg.op(running_value, chunksize);
        tracker.unfold_completed.fetch_add(1, std::memory_order_relaxed);
        return result;
@@ -76,8 +76,8 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
     .output_product_suffixes("waves_in_apa");
 
   // Add the transform node to the graph
-  auto wrapped_user_function = [](handle<demo::Waveforms> hwf) {
-    return demo::clampWaveforms(*hwf);
+  auto wrapped_user_function = [](handle<demo::waveforms> hwf) {
+    return demo::clamp_waveforms(*hwf);
   };
 
   g.transform("clamp_node", wrapped_user_function, concurrency::unlimited)
@@ -88,14 +88,14 @@ TEST_CASE("Unfold-transform-fold pipeline", "[concurrency][unfold][fold]")
   // Add the fold node with instrumentation to detect pipelined execution
   g.fold(
      "accum_for_spill",
-     [&tracker](demo::SummedClampedWaveforms& scw, handle<demo::Waveforms> hwf) {
+     [&tracker](demo::summed_clamped_waveforms& scw, handle<demo::waveforms> hwf) {
        // Record how many unfolds had completed when the first fold started
        std::size_t expected = 0;
        tracker.unfold_completed_at_first_fold.compare_exchange_strong(
          expected, tracker.unfold_completed.load(std::memory_order_relaxed));
 
        tracker.fold_started.fetch_add(1, std::memory_order_relaxed);
-       demo::accumulateSCW(scw, *hwf);
+       demo::accumulate_scw(scw, *hwf);
      },
      concurrency::unlimited,
      "spill")

@@ -15,19 +15,19 @@
 
 namespace {
 
-  class FormOutputModule {
+  class form_output_module {
   public:
-    FormOutputModule(std::string output_file,
-                     form::technology::Id technology,
-                     std::vector<std::string> const& products_to_save) :
-      m_output_file(std::move(output_file)), m_technology(technology)
+    form_output_module(std::string output_file,
+                       form::technology::id technology,
+                       std::vector<std::string> const& products_to_save) :
+      output_file_(std::move(output_file)), technology_(technology)
     {
-      std::cout << "FormOutputModule initialized\n";
-      std::cout << "  Output file: " << m_output_file << "\n";
-      std::cout << "  Technology: " << form::technology::to_string(m_technology) << "\n";
+      std::cout << "form_output_module initialized\n";
+      std::cout << "  Output file: " << output_file_ << "\n";
+      std::cout << "  Technology: " << form::technology::to_string(technology_) << "\n";
 
       // Build FORM configuration
-      form::experimental::config::ItemConfig output_cfg;
+      form::experimental::config::item_config output_cfg;
       form::experimental::config::tech_setting_config tech_cfg;
 
       // FIXME: Temporary solution to accommodate Phlex limitation.
@@ -37,11 +37,11 @@ namespace {
       // Temp. Sol for Phlex Prototype 0.1
       // Register products from config
       for (auto const& product : products_to_save) {
-        output_cfg.addItem(product, m_output_file, m_technology);
+        output_cfg.add_item(product, output_file_, technology_);
       }
 
       // Initialize FORM interface
-      m_form_interface =
+      form_interface_ =
         std::make_unique<form::experimental::form_writer_interface>(output_cfg, tech_cfg);
     }
 
@@ -61,7 +61,7 @@ namespace {
       // Extract segment ID (partition) - extract once for entire store
       auto segment_id = store.index()->to_string();
 
-      std::cout << "\n=== FormOutputModule::save_data_products ===\n";
+      std::cout << "\n=== form_output_module::save_data_products ===\n";
       std::cout << "Creator: " << creator.to_string() << "\n";
       std::cout << "Segment ID: " << segment_id << "\n";
       std::cout << "Number of products: " << store.size() << "\n";
@@ -94,17 +94,17 @@ namespace {
       // Write all products to FORM
       // Pass segment_id once for entire collection (not duplicated in each product)
       // No need to check if products is empty - already checked store.empty() above
-      m_form_interface->write(creator.to_string(), segment_id, products);
+      form_interface_->write(creator.to_string(), segment_id, products);
       std::cout << "Wrote " << products.size() << " products to FORM\n";
     }
 
   private:
     // Algorithm configuration fixed at construction; intentionally immutable for object lifetime.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    std::string const m_output_file;
-    form::technology::Id const m_technology;
+    std::string const output_file_;
+    form::technology::id const technology_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
-    std::unique_ptr<form::experimental::form_writer_interface> m_form_interface;
+    std::unique_ptr<form::experimental::form_writer_interface> form_interface_;
   };
 
 }
@@ -127,11 +127,11 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 
   // Phlex needs an OBJECT
   // Create the FORM output module
-  auto form_output = m.make<FormOutputModule>(output_file, technology, products_to_save);
+  auto form_output = m.make<form_output_module>(output_file, technology, products_to_save);
 
   // Phlex needs a MEMBER FUNCTION to call
   // Register the callback that Phlex will invoke
-  form_output.output("save_data_products", &FormOutputModule::save_data_products);
+  form_output.output("save_data_products", &form_output_module::save_data_products);
 
   std::cout << "FORM output module registered successfully\n";
 }

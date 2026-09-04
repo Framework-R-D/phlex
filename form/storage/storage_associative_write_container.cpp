@@ -6,27 +6,27 @@
 
 using namespace form::detail::experimental;
 
-Storage_Associative_Write_Container::Storage_Associative_Write_Container(std::string const& name) :
-  Storage_Write_Container::Storage_Write_Container(name), m_parent(nullptr)
+storage_associative_write_container::storage_associative_write_container(std::string const& name) :
+  storage_write_container::storage_write_container(name), parent_(nullptr)
 {
   auto del_pos = name.find('/');
   if (del_pos != std::string::npos) {
-    m_tName = name.substr(0, del_pos);
-    m_cName = name.substr(del_pos + 1);
+    t_name_ = name.substr(0, del_pos);
+    c_name_ = name.substr(del_pos + 1);
   } else {
-    m_tName = name;
-    m_cName = "Main";
+    t_name_ = name;
+    c_name_ = "Main";
   }
 }
 
-Storage_Associative_Write_Container::~Storage_Associative_Write_Container() = default;
+storage_associative_write_container::~storage_associative_write_container() = default;
 
-std::string const& Storage_Associative_Write_Container::top_name() { return m_tName; }
+std::string const& storage_associative_write_container::top_name() { return t_name_; }
 
-std::string const& Storage_Associative_Write_Container::col_name() { return m_cName; }
+std::string const& storage_associative_write_container::col_name() { return c_name_; }
 
-void Storage_Associative_Write_Container::setParent(
-  std::shared_ptr<IStorage_Write_Container> parent)
+void storage_associative_write_container::set_parent(
+  std::shared_ptr<i_storage_write_container> parent)
 {
-  m_parent = std::move(parent);
+  parent_ = std::move(parent);
 }

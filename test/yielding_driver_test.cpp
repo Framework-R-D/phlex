@@ -12,6 +12,8 @@
 using namespace phlex;
 
 namespace {
+  // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
+  // NOLINTNEXTLINE(readability-static-accessed-through-instance)
   index_generator make_indices(unsigned int num_runs,
                                unsigned int num_subruns,
                                unsigned int num_spills)

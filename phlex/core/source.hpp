@@ -21,8 +21,12 @@ namespace phlex::detail {
   class PHLEX_CORE_EXPORT source {
   public:
     virtual ~source() = default;
+
     virtual provider_bundles create_providers(product_selector const&) = 0;
-    virtual index_generator indices() = 0;
+
+    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
+    virtual index_generator indices() { co_return; }
   };
 
   using source_ptr = std::unique_ptr<source>;

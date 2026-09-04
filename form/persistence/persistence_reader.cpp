@@ -13,87 +13,87 @@
 using namespace form::detail::experimental;
 
 namespace form::detail::experimental {
-  std::unique_ptr<IPersistenceReader> createPersistenceReader()
+  std::unique_ptr<i_persistence_reader> create_persistence_reader()
   {
-    return std::make_unique<PersistenceReader>();
+    return std::make_unique<persistence_reader>();
   }
 }
 
-PersistenceReader::PersistenceReader() :
-  m_store_reader(createStorageReader()),
-  m_config_items(),
-  m_tech_settings() // constructor takes form config
+persistence_reader::persistence_reader() :
+  store_reader_(create_storage_reader()),
+  config_items_(),
+  tech_settings_() // constructor takes form config
 {
 }
 
-void PersistenceReader::configureTechSettings(
+void persistence_reader::configure_tech_settings(
   form::experimental::config::tech_setting_config const& tech_config_settings)
 {
-  m_tech_settings = tech_config_settings;
+  tech_settings_ = tech_config_settings;
 }
 
-void PersistenceReader::configure(form::experimental::config::ItemConfig const& config_items)
+void persistence_reader::configure(form::experimental::config::item_config const& config_items)
 {
-  m_config_items = config_items;
+  config_items_ = config_items;
 }
 
-void PersistenceReader::read(std::string const& creator,
-                             std::string const& label,
-                             std::string const& id,
-                             void const** data,
-                             std::type_info const& type)
-{
-  std::unique_ptr<Token> token = getToken(creator, label, id);
-  m_store_reader->readContainer(*token, data, type, m_tech_settings);
-}
-
-void PersistenceReader::prime(std::string const& creator,
+void persistence_reader::read(std::string const& creator,
                               std::string const& label,
+                              std::string const& id,
+                              void const** data,
                               std::type_info const& type)
 {
-  auto const config_item = findConfigItem(m_config_items, label);
-
-  if (!config_item) {
-    throw std::runtime_error("No configuration found for product: " + label +
-                             " from creator: " + creator);
-  }
-
-  std::string const full_label = buildFullLabel(creator, label);
-  m_store_reader->prime(
-    Token{config_item->file_name, full_label, config_item->technology}, type, m_tech_settings);
+  std::unique_ptr<token> token = get_token(creator, label, id);
+  store_reader_->read_container(*token, data, type, tech_settings_);
 }
 
-std::vector<std::string> PersistenceReader::listIndices(std::string const& creator,
-                                                        std::string const& label)
+void persistence_reader::prime(std::string const& creator,
+                               std::string const& label,
+                               std::type_info const& type)
 {
-  auto const config_item = findConfigItem(m_config_items, label);
+  auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::string const full_label = buildFullLabel(creator, "index");
-  return m_store_reader->listIndices(
-    Token{config_item->file_name, full_label, config_item->technology}, m_tech_settings);
+  std::string const full_label = build_full_label(creator, label);
+  store_reader_->prime(
+    token{config_item->file_name, full_label, config_item->technology}, type, tech_settings_);
 }
 
-std::unique_ptr<Token> PersistenceReader::getToken(std::string const& creator,
-                                                   std::string const& label,
-                                                   std::string const& id)
+std::vector<std::string> persistence_reader::list_indices(std::string const& creator,
+                                                          std::string const& label)
 {
-  auto const config_item = findConfigItem(m_config_items, label);
+  auto const config_item = find_config_item(config_items_, label);
 
   if (!config_item) {
     throw std::runtime_error("No configuration found for product: " + label +
                              " from creator: " + creator);
   }
 
-  std::string const full_label = buildFullLabel(creator, label);
-  std::string const index_label = buildFullLabel(creator, "index");
+  std::string const full_label = build_full_label(creator, "index");
+  return store_reader_->list_indices(
+    token{config_item->file_name, full_label, config_item->technology}, tech_settings_);
+}
 
-  int const rowId = m_store_reader->getIndex(
-    Token{config_item->file_name, index_label, config_item->technology}, id, m_tech_settings);
-  return std::make_unique<Token>(
-    config_item->file_name, full_label, config_item->technology, rowId);
+std::unique_ptr<token> persistence_reader::get_token(std::string const& creator,
+                                                     std::string const& label,
+                                                     std::string const& id)
+{
+  auto const config_item = find_config_item(config_items_, label);
+
+  if (!config_item) {
+    throw std::runtime_error("No configuration found for product: " + label +
+                             " from creator: " + creator);
+  }
+
+  std::string const full_label = build_full_label(creator, label);
+  std::string const index_label = build_full_label(creator, "index");
+
+  int const row_id = store_reader_->get_index(
+    token{config_item->file_name, index_label, config_item->technology}, id, tech_settings_);
+  return std::make_unique<token>(
+    config_item->file_name, full_label, config_item->technology, row_id);
 }

@@ -10,7 +10,7 @@
 
 namespace phlex::experimental::test {
   struct products_for_output {
-    void save(product_store const& store) const
+    static void save(product_store const& store)
     {
       std::ostringstream oss;
       oss << "Saving data for store id: " << store.index()

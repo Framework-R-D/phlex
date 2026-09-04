@@ -13,47 +13,47 @@
 
 namespace form::experimental::config {
 
-  struct PersistenceItem {
+  struct persistence_item {
     std::string product_name;    // e.g. "trackStart", "trackNumberHits"
     std::string file_name;       // e.g. "toy.root", "output.hdf5"
-    technology::Id technology{}; // technology::ROOT_TTREE, ROOT_RNTUPLE, HDF5
+    technology::id technology{}; // technology::root_ttree, root_rntuple, hdf5
 
-    PersistenceItem() = default;
+    persistence_item() = default;
 
-    PersistenceItem(std::string product, std::string file, technology::Id tech) :
+    persistence_item(std::string product, std::string file, technology::id tech) :
       product_name(std::move(product)), file_name(std::move(file)), technology(tech)
     {
     }
   };
 
-  class ItemConfig {
+  class item_config {
   public:
-    ItemConfig() = default;
-    ~ItemConfig() = default;
+    item_config() = default;
+    ~item_config() = default;
 
     // Add a configuration item
-    void addItem(std::string const& product_name,
-                 std::string const& file_name,
-                 technology::Id technology);
+    void add_item(std::string const& product_name,
+                  std::string const& file_name,
+                  technology::id technology);
 
     // Find configuration for a product+creator combination
-    std::optional<PersistenceItem> findItem(std::string const& product_name) const;
+    std::optional<persistence_item> find_item(std::string const& product_name) const;
 
     // Get all items (for debugging/validation)
-    std::vector<PersistenceItem> const& getItems() const { return m_items; }
+    std::vector<persistence_item> const& get_items() const { return items_; }
 
   private:
-    std::vector<PersistenceItem> m_items;
+    std::vector<persistence_item> items_;
   };
 
   struct tech_setting_config {
     using table_t = std::vector<std::pair<std::string, std::string>>;
-    using map_t = std::map<technology::Id, std::unordered_map<std::string, table_t>>;
+    using map_t = std::map<technology::id, std::unordered_map<std::string, table_t>>;
     map_t file_settings;
     map_t container_settings;
 
-    table_t getFileTable(technology::Id technology, std::string const& fileName) const;
-    table_t getContainerTable(technology::Id technology, std::string const& containerName) const;
+    table_t get_file_table(technology::id technology, std::string const& file_name) const;
+    table_t get_container_table(technology::id technology, std::string const& container_name) const;
   };
 
 } // namespace form::experimental::config

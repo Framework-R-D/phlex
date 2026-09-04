@@ -71,7 +71,7 @@ namespace phlex::detail {
         return {};
       }
       for (auto const& [port, store] : std::views::zip(downstream_ports_, stores)) {
-        port->try_put({store, msg_id});
+        port->try_put({.store = store, .id = msg_id});
       }
       // Decision must be erased while access is claimed
       decisions_.erase(a);

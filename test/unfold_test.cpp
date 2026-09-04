@@ -31,9 +31,9 @@ namespace {
   class iota {
   public:
     explicit iota(unsigned int max_number) : max_{max_number} {}
-    unsigned int initial_value() const { return 0; }
+    static unsigned int initial_value() { return 0; }
     bool predicate(unsigned int i) const { return i != max_; }
-    auto unfold(unsigned int i) const { return std::make_pair(i + 1, i); };
+    static auto unfold(unsigned int i) { return std::make_pair(i + 1, i); };
 
   private:
     unsigned int max_;
@@ -49,7 +49,7 @@ namespace {
     }
     auto initial_value() const { return begin_; }
     bool predicate(numbers_t::const_iterator it) const { return it != end_; }
-    auto unfold(numbers_t::const_iterator it, data_cell_index const& lid) const
+    static auto unfold(numbers_t::const_iterator it, data_cell_index const& lid)
     {
       spdlog::info("Unfolding into {}", lid.to_string());
       auto num = *it;
@@ -90,9 +90,9 @@ namespace {
       max_{max_number}, numbers_{std::move(numbers)}
     {
     }
-    unsigned int initial_value() const { return 0; }
+    static unsigned int initial_value() { return 0; }
     bool predicate(unsigned int i) const { return i != max_ && !numbers_.empty(); }
-    auto unfold(unsigned int i) const { return std::make_pair(i + 1, i); };
+    static auto unfold(unsigned int i) { return std::make_pair(i + 1, i); };
 
   private:
     unsigned int max_;
@@ -105,7 +105,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", index_limit});
+  gen->add_layer("event", {.parent_layer = "job", .count = index_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -173,7 +173,7 @@ TEST_CASE("Multi-layer transform with one input from an unfold", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", index_limit});
+  gen->add_layer("event", {.parent_layer = "job", .count = index_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -206,7 +206,7 @@ TEST_CASE("Unfold deduplicates same-layer inputs for bookkeeping", "[graph]")
   constexpr auto index_limit = 2u;
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", index_limit});
+  gen->add_layer("event", {.parent_layer = "job", .count = index_limit});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

@@ -32,25 +32,27 @@ namespace {
 
   // Hacky!
   struct sum_numbers {
-    explicit sum_numbers(unsigned int const n) : total{n} {}
-    ~sum_numbers() { CHECK(sum == total); }
+    explicit sum_numbers(unsigned int const n) : total_{n} {}
+    ~sum_numbers() { CHECK(sum == total_); }
     sum_numbers(sum_numbers const&) = delete;
     sum_numbers& operator=(sum_numbers const&) = delete;
     sum_numbers(sum_numbers&&) = delete;
     sum_numbers& operator=(sum_numbers&&) = delete;
     void add(unsigned int const num) { sum += num; }
     std::atomic<unsigned int> sum;
-    unsigned int const total;
+
+  private:
+    unsigned int const total_;
   };
 
   // Hacky!
   struct collect_numbers {
-    collect_numbers(std::initializer_list<unsigned int> numbers) : expected{numbers} {}
+    collect_numbers(std::initializer_list<unsigned int> numbers) : expected_{numbers} {}
     ~collect_numbers()
     {
       std::vector<unsigned int> sorted_actual(std::begin(actual), std::end(actual));
       std::ranges::sort(sorted_actual);
-      CHECK(expected == sorted_actual);
+      CHECK(expected_ == sorted_actual);
     }
     collect_numbers(collect_numbers const&) = delete;
     collect_numbers& operator=(collect_numbers const&) = delete;
@@ -58,18 +60,20 @@ namespace {
     collect_numbers& operator=(collect_numbers&&) = delete;
     void collect(unsigned int const num) { actual.push_back(num); }
     tbb::concurrent_vector<unsigned int> actual;
+
+  private:
     // Immutable test expectation set at construction; intentionally prevents accidental mutation.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-    std::vector<unsigned int> const expected;
+    std::vector<unsigned int> const expected_;
   };
 
   // Hacky!
   struct check_multiple_numbers {
-    explicit check_multiple_numbers(int const n) : total{n}
+    explicit check_multiple_numbers(int const n) : total_{n}
     {
       spdlog::debug("construct check_multiple_numbers with n = {}", n);
     }
-    ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total)); }
+    ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total_)); }
     check_multiple_numbers(check_multiple_numbers const&) = delete;
     check_multiple_numbers& operator=(check_multiple_numbers const&) = delete;
     check_multiple_numbers(check_multiple_numbers&&) = delete;
@@ -79,11 +83,13 @@ namespace {
       // The difference is calculated to test that add(a, b) yields a different result
       // than add(b, a).
       spdlog::debug(
-        "check_multiple_numbers(n = {}): run add_difference. a = {}, b = {}", total, a, b);
+        "check_multiple_numbers(n = {}): run add_difference. a = {}, b = {}", total_, a, b);
       sum += static_cast<int>(b) - static_cast<int>(a);
     }
     std::atomic<int> sum;
-    int const total;
+
+  private:
+    int const total_;
   };
 
   constexpr bool in_range(unsigned int const b, unsigned int const e, unsigned int const i) noexcept
@@ -91,21 +97,24 @@ namespace {
     return i >= b and i < e;
   }
 
-  struct not_in_range {
-    explicit not_in_range(unsigned int const b, unsigned int const e) : begin{b}, end{e} {}
+  class not_in_range {
+  public:
+    explicit not_in_range(unsigned int const b, unsigned int const e) : begin_{b}, end_{e} {}
+    bool eval(unsigned int const i) const noexcept { return not in_range(begin_, end_, i); }
+
+  private:
     // Immutable range bounds set at construction; intentionally prevents accidental mutation.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    unsigned int const begin;
-    unsigned int const end;
+    unsigned int const begin_;
+    unsigned int const end_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
-    bool eval(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
   };
 }
 
 TEST_CASE("Two predicates", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 10, 1});
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
@@ -132,7 +141,7 @@ TEST_CASE("Two predicates", "[filtering]")
 TEST_CASE("Two predicates in series", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 10, 1});
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
@@ -155,7 +164,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
 TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 10, 1});
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
@@ -186,7 +195,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
                                         {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 10, 1});
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
@@ -213,7 +222,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 10, 1});
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)

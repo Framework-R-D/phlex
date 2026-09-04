@@ -9,21 +9,21 @@
 
 namespace form::detail::experimental {
 
-  class Storage_Associative_Write_Container : public Storage_Write_Container {
+  class storage_associative_write_container : public storage_write_container {
   public:
-    explicit Storage_Associative_Write_Container(std::string const& name);
-    ~Storage_Associative_Write_Container() override;
+    explicit storage_associative_write_container(std::string const& name);
+    ~storage_associative_write_container() override;
 
     std::string const& top_name();
     std::string const& col_name();
 
-    virtual void setParent(std::shared_ptr<IStorage_Write_Container> parent);
+    virtual void set_parent(std::shared_ptr<i_storage_write_container> parent);
 
   private:
-    std::string m_tName;
-    std::string m_cName;
+    std::string t_name_;
+    std::string c_name_;
 
-    std::shared_ptr<IStorage_Write_Container> m_parent;
+    std::shared_ptr<i_storage_write_container> parent_;
   };
 
 } // namespace form::detail::experimental

@@ -8,7 +8,6 @@ See `git-ai-commit --help` for full usage.
 from __future__ import annotations
 
 import argparse
-import contextlib
 import json
 import os
 import re
@@ -19,7 +18,7 @@ import textwrap
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import TextIO
+from typing import Any, TextIO
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -63,8 +62,22 @@ _KILO_DEFAULT_MODEL = "qwen/qwen3-coder-next"
 _DEFAULT_MODEL_KILO = _KILO_MODEL_ENV or _KILO_DEFAULT_MODEL
 _DEFAULT_MODEL_OTHER = "gpt-4o"
 
-# Path to kilo config file
-_KILO_CONFIG_PATH = Path.home() / ".config" / "kilo" / "kilo.jsonc"
+# Path to kilo config file. Kilo's global config directory accepts either
+# kilo.json or kilo.jsonc; check both, preferring kilo.json since that is
+# what `kilo-sync-models` currently writes.
+_KILO_CONFIG_DIR = Path.home() / ".config" / "kilo"
+_KILO_CONFIG_CANDIDATES = (
+    _KILO_CONFIG_DIR / "kilo.json",
+    _KILO_CONFIG_DIR / "kilo.jsonc",
+)
+
+
+def _kilo_config_path() -> Path | None:
+    """Return the first existing kilo config file, or None if neither exists."""
+    for candidate in _KILO_CONFIG_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 _MAX_DIFF_CHARS_DEFAULT = 60_000
@@ -96,11 +109,14 @@ def _load_kilo_config() -> dict:
     Returns a dict with 'disabled_providers' and 'provider' keys.
     'provider' maps provider names to provider configs, each containing a 'models' dict.
     """
-    if not _KILO_CONFIG_PATH.exists():
+    config_path = _kilo_config_path()
+    if config_path is None:
         return {"disabled_providers": [], "provider": {}}
     try:
-        # Use json.loads after removing comments (kilo.jsonc supports comments)
-        content = _KILO_CONFIG_PATH.read_text(encoding="utf-8")
+        # Use json.loads after removing comments (kilo.jsonc supports comments;
+        # harmless to strip from plain kilo.json too since "//" never appears
+        # outside of string values there).
+        content = config_path.read_text(encoding="utf-8")
         # A simple state-based scanner to remove comments while preserving strings.
         cleaned = []
         in_string = False
@@ -163,16 +179,17 @@ def _load_kilo_config() -> dict:
         return {"disabled_providers": [], "provider": {}}
 
 
-def _load_kilo_config_with_models() -> dict[str, dict[str, str]]:
+def _load_kilo_config_with_models() -> dict[str, dict[str, dict[str, Any]]]:
     """Load kilo config and return a mapping of provider names to model dicts.
 
-    Returns a dict mapping Kilo config provider names to dicts of model keys.
-    For example: {"fnal-ow": {"qwen/qwen3-coder-next": {...}, ...}}
+    Returns a dict mapping Kilo config provider names to dicts of model
+    entries, keyed by the short config key. For example:
+    {"fnal-ow": {"qwen3-coder-next": {"id": "qwen/qwen3-coder-next", ...}}}
     """
     config = _load_kilo_config()
     disabled = set(config.get("disabled_providers", []))
     provider_config = config.get("provider", {})
-    mapping: dict[str, dict[str, str]] = {}
+    mapping: dict[str, dict[str, dict[str, Any]]] = {}
 
     for provider_name, provider_data in provider_config.items():
         if provider_name in disabled or not isinstance(provider_data, dict):
@@ -193,48 +210,87 @@ def _get_kilo_provider_names() -> list[str]:
     return [name for name in provider_config.keys() if name not in disabled]
 
 
+def _find_model_key(models: dict[str, dict[str, Any]], model: str) -> str | None:
+    """Return the config dict key within *models* that identifies *model*.
+
+    Matches *model* against each entry's dict key first (the form the
+    `kilo` CLI's `-m` flag actually accepts), then falls back to the
+    entry's "id" field, or its "name" field if "id" is absent. This lets
+    callers pass either the short config key (e.g. "haiku-4-5") or the
+    provider-qualified id/name (e.g. "azure/claude-haiku-4-5") and still
+    resolve to the same entry.
+    """
+    if model in models:
+        return model
+    for key, entry in models.items():
+        # Defensive: kilo.json entries are untrusted external data, so a
+        # malformed file could put a non-dict value here despite the type hint.
+        if not isinstance(entry, dict):
+            continue  # type: ignore[unreachable]
+        if entry.get("id") == model or entry.get("name") == model:
+            return key
+    return None
+
+
 def _resolve_kilo_model(model: str) -> str:
     """Resolve a kilo model name, adding provider prefix if needed.
 
     Logic:
     1. If model contains "/" (e.g., "qwen/"), check if the prefix is a known
        provider in the Kilo config.
-    2a. If the prefix IS a known provider, the model is passed to kilo as-is.
-    2b. If the prefix is NOT a known provider, the full model (including prefix)
-        is treated as the model name and looked up in the config.
-    3. If model has no prefix, it is looked up directly in the config.
+    2a. If the prefix IS a known provider, the remainder is matched against
+        that provider's models by config key, falling back to each entry's
+        "id" (or "name") field.
+    2b. If the prefix is NOT a known provider, the full model (including
+        prefix) is treated as the model name and matched the same way
+        across all providers.
+    3. If model has no prefix, it is matched directly across all providers,
+       by config key first, then by "id" (or "name").
     4. If the lookup is ambiguous (multiple providers have the model), raise an error.
 
-    Returns the fully-qualified model name in format "provider/model".
+    The config key is always what gets returned for the matched provider,
+    since that is the only form `kilo run -m` accepts; the "id"/"name"
+    fields are only used to identify which entry the caller meant.
+
+    Returns the fully-qualified model name in format "provider/key".
     Raises _Error if the model lookup is ambiguous.
     """
     provider_models = _load_kilo_config_with_models()
     known_providers = set(_get_kilo_provider_names())
 
-    # If no model is provided, use the default
+    # If no model is provided, resolve the default the same way as any
+    # other input (it may itself be in "id" form, e.g. "qwen/qwen3-coder-next").
     if not model:
-        return _DEFAULT_MODEL_KILO
+        model = _DEFAULT_MODEL_KILO
 
     # If model has a prefix (contains "/"), check if it's a known provider
     if "/" in model:
         prefix, rest = model.split("/", 1)
         if prefix in known_providers:
-            # The prefix is a known provider - pass model as-is to kilo
+            key = _find_model_key(provider_models.get(prefix, {}), rest)
+            if key is not None:
+                return f"{prefix}/{key}"
+            # Not found under this provider (e.g. a model not yet synced
+            # into the config); pass through as-is and let kilo report
+            # any error.
             return model
 
         # The prefix is NOT a known provider - treat full model as model name
-        # and look it up in config
+        # and look it up across all providers
         candidate_providers = []
+        candidate_keys: dict[str, str] = {}  # provider -> key
         for provider_name, models in provider_models.items():
-            if model in models:
+            key = _find_model_key(models, model)
+            if key is not None:
                 candidate_providers.append(provider_name)
+                candidate_keys[provider_name] = key
 
         if len(candidate_providers) == 0:
             # Model not found in config; return as-is
             return model
         elif len(candidate_providers) == 1:
             # Unambiguous lookup
-            return f"{candidate_providers[0]}/{model}"
+            return f"{candidate_providers[0]}/{candidate_keys[candidate_providers[0]]}"
         else:
             # Ambiguous lookup - raise error with available providers
             raise _Error(
@@ -243,28 +299,22 @@ def _resolve_kilo_model(model: str) -> str:
                 "Please disambiguate by specifying one of these providers as a prefix."
             )
 
-    # Model has no prefix - look it up directly in config
+    # Model has no prefix - look it up directly across all providers
     candidate_providers = []
-    candidate_full_names: dict[str, str] = {}  # provider -> full_name
+    candidate_keys = {}  # provider -> key
 
     for provider_name, models in provider_models.items():
-        for full_name in models.keys():
-            # Extract short name (after first "/")
-            if "/" in full_name:
-                short_name = full_name.split("/", 1)[1]
-            else:
-                short_name = full_name
-
-            if short_name == model:
-                candidate_providers.append(provider_name)
-                candidate_full_names[provider_name] = full_name
+        key = _find_model_key(models, model)
+        if key is not None:
+            candidate_providers.append(provider_name)
+            candidate_keys[provider_name] = key
 
     if len(candidate_providers) == 0:
         # Model not found in config; return as-is
         return model
     elif len(candidate_providers) == 1:
         # Unambiguous lookup
-        return f"{candidate_providers[0]}/{candidate_full_names[candidate_providers[0]]}"
+        return f"{candidate_providers[0]}/{candidate_keys[candidate_providers[0]]}"
     else:
         # Ambiguous lookup - raise error with available providers
         raise _Error(
@@ -1201,17 +1251,13 @@ def _edit(text: str) -> str:
 def _confirm(prompt: str) -> bool:
     """Prompt for y/N, opening /dev/tty if stdin is a pipe."""
     try:
-        with contextlib.ExitStack() as stack:
-            if sys.stdin.isatty():
-                source = sys.stdin
-            else:
-                # enter_context registers the file's __exit__ on the stack, so
-                # the file is closed automatically when the `with` block exits.
-                # codeql[py/file-not-closed]
-                source = stack.enter_context(open("/dev/tty", encoding="utf-8"))  # noqa: SIM115
-            print(f"{prompt} [y/N] ", end="", flush=True)
-            reply = source.readline().strip().lower()
-            return reply in ("y", "yes")
+        print(f"{prompt} [y/N] ", end="", flush=True)
+        if sys.stdin.isatty():
+            reply = sys.stdin.readline().strip().lower()
+        else:
+            with open("/dev/tty", encoding="utf-8") as source:
+                reply = source.readline().strip().lower()
+        return reply in ("y", "yes")
     except (EOFError, KeyboardInterrupt, OSError):
         print()
         return False
@@ -1467,6 +1513,7 @@ def main() -> None:
         return
 
     if args.edit:
+        # Open editor automatically and bypass confirmation.
         try:
             message = _edit(message)
         except _Error as exc:
@@ -1478,10 +1525,33 @@ def main() -> None:
         _print_rule(message)
     else:
         _print_rule(message)
-
-    if not args.yes and not _confirm("Commit with this message?"):
-        print("Aborted.", file=sys.stderr)
-        sys.exit(0)
+        if not args.yes:
+            # Prompt user with extended options: yes, no, edit.
+            print("Commit with this message? [y/N/e] ", end="", flush=True)
+            try:
+                if sys.stdin.isatty():
+                    reply = sys.stdin.readline().strip().lower()
+                else:
+                    with open("/dev/tty", encoding="utf-8") as source:
+                        reply = source.readline().strip().lower()
+            except (EOFError, KeyboardInterrupt, OSError):
+                print()
+                reply = ""
+            if reply in ("y", "yes"):
+                pass  # proceed to commit
+            elif reply in ("e", "edit"):
+                try:
+                    message = _edit(message)
+                except _Error as exc:
+                    print(f"git-ai-commit: {exc}", file=sys.stderr)
+                    sys.exit(1)
+                if not message.strip():
+                    print("Empty message — aborting.", file=sys.stderr)
+                    sys.exit(0)
+                _print_rule(message)
+            else:
+                print("Aborted.", file=sys.stderr)
+                sys.exit(0)
 
     cmd = ["git", "commit"]
     if args.amend:

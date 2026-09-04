@@ -61,14 +61,13 @@ namespace {
       }
       return bundles;
     }
-    index_generator indices() override { co_return; }
   };
 }
 
 TEST_CASE("Output data products", "[graph]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", 1u});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

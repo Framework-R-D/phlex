@@ -106,10 +106,11 @@ running \fBgit commit\fR.  Useful for scripting or inspection.
 Skip the interactive confirmation prompt and commit immediately.
 .TP
 \fB\-e\fR, \fB\-\-edit\fR
-Open the generated message in \fB$EDITOR\fR (falling back to \fB$VISUAL\fR,
-then \fBvi\fR) before committing.  Lines beginning with \fB#\fR are stripped.
-An empty message aborts the commit.  If standard input is a terminal, \fB$VISUAL\fR is
-preferred over \fB$EDITOR\fR; otherwise, \fB$EDITOR\fR is preferred.
+Open the generated message in \fB$VISUAL\fR (if standard input is a terminal and
+\fB$VISUAL\fR is set), otherwise \fB$EDITOR\fR, with \fBvi\fR as fallback, before
+committing.  Lines beginning with \fB#\fR are stripped from the edited message.
+An empty edited message aborts the commit.  Typing \fBe\fR at the confirmation
+prompt triggers the same editor flow.
 .TP
 \fB\-\-no\-instructions\fR
 Skip all instruction and context files; include only the diff, status,
@@ -195,9 +196,9 @@ Deprecated.  Use \fBGIT_AI_COMMIT_API\fR instead.
 Deprecated.  Use \fBGIT_AI_COMMIT_MODEL\fR instead.
 .TP
 \fBEDITOR\fR, \fBVISUAL\fR
-Editor invoked by \fB\-\-edit\fR.  Preferred order depends on whether standard
-input is a terminal: \fB$VISUAL\fR then \fB$EDITOR\fR for terminals, \fB$EDITOR\fR
-then \fB$VISUAL\fR otherwise; \fBvi\fR is the final fallback.
+Editor invoked by \fB\-\-edit\fR.  \fB$VISUAL\fR is preferred on a TTY (when standard
+input is a terminal and \fB$VISUAL\fR is set), otherwise \fB$EDITOR\fR is used;
+\fBvi\fR is the final fallback when neither is set.
 .SH EXAMPLES
 Stage all changes and commit with a generated message, confirming interactively:
 .PP

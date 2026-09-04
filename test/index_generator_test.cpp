@@ -1,5 +1,5 @@
-#include "phlex/model/index_generator.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/index_generator.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 
@@ -8,6 +8,8 @@
 using namespace phlex;
 
 namespace {
+  // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
+  // NOLINTNEXTLINE(readability-static-accessed-through-instance)
   index_generator make_indices()
   {
     auto job = data_cell_index::job();

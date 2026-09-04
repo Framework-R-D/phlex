@@ -59,13 +59,13 @@ namespace {
     return current;
   }
 
-  class FormInputSource : public phlex::source {
+  class form_input_source : public phlex::source {
   public:
-    FormInputSource(form::experimental::config::ItemConfig const& input_cfg,
-                    form::experimental::config::tech_setting_config const& tech_cfg,
-                    std::string actual_creator,
-                    std::string advertised_creator,
-                    std::vector<std::string> const& products) :
+    form_input_source(form::experimental::config::item_config const& input_cfg,
+                      form::experimental::config::tech_setting_config const& tech_cfg,
+                      std::string actual_creator,
+                      std::string advertised_creator,
+                      std::vector<std::string> const& products) :
       reader_(std::make_shared<form::experimental::form_reader_interface>(input_cfg, tech_cfg)),
       actual_creator_(std::move(actual_creator)),
       advertised_creator_(std::move(advertised_creator)),
@@ -124,6 +124,8 @@ namespace {
     }
 
     // TODO: replace with per-container index lookup driven by metadata payload.
+    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     phlex::index_generator indices() override
     {
       if (products_.empty()) {
@@ -143,7 +145,8 @@ namespace {
       form::experimental::form_source_type_entry const* entry =
         form::experimental::find_form_product_type(product_type);
       if (entry && entry->cpp_type && entry->product_from_data_fn) {
-        form::experimental::product_with_name pb{product_name, nullptr, entry->cpp_type};
+        form::experimental::product_with_name pb{
+          .label = product_name, .data = nullptr, .type = entry->cpp_type};
         reader_->read(creator, index_str, pb);
         return entry->product_from_data_fn(pb.data, product_name, index_str);
       }
@@ -177,14 +180,14 @@ PHLEX_REGISTER_SOURCE(s, config)
 
   auto const technology = form::technology::from_string(tech_string);
 
-  form::experimental::config::ItemConfig input_cfg;
+  form::experimental::config::item_config input_cfg;
   form::experimental::config::tech_setting_config tech_cfg;
   for (auto const& name : products) {
-    input_cfg.addItem(name, input_file, technology);
+    input_cfg.add_item(name, input_file, technology);
   }
 
   // Register the source object with Phlex
-  s.add_source<FormInputSource>(
+  s.add_source<form_input_source>(
     module_label, input_cfg, tech_cfg, actual_creator, advertised_creator, products);
 
   std::cout << "FORM input source registered successfully\n";

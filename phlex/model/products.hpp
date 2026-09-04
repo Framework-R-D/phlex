@@ -5,9 +5,12 @@
 
 #include "phlex/model/product_specification.hpp"
 
+#include <gsl/pointers>
+
 #include <cassert>
 #include <concepts>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <typeinfo>
 #include <utility>
@@ -46,7 +49,10 @@ namespace phlex::detail {
   product_ptr product_for(T&& t)
   {
     if constexpr (std::convertible_to<T, product_ptr>) {
-      return std::forward<T>(t);
+      if (auto product = product_ptr{std::forward<T>(t)}) {
+        return product;
+      }
+      throw std::runtime_error("Cannot store a null product pointer.");
     } else {
       return std::make_unique<product<std::remove_cvref_t<T>>>(std::forward<T>(t));
     }
@@ -87,9 +93,9 @@ namespace phlex::detail {
     template <typename T>
     T const& get(product_specification const& spec) const
     {
-      auto const* available_product = find_product(spec);
+      auto const available_product = find_product(spec);
 
-      if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product)) {
+      if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product.get())) {
         return desired_product->obj;
       }
 
@@ -102,7 +108,9 @@ namespace phlex::detail {
     bool empty() const noexcept;
 
   private:
-    product_base const* find_product(product_specification const& spec) const;
+    // Throws if no product matches the specification; the returned pointer is therefore
+    // never null.
+    gsl::not_null<product_base const*> find_product(product_specification const& spec) const;
     static void throw_mismatched_type [[noreturn]] (product_specification const& spec,
                                                     char const* requested_type,
                                                     char const* available_type);

@@ -82,10 +82,10 @@ namespace phlex::detail {
   };
 
   template <typename T>
-  class is_tuple : public std::false_type {};
+  struct is_tuple : std::false_type {};
 
   template <typename... Ts>
-  class is_tuple<std::tuple<Ts...>> : public std::true_type {};
+  struct is_tuple<std::tuple<Ts...>> : std::true_type {};
 
   // void_tag is a type used to represent the absence of a bound object in template contexts.
   //

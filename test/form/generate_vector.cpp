@@ -10,27 +10,27 @@
 
 using namespace phlex;
 
-//A GaussianGenerator generates a vector<int> sampled from a Gaussian distribution
-class GaussianGenerator {
+//A gaussian_generator generates a vector<int> sampled from a Gaussian distribution
+class gaussian_generator {
 public:
-  GaussianGenerator(int const n_time_ticks, int const seed, float const mean, float const stddev) :
-    m_n_time_ticks(n_time_ticks), m_gen(seed), m_dist(mean, stddev)
+  gaussian_generator(int const n_time_ticks, int const seed, float const mean, float const stddev) :
+    n_time_ticks_(n_time_ticks), gen_(seed), dist_(mean, stddev)
   {
   }
 
   std::vector<int> operator()([[maybe_unused]] data_cell_index const& idx)
   {
-    std::vector<int> randoms(m_n_time_ticks);
+    std::vector<int> randoms(n_time_ticks_);
     for (auto& random : randoms) {
-      random = static_cast<int>(m_dist(m_gen));
+      random = static_cast<int>(dist_(gen_));
     }
     return randoms;
   }
 
 private:
-  int m_n_time_ticks;
-  std::mt19937 m_gen;
-  std::normal_distribution<float> m_dist;
+  int n_time_ticks_;
+  std::mt19937 gen_;
+  std::normal_distribution<float> dist_;
 };
 
 PHLEX_REGISTER_PROVIDERS(graph, config)
@@ -42,8 +42,8 @@ PHLEX_REGISTER_PROVIDERS(graph, config)
   auto const stddev = config.get<float>("stddev", 1);
   auto creator = config.get<std::string>("creator");
 
-  graph.make<GaussianGenerator>(n_time_ticks, seed, mean, stddev)
-    .provide("random_wires", &GaussianGenerator::operator())
+  graph.make<gaussian_generator>(n_time_ticks, seed, mean, stddev)
+    .provide("random_wires", &gaussian_generator::operator())
     .output_product(
       creator, phlex::experimental::identifier(creator), phlex::experimental::identifier("event"));
 }

@@ -109,7 +109,7 @@ namespace phlex {
     template <typename C, typename T>
       requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_selector> &&
                phlex::detail::is_tuple<T>::value
-    class product_selectors_type_setter {};
+    struct product_selectors_type_setter {};
     template <typename C, typename... Ts>
     class product_selectors_type_setter<C, std::tuple<Ts...>> {
     private:

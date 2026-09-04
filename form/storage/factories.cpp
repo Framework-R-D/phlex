@@ -24,42 +24,42 @@
 
 namespace form::detail::experimental {
 
-  using Major = form::technology::Major;
+  using major = form::technology::major;
 
-  std::shared_ptr<IStorage_File> createFile(form::technology::Id tech,
-                                            std::string const& name,
-                                            char mode)
+  std::shared_ptr<i_storage_file> create_file(form::technology::id tech,
+                                              std::string const& name,
+                                              char mode)
   {
     switch (tech.major) {
-    case Major::generic:
+    case major::generic:
       // No technology specified: generic storage.
-      return std::make_shared<Storage_File>(name, mode);
-    case Major::root:
+      return std::make_shared<storage_file>(name, mode);
+    case major::root:
 #ifdef USE_ROOT_STORAGE
-      return std::make_shared<ROOT_TFileImp>(name, mode);
+      return std::make_shared<root_tfile_imp>(name, mode);
 #else
       throw std::runtime_error("FORM: ROOT support is not compiled into this build");
 #endif
-    case Major::hdf5:
+    case major::hdf5:
       throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
     throw std::runtime_error("FORM: unsupported storage technology requested");
   }
 
-  std::shared_ptr<IStorage_Write_Container> createWriteAssociation(form::technology::Id tech,
-                                                                   std::string const& name)
+  std::shared_ptr<i_storage_write_container> create_write_association(form::technology::id tech,
+                                                                      std::string const& name)
   {
     switch (tech.major) {
-    case Major::generic:
+    case major::generic:
       // No technology specified: generic storage.
-      return std::make_shared<Storage_Write_Association>(name);
-    case Major::root:
+      return std::make_shared<storage_write_association>(name);
+    case major::root:
 #ifdef USE_ROOT_STORAGE
-      if (tech == form::technology::ROOT_TTREE) {
-        return std::make_shared<ROOT_TTree_Write_ContainerImp>(name);
-      } else if (tech == form::technology::ROOT_RNTUPLE) {
+      if (tech == form::technology::root_ttree) {
+        return std::make_shared<root_ttree_write_container_imp>(name);
+      } else if (tech == form::technology::root_rntuple) {
 #ifdef USE_RNTUPLE_STORAGE
-        return std::make_shared<ROOT_RNTuple_Write_ContainerImp>(name);
+        return std::make_shared<root_rntuple_write_container_imp>(name);
 #else
         throw std::runtime_error("FORM: ROOT RNTUPLE support is not compiled into this build");
 #endif
@@ -69,26 +69,26 @@ namespace form::detail::experimental {
 #else
       throw std::runtime_error("FORM: ROOT support is not compiled into this build");
 #endif
-    case Major::hdf5:
+    case major::hdf5:
       throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
     throw std::runtime_error("FORM: unsupported storage technology requested");
   }
 
-  std::shared_ptr<IStorage_Read_Container> createReadContainer(form::technology::Id tech,
-                                                               std::string const& name)
+  std::shared_ptr<i_storage_read_container> create_read_container(form::technology::id tech,
+                                                                  std::string const& name)
   {
     switch (tech.major) {
-    case Major::generic:
+    case major::generic:
       // No technology specified: generic storage.
-      return std::make_shared<Storage_Read_Container>(name);
-    case Major::root:
+      return std::make_shared<storage_read_container>(name);
+    case major::root:
 #ifdef USE_ROOT_STORAGE
-      if (tech == form::technology::ROOT_TTREE) {
-        return std::make_shared<ROOT_TBranch_Read_ContainerImp>(name);
-      } else if (tech == form::technology::ROOT_RNTUPLE) {
+      if (tech == form::technology::root_ttree) {
+        return std::make_shared<root_tbranch_read_container_imp>(name);
+      } else if (tech == form::technology::root_rntuple) {
 #ifdef USE_RNTUPLE_STORAGE
-        return std::make_shared<ROOT_RField_Read_ContainerImp>(name);
+        return std::make_shared<root_rfield_read_container_imp>(name);
 #else
         throw std::runtime_error("FORM: ROOT RNTUPLE support is not compiled into this build");
 #endif
@@ -98,26 +98,26 @@ namespace form::detail::experimental {
 #else
       throw std::runtime_error("FORM: ROOT support is not compiled into this build");
 #endif
-    case Major::hdf5:
+    case major::hdf5:
       throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
     throw std::runtime_error("FORM: unsupported storage technology requested");
   }
 
-  std::shared_ptr<IStorage_Write_Container> createWriteContainer(form::technology::Id tech,
-                                                                 std::string const& name)
+  std::shared_ptr<i_storage_write_container> create_write_container(form::technology::id tech,
+                                                                    std::string const& name)
   {
     switch (tech.major) {
-    case Major::generic:
+    case major::generic:
       // No technology specified: generic storage.
-      return std::make_shared<Storage_Write_Container>(name);
-    case Major::root:
+      return std::make_shared<storage_write_container>(name);
+    case major::root:
 #ifdef USE_ROOT_STORAGE
-      if (tech == form::technology::ROOT_TTREE) {
-        return std::make_shared<ROOT_TBranch_Write_ContainerImp>(name);
-      } else if (tech == form::technology::ROOT_RNTUPLE) {
+      if (tech == form::technology::root_ttree) {
+        return std::make_shared<root_tbranch_write_container_imp>(name);
+      } else if (tech == form::technology::root_rntuple) {
 #ifdef USE_RNTUPLE_STORAGE
-        return std::make_shared<ROOT_RField_Write_ContainerImp>(name);
+        return std::make_shared<root_rfield_write_container_imp>(name);
 #else
         throw std::runtime_error("FORM: ROOT RNTUPLE support is not compiled into this build");
 #endif
@@ -127,7 +127,7 @@ namespace form::detail::experimental {
 #else
       throw std::runtime_error("FORM: ROOT support is not compiled into this build");
 #endif
-    case Major::hdf5:
+    case major::hdf5:
       throw std::runtime_error("FORM: HDF5 storage is recognized but not yet implemented");
     }
     throw std::runtime_error("FORM: unsupported storage technology requested");

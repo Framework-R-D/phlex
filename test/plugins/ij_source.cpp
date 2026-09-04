@@ -3,9 +3,8 @@
 using namespace phlex;
 
 namespace {
-  class signed_value_provider {
-  public:
-    int provide_i(data_cell_index const& id) const { return static_cast<int>(id.number()); }
+  struct signed_value_provider {
+    static int provide_i(data_cell_index const& id) { return static_cast<int>(id.number()); }
   };
 }
 

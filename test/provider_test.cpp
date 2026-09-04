@@ -12,15 +12,15 @@ using namespace phlex;
 using Catch::Matchers::ContainsSubstring;
 
 namespace toy {
-  struct VertexCollection {
+  struct vertex_collection {
     std::size_t data;
   };
-  auto make_collection(std::size_t i) { return VertexCollection{i}; }
+  auto make_collection(std::size_t i) { return vertex_collection{i}; }
 }
 
 namespace {
   // Provider algorithms
-  toy::VertexCollection give_me_vertices(data_cell_index const& id)
+  toy::vertex_collection give_me_vertices(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices: {}", id.number());
     return toy::make_collection(id.number());
@@ -30,7 +30,7 @@ namespace {
   detail::product_ptr give_me_vertices_erased(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices_erased: {}", id.number());
-    return std::make_unique<detail::product<toy::VertexCollection>>(
+    return std::make_unique<detail::product<toy::vertex_collection>>(
       toy::make_collection(id.number()));
   }
 
@@ -45,7 +45,7 @@ namespace {
       std::string const layer = "spill";
       std::string const stage = "previous_process";
       product_specification spec{
-        "vertices_maker", "happy_vertices", make_type_id<toy::VertexCollection>()};
+        "vertices_maker", "happy_vertices", make_type_id<toy::vertex_collection>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
         bundles.push_back(
@@ -67,10 +67,9 @@ namespace {
       }
       return bundles;
     }
-    index_generator indices() override { co_return; }
   };
 
-  unsigned pass_on(toy::VertexCollection const& vertices) { return vertices.data; }
+  unsigned pass_on(toy::vertex_collection const& vertices) { return vertices.data; }
 }
 
 TEST_CASE("Explicit providers")
@@ -78,7 +77,7 @@ TEST_CASE("Explicit providers")
   constexpr auto num_spills{3u};
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", num_spills, 1u});
+  gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -91,7 +90,7 @@ TEST_CASE("Explicit providers")
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.observe(
      "verify_explicit_stage",
-     [](handle<toy::VertexCollection> h) { CHECK(h.stage() == "CURRENT"); },
+     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "CURRENT"); },
      concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
@@ -107,7 +106,7 @@ TEST_CASE("Implicit providers")
   constexpr auto num_spills{3u};
 
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", num_spills, 1u});
+  gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);
@@ -119,7 +118,7 @@ TEST_CASE("Implicit providers")
 
   g.observe(
      "verify_implicit_stage",
-     [](handle<toy::VertexCollection> h) { CHECK(h.stage() == "previous_process"); },
+     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "previous_process"); },
      concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
@@ -178,7 +177,7 @@ TEST_CASE("Throw when two implicit providers are found for the same product")
 TEST_CASE("Throw when implicit provider insertion fails")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("spill", {"job", 1u});
+  gen->add_layer("spill", {.parent_layer = "job", .count = 1u});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(std::move(gen));

@@ -38,7 +38,7 @@ namespace phlex::experimental::test {
   using ensure_tuple = ensure_tuple_impl<Ts...>::type;
 
   template <typename Input, std::default_initializable Outputs>
-  class algorithm {};
+  struct algorithm {};
 
   template <typename... Inputs, std::default_initializable Outputs>
   class algorithm<std::tuple<Inputs...>, Outputs> {

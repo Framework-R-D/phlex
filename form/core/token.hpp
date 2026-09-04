@@ -5,39 +5,50 @@
 
 #include "core/technology.hpp"
 
+#include <cstdint>
 #include <string>
 
-/* @class Token
+/* @class token
  * @brief This class holds all the necessary information for reading of an object from a physical file.
  */
 namespace form::detail::experimental {
-  class Token {
+  class token {
   public:
-    /// Default constructor; delegates to the named constructor so the -1 sentinel for id is defined once
-    Token() : Token("", "", {}) {}
+    /// Default constructor; a token with no id set (delegates to the placement-only constructor)
+    token() : token("", "", {}) {}
 
-    /// Named constructor; id defaults to -1 as a "not set" sentinel
-    Token(std::string fileName, std::string containerName, technology::Id technology, int id = -1);
+    /// placement-only constructor; leaves the id unset (has_id() == false)
+    token(std::string file_name, std::string container_name, technology::id technology);
+
+    /// Fully-specified constructor; sets the 0-based row/entry id (has_id() == true)
+    token(std::string file_name,
+          std::string container_name,
+          technology::id technology,
+          std::uint64_t id);
 
     /// Access file name
-    std::string const& fileName() const;
+    std::string const& file_name() const;
     /// Access container name
-    std::string const& containerName() const;
+    std::string const& container_name() const;
     /// Access technology type
-    technology::Id technology() const;
+    technology::id technology() const;
 
-    /// Access identifier/entry number
-    int id() const;
+    /// Access identifier/entry number (0-based row). Only meaningful when has_id() is true.
+    std::uint64_t id() const;
+    /// Whether an id has been set on this token
+    bool has_id() const;
 
   private:
     /// Technology identifier
-    technology::Id m_technology;
+    technology::id technology_;
     /// File name
-    std::string m_fileName;
+    std::string file_name_;
     /// Container name
-    std::string m_containerName;
-    /// Identifier/entry number
-    int m_id;
+    std::string container_name_;
+    /// Identifier/entry number (0-based row)
+    std::uint64_t id_;
+    /// Whether id_ holds a valid, set value
+    bool has_id_;
   };
 } // namespace form::detail::experimental
 #endif // FORM_CORE_TOKEN_HPP

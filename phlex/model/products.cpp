@@ -17,7 +17,7 @@ namespace phlex::detail {
   products::size_type products::size() const noexcept { return products_.size(); }
   bool products::empty() const noexcept { return products_.empty(); }
 
-  product_base const* products::find_product(product_specification const& spec) const
+  gsl::not_null<product_base const*> products::find_product(product_specification const& spec) const
   {
     auto it =
       std::ranges::find(products_, spec, [](auto const& p) -> auto const& { return p.first; });

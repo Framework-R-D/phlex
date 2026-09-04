@@ -45,14 +45,14 @@ void* phlex::experimental::dcarg::value_ptr()
 {
   return std::visit(
     [](auto& val) -> void* {
-      using T = std::decay_t<decltype(val)>;
-      if constexpr (std::is_same_v<T, std::monostate>) {
+      using type = std::decay_t<decltype(val)>;
+      if constexpr (std::is_same_v<type, std::monostate>) {
         return nullptr;
       } else {
         return static_cast<void*>(&val);
       }
     },
-    m_value);
+    value);
 }
 
 namespace {
@@ -60,43 +60,43 @@ namespace {
   {
     return std::visit(
       [](auto&& val) -> ffi_type* {
-        using T = std::decay_t<decltype(val)>;
+        using type = std::decay_t<decltype(val)>;
 
         // there are duplicate bodies here b/c bool is represented by uint8,
         // just as uint8 is, there being no bool in C; the code is cleaner
         // with each type on its own line, however, rather than combining the
         // two in a single predicate as a special case
         // NOLINTBEGIN(bugprone-branch-clone)
-        if constexpr (std::is_same_v<T, std::monostate>) {
+        if constexpr (std::is_same_v<type, std::monostate>) {
           return &ffi_type_void;
-        } else if constexpr (std::is_same_v<T, void*>) {
+        } else if constexpr (std::is_same_v<type, void*>) {
           return &ffi_type_pointer;
-        } else if constexpr (std::is_same_v<T, bool>) {
+        } else if constexpr (std::is_same_v<type, bool>) {
           return &ffi_type_uint8;
-        } else if constexpr (std::is_same_v<T, std::int8_t>) {
+        } else if constexpr (std::is_same_v<type, std::int8_t>) {
           return &ffi_type_sint8;
-        } else if constexpr (std::is_same_v<T, std::uint8_t>) {
+        } else if constexpr (std::is_same_v<type, std::uint8_t>) {
           return &ffi_type_uint8;
-        } else if constexpr (std::is_same_v<T, std::int16_t>) {
+        } else if constexpr (std::is_same_v<type, std::int16_t>) {
           return &ffi_type_sint16;
-        } else if constexpr (std::is_same_v<T, std::uint16_t>) {
+        } else if constexpr (std::is_same_v<type, std::uint16_t>) {
           return &ffi_type_uint16;
-        } else if constexpr (std::is_same_v<T, std::int32_t>) {
+        } else if constexpr (std::is_same_v<type, std::int32_t>) {
           return &ffi_type_sint32;
-        } else if constexpr (std::is_same_v<T, std::uint32_t>) {
+        } else if constexpr (std::is_same_v<type, std::uint32_t>) {
           return &ffi_type_uint32;
-        } else if constexpr (std::is_same_v<T, ph_long_t>) {
+        } else if constexpr (std::is_same_v<type, ph_long_t>) {
           return &ffi_type_sint64;
-        } else if constexpr (std::is_same_v<T, ph_ulong_t>) {
+        } else if constexpr (std::is_same_v<type, ph_ulong_t>) {
           return &ffi_type_uint64;
-        } else if constexpr (std::is_same_v<T, float>) {
+        } else if constexpr (std::is_same_v<type, float>) {
           return &ffi_type_float;
-        } else if constexpr (std::is_same_v<T, double>) {
+        } else if constexpr (std::is_same_v<type, double>) {
           return &ffi_type_double;
         }
         // NOLINTEND(bugprone-branch-clone)
       },
-      d.m_value);
+      d.value);
   }
 }
 

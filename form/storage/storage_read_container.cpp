@@ -5,41 +5,42 @@
 
 using namespace form::detail::experimental;
 
-Storage_Read_Container::Storage_Read_Container(std::string const& name) :
-  m_name(name), m_file(nullptr)
+storage_read_container::storage_read_container(std::string const& name) :
+  name_(name), file_(nullptr)
 {
   auto del_pos = name.find('/');
   if (del_pos != std::string::npos) {
-    m_tName = name.substr(0, del_pos);
-    m_cName = name.substr(del_pos + 1);
+    t_name_ = name.substr(0, del_pos);
+    c_name_ = name.substr(del_pos + 1);
   } else {
-    m_tName = name;
-    m_cName = "Main";
+    t_name_ = name;
+    c_name_ = "Main";
   }
 }
 
-std::string const& Storage_Read_Container::name() { return m_name; }
+std::string const& storage_read_container::name() { return name_; }
 
-std::string const& Storage_Read_Container::top_name() { return m_tName; }
+std::string const& storage_read_container::top_name() { return t_name_; }
 
-std::string const& Storage_Read_Container::col_name() { return m_cName; }
+std::string const& storage_read_container::col_name() { return c_name_; }
 
-void Storage_Read_Container::setFile(std::shared_ptr<IStorage_File> file) { m_file = file; }
+void storage_read_container::set_file(std::shared_ptr<i_storage_file> file) { file_ = file; }
 
-void Storage_Read_Container::prime(std::type_info const& /*type*/) {}
+void storage_read_container::prime(std::type_info const& /*type*/) {}
 
-bool Storage_Read_Container::read(int /* id*/,
+bool storage_read_container::read(int /* id*/,
                                   void const** /*data*/,
                                   std::type_info const& /* type*/)
 {
   return false;
 }
 
-int Storage_Read_Container::entries() { return 0; }
+int storage_read_container::entries() { return 0; }
 
-void Storage_Read_Container::setAttribute(std::string const& /*name*/, std::string const& /*value*/)
+void storage_read_container::set_attribute(std::string const& /*name*/,
+                                           std::string const& /*value*/)
 {
   throw std::runtime_error(
-    "Storage_Read_Container::setAttribute does not accept any attributes for a container named " +
-    m_name);
+    "storage_read_container::set_attribute does not accept any attributes for a container named " +
+    name_);
 }

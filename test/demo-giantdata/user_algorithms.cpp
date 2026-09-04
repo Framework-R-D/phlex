@@ -6,10 +6,10 @@
 
 // This function is used to transform an input Waveforms object into an
 // output Waveforms object. The output is a clamped version of the input.
-demo::Waveforms demo::clampWaveforms(demo::Waveforms const& input)
+demo::waveforms demo::clamp_waveforms(demo::waveforms const& input)
 {
-  demo::Waveforms result(input);
-  for (demo::Waveform& wf : result.waveforms) {
+  demo::waveforms result(input);
+  for (demo::waveform& wf : result.data) {
     for (double& x : wf.samples) {
       x = std::clamp(x, -10.0, 10.0);
     }
@@ -18,11 +18,11 @@ demo::Waveforms demo::clampWaveforms(demo::Waveforms const& input)
 }
 
 // This is the fold operator that will accumulate a SummedClampedWaveforms object.
-void demo::accumulateSCW(demo::SummedClampedWaveforms& accumulator, demo::Waveforms const& wf)
+void demo::accumulate_scw(demo::summed_clamped_waveforms& accumulator, demo::waveforms const& wf)
 {
   // This is the fold operator that will accumulate a SummedClampedWaveforms object.
   accumulator.size += wf.size();
-  for (auto const& w : wf.waveforms) {
+  for (auto const& w : wf.data) {
     for (double x : w.samples) {
       accumulator.sum += x;
     }

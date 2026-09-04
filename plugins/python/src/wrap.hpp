@@ -32,7 +32,7 @@ namespace phlex::experimental {
   PyObject* wrap_configuration(configuration const& config); // returns new reference
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern PyTypeObject PhlexConfig_Type;
+  extern PyTypeObject phlex_config_type;
   struct py_config_map;
 
   // Phlex' module wrapper to register algorithms
@@ -40,7 +40,7 @@ namespace phlex::experimental {
   PyObject* wrap_module(phlex_module_t const& mod); // returns new reference
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern PyTypeObject PhlexModule_Type;
+  extern PyTypeObject phlex_module_type;
   struct py_phlex_module;
 
   // Phlex' source wrapper to register providers
@@ -48,24 +48,24 @@ namespace phlex::experimental {
   PyObject* wrap_source(phlex_source_t const& source); // returns new reference
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern PyTypeObject PhlexSource_Type;
+  extern PyTypeObject phlex_source_type;
   struct py_phlex_source;
 
   // Python wrapper for data cell indices (returns a new reference)
   PyObject* wrap_dci(data_cell_index const& dci);
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern PyTypeObject PhlexDataCellIndex_Type;
+  extern PyTypeObject phlex_data_cell_index_type;
 
   // Python wrapper for Phlex handles
   // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern PyTypeObject PhlexLifeline_Type;
+  extern PyTypeObject phlex_lifeline_type;
   // clang-format off
   struct py_lifeline {
     PyObject_HEAD
-    PyObject* m_view;
-    std::shared_ptr<void> m_source;
+    PyObject* view;
+    std::shared_ptr<void> source;
   };
   using py_lifeline_t = py_lifeline;
   // clang-format on
@@ -74,16 +74,16 @@ namespace phlex::experimental {
   bool msg_from_py_error(std::string& msg, bool check_error = false);
 
   // RAII helper for GIL handling
-  class PyGILRAII {
-    PyGILState_STATE m_GILState;
+  class py_gilraii {
+    PyGILState_STATE gil_state_;
 
   public:
-    PyGILRAII() : m_GILState(PyGILState_Ensure()) {}
-    ~PyGILRAII() { PyGILState_Release(m_GILState); }
-    PyGILRAII(PyGILRAII const&) = delete;
-    PyGILRAII& operator=(PyGILRAII const&) = delete;
-    PyGILRAII(PyGILRAII&&) = delete;
-    PyGILRAII& operator=(PyGILRAII&&) = delete;
+    py_gilraii() : gil_state_(PyGILState_Ensure()) {}
+    ~py_gilraii() { PyGILState_Release(gil_state_); }
+    py_gilraii(py_gilraii const&) = delete;
+    py_gilraii& operator=(py_gilraii const&) = delete;
+    py_gilraii(py_gilraii&&) = delete;
+    py_gilraii& operator=(py_gilraii&&) = delete;
   };
 
 } // namespace phlex::experimental

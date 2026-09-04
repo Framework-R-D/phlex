@@ -44,7 +44,7 @@ namespace {
 TEST_CASE("Distinguish products with same name and different types", "[programming model]")
 {
   auto gen = experimental::layer_generator::make();
-  gen->add_layer("event", {"job", 10, 1});
+  gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
 
   auto g = phlex::detail::framework_graph::without_driver();
   g.add_driver(gen);

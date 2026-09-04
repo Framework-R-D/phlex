@@ -10,21 +10,21 @@
 #include <vector>
 
 namespace form::experimental::config {
-  class ItemConfig;
+  class item_config;
   struct tech_setting_config;
 }
 
 namespace form::detail::experimental {
 
-  class IPersistenceReader {
+  class i_persistence_reader {
   public:
-    IPersistenceReader() = default;
-    virtual ~IPersistenceReader() = default;
+    i_persistence_reader() = default;
+    virtual ~i_persistence_reader() = default;
 
-    virtual void configureTechSettings(
+    virtual void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
-    virtual void configure(form::experimental::config::ItemConfig const& configItems) = 0;
+    virtual void configure(form::experimental::config::item_config const& config_items) = 0;
 
     virtual void read(std::string const& creator,
                       std::string const& label,
@@ -36,11 +36,11 @@ namespace form::detail::experimental {
                        std::string const& label,
                        std::type_info const& type) = 0;
 
-    virtual std::vector<std::string> listIndices(std::string const& creator,
-                                                 std::string const& label) = 0;
+    virtual std::vector<std::string> list_indices(std::string const& creator,
+                                                  std::string const& label) = 0;
   };
 
-  std::unique_ptr<IPersistenceReader> createPersistenceReader();
+  std::unique_ptr<i_persistence_reader> create_persistence_reader();
 
 } // namespace form::detail::experimental
 

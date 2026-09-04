@@ -1,4 +1,4 @@
-//A TrackStart is a 3-vector of position components.
+//A track_start is a 3-vector of position components.
 //This is a simple test data product for demonstrating the features of FORM.
 
 #include <iostream>
@@ -6,34 +6,34 @@
 #ifndef TEST_FORM_DATA_PRODUCTS_EXTRA_MEMBER_TRACK_START_HPP
 #define TEST_FORM_DATA_PRODUCTS_EXTRA_MEMBER_TRACK_START_HPP
 
-class TrackStart {
+class track_start {
 public:
-  TrackStart();
-  TrackStart(float x, float y, float z, int index);
-  ~TrackStart() = default;
+  track_start();
+  track_start(float x, float y, float z, int index);
+  ~track_start() = default;
 
-  float getX() const;
-  float getY() const;
-  float getZ() const;
-  int getIndex() const;
+  float get_x() const;
+  float get_y() const;
+  float get_z() const;
+  int get_index() const;
 
-  void setX(float x);
-  void setY(float y);
-  void setZ(float z);
-  void setIndex(int index);
+  void set_x(float x);
+  void set_y(float y);
+  void set_z(float z);
+  void set_index(int index);
 
-  TrackStart operator+(TrackStart const& other) const;
-  TrackStart& operator+=(TrackStart const& other);
-  TrackStart operator-(TrackStart const& other) const;
+  track_start operator+(track_start const& other) const;
+  track_start& operator+=(track_start const& other);
+  track_start operator-(track_start const& other) const;
 
 private:
-  float m_x;
-  float m_y;
-  float m_z;
+  float x_;
+  float y_;
+  float z_;
 
-  int m_index;
+  int index_;
 };
 
-std::ostream& operator<<(std::ostream& os, TrackStart const& track);
+std::ostream& operator<<(std::ostream& os, track_start const& track);
 
 #endif // TEST_FORM_DATA_PRODUCTS_EXTRA_MEMBER_TRACK_START_HPP

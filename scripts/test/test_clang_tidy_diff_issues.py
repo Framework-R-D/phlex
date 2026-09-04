@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # sys.path is set up by scripts/test/conftest.py.
 from clang_tidy_diff_issues import (  # noqa: E402
+    filter_issues,
     filter_new_issues,
     parse_diff,
     parse_log,
@@ -63,6 +64,13 @@ class TestParseDiff:
         """An empty diff produces an empty mapping."""
         assert parse_diff("") == {}
 
+    def test_unchanged_lines_inside_hunk_are_excluded(self) -> None:
+        """Only added lines are tracked when a diff contains context."""
+        diff = (
+            "--- a/foo.cpp\n+++ b/foo.cpp\n@@ -4,3 +4,4 @@\n unchanged\n-old\n+new\n unchanged\n"
+        )
+        assert parse_diff(diff) == {"foo.cpp": {5}}
+
 
 class TestParseLog:
     """Tests for the parse_log function."""
@@ -74,29 +82,6 @@ class TestParseLog:
         issues = parse_log(log)
         assert len(issues) == 1
         assert issues[0] == ("/src/phlex/core/filter.cpp", 42, "warning", "use nullptr")
-
-    def test_modernize_check_ignored(self) -> None:
-        """Issues with a modernize-* check name are excluded."""
-        log = "/src/a.cpp:10:1: warning: use auto [modernize-use-auto]\n"
-        assert parse_log(log) == []
-
-    def test_performance_check_ignored(self) -> None:
-        """Issues with a performance-* check name are excluded."""
-        log = (
-            "/src/a.cpp:5:1: warning: inefficient copy "
-            "[performance-unnecessary-copy-initialization]\n"
-        )
-        assert parse_log(log) == []
-
-    def test_portability_check_ignored(self) -> None:
-        """Issues with a portability-* check name are excluded."""
-        log = "/src/a.cpp:3:1: warning: simd issue [portability-simd-intrinsics]\n"
-        assert parse_log(log) == []
-
-    def test_readability_check_ignored(self) -> None:
-        """Issues with a readability-* check name are excluded."""
-        log = "/src/a.cpp:7:1: warning: use const [readability-const-return-type]\n"
-        assert parse_log(log) == []
 
     def test_non_ignored_check_retained(self) -> None:
         """Issues with a check name not in an ignored category are retained."""
@@ -155,7 +140,16 @@ class TestFilterNewIssues:
     def test_issue_on_added_line_reported(self) -> None:
         """An issue on an added line is included in the output."""
         source_file = f"{self.SOURCE_DIR}/phlex/core/a.cpp"
-        diff = "--- a/phlex/core/a.cpp\n+++ b/phlex/core/a.cpp\n@@ -0,0 +1,5 @@\n+added\n" * 5
+        diff = (
+            "--- a/phlex/core/a.cpp\n"
+            "+++ b/phlex/core/a.cpp\n"
+            "@@ -0,0 +1,5 @@\n"
+            "+line 1\n"
+            "+line 2\n"
+            "+line 3\n"
+            "+line 4\n"
+            "+line 5\n"
+        )
         log = self._log(source_file, 3)
         issues = filter_new_issues(log, diff, self.SOURCE_DIR)
         assert len(issues) == 1
@@ -192,7 +186,21 @@ class TestFilterNewIssues:
     def test_multiple_new_issues(self) -> None:
         """Only issues on added lines are returned; others are excluded."""
         source_file = f"{self.SOURCE_DIR}/phlex/core/a.cpp"
-        diff = "--- a/phlex/core/a.cpp\n+++ b/phlex/core/a.cpp\n@@ -1,0 +1,10 @@\n"
+        diff = (
+            "--- a/phlex/core/a.cpp\n"
+            "+++ b/phlex/core/a.cpp\n"
+            "@@ -1,0 +1,10 @@\n"
+            "+line 1\n"
+            "+line 2\n"
+            "+line 3\n"
+            "+line 4\n"
+            "+line 5\n"
+            "+line 6\n"
+            "+line 7\n"
+            "+line 8\n"
+            "+line 9\n"
+            "+line 10\n"
+        )
         log = (
             self._log(source_file, 2)
             + self._log(source_file, 7)
@@ -202,17 +210,22 @@ class TestFilterNewIssues:
         lines = {ln for _, ln, _, _ in issues}
         assert lines == {2, 7}
 
-    def test_ignored_check_on_added_line_excluded(self) -> None:
-        """Issues with an ignored check name are excluded even on added lines."""
-        source_file = f"{self.SOURCE_DIR}/phlex/core/a.cpp"
-        diff = "--- a/phlex/core/a.cpp\n+++ b/phlex/core/a.cpp\n@@ -0,0 +1,5 @@\n+added\n" * 5
-        ignored_checks = [
-            "modernize-use-auto",
-            "performance-unnecessary-copy-initialization",
-            "portability-simd-intrinsics",
-            "readability-const-return-type",
+
+class TestFilterIssues:
+    """Tests for whole-source diagnostic filtering."""
+
+    def test_all_issues_in_source_tree_are_reported(self) -> None:
+        """Full-scope mode does not require diagnostics to fall in a diff."""
+        source_dir = "/workspace/src"
+        log = (
+            "/workspace/src/phlex/a.cpp:1:1: warning: first [check-one]\n"
+            "/workspace/src/form/b.hpp:2:1: error: second [check-two]\n"
+            "/usr/include/system.h:3:1: warning: external [check-three]\n"
+        )
+
+        issues = filter_issues(log, "", source_dir, all_issues=True)
+
+        assert [(path, line) for path, line, _, _ in issues] == [
+            ("/workspace/src/phlex/a.cpp", 1),
+            ("/workspace/src/form/b.hpp", 2),
         ]
-        for check in ignored_checks:
-            log = f"{source_file}:3:1: warning: msg [{check}]\n"
-            issues = filter_new_issues(log, diff, self.SOURCE_DIR)
-            assert issues == [], f"Expected no issues for ignored check {check!r}"

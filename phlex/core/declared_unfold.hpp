@@ -21,6 +21,7 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <atomic>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <iterator>
@@ -79,6 +80,32 @@ namespace phlex::detail {
   using declared_unfolds = simple_ptr_map<declared_unfold_ptr>;
 
   // =====================================================================================
+
+  // The callable_adapter class template exists to support predicate and unfold functions
+  // that may or may not take the object as the first argument.
+  template <typename Object, typename Callable>
+  class callable_adapter {
+  public:
+    callable_adapter(Object& obj, Callable const& callable) : obj_{obj}, callable_{callable} {}
+
+    template <typename... Args>
+    auto operator()(Args&&... args) const
+      requires(std::invocable<Callable const&, Object&, Args...> ||
+               std::invocable<Callable const&, Args...>)
+    {
+      if constexpr (std::invocable<Callable const&, Object&, Args...>) {
+        return std::invoke(callable_, obj_, std::forward<Args>(args)...);
+      } else {
+        return std::invoke(callable_, std::forward<Args>(args)...);
+      }
+    }
+
+  private:
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    Object& obj_;
+    Callable const& callable_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+  };
 
   template <typename Object, typename Predicate, typename Unfold>
   class unfold_node : public declared_unfold {
@@ -166,15 +193,16 @@ namespace phlex::detail {
       }();
       std::size_t counter = 0;
       auto running_value = obj.initial_value();
-      while (std::invoke(predicate, obj, running_value)) {
+      while (callable_adapter{obj, predicate}(running_value)) {
         products new_products{num_outputs};
-        auto new_id = unfolded_id->make_child(child_layer(), counter);
-        if constexpr (requires { std::invoke(unfold, obj, running_value, *new_id); }) {
-          auto [next_value, prods] = std::invoke(unfold, obj, running_value, *new_id);
+        auto const new_id = unfolded_id->make_child(child_layer(), counter);
+        auto const adapter = callable_adapter{obj, unfold};
+        if constexpr (requires { adapter(running_value, *new_id); }) {
+          auto [next_value, prods] = adapter(running_value, *new_id);
           new_products.add_all(output_, std::move(prods));
           running_value = next_value;
         } else {
-          auto [next_value, prods] = std::invoke(unfold, obj, running_value);
+          auto [next_value, prods] = adapter(running_value);
           new_products.add_all(output_, std::move(prods));
           running_value = next_value;
         }

@@ -9,12 +9,12 @@
 
 namespace form::detail::experimental {
 
-  class Storage_Write_Association : public Storage_Write_Container {
+  class storage_write_association : public storage_write_container {
   public:
-    explicit Storage_Write_Association(std::string const& name);
-    ~Storage_Write_Association() override = default;
+    explicit storage_write_association(std::string const& name);
+    ~storage_write_association() override = default;
 
-    void setAttribute(std::string const& key, std::string const& value) override;
+    void set_attribute(std::string const& key, std::string const& value) override;
   };
 
 } // namespace form::detail::experimental

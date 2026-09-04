@@ -1,11 +1,10 @@
 #include "phlex/core/detail/repeater_node.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
+#include "test/ostream_logger.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_string.hpp"
-#include "spdlog/sinks/ostream_sink.h"
-#include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <atomic>
@@ -60,13 +59,6 @@ namespace {
   private:
     std::vector<message> messages_;
   };
-
-  void use_ostream_logger(std::ostringstream& oss)
-  {
-    auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_mt>(oss);
-    auto ostream_logger = std::make_shared<spdlog::logger>("my_logger", ostream_sink);
-    spdlog::set_default_logger(ostream_logger);
-  }
 
   class repeater_test_fixture {
   public:
@@ -289,7 +281,7 @@ TEST_CASE("Test warning message if there are cached messages", "[multithreading]
 {
   // Setup ostream sink to capture warning message
   std::ostringstream oss;
-  use_ostream_logger(oss);
+  auto logger = phlex::test::use_ostream_logger(oss);
 
   // Below, we want to trigger the destruction of the repeater, which will emit a warning if
   // there are still cached messages that were never flushed. To do this without introducing a

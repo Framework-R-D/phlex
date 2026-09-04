@@ -1,5 +1,5 @@
-#include "phlex/utilities/thread_counter.hpp"
 #include "phlex/utilities/sleep_for.hpp"
+#include "phlex/utilities/thread_counter.hpp"
 
 #include "catch2/catch_all.hpp"
 #include "oneapi/tbb/flow_graph.h"

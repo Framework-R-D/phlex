@@ -39,7 +39,9 @@ namespace form::experimental {
 
     std::scoped_lock lock(form_type_registry_mutex());
     mutable_form_type_registry()[std::move(product_type)] =
-      form_source_type_entry{std::move(type), &cpp_type, std::move(product_from_data_fn)};
+      form_source_type_entry{.type_id = std::move(type),
+                             .cpp_type = &cpp_type,
+                             .product_from_data_fn = std::move(product_from_data_fn)};
   }
 
   // Returns a pointer to the registry entry. The registry is is immutable after the first call to this function.

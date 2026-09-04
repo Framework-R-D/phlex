@@ -15,12 +15,12 @@ namespace {
   }
 }
 
-Storage_Write_Association::Storage_Write_Association(std::string const& name) :
-  Storage_Write_Container::Storage_Write_Container(maybe_remove_suffix(name))
+storage_write_association::storage_write_association(std::string const& name) :
+  storage_write_container::storage_write_container(maybe_remove_suffix(name))
 {
 }
 
-void Storage_Write_Association::setAttribute(std::string const& /*key*/,
-                                             std::string const& /*value*/)
+void storage_write_association::set_attribute(std::string const& /*key*/,
+                                              std::string const& /*value*/)
 {
 }

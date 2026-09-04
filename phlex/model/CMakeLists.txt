@@ -20,6 +20,7 @@ cet_make_library(
   Boost::boost
   spdlog::spdlog
   fmt::fmt
+  Microsoft.GSL::GSL
   PRIVATE
   phlex::utilities
   TBB::tbb

@@ -11,7 +11,7 @@
 
 using namespace phlex::detail;
 
-struct A {
+struct test_struct {
   int a;
   int b;
   char c;
@@ -72,12 +72,12 @@ TEST_CASE("Type ID equality and comparison", "[type_id]")
 
   CHECK(make_type_id<char>() != make_type_id<long>());
   CHECK(make_type_id<int>() == make_type_id<int const&>());
-  CHECK(make_type_id<A>() > make_type_id<bool>());
+  CHECK(make_type_id<test_struct>() > make_type_id<bool>());
 }
 
 TEST_CASE("Type ID children detection", "[type_id]")
 {
-  CHECK(make_type_id<A>().has_children());
+  CHECK(make_type_id<test_struct>().has_children());
   CHECK_FALSE(make_type_id<char>().has_children());
 }
 
@@ -102,6 +102,7 @@ TEST_CASE("Type ID string formatting", "[type_id]")
   CHECK(fmt::format("{}", make_type_id<long double>()) == "long double");
   CHECK(fmt::format("{}", make_type_id<std::vector<float>>()) == "LIST float");
   CHECK(fmt::format("{}", make_type_id<std::vector<unsigned int>>()) == "LIST unsigned int");
-  CHECK(fmt::format("{}", make_type_id<A>()) == "STRUCT {int, int, char, int}");
-  CHECK(fmt::format("{}", make_type_id<std::vector<A>>()) == "LIST STRUCT {int, int, char, int}");
+  CHECK(fmt::format("{}", make_type_id<test_struct>()) == "STRUCT {int, int, char, int}");
+  CHECK(fmt::format("{}", make_type_id<std::vector<test_struct>>()) ==
+        "LIST STRUCT {int, int, char, int}");
 }

@@ -176,10 +176,10 @@ namespace phlex::detail {
     using aggregate_to_plain_tuple_t = aggregate_to_plain_tuple<A>::type;
 
     template <typename T>
-    class is_handle : public std::false_type {};
+    struct is_handle : std::false_type {};
 
     template <typename T>
-    class is_handle<phlex::handle<T>> : public std::true_type {};
+    struct is_handle<phlex::handle<T>> : std::true_type {};
   }
 
   // Forward declaration
@@ -240,20 +240,17 @@ namespace phlex::detail {
 
   namespace internal {
     template <typename T>
-    class tuple_type_ids {
-    public:
+    struct tuple_type_ids {
       static type_ids get() { return {make_type_id<T>()}; }
     };
 
     template <typename... Ts>
-    class tuple_type_ids<std::tuple<Ts...>> {
-    public:
+    struct tuple_type_ids<std::tuple<Ts...>> {
       static type_ids get() { return {make_type_id<Ts>()...}; }
     };
 
     template <typename... Ts>
-    class tuple_type_ids<std::pair<Ts...>> {
-    public:
+    struct tuple_type_ids<std::pair<Ts...>> {
       static type_ids get() { return {make_type_id<Ts>()...}; }
     };
   }

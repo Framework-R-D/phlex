@@ -13,14 +13,14 @@ using namespace form::test;
 int main(int const argc, char const** argv)
 {
   std::string const tech_string = (argc > 1) ? argv[1] : "ROOT_TTREE";
-  auto const technology = getTechnology(tech_string);
+  auto const technology = get_technology(tech_string);
 
-  ToyTracker tracker(4 * 1024);
-  std::vector<TrackStart> const prods = tracker();
+  toy_tracker tracker(4 * 1024);
+  std::vector<track_start> const prods = tracker();
 
-  std::ofstream outFile("form_root_schema_write_log_" + tech_string + ".txt");
+  std::ofstream out_file("form_root_schema_write_log_" + tech_string + ".txt");
   for (auto const& prod : prods) {
-    outFile << prod << '\n';
+    out_file << prod << '\n';
   }
 
   write(technology, prods);

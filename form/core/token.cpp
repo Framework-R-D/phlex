@@ -6,21 +6,36 @@
 
 using namespace form::detail::experimental;
 
-/// Constructor with initialization
-Token::Token(std::string fileName, std::string containerName, technology::Id technology, int id) :
-  m_technology(technology),
-  m_fileName(std::move(fileName)),
-  m_containerName(std::move(containerName)),
-  m_id(id)
+/// placement-only constructor; id is left unset
+token::token(std::string file_name, std::string container_name, technology::id technology) :
+  technology_(technology),
+  file_name_(std::move(file_name)),
+  container_name_(std::move(container_name)),
+  id_(0),
+  has_id_(false)
+{
+}
+
+/// Fully-specified constructor; id is set
+token::token(std::string file_name,
+             std::string container_name,
+             technology::id technology,
+             std::uint64_t id) :
+  technology_(technology),
+  file_name_(std::move(file_name)),
+  container_name_(std::move(container_name)),
+  id_(id),
+  has_id_(true)
 {
 }
 
 /// Access file name
-std::string const& Token::fileName() const { return m_fileName; }
+std::string const& token::file_name() const { return file_name_; }
 /// Access container name
-std::string const& Token::containerName() const { return m_containerName; }
+std::string const& token::container_name() const { return container_name_; }
 /// Access technology type
-form::technology::Id Token::technology() const { return m_technology; }
-/// Set technology type
-/// Access identifier/entry number
-int Token::id() const { return m_id; }
+form::technology::id token::technology() const { return technology_; }
+/// Access identifier/entry number (0-based row)
+std::uint64_t token::id() const { return id_; }
+/// Whether an id has been set on this token
+bool token::has_id() const { return has_id_; }

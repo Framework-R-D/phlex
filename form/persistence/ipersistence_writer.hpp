@@ -3,38 +3,51 @@
 #ifndef FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 #define FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 
-#include <map>
+#include "core/placement.hpp"
+#include "core/token.hpp"
+
 #include <memory>
 #include <string>
 #include <typeinfo>
+#include <utility>
+#include <vector>
 
 namespace form::experimental::config {
-  class ItemConfig;
   struct tech_setting_config;
 }
 
 namespace form::detail::experimental {
 
-  class IPersistenceWriter {
+  // Persistence is an executor: FORM owns the product configuration and hands persistence
+  // fully-resolved placements. Persistence turns those into storage-layer calls and enforces the
+  // token invariant; it holds no product config of its own.
+  class i_persistence_writer {
   public:
-    IPersistenceWriter() = default;
-    virtual ~IPersistenceWriter() = default;
+    i_persistence_writer() = default;
+    virtual ~i_persistence_writer() = default;
 
-    virtual void configureTechSettings(
+    virtual void configure_tech_settings(
       form::experimental::config::tech_setting_config const& tech_config_settings) = 0;
 
-    virtual void configure(form::experimental::config::ItemConfig const& configItems) = 0;
+    // Create the given product containers. FORM resolves each (creator, label) to a placement and
+    // calls this only with containers it has not created before. Persistence adds the matching
+    // navigation ("index") container for each place itself, so FORM stays opaque to it.
+    virtual void create_containers(
+      std::vector<std::pair<placement, std::type_info const*>> const& containers) = 0;
 
-    virtual void createContainers(std::string const& creator,
-                                  std::map<std::string, std::type_info const*> const& products) = 0;
-    virtual void registerWrite(std::string const& creator,
-                               std::string const& label,
-                               void const* data,
-                               std::type_info const& type) = 0;
-    virtual void commitOutput(std::string const& creator, std::string const& id) = 0;
+    // Write one product and return a token locating it: placement plus 0-based row (entry) number
+    // Throws if backend isn't row-addressed, causing token read lookup to fail
+    virtual token register_write(placement const& plcmnt,
+                                 void const* data,
+                                 std::type_info const& type) = 0;
+
+    // Finalize (commit) the product destination's current row, first recording `id` in that
+    // place's navigation ("index") container. Persistence owns the index: it derives the index
+    // container from the product placement, so FORM never names or manages it.
+    virtual void commit_place(placement const& plcmnt, std::string const& id) = 0;
   };
 
-  std::unique_ptr<IPersistenceWriter> createPersistenceWriter();
+  std::unique_ptr<i_persistence_writer> create_persistence_writer();
 
 } // namespace form::detail::experimental
 

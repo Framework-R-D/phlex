@@ -17,14 +17,14 @@ using namespace oneapi::tbb;
 namespace {
 
   // ROOT is the representation of the ROOT resource.
-  struct ROOT {};
+  struct root {};
 
   // GENIE is the representation of the GENIE resource.
-  struct GENIE {};
+  struct genie {};
 
   // DB is the representation of the DB resource.
   // The value id is the database ID.
-  struct DB {
+  struct database {
     unsigned int id;
   };
 
@@ -62,16 +62,16 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   std::atomic<unsigned int> root_counter{};
   std::atomic<unsigned int> genie_counter{};
 
-  ROOT const root_resource{};
+  root const root_resource{};
 
-  flow::resource_limiter<ROOT const*> root_resource_provider{&root_resource};
-  flow::resource_limiter<GENIE> genie_resource{GENIE{}};
+  flow::resource_limiter<root const*> root_resource_provider{&root_resource};
+  flow::resource_limiter<genie> genie_resource{genie{}};
 
   flow::resource_limited_node<unsigned int, std::tuple<unsigned int>> node1{
     g,
     flow::unlimited,
     std::tie(root_resource_provider),
-    [&root_counter](unsigned int const i, auto& outputs, ROOT const*) {
+    [&root_counter](unsigned int const i, auto& outputs, root const*) {
       thread_counter c{root_counter};
       spdlog::info("Processing from node 1 {} with root token", i);
       std::get<0>(outputs).try_put(i);
@@ -81,7 +81,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
     g,
     flow::unlimited,
     std::tie(root_resource_provider, genie_resource),
-    [&root_counter, &genie_counter](unsigned int const i, auto& outputs, ROOT const*, GENIE) {
+    [&root_counter, &genie_counter](unsigned int const i, auto& outputs, root const*, genie) {
       thread_counter c1{root_counter};
       thread_counter c2{genie_counter};
       spdlog::info("Processing from node 2 {}", i);
@@ -92,7 +92,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
     g,
     flow::unlimited,
     std::tie(genie_resource),
-    [&genie_counter](unsigned int const i, auto& outputs, GENIE) {
+    [&genie_counter](unsigned int const i, auto& outputs, genie) {
       thread_counter c{genie_counter};
       spdlog::info("Processing from node 3 {}", i);
       std::get<0>(outputs).try_put(i);
@@ -134,7 +134,7 @@ TEST_CASE("Serialize functions in diamond graph", "[multithreading]")
                          return 0u;
                        }};
 
-  flow::resource_limiter<ROOT> root_resource{ROOT{}};
+  flow::resource_limiter<root> root_resource{root{}};
 
   std::atomic<unsigned int> root_counter{};
 
@@ -143,7 +143,7 @@ TEST_CASE("Serialize functions in diamond graph", "[multithreading]")
       g,
       flow::unlimited,
       std::tie(root_resource),
-      [&root_counter, label](unsigned int const i, auto& outputs, ROOT) {
+      [&root_counter, label](unsigned int const i, auto& outputs, root) {
         thread_counter c{root_counter};
         spdlog::info("Processing from node {} {}", label, i);
         std::get<0>(outputs).try_put(i);
@@ -193,14 +193,14 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
   std::atomic<unsigned int> genie_counter{};
   std::atomic<unsigned int> db_counter{};
 
-  flow::resource_limiter<ROOT> root_limiter{ROOT{}};
-  flow::resource_limiter<GENIE> genie_limiter{GENIE{}};
+  flow::resource_limiter<root> root_limiter{root{}};
+  flow::resource_limiter<genie> genie_limiter{genie{}};
 
-  DB const db1{1};
-  DB const db13{13};
-  flow::resource_limiter<DB const*> db_limiter{&db1, &db13};
+  database const db1{1};
+  database const db13{13};
+  flow::resource_limiter<database const*> db_limiter{&db1, &db13};
 
-  auto fill_histo = [&root_counter](unsigned int const i, auto& outputs, ROOT) {
+  auto fill_histo = [&root_counter](unsigned int const i, auto& outputs, root) {
     thread_counter c{root_counter};
     start("Histogramming", i);
     spin_for(10ms);
@@ -209,7 +209,7 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
   };
 
   auto gen_fill_histo = [&root_counter,
-                         &genie_counter](unsigned int const i, auto& outputs, ROOT, GENIE) {
+                         &genie_counter](unsigned int const i, auto& outputs, root, genie) {
     thread_counter c1{root_counter};
     thread_counter c2{genie_counter};
     start("Histo-generating", i);
@@ -218,7 +218,7 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
     std::get<0>(outputs).try_put(i);
   };
 
-  auto generate = [&genie_counter](unsigned int const i, auto& outputs, GENIE) {
+  auto generate = [&genie_counter](unsigned int const i, auto& outputs, genie) {
     thread_counter c{genie_counter};
     start("Generating", i);
     spin_for(10ms);
@@ -243,7 +243,7 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
 
   // Nodes that use the DB resource limited to 2 tokens
   auto make_calibrator = [&db_counter](std::string_view algorithm) {
-    return [&db_counter, algorithm](unsigned int const i, auto& outputs, DB const* db) {
+    return [&db_counter, algorithm](unsigned int const i, auto& outputs, database const* db) {
       thread_counter c{db_counter, 2};
       start(algorithm, i, db->id);
       spin_for(10ms);
@@ -252,17 +252,17 @@ TEST_CASE("Test based on oneTBB PR 1677 (RFC)", "[multithreading]")
     };
   };
 
-  rl_node calibratorA{g, flow::unlimited, std::tie(db_limiter), make_calibrator("Calibration[A]")};
-  rl_node calibratorB{g, flow::unlimited, std::tie(db_limiter), make_calibrator("Calibration[B]")};
-  rl_node calibratorC{g, flow::serial, std::tie(db_limiter), make_calibrator("Calibration[C]")};
+  rl_node calibrator_a{g, flow::unlimited, std::tie(db_limiter), make_calibrator("Calibration[A]")};
+  rl_node calibrator_b{g, flow::unlimited, std::tie(db_limiter), make_calibrator("Calibration[B]")};
+  rl_node calibrator_c{g, flow::serial, std::tie(db_limiter), make_calibrator("Calibration[C]")};
 
   make_edge(src, histogrammer);
   make_edge(src, histo_generator);
   make_edge(src, generator);
   make_edge(src, propagator);
-  make_edge(src, calibratorA);
-  make_edge(src, calibratorB);
-  make_edge(src, calibratorC);
+  make_edge(src, calibrator_a);
+  make_edge(src, calibrator_b);
+  make_edge(src, calibrator_c);
 
   src.activate();
   g.wait_for_all();

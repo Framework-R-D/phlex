@@ -63,9 +63,9 @@ namespace phlex::detail {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::optional<driver_plugin> create_driver;
 
-    template <typename creator_t>
-    std::pair<boost::dll::shared_library, creator_t*> plugin_loader(std::string const& spec,
-                                                                    std::string const& symbol_name)
+    template <typename CreatorT>
+    std::pair<boost::dll::shared_library, CreatorT*> plugin_loader(std::string const& spec,
+                                                                   std::string const& symbol_name)
     {
       // Called during single-threaded graph construction
       char const* plugin_path_ptr =
@@ -75,7 +75,7 @@ namespace phlex::detail {
       }
 
       std::vector<std::string> subdirs;
-      boost::split(subdirs, plugin_path_ptr, boost::is_any_of(":"));
+      boost::split(subdirs, plugin_path_ptr, [](char const character) { return character == ':'; });
 
       // FIXME: Need to test to ensure that first match wins.
       for (auto const& subdir : subdirs) {
@@ -87,7 +87,7 @@ namespace phlex::detail {
           auto const load_mode = (spec == pymodule_name) ? boost::dll::load_mode::rtld_global
                                                          : boost::dll::load_mode::default_mode;
           boost::dll::shared_library lib{shared_library_path, load_mode};
-          auto* fn = &lib.get<creator_t>(symbol_name);
+          auto* fn = &lib.get<CreatorT>(symbol_name);
           return {std::move(lib), fn};
         }
       }
@@ -126,7 +126,7 @@ namespace phlex::detail {
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto [lib, fn] = plugin_loader<internal::module_creator_t>(spec, "create_module");
-    auto& creator = create_module.emplace_back(module_plugin{std::move(lib), fn});
+    auto& creator = create_module.emplace_back(module_plugin{.lib = std::move(lib), .fn = fn});
 
     configuration const config{adjusted_config};
     creator(g.module_proxy(config), config);
@@ -138,7 +138,7 @@ namespace phlex::detail {
 
     auto const& spec = value_to<std::string>(adjusted_config.at("cpp"));
     auto [lib, fn] = plugin_loader<internal::source_creator_t>(spec, "create_source");
-    auto& creator = create_source.emplace_back(source_plugin{std::move(lib), fn});
+    auto& creator = create_source.emplace_back(source_plugin{.lib = std::move(lib), .fn = fn});
 
     // FIXME: Should probably use the parameter name (e.g.) 'plugin_label' instead of
     //        'module_label', but that requires adjusting other parts of the system
@@ -158,7 +158,7 @@ namespace phlex::detail {
     // internal reference counting in classification.hpp.
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks,clang-analyzer-cplusplus.NewDelete)
     auto [lib, fn] = plugin_loader<internal::driver_shim_t>(spec, "create_driver");
-    create_driver.emplace(driver_plugin{std::move(lib), fn});
+    create_driver.emplace(driver_plugin{.lib = std::move(lib), .fn = fn});
     driver_bundle result;
     (*create_driver)(g.driver_proxy(required_sources), config, &result);
     g.add_driver(result);
