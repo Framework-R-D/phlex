@@ -131,8 +131,11 @@ TEST_CASE("Cursor yields and traverses child indices", "[fixed_hierarchy]")
   detail::framework_driver driver{[](detail::framework_driver& d) {
     fixed_hierarchy const hierarchy{{"run", "subrun"}};
     auto job_cursor = hierarchy.yield_job(d);
-    auto copied_job_cursor = job_cursor; // Test copy-constructibility of the cursor.
-    auto run_cursor = copied_job_cursor.yield_child("run", 0);
+
+    auto yield_run = [](data_cell_cursor cursor) { return cursor.yield_child("run", 0); };
+
+    // Passing an lvalue by value exercises the cursor's copy constructor.
+    auto run_cursor = yield_run(job_cursor);
     run_cursor.yield_child("subrun", 0);
   }};
 
