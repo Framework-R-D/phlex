@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <iterator>
 #include <ranges>
 #include <set>
 #include <stdexcept>
@@ -369,70 +368,79 @@ namespace phlex::detail {
     internal::multilayer_slots message_slots;
     internal::end_token_entries end_token_entries;
 
-    // For each multi-layer join node, determine which slots are relevant to this index.
-    // Message entries:   All slots from a node are added if (1) at least one slot exactly matches
-    //                    the current layer, and (2) all slots either exactly match or are parent
-    //                    layers of the current index.
-    // End-token entries: For each slot that exactly matches the current layer, consult the slot's
-    //                    paired flush_spec to materialize one entry per path-aware counting-layer
-    //                    descendant hash.  When the flush_spec's counting layer equals the slot's
-    //                    routing layer (the common case), this resolves to exactly the routed
-    //                    index's own layer_hash.  When they differ (a fold's partition slot), it
-    //                    resolves to one entry per descendant of `layer_path` whose trailing layer
-    //                    name equals the counting layer.
-    for (auto& [node_name, node_slots] : multilayer_join_slots_) {
-      auto const& slots = node_slots.slots;
-      auto const& flush_specs = node_slots.flush_specs;
-      assert(slots.size() == flush_specs.size());
+    for (auto const& node_slots : multilayer_join_slots_ | std::views::values) {
+      auto [resolved_message_slots, resolved_end_token_entries] =
+        resolve_join_slots(index, layer_path, layer_hash, node_slots);
+      message_slots.append_range(std::move(resolved_message_slots));
+      end_token_entries.append_range(std::move(resolved_end_token_entries));
+    }
 
-      internal::multilayer_slots matching_slots;
-      matching_slots.reserve(slots.size());
+    acc->second = {
+      .message_slots = std::make_shared<internal::multilayer_slots const>(std::move(message_slots)),
+      .end_token_entries =
+        std::make_shared<internal::end_token_entries const>(std::move(end_token_entries))};
+    return {acc->second.message_slots, acc->second.end_token_entries};
+  }
 
-      bool has_exact_match = false;
-      std::size_t matched_count = 0;
+  // Resolve the message slots and end-token entries contributed by one multi-layer join node for a
+  // routed index.
+  //
+  // Message entries: All slots from a node are appended if at least one slot exactly matches the
+  // current layer and every slot either exactly matches or is a parent of the routed index.
+  //
+  // End-token entries: For each exactly-matching slot, use its paired flush_spec to append one
+  // entry per path-aware counting-layer hash. When the counting layer equals the routing layer,
+  // the routed index's own layer_hash is the only entry. Otherwise, append an entry for every
+  // descendant of layer_path whose trailing layer equals the counting layer.
+  auto index_router::resolve_join_slots(data_cell_index_ptr const& index,
+                                        layer_path const& layer_path,
+                                        std::size_t const layer_hash,
+                                        internal::join_node_slots const& node_slots) const
+    -> join_slot_resolution
+  {
+    auto const& slots = node_slots.slots;
+    auto const& flush_specs = node_slots.flush_specs;
+    assert(slots.size() == flush_specs.size());
 
-      for (std::size_t i = 0; i != slots.size(); ++i) {
-        auto const& slot = slots[i];
-        auto const& flush = flush_specs[i];
-        if (slot->matches_exactly(layer_path)) {
-          has_exact_match = true;
-          if (flush.counting_layer == slot->layer()) {
-            // Counting layer is the routing layer: the routed index's own layer_hash is the unique
-            // counting hash.
-            end_token_entries.push_back(
-              {.counting_layer_hash = layer_hash, .flush_port = flush.flush_port});
-          } else {
-            // Counting layer differs (fold partition slot).  Enumerate all descendant paths under
-            // the routed partition path whose trailing name equals the counting layer; emit one
-            // entry per descendant.
-            auto const hashes = counting_layer_hashes_under(layer_path, flush.counting_layer);
-            for (auto const& h : hashes) {
-              end_token_entries.push_back(
-                {.counting_layer_hash = h, .flush_port = flush.flush_port});
-            }
+    internal::multilayer_slots message_slots;
+    message_slots.reserve(slots.size());
+    internal::end_token_entries end_token_entries;
+
+    bool has_exact_match = false;
+    std::size_t matched_count = 0;
+    for (std::size_t i = 0; i != slots.size(); ++i) {
+      auto const& slot = slots[i];
+      auto const& flush = flush_specs[i];
+      if (slot->matches_exactly(layer_path)) {
+        has_exact_match = true;
+        if (flush.counting_layer == slot->layer()) {
+          // Counting layer is the routing layer: the routed index's own layer_hash is the unique
+          // counting hash.
+          end_token_entries.push_back(
+            {.counting_layer_hash = layer_hash, .flush_port = flush.flush_port});
+        } else {
+          // Counting layer differs (fold partition slot).  Enumerate all descendant paths under
+          // the routed partition path whose trailing name equals the counting layer; emit one
+          // entry per descendant.
+          auto const hashes = counting_layer_hashes_under(layer_path, flush.counting_layer);
+          for (auto const& h : hashes) {
+            end_token_entries.push_back({.counting_layer_hash = h, .flush_port = flush.flush_port});
           }
-          matching_slots.push_back(slot);
-          ++matched_count;
-        } else if (slot->is_parent_of(index)) {
-          matching_slots.push_back(slot);
-          ++matched_count;
         }
-      }
-
-      // Add all matching slots to message entries only if we have an exact match and
-      // all slots from this node matched something (either exactly or as a parent).
-      if (has_exact_match and matched_count == slots.size()) {
-        message_slots.insert(message_slots.end(),
-                             std::make_move_iterator(matching_slots.begin()),
-                             std::make_move_iterator(matching_slots.end()));
+        message_slots.push_back(slot);
+        ++matched_count;
+      } else if (slot->is_parent_of(index)) {
+        message_slots.push_back(slot);
+        ++matched_count;
       }
     }
 
-    acc->second.message_slots =
-      std::make_shared<internal::multilayer_slots const>(std::move(message_slots));
-    acc->second.end_token_entries =
-      std::make_shared<internal::end_token_entries const>(std::move(end_token_entries));
-    return {acc->second.message_slots, acc->second.end_token_entries};
+    // Add all matching slots only when the node has an exact slot and every slot matches.
+    if (not has_exact_match or matched_count != slots.size()) {
+      message_slots.clear();
+    }
+    return {.message_slots = std::move(message_slots),
+            .end_token_entries = std::move(end_token_entries)};
   }
 
   std::vector<std::size_t> index_router::counting_layer_hashes_under(
