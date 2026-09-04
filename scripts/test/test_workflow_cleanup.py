@@ -65,3 +65,15 @@ def test_workflow_cleanup_steps():
         assert cleanup_found, (
             f"Cleanup step {expectations['cleanup_step_name']} not present in {wf_name}"
         )
+
+
+def test_clang_tidy_marks_completed_only_after_tidy_succeeds():
+    """Ensure an incomplete clang-tidy run cannot clear an existing report."""
+    workflow = (WORKFLOWS_DIR / "clang-tidy-check.yaml").read_text(encoding="utf-8")
+    tidy_failure = workflow.index('if [ "$TIDY_EXIT" -ne 0 ]')
+    issues_found = workflow.index('elif [ "$DIFF_EXIT" -eq 1 ];')
+    completed_marker = workflow.index(
+        ': > "$BUILD_DIR/clang-tidy-analysis-complete.txt"', issues_found
+    )
+
+    assert tidy_failure < issues_found < completed_marker

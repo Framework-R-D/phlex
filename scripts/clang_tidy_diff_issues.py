@@ -10,7 +10,7 @@ Usage:
         --log PATH/TO/clang-tidy.log \
         --diff PATH/TO/patch.diff \
         --source-dir PATH/TO/source/checkout \
-        [--output PATH/TO/new-issues.txt]
+        [--all] [--output PATH/TO/new-issues.txt]
 
 Exit code:
     0  no new issues found
@@ -34,22 +34,13 @@ _ISSUE_RE = re.compile(
     r" (warning|error): (.+?)(?:\s+\[([\w,.\-]+)\])?\s*$"
 )
 
-# Check-name prefixes whose diagnostics are not treated as new issues.
-# These categories are advisory or style-related and are tracked separately.
-_IGNORED_PREFIXES: tuple[str, ...] = (
-    "modernize-",
-    "performance-",
-    "portability-",
-    "readability-",
-)
-
 
 def parse_diff(diff_text: str) -> dict[str, set[int]]:
     """Parse a unified diff to extract added/changed line numbers per file.
 
     Keys are file paths relative to the repo root (without the leading ``b/``
-    prefix from the diff header).  Values are sets of line numbers in the
-    post-patch (new) file that were added or modified by the diff.
+    prefix from the diff header).  Values are sets of line numbers added in the
+    post-patch (new) file.
 
     Pure deletions (hunk count == 0 in the new file) contribute no lines.
 
@@ -61,21 +52,26 @@ def parse_diff(diff_text: str) -> dict[str, set[int]]:
     """
     added: dict[str, set[int]] = defaultdict(set)
     current_file: str | None = None
+    new_lineno: int | None = None
 
     for line in diff_text.splitlines():
         if line.startswith("+++ b/"):
             current_file = line[6:]
+            new_lineno = None
         elif line.startswith("+++ "):
             # '/dev/null' or unexpected header: nothing to track for this file.
             current_file = None
+            new_lineno = None
         elif current_file is not None and line.startswith("@@ "):
             m = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
             if m:
-                new_start = int(m.group(1))
-                count_str = m.group(2)
-                new_count = int(count_str) if count_str is not None else 1
-                for ln in range(new_start, new_start + new_count):
-                    added[current_file].add(ln)
+                new_lineno = int(m.group(1))
+        elif current_file is not None and new_lineno is not None:
+            if line.startswith("+"):
+                added[current_file].add(new_lineno)
+                new_lineno += 1
+            elif line.startswith(" "):
+                new_lineno += 1
 
     return dict(added)
 
@@ -98,9 +94,6 @@ def parse_log(log_text: str) -> list[tuple[str, int, str, str]]:
     for line in log_text.splitlines():
         m = _ISSUE_RE.match(line)
         if not m:
-            continue
-        check_name = m.group(5) or ""
-        if any(check_name.startswith(prefix) for prefix in _IGNORED_PREFIXES):
             continue
         filepath = m.group(1)
         lineno = int(m.group(2))
@@ -152,6 +145,35 @@ def filter_new_issues(
     return new_issues
 
 
+def filter_issues(
+    log_text: str,
+    diff_text: str,
+    source_dir: str,
+    *,
+    all_issues: bool,
+) -> list[tuple[str, int, str, str]]:
+    """Return all source-tree issues or only issues on added lines.
+
+    Args:
+        log_text: Full text of ``clang-tidy.log``.
+        diff_text: Full text of a unified ``git diff``.
+        source_dir: Absolute path to the source checkout directory.
+        all_issues: Return every diagnostic in the source checkout when true.
+
+    Returns:
+        The requested subset of parsed clang-tidy diagnostics.
+    """
+    if not all_issues:
+        return filter_new_issues(log_text, diff_text, source_dir)
+
+    source_path = Path(source_dir).resolve()
+    return [
+        issue
+        for issue in parse_log(log_text)
+        if Path(issue[0]).resolve().is_relative_to(source_path)
+    ]
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser."""
     parser = argparse.ArgumentParser(
@@ -180,6 +202,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Absolute path to the source checkout directory.",
     )
     parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Report all diagnostics in the source checkout, ignoring the diff.",
+    )
+    parser.add_argument(
         "--output",
         metavar="FILE",
         help="Write new-issue lines to this file instead of stdout."
@@ -205,7 +232,7 @@ def main() -> int:
     log_text = log_path.read_text(encoding="utf-8", errors="replace")
     diff_text = diff_path.read_text(encoding="utf-8", errors="replace")
 
-    new_issues = filter_new_issues(log_text, diff_text, args.source_dir)
+    new_issues = filter_issues(log_text, diff_text, args.source_dir, all_issues=args.all)
 
     output_lines = [f"{fp}:{ln}: {lvl}: {msg}" for fp, ln, lvl, msg in new_issues]
     output_text = "\n".join(output_lines)
