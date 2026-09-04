@@ -36,6 +36,8 @@ TEST_CASE("Retrieve product_selector", "[config]")
   input["suffix"] = "tracks";
   input["layer"] = "job";
 
+  boost::json::object unconstrained_input;
+
   boost::json::object malformed_input1;
   malformed_input1["creator"] = "test_alg";
   malformed_input1["suffix"] = 16.; // Should be string
@@ -51,6 +53,7 @@ TEST_CASE("Retrieve product_selector", "[config]")
 
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
+  underlying_config["unconstrained"] = std::move(unconstrained_input);
   underlying_config["malformed1"] = std::move(malformed_input1);
   underlying_config["malformed2"] = std::move(malformed_input2);
   underlying_config["malformed3"] = std::move(malformed_input3);
@@ -59,6 +62,9 @@ TEST_CASE("Retrieve product_selector", "[config]")
   auto input_query = config.get<product_selector>("input");
   CHECK(input_query.match(
     product_selector{.creator = "tracks_alg", .layer = "job", .suffix = "tracks"}));
+  auto unconstrained_query = config.get<product_selector>("unconstrained");
+  CHECK_FALSE(unconstrained_query.creator);
+  CHECK_FALSE(unconstrained_query.layer);
   CHECK_THROWS_WITH(config.get<product_selector>("malformed1"),
                     ContainsSubstring("Error retrieving parameter 'malformed1'") &&
                       ContainsSubstring("not a string"));
