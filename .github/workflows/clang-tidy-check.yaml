@@ -151,6 +151,7 @@ jobs:
           if [ "${#sources[@]}" -eq 0 ]; then
             : > "$BUILD_DIR/clang-tidy.log"
             : > "$BUILD_DIR/clang-tidy-new-issues.txt"
+            : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
             echo "No C/C++ files to analyze"
             exit 0
           fi
@@ -187,6 +188,7 @@ jobs:
           set -e
 
           if [ "$DIFF_EXIT" -eq 1 ]; then
+            : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
             NEW_COUNT=$(grep -c '' "$BUILD_DIR/clang-tidy-new-issues.txt" 2>/dev/null || echo 0)
             echo "::error::${NEW_COUNT} clang-tidy issue(s) found"
             while IFS= read -r issue; do
@@ -203,6 +205,7 @@ jobs:
             echo "::endgroup::"
             exit 1
           else
+            : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
             echo "✅ No clang-tidy issues found"
           fi
 
@@ -226,6 +229,7 @@ jobs:
             ${{ needs.setup.outputs.build_path }}/clang-tidy-fixes.yaml
             ${{ needs.setup.outputs.build_path }}/clang-tidy.log
             ${{ needs.setup.outputs.build_path }}/clang-tidy-new-issues.txt
+            ${{ needs.setup.outputs.build_path }}/clang-tidy-analysis-complete.txt
             ${{ needs.setup.outputs.build_path }}/pr_number.txt
           retention-days: 7
           if-no-files-found: ignore

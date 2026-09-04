@@ -63,8 +63,15 @@ jobs:
             echo "issues_file=$issues_file" >> "$GITHUB_OUTPUT"
           fi
 
+          completion_file=$(find artifacts -name "clang-tidy-analysis-complete.txt" 2>/dev/null | head -1)
+          if [ -n "$completion_file" ]; then
+            echo "analysis_complete=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::clang-tidy analysis did not complete; retaining any prior PR comment"
+          fi
+
       - name: Update clang-tidy PR comment
-        if: steps.locate.outputs.pr_number != ''
+        if: steps.locate.outputs.pr_number != '' && steps.locate.outputs.analysis_complete == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           ARTIFACT_URL:
@@ -114,16 +121,18 @@ jobs:
               return;
             }
 
-            const body = `${marker}
-            ## Clang-Tidy Check Results
-
-            Clang-tidy found the following issue(s) on lines changed by this pull request:
-
-            \`\`\`text
-            ${issues}
-            \`\`\`
-
-            [Download clang-tidy artifacts](${process.env.ARTIFACT_URL})`;
+            const body = [
+              marker,
+              '## Clang-Tidy Check Results',
+              '',
+              'Clang-tidy found the following issue(s) on lines changed by this pull request:',
+              '',
+              '```text',
+              issues,
+              '```',
+              '',
+              `[Download clang-tidy artifacts](${process.env.ARTIFACT_URL})`
+            ].join('\n');
 
             if (previous.length) {
               await github.rest.issues.updateComment({
