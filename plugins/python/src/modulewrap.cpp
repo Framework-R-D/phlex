@@ -1076,13 +1076,8 @@ static bool validate_transform_output(std::string const& name,
 
 static bool validate_numba_transform_types(std::string const& name,
                                            std::vector<std::string> const& input_types,
-                                           std::string const& output_type,
-                                           void* ccallf)
+                                           std::string const& output_type)
 {
-  if (!ccallf) {
-    return true;
-  }
-
   // TODO: remove this temporary restriction once Numba vector support is available.
   // LCOV_EXCL_START
   auto const is_collection_type = [](std::string const& type) {
@@ -1207,8 +1202,12 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   }
 
   std::string const& out_type = output_types[0];
-  if (!validate_numba_transform_types(cname, input_types, out_type, ccallf) ||
-      !register_transform_callback(
+  if (ccallf && !validate_numba_transform_types(cname, input_types, out_type)) {
+    Py_DECREF(callable);
+    return nullptr;
+  }
+
+  if (!register_transform_callback(
         mod, callable, ccallf, cname, input_selectors, out_type, output_suffixes[0], nconcur)) {
     Py_DECREF(callable);
     return nullptr;

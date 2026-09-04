@@ -96,15 +96,14 @@ static PyObject* vector_to_python_tuple(std::vector<T> const& values, Converter&
   }
   for (Py_ssize_t i = 0; i < *size; ++i) {
     PyObject* item = convert(values[static_cast<std::size_t>(i)]);
+    // LCOV_EXCL_START
     if (!item) {
+      // Practically speaking, this only happens when there's an allocation failure.
       Py_DECREF(result);
       return nullptr;
     }
-    if (PyTuple_SetItem(result, i, item) < 0) {
-      Py_DECREF(item);
-      Py_DECREF(result);
-      return nullptr;
-    }
+    // LCOV_EXCL_STOP
+    PyTuple_SET_ITEM(result, i, item);
   }
   return result;
 }
