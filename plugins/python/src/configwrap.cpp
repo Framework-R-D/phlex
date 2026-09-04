@@ -83,7 +83,7 @@ static PyObject* string_map_to_python(std::map<std::string, std::string> const& 
 }
 
 template <typename T, typename Converter>
-static PyObject* vector_to_python_tuple(std::vector<T> const& values, Converter&& convert)
+static PyObject* vector_to_python_tuple(std::vector<T> const& values, Converter const& convert)
 {
   auto const size = checked_tuple_size(values.size());
   if (!size) {

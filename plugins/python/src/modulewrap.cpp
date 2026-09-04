@@ -1133,18 +1133,22 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
   }(std::make_index_sequence<N>{});
 }
 
-static bool register_transform_callback(py_phlex_module* mod,
-                                        PyObject* callable,
-                                        void* ccallf,
-                                        std::string const& name,
-                                        std::vector<product_selector> const& input_selectors,
-                                        std::string const& output_type,
-                                        std::string const& output_suffix,
-                                        concurrency nconcur)
+static std::optional<product_selector> register_transform_callback(
+  py_phlex_module* mod,
+  PyObject* callable,
+  void* ccallf,
+  std::string const& name,
+  std::vector<product_selector> const& input_selectors,
+  std::string const& output_type,
+  std::string const& output_suffix,
+  identifier const& output_layer,
+  concurrency nconcur)
 {
   // Only a single output is supported until typed tuple conversion is implemented.
   std::string const pyname = "py_" + name;
   std::string const pyoutput = output_suffix + "_py";
+  auto const output_selector = product_selector{
+    .creator = identifier(pyname), .layer = output_layer, .suffix = identifier(pyoutput)};
   auto register_n_args = [&]<std::size_t... is>(std::index_sequence<is...>) {
     constexpr std::size_t n = sizeof...(is);
     if (ccallf) {
@@ -1160,10 +1164,10 @@ static bool register_transform_callback(py_phlex_module* mod,
     }
   };
   if (unroll_switch<max_supported_args>(input_selectors.size(), register_n_args)) {
-    return true;
+    return output_selector;
   }
   PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
-  return false;
+  return std::nullopt;
 }
 
 static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kwds)
@@ -1207,19 +1211,23 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     return nullptr;
   }
 
-  if (!register_transform_callback(
-        mod, callable, ccallf, cname, input_selectors, out_type, output_suffixes[0], nconcur)) {
+  auto const output_selector = register_transform_callback(mod,
+                                                           callable,
+                                                           ccallf,
+                                                           cname,
+                                                           input_selectors,
+                                                           out_type,
+                                                           output_suffixes[0],
+                                                           *output_layer,
+                                                           nconcur);
+  if (!output_selector) {
     Py_DECREF(callable);
     return nullptr;
   }
 
   // insert output converter node into the graph
-  std::string const pyname = "py_" + cname;
-  std::string const pyoutput = output_suffixes[0] + "_py";
-  auto out_pq = product_selector{
-    .creator = identifier(pyname), .layer = *output_layer, .suffix = identifier(pyoutput)};
   std::string const& output = output_suffixes[0];
-  if (!insert_output_converter(mod, cname, out_pq, out_type, output, !ccallf, nconcur)) {
+  if (!insert_output_converter(mod, cname, *output_selector, out_type, output, !ccallf, nconcur)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
