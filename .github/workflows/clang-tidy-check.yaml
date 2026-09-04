@@ -187,7 +187,13 @@ jobs:
           DIFF_EXIT=$?
           set -e
 
-          if [ "$DIFF_EXIT" -eq 1 ]; then
+          if [ "$TIDY_EXIT" -ne 0 ] || grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
+            echo "::error::run-clang-tidy failed (see log below)"
+            echo "::group::clang-tidy.log (error)"
+            cat "$BUILD_DIR/clang-tidy.log"
+            echo "::endgroup::"
+            exit 1
+          elif [ "$DIFF_EXIT" -eq 1 ]; then
             : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
             NEW_COUNT=$(grep -c '' "$BUILD_DIR/clang-tidy-new-issues.txt" 2>/dev/null || echo 0)
             echo "::error::${NEW_COUNT} clang-tidy issue(s) found"
@@ -198,12 +204,6 @@ jobs:
           elif [ "$DIFF_EXIT" -ne 0 ]; then
             echo "::error::clang_tidy_diff_issues.py failed with exit code ${DIFF_EXIT}"
             exit "$DIFF_EXIT"
-          elif [ "$TIDY_EXIT" -ne 0 ] || grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
-            echo "::error::run-clang-tidy failed (see log below)"
-            echo "::group::clang-tidy.log (error)"
-            cat "$BUILD_DIR/clang-tidy.log"
-            echo "::endgroup::"
-            exit 1
           else
             : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
             echo "✅ No clang-tidy issues found"
