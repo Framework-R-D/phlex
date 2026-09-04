@@ -1147,19 +1147,19 @@ static std::optional<product_selector> register_transform_callback(
   // Only a single output is supported until typed tuple conversion is implemented.
   std::string const pyname = "py_" + name;
   std::string const pyoutput = output_suffix + "_py";
-  auto const output_selector = product_selector{
+  auto output_selector = product_selector{
     .creator = identifier(pyname), .layer = output_layer, .suffix = identifier(pyoutput)};
-  auto register_n_args = [&]<std::size_t... is>(std::index_sequence<is...>) {
-    constexpr std::size_t n = sizeof...(is);
+  auto register_n_args = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    constexpr std::size_t n = sizeof...(Is);
     if (ccallf) {
       jit_callback<dcarg, n> callback{callable, ccallf, output_type};
       mod->ph_module->transform(pyname, callback, nconcur)
-        .input_family(converted_input_selector(name, is, input_selectors[is])...)
+        .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
         .output_product_suffixes(pyoutput);
     } else {
       py_callback<dcarg, n> callback{callable};
       mod->ph_module->transform(pyname, callback, nconcur)
-        .input_family(converted_input_selector(name, is, input_selectors[is])...)
+        .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
         .output_product_suffixes(pyoutput);
     }
   };
