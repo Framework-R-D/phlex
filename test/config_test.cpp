@@ -45,10 +45,15 @@ TEST_CASE("Retrieve product_selector", "[config]")
   malformed_input2["creator"] = "hits";
   malformed_input2["layer"] = "";
 
+  boost::json::object malformed_input3;
+  malformed_input3["creator"] = "";
+  malformed_input3["layer"] = "job";
+
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
   underlying_config["malformed1"] = std::move(malformed_input1);
   underlying_config["malformed2"] = std::move(malformed_input2);
+  underlying_config["malformed3"] = std::move(malformed_input3);
   configuration config{underlying_config};
 
   auto input_query = config.get<product_selector>("input");
@@ -60,4 +65,7 @@ TEST_CASE("Retrieve product_selector", "[config]")
   CHECK_THROWS_WITH(config.get<product_selector>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
                       ContainsSubstring("Cannot specify the empty string as a data layer."));
+  CHECK_THROWS_WITH(config.get<product_selector>("malformed3"),
+                    ContainsSubstring("Error retrieving parameter 'malformed3'") &&
+                      ContainsSubstring("Cannot specify product with empty creator name."));
 }
