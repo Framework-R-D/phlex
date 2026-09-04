@@ -31,7 +31,8 @@ namespace phlex::detail {
                                    std::vector<std::string> predicates,
                                    product_selectors input_products,
                                    std::string child_layer) :
-    products_consumer{std::move(name), std::move(predicates), std::move(input_products)},
+    products_consumer{
+      std::move(name), std::move(predicates), std::move(input_products), require_layers::always},
     child_layer_{std::move(child_layer)}
   {
   }
