@@ -371,8 +371,8 @@ namespace phlex::detail {
     for (auto const& node_slots : multilayer_join_slots_ | std::views::values) {
       auto [resolved_message_slots, resolved_end_token_entries] =
         resolve_join_slots(index, layer_path, layer_hash, node_slots);
-      message_slots.append_range(std::move(resolved_message_slots));
-      end_token_entries.append_range(std::move(resolved_end_token_entries));
+      message_slots.append_range(std::views::as_rvalue(resolved_message_slots));
+      end_token_entries.append_range(std::views::as_rvalue(resolved_end_token_entries));
     }
 
     acc->second = {
