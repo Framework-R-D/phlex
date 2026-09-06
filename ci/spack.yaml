@@ -42,7 +42,7 @@ spack:
 
     llvm:
       require:
-        - "target=${PHLEX_SPACK_TARGET:-x86_64_v3}"
+        - "target=${PHLEX_LLVM_TARGET:-x86}"
         - "%c,cxx=gcc@15"
 
     phlex:

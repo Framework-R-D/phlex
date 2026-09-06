@@ -1,0 +1,3 @@
+Kilo receipt
+
+The exact relay-evidence carrier was consumed through PHLEX_RELAY_FIXTURE_DIR in explicit --self-test mode. Its relay-map.json SHA-256 was caf923634fa6f493562796d15d35cfd44df9ca061fb52447b7475136c61bcbe5 and its relay-map.env SHA-256 was 6ee03810479a983268bb2ed28b3a7c71d77ce4793854e766c3066ac836f22abb. Both matched the retained carrier manifest before and after the self-test. The production fixed-root absence path was separately sourced in an empty environment and preserved shell options while clearing numeric relay exports and KILO_CONFIG_CONTENT/KILO_CONFIG_PATH.

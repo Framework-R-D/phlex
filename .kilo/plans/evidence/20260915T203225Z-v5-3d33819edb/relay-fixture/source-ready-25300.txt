@@ -1,0 +1,2 @@
+COMMAND   PID   USER   FD   TYPE           DEVICE SIZE/OFF NODE NAME
+Python  84710 greenc    3u  IPv4 0x1f15c1a44467fa      0t0  TCP 127.0.0.1:25300 (LISTEN)

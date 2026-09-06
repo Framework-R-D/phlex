@@ -1,0 +1,27 @@
+Final static verification
+
+-- bash -n ci/entrypoint.sh --
+
+-- shellcheck -S warning ci/entrypoint.sh --
+
+-- bash -n .devcontainer/ensure-repos.sh --
+
+-- shellcheck -S warning .devcontainer/ensure-repos.sh --
+
+-- bash -n .devcontainer/kilo-env.sh --
+
+-- shellcheck -S warning .devcontainer/kilo-env.sh --
+
+-- git diff --check --
+
+-- target descriptor checksums --
+d8350972c9ccd277ab1e29d7a36aee856bdd7eb309b584d9beb6bcd21472fc1f  ci/Dockerfile
+20e74652a74aa77f30889a68039b7257b4eeb8fb10df9bdb16b5828de11d9c30  ci/spack.yaml
+c0863ecebce90b2633c0b2461061ec371f5763b2345c70fd29b415a0ba349a27  ci/packages.yaml
+6dc21867eea68a9fe68af5d79dd19fd50f7127fc0c121d4a6a41a0224d581e60  ci/entrypoint.sh
+4fcc4663200731343668d9a1108f18bcea44831864af888429c7bbf16dc7e982  .devcontainer/ensure-repos.sh
+32a7277131688c0807b65f0281b4c23078ab561f718523260fcd25977a12b00c  .devcontainer/kilo-env.sh
+
+-- carrier checksums --
+caf923634fa6f493562796d15d35cfd44df9ca061fb52447b7475136c61bcbe5  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/relay-map.json
+6ee03810479a983268bb2ed28b3a7c71d77ce4793854e766c3066ac836f22abb  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/relay-map.env

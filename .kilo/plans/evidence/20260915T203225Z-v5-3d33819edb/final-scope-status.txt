@@ -1,0 +1,7 @@
+Expected implementation paths modified in this run:
+- ci/Dockerfile
+- ci/entrypoint.sh
+- .devcontainer/ensure-repos.sh
+- .devcontainer/kilo-env.sh
+
+Tracked ci/spack.yaml and ci/packages.yaml retained their baseline SHA-256 values. The plan file, evidence directory, and pre-existing untracked artifacts remain separate worktree changes. No commit or push was made.

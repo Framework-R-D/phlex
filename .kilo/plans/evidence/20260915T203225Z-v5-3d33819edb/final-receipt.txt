@@ -1,0 +1,3 @@
+Final receipt
+
+Static architecture, relay, and Kilo checks passed. The exact ready relay producer output was retained, hash-verified, consumed by the Kilo self-test, and left unchanged. Fixture relays were cleaned and production relay maps remained unchanged. Native runtime and mount acceptance are explicitly unavailable. The terminal classification and recommendation are recorded once in m8-case-study.md.

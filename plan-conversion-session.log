@@ -1,0 +1,58 @@
+Plan conversion session log
+===========================
+
+Workspace: /Users/greenc/work/cet-is/sources/phlex/phlex
+Plan source: .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md
+Session purpose: Convert the partially implemented legacy plan to kilo-plan/v4, archive retired artifacts, and instrument the work for M8 and global workflow acceptance.
+
+Actions
+-------
+
+1. Loaded the execution-plans skill, grammar reference, M8 benchmarking reference, legacy archive reference, human-runner reference, worker catalog, and relevant Kilo agent contracts.
+2. Inspected the legacy plan and confirmed it was an untyped pre-v4 source rather than a parseable v2/v3 source.
+3. Moved the original plan byte-for-byte to .kilo/plans/1787581717167-native-arm64-podman-devcontainers.legacy-source.md.
+4. Replaced the original path with a structured kilo-plan/v4 source.
+5. Added explicit implementation steps for archival, provenance, host validation, architecture-aware Spack images, relay handling, Kilo rewriting, Compose wiring, image building, static validation, and native arm64 acceptance.
+6. Added typed records for legacy boundaries, recovery provenance, architecture/security decisions, deterministic fixtures, M8 evidence, metric schema, evidence storage, and direct-state binding.
+7. Added structured human runners with preflight, verification, remediation, cleanup, rollback, receipt, and evidence requirements.
+8. Added M8 evidence-only case-study limits. Criteria 14-15 require a matched native conversational baseline, and global criterion 17 requires independent alignment review.
+9. Added a workspace-local run-unique evidence directory under .kilo/plans/evidence/<run-id>/.
+10. Added exact metric-key validation for task/run identity, conditions, timing, planning questions, dispatches, attempts, retries, revisions, reviews, human intervention, failures, recovery, costs, deviations, missing measurements, and terminal outcome.
+11. Preserved the retired .exec.json and four stale state artifacts as non-dispatchable evidence and added a copy-and-SHA-256 archival runner.
+
+Validation
+----------
+
+The canonical plan linter passed repeatedly with the current worker catalog:
+
+python3.12 ~/.config/kilo/skill/execution-plans/scripts/lint_plan_source.py .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md --agent-dir ~/.config/kilo/agent --config ~/.config/kilo/kilo.json
+
+Final linter result: valid canonical plan source.
+
+Architecture reviews
+--------------------
+
+1. Initial Architect review identified migration, host-gate, runner, relay, lifecycle, provenance, and M8 evidence gaps.
+2. Subsequent reviews identified additional evidence production, cleanup, container identity, run binding, host settings, relay-state, and metric completeness gaps.
+3. Final Architect review reported zero blocking findings after the metric-schema record and exact metric-key assertions were added.
+
+Final status
+------------
+
+The plan front matter records design_review_status: passed and design_review_blocking_findings: 0.
+The plan was finalized with plan_exit at:
+
+.kilo/plans/1787581717167-native-arm64-podman-devcontainers.md
+
+Evidence classification
+-----------------------
+
+This conversion is planning-only direct-Markdown evidence for acceptance criterion 1. The initial brief requested conversion of a partially executed legacy plan, not execution. Plan authored the canonical `kilo-plan/v4` source directly, preserved the legacy source and artifacts, passed deterministic linting and Architect review, and did not invoke `genplan`, `plan-compiler`, `/compile-plan`, or any execution path.
+
+Acceptance criterion 1 is met for representative planning capability. This is a legacy-plan conversion rather than a clean blank-outline fixture, but it demonstrates direct brief-and-repository-context to v4 authoring without a second model serialization pass.
+
+Execution status: not executed. No direct state, runtime receipts, completed-step verification, or execution metrics were produced.
+
+M8 status: unclaimed and incomplete. The finalized plan describes an evidence-only M8 case study, but this session does not satisfy M8 completion, criteria 14-15, or global criterion 17. Any future execution must preserve the approved source, direct-state, worker-catalog, and receipt-grade artifact bindings.
+
+This file is an audit summary of the conversion session, not a raw API transcript export.

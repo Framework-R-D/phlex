@@ -1,0 +1,21 @@
+relay worker receipt follows
+Worker: relay-worker (gpt-5.4, xhigh)
+Write boundary: .devcontainer/ensure-repos.sh
+
+Changed behavior:
+- Numeric relay input fails closed before any start; listener detection is lsof on Darwin and ss on Linux.
+- Removed pkill, kill -9, and setsid. Owned numeric relay cleanup requires exact socat command and expected listener identity.
+- Only ready target relays are admitted; existing owned relays are reused so reruns converge.
+- Fixture modes honor an explicit state directory and avoid cloning, Podman inspection, and production state.
+
+Validation passed:
+- bash -n .devcontainer/ensure-repos.sh
+- shellcheck -S warning .devcontainer/ensure-repos.sh
+- start-test-services ready probes, repeat convergence, and cleanup-owned
+- self-test twice, including positive and negative cases
+- git diff --check -- .devcontainer/ensure-repos.sh
+
+Hashes:
+- .devcontainer/ensure-repos.sh: 5af756f6ad15b67799ba6a6fdb0589b1836c6c36456775635ecb352f3de6667a -> 4fcc4663200731343668d9a1108f18bcea44831864af888429c7bbf16dc7e982
+
+Unavailable: native Darwin Podman socket/VM/pasta/rootless acceptance and Linux runtime path.

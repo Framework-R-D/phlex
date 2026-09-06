@@ -1,0 +1,1 @@
+relay carrier receipt: actual producer output retained after ready-listener checks; all owned fixture listeners were absent after cleanup.

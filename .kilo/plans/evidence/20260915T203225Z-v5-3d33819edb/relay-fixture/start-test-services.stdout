@@ -1,0 +1,5 @@
+Starting test relay services
+Starting host relay: 127.0.0.1:25114 -> 25115
+Host relay 25114 -> 25115 ready
+Starting host relay: 127.0.0.1:25300 -> 25301
+Host relay 25300 -> 25301 ready

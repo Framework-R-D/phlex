@@ -1,0 +1,11 @@
+Disposition: non_blocking
+
+Method: direct final review plus independent deterministic checks. An additional code-review subagent was intentionally not dispatched because the user reported fewer than 300 remaining monthly credits. This is a documented deviation from the plan's independent-review preference, not a claim that such a review occurred.
+
+Reviewed contracts:
+- Docker raw input validation and normalized target carrier precede Spack clone; copied descriptors are bounded-rendered before their Spack consumers.
+- Tracked Spack descriptors retain their architecture-neutral defaults.
+- Relay checks pass Bash syntax, ShellCheck, fixture-only ready-map production, cleanup, and production-state isolation; no broad terminator or setsid pattern remains.
+- Kilo checks pass Bash syntax, ShellCheck, exact-carrier round-trip, absent fixed-root profile sourcing, no-write assertions, and malformed map/config fail-closed behavior.
+
+Finding: the Kilo self-test implementation is larger than ideal for a profile script. It is non-blocking because deterministic tests cover the contract, but a later cleanup may move test scaffolding to dedicated tests when that path is in scope.
