@@ -1,0 +1,1 @@
+static_rc=0 relay_rc=0 kilo_rc=0

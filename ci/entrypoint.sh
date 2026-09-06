@@ -4,36 +4,43 @@
 export SPACK_USER_CONFIG_PATH=/dev/null
 export SPACK_DISABLE_LOCAL_CONFIG=true
 
+if [ -f /etc/profile.d/phlex-targets.sh ]; then
+  . /etc/profile.d/phlex-targets.sh
+fi
+
 : "${PHLEX_SPACK_ENV:=/opt/spack-environments/phlex-ci}"
-: "${PHLEX_SPACK_TARGET:=amd64}"
+# PHLEX_SPACK_TARGET must be normalized to x86_64_v3 or aarch64 (Dockerfile handles this)
+# Default is x86_64_v3 for backward compatibility
+: "${PHLEX_SPACK_TARGET:=x86_64_v3}"
+# CI images use GCC as default; developer images use Clang with GCC 15 toolchain for reproducible gcc@15 ABI
 : "${PHLEX_DEFAULT_COMPILER:=gcc}"
 
-# Map PHLEX_SPACK_TARGET to Spack's internal target names
-# amd64 -> x86_64_v3, arm64 -> aarch64
+# Validate PHLEX_SPACK_TARGET is normalized (x86_64_v3 or aarch64)
+# Dockerfile normalizes amd64->x86_64_v3 and arm64->aarch64 before this runs
 case "$PHLEX_SPACK_TARGET" in
-  amd64)
-    export PHLEX_SPACK_TARGET="x86_64_v3"
-    export PHLEX_LLVM_TARGET="x86"
+  x86_64_v3)
+    : "${PHLEX_LLVM_TARGET:=x86}"
     ;;
-  arm64)
-    export PHLEX_SPACK_TARGET="aarch64"
-    export PHLEX_LLVM_TARGET="AArch64"
+  aarch64)
+    : "${PHLEX_LLVM_TARGET:=AArch64}"
     ;;
   *)
-    # If already a Spack target name, use as-is; otherwise fail
-    case "$PHLEX_SPACK_TARGET" in
-      x86_64_v3|aarch64|arm64|amd64) ;;
-      *)
-        echo "ERROR: PHLEX_SPACK_TARGET must be 'amd64', 'arm64', or a valid Spack target name" >&2
-        echo "       Got: '$PHLEX_SPACK_TARGET'" >&2
-        exit 1
-        ;;
-    esac
+    echo "ERROR: PHLEX_SPACK_TARGET must be 'x86_64_v3' or 'aarch64'" >&2
+    echo "       Got: '$PHLEX_SPACK_TARGET'" >&2
+    exit 1
     ;;
 esac
 
-# Set PHLEX_LLVM_TARGET if not already set
-: "${PHLEX_LLVM_TARGET:=x86}"
+# Validate that SPACK target and LLVM target are compatible (no x86_64_v3 + AArch64, no aarch64 + x86)
+case "$PHLEX_SPACK_TARGET-$PHLEX_LLVM_TARGET" in
+  x86_64_v3-AArch64|aarch64-x86)
+    echo "ERROR: Host/target mismatch: PHLEX_SPACK_TARGET=$PHLEX_SPACK_TARGET with PHLEX_LLVM_TARGET=$PHLEX_LLVM_TARGET" >&2
+    exit 1
+    ;;
+  *)
+    # Valid combinations: x86_64_v3+x86, aarch64+AArch64
+    ;;
+esac
 
 . /spack/share/spack/setup-env.sh
 spack env activate -d "$PHLEX_SPACK_ENV"

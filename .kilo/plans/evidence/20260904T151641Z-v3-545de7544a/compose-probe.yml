@@ -1,0 +1,5 @@
+services:
+  probe:
+    image: docker.io/library/alpine:3.22
+    network_mode: pasta
+    command: [sh, -c, "printf x | nc host.docker.internal 25112 | grep -Fx phlex-probe-ok"]

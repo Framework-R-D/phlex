@@ -1,0 +1,4 @@
+alignment_review=blocked
+blocking_findings=B1 production Kilo path; B2 Darwin portability; B3 readiness admission; B4 fail-closed exit; B5 self-test evidence; B6 missing durable step evidence
+repair_status=implemented locally; clean reviewer disposition unavailable because plan alignment-review budget is exhausted
+deferred_native=spack,cxx23,podman,pasta,rootless,image-architecture

@@ -1,0 +1,53 @@
+# Retry attempt 2 - Evidence manifest
+
+Evidence directory: `step-2-retry-attempt-2-20260906T150600Z`
+
+## Files and hashes
+
+| File | SHA256 |
+|------|--------|
+| README.md | `57f50c6f831f34a26522bd27e7615c66c46d4695870611b9e3ff01987e969bd8` |
+| step-2-retry-verification.md | `7673712e1270adb41752f3401281da5a68576788a051f453281dfbb93dc45473` |
+
+## Evidence source
+
+Receipt generated from: `/Users/greenc/work/cet-is/sources/phlex/phlex/.kilo/plans/evidence/step-2-retry-attempt-2-20260906T150600Z/`
+
+## Execution summary
+
+- **Target**: Plan step 2, retry attempt 2
+- **Execution time**: 2026-09-06T15:06:00Z
+- **Working directory**: `/Users/greenc/work/cet-is/sources/phlex/phlex`
+- **Status**: Completed (_verified_)
+
+## Acceptance contract metrics
+
+| Metric | Status |
+|--------|--------|
+| Build-time architecture selection available before Spack constraints | ✅ PASS |
+| amd64 → x86_64_v3 mapping | ✅ PASS |
+| arm64 → aarch64 mapping | ✅ PASS |
+| arm64 LLVM includes AArch64 | ✅ PASS |
+| GCC 15 ABI preserved | ✅ PASS |
+| Fermilab mirror behavior preserved | ✅ PASS |
+| CI GCC default; dev Clang default with GCC 15 --gcc-toolchain | ✅ PASS |
+| act/tracebox architecture behavior preserved | ✅ PASS |
+| CMakePresets.json byte-identical to baseline | ✅ PASS |
+| No unrelated file modifications | ✅ PASS |
+
+## Shell verification
+
+- `bash -n`: ✅ PASS (all shell files)
+- `shellcheck`: ✅ PASS (only expected SC1091 INFO warnings)
+
+## Unavailable native checks (documented, not claimed)
+
+- Native Spack concretization: unavailable on this host
+- Native C++23 compile: unavailable without Docker build
+
+## Changed paths
+
+- `ci/Dockerfile` (modified - target normalization, dev stage compiler override)
+- `ci/spack.yaml` (unchanged)
+- `ci/packages.yaml` (unchanged)
+- `ci/entrypoint.sh` (unchanged)

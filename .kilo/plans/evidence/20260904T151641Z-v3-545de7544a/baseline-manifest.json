@@ -1,0 +1,177 @@
+[
+  {
+    "path": "scripts/git-ai-commit",
+    "state": "present",
+    "sha256": "c8119a905dfb27e9a4568784471bb2b1265459ef57e8a2518e26f461fa3dac80"
+  },
+  {
+    "path": "scripts/test/test_git_ai_commit.py",
+    "state": "present",
+    "sha256": "1fdd3f122b590e48453bad6b7698ed31a99a6845c92ec6ed97dabc6329cae01f"
+  },
+  {
+    "path": ".devcontainer/post-create.sh",
+    "state": "present",
+    "sha256": "3eb78f5fae888672316f034d007538e9a7bd91e6e511f873075c4cb7ee5fe463"
+  },
+  {
+    "path": "CMakePresets.json",
+    "state": "present",
+    "sha256": "94a9822942ad317daf57f17e45906e8a1f0f7a029e38f708390865ac5eefc53b"
+  },
+  {
+    "path": "ci/Dockerfile",
+    "state": "present",
+    "sha256": "83029d58dde61372d16afb49eaaf16e1fff4c8abab2100d783e14045c1dc307d"
+  },
+  {
+    "path": "ci/spack.yaml",
+    "state": "present",
+    "sha256": "440ca19aec848166b0fa004fb97e01261b676232e30722a2cdd4060a0f285f4f"
+  },
+  {
+    "path": "ci/packages.yaml",
+    "state": "present",
+    "sha256": "c0863ecebce90b2633c0b2461061ec371f5763b2345c70fd29b415a0ba349a27"
+  },
+  {
+    "path": "ci/entrypoint.sh",
+    "state": "present",
+    "sha256": "cc5b13020a5b80106a159ee5d016d5f105eb81827a0ec0eb31e5c56e6d83c72d"
+  },
+  {
+    "path": ".devcontainer/ensure-repos.sh",
+    "state": "present",
+    "sha256": "3b14557ccc9f752bc4dffe66f3e7f1238162c2d83499e0a2fca35d524a505dc1"
+  },
+  {
+    "path": ".devcontainer/kilo-env.sh",
+    "state": "present",
+    "sha256": "bd6fd925846c4770f4555cb07bfd3a836f06dd2b5ed9ce557e60ba693535fab1"
+  },
+  {
+    "path": ".devcontainer/Dockerfile",
+    "state": "present",
+    "sha256": "1abe77e41b8ebbca9270b6414d59e4349df780347da4dcf7eb8f39d01bef69ae"
+  },
+  {
+    "path": ".devcontainer/docker-compose.yml",
+    "state": "present",
+    "sha256": "ecb692b05b7d022b81390d8c7c927541941ad0d1ceec5fd0f01fd48dc3164bac"
+  },
+  {
+    "path": ".devcontainer/devcontainer.json",
+    "state": "present",
+    "sha256": "8c8bc40eb6347cdcfdaf0913fadb7be85a4ec0321f6a4d1d8a03753f8374c7fb"
+  },
+  {
+    "path": "scripts/README.md",
+    "state": "present",
+    "sha256": "29ccf74bacb9f82d24c0d129f25b6ad10e170f5543e4140538d7f49328998855"
+  },
+  {
+    "path": "scripts/build-container-images.sh",
+    "state": "absent"
+  },
+  {
+    "path": "docs/dev/podman-macos.md",
+    "state": "absent"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md",
+    "state": "present",
+    "sha256": "6af992bb15a162aecad124e3a515e2d5e0336a140edf2f84cb3fb8794fd2a024"
+  },
+  {
+    "path": ".kilo/kilo.jsonc",
+    "state": "absent"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md",
+    "state": "present",
+    "sha256": "2565fb7cfaa63e733fb0bffc774c94c4e080fc03c010852666225cd91f359b95"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json",
+    "state": "present",
+    "sha256": "f7b8a6b1785c10e43bd936ee007cd03d09a306f2cc0769b7793be906569d67a9"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json.identity.json",
+    "state": "present",
+    "sha256": "1ecd6e6dee9538f0cc4740ab3163c00de3cb5ae7293eb9bca84f34bae16b5e11"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json.journal.jsonl",
+    "state": "present",
+    "sha256": "831ce1354f0559c431361abac1615ed7d1175d50adff99251f6e23a7c03c1cf7"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json.lock",
+    "state": "present",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json",
+    "state": "present",
+    "sha256": "14f923807876c55c7b09e3b601a4e6cc135be717d5c24b26c6237536586149ab"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json.identity.json",
+    "state": "present",
+    "sha256": "686f4a25693a05d58d637e4bb5ad00e965e0b0402ce0f8fabd879f3b35ce7919"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json.journal.jsonl",
+    "state": "present",
+    "sha256": "a7e4b5c4642741370200b354f026b9e1beed229f949190badfa0504f17240d18"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json.lock",
+    "state": "present",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json",
+    "state": "present",
+    "sha256": "c8c0b4dd891a08971d9f917e1ee9fb9a498b0a84d5c6456a2836248da7e02623"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json.identity.json",
+    "state": "present",
+    "sha256": "fff9bd8371b30263d8389c3dc184d4e753a00247c42272618411000cb250b37d"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json.journal.jsonl",
+    "state": "present",
+    "sha256": "ed8f1672f2b18d6e1a96f0306c3135e319404a04fd4f44ca3573e12fa9469b00"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json.lock",
+    "state": "present",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.reset-20260904T041642Z.json",
+    "state": "present",
+    "sha256": "e34e99a974ad715dc9ac0107cff7b61971fb063ed31ead5703480a92cfe3a7e6"
+  },
+  {
+    "path": ".kilo/plans/evidence/",
+    "state": "directory"
+  },
+  {
+    "path": ".kilo/plans/legacy-archive/",
+    "state": "directory"
+  },
+  {
+    "path": "plan-conversion-session.log",
+    "state": "present",
+    "sha256": "2c1eaedb6d74c950335aeccd0d683d2fb4043ba61c78c44d60502c904a35794f"
+  },
+  {
+    "path": "session-ses_f987.md",
+    "state": "present",
+    "sha256": "9069429003cbe5edac52f33022c1924180411d18a4d907b6894dbddeddfc4368"
+  }
+]
