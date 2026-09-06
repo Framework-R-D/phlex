@@ -48,7 +48,13 @@
 #   Host prerequisite: systemctl --user enable --now podman.socket
 
 ARG GPG_KEY_ID
+
 FROM ubuntu:24.04 AS base
+
+# Build arguments must be redeclared in the stage where they are consumed.
+ARG PHLEX_SPACK_TARGET=amd64
+ARG PHLEX_LLVM_TARGET=x86
+ARG PHLEX_DEFAULT_COMPILER=gcc
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
@@ -56,19 +62,20 @@ ENV LC_ALL=en_US.UTF-8
 ENV SPACK_USER_CONFIG_PATH=/dev/null
 ENV SPACK_DISABLE_LOCAL_CONFIG=true
 ENV PHLEX_SPACK_ENV=/opt/spack-environments/phlex-ci
-ENV PHLEX_SPACK_TARGET=${PHLEX_SPACK_TARGET:-amd64}
-ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER:-gcc}
+ENV PHLEX_SPACK_SOURCE_TARGET=${PHLEX_SPACK_TARGET}
+ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}
 
 SHELL ["/bin/bash", "-c"]
 
-# Validate architecture mapping: amd64 -> x86_64_v3, arm64 -> aarch64
+# Validate PHLEX_SPACK_TARGET is a recognized source or normalized value
+# This check runs after ARG definitions and before any RUN that depends on the target
 RUN <<'ARCH_MAP_VALIDATE'
 set -euo pipefail
-case "$PHLEX_SPACK_TARGET" in
+case "$PHLEX_SPACK_SOURCE_TARGET" in
   amd64|arm64|x86_64_v3|aarch64) ;;
   *)
     echo "ERROR: PHLEX_SPACK_TARGET must be 'amd64', 'arm64', 'x86_64_v3', or 'aarch64'" >&2
-    echo "       Got: '$PHLEX_SPACK_TARGET'" >&2
+    echo "       Got: '$PHLEX_SPACK_SOURCE_TARGET'" >&2
     exit 1
     ;;
 esac
@@ -76,6 +83,45 @@ ARCH_MAP_VALIDATE
 
 ########################################################################
 # Install essential build tools, git, and Python
+
+RUN <<'ARCHITECTURE_CHECK'
+set -euo pipefail
+
+# Validate that the container build host architecture matches the requested SPACK target
+# This check runs early, before any Spack clone/install/concretization operations
+NATIVE_ARCH=$(dpkg --print-architecture)
+case "$NATIVE_ARCH" in
+  amd64)
+    if [ "$PHLEX_SPACK_SOURCE_TARGET" != "amd64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "x86_64_v3" ]; then
+      echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_SOURCE_TARGET'" >&2
+      echo "       CI images must be built for the host architecture" >&2
+      exit 1
+    fi
+    # Normalize amd64 to x86_64_v3 for Spack
+    normalized_spack_target=x86_64_v3
+    normalized_llvm_target=x86
+    ;;
+  arm64)
+    if [ "$PHLEX_SPACK_SOURCE_TARGET" != "arm64" ] && [ "$PHLEX_SPACK_SOURCE_TARGET" != "aarch64" ]; then
+      echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_SOURCE_TARGET'" >&2
+      echo "       CI images must be built for the host architecture" >&2
+      exit 1
+    fi
+    # Normalize arm64 to aarch64 for Spack
+    normalized_spack_target=aarch64
+    normalized_llvm_target=AArch64
+    ;;
+  *)
+    echo "ERROR: Unknown host architecture '$NATIVE_ARCH'" >&2
+    exit 1
+    ;;
+esac
+# RUN layers do not retain shell exports. Persist normalized values for later
+# Spack operations instead of relying on Docker layer state.
+printf 'export PHLEX_SPACK_TARGET=%q\nexport PHLEX_LLVM_TARGET=%q\n' \
+  "$normalized_spack_target" "$normalized_llvm_target" > /etc/profile.d/phlex-targets.sh
+chmod 644 /etc/profile.d/phlex-targets.sh
+ARCHITECTURE_CHECK
 
 RUN <<'INSTALL_ESSENTIALS'
 set -euo pipefail
@@ -156,6 +202,7 @@ chmod -R g+rwX "$SPACK_REPO_ROOT"
 find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
 
 # Other config settings
 spack config --scope defaults add config:build_stage:/opt/spack-stage
@@ -205,6 +252,7 @@ set -euo pipefail
 # configured mirrors so that signed packages from those mirrors can be
 # verified during subsequent installs.
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
 
 spack mirror add --type binary phlex-ci-scisoft https://scisoft.fnal.gov/scisoft/spack-packages/phlex-dev
 
@@ -225,6 +273,7 @@ set -euo pipefail
 # was cloned above.  If spack versions -n lists it as "new" (not checksummed), fetch the archive
 # and add its checksum to the package file so that Spack can install it.
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
 
 if spack versions -n intel-tbb | grep -Fwq '2023.0.0'; then
   EDITOR=true spack checksum -ab intel-tbb 2023.0.0
@@ -239,18 +288,11 @@ set -euo pipefail
 
 # Install GCC outside the Phlex development environment.
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
 
-# Map PHLEX_SPACK_TARGET to Spack's internal target names for GCC bootstrap
-# amd64 -> x86_64_v3, arm64 -> aarch64
+# PHLEX_SPACK_TARGET is already normalized to x86_64_v3 or aarch64 by the
+# early architecture check (before this layer runs).
 GCC_TARGET="${PHLEX_SPACK_TARGET}"
-case "$GCC_TARGET" in
-  amd64)
-    GCC_TARGET="x86_64_v3"
-    ;;
-  arm64)
-    GCC_TARGET="aarch64"
-    ;;
-esac
 
 spack --timestamp install --fail-fast -j "$(nproc)" \
       --no-check-signature \
@@ -286,7 +328,11 @@ RUN <<'SPACK_CONCRETIZE_ENV'
 set -euo pipefail
 
 # Build the phlex-ci environment lockfile with consistent permissions
+# PHLEX_SPACK_TARGET and PHLEX_LLVM_TARGET are already normalized by
+# the early architecture check before this layer runs.
+
 . /spack/share/spack/setup-env.sh
+. /etc/profile.d/phlex-targets.sh
 
 mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
 rm -rf "$PHLEX_SPACK_ENV"
@@ -370,21 +416,12 @@ set -euo pipefail
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
-# Map PHLEX_SPACK_TARGET to LLVM target architecture
-# amd64 -> x86, arm64 -> AArch64
-LLVM_TARGET="${PHLEX_LLVM_TARGET:-x86}"
-case "$PHLEX_SPACK_TARGET" in
-  arm64)
-    LLVM_TARGET="AArch64"
-    ;;
-  *)
-    LLVM_TARGET="x86"
-    ;;
-esac
+# PHLEX_LLVM_TARGET is set in Dockerfile ARG and normalized early in the build
+# Valid values: x86 (for x86_64_v3), AArch64 (for aarch64)
 
 spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature \
-  llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets="${LLVM_TARGET}"
+  llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets="${PHLEX_LLVM_TARGET}"
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -543,7 +580,9 @@ USER root
 # Dev image additions (tooling and dev user configuration)
 
 FROM base AS dev
+ARG PHLEX_DEFAULT_COMPILER=clang
 ENV SPACK_GROUP=spack
+ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}
 
 ########################################################################
 # Install useful developer command-line tools with apt-get
@@ -603,15 +642,33 @@ PREP_DEV_WORKSPACE
 ########################################################################
 # Install GitHub's act CLI for local workflow testing
 
+ARG INSTALL_ACT=true
+ARG INSTALL_ACT_ARM64=true
+
 RUN <<'INSTALL_ACT'
 set -euo pipefail
 
 # Install GitHub's act CLI for local workflow testing
 # Download architecture-specific binary: Linux_amd64 or Linux_arm64
-ARCHIVE arch=$(dpkg --print-architecture)
+
+if [ "${INSTALL_ACT}" != "true" ]; then
+  echo "act installation disabled via --build-arg INSTALL_ACT=false"
+  exit 0
+fi
+
+ARCH=$(dpkg --print-architecture)
+ARCHIVE=""
 case "$ARCH" in
-  amd64) ARCHIVE="Linux_x86_64" ;;
-  arm64|arm64) ARCHIVE="Linux_arm64" ;;
+  amd64)
+    ARCHIVE="Linux_x86_64"
+    ;;
+  arm64)
+    if [ "${INSTALL_ACT_ARM64}" != "true" ]; then
+      echo "act arm64 installation disabled via --build-arg INSTALL_ACT_ARM64=false"
+      exit 0
+    fi
+    ARCHIVE="Linux_arm64"
+    ;;
   *)
     echo "ERROR: Unsupported architecture '$ARCH' for act download" >&2
     exit 1
@@ -622,7 +679,7 @@ download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest |
   grep -Ee "\"browser_download_url\": .*/act_${ARCHIVE}\\." | \
   cut -d '"' -f 4)
 if [ -z "$download_url" ]; then
-  echo "Failed to determine act download URL for architecture '$ARCH'" >&2
+  echo "Failed to determine act download URL for architecture '$ARCH' (expected format: $ARCHIVE)" >&2
   exit 1
 fi
 curl -sfSL "$download_url" | tar -C /usr/local/bin -zx act

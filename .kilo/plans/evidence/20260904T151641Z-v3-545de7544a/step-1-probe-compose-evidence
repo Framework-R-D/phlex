@@ -1,0 +1,2 @@
+COMMAND   PID   USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+socat1  93254 greenc    5u  IPv4 0x2e89ee1f4090a950      0t0  TCP 127.0.0.1:25112 (LISTEN)
