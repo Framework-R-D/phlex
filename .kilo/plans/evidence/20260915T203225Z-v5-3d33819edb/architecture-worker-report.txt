@@ -1,0 +1,21 @@
+Worker: architecture-worker (gpt-5.4, xhigh)
+Write boundary: ci/Dockerfile, ci/spack.yaml, ci/packages.yaml, ci/entrypoint.sh
+
+Changed behavior:
+- Dockerfile validates raw target inputs before any Spack clone, retains the raw LLVM input separately, and renders copied descriptors through bounded exact-count replacements before Spack consumes them.
+- entrypoint validates PHLEX_DEFAULT_COMPILER as exactly gcc or clang.
+- Tracked ci/spack.yaml and ci/packages.yaml remain architecture-neutral and unchanged.
+
+Validation passed:
+- bash -n ci/entrypoint.sh
+- shellcheck -S warning ci/entrypoint.sh
+- static two-input rendering matrix: amd64 -> x86_64_v3/x86; arm64 -> aarch64/AArch64; invalid LLVM/compiler selections fail; GCC 15 ABI, mirror, LLVM, dev compiler override, act, and tracebox behavior retained.
+- git diff --check for target files and worktree.
+
+Hashes:
+- ci/Dockerfile: 520f594c67b1d20cf0ef926ec39b0d0f206343e0c49674fe7d512a2a3ca6ad55 -> d8350972...
+- ci/spack.yaml: 20e74652a74aa77f30889a68039b7257b4eeb8fb10df9bdb16b5828de11d9c30 (unchanged)
+- ci/packages.yaml: c0863ecebce90b2633c0b2461061ec371f5763b2345c70fd29b415a0ba349a27 (unchanged)
+- ci/entrypoint.sh: 0ab34f80ad83f548fbc63c96ae5657548f985422f3ed589b4bbca5e8a2b3816b -> 6dc21867...
+
+Unavailable: native Spack concretization, C++23 compilation, image build/inspection, and Podman/network runtime checks.

@@ -1,0 +1,65 @@
+run_id=20260906T203545Z-v4-ad0b1b7101
+source_path=.kilo/plans/1788724605364-native-arm64-podman-continuation-v4.md
+source_sha256=7ecac61bdbf14020616c184e52e0dac8fddf769d5f88922403a6a623cb0a35af
+normalized_digest=8baa28bb8cb22b7f2a36b17adf2520f0a467515c529c04eae5185872403d2ab7
+worker_catalog_digest=83294b1bfdb78d1266cfeec3472b3dade98235718ce7cc71eb0d9fe451c4850e
+v3_source=.kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md
+v3_state=.kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json
+v3_state_status=in_progress
+v3_host_values=.kilo/plans/evidence/20260904T151641Z-v3-545de7544a/step-1-values.env
+v3_host_values_sha256=dc3774c6747ded9ef94b7d897c91a2718e49318b82cb4d39db5675f4c0f52a47
+live_host_freshness=unavailable
+execution_boundary=new_v4_state_only
+
+[git_status]
+UU .clang-format
+ D .kilo/kilo.jsonc
+ M ci/Dockerfile
+ M ci/entrypoint.sh
+ M ci/packages.yaml
+ M ci/spack.yaml
+?? .kilo/plans/.kilo-plan-review-evidence/
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json.identity.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json.journal.jsonl
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v2.md.state.json.lock
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json.identity.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json.journal.jsonl
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json.lock
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.reset-20260904T152415Z.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json.identity.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json.journal.jsonl
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.json.lock
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.reset-20260904T041642Z.json
+?? .kilo/plans/1787581717167-native-arm64-podman-devcontainers.md.state.reset-20260906T165012Z.json
+?? .kilo/plans/1788724605364-native-arm64-podman-continuation-v4.md
+?? .kilo/plans/1788724605364-native-arm64-podman-continuation-v4.md.review.json
+?? .kilo/plans/1788724605364-native-arm64-podman-continuation-v4.md.state.json
+?? .kilo/plans/1788724605364-native-arm64-podman-continuation-v4.md.state.json.identity.json
+?? .kilo/plans/1788724605364-native-arm64-podman-continuation-v4.md.state.json.journal.jsonl
+?? .kilo/plans/1788724605364-native-arm64-podman-continuation-v4.md.state.json.lock
+?? .kilo/plans/evidence/
+?? .kilo/plans/legacy-archive/
+?? docs/dev/structured-plan-execution-recovery-improvement-plan.md
+?? execution-session-01_2026-09-04.md
+?? plan-conversion-session.log
+?? session-ses_f886.md
+?? session-ses_f987.md
+
+[v3_counters]
+{"status":"in_progress","dispatch_count":2,"total_dispatches":null,"consecutive_failures":null,"completed_steps":null,"pending_steps":null}
+
+[named_hashes]
+3832711a8464f66a2d0244ad5d5895e8feee0f0643af04a739b7be34908195cf  ci/Dockerfile
+a13a04240573269f85e614672b01e2d58ab75f58d6f45b0d66a3a80a0d0cb377  ci/spack.yaml
+5dfe46b4f7cae2552010a99350383725bf4a962e3e49d8d8b28c1be46702f6eb  ci/packages.yaml
+8d3c30e32f61ce04ff76e855d16c3fe7fd0aa86f82741d715852b61ac857c7c2  ci/entrypoint.sh
+3b14557ccc9f752bc4dffe66f3e7f1238162c2d83499e0a2fca35d524a505dc1  .devcontainer/ensure-repos.sh
+bd6fd925846c4770f4555cb07bfd3a836f06dd2b5ed9ce557e60ba693535fab1  .devcontainer/kilo-env.sh
+94a9822942ad317daf57f17e45906e8a1f0f7a029e38f708390865ac5eefc53b  CMakePresets.json
+6af992bb15a162aecad124e3a515e2d5e0336a140edf2f84cb3fb8794fd2a024  .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md
+7ce26a559a02f08632c8ecafcc4047fd2ce7e3638c993a37c4f6a8cac7b5fe39  .kilo/plans/1787581717167-native-arm64-podman-devcontainers-v3.md.state.json

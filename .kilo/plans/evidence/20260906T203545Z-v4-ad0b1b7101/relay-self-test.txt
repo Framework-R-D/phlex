@@ -1,0 +1,30 @@
+Running self-test in: /var/folders/38/jpqj8dkn323_ws87lqngy9340000j6/T//kilo-v4-tests.AknBopeD/relay
+Setting up test listeners on 25114 and 25300...
+Test 1: Valid relay mappings (25114=25115,25300=25301)
+  Valid pairs found: 2 (expected 2)
+Test 2: Malformed input (non-numeric and ports < 1024)
+ERROR: relay mapping ports must be numeric: 'abc=def'
+ERROR: relay ports must be non-privileged (>= 1024): '123=456'
+  Valid pairs found: 0 (expected 0)
+Test 3: Duplicate source port (25114=25115,25114=25116)
+ERROR: duplicate source port in relay mappings: '25114'
+  Valid pairs found: 0 (expected 0)
+Test 4: Privileged port (80=8080)
+ERROR: relay ports must be non-privileged (>= 1024): '80=8080'
+ERROR: relay mapping is not in the allowlist: '1024=11024'
+  Valid pairs found: 0 (expected 0 - 80 is privileged and 1024 not listening)
+Test 5: Equal source and dest port (25114=25114)
+ERROR: source and destination ports must be different: '25114=25114'
+  Valid pairs found: 0 (expected 0)
+Test 6: Unavailable source port (9999=19999)
+ERROR: relay mapping is not in the allowlist: '9999=19999'
+  Valid pairs found: 0 (expected 0)
+Test 7: Deterministic map ordering (reverse order should produce same result)
+  JSON content: {"25114": "25115", "25300": "25301"}
+  ENV lines: 2
+  ENV content:
+    PHLEX_HOST_RELAY_25114=25115
+    PHLEX_HOST_RELAY_25300=25301
+Test 8: Cleanup function
+  PID ownership: CORRECTLY FAILED (fake PID not a real process)
+Self-test completed

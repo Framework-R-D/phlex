@@ -1,0 +1,37 @@
+[shell]
+
+In .devcontainer/ensure-repos.sh line 28:
+      START_TEST_SERVICES="${arg#*=}"
+      ^-----------------^ SC2034 (warning): START_TEST_SERVICES appears unused. Verify use (or export if used externally).
+
+
+In .devcontainer/ensure-repos.sh line 36:
+      CLEANUP_OWNED="1"
+      ^-----------^ SC2034 (warning): CLEANUP_OWNED appears unused. Verify use (or export if used externally).
+
+
+In .devcontainer/ensure-repos.sh line 303:
+    for seen_source in ${seen_sources[*]-}; do
+                       ^-----------------^ SC2048 (warning): Use "${array[@]}" (with quotes) to prevent whitespace problems.
+
+
+In .devcontainer/ensure-repos.sh line 577:
+  local fakelistener
+        ^----------^ SC2034 (warning): fakelistener appears unused. Verify use (or export if used externally).
+
+
+In .devcontainer/ensure-repos.sh line 816:
+        PODMAN_IN_USE=true
+        ^-----------^ SC2034 (warning): PODMAN_IN_USE appears unused. Verify use (or export if used externally).
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2034 -- CLEANUP_OWNED appears unused. Ver...
+  https://www.shellcheck.net/wiki/SC2048 -- Use "${array[@]}" (with quotes) t...
+[architecture]
+stage ARG scope PASS
+early host guard PASS
+normalized carrier PASS
+LLVM target PASS
+[protected-hashes]
+94a9822942ad317daf57f17e45906e8a1f0f7a029e38f708390865ac5eefc53b  CMakePresets.json
+[native-runtime] spack=unavailable cxx23=unavailable podman=unavailable\n
