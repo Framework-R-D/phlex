@@ -1,0 +1,171 @@
+diff --git a/.kilo/kilo.jsonc b/.kilo/kilo.jsonc
+deleted file mode 100644
+index 571a15b..0000000
+--- a/.kilo/kilo.jsonc
++++ /dev/null
+@@ -1,3 +0,0 @@
+-{
+-  "$schema": "https://app.kilo.ai/config.json"
+-}
+diff --git a/ci/Dockerfile b/ci/Dockerfile
+index d2e2e5e..8f803f6 100644
+--- a/ci/Dockerfile
++++ b/ci/Dockerfile
+@@ -497,6 +497,29 @@ WRITE_BUILDCACHE
+ ARG INSTALL_TRACEBOX=true
+ ARG INSTALL_TRACEBOX_ARM64=false
+
++# Detect native architecture and validate against PHLEX_SPACK_TARGET
++# This check runs after ARG definitions but before any RUN that depends on the target
++ARG PHLEX_SPACK_TARGET=amd64
++
++RUN <<'ARCHITECTURE_CHECK'
++set -euo pipefail
++
++# Validate that the host architecture matches the requested SPACK target
++NATIVE_ARCH=$(dpkg --print-architecture)
++case "$NATIVE_ARCH-$PHLEX_SPACK_TARGET" in
++  amd64-amd64|arm64-arm64) ;;
++  amd64-arm64|arm64-amd64)
++    echo "ERROR: Host architecture '$NATIVE_ARCH' does not match PHLEX_SPACK_TARGET='$PHLEX_SPACK_TARGET'" >&2
++    echo "       CI images must be built for the host architecture" >&2
++    exit 1
++    ;;
++  *)
++    echo "ERROR: Unknown host architecture '$NATIVE_ARCH'" >&2
++    exit 1
++    ;;
++esac
++ARCHITECTURE_CHECK
++
+ RUN <<'INSTALL_PERFETTO'
+ set -euo pipefail
+
+@@ -603,15 +626,33 @@ PREP_DEV_WORKSPACE
+ ########################################################################
+ # Install GitHub's act CLI for local workflow testing
+
++ARG INSTALL_ACT=true
++ARG INSTALL_ACT_ARM64=true
++
+ RUN <<'INSTALL_ACT'
+ set -euo pipefail
+
+ # Install GitHub's act CLI for local workflow testing
+ # Download architecture-specific binary: Linux_amd64 or Linux_arm64
+-ARCHIVE arch=$(dpkg --print-architecture)
++
++if [ "${INSTALL_ACT}" != "true" ]; then
++  echo "act installation disabled via --build-arg INSTALL_ACT=false"
++  exit 0
++fi
++
++ARCH=$(dpkg --print-architecture)
++ARCHIVE=""
+ case "$ARCH" in
+-  amd64) ARCHIVE="Linux_x86_64" ;;
+-  arm64|arm64) ARCHIVE="Linux_arm64" ;;
++  amd64)
++    ARCHIVE="Linux_x86_64"
++    ;;
++  arm64)
++    if [ "${INSTALL_ACT_ARM64}" != "true" ]; then
++      echo "act arm64 installation disabled via --build-arg INSTALL_ACT_ARM64=false"
++      exit 0
++    fi
++    ARCHIVE="Linux_arm64"
++    ;;
+   *)
+     echo "ERROR: Unsupported architecture '$ARCH' for act download" >&2
+     exit 1
+@@ -622,7 +663,7 @@ download_url=$(curl -s https://api.github.com/repos/nektos/act/releases/latest |
+   grep -Ee "\"browser_download_url\": .*/act_${ARCHIVE}\\." | \
+   cut -d '"' -f 4)
+ if [ -z "$download_url" ]; then
+-  echo "Failed to determine act download URL for architecture '$ARCH'" >&2
++  echo "Failed to determine act download URL for architecture '$ARCH' (expected format: $ARCHIVE)" >&2
+   exit 1
+ fi
+ curl -sfSL "$download_url" | tar -C /usr/local/bin -zx act
+diff --git a/ci/entrypoint.sh b/ci/entrypoint.sh
+index 21cf66a..8e7d97a 100644
+--- a/ci/entrypoint.sh
++++ b/ci/entrypoint.sh
+@@ -13,26 +13,34 @@ export SPACK_DISABLE_LOCAL_CONFIG=true
+ case "$PHLEX_SPACK_TARGET" in
+   amd64)
+     export PHLEX_SPACK_TARGET="x86_64_v3"
+-    export PHLEX_LLVM_TARGET="x86"
++    export PHLEX_LLVM_TARGET="${PHLEX_LLVM_TARGET:-x86}"
+     ;;
+   arm64)
+     export PHLEX_SPACK_TARGET="aarch64"
+-    export PHLEX_LLVM_TARGET="AArch64"
++    export PHLEX_LLVM_TARGET="${PHLEX_LLVM_TARGET:-AArch64}"
++    ;;
++  x86_64_v3)
++    export PHLEX_LLVM_TARGET="${PHLEX_LLVM_TARGET:-x86}"
++    ;;
++  aarch64)
++    export PHLEX_LLVM_TARGET="${PHLEX_LLVM_TARGET:-AArch64}"
+     ;;
+   *)
+-    # If already a Spack target name, use as-is; otherwise fail
+-    case "$PHLEX_SPACK_TARGET" in
+-      x86_64_v3|aarch64|arm64|amd64) ;;
+-      *)
+-        echo "ERROR: PHLEX_SPACK_TARGET must be 'amd64', 'arm64', or a valid Spack target name" >&2
+-        echo "       Got: '$PHLEX_SPACK_TARGET'" >&2
+-        exit 1
+-        ;;
+-    esac
++    echo "ERROR: PHLEX_SPACK_TARGET must be 'amd64', 'arm64', 'x86_64_v3', or 'aarch64'" >&2
++    echo "       Got: '$PHLEX_SPACK_TARGET'" >&2
++    exit 1
++    ;;
++esac
++
++# Validate that SPACK target and LLVM target are compatible (no x86_64_v3 + AArch64)
++case "$PHLEX_SPACK_TARGET-$PHLEX_LLVM_TARGET" in
++  x86_64_v3-AArch64|aarch64-x86)
++    echo "ERROR: Host/target mismatch: PHLEX_SPACK_TARGET=$PHLEX_SPACK_TARGET with PHLEX_LLVM_TARGET=$PHLEX_LLVM_TARGET" >&2
++    exit 1
+     ;;
+ esac
+
+-# Set PHLEX_LLVM_TARGET if not already set
++# Set default PHLEX_LLVM_TARGET if not set after target mapping
+ : "${PHLEX_LLVM_TARGET:=x86}"
+
+ . /spack/share/spack/setup-env.sh
+diff --git a/ci/packages.yaml b/ci/packages.yaml
+index 649722a..4d8eb22 100644
+--- a/ci/packages.yaml
++++ b/ci/packages.yaml
+@@ -19,7 +19,7 @@
+ packages:
+   all:
+     require:
+-      - target=${PHLEX_SPACK_TARGET:-x86_64_v3}
++      - target=${PHLEX_SPACK_TARGET}
+     providers:
+       "zlib-api:": [zlib]
+
+diff --git a/ci/spack.yaml b/ci/spack.yaml
+index 56b6708..f5b261f 100644
+--- a/ci/spack.yaml
++++ b/ci/spack.yaml
+@@ -38,11 +38,11 @@ spack:
+       require:
+         - "~qtgui"
+         - "@4:"
+-        - "target=${PHLEX_SPACK_TARGET:-x86_64_v3}"
++        - "target=${PHLEX_SPACK_TARGET}"
+
+     llvm:
+       require:
+-        - "target=${PHLEX_SPACK_TARGET:-x86_64_v3}"
++        - "target=${PHLEX_LLVM_TARGET}"
+         - "%c,cxx=gcc@15"
+
+     phlex:

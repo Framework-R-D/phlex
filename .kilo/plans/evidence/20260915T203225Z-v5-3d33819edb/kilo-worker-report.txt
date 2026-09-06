@@ -1,0 +1,6 @@
+Worker: kilo-worker (gpt-5.4, xhigh)
+Write boundary: .devcontainer/kilo-env.sh
+
+The profile consumer now preserves caller shell options, uses the fixed production root unless explicit self-test mode is selected, validates canonical JSON and env relay maps as matching allowlisted data, and clears dynamic relay/config exports on failure. JSON and JSONC rewriting is in-memory and preserves URL components while handling 127.0.0.1, localhost, and [::1]. The exact retained carrier hashes matched its manifest before test execution. The self-test covers carrier use, JSON/JSONC, malformed and mismatched data, loopback variants, nonloopback/stdin/Unix values, source safety, and no-write checks. Mount/runtime integration remains unavailable.
+
+The orchestrator additionally moved self-test scratch data from HOME to TMPDIR and clears KILO_CONFIG_PATH on malformed/mismatched inputs.

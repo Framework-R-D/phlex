@@ -1,0 +1,12 @@
+state
+architecture
+rootless
+cpu-memory-disk
+socket
+gateway
+probe-pasta-token
+probe-compose-token
+compose-provider-version
+relay-fixtures
+no-tcp-api
+no-nonloopback-exposure

@@ -1,0 +1,75 @@
+=== Kilo config rewrite self-test ===
+INFO: native mount/runtime integration unavailable; fixture-only consumer logic validated.
+PASS: carrier relay-map.json SHA-256 matches artifact receipt
+PASS: carrier relay-map.env SHA-256 matches artifact receipt
+INFO: carrier relay-map.json sha256=caf923634fa6f493562796d15d35cfd44df9ca061fb52447b7475136c61bcbe5
+INFO: carrier relay-map.env sha256=6ee03810479a983268bb2ed28b3a7c71d77ce4793854e766c3066ac836f22abb
+PASS: exact carrier root validation
+PASS: exact carrier exports PHLEX_HOST_RELAY_25114
+PASS: exact carrier exports PHLEX_HOST_RELAY_25300
+PASS: exact carrier root without config leaves KILO_CONFIG_CONTENT absent
+PASS: exact carrier root without config leaves KILO_CONFIG_PATH absent
+PASS: exact carrier root updates PHLEX_HOST_RELAY_FILE
+PASS: exact carrier root updates PHLEX_HOST_RELAYS_ENV
+PASS: exact carrier round-trip rewrite
+PASS: exact carrier round-trip keeps PHLEX_HOST_RELAY_25114
+PASS: exact carrier round-trip keeps PHLEX_HOST_RELAY_25300
+PASS: exact carrier round-trip rewrites 127.0.0.1 localhost and [::1] URLs
+PASS: exact carrier config hash unchanged
+PASS: JSON root rewrite
+PASS: JSON root prefers kilo.json over kilo.jsonc
+PASS: JSON root exports rewritten KILO_CONFIG_CONTENT
+PASS: JSON root kilo.json hash unchanged
+PASS: JSON root decoy kilo.jsonc hash unchanged
+PASS: JSONC root rewrite
+PASS: JSONC root falls back to kilo.jsonc
+PASS: JSONC root strips comments/trailing commas and rewrites URLs
+PASS: JSONC root kilo.jsonc hash unchanged
+PASS: malformed JSON config fails closed
+PASS: malformed JSON reports a clear stderr error
+PASS: malformed JSON clears PHLEX_HOST_RELAY_25114
+PASS: malformed JSON clears PHLEX_HOST_RELAY_25300
+PASS: malformed JSON clears KILO_CONFIG_CONTENT
+PASS: malformed JSON clears KILO_CONFIG_PATH
+PASS: malformed JSON input hash unchanged
+PASS: malformed JSONC config fails closed
+PASS: malformed JSONC reports unterminated comment
+PASS: malformed JSONC clears PHLEX_HOST_RELAY_25114
+PASS: malformed JSONC clears PHLEX_HOST_RELAY_25300
+PASS: malformed JSONC clears KILO_CONFIG_CONTENT
+PASS: malformed JSONC clears KILO_CONFIG_PATH
+PASS: malformed JSONC input hash unchanged
+PASS: mismatched relay map/env fails closed
+PASS: mismatched relay map/env reports stderr error
+PASS: mismatched relay map/env clears PHLEX_HOST_RELAY_25114
+PASS: mismatched relay map/env clears PHLEX_HOST_RELAY_25300
+PASS: mismatched relay map/env clears KILO_CONFIG_CONTENT
+PASS: mismatched relay map/env clears KILO_CONFIG_PATH
+PASS: invalid allowlist relay map fails closed
+PASS: invalid allowlist relay map reports stderr error
+PASS: invalid allowlist relay map leaves PHLEX_HOST_RELAY_25114 absent
+PASS: invalid allowlist relay map leaves KILO_CONFIG_CONTENT absent
+PASS: duplicate relay env fails closed
+PASS: duplicate relay env reports stderr error
+PASS: duplicate relay env clears PHLEX_HOST_RELAY_25114
+PASS: duplicate relay env clears KILO_CONFIG_CONTENT
+PASS: absent relay root fails closed without returning nonzero
+PASS: absent relay root is quiet
+PASS: absent relay root clears PHLEX_HOST_RELAY_25114
+PASS: absent relay root clears PHLEX_HOST_RELAY_25300
+PASS: absent relay root clears KILO_CONFIG_CONTENT
+PASS: production source-safety child shell stayed alive
+PASS: production sourcing returns success
+PASS: production sourcing preserves shell flags
+PASS: production sourcing preserves shell options
+PASS: production sourcing clears stale PHLEX_HOST_RELAY_25114
+PASS: production sourcing clears stale PHLEX_HOST_RELAY_25300
+PASS: production sourcing clears stale KILO_CONFIG_CONTENT
+PASS: production sourcing clears stale KILO_CONFIG_PATH
+PASS: production sourcing keeps the fixed relay-map.json path
+PASS: production sourcing keeps the fixed relay-map.env path
+PASS: production sourcing keeps PHLEX_HOST_GATEWAY
+PASS: carrier relay-map.json hash unchanged after self-test
+PASS: carrier relay-map.env hash unchanged after self-test
+PASS: carrier artifact-sha256.txt hash unchanged after self-test
+=== Self-test passed ===

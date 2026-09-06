@@ -1,0 +1,22 @@
+=== Kilo Config Rewrite Self-Test ===
+Test directory: /var/folders/38/jpqj8dkn323_ws87lqngy9340000j6/T//kilo-v4-tests.AknBopeD/kilo
+Test: json-rewrite
+  PASS: KILO_CONFIG_CONTENT exported
+{"provider":{"anthropic":{"options":{"baseURL":"https://host.docker.internal:25115/v1"}},"openai":{"options":{"baseURL":"https://host.docker.internal:25301/v1"}},"unmapped":{"options":{"baseURL":"https://127.0.0.1:9999/v1"}},"nonloopback":{"options":{"baseURL":"https://api.example.com/v1"}}}}
+
+Test: jsonc-comments
+  PASS: KILO_CONFIG_CONTENT exported
+{"provider":{"anthropic":{"options":{"baseURL":"https://host.docker.internal:25115/v1"}}}}
+
+Test: malformed-json (fails closed)
+  PASS: Malformed input failed closed
+
+Test: loopback-only
+  PASS: KILO_CONFIG_CONTENT exported
+{"provider":{"loopback":{"options":{"baseURL":"https://host.docker.internal:25115/v1"}},"nonloopback":{"options":{"baseURL":"https://host.docker.internal:25115/v1"}},"unmapped":{"options":{"baseURL":"http://127.0.0.1:9999/v1"}}}}
+  PASS: Non-loopback URL unchanged
+
+Test: no-write (config not modified)
+  PASS: Config file not modified
+
+=== All tests passed ===
