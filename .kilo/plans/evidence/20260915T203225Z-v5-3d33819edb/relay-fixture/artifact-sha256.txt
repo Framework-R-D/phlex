@@ -1,0 +1,12 @@
+caf923634fa6f493562796d15d35cfd44df9ca061fb52447b7475136c61bcbe5  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/relay-map.json
+6ee03810479a983268bb2ed28b3a7c71d77ce4793854e766c3066ac836f22abb  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/relay-map.env
+b46081d4f660e233bd3429e03c3579179e9c858cfd90ce94836b36f4c383dd39  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/start-test-services.stdout
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/start-test-services.stderr
+7bc211f981afc31439b5c1c9791ebaeb804837d514ba80401151f06c3259c593  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/source-ready-25114.txt
+2a309fd6b7ab457e06c20bf538e77421926bc67dbd7674195acb2e11037decd4  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/source-ready-25300.txt
+8bc226b81d36cdbe6d9a9ca72de745bc9bcdea7f21a96ddc0a10c622f71f39a0  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/ready-25115.txt
+3503b506429d7b90e0013c3d28f72832a5fbd8cd94314a0a2aac1678e9aa0ca5  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/ready-25301.txt
+db29536187f50dc41d97af36fc65e3b438d61fba19583acf7e24a018637edf46  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/cleanup.stdout
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/cleanup.stderr
+e8a1e052d3b4e44cb1def85b2ee1e579b9bac7f91292870b4695511d33544d6a  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/leftover-25115.txt
+092c947fa6b2a0f8589d8a8b1e9282790dbba989444fd1bcd2958c864ca35b11  .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/relay-fixture/leftover-25301.txt

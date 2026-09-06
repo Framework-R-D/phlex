@@ -1,0 +1,529 @@
+diff --git a/.kilo/plans/1788726889345-native-arm64-podman-blocker-repair-v5.md b/.kilo/plans/1788726889345-native-arm64-podman-blocker-repair-v5.md
+new file mode 100644
+index 0000000..3d33819
+--- /dev/null
++++ b/.kilo/plans/1788726889345-native-arm64-podman-blocker-repair-v5.md
+@@ -0,0 +1,523 @@
++---
++format: kilo-plan/v4
++plan_id: native-arm64-podman-blocker-repair-v5
++workspace_root: /Users/greenc/work/cet-is/sources/phlex/phlex
++design_review_status: pending
++design_review_blocking_findings: 0
++max_total_dispatches: 8
++max_consecutive_failures: 2
++max_alignment_review_dispatches: 1
++---
++# Native arm64 Podman blocker repair
++
++## Goal
++
++Repair the blocking implementation and evidence defects identified by the implementation-alignment review of `1788724605364-native-arm64-podman-continuation-v4.md`, then obtain a fresh clean or non-blocking alignment review and produce a receipt-grade static handoff. This plan does not claim native arm64 Spack, C++23, image, Podman, pasta, rootless, or end-to-end devcontainer acceptance.
++
++## Scope
++
++Use the current worktree as the repair baseline and preserve all unrelated pre-existing changes. Repair only `ci/Dockerfile`, `ci/spack.yaml`, `ci/packages.yaml`, `ci/entrypoint.sh`, `.devcontainer/ensure-repos.sh`, and `.devcontainer/kilo-env.sh`. Bind the prior v4 source, direct state, blocked review, and evidence as read-only provenance; create a new evidence run and new direct state for this source. Verify the complete producer-to-consumer relay/Kilo contract with disposable external fixtures and record all static and unavailable-runtime results under the new run directory. The current `.devcontainer/devcontainer.json` and `docker-compose.yml` do not mount `/run/phlex-host-relays`; within this plan, fixture-root emulation tests consumer logic but is not a mounted-production-path test.
++
++## Exclusions
++
++Do not resume, reset, or modify the v3 or v4 direct states, v3/v4 source files, v4 review ledger, legacy state, `.exec.json` artifacts, or the retired Plan/Compile/Execute workflow. Do not modify `.kilo/kilo.jsonc`, `.github/workflows/*`, `.actrc`, `CMakePresets.json`, `scripts/git-ai-commit`, `scripts/test/test_git_ai_commit.py`, `.devcontainer/post-create.sh`, `.devcontainer/devcontainer.json`, any host credential or socket path, or any path outside a step allowlist. Do not initialize or mutate Podman machines, build or push images, use wildcard or TCP relays, create production relay fixtures during tests, commit, or push. Do not claim that absent devcontainer mounts or native runtime checks are repaired by this plan.
++
++## Steps
++
++### provenance. Bind prior blocked review and new repair state
++
++#### Depends on
++
++none
++
++#### Executor
++
++execute
++
++#### Capabilities
++
++- tool:bash
++
++#### Allowed files
++
++- .kilo/plans/evidence/
++
++#### Prohibited changes
++
++- all repository source and configuration paths
++- all v3/v4 plan, review, and state paths
++- commits, pushes, machine mutation, and process-wide cleanup
++
++#### Task
++
++Create an invocation-unique evidence directory and bind the new source hash, normalized digest, worker-catalog digest, current worktree status, the v4 source and direct-state hashes, the v4 blocked alignment receipt, the v4 evidence directory, and the named implementation and protected-path hashes. Verify that v3 and v4 are provenance only, that the v4 source and state are not being resumed, and that `.kilo/plans/evidence/20260904T151641Z-v3-545de7544a/step-1-values.env` remains prior evidence only and is marked `unavailable` unless independently revalidated in this invocation. The prior directory has no companion hash file; compute the artifact hash in this invocation and record it as newly derived evidence, not as a preserved prior receipt. Record the current partial-edit baseline per file so later repairs preserve provenance and never wholesale-restore a file or directory.
++
++#### Context
++
++The prior v4 execution ended with a blocked alignment review. Its source SHA-256 was `7ecac61bdbf14020616c184e52e0dac8fddf769d5f88922403a6a623cb0a35af`, normalized digest `8baa28bb8cb22b7f2a36b17adf2520f0a467515c529c04eae5185872403d2ab7`, worker catalog digest `83294b1bfdb78d1266cfeec3472b3dade98235718ce7cc71eb0d9fe451c4850e`, and evidence directory `.kilo/plans/evidence/20260906T203545Z-v4-ad0b1b7101/`. The v4 handoff names blockers B1 through B6; this source creates a new repair identity and must retain that history.
++
++#### Acceptance criteria
++
++- A new unique evidence directory contains the source and catalog bindings, prior-state provenance, current status, per-file baseline hashes, and a matching hash manifest.
++- The v4 blocked review and all six blocker IDs remain preserved as provenance; no prior state or completed ID is imported.
++- The exact prior host-value artifact is hashed and marked `unavailable` unless freshly revalidated.
++- No repository path outside the new evidence directory changes.
++
++#### Verification
++
++- Recompute every captured hash immediately after capture and require identical repeated results.
++- Verify the v4 source, state, review, and evidence paths are read-only inputs and validate all captured receipt hashes.
++- Write `provenance-receipt.txt` and its hash entry under the new evidence directory before returning.
++
++#### Retry
++
++max_attempts: 1
++strategy: abort
++
++#### Idempotency
++
++true
++
++#### Gate
++
++automatic
++
++### architecture. Repair persistent normalized Spack rendering and compiler defaults
++
++#### Depends on
++
++- provenance
++
++#### Executor
++
++coder-qwen
++
++#### Capabilities
++
++- filesystem
++- shell
++- tool:bash
++
++#### Allowed files
++
++- ci/Dockerfile
++- ci/spack.yaml
++- ci/packages.yaml
++- ci/entrypoint.sh
++
++#### Prohibited changes
++
++- all paths in Exclusions
++- CMakePresets.json and protected baseline paths
++- image builds, pushes, machine mutation, and cross-architecture cache or binary reuse
++
++#### Task
++
++Repair the CI configuration so normalized architecture values are effective in every architecture-dependent Spack operation, not merely exported in an isolated Docker `RUN` layer. Keep the raw build input separate from normalized `PHLEX_SPACK_TARGET` and `PHLEX_LLVM_TARGET`, source the normalized carrier before every Spack operation that can consume those values, and render only the build-time copies of the architecture-neutral tracked Spack descriptors before `spack config`, `spack env create`, or concretization. Rendering must replace only the three known `${PHLEX_*_TARGET:-default}` expressions with the carrier's validated literal values and must fail if an expected expression is absent or remains after rendering; do not use unbounded environment substitution. Do not remove the architecture-neutral template defaults from tracked `ci/spack.yaml` or `ci/packages.yaml`; non-Docker consumers such as `dev/jules/prepare-environment.sh` must remain unaffected. Prove both amd64 and arm64 source inputs produce exactly `x86_64_v3`/`x86` and `aarch64`/`AArch64`, and prove mismatched native host/target combinations fail before Spack cloning. Preserve GCC 15 ABI constraints, Fermilab mirrors, CI GCC default, developer Clang default, a functional explicit GCC override, reproducible Clang `--gcc-toolchain`, and act/tracebox architecture behavior. Validate `PHLEX_DEFAULT_COMPILER` as exactly `gcc` or `clang` rather than treating every non-GCC value as Clang. Leave native concretization unavailable when Spack is absent rather than claiming it passed. Existing target-related edits that already satisfy these requirements must be verified with hashes and left unchanged; do not regenerate whole files or regions.
++
++#### Context
++
++The previous v4 review confirmed early argument scope and a persistent target carrier but identified unresolved questions about Spack’s handling of `${VAR:-default}` in YAML, one unsourced Spack layer, and the developer-stage compiler override. The repair must remove reliance on unproven config interpolation for the static Docker build contract by rendering build-time copies, while retaining architecture-neutral tracked templates and a clearly recorded native-concretization check for the later arm64 gate.
++
++#### Acceptance criteria
++
++- The Docker stage declares build arguments in the stage where they are consumed and rejects host/target mismatches before any Spack clone, install, configuration, environment creation, or concretization.
++- The copied Spack descriptors used by configuration and concretization contain the exact normalized target values for both inputs and no unresolved target-default expressions.
++- Tracked Spack descriptors remain architecture-neutral templates with valid defaults, and non-Docker consumers remain unaffected; only Docker build-time copies are rendered.
++- Every target-dependent Spack layer sources or consumes the same normalized carrier; the developer-stage Clang default and explicit GCC override both remain functional; invalid compiler selections fail explicitly.
++- GCC 15 ABI, mirror, LLVM AArch64, act, tracebox, and reproducible Clang toolchain behavior remain present.
++- Protected baseline files remain byte-identical.
++
++#### Verification
++
++- Run `bash -n` and `shellcheck -S warning` on `ci/entrypoint.sh`.
++- Run a static two-input Dockerfile and descriptor-rendering matrix covering scope, early mismatch rejection, exact normalized values, LLVM selection, compiler defaults, and override behavior.
++- Recompute protected hashes and run `git diff --check`, distinguishing pre-existing unrelated diagnostics from new findings.
++- If native Spack is unavailable, record native descriptor rendering, concretization, and C++23 compilation as `unavailable`.
++- Return command output, per-file pre/post hashes, and unchanged-region hashes to the orchestrator; the dependent evidence step writes the durable receipt before the next implementation dispatch. Do not regenerate already-satisfied regions.
++
++#### Retry
++
++max_attempts: 1
++strategy: abort
++
++#### Idempotency
++
++true
++
++#### Gate
++
++automatic
++
++### relay. Repair Darwin-safe fail-closed relay lifecycle and evidence
++
++#### Depends on
++
++- provenance
++
++#### Executor
++
++coder-qwen
++
++#### Capabilities
++
++- filesystem
++- shell
++- tool:bash
++
++#### Allowed files
++
++- .devcontainer/ensure-repos.sh
++
++#### Prohibited changes
++
++- all paths in Exclusions
++- `.devcontainer/kilo-env.sh`
++- wildcard listeners, arbitrary port scans, TCP APIs, host interface mutation, production relay fixtures, and unowned-process termination
++
++#### Task
++
++Repair the relay producer without restoring unrelated legacy behavior. Keep the exact allowlist and state contract: default `$HOME/.phlex-devcontainer-tmp/relays`, sorted `relay-map.json`, one `PHLEX_HOST_RELAY_<source>=<relay>` line per mapping, and the named mappings `25114=25115,25300=25301`. Run fixture tests only in an invocation-unique external directory and return their output and hashes to the orchestrator. Make Darwin execution work with system Bash 3.2 and without requiring util-linux `setsid`; keep Linux behavior intact. Parse the complete input before starting anything and fail closed with empty maps, no new relay, and nonzero status for malformed, duplicate, privileged, equal, unavailable, or unlisted mappings. Start listener-first, admit a mapping only after the relay is ready, and remove failed starts before writing maps. Use only exact Darwin `lsof` or Linux `ss` listener checks. Remove the shared helper's `pkill -f` pre-start cleanup rather than replacing it with another pattern-based terminator. Numeric relay cleanup must instead use PID-file command-identity proof, prevent empty-array nounset failures, and ensure `--cleanup-owned` cannot kill unrelated processes. Keep host-dependent socket/VM/pasta checks conditional on fresh provenance; otherwise report `unavailable` and continue only with fixtures. Existing relay edits that already satisfy these requirements must be verified with hashes and left unchanged; do not regenerate the file wholesale.
++
++#### Context
++
++The v4 alignment review found that the relay implementation still had Darwin `setsid` and Bash 3.2 hazards, discarded startup failures while writing maps, swallowed invalid-input status, and had self-tests that printed expected counts without asserting them. It also identified pattern-based cleanup in the legacy Podman/Headroom helper and unreliable PID ownership as risks. The repair must preserve partial edits and never restore the whole file.
++
++#### Acceptance criteria
++
++- Darwin Bash 3.2 and Linux syntax paths execute without `setsid` or empty-array failures.
++- Invalid input fails closed before any numeric relay starts, emits empty deterministic maps, and returns nonzero.
++- Maps contain only explicitly allowlisted services whose listeners are ready; failed starts are absent.
++- The script contains no `pkill` or other pattern-based process termination. Numeric relay cleanup proves command identity and cannot terminate unrelated processes; repeated runs converge without duplicate listeners.
++- `--self-test`, `--start-test-services`, and `--cleanup-owned` use disposable or declared state, assert every expected result, and return nonzero on failure without cloning repositories, inspecting Podman, or creating production fixtures in fixture mode.
++- Darwin loopback binding and conditional pasta/rootless handling remain explicit; unavailable host values are never presented as live acceptance.
++
++#### Verification
++
++- Run `bash -n` and `shellcheck -S warning` on the changed script, requiring both to exit zero.
++- In an invocation-unique external directory, test positive ready mappings, malformed input, duplicates, privileged/equal/unlisted/unavailable mappings, listener-start failure, deterministic ordering, named services, cleanup ownership, repeated self-test convergence, and no production-state creation.
++- Verify the resulting map is the actual ready map later consumed by the Kilo fixture.
++- Return command output, per-file pre/post hashes, fixture hashes, and unavailable native socket/pasta/rootless results to the orchestrator. The dependent `relay-evidence` step writes the durable receipt and exact retained carrier before `kilo` dispatch; do not regenerate already-satisfied regions.
++
++#### Retry
++
++max_attempts: 2
++strategy: resume_then_narrow
++
++#### Idempotency
++
++true
++
++#### Gate
++
++automatic
++
++### kilo. Repair write-free production Kilo configuration and producer round-trip
++
++#### Depends on
++
++- relay-evidence
++
++#### Executor
++
++coder-qwen
++
++#### Capabilities
++
++- filesystem
++- shell
++- tool:bash
++
++#### Allowed files
++
++- .devcontainer/kilo-env.sh
++
++#### Prohibited changes
++
++- all paths in Exclusions
++- `.devcontainer/ensure-repos.sh`
++- host Kilo mounts, credentials, repository-local relay fixtures, configuration writes, backups, and arbitrary environment injection
++
++#### Task
++
++Repair the Kilo consumer so the profile-sourced production path exports its discovered paths and cannot terminate login shells or change the caller's shell options. The production path consumes only `/run/phlex-host-relays/relay-map.json`, `/run/phlex-host-relays/relay-map.env`, then the ordered read-only candidates `/run/phlex-host-relays/kilo.json` and `/run/phlex-host-relays/kilo.jsonc`. A test-only `PHLEX_RELAY_FIXTURE_DIR` override may substitute that root only while `--self-test` is active; it must be rejected or ignored in the profile-sourced production path. For the cross-step fixture, consume the read-only external materialization of the exact `relay-evidence` carrier supplied as `PHLEX_RELAY_FIXTURE_DIR`, require its recorded SHA-256 to match the carrier receipt, and do not synthesize a replacement map. Before exporting anything, validate the complete JSON and env maps as the same sorted allowlisted mapping set: exact `PHLEX_HOST_RELAY_<source>=<relay>` syntax, no duplicate keys, and a one-to-one match between both files. Parse JSONC in memory with string-aware comment and trailing-comma removal, report malformed input to stderr, and fail closed without partial relay or configuration exports. Rewrite only mapped HTTP(S) loopback URLs, including `127.0.0.1`, `localhost`, and `[::1]`, while preserving scheme, path, query, fragment, and unrelated values. Keep non-loopback, unmapped ports, stdio endpoints, and Unix sockets unchanged. The self-test must consume the exact map produced by the relay fixture, verify the expected relay env exports before rewriting, assert JSON/JSONC/malformed/loopback/no-write cases, and return nonzero on any failed assertion. Existing Kilo edits that already satisfy these requirements must be verified with hashes and left unchanged; do not regenerate the file wholesale.
++
++#### Context
++
++The v4 review found that self-tests exported variables that production did not, making the production path inert or shell-fatal under profile sourcing. Static review also confirms that the current script changes its caller's shell options when sourced, and that the current devcontainer configuration provides no `/run/phlex-host-relays` mount. The repair therefore needs explicit profile safety, map/env equivalence, actual no-write assertions, and a producer-to-consumer round-trip. The devcontainer mount wiring is outside this plan and remains a deferred integration boundary; fixture-root emulation does not prove a production mount, and the consumer must still fail closed when the read-only files are absent.
++
++#### Acceptance criteria
++
++- The production path sources safely with no mounted files, never exits or aborts the caller's shell, and leaves the caller's shell options unchanged. Test-only fixture-root emulation verifies the mounted-file code path but is recorded as mount integration `unavailable`.
++- Only the exact relay filenames and matching validated allowlisted mappings are consumed; no host file is written or backed up.
++- JSON and JSONC rewrites are in-memory, scheme-preserving, loopback-only, and map-driven; malformed or mismatched map input reports an error and leaves no relay or configuration export.
++- The self-test consumes the retained relay fixture map from `relay`, proves expected `PHLEX_HOST_RELAY_<source>` exports, and asserts all declared cases.
++
++#### Verification
++
++- Run `bash -n` and `shellcheck -S warning` on the changed script.
++- Source the production entry path in a disposable shell with no mounted config and compare shell options before and after. In explicit `--self-test` fixture-root mode, test JSON, JSONC, malformed and mismatched maps, all three loopback forms, non-loopback, unmapped, mapped, and no-write fixtures.
++- Run the round-trip against the exact `relay` output and validate all fixture output hashes and allowed-file assertions.
++- Record absence of host writes/backups and unavailable mount/runtime integration as evidence.
++- Return command output, per-file pre/post hashes, and fixture results to the orchestrator. The dependent `verify` step writes the durable receipt and matching hash entry; do not regenerate already-satisfied regions.
++
++#### Retry
++
++max_attempts: 2
++strategy: resume_then_narrow
++
++#### Idempotency
++
++true
++
++#### Gate
++
++automatic
++
++### relay-evidence. Retain the exact producer fixture carrier
++
++#### Depends on
++
++- architecture
++- relay
++
++#### Executor
++
++execute
++
++#### Capabilities
++
++- tool:bash
++
++#### Allowed files
++
++- .kilo/plans/evidence/
++
++#### Prohibited changes
++
++- every implementation source path
++- all paths in Exclusions
++- commits, pushes, machine mutation, and production relay state
++
++#### Task
++
++Using the relay worker result and the exact `PHLEX_EVIDENCE_DIR` binding, start two disposable loopback source listeners owned by the fixture harness, then invoke `--start-test-services` with `PHLEX_RELAY_STATE_DIR="$PHLEX_EVIDENCE_DIR/relay-fixture/state"`. Retain `relay-map.json` and `relay-map.env` from that state only after the script returns zero and each mapped destination listener is ready; copy those exact script outputs to the fixed carrier paths, hash them, and write `architecture-receipt.txt` and `relay-receipt.txt` with matching hash entries. The fixture harness must trap cleanup, invoke `--cleanup-owned` against the same state, and prove that its own listeners and every owned target relay exited. Materialize an invocation-unique read-only external view for `kilo`, bind its path as `PHLEX_RELAY_FIXTURE_DIR`, and record that it is byte-identical to the retained carrier. Verify that no production state is touched and that the carrier and external handoff are complete before allowing `kilo` to run.
++
++#### Context
++
++This orchestration step owns durable evidence so implementation and verification workers do not write it concurrently. It creates the producer artifact consumed by the next implementation step. The relay fixture must be the actual ready output of the current script, not a synthesized map or the preliminary output of `--self-test`.
++
++#### Acceptance criteria
++
++- The exact relay fixture carrier exists at `$PHLEX_EVIDENCE_DIR/relay-fixture/relay-map.json` and `relay-map.env` with matching SHA-256 entries.
++- Architecture and relay receipts preserve worker reports, source hashes, unchanged-region hashes, unavailable native checks, and fixture output hashes.
++- The relay fixture uses the evidence state override, contains only target relays proven ready by `--start-test-services`, and does not create production relay state or leave owned listeners after cleanup.
++- The read-only `PHLEX_RELAY_FIXTURE_DIR` handoff exists for `kilo` and its files match the retained carrier hashes.
++
++#### Verification
++
++- Validate the source/catalog bindings, worker reports, fixture outputs, and all receipt hashes.
++- Parse the retained JSON map and env file, requiring exact sorted mappings and matching content semantics, and independently verify the target listeners before cleanup and their absence after cleanup.
++
++#### Retry
++
++max_attempts: 1
++strategy: abort
++
++#### Idempotency
++
++true
++
++#### Gate
++
++automatic
++
++### verify. Verify repaired boundary and write final evidence
++
++#### Depends on
++
++- architecture
++- relay
++- relay-evidence
++- kilo
++
++#### Executor
++
++execute
++
++#### Capabilities
++
++- tool:bash
++
++#### Allowed files
++
++- .kilo/plans/evidence/
++
++#### Prohibited changes
++
++- every implementation source path named by earlier steps
++- all paths in Exclusions
++- commits, pushes, hook mutations, image operations, machine mutation, and Kilo configuration writes
++
++#### Task
++
++Independently inspect the final implementation and run the complete static and fixture matrix after the clean or non-blocking alignment review. Compare implementation and protected-path hashes with provenance, verify only the declared implementation union plus preserved pre-existing paths changed, validate every evidence hash, and record the exact relay map consumed by Kilo. Write the complete handoff under the bound run directory: `metrics.tsv`, `evidence-mode.md`, `m8-case-study.md`, `residual-work.md`, `risks.md`, step receipts, a final evidence manifest, and a deferred-native handoff. Classify the result exactly once and do not claim native acceptance or M8 criteria requiring it.
++
++#### Context
++
++This step is gated by the implementation-alignment checkpoint. A blocking reviewer finding stops this step and requires a new approved source; it cannot be downgraded or erased. The missing devcontainer mount wiring remains outside the allowlist and must be named as residual integration work. This step writes the durable `kilo-receipt.txt` from the worker report before writing the final manifest.
++
++#### Acceptance criteria
++
++- The alignment review is clean or non-blocking and all blocking findings are preserved with repair provenance.
++- Static architecture, relay, Kilo, shell, scope, protected-hash, and evidence checks pass with zero unexpected failures.
++- The relay fixture map consumed by Kilo is the exact producer output and its round-trip is recorded.
++- All required evidence artifacts exist under the bound run directory with matching `{path, sha256}` entries.
++- Native Spack, C++23, image, Podman, pasta, rootless, mount, and end-to-end checks are explicitly `unavailable` or deferred, never passed by inference.
++- `achieved` is not an admissible terminal outcome while those measurements or the mount boundary remain deferred, and no superiority, speedup, cost, or global workflow claim is made.
++- No `kilo-m8-report/v1` artifact is produced; this is an evidence-only case study.
++- `m8-case-study.md` names M8 questions 1–13 and 16 as evidence-relevant only, explicitly excludes 14–15 and 17, and states that no unsupported criteria are claimed.
++- Exactly one terminal outcome and one recommendation are recorded.
++
++#### Verification
++
++- Re-run the complete declared command matrix in an invocation-unique disposable directory.
++- Validate the current source/catalog bindings, all evidence manifests, protected hashes, and unexpected-path accounting.
++- Confirm no production relay state, unowned listener, host Kilo write, commit, or push was created.
++
++#### Retry
++
++max_attempts: 1
++strategy: abort
++
++#### Idempotency
++
++true
++
++#### Gate
++
++automatic
++
++## Records
++
++### recovery-provenance. Preserve prior execution and partial edits
++
++#### Kind
++
++recovery_posture
++
++#### Applies to
++
++- provenance
++- architecture
++- relay
++- kilo
++- relay-evidence
++- verify
++
++#### Content
++
++The v3 and v4 source/state/review/evidence are immutable provenance. This source creates a new direct state and must not import completed IDs, counters, reviewer status, or state JSON. Current worktree edits may predate this plan; each implementation step must capture per-file pre/post hashes and preserve unrelated changes. On abort, leave partial edits in place and record them. Never wholesale-restore a file, directory, or worktree.
++
++### blocked-findings. Required repair of the v4 alignment disposition
++
++#### Kind
++
++repair_boundary
++
++#### Applies to
++
++- architecture
++- relay
++- relay-evidence
++- kilo
++- verify
++
++#### Content
++
++Retain the v4 alignment review and handoff verbatim as provenance. The new source addresses B1 production Kilo path, B2 Darwin portability, B3 ready-map admission, B4 invalid-input status, B5 asserted fixture evidence, and B6 missing durable evidence. It also carries forward unresolved native Spack rendering, PID ownership, profile safety, exact env validation, and mount-integration boundaries. No finding may be deleted, downgraded, or represented as resolved until a fresh alignment review and final evidence prove it.
++
++### relay-interface. Exact producer and consumer contract
++
++#### Kind
++
++interface_contract
++
++#### Applies to
++
++- relay
++- relay-evidence
++- kilo
++- verify
++
++#### Content
++
++The production producer state directory is `$HOME/.phlex-devcontainer-tmp/relays`; fixture execution must override `PHLEX_RELAY_STATE_DIR` to `$PHLEX_EVIDENCE_DIR/relay-fixture/state`. With fixture-harness source listeners active, `--start-test-services` must create the ready map in that state; those exact files are copied unchanged to `$PHLEX_EVIDENCE_DIR/relay-fixture/relay-map.json` and `$PHLEX_EVIDENCE_DIR/relay-fixture/relay-map.env`, each with a recorded SHA-256. The exact outputs are a source-port-sorted JSON object with string numeric keys and values, and an env file with exactly one sorted `PHLEX_HOST_RELAY_<source-port>=<relay-port>` line per mapping and no duplicate or extra mapping. The JSON and env files must describe the same complete allowlisted mapping set. The read-only mount root is `/run/phlex-host-relays`; ordered Kilo candidates are `kilo.json` then `kilo.jsonc`, distinct from the relay maps. The only named fixture mappings are `25114=25115` and `25300=25301`. The consumer must use the exact retained map path and matching hash produced by `relay` and must not synthesize a replacement map for the round-trip assertion.
++
++### deferred-native. Native and integration boundary
++
++#### Kind
++
++validation_boundary
++
++#### Applies to
++
++- architecture
++- relay
++- relay-evidence
++- kilo
++- verify
++
++#### Content
++
++Native Spack descriptor expansion and concretization, GCC 15/C++23 compilation, image architecture inspection, Podman machine and pasta networking, rootless socket validation, read-only devcontainer mount wiring, and end-to-end Kilo integration are deferred. The current devcontainer configuration lacks the `/run/phlex-host-relays` mount, so a `PHLEX_RELAY_FIXTURE_DIR` self-test exercises consumer logic only; it is not mount acceptance. The prior artifact `.kilo/plans/evidence/20260904T151641Z-v3-545de7544a/step-1-values.env` is provenance only; its hash is newly derived in the current provenance invocation because no preserved companion hash file exists. Darwin socket/VM/rootless checks are fixture-level unless that exact artifact is freshly revalidated in this invocation. Missing measurements must be recorded as `unavailable`; they cannot be converted into pass evidence or M8 achievement claims.
++
++### evidence. Evidence and terminal classification contract
++
++#### Kind
++
++evidence_protocol
++
++#### Applies to
++
++- provenance
++- architecture
++- relay
++- relay-evidence
++- kilo
++- verify
++
++#### Content
++
++The provenance step creates `PHLEX_RUN_ID` and `PHLEX_EVIDENCE_DIR` under `.kilo/plans/evidence/<run-id>/`; every later step consumes that exact binding. `relay-evidence` owns `architecture-receipt.txt`, `relay-receipt.txt`, the exact relay fixture carrier, and their hashes; `verify` owns `kilo-receipt.txt`, `metrics.tsv`, `evidence-mode.md` with literal `mode=evidence_only_case_study`, `m8-case-study.md`, `residual-work.md`, `risks.md`, final step receipts, and a complete `{path, sha256}` manifest. `metrics.tsv` must contain exactly these keys: `task_identity`, `run_identity`, `environment_model_conditions`, `planning_elapsed`, `execution_elapsed`, `planning_questions`, `dispatches`, `substantive_attempts`, `retries`, `revisions`, `review_passes`, `human_intervention`, `verification_failures`, `escaped_defects`, `recovery_time`, `available_cost`, `cost_per_verified_step`, `cost_per_achieved_goal`, `deviations`, `missing_measurements`, and `terminal_outcome`; unavailable values use literal `unavailable`. The case study must explicitly state that this run provides evidence relevant to M8 questions 1–13 and 16 only, does not support questions 14–15 because it is not a matched native comparison, and does not claim question 17 pending independent alignment review; criteria outside that set remain unsupported. The case study records exactly one terminal outcome from `achieved`, `partially_achieved`, `not_achieved`, or `inconclusive`, and exactly one recommendation from `none`, `revise_and_reexecute`, `create_supplemental_plan`, or `human_review`. `achieved` is unavailable while any native, mount, or end-to-end scope remains deferred. No superiority, speedup, cost, or global workflow claim may be made from this single evidence-only case. A schema-valid `kilo-m8-report/v1` is out of scope and must not be fabricated. This is evidence-only work, not a matched native conversational benchmark.
++
++## Review checkpoints
++
++### implementation-alignment. Fresh repair alignment review
++
++#### After steps
++
++- architecture
++- relay
++- relay-evidence
++- kilo
++
++#### Gates steps
++
++- verify
++
++#### Reviewer
++
++implementation-reviewer
++
++#### Trigger
++
++After `architecture`, `relay`, `relay-evidence`, and `kilo` pass deterministic verification, dispatch the catalog-authorized read-only reviewer against the current source and preserved v4 findings. Preserve every finding and repair provenance. A blocking finding stops `verify` and requires another approved source; it must never be downgraded or deleted.
++
++## Outcome criteria
++
++- A new v4 direct state binds this repair source without resuming v3 or v4 state.
++- The persistent architecture/compiler contract, Darwin/Linux relay lifecycle, and write-free Kilo contract pass the fresh alignment review and deterministic verification.
++- The exact relay producer output is consumed by the Kilo fixture round-trip.
++- Native arm64 and end-to-end devcontainer acceptance remain explicitly deferred with no unsupported completion claim.
++- Evidence artifacts, residual work, risks, one terminal outcome, and one recommendation are recorded under the bound run directory.

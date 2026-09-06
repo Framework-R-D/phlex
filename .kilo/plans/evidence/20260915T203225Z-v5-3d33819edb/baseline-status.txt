@@ -1,0 +1,11 @@
+## feature/arm64-ci-devcontainer...upstream/feature/arm64-ci-devcontainer
+AM .kilo/plans/1788726889345-native-arm64-podman-blocker-repair-v5.md
+?? .codegraph/
+?? .coderabbit.yaml
+?? .kilo/plans/evidence/20260915T203225Z-v5-3d33819edb/
+?? execution-session-01_2026-09-04.md
+?? plan-conversion-session.log
+?? session-ses_f879.md
+?? session-ses_f886.md
+?? session-ses_f957.md
+?? session-ses_f987.md

@@ -1,0 +1,10 @@
+run-id.txt: OK
+evidence-dir.txt: OK
+provenance-values.env: OK
+baseline-status.txt: OK
+baseline-worktree.patch: OK
+baseline-index.patch: OK
+baseline-target-sha256.txt: OK
+prior-v3-host-values.sha256: OK
+prior-v3-host-values-status.txt: OK
+provenance-receipt.txt: OK
