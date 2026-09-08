@@ -36,11 +36,10 @@ namespace {
       }
     }
     if (!err_selectors.empty()) {
-      std::string error =
-        fmt::format("Must specify layers in the product selectors for node {}:\n"
-                    "  (Only invalid selectors are listed)\n{}",
-                    algo.to_string(),
-                    bulleted_list(err_selectors));
+      std::string error = fmt::format("Must specify layers in the product selectors for node {}:\n"
+                                      "  (Only invalid selectors are listed)\n{}",
+                                      algo.to_string(),
+                                      bulleted_list(err_selectors));
       throw std::runtime_error(error);
     }
   }
