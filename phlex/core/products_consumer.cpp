@@ -36,12 +36,9 @@ namespace {
       }
     }
     if (!err_selectors.empty()) {
-      std::string type =
-        layers_required == require_layers::always ? "layer-mandatory" : "multi-input";
       std::string error =
-        fmt::format("Product selectors in {} algorithm {} must define their layers:\n"
+        fmt::format("Must specify layers in the product selectors for node {}:\n"
                     "  (Only invalid selectors are listed)\n{}",
-                    type,
                     algo.to_string(),
                     bulleted_list(err_selectors));
       throw std::runtime_error(error);
