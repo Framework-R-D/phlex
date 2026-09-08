@@ -36,6 +36,8 @@ TEST_CASE("Retrieve product_selector", "[config]")
   input["suffix"] = "tracks";
   input["layer"] = "job";
 
+  boost::json::object unconstrained_input;
+
   boost::json::object malformed_input1;
   malformed_input1["creator"] = "test_alg";
   malformed_input1["suffix"] = 16.; // Should be string
@@ -43,21 +45,33 @@ TEST_CASE("Retrieve product_selector", "[config]")
 
   boost::json::object malformed_input2;
   malformed_input2["creator"] = "hits";
-  malformed_input2["level"] = "should be layer, not level";
+  malformed_input2["layer"] = "";
+
+  boost::json::object malformed_input3;
+  malformed_input3["creator"] = "";
+  malformed_input3["layer"] = "job";
 
   boost::json::object underlying_config;
   underlying_config["input"] = std::move(input);
+  underlying_config["unconstrained"] = std::move(unconstrained_input);
   underlying_config["malformed1"] = std::move(malformed_input1);
   underlying_config["malformed2"] = std::move(malformed_input2);
+  underlying_config["malformed3"] = std::move(malformed_input3);
   configuration config{underlying_config};
 
   auto input_query = config.get<product_selector>("input");
   CHECK(input_query.match(
     product_selector{.creator = "tracks_alg", .layer = "job", .suffix = "tracks"}));
+  auto unconstrained_query = config.get<product_selector>("unconstrained");
+  CHECK_FALSE(unconstrained_query.creator);
+  CHECK_FALSE(unconstrained_query.layer);
   CHECK_THROWS_WITH(config.get<product_selector>("malformed1"),
                     ContainsSubstring("Error retrieving parameter 'malformed1'") &&
                       ContainsSubstring("not a string"));
   CHECK_THROWS_WITH(config.get<product_selector>("malformed2"),
                     ContainsSubstring("Error retrieving parameter 'malformed2'") &&
-                      ContainsSubstring("Error retrieving parameter 'layer'"));
+                      ContainsSubstring("Cannot specify the empty string as a data layer."));
+  CHECK_THROWS_WITH(config.get<product_selector>("malformed3"),
+                    ContainsSubstring("Error retrieving parameter 'malformed3'") &&
+                      ContainsSubstring("Cannot specify product with empty creator name."));
 }

@@ -9,7 +9,7 @@ namespace phlex {
     if (creator && creator != other.creator) {
       return false;
     }
-    if (layer != other.layer) {
+    if (layer && layer != other.layer) {
       return false;
     }
     if (suffix && suffix != other.suffix) {
@@ -50,7 +50,7 @@ namespace phlex {
     if (!match(spec)) {
       return false;
     }
-    if (experimental::identifier(this->layer) != layer) {
+    if (this->layer && experimental::identifier(this->layer) != layer) {
       return false;
     }
     if (this->stage && this->stage != stage) {
@@ -99,12 +99,8 @@ namespace phlex {
   std::strong_ordering product_selector::operator<=>(product_selector const& rhs) const
   {
     using experimental::identifier;
-    return std::tie(type, creator, static_cast<identifier const&>(layer), suffix, stage) <=>
-           std::tie(rhs.type,
-                    rhs.creator,
-                    static_cast<identifier const&>(rhs.layer),
-                    rhs.suffix,
-                    rhs.stage);
+    return std::tie(type, creator, layer, suffix, stage) <=>
+           std::tie(rhs.type, rhs.creator, rhs.layer, rhs.suffix, rhs.stage);
   }
 
   detail::product_specification const* resolve_in_store(product_selector const& query,
