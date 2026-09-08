@@ -8,7 +8,10 @@
 #include <memory>
 #include <string>
 
+// NOLINTBEGIN(readability-identifier-naming)
+// Forward declarations of ROOT classes
 class TFile;
+// NOLINTEND(readability-identifier-naming)
 
 namespace form::detail::experimental {
   class root_rntuple_write_container_imp;
@@ -22,7 +25,7 @@ namespace form::detail::experimental {
 
     void set_file(std::shared_ptr<i_storage_file> file) override;
     void setup_write(std::type_info const& type) override;
-    void set_parent(std::shared_ptr<i_storage_write_container> const parent) override;
+    void set_parent(std::shared_ptr<i_storage_write_container> parent) override;
     std::uint64_t fill(void const* data) override;
     void commit() override;
 

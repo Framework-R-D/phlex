@@ -8,6 +8,7 @@
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iterator>
 #include <ranges>
@@ -132,9 +133,7 @@ namespace phlex::detail {
     sorted_layer_paths_ = std::move(layer_paths_from_driver);
     std::size_t initial_deepest_path_depth = 0;
     for (auto const& path : sorted_layer_paths_) {
-      if (path.depth() > initial_deepest_path_depth) {
-        initial_deepest_path_depth = path.depth();
-      }
+      initial_deepest_path_depth = std::max(path.depth(), initial_deepest_path_depth);
     }
     std::size_t const max_allowed_depth = initial_deepest_path_depth + layer_pairs.size();
 
@@ -466,9 +465,7 @@ namespace phlex::detail {
       for (auto const& path : sorted_layer_paths_) {
         if (path.ends_with(name)) {
           std::size_t const depth = path.depth();
-          if (depth > best) {
-            best = depth;
-          }
+          best = std::max(depth, best);
         }
       }
       return best;

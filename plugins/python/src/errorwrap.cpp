@@ -66,7 +66,7 @@ static bool format_traceback(std::string& msg,
 
 bool phlex::experimental::msg_from_py_error(std::string& msg, bool check_error)
 {
-  PyGILRAII g;
+  py_gilraii g;
 
   if (check_error) {
     if (!PyErr_Occurred()) {

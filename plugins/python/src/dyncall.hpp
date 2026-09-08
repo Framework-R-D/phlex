@@ -51,25 +51,25 @@ namespace phlex::experimental {
                                           float,
                                           double>;
 
-    ffi_variant_type m_value;
+    ffi_variant_type value;
 
     // convenience mapper of human-readable string to dcarg
     static dcarg from_str(std::string const& stype);
 
     // factory-style constructors to guarantee value/type match
-    dcarg() : m_value(std::monostate{}) {}
-    explicit dcarg(void* v) : m_value(v) {}
-    explicit dcarg(bool v) : m_value(v) {}
-    explicit dcarg(std::int8_t v) : m_value(v) {}
-    explicit dcarg(std::uint8_t v) : m_value(v) {}
-    explicit dcarg(std::int16_t v) : m_value(v) {}
-    explicit dcarg(std::uint16_t v) : m_value(v) {}
-    explicit dcarg(std::int32_t v) : m_value(v) {}
-    explicit dcarg(std::uint32_t v) : m_value(v) {}
-    explicit dcarg(ph_long_t v) : m_value(v) {}
-    explicit dcarg(ph_ulong_t v) : m_value(v) {}
-    explicit dcarg(float v) : m_value(v) {}
-    explicit dcarg(double v) : m_value(v) {}
+    dcarg() : value(std::monostate{}) {}
+    explicit dcarg(void* v) : value(v) {}
+    explicit dcarg(bool v) : value(v) {}
+    explicit dcarg(std::int8_t v) : value(v) {}
+    explicit dcarg(std::uint8_t v) : value(v) {}
+    explicit dcarg(std::int16_t v) : value(v) {}
+    explicit dcarg(std::uint16_t v) : value(v) {}
+    explicit dcarg(std::int32_t v) : value(v) {}
+    explicit dcarg(std::uint32_t v) : value(v) {}
+    explicit dcarg(ph_long_t v) : value(v) {}
+    explicit dcarg(ph_ulong_t v) : value(v) {}
+    explicit dcarg(float v) : value(v) {}
+    explicit dcarg(double v) : value(v) {}
 
     // pointer access to payload
     void* value_ptr();
@@ -78,7 +78,7 @@ namespace phlex::experimental {
     template <typename T>
     T get() const
     {
-      return std::get<T>(m_value);
+      return std::get<T>(value);
     }
   };
 
@@ -86,7 +86,7 @@ namespace phlex::experimental {
   template <>
   inline PyObject* dcarg::get<PyObject*>() const
   {
-    return reinterpret_cast<PyObject*>(std::get<void*>(m_value));
+    return reinterpret_cast<PyObject*>(std::get<void*>(value));
   }
 
   using dcargs_t = std::vector<dcarg>;

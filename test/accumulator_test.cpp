@@ -155,15 +155,26 @@ TEST_CASE("Test accumulator with multiple partitions", "[multithreading]")
   fixture.put_index_message({.index = run1, .msg_id = 5, .cache = true});
   fixture.put_index_message({.index = run2, .msg_id = 6, .cache = true});
   fixture.put_index_message({.index = run1, .msg_id = 7, .cache = true});
+  fixture.wait_for_all();
+
+  // Both partitions have active cache entries before either flush arrives.
+  CHECK(fixture.cache_size() == 2);
 
   fixture.put_flush_token({.index = run1, .count = 3});
+  fixture.wait_for_all();
+
+  // Partition run1 has completed, but run2 is still pending — only one result should be emitted
+  CHECK(fixture.emitted_result_count() == 1);
+  REQUIRE(fixture.received_result_count() == 1);
+  CHECK(fixture.fold_result(run1) == std::pair{3, 1uz}); // 3 fold operations, original message ID 1
+  CHECK(fixture.cache_size() == 1);
+
   fixture.put_flush_token({.index = run2, .count = 2});
   fixture.wait_for_all();
 
-  // One result per partition: run1 accumulates 3 calls, run2 accumulates 2 calls
+  // Partition run2 has completed — second result should be emitted and cache should be empty
   CHECK(fixture.emitted_result_count() == 2);
   REQUIRE(fixture.received_result_count() == 2);
-  CHECK(fixture.fold_result(run1) == std::pair{3, 1uz}); // 3 fold operations, original message ID 1
   CHECK(fixture.fold_result(run2) == std::pair{2, 2uz}); // 2 fold operations, original message ID 2
   CHECK(fixture.cache_is_empty());
 }

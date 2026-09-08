@@ -10,6 +10,8 @@
 #include <memory>
 #include <string>
 
+// NOLINTBEGIN(readability-identifier-naming)
+// Forward declarations of ROOT classes
 class TFile;
 
 namespace ROOT {
@@ -21,20 +23,21 @@ namespace ROOT {
     class RRawPtrWriteEntry;
   }
 #else
-  namespace Experimental {
-    namespace Detail {
-      class RRawPtrWriteEntry;
-    }
+  namespace Experimental::Detail {
+    class RRawPtrWriteEntry;
   }
 #endif
 }
+// NOLINTEND(readability-identifier-naming)
 
 namespace form::detail::experimental {
 
   //ROOT 6.40 moved RRawPtrWriteEntry from ROOT::Experimental::Detail to ROOT::Detail.
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6, 40, 0)
+  // NOLINTNEXTLINE(readability-identifier-naming)
   using RRawPtrWriteEntry = ROOT::Detail::RRawPtrWriteEntry;
 #else
+  // NOLINTNEXTLINE(readability-identifier-naming)
   using RRawPtrWriteEntry = ROOT::Experimental::Detail::RRawPtrWriteEntry;
 #endif
 
@@ -42,7 +45,6 @@ namespace form::detail::experimental {
   public:
     root_rntuple_write_container_imp(std::string const& name);
     ~root_rntuple_write_container_imp() override;
-
     //Rule of five
     root_rntuple_write_container_imp(root_rntuple_write_container_imp const& other) = delete;
     root_rntuple_write_container_imp(root_rntuple_write_container_imp&& other) = delete;
@@ -56,9 +58,9 @@ namespace form::detail::experimental {
     void commit() override;
 
     //State shared by root_rfield_write_container_imps
-    std::unique_ptr<ROOT::RNTupleWriter> writer_;
-    std::unique_ptr<ROOT::RNTupleModel> model_;
-    std::unique_ptr<RRawPtrWriteEntry> entry_;
+    std::unique_ptr<ROOT::RNTupleWriter> writer;
+    std::unique_ptr<ROOT::RNTupleModel> model;
+    std::unique_ptr<RRawPtrWriteEntry> entry;
   };
 }
 

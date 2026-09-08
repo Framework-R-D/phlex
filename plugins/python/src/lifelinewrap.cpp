@@ -9,8 +9,8 @@ static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 {
   auto* pyobj = reinterpret_cast<py_lifeline_t*>(pytype->tp_alloc(pytype, 0));
   if (pyobj) {
-    pyobj->m_view = nullptr;
-    new (&pyobj->m_source) std::shared_ptr<void>{};
+    pyobj->view = nullptr;
+    new (&pyobj->source) std::shared_ptr<void>{};
   } else {
     PyErr_Print();
   }
@@ -19,15 +19,15 @@ static py_lifeline_t* ll_new(PyTypeObject* pytype, PyObject*, PyObject*)
 
 static int ll_traverse(py_lifeline_t* pyobj, visitproc visit, void* args)
 {
-  if (pyobj->m_view) {
-    visit(pyobj->m_view, args);
+  if (pyobj->view) {
+    visit(pyobj->view, args);
   }
   return 0;
 }
 
 static int ll_clear(py_lifeline_t* pyobj)
 {
-  Py_CLEAR(pyobj->m_view);
+  Py_CLEAR(pyobj->view);
   return 0;
 }
 
@@ -36,16 +36,16 @@ static void ll_dealloc(py_lifeline_t* pyobj)
   // This type participates in GC; untrack before clearing references so the
   // collector does not traverse a partially torn-down object during dealloc.
   PyObject_GC_UnTrack(pyobj);
-  Py_CLEAR(pyobj->m_view);
+  Py_CLEAR(pyobj->view);
   using generic_shared_t = std::shared_ptr<void>;
-  pyobj->m_source.~generic_shared_t();
+  pyobj->source.~generic_shared_t();
   // Use tp_free to pair with tp_alloc for GC-tracked Python objects.
   Py_TYPE(pyobj)->tp_free(reinterpret_cast<PyObject*>(pyobj));
 }
 
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-PyTypeObject phlex::experimental::PhlexLifeline_Type = {
+PyTypeObject phlex::experimental::phlex_lifeline_type = {
   // clang-format off
   .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
   .tp_name = "pyphlex.lifeline",

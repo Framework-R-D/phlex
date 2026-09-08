@@ -8,6 +8,8 @@
 #include <memory>
 #include <string>
 
+// NOLINTBEGIN(readability-identifier-naming)
+// Forward declarations of ROOT classes
 class TFile;
 
 namespace ROOT {
@@ -17,6 +19,7 @@ namespace ROOT {
   template <>
   class RNTupleView<void>;
 }
+// NOLINTEND(readability-identifier-naming)
 
 namespace form::detail::experimental {
   class root_rfield_read_container_imp : public storage_read_container {

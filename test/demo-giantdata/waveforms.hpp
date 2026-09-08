@@ -7,13 +7,13 @@
 
 namespace demo {
 
-  struct Waveform {
+  struct waveform {
     // We should be set to the number of samples on a wire.
     std::array<double, 3uz * 1024> samples;
   };
 
-  struct Waveforms {
-    std::vector<Waveform> waveforms;
+  struct waveforms {
+    std::vector<waveform> data;
     int run_id;
     int subrun_id;
     int spill_id;
@@ -21,7 +21,7 @@ namespace demo {
 
     std::size_t size() const;
 
-    Waveforms(std::size_t n, double val, int run_id, int subrun_id, int spill_id, int apa_id);
+    waveforms(std::size_t n, double val, int run_id, int subrun_id, int spill_id, int apa_id);
   };
 
 } // namespace demo

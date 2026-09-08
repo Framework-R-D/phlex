@@ -12,21 +12,20 @@
 
 namespace form::detail::experimental {
   root_rntuple_write_container_imp::root_rntuple_write_container_imp(std::string const& name) :
-    storage_write_association(name), model_(ROOT::RNTupleModel::Create())
+    storage_write_association(name), model(ROOT::RNTupleModel::Create())
   {
   }
 
   root_rntuple_write_container_imp::~root_rntuple_write_container_imp()
   {
-    if (writer_) {
-      writer_->CommitDataset();
+    if (writer) {
+      writer->CommitDataset();
     }
   }
 
   void root_rntuple_write_container_imp::set_file(std::shared_ptr<i_storage_file> file)
   {
     storage_write_container::set_file(file);
-    return;
   }
 
   std::uint64_t root_rntuple_write_container_imp::fill(void const* /*data*/)
@@ -39,5 +38,5 @@ namespace form::detail::experimental {
     throw std::runtime_error("root_rntuple_write_container_imp::commit not implemented");
   }
 
-  void root_rntuple_write_container_imp::setup_write(std::type_info const& /*type*/) { return; }
+  void root_rntuple_write_container_imp::setup_write(std::type_info const& /*type*/) {}
 }

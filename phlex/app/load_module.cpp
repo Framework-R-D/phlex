@@ -63,9 +63,9 @@ namespace phlex::detail {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::optional<driver_plugin> create_driver;
 
-    template <typename creator_t>
-    std::pair<boost::dll::shared_library, creator_t*> plugin_loader(std::string const& spec,
-                                                                    std::string const& symbol_name)
+    template <typename CreatorT>
+    std::pair<boost::dll::shared_library, CreatorT*> plugin_loader(std::string const& spec,
+                                                                   std::string const& symbol_name)
     {
       // Called during single-threaded graph construction
       char const* plugin_path_ptr =
@@ -75,7 +75,7 @@ namespace phlex::detail {
       }
 
       std::vector<std::string> subdirs;
-      boost::split(subdirs, plugin_path_ptr, boost::is_any_of(":"));
+      boost::split(subdirs, plugin_path_ptr, [](char const character) { return character == ':'; });
 
       // FIXME: Need to test to ensure that first match wins.
       for (auto const& subdir : subdirs) {
@@ -87,7 +87,7 @@ namespace phlex::detail {
           auto const load_mode = (spec == pymodule_name) ? boost::dll::load_mode::rtld_global
                                                          : boost::dll::load_mode::default_mode;
           boost::dll::shared_library lib{shared_library_path, load_mode};
-          auto* fn = &lib.get<creator_t>(symbol_name);
+          auto* fn = &lib.get<CreatorT>(symbol_name);
           return {std::move(lib), fn};
         }
       }

@@ -18,7 +18,7 @@ namespace phlex::experimental {
 
 PyObject* phlex::experimental::wrap_dci(data_cell_index const& dci)
 {
-  py_data_cell_index* pydci = PyObject_New(py_data_cell_index, &PhlexDataCellIndex_Type);
+  py_data_cell_index* pydci = PyObject_New(py_data_cell_index, &phlex_data_cell_index_type);
   pydci->ph_dci = &dci;
 
   return reinterpret_cast<PyObject*>(pydci);
@@ -41,7 +41,7 @@ static std::array<PyMethodDef, 2> dci_methods{
 
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-PyTypeObject phlex::experimental::PhlexDataCellIndex_Type = {
+PyTypeObject phlex::experimental::phlex_data_cell_index_type = {
   // clang-format off
   .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
   .tp_name = "pyphlex.data_cell_index",

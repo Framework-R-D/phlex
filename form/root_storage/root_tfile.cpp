@@ -20,18 +20,18 @@ root_tfile_imp::~root_tfile_imp() = default;
 void root_tfile_imp::set_attribute(std::string const& key, std::string const& value)
 {
   if (key == "compression") {
-    using RComp = ROOT::RCompressionSetting::EAlgorithm;
-    RComp::EValues compression{RComp::kUndefined};
+    using rcomp = ROOT::RCompressionSetting::EAlgorithm;
+    rcomp::EValues compression{rcomp::kUndefined};
     if (value == "kZLIB") {
-      compression = RComp::kZLIB;
+      compression = rcomp::kZLIB;
     } else if (value == "kLZMA") {
-      compression = RComp::kLZMA;
+      compression = rcomp::kLZMA;
     } else if (value == "kOldCompressionAlgo") {
-      compression = RComp::kOldCompressionAlgo;
+      compression = rcomp::kOldCompressionAlgo;
     } else if (value == "kLZ4") {
-      compression = RComp::kLZ4;
+      compression = rcomp::kLZ4;
     } else if (value == "kZSTD") {
-      compression = RComp::kZSTD;
+      compression = rcomp::kZSTD;
     } else { // leave compression as kUndefined, which will use ROOT's default
     }
 

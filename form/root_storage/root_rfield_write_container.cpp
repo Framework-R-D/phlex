@@ -45,8 +45,6 @@ namespace form::detail::experimental {
       throw std::runtime_error(
         "root_rfield_write_container_imp::set_file failed to get a TFile from a root_tfile_imp");
     }
-
-    return;
   }
 
   void root_rfield_write_container_imp::set_parent(
@@ -69,22 +67,22 @@ namespace form::detail::experimental {
         "root_rfield_write_container_imp::fill No parent RNTuple set up before first fill() call");
     }
 
-    if (!rntuple_parent_->writer_) {
+    if (!rntuple_parent_->writer) {
       if (!tfile_) {
         throw std::runtime_error(
           "root_rfield_write_container_imp::fill No file loaded to write to on first fill() call");
       }
 
-      rntuple_parent_->writer_ =
-        ROOT::RNTupleWriter::Append(std::move(rntuple_parent_->model_), top_name(), *tfile_);
-      rntuple_parent_->entry_ = rntuple_parent_->writer_->CreateRawPtrWriteEntry();
+      rntuple_parent_->writer =
+        ROOT::RNTupleWriter::Append(std::move(rntuple_parent_->model), top_name(), *tfile_);
+      rntuple_parent_->entry = rntuple_parent_->writer->CreateRawPtrWriteEntry();
     }
-    rntuple_parent_->entry_->BindRawPtr(col_name(), data);
+    rntuple_parent_->entry->BindRawPtr(col_name(), data);
 
     // Unlike a TBranch, an RNTuple entry is only written on commit();
     // every field bound before that commit shares one entry.
     // Return the 0-based index that pending entry will occupy (the current entry count).
-    return static_cast<std::uint64_t>(rntuple_parent_->writer_->GetNEntries());
+    return static_cast<std::uint64_t>(rntuple_parent_->writer->GetNEntries());
   }
 
   void root_rfield_write_container_imp::commit()
@@ -94,13 +92,13 @@ namespace form::detail::experimental {
                                "You may have called commit() without calling set_parent() first.");
     }
 
-    if (!rntuple_parent_->entry_) {
+    if (!rntuple_parent_->entry) {
       throw std::runtime_error(
         "root_rfield_write_container_imp::commit No RRawPtrWriteEntry set up.  "
         "You may have called commit() without calling fill() first.");
     }
-    assert(rntuple_parent_->writer_); //writer_ and entry_ are set in the same place: fill()
-    rntuple_parent_->writer_->Fill(*rntuple_parent_->entry_);
+    assert(rntuple_parent_->writer); // writer and entry are set in the same place: fill()
+    rntuple_parent_->writer->Fill(*rntuple_parent_->entry);
   }
 
   //setup_write() may not be called after the first time fill() is called.
@@ -129,12 +127,12 @@ namespace form::detail::experimental {
           << type_name
           << ".  This class is probably using something obsolete like TLorentzVector.  Storing it "
              "in streamer mode to keep the application going."
-          << std::endl;
+          << '\n';
         field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
       }
     }
 
-    rntuple_parent_->model_->AddField(std::move(field));
+    rntuple_parent_->model->AddField(std::move(field));
   }
 
 }

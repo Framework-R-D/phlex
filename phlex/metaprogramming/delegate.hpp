@@ -8,11 +8,25 @@
 #include <utility>
 
 namespace phlex::detail {
-  // The first overload is used for closure objects and free functions
-  // The clang-tidy warning that 'auto f' should become 'auto const& f' is a false positive.
-  // NOLINTNEXTLINE(performance-unnecessary-value-param)
-  auto delegate(std::shared_ptr<void_tag> const&, auto f) { return std::function{std::move(f)}; }
 
+  // The following overload is used for closure objects, free functions and static member functions.
+  // For example, the following is allowed by the framework, even if those the static member
+  // function doesn't make use of the framework-created instance:
+  //
+  //   make<A>(...).transform(..., &A::static_member_function, ...)
+  //
+  // The clang-tidy warning that 'auto f' should become 'auto const& f' is a false positive.
+  template <typename T>
+  auto delegate(std::shared_ptr<T> const&,
+                auto f // NOLINT(performance-unnecessary-value-param)
+  )
+  {
+    return std::function{std::move(f)};
+  }
+
+  // The remaining overloads are used for non-static member functions bound to the 'obj' object.
+
+  // - non-noexcept overloads
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...))
   {
@@ -23,6 +37,23 @@ namespace phlex::detail {
 
   template <typename R, typename T, typename... Args>
   auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...) const)
+  {
+    return std::function{[t = std::move(obj), f](Args... args) mutable -> R {
+      return std::invoke(f, *t, std::forward<Args>(args)...);
+    }};
+  }
+
+  // - noexcept overloads
+  template <typename R, typename T, typename... Args>
+  auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...) noexcept)
+  {
+    return std::function{[t = std::move(obj), f](Args... args) mutable -> R {
+      return std::invoke(f, *t, std::forward<Args>(args)...);
+    }};
+  }
+
+  template <typename R, typename T, typename... Args>
+  auto delegate(std::shared_ptr<T> obj, R (T::*f)(Args...) const noexcept)
   {
     return std::function{[t = std::move(obj), f](Args... args) mutable -> R {
       return std::invoke(f, *t, std::forward<Args>(args)...);

@@ -31,8 +31,6 @@ namespace {
       }
       return bundles;
     }
-
-    phlex::index_generator indices() override { co_return; }
   };
 }
 

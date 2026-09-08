@@ -61,7 +61,6 @@ namespace {
       }
       return bundles;
     }
-    index_generator indices() override { co_return; }
   };
 }
 
