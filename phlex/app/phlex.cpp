@@ -3,6 +3,7 @@
 #include "phlex/concurrency.hpp"
 
 #include "boost/program_options.hpp"
+#include "fmt/format.h"
 #include "libjsonnet++.h"
 #include "oneapi/tbb/info.h"
 
@@ -10,21 +11,21 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <string_view>
 
 using namespace std::string_literals;
 using namespace boost;
 namespace bpo = boost::program_options;
 
 namespace {
-  bpo::options_description make_options_description(char const* executable,
+  bpo::options_description make_options_description(std::string_view const executable,
                                                     int const max_concurrency,
                                                     std::string& config_file)
   {
-    std::ostringstream descstr;
-    descstr << "\nUsage: " << std::filesystem::path(executable).filename().native()
-            << " -c <config-file> [other-options]\n\n"
-            << "Basic options";
-    bpo::options_description result{descstr.str()};
+    bpo::options_description result{
+      fmt::format("\nUsage: {} -c <config-file> [other-options]\n\n"
+                  "Basic options",
+                  std::filesystem::path{executable}.filename().native())};
 
     // clang-format off
     result.add_options()
