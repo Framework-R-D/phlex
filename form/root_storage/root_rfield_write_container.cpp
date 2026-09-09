@@ -31,8 +31,9 @@ namespace form::detail::experimental {
   void root_rfield_write_container_imp::set_file(std::shared_ptr<i_storage_file> file)
   {
     //The test below is required by FORM's testing infrastructure
-    if(!dynamic_pointer_cast<root_tfile_imp>(file)) {
-      throw std::runtime_error("root_rfield_write_container_imp::set_file was passed a file that is not a ROOT file.");
+    if (!dynamic_pointer_cast<root_tfile_imp>(file)) {
+      throw std::runtime_error(
+        "root_rfield_write_container_imp::set_file was passed a file that is not a ROOT file.");
     }
 
     storage_write_container::set_file(file);

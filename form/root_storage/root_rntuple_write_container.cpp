@@ -55,9 +55,10 @@ namespace form::detail::experimental {
 
   ROOT::RNTupleWriter& root_rntuple_write_container_imp::get_writer()
   {
-    if(!tfile_) throw std::runtime_error("root_rntuple_write_container_imp::setup_write no file loaded to write to on first fill() call");
-    if(!writer_)
-    {
+    if (!tfile_)
+      throw std::runtime_error("root_rntuple_write_container_imp::setup_write no file loaded to "
+                               "write to on first fill() call");
+    if (!writer_) {
       writer_ = ROOT::RNTupleWriter::Append(std::move(model_), name(), *tfile_);
     }
 
@@ -71,8 +72,7 @@ namespace form::detail::experimental {
 
   RRawPtrWriteEntry& root_rntuple_write_container_imp::get_entry()
   {
-    if(!entry_)
-    {
+    if (!entry_) {
       entry_ = get_writer().CreateRawPtrWriteEntry();
     }
     return *entry_;
