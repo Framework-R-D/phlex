@@ -25,9 +25,6 @@ namespace {
     {
       return {};
     }
-    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    index_generator indices() override { co_return; }
   };
 
   struct other_source final : phlex::source {
@@ -35,15 +32,12 @@ namespace {
     {
       return {};
     }
-    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    index_generator indices() override { co_return; }
   };
 
   struct test_driver_builder {
-    [[nodiscard]] fixed_hierarchy hierarchy() const { return {}; }
+    static fixed_hierarchy hierarchy() { return {}; }
 
-    [[nodiscard]] std::function<void(data_cell_yielder const)> driver_function() const
+    static std::function<void(data_cell_yielder const)> driver_function()
     {
       return [](data_cell_yielder const /*yielder*/) {};
     }

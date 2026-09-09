@@ -93,6 +93,7 @@ namespace phlex::detail {
   concept is_driver_like = is_driver_like_with_sources<F, data_cell_cursor> ||
                            is_driver_like_with_sources<F, data_cell_yielder>;
 
+  // Object-call expressions intentionally permit either static or instance members.
   template <typename T>
   concept is_driver_builder_like = requires(T& driver_builder) {
     { driver_builder.hierarchy() } -> std::same_as<fixed_hierarchy>;

@@ -61,9 +61,6 @@ namespace {
       }
       return bundles;
     }
-    // Clang-tidy misdiagnoses the coroutine's generated promise_type access.
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    index_generator indices() override { co_return; }
   };
 }
 

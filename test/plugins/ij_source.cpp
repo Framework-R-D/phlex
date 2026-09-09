@@ -4,7 +4,7 @@ using namespace phlex;
 
 namespace {
   struct signed_value_provider {
-    int provide_i(data_cell_index const& id) const { return static_cast<int>(id.number()); }
+    static int provide_i(data_cell_index const& id) { return static_cast<int>(id.number()); }
   };
 }
 

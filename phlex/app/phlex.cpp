@@ -3,6 +3,7 @@
 #include "phlex/concurrency.hpp"
 
 #include "boost/program_options.hpp"
+#include "fmt/format.h"
 #include "libjsonnet++.h"
 #include "oneapi/tbb/info.h"
 
@@ -10,32 +11,43 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <string_view>
 
 using namespace std::string_literals;
 using namespace boost;
 namespace bpo = boost::program_options;
 
+namespace {
+  bpo::options_description make_options_description(std::string_view const executable,
+                                                    int const max_concurrency,
+                                                    std::string& config_file)
+  {
+    bpo::options_description result{
+      fmt::format("\nUsage: {} -c <config-file> [other-options]\n\n"
+                  "Basic options",
+                  std::filesystem::path{executable}.filename().native())};
+
+    // clang-format off
+    result.add_options()
+      ("help,h", "Produce help message")
+      ("config,c", bpo::value<std::string>(&config_file), "Configuration file")
+      ("parallel,j",
+       bpo::value<int>()->default_value(max_concurrency),
+       "Maximum parallelism requested for the program")
+      ("version", ("Print phlex version ("s + phlex::detail::version() + ")").c_str());
+    // clang-format on
+
+    return result;
+  }
+}
+
 // NOLINTNEXTLINE(bugprone-exception-escape) -- primary application entry point; exceptions
 // from potentially-throwing calls should be handled internally, not propagated from main
 int main(int argc, char* argv[])
 {
-  std::ostringstream descstr;
-  descstr << "\nUsage: " << std::filesystem::path(argv[0]).filename().native()
-          << " -c <config-file> [other-options]\n\n"
-          << "Basic options";
-  bpo::options_description desc{descstr.str()};
-
   auto max_concurrency = oneapi::tbb::info::default_concurrency();
   std::string config_file;
-  // clang-format off
-  desc.add_options()
-    ("help,h", "Produce help message")
-    ("config,c", bpo::value<std::string>(&config_file), "Configuration file")
-    ("parallel,j",
-       bpo::value<int>()->default_value(max_concurrency),
-       "Maximum parallelism requested for the program")
-    ("version", ("Print phlex version ("s + phlex::detail::version() + ")").c_str());
-  // clang-format on
+  auto desc = make_options_description(argv[0], max_concurrency, config_file);
 
   // Parse the command line.
   bpo::variables_map vm;

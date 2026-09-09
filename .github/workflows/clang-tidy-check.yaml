@@ -1,6 +1,10 @@
 name: Clang-Tidy Check
 "run-name": "${{ github.actor }} checking C++ code with clang-tidy"
 
+concurrency:
+  group: clang-tidy-check-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: read
@@ -49,8 +53,13 @@ jobs:
 
   clang-tidy-check:
     needs: setup
+    # Pull-request runs must publish an empty issue artifact when all C/C++
+    # changes have been reverted, allowing clang-tidy-report to remove a stale
+    # warning comment.  The run step exits before invoking clang-tidy when no
+    # C/C++ files remain to analyze.
     if: >
-      always() && (github.event_name == 'workflow_dispatch' || needs.setup.outputs.has_changes == 'true')
+      always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' ||
+      needs.setup.outputs.has_changes == 'true')
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/framework-r-d/phlex-ci:latest
@@ -84,70 +93,6 @@ jobs:
         shell: bash
         working-directory: ${{ needs.setup.outputs.build_path }}
         env:
-          REPO: ${{ needs.setup.outputs.repo }}
-          SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
-          BUILD_PATH: ${{ needs.setup.outputs.build_path }}
-        run: |
-          . /entrypoint.sh
-          REPO_NAME="${REPO##*/}"
-          SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
-          BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
-
-          # run-clang-tidy runs clang-tidy on every translation unit in
-          # compile_commands.json in parallel and merges the per-TU fix YAML files
-          # into a single comprehensive clang-tidy-fixes.yaml.  The alternative
-          # (setting CMAKE_CXX_CLANG_TIDY=clang-tidy;--export-fixes=... and
-          # building with -j) suffers from a race condition: every parallel
-          # clang-tidy invocation independently overwrites the same output file, so
-          # only the fixes from whichever translation unit finishes last are
-          # retained.
-          #
-          # Path arguments are substring-matched against file paths in
-          # compile_commands.json; restricting to the source directory automatically
-          # excludes generated files (e.g. version.cpp, ROOT dictionaries) that live
-          # in the build directory and lack access to the .clang-tidy config.
-          #
-          # run-clang-tidy validates the check list by calling clang-tidy from its
-          # working directory; run from the source root so that clang-tidy discovers
-          # the .clang-tidy config file there, preventing a spurious "No checks
-          # enabled." error.
-          if ! command -v run-clang-tidy >/dev/null 2>&1; then
-            echo "::error::run-clang-tidy not found in PATH; cannot run clang-tidy checks"
-            exit 1
-          fi
-          echo "➡️ Running clang-tidy checks..."
-          cd "$SOURCE_DIR"
-          set +e
-          run-clang-tidy \
-            -p "$BUILD_DIR" \
-            -export-fixes "$BUILD_DIR/clang-tidy-fixes.yaml" \
-            -j "$(nproc)" \
-            "$SOURCE_DIR/phlex" \
-            "$SOURCE_DIR/form" \
-            "$SOURCE_DIR/plugins" \
-            "$SOURCE_DIR/test" \
-            > "$BUILD_DIR/clang-tidy.log" 2>&1
-          TIDY_EXIT=$?
-          set -e
-
-          if grep -qE '^/.+\.(cpp|hpp|c|h):[0-9]+:[0-9]+: (warning|error):' "$BUILD_DIR/clang-tidy.log"; then
-            echo "::warning::Clang-tidy found issues in the code"
-            echo "Comment '@${REPO_NAME}bot tidy-fix [<check>...]' on the PR to attempt auto-fix"
-          elif [ "$TIDY_EXIT" -ne 0 ] || grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
-            echo "::error::run-clang-tidy failed (see log below)"
-            echo "::group::clang-tidy.log (error)"
-            cat "$BUILD_DIR/clang-tidy.log"
-            echo "::endgroup::"
-            exit 1
-          else
-            echo "✅ clang-tidy check passed"
-          fi
-
-      - name: Check for new clang-tidy issues
-        id: diff_check
-        if: steps.tidy.outcome == 'success' && needs.setup.outputs.base_sha != ''
-        shell: bash
-        env:
           BASE_SHA: ${{ needs.setup.outputs.base_sha }}
           BASE_REPO:
             ${{ github.event_name == 'pull_request' && github.event.pull_request.base.repo.full_name ||
@@ -157,49 +102,101 @@ jobs:
             needs.setup.outputs.repo }}
           SOURCE_PATH: ${{ needs.setup.outputs.checkout_path }}
           BUILD_PATH: ${{ needs.setup.outputs.build_path }}
+          FULL_BRANCH_CHECK: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
+          . /entrypoint.sh
           SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
           BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
 
+          # Manual runs analyze the whole branch.  Other events fetch the base because
+          # the diff drives both the files to analyze and eligible failure lines.
           cd "$SOURCE_DIR"
+          sources=()
+          if [ "$FULL_BRANCH_CHECK" = true ]; then
+            sources=("$SOURCE_DIR/phlex" "$SOURCE_DIR/form" "$SOURCE_DIR/plugins" "$SOURCE_DIR/test")
+            : > "$BUILD_DIR/patch.diff"
+          else
+            FETCH_REMOTE="origin"
+            if [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ "${BASE_REPO}" != "${HEAD_REPO}" ]; then
+              FETCH_REMOTE="base-origin"
+              git remote add "$FETCH_REMOTE" "https://github.com/${BASE_REPO}.git" 2>/dev/null || true
+            fi
+            if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+              git fetch --depth=1 "$FETCH_REMOTE" "$BASE_SHA"
+            fi
 
-          # Fetch the base commit if it is not already in the shallow history.
-          # actions/checkout uses --depth 1, so BASE_SHA may be absent locally.
-          FETCH_REMOTE="origin"
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ "${BASE_REPO}" != "${HEAD_REPO}" ]; then
-            FETCH_REMOTE="base-origin"
-            git remote add "$FETCH_REMOTE" "https://github.com/${BASE_REPO}.git" 2>/dev/null || true
-          fi
+            git diff --unified=0 "$BASE_SHA" HEAD -- \
+              '*.cpp' '*.hpp' '*.c' '*.h' '*.cxx' '*.cc' '*.hxx' '*.icc' \
+              > "$BUILD_DIR/patch.diff"
 
-          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
-            echo "Fetching base commit ${BASE_SHA}..."
-            if ! git fetch --depth=1 "$FETCH_REMOTE" "$BASE_SHA" 2>/dev/null; then
-              echo "::warning::Could not fetch base commit ${BASE_SHA}; skipping new-issue check"
-              exit 0
+            header_changed=false
+            while IFS= read -r -d '' file; do
+              if [ -f "$SOURCE_DIR/$file" ]; then
+                case "$file" in
+                  *.cpp|*.c|*.cxx|*.cc) sources+=("$SOURCE_DIR/$file") ;;
+                  *.hpp|*.h|*.hxx|*.icc) header_changed=true ;;
+                esac
+              fi
+            done < <(git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- \
+              '*.cpp' '*.hpp' '*.c' '*.h' '*.cxx' '*.cc' '*.hxx' '*.icc')
+
+            # A header has no compilation database entry of its own.  Analyze all
+            # project translation units when one changes so diagnostics in it are
+            # observed through every potentially affected includer.
+            if [ "$header_changed" = true ]; then
+              sources=("$SOURCE_DIR/phlex" "$SOURCE_DIR/form" "$SOURCE_DIR/plugins" "$SOURCE_DIR/test")
             fi
           fi
 
-          # Produce a no-context diff for C/C++ source files so hunk headers
-          # precisely identify the added and modified line ranges.
-          git diff --unified=0 "$BASE_SHA" HEAD -- \
-            '*.cpp' '*.hpp' '*.c' '*.h' '*.cxx' '*.cc' '*.hxx' '*.icc' \
-            > "$BUILD_DIR/patch.diff" 2>/dev/null || true
-
-          if [ ! -s "$BUILD_DIR/patch.diff" ]; then
-            echo "No C/C++ source changes detected in diff; skipping new-issue check"
+          if [ "${#sources[@]}" -eq 0 ]; then
+            : > "$BUILD_DIR/clang-tidy.log"
+            : > "$BUILD_DIR/clang-tidy-new-issues.txt"
+            : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
+            echo "No C/C++ files to analyze"
             exit 0
           fi
 
+          # Run from the source root so clang-tidy discovers .clang-tidy.  Passing
+          # only changed paths avoids scanning unrelated translation units.
+          if ! command -v run-clang-tidy >/dev/null 2>&1; then
+            echo "::error::run-clang-tidy not found in PATH; cannot run clang-tidy checks"
+            exit 1
+          fi
+          echo "➡️ Running clang-tidy checks..."
+          set +e
+          run-clang-tidy \
+            -p "$BUILD_DIR" \
+            -export-fixes "$BUILD_DIR/clang-tidy-fixes.yaml" \
+            -j "$(nproc)" \
+            "${sources[@]}" \
+            > "$BUILD_DIR/clang-tidy.log" 2>&1
+          TIDY_EXIT=$?
+          set -e
+
+          set +e
+          filter_args=()
+          if [ "$FULL_BRANCH_CHECK" = true ]; then
+            filter_args+=(--all)
+          fi
           python3 "$SOURCE_DIR/scripts/clang_tidy_diff_issues.py" \
             --log "$BUILD_DIR/clang-tidy.log" \
             --diff "$BUILD_DIR/patch.diff" \
             --source-dir "$SOURCE_DIR" \
+            "${filter_args[@]}" \
             --output "$BUILD_DIR/clang-tidy-new-issues.txt"
           DIFF_EXIT=$?
+          set -e
 
-          if [ "$DIFF_EXIT" -eq 1 ]; then
+          if [ "$TIDY_EXIT" -ne 0 ] || grep -q "No checks enabled\.\|Traceback\|RuntimeError\|ModuleNotFoundError\|ImportError" "$BUILD_DIR/clang-tidy.log"; then
+            echo "::error::run-clang-tidy failed (see log below)"
+            echo "::group::clang-tidy.log (error)"
+            cat "$BUILD_DIR/clang-tidy.log"
+            echo "::endgroup::"
+            exit 1
+          elif [ "$DIFF_EXIT" -eq 1 ]; then
+            : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
             NEW_COUNT=$(grep -c '' "$BUILD_DIR/clang-tidy-new-issues.txt" 2>/dev/null || echo 0)
-            echo "::error::${NEW_COUNT} new clang-tidy issue(s) introduced by this patch:"
+            echo "::error::${NEW_COUNT} clang-tidy issue(s) found"
             while IFS= read -r issue; do
               [ -n "$issue" ] && echo "::error::${issue}"
             done < "$BUILD_DIR/clang-tidy-new-issues.txt"
@@ -207,9 +204,10 @@ jobs:
           elif [ "$DIFF_EXIT" -ne 0 ]; then
             echo "::error::clang_tidy_diff_issues.py failed with exit code ${DIFF_EXIT}"
             exit "$DIFF_EXIT"
+          else
+            : > "$BUILD_DIR/clang-tidy-analysis-complete.txt"
+            echo "✅ No clang-tidy issues found"
           fi
-
-          echo "✅ No new clang-tidy issues on modified lines"
 
       - name: Save PR metadata
         if: always() && github.event_name == 'pull_request'
@@ -231,6 +229,7 @@ jobs:
             ${{ needs.setup.outputs.build_path }}/clang-tidy-fixes.yaml
             ${{ needs.setup.outputs.build_path }}/clang-tidy.log
             ${{ needs.setup.outputs.build_path }}/clang-tidy-new-issues.txt
+            ${{ needs.setup.outputs.build_path }}/clang-tidy-analysis-complete.txt
             ${{ needs.setup.outputs.build_path }}/pr_number.txt
           retention-days: 7
           if-no-files-found: ignore
@@ -253,14 +252,6 @@ jobs:
           build-path: ${{ needs.setup.outputs.build_path }}
           pr-number: ${{ needs.setup.outputs.pr_number }}
           post-summary: "true"
-
-      - name: Post no-issues comment
-        if: >-
-          always() && github.event_name == 'issue_comment' && needs.clang-tidy-check.result == 'success' &&
-          steps.post_results.outputs.has_content != 'true' && needs.setup.outputs.pr_number != ''
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
-        with:
-          message: "No clang-tidy issues found."
 
       - name: Update PR comment reactions
         if: always() && github.event_name == 'issue_comment'

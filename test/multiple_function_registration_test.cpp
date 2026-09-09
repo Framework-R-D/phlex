@@ -31,7 +31,9 @@ namespace {
     return std::sqrt(static_cast<double>(summed_numbers + offset));
   }
 
-  struct a {
+  struct test_struct {
+    // This is a test struct, so it is not important that these functions are non-static.
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     auto sqrt_sum(unsigned summed_numbers, unsigned offset) const
     {
       return sqrt_sum_numbers(summed_numbers, offset);
@@ -76,8 +78,8 @@ TEST_CASE("Call multiple functions", "[programming model]")
         product_selector{.creator = "square_numbers", .layer = "job", .suffix = "squared_numbers"})
       .output_product_suffixes("summed_numbers");
 
-    g.make<a>()
-      .transform("sqrt_sum", &a::sqrt_sum, concurrency::unlimited)
+    g.make<test_struct>()
+      .transform("sqrt_sum", &test_struct::sqrt_sum, concurrency::unlimited)
       .input_family(
         product_selector{.creator = "sum_numbers", .layer = "job", .suffix = "summed_numbers"},
         product_selector{.creator = "input", .layer = "job", .suffix = "offset"})

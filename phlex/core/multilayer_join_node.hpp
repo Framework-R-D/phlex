@@ -77,7 +77,6 @@ namespace phlex::detail {
       layers_{std::move(layer_names)}
     {
       assert(NInputs == layers_.size());
-
       // Collapse to the set of distinct layer names.  More than one distinct layer means
       // at least one input crosses a layer boundary and therefore every input stream
       // needs a repeater_node.
@@ -135,7 +134,7 @@ namespace phlex::detail {
     // Stateless placeholder used instead of multilayer_join_node when a node has only a
     // single input (no joining is required).
     struct no_join {
-      named_index_ports index_ports() const { return {}; }
+      static named_index_ports index_ports() { return {}; }
     };
 
     // Maps the number of inputs to the appropriate join type: a real multilayer_join_node

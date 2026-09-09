@@ -40,12 +40,12 @@ namespace phlex {
   product_selector tag_invoke(boost::json::value_to_tag<product_selector> const&,
                               boost::json::value const& jv)
   {
-    using detail::value_decorate_exception;
+    using detail::value_if_exists;
     auto query_object = jv.as_object();
-    auto creator = value_decorate_exception<experimental::identifier>(query_object, "creator");
-    auto layer = value_decorate_exception<experimental::identifier>(query_object, "layer");
-    auto suffix = detail::value_if_exists(query_object, "suffix");
-    auto stage = detail::value_if_exists(query_object, "stage");
+    auto creator = value_if_exists(query_object, "creator");
+    auto layer = value_if_exists(query_object, "layer");
+    auto suffix = value_if_exists(query_object, "suffix");
+    auto stage = value_if_exists(query_object, "stage");
     return product_selector{
       .creator = std::move(creator), .layer = std::move(layer), .suffix = suffix, .stage = stage};
   }
