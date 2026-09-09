@@ -112,6 +112,21 @@ class TestComputeExpectedGuard:
         f = tmp_path / "phlex" / "my-util.hpp"
         assert M.compute_expected_guard(f, tmp_path) == "PHLEX_MY_UTIL_HPP"
 
+    def test_non_identifier_characters_converted_to_underscores(self, tmp_path: Path) -> None:
+        """Punctuation in path components is replaced with underscores."""
+        f = tmp_path / "release.candidate" / "my.geometry.hpp"
+        assert M.compute_expected_guard(f, tmp_path) == "RELEASE_CANDIDATE_MY_GEOMETRY_HPP"
+
+    def test_repeated_underscores_collapsed(self, tmp_path: Path) -> None:
+        """Runs of underscores in path components are collapsed."""
+        f = tmp_path / "phlex" / "foo__bar.hpp"
+        assert M.compute_expected_guard(f, tmp_path) == "PHLEX_FOO_BAR_HPP"
+
+    def test_non_letter_prefix_gets_file_prefix(self, tmp_path: Path) -> None:
+        """Components not beginning with a letter receive a safe FILE_ prefix."""
+        f = tmp_path / "1.0-release" / "2nd.geometry.hpp"
+        assert M.compute_expected_guard(f, tmp_path) == "FILE_1_0_RELEASE_FILE_2ND_GEOMETRY_HPP"
+
     def test_uppercase_components_preserved(self, tmp_path: Path) -> None:
         """Components are always uppercased regardless of input case."""
         f = tmp_path / "Phlex" / "FooBar.hpp"
@@ -207,6 +222,25 @@ class TestCheckHeaderGuard:
 
 class TestFixHeaderGuard:
     """Tests for M.fix_header_guard."""
+
+    def test_malformed_top_level_guard_is_fixed(self, tmp_path: Path) -> None:
+        """A malformed top-level guard is normalized and then validates."""
+        content = """\
+#ifndef MY_GEOMETRY.HPP_MY_GEOMETRY_HPP
+#define MY_GEOMETRY .HPP_MY_GEOMETRY_HPP
+#endif // MY_GEOMETRY.HPP_MY_GEOMETRY_HPP
+"""
+        f = _make_header(tmp_path, ".", "my_geometry.hpp", content)
+
+        valid, _ = M.check_header_guard(f, tmp_path)
+        assert valid is False
+        assert M.fix_header_guard(f, tmp_path) is True
+
+        valid, _ = M.check_header_guard(f, tmp_path)
+        assert valid is True
+        assert f.read_text(encoding="utf-8") == (
+            "#ifndef MY_GEOMETRY_HPP\n#define MY_GEOMETRY_HPP\n#endif // MY_GEOMETRY_HPP\n"
+        )
 
     def test_wrong_guard_is_fixed(self, tmp_path: Path) -> None:
         """A file with a wrong guard is updated to the expected macro."""
