@@ -19,7 +19,11 @@ namespace form::detail::experimental {
   root_rntuple_write_container_imp::~root_rntuple_write_container_imp()
   {
     if (writer_) {
-      writer_->CommitDataset();
+      try {
+        writer_->CommitDataset();
+      } catch(ROOT::RException const& e) {
+        std::cerr << "Failed to commit RNTuple " << name() << " at destruction." << std::endl;
+      }
     }
   }
 
