@@ -37,7 +37,6 @@ namespace form::detail::experimental {
     }
 
     storage_write_container::set_file(file);
-    return;
   }
 
   void root_rfield_write_container_imp::set_parent(

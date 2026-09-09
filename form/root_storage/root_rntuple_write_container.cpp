@@ -22,7 +22,7 @@ namespace form::detail::experimental {
       try {
         writer_->CommitDataset();
       } catch(ROOT::RException const& e) {
-        std::cerr << "Failed to commit RNTuple " << name() << " at destruction." << std::endl;
+        std::cerr << "Failed to commit RNTuple " << name() << " at destruction.\n";
       }
     }
   }
@@ -44,7 +44,6 @@ namespace form::detail::experimental {
       throw std::runtime_error(
         "root_rntuple_write_container_imp::set_file failed to get a TFile from a root_tfile_imp");
     }
-    return;
   }
 
   std::uint64_t root_rntuple_write_container_imp::fill(void const* /*data*/)
