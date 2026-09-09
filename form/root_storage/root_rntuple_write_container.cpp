@@ -39,11 +39,6 @@ namespace form::detail::experimental {
                                "i_storage_file to a root_tfile_imp.  "
                                "root_rntuple_write_container_imp only works with TFiles.");
     }
-
-    if (!tfile_) {
-      throw std::runtime_error(
-        "root_rntuple_write_container_imp::set_file failed to get a TFile from a root_tfile_imp");
-    }
   }
 
   std::uint64_t root_rntuple_write_container_imp::fill(void const* /*data*/)
@@ -58,10 +53,10 @@ namespace form::detail::experimental {
 
   ROOT::RNTupleWriter& root_rntuple_write_container_imp::get_writer()
   {
-    if (!tfile_)
-      throw std::runtime_error("root_rntuple_write_container_imp::setup_write no file loaded to "
-                               "write to on first fill() call");
     if (!writer_) {
+      if (!tfile_)
+        throw std::runtime_error("root_rntuple_write_container_imp::setup_write no file loaded to "
+                                 "write to on first fill() call");
       writer_ = ROOT::RNTupleWriter::Append(std::move(model_), name(), *tfile_);
     }
 
