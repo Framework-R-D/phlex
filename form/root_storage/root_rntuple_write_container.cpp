@@ -21,7 +21,7 @@ namespace form::detail::experimental {
     if (writer_) {
       try {
         writer_->CommitDataset();
-      } catch(ROOT::RException const& e) {
+      } catch (ROOT::RException const& e) {
         std::cerr << "Failed to commit RNTuple " << name() << " at destruction." << std::endl;
       }
     }
