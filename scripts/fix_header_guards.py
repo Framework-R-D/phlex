@@ -9,14 +9,21 @@ import sys
 from pathlib import Path
 
 
+def normalize_guard_component(component: str) -> str:
+    """Convert a path component to a non-reserved macro identifier token."""
+    normalized = re.sub(r"[^A-Z0-9_]", "_", component.upper())
+    normalized = re.sub(r"_+", "_", normalized)
+    if not normalized or not normalized[0].isalpha():
+        return f"FILE_{normalized}" if normalized else "FILE"
+    return normalized
+
+
 def compute_expected_guard(file_path: Path, root: Path) -> str:
     """Compute expected guard macro: X_Y_HEADER_EXT."""
     rel = file_path.relative_to(root)
-    # X is the first subdirectory, Y is remaining path components
-    parts = [rel.parts[0].upper().replace("-", "_")]
-    if len(rel.parts) > 2:
-        parts.extend(p.upper().replace("-", "_") for p in rel.parts[1:-1])
-    parts.extend([rel.stem.upper().replace("-", "_"), rel.suffix[1:].upper()])
+    # Include directory components only; a top-level header has none.
+    parts = [normalize_guard_component(part) for part in rel.parts[:-1]]
+    parts.extend([normalize_guard_component(rel.stem), normalize_guard_component(rel.suffix[1:])])
     return "_".join(parts)
 
 
@@ -34,16 +41,16 @@ def check_header_guard(file_path: Path, root: Path) -> tuple[bool, str | None]:
     ifndef_macro = define_macro = endif_macro = None
 
     for i in range(min(10, len(lines))):
-        if m := re.match(r"#ifndef\s+(\w+)\s*$", lines[i]):
+        if m := re.match(r"#ifndef\s+(\S+)\s*$", lines[i]):
             ifndef_idx, ifndef_macro = i, m.group(1)
-        elif m := re.match(r"#define\s+(\w+)\s*$", lines[i]):
+        elif m := re.match(r"#define\s+(.+?)\s*$", lines[i]):
             define_idx, define_macro = i, m.group(1)
             break
 
     for i in range(len(lines) - 1, -1, -1):
         line = lines[i].strip()
         if line.startswith("#endif"):
-            if m := re.match(r"#endif\s*//\s*(\w+)\s*$", lines[i]):
+            if m := re.match(r"#endif\s*//\s*(\S+)\s*$", lines[i]):
                 endif_macro = m.group(1)
             break
 
@@ -69,9 +76,9 @@ def fix_header_guard(file_path: Path, root: Path) -> bool:
     ifndef_idx = define_idx = endif_idx = None
 
     for i in range(min(10, len(lines))):
-        if re.match(r"#ifndef\s+\w+\s*$", lines[i]):
+        if re.match(r"#ifndef\s+\S+\s*$", lines[i]):
             ifndef_idx = i
-        elif re.match(r"#define\s+\w+\s*$", lines[i]):
+        elif re.match(r"#define\s+.+\s*$", lines[i]):
             define_idx = i
             break
 

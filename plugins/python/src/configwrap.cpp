@@ -1,7 +1,9 @@
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <ranges>
 #include <string>
+#include <vector>
 
 #include "phlex/configuration.hpp"
 #include "wrap.hpp"
@@ -56,6 +58,125 @@ static std::optional<Py_ssize_t> checked_tuple_size(std::size_t n)
   return static_cast<Py_ssize_t>(n);
 }
 
+static PyObject* string_map_to_python(std::map<std::string, std::string> const& value)
+{
+  PyObject* result = PyDict_New();
+  if (!result) {
+    return nullptr;
+  }
+
+  for (auto const& [key, item] : value) {
+    PyObject* pyitem =
+      PyUnicode_FromStringAndSize(item.c_str(), static_cast<Py_ssize_t>(item.size()));
+    if (!pyitem) {
+      Py_DECREF(result);
+      return nullptr;
+    }
+    int const status = PyDict_SetItemString(result, key.c_str(), pyitem);
+    Py_DECREF(pyitem);
+    if (status < 0) {
+      Py_DECREF(result);
+      return nullptr;
+    }
+  }
+  return result;
+}
+
+template <typename T, typename Converter>
+static PyObject* vector_to_python_tuple(std::vector<T> const& values, Converter const& convert)
+{
+  auto const size = checked_tuple_size(values.size());
+  if (!size) {
+    return nullptr;
+  }
+
+  PyObject* result = PyTuple_New(*size);
+  if (!result) {
+    return nullptr;
+  }
+  for (Py_ssize_t i = 0; i < *size; ++i) {
+    PyObject* item = convert(values[static_cast<std::size_t>(i)]);
+    // LCOV_EXCL_START
+    if (!item) {
+      // Practically speaking, this only happens when there's an allocation failure.
+      Py_DECREF(result);
+      return nullptr;
+    }
+    // LCOV_EXCL_STOP
+    PyTuple_SET_ITEM(result, i, item);
+  }
+  return result;
+}
+
+static PyObject* configuration_array_to_python(phlex::configuration const& config,
+                                               std::string const& key,
+                                               boost::json::kind kind)
+{
+  if (kind == boost::json::kind::bool_) {
+    auto const& value = config.get<std::vector<bool>>(key);
+    return vector_to_python_tuple(
+      value, [](bool item) { return PyBool_FromLong(static_cast<long>(item)); });
+  }
+  if (kind == boost::json::kind::int64) {
+    auto const& value = config.get<std::vector<std::int64_t>>(key);
+    return vector_to_python_tuple(value,
+                                  [](std::int64_t item) { return PyLong_FromLongLong(item); });
+  }
+  if (kind == boost::json::kind::uint64) {
+    auto const& value = config.get<std::vector<std::uint64_t>>(key);
+    return vector_to_python_tuple(
+      value, [](std::uint64_t item) { return PyLong_FromUnsignedLongLong(item); });
+  }
+  if (kind == boost::json::kind::double_) {
+    auto const& value = config.get<std::vector<double>>(key);
+    return vector_to_python_tuple(value, PyFloat_FromDouble);
+  }
+  if (kind == boost::json::kind::string) {
+    auto const& value = config.get<std::vector<std::string>>(key);
+    return vector_to_python_tuple(value, [](std::string const& item) {
+      return PyUnicode_FromStringAndSize(item.c_str(), static_cast<Py_ssize_t>(item.size()));
+    });
+  }
+  if (kind == boost::json::kind::object) {
+    auto const& value = config.get<std::vector<std::map<std::string, std::string>>>(key);
+    return vector_to_python_tuple(value, string_map_to_python);
+  }
+  if (kind == boost::json::kind::null) {
+    return PyTuple_New(0);
+  }
+  return nullptr;
+}
+
+static PyObject* configuration_scalar_to_python(phlex::configuration const& config,
+                                                std::string const& key,
+                                                boost::json::kind kind)
+{
+  // Python 3.14 adds PyLong_FromInt64/PyLong_FromUInt64 to replace these variants.
+  static_assert(sizeof(long long) >= sizeof(std::int64_t));
+  static_assert(sizeof(unsigned long long) >= sizeof(std::uint64_t));
+
+  if (kind == boost::json::kind::bool_) {
+    return PyBool_FromLong(static_cast<long>(config.get<bool>(key)));
+  }
+  if (kind == boost::json::kind::int64) {
+    return PyLong_FromLongLong(config.get<std::int64_t>(key));
+  }
+  if (kind == boost::json::kind::uint64) {
+    return PyLong_FromUnsignedLongLong(config.get<std::uint64_t>(key));
+  }
+  if (kind == boost::json::kind::double_) {
+    return PyFloat_FromDouble(config.get<double>(key));
+  }
+  if (kind == boost::json::kind::string) {
+    auto const& value = config.get<std::string>(key);
+    return PyUnicode_FromStringAndSize(value.c_str(), static_cast<Py_ssize_t>(value.size()));
+  }
+  if (kind == boost::json::kind::object) {
+    return string_map_to_python(config.get<std::map<std::string, std::string>>(key));
+  }
+  return nullptr;
+}
+
 static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
 {
   // Retrieve a named configuration setting.
@@ -72,139 +193,24 @@ static PyObject* pcm_subscript(py_config_map* pycmap, PyObject* pykey)
   }
 
   // cached lookup
-  PyObject* pyvalue = PyDict_GetItem(pycmap->ph_config_cache, pykey);
-  if (pyvalue) {
-    Py_INCREF(pyvalue);
-    return pyvalue;
+  PyObject* cached_value = PyDict_GetItem(pycmap->ph_config_cache, pykey);
+  if (cached_value) {
+    Py_INCREF(cached_value);
+    return cached_value;
   }
   PyErr_Clear();
 
-  std::string ckey = PyUnicode_AsUTF8(pykey);
+  char const* key_text = PyUnicode_AsUTF8(pykey);
+  if (!key_text) {
+    return nullptr;
+  }
+  std::string const ckey = key_text;
 
-  // Note: Python3.14 adds PyLong_FromInt64/PyLong_FromUInt64 to replace the
-  // long long variants
-  static_assert(sizeof(long long) >= sizeof(int64_t));
-  static_assert(sizeof(unsigned long long) >= sizeof(uint64_t));
-
+  PyObject* pyvalue = nullptr;
   try {
-    auto k = pycmap->ph_config->prototype_internal_kind(ckey);
-    if (k.second /* is array */) {
-      if (k.first == boost::json::kind::bool_) {
-        auto const& cvalue = pycmap->ph_config->get<std::vector<bool>>(ckey);
-        auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) {
-          return nullptr;
-        }
-        pyvalue = PyTuple_New(*cvalue_size);
-        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
-        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          PyObject* item = PyLong_FromLong(static_cast<long>(cvalue[i]));
-          PyTuple_SetItem(pyvalue, i, item);
-        }
-      } else if (k.first == boost::json::kind::int64) {
-        auto const& cvalue = pycmap->ph_config->get<std::vector<std::int64_t>>(ckey);
-        auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) {
-          return nullptr;
-        }
-        pyvalue = PyTuple_New(*cvalue_size);
-        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
-        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          // Note Python3.14 is expected to add PyLong_FromInt64
-          PyObject* item = PyLong_FromLongLong(cvalue[i]);
-          PyTuple_SetItem(pyvalue, i, item);
-        }
-      } else if (k.first == boost::json::kind::uint64) {
-        auto const& cvalue = pycmap->ph_config->get<std::vector<std::uint64_t>>(ckey);
-        auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) {
-          return nullptr;
-        }
-        pyvalue = PyTuple_New(*cvalue_size);
-        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
-        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          // Note Python3.14 is expected to add PyLong_FromUInt64
-          PyObject* item = PyLong_FromUnsignedLongLong(cvalue[i]);
-          PyTuple_SetItem(pyvalue, i, item);
-        }
-      } else if (k.first == boost::json::kind::double_) {
-        auto const& cvalue = pycmap->ph_config->get<std::vector<double>>(ckey);
-        auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) {
-          return nullptr;
-        }
-        pyvalue = PyTuple_New(*cvalue_size);
-        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
-        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          PyObject* item = PyFloat_FromDouble(cvalue[i]);
-          PyTuple_SetItem(pyvalue, i, item);
-        }
-      } else if (k.first == boost::json::kind::string) {
-        auto const& cvalue = pycmap->ph_config->get<std::vector<std::string>>(ckey);
-        auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) {
-          return nullptr;
-        }
-        pyvalue = PyTuple_New(*cvalue_size);
-        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
-        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          PyObject* item = PyUnicode_FromStringAndSize(cvalue[i].c_str(),
-                                                       static_cast<Py_ssize_t>(cvalue[i].size()));
-          PyTuple_SetItem(pyvalue, i, item);
-        }
-      } else if (k.first == boost::json::kind::object) {
-        auto const& cvalue =
-          pycmap->ph_config->get<std::vector<std::map<std::string, std::string>>>(ckey);
-        auto const cvalue_size = checked_tuple_size(cvalue.size());
-        if (!cvalue_size) {
-          return nullptr;
-        }
-        pyvalue = PyTuple_New(*cvalue_size);
-        // We can use std::views::enumerate once the AppleClang C++ STL supports it.
-        for (Py_ssize_t i = 0; i < *cvalue_size; ++i) {
-          PyObject* item = PyDict_New();
-          for (auto const& kv : cvalue[i]) {
-            PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(),
-                                                        static_cast<Py_ssize_t>(kv.second.size()));
-            PyDict_SetItemString(item, kv.first.c_str(), val);
-            Py_DECREF(val);
-          }
-          PyTuple_SetItem(pyvalue, i, item);
-        }
-      } else if (k.first == boost::json::kind::null) {
-        // special case: empty array
-        pyvalue = PyTuple_New(0);
-      }
-    } else {
-      if (k.first == boost::json::kind::bool_) {
-        auto cvalue = pycmap->ph_config->get<bool>(ckey);
-        pyvalue = PyBool_FromLong(static_cast<long>(cvalue));
-      } else if (k.first == boost::json::kind::int64) {
-        auto cvalue = pycmap->ph_config->get<std::int64_t>(ckey);
-        // Note Python3.14 is expected to add PyLong_FromInt64
-        pyvalue = PyLong_FromLongLong(cvalue);
-      } else if (k.first == boost::json::kind::uint64) {
-        auto cvalue = pycmap->ph_config->get<std::uint64_t>(ckey);
-        // Note Python3.14 is expected to add PyLong_FromUInt64
-        pyvalue = PyLong_FromUnsignedLongLong(cvalue);
-      } else if (k.first == boost::json::kind::double_) {
-        auto cvalue = pycmap->ph_config->get<double>(ckey);
-        pyvalue = PyFloat_FromDouble(cvalue);
-      } else if (k.first == boost::json::kind::string) {
-        auto const& cvalue = pycmap->ph_config->get<std::string>(ckey);
-        pyvalue =
-          PyUnicode_FromStringAndSize(cvalue.c_str(), static_cast<Py_ssize_t>(cvalue.size()));
-      } else if (k.first == boost::json::kind::object) {
-        auto cvalue = pycmap->ph_config->get<std::map<std::string, std::string>>(ckey);
-        pyvalue = PyDict_New();
-        for (auto const& kv : cvalue) {
-          PyObject* val = PyUnicode_FromStringAndSize(kv.second.c_str(),
-                                                      static_cast<Py_ssize_t>(kv.second.size()));
-          PyDict_SetItemString(pyvalue, kv.first.c_str(), val);
-          Py_DECREF(val);
-        }
-      }
-    }
+    auto const [kind, is_array] = pycmap->ph_config->prototype_internal_kind(ckey);
+    pyvalue = is_array ? configuration_array_to_python(*pycmap->ph_config, ckey, kind)
+                       : configuration_scalar_to_python(*pycmap->ph_config, ckey, kind);
   } catch (std::runtime_error const& e) {
     PyErr_Format(PyExc_KeyError, "failed to retrieve property \"%s\" (%s)", ckey.c_str(), e.what());
   }

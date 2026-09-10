@@ -1024,6 +1024,96 @@ static bool insert_output_converter(py_phlex_module* mod,
   return true;
 }
 
+static void* numba_function_address(PyObject* callable)
+{
+  // Detect Numba and extract its C function pointer; otherwise use the Python dispatcher.
+  if (!is_numba_cfunc(callable)) {
+    return nullptr;
+  }
+
+  PyObject* pyaddr = PyObject_GetAttrString(callable, "address");
+  if (!pyaddr) {
+    PyErr_Clear();
+    return nullptr;
+  }
+  void* result = PyLong_AsVoidPtr(pyaddr);
+  Py_DECREF(pyaddr);
+  if (!result) {
+    PyErr_Clear();
+  }
+  return result;
+}
+
+static std::optional<identifier> transform_output_layer(
+  std::string const& name, std::vector<product_selector> const& input_selectors)
+{
+  // TODO: output layers are ambiguous when inputs span layers. Reject that case until a
+  // well-defined output-layer policy exists.
+  auto result = static_cast<identifier>(input_selectors[0].layer);
+  for (auto const& selector : input_selectors | std::views::drop(1)) {
+    if (static_cast<identifier>(selector.layer) != result) {
+      PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", name.c_str());
+      return std::nullopt;
+    }
+  }
+  return result;
+}
+
+static bool validate_transform_output(std::string const& name,
+                                      std::vector<std::string> const& output_types,
+                                      std::vector<std::string> const& output_suffixes)
+{
+  if (output_types.empty()) {
+    PyErr_Format(PyExc_TypeError, "transform %s should have an output type", name.c_str());
+    return false;
+  }
+  if (output_suffixes.empty()) {
+    PyErr_Format(PyExc_TypeError, "transform %s should have an output suffix", name.c_str());
+    return false;
+  }
+  return true;
+}
+
+static bool validate_numba_transform_types(std::string const& name,
+                                           std::vector<std::string> const& input_types,
+                                           std::string const& output_type)
+{
+  // TODO: remove this temporary restriction once Numba vector support is available.
+  // LCOV_EXCL_START
+  auto const is_collection_type = [](std::string const& type) {
+    return type.starts_with("ndarray") || type.starts_with("list");
+  };
+  for (auto const& input_type : input_types) {
+    if (is_collection_type(input_type)) {
+      PyErr_Format(PyExc_TypeError,
+                   "Numba transform %s has unsupported collection input type \"%s\"",
+                   name.c_str(),
+                   input_type.c_str());
+      return false;
+    }
+  }
+  if (is_collection_type(output_type)) {
+    PyErr_Format(PyExc_TypeError,
+                 "Numba transform %s has unsupported collection output type \"%s\"",
+                 name.c_str(),
+                 output_type.c_str());
+    return false;
+  }
+  // LCOV_EXCL_STOP
+  return true;
+}
+
+static product_selector converted_input_selector(std::string const& name,
+                                                 std::size_t index,
+                                                 product_selector const& selector)
+{
+  std::string const suffix =
+    "py_" + (selector.suffix ? std::string{static_cast<std::string_view>(*selector.suffix)} : "");
+  return {.creator = identifier(input_converter_name(name, index)),
+          .layer = selector.layer,
+          .suffix = identifier(suffix)};
+}
+
 template <size_t N, typename Cf>
 static bool unroll_switch(size_t rt_size, Cf&& func)
 {
@@ -1041,6 +1131,43 @@ static bool unroll_switch(size_t rt_size, Cf&& func)
 
     return matched;
   }(std::make_index_sequence<N>{});
+}
+
+static std::optional<product_selector> register_transform_callback(
+  py_phlex_module* mod,
+  PyObject* callable,
+  void* ccallf,
+  std::string const& name,
+  std::vector<product_selector> const& input_selectors,
+  std::string const& output_type,
+  std::string const& output_suffix,
+  identifier const& output_layer,
+  concurrency nconcur)
+{
+  // Only a single output is supported until typed tuple conversion is implemented.
+  std::string const pyname = "py_" + name;
+  std::string const pyoutput = output_suffix + "_py";
+  auto output_selector = product_selector{
+    .creator = identifier(pyname), .layer = output_layer, .suffix = identifier(pyoutput)};
+  auto register_n_args = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    constexpr std::size_t n = sizeof...(Is);
+    if (ccallf) {
+      jit_callback<dcarg, n> callback{callable, ccallf, output_type};
+      mod->ph_module->transform(pyname, callback, nconcur)
+        .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
+        .output_product_suffixes(pyoutput);
+    } else {
+      py_callback<dcarg, n> callback{callable};
+      mod->ph_module->transform(pyname, callback, nconcur)
+        .input_family(converted_input_selector(name, Is, input_selectors[Is])...)
+        .output_product_suffixes(pyoutput);
+    }
+  };
+  if (unroll_switch<max_supported_args>(input_selectors.size(), register_n_args)) {
+    return output_selector;
+  }
+  PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
+  return std::nullopt;
 }
 
 static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kwds)
@@ -1061,43 +1188,16 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     return nullptr; // error already set
   }
 
-  // detect numba and extract C function pointer if any, else use default Python
-  // callable dispatcher
-  void* ccallf = nullptr;
-  if (is_numba_cfunc(callable)) {
-    PyObject* pyaddr = PyObject_GetAttrString(callable, "address");
-    if (pyaddr) {
-      ccallf = PyLong_AsVoidPtr(pyaddr);
-      Py_DECREF(pyaddr);
-    }
-    if (!ccallf) {
-      PyErr_Clear();
-    }
-  }
-
-  if (output_types.empty()) {
-    PyErr_Format(PyExc_TypeError, "transform %s should have an output type", cname.c_str());
+  void* ccallf = numba_function_address(callable);
+  if (!validate_transform_output(cname, output_types, output_suffixes)) {
     Py_DECREF(callable);
     return nullptr;
   }
 
-  if (output_suffixes.empty()) {
-    PyErr_Format(PyExc_TypeError, "transform %s should have an output suffix", cname.c_str());
+  auto const output_layer = transform_output_layer(cname, input_selectors);
+  if (!output_layer) {
     Py_DECREF(callable);
     return nullptr;
-  }
-
-  // TODO: it's not clear what the output layer will be if the input layers are not
-  // all the same, so for now, simply raise an error if their is any ambiguity
-  auto output_layer = static_cast<identifier>(input_selectors[0].layer);
-  if (1 < input_selectors.size()) {
-    for (auto const& iq_pq : input_selectors | std::views::drop(1)) {
-      if (static_cast<identifier>(iq_pq.layer) != output_layer) {
-        PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", cname.c_str());
-        Py_DECREF(callable);
-        return nullptr;
-      }
-    }
   }
 
   if (!insert_input_converters(mod, cname, input_selectors, input_types, !ccallf, nconcur)) {
@@ -1105,84 +1205,29 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
     return nullptr; // error already set
   }
 
-  // register Python transform callbacks
-
-  // TODO: only support single output type for now, as there has to be a mapping
-  // onto a std::tuple otherwise, which is a typed object, thus complicating the
-  // template instantiation
-  std::string pyname = "py_" + cname;
-  std::string pyoutput = output_suffixes[0] + "_py";
   std::string const& out_type = output_types[0];
-
-  // TODO: the following makes the AI happy, but should be removed shortly once
-  // vector support is added for Numba (WIP; release is cut first)
-  // LCOV_EXCL_START
-  auto is_collection_type = [](std::string const& type) {
-    return type.starts_with("ndarray") || type.starts_with("list");
-  };
-  if (ccallf) {
-    for (auto const& input_type : input_types) {
-      if (is_collection_type(input_type)) {
-        PyErr_Format(PyExc_TypeError,
-                     "Numba transform %s has unsupported collection input type \"%s\"",
-                     cname.c_str(),
-                     input_type.c_str());
-        Py_DECREF(callable);
-        return nullptr;
-      }
-    }
-    if (is_collection_type(out_type)) {
-      PyErr_Format(PyExc_TypeError,
-                   "Numba transform %s has unsupported collection output type \"%s\"",
-                   cname.c_str(),
-                   out_type.c_str());
-      Py_DECREF(callable);
-      return nullptr;
-    }
+  if (ccallf && !validate_numba_transform_types(cname, input_types, out_type)) {
+    Py_DECREF(callable);
+    return nullptr;
   }
-  // LCOV_EXCL_STOP
-  // end TODO
 
-  auto transform_n_args = [&]<size_t... Is>(std::index_sequence<Is...>) {
-    constexpr size_t n = sizeof...(Is);
-
-    auto make_product_selector = [&](size_t i) {
-      auto pq = input_selectors[i];
-      std::string c = input_converter_name(cname, i);
-      std::string suff =
-        "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
-
-      return product_selector{
-        .creator = identifier(c), .layer = pq.layer, .suffix = identifier(suff)};
-    };
-
-    auto insert_tranform_for_callback = [&](auto& cb) {
-      mod->ph_module->transform(pyname, cb, nconcur)
-        .input_family(make_product_selector(Is)...)
-        .output_product_suffixes(pyoutput);
-    };
-
-    if (ccallf) {
-      jit_callback<dcarg, n> cb{callable, ccallf, out_type};
-      insert_tranform_for_callback(cb);
-    } else {
-      py_callback<dcarg, n> cb{callable};
-      insert_tranform_for_callback(cb);
-    }
-  };
-
-  if (!unroll_switch<max_supported_args>(input_selectors.size(), transform_n_args)) {
-    PyErr_SetString(PyExc_TypeError, "unsupported number of inputs");
+  auto const output_selector = register_transform_callback(mod,
+                                                           callable,
+                                                           ccallf,
+                                                           cname,
+                                                           input_selectors,
+                                                           out_type,
+                                                           output_suffixes[0],
+                                                           *output_layer,
+                                                           nconcur);
+  if (!output_selector) {
     Py_DECREF(callable);
     return nullptr;
   }
 
   // insert output converter node into the graph
-  auto out_pq = product_selector{.creator = identifier(pyname),
-                                 .layer = identifier(output_layer),
-                                 .suffix = identifier(pyoutput)};
   std::string const& output = output_suffixes[0];
-  if (!insert_output_converter(mod, cname, out_pq, out_type, output, !ccallf, nconcur)) {
+  if (!insert_output_converter(mod, cname, *output_selector, out_type, output, !ccallf, nconcur)) {
     Py_DECREF(callable);
     return nullptr; // error already set
   }
@@ -1348,15 +1393,18 @@ PyTypeObject phlex::experimental::phlex_module_type = {
 #endif
 };
 
-//
-// TODO: source wrapper lives here for now to re-use the converter functions;
-// this should all be refactored out into their own files
-//
-static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds)
-{
-  // Register a python algorithm by adding the necessary intermediate converter
-  // nodes going from C++ to PyObject* and back.
+struct provider_registration {
+  PyObject* callable;
+  PyObject* output;
+  std::string name;
+  std::string output_type;
+};
 
+// The source wrapper remains here to share the Python converter implementations.
+// TODO: move it to a dedicated source-wrapper translation unit.
+static std::optional<provider_registration> parse_provider_registration(PyObject* args,
+                                                                        PyObject* kwds)
+{
   // Python 3.13+ accepts const keyword-name tables. Older versions require mutable strings.
 #if PY_VERSION_HEX < 0x030d0000
   // NOLINTBEGIN(modernize-avoid-c-arrays)
@@ -1373,53 +1421,135 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   PyObject* pyname = nullptr;
   if (!PyArg_ParseTupleAndKeywords(
         args, kwds, "OO|O", std::data(kwnames), &callable, &output, &pyname)) {
-    // error already set by argument parser
-    return nullptr;
+    // Error already set by argument parser.
+    return std::nullopt;
   }
-
   if (!callable || !PyCallable_Check(callable)) {
     PyErr_SetString(PyExc_TypeError, "given provider is not callable");
-    return nullptr;
+    return std::nullopt;
   }
-
-  // retrieve function name
   if (!pyname) {
     pyname = PyObject_GetAttrString(callable, "__name__");
     if (!pyname) {
-      // AttributeError already set
-      return nullptr;
+      // AttributeError already set.
+      return std::nullopt;
     }
   } else {
     Py_INCREF(pyname);
   }
-
-  std::string functor_name = PyUnicode_AsUTF8(pyname);
+  char const* name_text = PyUnicode_AsUTF8(pyname);
+  if (!name_text) {
+    Py_DECREF(pyname);
+    return std::nullopt;
+  }
+  std::string const name = name_text;
   Py_DECREF(pyname);
 
-  // retrieve C++ (matching) types from annotations
   std::vector<std::string> input_types;
   std::vector<std::string> output_types;
   if (!annotations_to_strings(callable, input_types, output_types)) {
-    return nullptr; // Python error already set
+    // Python error already set.
+    return std::nullopt;
   }
-
-  // provider needs to take a single "data_cell_input"
+  // A provider takes exactly one data-cell index.
   if (input_types.size() != 1 || input_types[0] != "data_cell_index") {
     PyErr_SetString(PyExc_TypeError, "a provider takes a single \"data_cell_index\" as input");
-    return nullptr;
+    return std::nullopt;
   }
-
-  // provider needs to have an output
+  // Providers must produce one non-void output.
   if (output_types.size() != 1 || output_types[0] == "None") {
     PyErr_SetString(PyExc_TypeError, "a provider must have an output");
+    return std::nullopt;
+  }
+  return provider_registration{
+    .callable = callable, .output = output, .name = name, .output_type = output_types[0]};
+}
+
+static bool register_scalar_provider(py_phlex_source* src,
+                                     std::string const& name,
+                                     PyObject* callable,
+                                     algorithm_name const& creator,
+                                     identifier const& suffix,
+                                     identifier const& layer,
+                                     std::string const& output_type)
+{
+  if (output_type == "bool") {
+    src->ph_source->provide(name, provider_cb_bool{callable})
+      .output_product(creator, suffix, layer);
+  } else if (output_type == "int32_t") {
+    src->ph_source->provide(name, provider_cb_int{callable}).output_product(creator, suffix, layer);
+  } else if (output_type == "uint32_t") {
+    src->ph_source->provide(name, provider_cb_uint{callable})
+      .output_product(creator, suffix, layer);
+  } else if (output_type == "int64_t") {
+    src->ph_source->provide(name, provider_cb_long{callable})
+      .output_product(creator, suffix, layer);
+  } else if (output_type == "uint64_t") {
+    src->ph_source->provide(name, provider_cb_ulong{callable})
+      .output_product(creator, suffix, layer);
+  } else if (output_type == "float") {
+    src->ph_source->provide(name, provider_cb_float{callable})
+      .output_product(creator, suffix, layer);
+  } else if (output_type == "double") {
+    src->ph_source->provide(name, provider_cb_double{callable})
+      .output_product(creator, suffix, layer);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+static bool register_collection_provider(py_phlex_source* src,
+                                         std::string const& name,
+                                         PyObject* callable,
+                                         algorithm_name const& creator,
+                                         identifier const& suffix,
+                                         identifier const& layer,
+                                         std::string const& output_type)
+{
+  // TODO: these hard-coded vector mappings should be generated from an IDL.
+  auto const dtype = collection_dtype(output_type);
+  if (!dtype) {
+    PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", output_type.c_str());
+    return false;
+  }
+  if (*dtype == "[int32_t]") {
+    src->ph_source->provide(name, provider_cb_vint{callable})
+      .output_product(creator, suffix, layer);
+  } else if (*dtype == "[uint32_t]") {
+    src->ph_source->provide(name, provider_cb_vuint{callable})
+      .output_product(creator, suffix, layer);
+  } else if (*dtype == "[int64_t]") {
+    src->ph_source->provide(name, provider_cb_vlong{callable})
+      .output_product(creator, suffix, layer);
+  } else if (*dtype == "[uint64_t]") {
+    src->ph_source->provide(name, provider_cb_vulong{callable})
+      .output_product(creator, suffix, layer);
+  } else if (*dtype == "[float]") {
+    src->ph_source->provide(name, provider_cb_vfloat{callable})
+      .output_product(creator, suffix, layer);
+  } else if (*dtype == "[double]") {
+    src->ph_source->provide(name, provider_cb_vdouble{callable})
+      .output_product(creator, suffix, layer);
+  } else {
+    PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", output_type.c_str());
+    return false;
+  }
+  return true;
+}
+
+static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds)
+{
+  auto registration = parse_provider_registration(args, kwds);
+  if (!registration) {
     return nullptr;
   }
+  PyObject* callable = registration->callable;
 
   // special case of Phlex Variant wrapper
   PyObject* wrapped_callable = PyObject_GetAttrString(callable, "phlex_callable");
   if (wrapped_callable) {
     callable = wrapped_callable;
-    Py_DECREF(wrapped_callable); // safe, b/c callable holds a reference
   } else {
     // no wrapper, use the original callable
     PyErr_Clear();
@@ -1428,9 +1558,10 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // translate and validate the output "selectors"
   // Since a selector in Python is just a dictionary, it isn't called out in the user
   // API as a selector
-  auto opq = validate_selector(output);
+  auto opq = validate_selector(registration->output);
   if (!opq.has_value()) {
     // validate_selector has set a python exception with details about the error
+    Py_XDECREF(wrapped_callable);
     return nullptr;
   }
 
@@ -1438,68 +1569,27 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   identifier layer = opq.value().layer;
   identifier suffix = opq.value().suffix.value_or("");
 
-  // insert provider node (TODO: as in transform and observe, we'll leak the
-  // callable for now, until there's a proper shutdown procedure)
-  // Note: can't use a translator node here, b/c we need a module to add a
-  // transform, but we only have a source. However, the interface of a provider
-  // is fixed, so there is no combinatorics problem.
-  std::string const& out_type = output_types[0];
-  if (out_type == "bool") {
-    src->ph_source->provide(functor_name, provider_cb_bool{callable})
-      .output_product(creator, suffix, layer);
-  } else if (out_type == "int32_t") {
-    src->ph_source->provide(functor_name, provider_cb_int{callable})
-      .output_product(creator, suffix, layer);
-  } else if (out_type == "uint32_t") {
-    src->ph_source->provide(functor_name, provider_cb_uint{callable})
-      .output_product(creator, suffix, layer);
-  } else if (out_type == "int64_t") {
-    src->ph_source->provide(functor_name, provider_cb_long{callable})
-      .output_product(creator, suffix, layer);
-  } else if (out_type == "uint64_t") {
-    src->ph_source->provide(functor_name, provider_cb_ulong{callable})
-      .output_product(creator, suffix, layer);
-  } else if (out_type == "float") {
-    src->ph_source->provide(functor_name, provider_cb_float{callable})
-      .output_product(creator, suffix, layer);
-  } else if (out_type == "double") {
-    src->ph_source->provide(functor_name, provider_cb_double{callable})
-      .output_product(creator, suffix, layer);
-  } else if (out_type.starts_with("ndarray") || out_type.starts_with("list")) {
-    // TODO: just like for input types, these are hard-coded, but should be handled by
-    // an IDL instead.
-    auto const dtype = collection_dtype(out_type);
-    if (!dtype) {
-      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
-      return nullptr;
+  // Provider callbacks retain the callable for the graph lifetime. A translator node
+  // cannot be used here because sources do not have a module for adding one.
+  // TODO: callable cleanup is deferred until a Phlex shutdown procedure exists.
+  bool const is_collection = registration->output_type.starts_with("ndarray") ||
+                             registration->output_type.starts_with("list");
+  bool const registered =
+    is_collection
+      ? register_collection_provider(
+          src, registration->name, callable, creator, suffix, layer, registration->output_type)
+      : register_scalar_provider(
+          src, registration->name, callable, creator, suffix, layer, registration->output_type);
+  if (!registered) {
+    if (!PyErr_Occurred()) {
+      PyErr_Format(
+        PyExc_TypeError, "unsupported output type \"%s\"", registration->output_type.c_str());
     }
-    if (*dtype == "[int32_t]") {
-      src->ph_source->provide(functor_name, provider_cb_vint{callable})
-        .output_product(creator, suffix, layer);
-    } else if (*dtype == "[uint32_t]") {
-      src->ph_source->provide(functor_name, provider_cb_vuint{callable})
-        .output_product(creator, suffix, layer);
-    } else if (*dtype == "[int64_t]") {
-      src->ph_source->provide(functor_name, provider_cb_vlong{callable})
-        .output_product(creator, suffix, layer);
-    } else if (*dtype == "[uint64_t]") {
-      src->ph_source->provide(functor_name, provider_cb_vulong{callable})
-        .output_product(creator, suffix, layer);
-    } else if (*dtype == "[float]") {
-      src->ph_source->provide(functor_name, provider_cb_vfloat{callable})
-        .output_product(creator, suffix, layer);
-    } else if (*dtype == "[double]") {
-      src->ph_source->provide(functor_name, provider_cb_vdouble{callable})
-        .output_product(creator, suffix, layer);
-    } else {
-      PyErr_Format(PyExc_TypeError, "unsupported collection output type \"%s\"", out_type.c_str());
-      return nullptr;
-    }
-  } else {
-    PyErr_Format(PyExc_TypeError, "unsupported output type \"%s\"", out_type.c_str());
+    Py_XDECREF(wrapped_callable);
     return nullptr;
   }
 
+  Py_XDECREF(wrapped_callable);
   Py_RETURN_NONE;
 }
 

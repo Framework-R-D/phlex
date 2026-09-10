@@ -30,7 +30,6 @@ namespace form::detail::experimental {
     void commit() override;
 
   private:
-    std::shared_ptr<TFile> tfile_;
     std::shared_ptr<root_rntuple_write_container_imp> rntuple_parent_;
 
     bool force_streamer_field_ = false;

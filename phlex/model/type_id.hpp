@@ -156,6 +156,12 @@ namespace phlex::detail {
       }
     }
 
+    template <typename T>
+    consteval unsigned char make_type_id_helper_enum()
+    {
+      return make_type_id_helper_fundamental<std::underlying_type_t<T>>();
+    }
+
     template <typename A>
       requires(std::is_aggregate_v<A>)
     class aggregate_to_plain_tuple {
@@ -200,6 +206,11 @@ namespace phlex::detail {
       result.id_ = internal::make_type_id_helper_fundamental<basic>();
     }
 
+    // enumerations
+    else if constexpr (std::is_enum_v<basic>) {
+      result.id_ = internal::make_type_id_helper_enum<basic>();
+    }
+
     // builtin arrays
     else if constexpr (std::is_array_v<basic>) {
       result = make_type_id<std::remove_all_extents_t<basic>>();
@@ -229,9 +240,7 @@ namespace phlex::detail {
     else {
       // If we got here, something went wrong
       // This condition is always false, but makes the error message more useful
-      static_assert(std::is_fundamental_v<basic> || std::is_array_v<basic> ||
-                      std::is_class_v<basic>,
-                    "Taking type_id of an unsupported type");
+      static_assert(false, "Taking type_id of an unsupported type");
     }
 
     result.exact_ = &typeid(basic);

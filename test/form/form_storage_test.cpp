@@ -164,6 +164,13 @@ TEST_CASE("FORM Container setup error handling")
       write_container->setup_write(type_info);
       CHECK_THROWS_AS(write_container->commit(), std::runtime_error);
     }
+
+    SECTION("set_file() on parent with wrong file type")
+    {
+      std::shared_ptr<i_storage_file> wrong_file(
+        new storage_file("testContainerErrorHandling.root", 'o'));
+      CHECK_THROWS_AS(parent->set_file(wrong_file), std::runtime_error);
+    }
   }
 
   auto read_container = create_read_container(technology, "test/test_data");
