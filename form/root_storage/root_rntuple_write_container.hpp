@@ -57,10 +57,21 @@ namespace form::detail::experimental {
     std::uint64_t fill(void const* data) override;
     void commit() override;
 
+    ROOT::RNTupleWriter& get_writer();
+    //get_model() also signals whether model_ has already been moved from.
+    //If model_ has been moved from, the c++ standard guarantees it will contain nullptr.
+    //This is important for this RNTuple backend to meet FORM's testing
+    //requirement that commit() shall fail if fill() has not been called yet.
+    std::unique_ptr<ROOT::RNTupleModel> const& get_model() const;
+    RRawPtrWriteEntry& get_entry();
+
+  private:
+    std::shared_ptr<TFile> tfile_;
+
     //State shared by root_rfield_write_container_imps
-    std::unique_ptr<ROOT::RNTupleWriter> writer;
-    std::unique_ptr<ROOT::RNTupleModel> model;
-    std::unique_ptr<RRawPtrWriteEntry> entry;
+    std::unique_ptr<ROOT::RNTupleWriter> writer_;
+    std::unique_ptr<ROOT::RNTupleModel> model_;
+    std::unique_ptr<RRawPtrWriteEntry> entry_;
   };
 }
 
