@@ -56,6 +56,7 @@ void* phlex::experimental::dcarg::value_ptr()
 }
 
 namespace {
+  // NOLINTNEXTLINE(readability-function-size)
   ffi_type* get_ffi_type(dcarg const& d)
   {
     return std::visit(
