@@ -54,9 +54,10 @@ namespace form::detail::experimental {
   ROOT::RNTupleWriter& root_rntuple_write_container_imp::get_writer()
   {
     if (!writer_) {
-      if (!tfile_)
+      if (!tfile_) {
         throw std::runtime_error("root_rntuple_write_container_imp::setup_write no file loaded to "
                                  "write to on first fill() call");
+      }
       writer_ = ROOT::RNTupleWriter::Append(std::move(model_), name(), *tfile_);
     }
 
