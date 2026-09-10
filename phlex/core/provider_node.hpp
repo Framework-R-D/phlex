@@ -19,20 +19,23 @@
 #include <vector>
 
 namespace phlex::detail {
-
   // Function type for type-erased data-product types (used by implicit providers)
   using provider_function = std::function<product_ptr(data_cell_index const&)>;
+}
 
+namespace phlex {
   struct PHLEX_CORE_EXPORT provider_bundle {
-    phlex::detail::provider_function provider_function;
+    detail::provider_function provider_function;
     concurrency max_concurrency;
-    product_specification spec;
+    detail::product_specification spec;
     std::string layer;
     std::string stage;
   };
 
   using provider_bundles = std::vector<provider_bundle>;
+}
 
+namespace phlex::detail {
   class PHLEX_CORE_EXPORT provider_node {
   public:
     provider_node(tbb::flow::graph& g, provider_bundle bundle);
