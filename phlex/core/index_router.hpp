@@ -165,7 +165,6 @@ namespace phlex::detail {
     };
     join_slot_resolution resolve_join_slots(data_cell_index_ptr const& index,
                                             phlex::experimental::layer_path const& layer_path,
-                                            std::size_t layer_hash,
                                             internal::join_node_slots const& node_slots) const;
     void update_flush_counts(index_flushes const& flushes);
     void apply_expected_count(flush_gate& gate,
@@ -218,20 +217,9 @@ namespace phlex::detail {
     tbb::concurrent_unordered_map<phlex::experimental::identifier, internal::join_node_slots>
       multilayer_join_slots_;
 
-    // This struct lets multilayer_slots_for return message slots and end-token entries
-    // together, instead of passing concurrent_hash_map accessors as output parameters.
-    // The two are populated independently:
-    //   - message_slots:    one entry per slot template whose routing layer covers this
-    //                       routed index (either an exact match or a parent layer).
-    //   - end_token_entries:one entry per (slot template, counting-layer descendant path).
-    //                       For non-fold cases the counting layer equals the routing
-    //                       layer, so a slot at the routed index's layer contributes a
-    //                       single entry whose counting_layer_hash is the routed index's
-    //                       own layer_hash.  For a fold's partition slot the routing layer
-    //                       is the partition (e.g. "job") while the counting layer is the
-    //                       fold's input data layer (e.g. "event"), so the slot may
-    //                       contribute multiple entries — one per "event"-named
-    //                       descendant of the partition path.
+    // This struct lets multilayer_slots_for return message slots and end-token entries together,
+    // instead of passing concurrent_hash_map accessors as output parameters. End-token entries are
+    // generated only for fold partition slots: one entry per descendant path at the counting layer.
     struct multilayer_slot_cache_entry {
       internal::multilayer_slots_ptr message_slots;
       internal::end_token_entries_ptr end_token_entries;

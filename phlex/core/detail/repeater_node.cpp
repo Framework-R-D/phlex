@@ -1,6 +1,7 @@
 #include "phlex/core/detail/repeater_node.hpp"
 
 #include "spdlog/spdlog.h"
+#include <gsl/assert>
 
 #include <cassert>
 
@@ -89,7 +90,7 @@ namespace phlex::detail::internal {
     auto const key = msg.store->index()->hash();
 
     // Pass-through mode; output directly without caching
-    if (!cache_enabled_) {
+    if (index_cache_mode_.load() == cache_mode::disabled) {
       output_port<0>(repeater_).try_put(msg);
       return key;
     }
@@ -121,20 +122,24 @@ namespace phlex::detail::internal {
     auto const& [index, msg_id, cache] = msg;
     auto const key = index->hash();
 
-    // Caching already disabled; no action needed
-    if (!cache_enabled_) {
-      return key;
+    // index_router wires each repeater to one static slot, which sends only cache=true or only
+    // cache=false index messages. Preserve this invariant rather than supporting mixed modes.
+    auto expected_mode = cache_mode::unset;
+    auto const mode = cache ? cache_mode::enabled : cache_mode::disabled;
+    if (!index_cache_mode_.compare_exchange_strong(expected_mode, mode)) {
+      // index_cache_mode_ already set; check that it matches the current message's mode
+      Expects(expected_mode == mode);
     }
 
-    // Transition to pass-through mode; output any cached product and disable caching
+    // An exact-match index establishes pass-through mode. Retire its cache entry now:
+    // its pending-invocations balance may already include a flush for the same key and therefore
+    // cannot be used to determine when this entry is complete.
     if (!cache) {
-      cache_enabled_ = false;
       if (accessor a; cached_products_.find(a, key)) {
         auto* entry = &a->second;
-        if (entry->data_msg) {
-          output_port<0>(repeater_).try_put(*entry->data_msg);
-          ++entry->pending_invocations;
-        }
+        Expects(entry->data_msg);
+        output_port<0>(repeater_).try_put(*entry->data_msg);
+        cached_products_.erase(a);
       }
       return key;
     }
@@ -160,8 +165,10 @@ namespace phlex::detail::internal {
     }
 
     auto* entry = &a->second;
-    if (!cache_enabled_) {
-      if (entry->pending_invocations == 0 and entry->data_msg) {
+    if (index_cache_mode_.load() == cache_mode::disabled) {
+      // Entries from before the transition may still be in flight. Emit their data regardless of
+      // the normal pending-invocations accounting, which no longer applies.
+      if (entry->data_msg) {
         output_port<0>(repeater_).try_put(*entry->data_msg);
       }
       cached_products_.erase(a);

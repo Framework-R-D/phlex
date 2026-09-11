@@ -45,6 +45,8 @@ namespace phlex::detail::internal {
       tbb::flow::tagged_msg<std::size_t, message, indexed_end_token, index_message>;
     using multifunction_node_t = tbb::flow::multifunction_node<tagged_msg_t, message_tuple<1>>;
 
+    enum class cache_mode : unsigned char { unset, enabled, disabled };
+
     struct cached_product {
       std::shared_ptr<message> data_msg;
       tbb::concurrent_queue<std::size_t> msg_ids;
@@ -66,7 +68,7 @@ namespace phlex::detail::internal {
     tbb::flow::indexer_node<message, indexed_end_token, index_message> indexer_;
     multifunction_node_t repeater_;
     cache_t cached_products_;
-    std::atomic<bool> cache_enabled_{true};
+    std::atomic<cache_mode> index_cache_mode_{cache_mode::unset};
     std::string node_name_;
     phlex::experimental::identifier layer_;
   };

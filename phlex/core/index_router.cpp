@@ -371,7 +371,7 @@ namespace phlex::detail {
 
     for (auto const& node_slots : multilayer_join_slots_ | std::views::values) {
       auto [resolved_message_slots, resolved_end_token_entries] =
-        resolve_join_slots(index, layer_path, layer_hash, node_slots);
+        resolve_join_slots(index, layer_path, node_slots);
       message_slots.append_range(std::views::as_rvalue(resolved_message_slots));
       end_token_entries.append_range(std::views::as_rvalue(resolved_end_token_entries));
     }
@@ -389,13 +389,11 @@ namespace phlex::detail {
   // Message entries: All slots from a node are appended if at least one slot exactly matches the
   // current layer and every slot either exactly matches or is a parent of the routed index.
   //
-  // End-token entries: For each exactly-matching slot, use its paired flush_spec to append one
-  // entry per path-aware counting-layer hash. When the counting layer equals the routing layer,
-  // the routed index's own layer_hash is the only entry. Otherwise, append an entry for every
-  // descendant of layer_path whose trailing layer equals the counting layer.
+  // End-token entries: For each exactly-matching fold partition slot, append an entry for every
+  // descendant of layer_path whose trailing layer equals the counting layer. No entry is needed
+  // when the counting layer equals the routing layer because that slot is pass-through.
   auto index_router::resolve_join_slots(data_cell_index_ptr const& index,
                                         layer_path const& layer_path,
-                                        std::size_t const layer_hash,
                                         internal::join_node_slots const& node_slots) const
     -> join_slot_resolution
   {
@@ -414,15 +412,8 @@ namespace phlex::detail {
       auto const& flush = flush_specs[i];
       if (slot->matches_exactly(layer_path)) {
         has_exact_match = true;
-        if (flush.counting_layer == slot->layer()) {
-          // Counting layer is the routing layer: the routed index's own layer_hash is the unique
-          // counting hash.
-          end_token_entries.push_back(
-            {.counting_layer_hash = layer_hash, .flush_port = flush.flush_port});
-        } else {
-          // Counting layer differs (fold partition slot).  Enumerate all descendant paths under
-          // the routed partition path whose trailing name equals the counting layer; emit one
-          // entry per descendant.
+        if (flush.counting_layer != slot->layer()) {
+          // Enumerate descendants under the routed partition path at the counting layer.
           auto const hashes = counting_layer_hashes_under(layer_path, flush.counting_layer);
           for (auto const& h : hashes) {
             end_token_entries.push_back({.counting_layer_hash = h, .flush_port = flush.flush_port});
