@@ -42,13 +42,16 @@ namespace phlex::detail {
     serialized_resource<T> && !std::is_const_v<T> && std::constructible_from<T, Args...>;
 
   namespace internal {
-    template <typename T, bool = serialized_resource<T>>
-    struct resource_access_type {
+    template <typename T>
+    struct resource_access_type;
+
+    template <unlimited_resource T>
+    struct resource_access_type<T> {
       using type = T const*;
     };
 
-    template <typename T>
-    struct resource_access_type<T, true> {
+    template <serialized_resource T>
+    struct resource_access_type<T> {
       using type = T::token_type;
     };
 
