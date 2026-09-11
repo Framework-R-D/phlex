@@ -3,6 +3,7 @@
 #ifndef FORM_FORM_FORM_WRITER_HPP
 #define FORM_FORM_FORM_WRITER_HPP
 
+#include "core/cell_index.hpp"
 #include "core/container_naming.hpp"
 #include "core/placement.hpp"
 #include "form/config.hpp"
@@ -31,15 +32,25 @@ namespace form::experimental {
       config::item_config const& config_item,
       config::tech_setting_config const& tech_config,
       std::unique_ptr<form::detail::experimental::i_persistence_writer> pers_writer);
-    ~form_writer_interface() = default;
+    /// Finalizes if needed, ensuring navigation tables are written on destruction.
+    ~form_writer_interface();
 
+    form_writer_interface(form_writer_interface const&) = delete;
+    form_writer_interface& operator=(form_writer_interface const&) = delete;
+    form_writer_interface(form_writer_interface&&) = delete;
+    form_writer_interface& operator=(form_writer_interface&&) = delete;
+
+    /// Write a product using the already-structured cell information.
     void write(std::string const& creator,
-               std::string const& segment_id,
+               form::detail::experimental::cell_index const& cell,
                product_with_name const& product);
 
     void write(std::string const& creator,
-               std::string const& segment_id,
+               form::detail::experimental::cell_index const& cell,
                std::vector<product_with_name> const& products);
+
+    /// Finalize the writer and write navigation tables. Safe to call multiple times.
+    void finalize();
 
   private:
     // Placements for one creator, resolved from config on first write and reused thereafter.
@@ -64,6 +75,7 @@ namespace form::experimental {
     std::unordered_map<std::string, std::vector<config::persistence_item>> config_by_product_;
     // creator -> its resolved write plan (built lazily on first write)
     std::unordered_map<std::string, write_plan> plans_;
+    bool finalized_{false};
   };
 }
 

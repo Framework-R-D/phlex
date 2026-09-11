@@ -31,6 +31,27 @@ namespace form::experimental {
     pers_writer_->configure_tech_settings(tech_config);
   }
 
+  form_writer_interface::~form_writer_interface()
+  {
+    // Finalize on destruction; do not let exceptions escape.
+    try {
+      finalize();
+    } catch (std::exception const& e) {
+      std::cerr << "form_writer_interface: finalize() failed: " << e.what() << '\n';
+    } catch (...) {
+      std::cerr << "form_writer_interface: finalize() failed with an unknown exception\n";
+    }
+  }
+
+  void form_writer_interface::finalize()
+  {
+    if (finalized_) {
+      return;
+    }
+    finalized_ = true;
+    pers_writer_->finalize();
+  }
+
   void form_writer_interface::parse_config(config::item_config const& config_item)
   {
     // Parse the product configuration exactly once: collect every configured destination for each
@@ -41,14 +62,14 @@ namespace form::experimental {
   }
 
   void form_writer_interface::write(std::string const& creator,
-                                    std::string const& segment_id,
+                                    form::detail::experimental::cell_index const& cell,
                                     product_with_name const& product)
   {
-    write(creator, segment_id, std::vector<product_with_name>{product});
+    write(creator, cell, std::vector<product_with_name>{product});
   }
 
   void form_writer_interface::write(std::string const& creator,
-                                    std::string const& segment_id,
+                                    form::detail::experimental::cell_index const& cell,
                                     std::vector<product_with_name> const& products)
   {
     using form::detail::experimental::build_full_label;
@@ -139,7 +160,7 @@ namespace form::experimental {
       if (!written_places.contains(place_key)) {
         continue; // nothing written to this (file, technology)
       }
-      pers_writer_->commit_place(commit_rep, segment_id);
+      pers_writer_->commit_place(commit_rep, cell);
     }
   }
 }

@@ -48,6 +48,23 @@ if(FORM_USE_ROOT_STORAGE)
     )
     target_include_directories("ReadVector_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
+    if(TECH STREQUAL "ROOT_TTREE")
+      cet_test(
+          "form_navigation_${TECH}"
+          SOURCE
+          form_navigation_test.cpp
+          LIBRARIES
+          root_storage
+          form_test_utils
+          TEST_ARGS
+          "${CMAKE_CURRENT_BINARY_DIR}/toy_${TECH}.root"
+          TEST_PROPERTIES
+          DEPENDS
+          "WriteVector_${TECH}"
+      )
+      target_include_directories("form_navigation_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
+    endif()
+
     cet_test(
         "form_root_schema_write_${TECH}"
         SOURCE

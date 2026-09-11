@@ -1,5 +1,6 @@
 // Copyright (C) 2025 ...
 
+#include "core/cell_index.hpp"
 #include "core/technology.hpp"
 #include "data_products/track_start.hpp"
 #include "form/form_writer.hpp"
@@ -9,6 +10,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <ctime>
 #include <format>
@@ -91,11 +93,12 @@ int main(int argc, char** argv)
         check += val;
       }
 
-      // Canonical Phlex index format: [layer:number, ...], base-10, ", "-joined.
-      // Matches phlex::data_cell_index::to_string() and is directly parseable by the source parser.
+      // Mimics the cell index passed from Phlex to the output module.
       std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
-
-      std::string const& segment_id = seg_id_text;
+      form::detail::experimental::cell_index const segment_id{
+        .id = seg_id_text,
+        .layer_names = {"event", "segment"},
+        .layer_values = {static_cast<std::uint64_t>(nevent), static_cast<std::uint64_t>(nseg)}};
 
       std::vector<form::experimental::product_with_name> products;
       std::string const creator = "Toy_Tracker";
@@ -145,8 +148,10 @@ int main(int argc, char** argv)
     }
 
     std::string const evt_id_text = std::format("[event:{}]", nevent);
-
-    std::string const& event_id = evt_id_text;
+    form::detail::experimental::cell_index const event_id{
+      .id = evt_id_text,
+      .layer_names = {"event"},
+      .layer_values = {static_cast<std::uint64_t>(nevent)}};
 
     std::string const creator = "Toy_Tracker_Event";
 

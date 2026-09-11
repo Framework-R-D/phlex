@@ -1,19 +1,46 @@
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/products.hpp"
 #include "phlex/module.hpp"
 
 // FORM headers - these need to be available via CMake configuration
 // need to set up the build system to find these headers
+#include "core/cell_index.hpp"
 #include "core/technology.hpp"
 #include "form/config.hpp"
 #include "form/form_writer.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 
 namespace {
+
+  form::detail::experimental::cell_index to_cell_index(phlex::data_cell_index const& index)
+  {
+    form::detail::experimental::cell_index cell;
+    cell.id = index.to_string();
+
+    // The job root has no parent and is not a data layer.
+    for (auto const* node = &index; node->has_parent(); node = node->parent().get()) {
+      cell.layer_names.push_back(node->layer_name().trans_get_string());
+      cell.layer_values.push_back(static_cast<std::uint64_t>(node->number()));
+    }
+    // Reverse to outermost-first layer order.
+    std::ranges::reverse(cell.layer_names);
+    std::ranges::reverse(cell.layer_values);
+
+    // Generate names for unnamed layers.
+    for (std::size_t i = 0; i < cell.layer_names.size(); ++i) {
+      if (cell.layer_names[i].empty()) {
+        cell.layer_names[i] = form::detail::experimental::unnamed_layer_name(i);
+      }
+    }
+    return cell;
+  }
 
   class form_output_module {
   public:
@@ -45,6 +72,23 @@ namespace {
         std::make_unique<form::experimental::form_writer_interface>(output_cfg, tech_cfg);
     }
 
+    ~form_output_module()
+    {
+      // Phlex has no end-of-job hook, so finalize while the interface is alive.
+      try {
+        form_interface_->finalize();
+      } catch (std::exception const& e) {
+        std::cerr << "form_output_module: finalize() failed: " << e.what() << '\n';
+      } catch (...) {
+        std::cerr << "form_output_module: finalize() failed with an unknown exception\n";
+      }
+    }
+
+    form_output_module(form_output_module const&) = delete;
+    form_output_module& operator=(form_output_module const&) = delete;
+    form_output_module(form_output_module&&) = delete;
+    form_output_module& operator=(form_output_module&&) = delete;
+
     // This method is called by Phlex - signature must be: void(product_store const&)
     void save_data_products(phlex::experimental::product_store const& store)
     {
@@ -58,12 +102,11 @@ namespace {
       // Extract creator (algorithm name)
       auto const& creator = store.source();
 
-      // Extract segment ID (partition) - extract once for entire store
-      auto segment_id = store.index()->to_string();
+      auto const cell = to_cell_index(*store.index());
 
       std::cout << "\n=== form_output_module::save_data_products ===\n";
       std::cout << "Creator: " << creator.to_string() << "\n";
-      std::cout << "Segment ID: " << segment_id << "\n";
+      std::cout << "Data cell: " << cell.id << "\n";
       std::cout << "Number of products: " << store.size() << "\n";
 
       // STEP 2: Convert each Phlex product to FORM format
@@ -91,10 +134,8 @@ namespace {
 
       // STEP 3: Send everything to FORM for persistence
 
-      // Write all products to FORM
-      // Pass segment_id once for entire collection (not duplicated in each product)
-      // No need to check if products is empty - already checked store.empty() above
-      form_interface_->write(creator.to_string(), segment_id, products);
+      // The cell is passed once for the entire product collection.
+      form_interface_->write(creator.to_string(), cell, products);
       std::cout << "Wrote " << products.size() << " products to FORM\n";
     }
 

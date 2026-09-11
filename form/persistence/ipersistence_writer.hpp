@@ -3,6 +3,7 @@
 #ifndef FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 #define FORM_PERSISTENCE_IPERSISTENCE_WRITER_HPP
 
+#include "core/cell_index.hpp"
 #include "core/placement.hpp"
 #include "core/token.hpp"
 
@@ -41,10 +42,13 @@ namespace form::detail::experimental {
                                  void const* data,
                                  std::type_info const& type) = 0;
 
-    // Finalize (commit) the product destination's current row, first recording `id` in that
-    // place's navigation ("index") container. Persistence owns the index: it derives the index
-    // container from the product placement, so FORM never names or manages it.
-    virtual void commit_place(placement const& plcmnt, std::string const& id) = 0;
+    // Commit product destination's current row and record the cell in its navigation container.
+    // Persistence owns the navigation container.
+    virtual void commit_place(placement const& plcmnt, cell_index const& cell) = 0;
+
+    // Write accumulated navigation tables and product metadata, then flush the output.
+    // Must be idempotent.
+    virtual void finalize() = 0;
   };
 
   std::unique_ptr<i_persistence_writer> create_persistence_writer();
