@@ -25,11 +25,11 @@ namespace phlex::detail {
     using unlimited_resources =
       boost::mp11::mp_copy_if<all_resources, internal::is_unlimited_resource>;
     using serialized_resource_indices =
-      internal::serialized_resource_indices<0, Resources...>::type;
-    using unlimited_resource_indices = internal::unlimited_resource_indices<0, Resources...>::type;
+      internal::matching_indices<internal::is_serialized_resource, Resources...>;
+    using unlimited_resource_indices =
+      internal::matching_indices<internal::is_unlimited_resource, Resources...>;
 
-    static constexpr bool has_serialized_resources =
-      boost::mp11::mp_size<serialized_resources>::value != 0;
+    static constexpr bool has_serialized_resources = serialized_resource_indices::size() != 0;
 
     // Unlimited resources are cached once per node (access pointers are stable); serialized
     // resources are looked up as the TBB resource_limiter references resource_limited_node needs.
