@@ -119,10 +119,10 @@ token persistence_writer::register_write(placement const& plcmnt,
   }
 
   // Remember the write for navigation table; commit_place() supplies the data cell that keys it.
-  pending_by_place_[place].push_back(pending_write{creator_of(plcmnt.container_name()),
-                                                   label_of(plcmnt.container_name()),
-                                                   plcmnt.container_name(),
-                                                   row});
+  pending_by_place_[place].push_back(pending_write{.creator = creator_of(plcmnt.container_name()),
+                                                   .label = label_of(plcmnt.container_name()),
+                                                   .container_name = plcmnt.container_name(),
+                                                   .row = row});
 
   return token{plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology(), row};
 }
@@ -145,15 +145,9 @@ void persistence_writer::commit_place(placement const& plcmnt, cell_index const&
   }
 }
 
-void persistence_writer::record_navigation(placement const& plcmnt, cell_index const& cell)
+std::map<std::string, std::uint64_t> persistence_writer::rows_by_creator(
+  std::vector<pending_write> const& pending, cell_index const& cell)
 {
-  // Remove pending writes before processing the record.
-  place_key const place{plcmnt.file_name(), plcmnt.technology()};
-  auto const pending = std::exchange(pending_by_place_[place], {});
-  if (pending.empty()) {
-    return;
-  }
-
   // A creator must use one row for all products written for a data cell.
   std::map<std::string, std::uint64_t> row_by_creator;
   for (auto const& write : pending) {
@@ -168,6 +162,62 @@ void persistence_writer::record_navigation(placement const& plcmnt, cell_index c
         "locate them");
     }
   }
+  return row_by_creator;
+}
+
+persistence_writer::navigation_table& persistence_writer::table_for(navigation_key const& key,
+                                                                    cell_index const& cell)
+{
+  auto& table = navigation_tables_[key];
+  if (!table.layers_set) {
+    table.layer_names = cell.layer_names;
+    table.layers_set = true;
+    return table;
+  }
+  if (table.layer_names == cell.layer_names) {
+    return table;
+  }
+
+  std::string existing;
+  for (auto const& name : table.layer_names) {
+    if (!existing.empty()) {
+      existing += ", ";
+    }
+    existing += name;
+  }
+  throw std::runtime_error("persistence_writer: data cell " + cell.id + " maps to hierarchy '" +
+                           key.hierarchy_key + "', which is already indexed with layer names [" +
+                           existing + "]");
+}
+
+void persistence_writer::record_dictionary_entries(place_key const& place,
+                                                   std::vector<pending_write> const& pending,
+                                                   std::string const& hierarchy,
+                                                   technology::id tech)
+{
+  auto& dictionary = dictionaries_[place];
+  for (auto const& write : pending) {
+    dictionary.try_emplace(
+      std::make_tuple(write.creator, write.label, hierarchy),
+      dictionary_entry{.product_name = write.label,
+                       .creator = write.creator,
+                       .container_name = write.container_name,
+                       .hierarchy_key = hierarchy,
+                       .navigation_container = navigation_table_name(hierarchy, tech),
+                       .navigation_column = navigation_row_column(write.creator)});
+  }
+}
+
+void persistence_writer::record_navigation(placement const& plcmnt, cell_index const& cell)
+{
+  // Remove pending writes before processing the record.
+  place_key const place{plcmnt.file_name(), plcmnt.technology()};
+  auto const pending = std::exchange(pending_by_place_[place], {});
+  if (pending.empty()) {
+    return;
+  }
+
+  auto const row_by_creator = rows_by_creator(pending, cell);
 
   if (!cell.consistent()) {
     throw std::runtime_error("persistence_writer: data cell " + cell.id + " has " +
@@ -176,24 +226,10 @@ void persistence_writer::record_navigation(placement const& plcmnt, cell_index c
   }
 
   auto const hierarchy = hierarchy_key(cell.layer_names);
-  auto& table =
-    navigation_tables_[navigation_key{plcmnt.file_name(), plcmnt.technology(), hierarchy}];
-
-  if (!table.layers_set) {
-    table.layer_names = cell.layer_names;
-    table.layers_set = true;
-  } else if (table.layer_names != cell.layer_names) {
-    std::string existing;
-    for (auto const& name : table.layer_names) {
-      if (!existing.empty()) {
-        existing += ", ";
-      }
-      existing += name;
-    }
-    throw std::runtime_error("persistence_writer: data cell " + cell.id + " maps to hierarchy '" +
-                             hierarchy + "', which is already indexed with layer names [" +
-                             existing + "]");
-  }
+  auto& table = table_for(navigation_key{.file_name = plcmnt.file_name(),
+                                         .technology = plcmnt.technology(),
+                                         .hierarchy_key = hierarchy},
+                          cell);
 
   auto& cell_rows = table.rows[cell.layer_values];
   for (auto const& [creator, row] : row_by_creator) {
@@ -208,17 +244,7 @@ void persistence_writer::record_navigation(placement const& plcmnt, cell_index c
     table.creators.insert(creator);
   }
 
-  auto& dictionary = dictionaries_[place];
-  for (auto const& write : pending) {
-    dictionary.try_emplace(std::make_tuple(write.creator, write.label, hierarchy),
-                           dictionary_entry{write.label,
-                                            write.creator,
-                                            write.container_name,
-                                            form::technology::to_string(plcmnt.technology()),
-                                            hierarchy,
-                                            navigation_table_name(hierarchy),
-                                            navigation_row_column(write.creator)});
-  }
+  record_dictionary_entries(place, pending, hierarchy, plcmnt.technology());
 }
 
 void persistence_writer::finalize()
@@ -252,11 +278,9 @@ void persistence_writer::write_navigation_tables()
       }
     }
 
-    auto const places = create_table_columns(key.file_name,
-                                             key.technology,
-                                             navigation_table_name(key.hierarchy_key),
-                                             columns,
-                                             typeid(std::uint64_t));
+    auto const table_name = navigation_table_name(key.hierarchy_key, key.technology);
+    auto const places = create_table_columns(
+      key.file_name, key.technology, table_name, columns, typeid(std::uint64_t));
 
     // Keep bound values alive until the row is committed.
     std::vector<std::uint64_t> row_values(places.size());
@@ -283,10 +307,10 @@ void persistence_writer::write_navigation_tables()
 
 void persistence_writer::write_product_dictionaries()
 {
-  static constexpr std::array<std::string_view, 7> column_names{"product_name",
+  // Technology is encoded in the dictionary container name.
+  static constexpr std::array<std::string_view, 6> column_names{"product_name",
                                                                 "creator",
                                                                 "container_name",
-                                                                "technology",
                                                                 "hierarchy_key",
                                                                 "navigation_container",
                                                                 "navigation_column"};
@@ -304,13 +328,12 @@ void persistence_writer::write_product_dictionaries()
     }
 
     auto const places = create_table_columns(
-      file_name, tech, std::string{navigation_dictionary_name}, columns, typeid(std::string));
+      file_name, tech, navigation_dictionary_name(tech), columns, typeid(std::string));
 
     for (auto const& [dict_key, entry] : entries) {
       std::array<std::string const*, column_names.size()> const values{&entry.product_name,
                                                                        &entry.creator,
                                                                        &entry.container_name,
-                                                                       &entry.technology,
                                                                        &entry.hierarchy_key,
                                                                        &entry.navigation_container,
                                                                        &entry.navigation_column};

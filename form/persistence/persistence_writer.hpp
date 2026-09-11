@@ -84,13 +84,26 @@ namespace form::detail::experimental {
       std::string product_name;
       std::string creator;
       std::string container_name;
-      std::string technology;
       std::string hierarchy_key;
       std::string navigation_container;
       std::string navigation_column;
     };
 
     void record_navigation(placement const& plcmnt, cell_index const& cell);
+
+    /// Return one row per creator, throwing if a creator's products use different rows.
+    static std::map<std::string, std::uint64_t> rows_by_creator(
+      std::vector<pending_write> const& pending, cell_index const& cell);
+
+    /// Return the table for a key, initializing its layers on first use and throwing on mismatch.
+    navigation_table& table_for(navigation_key const& key, cell_index const& cell);
+
+    /// Add one dictionary row per (creator, product, hierarchy) seen in this record.
+    void record_dictionary_entries(place_key const& place,
+                                   std::vector<pending_write> const& pending,
+                                   std::string const& hierarchy,
+                                   technology::id tech);
+
     void write_navigation_tables();
     void write_product_dictionaries();
 
@@ -103,9 +116,8 @@ namespace form::detail::experimental {
 
     std::unique_ptr<i_storage_writer> store_writer_;
     form::experimental::config::tech_setting_config tech_settings_;
-    // Product container (file, name, technology) -> its navigation ("index") placement, resolved
-    // once when the product container is created and reused on every commit. Technology is part of
-    // the key: the same product written to one file through two technologies gets its own index.
+    // Product container (file, name, technology) -> its per-creator "index" placement, resolved
+    // once when the product container is created and reused on every commit.
     // Persistence owns the index.
     std::map<std::tuple<std::string, std::string, technology::id>, placement> index_by_product_;
 

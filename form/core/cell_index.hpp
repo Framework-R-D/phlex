@@ -3,6 +3,8 @@
 #ifndef FORM_CORE_CELL_INDEX_HPP
 #define FORM_CORE_CELL_INDEX_HPP
 
+#include "core/technology.hpp"
+
 #include <cctype>
 #include <cstdint>
 #include <string>
@@ -70,17 +72,38 @@ namespace form::detail::experimental {
   /// Container-name prefix reserved for FORM's navigation containers.
   inline constexpr std::string_view navigation_prefix = "nav_";
 
-  /// Return the navigation-table name for a hierarchy.
-  inline std::string navigation_table_name(std::string_view hierarchy)
+  /// Return the lowercase technology token used in navigation container names.
+  inline std::string technology_name(form::technology::id tech)
+  {
+    if (tech.major == form::technology::major::generic) {
+      return "generic";
+    }
+    auto name = form::technology::to_string(tech);
+    for (char& c : name) {
+      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return sanitize_name(name);
+  }
+
+  /// Return the navigation-table name for a hierarchy and technology.
+  /// The technology is part of the name to keep containers independent within a file.
+  inline std::string navigation_table_name(std::string_view hierarchy, form::technology::id tech)
   {
     std::string name{navigation_prefix};
-    name += "cells_";
+    name += technology_name(tech);
+    name += "_cells_";
     name += hierarchy;
     return name;
   }
 
-  /// Name of the product dictionary.
-  inline constexpr std::string_view navigation_dictionary_name = "nav_products";
+  /// Return the product-dictionary name for a technology.
+  inline std::string navigation_dictionary_name(form::technology::id tech)
+  {
+    std::string name{navigation_prefix};
+    name += technology_name(tech);
+    name += "_products";
+    return name;
+  }
 
   /// Return a name for an unnamed layer.
   inline std::string unnamed_layer_name(std::size_t position)

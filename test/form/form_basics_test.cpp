@@ -115,7 +115,7 @@ namespace {
       auto const [top, column] = split(plcmnt.container_name());
       if (top.starts_with("nav_")) {
         // Values are read at commit time.
-        bound_[top].push_back(bound_value{data, &type});
+        bound_[top].push_back(bound_value{.data = data, .type = &type});
       }
       // Each container has its own row counter.
       return rows_[plcmnt.container_name()]++;
@@ -184,10 +184,11 @@ namespace {
                       .layer_values = {event, segment}};
   }
 
-  placement product_place(std::string const& creator, std::string const& label)
+  placement product_place(std::string const& creator,
+                          std::string const& label,
+                          form::technology::id tech = form::technology::id{})
   {
-    // Use the generic technology so tests exercise navigation through the spy.
-    return placement{"nav_test.root", build_full_label(creator, label), form::technology::id{}};
+    return placement{"nav_test.root", build_full_label(creator, label), tech};
   }
 }
 
@@ -879,6 +880,24 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
       cell_index{.id = "[event:1]", .layer_names = {"event"}, .layer_values = {1}}.consistent());
     CHECK_FALSE(cell_index{.id = "[event:1]", .layer_names = {"event"}}.consistent());
   }
+
+  SECTION("a navigation name carries the technology that wrote it")
+  {
+    CHECK(technology_name(form::technology::root_ttree) == "root_ttree");
+    CHECK(technology_name(form::technology::root_rntuple) == "root_rntuple");
+    CHECK(technology_name(form::technology::id{}) == "generic");
+
+    CHECK(navigation_table_name("event", form::technology::root_ttree) ==
+          "nav_root_ttree_cells_event");
+    CHECK(navigation_table_name("event_segment", form::technology::root_rntuple) ==
+          "nav_root_rntuple_cells_event_segment");
+    CHECK(navigation_dictionary_name(form::technology::root_ttree) == "nav_root_ttree_products");
+
+    // Navigation name use the reserved prefix.
+    CHECK(
+      navigation_table_name("event", form::technology::root_ttree).starts_with(navigation_prefix));
+    CHECK(navigation_dictionary_name(form::technology::id{}).starts_with(navigation_prefix));
+  }
 }
 
 namespace {
@@ -886,20 +905,21 @@ namespace {
   void write_record(form::detail::experimental::persistence_writer& writer,
                     std::string const& creator,
                     std::vector<std::string> const& labels,
-                    cell_index const& cell)
+                    cell_index const& cell,
+                    form::technology::id tech = form::technology::id{})
   {
     int payload = 0;
     std::vector<std::pair<placement, std::type_info const*>> containers;
     containers.reserve(labels.size());
     for (auto const& label : labels) {
-      containers.emplace_back(product_place(creator, label), &typeid(int));
+      containers.emplace_back(product_place(creator, label, tech), &typeid(int));
     }
     writer.create_containers(containers);
 
     for (auto const& label : labels) {
-      writer.register_write(product_place(creator, label), &payload, typeid(int));
+      writer.register_write(product_place(creator, label, tech), &payload, typeid(int));
     }
-    writer.commit_place(product_place(creator, labels.front()), cell);
+    writer.commit_place(product_place(creator, labels.front(), tech), cell);
   }
 }
 
@@ -915,17 +935,36 @@ TEST_CASE("navigation: one container per hierarchy, with that hierarchy's layer 
   write_record(writer, "event_maker", {"summary"}, event_cell(1));
   writer.finalize();
 
-  REQUIRE(store->tables.contains("nav_cells_event_segment"));
-  REQUIRE(store->tables.contains("nav_cells_event"));
+  REQUIRE(store->tables.contains("nav_generic_cells_event_segment"));
+  REQUIRE(store->tables.contains("nav_generic_cells_event"));
 
   // Each hierarchy carries its own layer columns, named as the data cell named them.
-  auto const& segment_table = store->tables.at("nav_cells_event_segment");
+  auto const& segment_table = store->tables.at("nav_generic_cells_event_segment");
   CHECK(segment_table.columns == std::vector<std::string>{"event", "segment", "tracker_row"});
   CHECK(segment_table.rows.size() == 2);
 
-  auto const& event_table = store->tables.at("nav_cells_event");
+  auto const& event_table = store->tables.at("nav_generic_cells_event");
   CHECK(event_table.columns == std::vector<std::string>{"event", "event_maker_row"});
   CHECK(event_table.rows.size() == 1);
+}
+
+TEST_CASE("navigation: two technologies in one file each get their own containers", "[form]")
+{
+  auto spy = std::make_unique<spy_storage_writer>();
+  auto* store = spy.get();
+  form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+  write_record(writer, "tracker", {"hits"}, event_cell(1), form::technology::root_ttree);
+  write_record(writer, "tracker", {"hits"}, event_cell(1), form::technology::root_rntuple);
+  writer.finalize();
+
+  CHECK(store->tables.contains("nav_root_ttree_cells_event"));
+  CHECK(store->tables.contains("nav_root_rntuple_cells_event"));
+  CHECK(store->tables.contains("nav_root_ttree_products"));
+  CHECK(store->tables.contains("nav_root_rntuple_products"));
+
+  CHECK(store->tables.at("nav_root_ttree_cells_event").rows.size() == 1);
+  CHECK(store->tables.at("nav_root_rntuple_cells_event").rows.size() == 1);
 }
 
 TEST_CASE("navigation: a data cell appears once, with one row per creator", "[form]")
@@ -940,7 +979,7 @@ TEST_CASE("navigation: a data cell appears once, with one row per creator", "[fo
   write_record(writer, "tracker", {"hits"}, event_cell(2));
   writer.finalize();
 
-  auto const& table = store->tables.at("nav_cells_event");
+  auto const& table = store->tables.at("nav_generic_cells_event");
   CHECK(table.columns == std::vector<std::string>{"event", "shower_row", "tracker_row"});
   REQUIRE(table.rows.size() == 2);
 
@@ -960,11 +999,11 @@ TEST_CASE("navigation: the product dictionary resolves a product to its creator'
   write_record(writer, "tracker", {"hits", "tracks"}, event_cell(2));
   writer.finalize();
 
-  auto const& dictionary = store->tables.at("nav_products");
+  auto const& dictionary = store->tables.at("nav_generic_products");
+  // Technology is part of the dictionary identity, not a column.
   CHECK(dictionary.columns == std::vector<std::string>{"product_name",
                                                        "creator",
                                                        "container_name",
-                                                       "technology",
                                                        "hierarchy_key",
                                                        "navigation_container",
                                                        "navigation_column"});
@@ -975,10 +1014,10 @@ TEST_CASE("navigation: the product dictionary resolves a product to its creator'
   CHECK(hits[0] == "hits");
   CHECK(hits[1] == "tracker");
   CHECK(hits[2] == "tracker/hits");
-  CHECK(hits[4] == "event");
+  CHECK(hits[3] == "event");
   // The navigation container names the object that actually exists on disk.
-  CHECK(hits[5] == "nav_cells_event");
-  CHECK(hits[6] == "tracker_row");
+  CHECK(hits[4] == "nav_generic_cells_event");
+  CHECK(hits[5] == "tracker_row");
 }
 
 TEST_CASE("navigation: a creator whose products disagree on their row is rejected", "[form]")
@@ -1025,7 +1064,7 @@ TEST_CASE("navigation: a failed product write abandons the whole record", "[form
   // The first product's pending write was discarded because a partial record must not be navigable
   writer.commit_place(product_place("tracker", "hits"), event_cell(1));
   writer.finalize();
-  CHECK_FALSE(store->tables.contains("nav_cells_event"));
+  CHECK_FALSE(store->tables.contains("nav_generic_cells_event"));
 }
 
 TEST_CASE("navigation: a creator writing one data cell twice is rejected", "[form]")
@@ -1062,7 +1101,7 @@ TEST_CASE("navigation: the job cell is a hierarchy with no layer columns", "[for
   write_record(writer, "tracker", {"summary"}, cell_index{.id = "[]"});
   writer.finalize();
 
-  auto const& table = store->tables.at("nav_cells_job");
+  auto const& table = store->tables.at("nav_generic_cells_job");
   CHECK(table.columns == std::vector<std::string>{"tracker_row"});
   REQUIRE(table.rows.size() == 1);
   CHECK(table.rows[0] == std::vector<std::string>{num(0)});
@@ -1134,7 +1173,7 @@ TEST_CASE("navigation: the reserved container prefix is rejected", "[form]")
 
   // Reserve the "nav_" prefix for navigation containers.
   std::vector<std::pair<placement, std::type_info const*>> containers{
-    {product_place("nav_cells_event", "hits"), &typeid(int)}};
+    {product_place("nav_generic_cells_event", "hits"), &typeid(int)}};
   CHECK_THROWS_AS(writer.create_containers(containers), std::runtime_error);
 }
 
@@ -1149,8 +1188,8 @@ TEST_CASE("navigation: finalize is idempotent", "[form]")
   writer.finalize();
 
   // Written once, not twice.
-  CHECK(store->tables.at("nav_cells_event").rows.size() == 1);
-  CHECK(store->tables.at("nav_cells_event").columns ==
+  CHECK(store->tables.at("nav_generic_cells_event").rows.size() == 1);
+  CHECK(store->tables.at("nav_generic_cells_event").columns ==
         std::vector<std::string>{"event", "tracker_row"});
 }
 

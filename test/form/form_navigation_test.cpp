@@ -1,4 +1,4 @@
-// Verifies one navigation container per hierarchy plus a product dictionary.
+// Verifies one navigation container per hierarchy and technology, plus a product dictionary.
 // The toy file contains two hierarchies: {event, segment} and {event}.
 //
 // Cross-check navigation rows against the existing per-creator index, which navigation is intended
@@ -24,7 +24,21 @@ using form::detail::experimental::invalid_row_id;
 
 namespace {
 
-  int failures = 0;
+  class checker {
+  public:
+    void check(bool condition, std::string const& what)
+    {
+      if (!condition) {
+        std::cerr << "FAILED: " << what << '\n';
+        ++failures_;
+      }
+    }
+
+    int failures() const { return failures_; }
+
+  private:
+    int failures_{0};
+  };
 
   /// Pull just the numbers out of a data cell's text, e.g. "[event:1, segment:2]" -> {1, 2}.
   /// Test-local parser used only to extract layer values for the cross-check; comparing values
@@ -39,8 +53,8 @@ namespace {
     std::size_t start = 0;
     while (start < body.size()) {
       auto const comma = body.find(',', start);
-      auto const token = body.substr(start, comma == std::string::npos ? std::string::npos :
-                                                                         comma - start);
+      auto const token =
+        body.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
       auto const colon = token.find(':');
       if (colon == std::string::npos) {
         return std::nullopt;
@@ -54,18 +68,10 @@ namespace {
     return values;
   }
 
-  void check(bool condition, std::string const& what)
-  {
-    if (!condition) {
-      std::cerr << "FAILED: " << what << '\n';
-      ++failures;
-    }
-  }
-
-  TTree* get_tree(TFile& file, std::string const& name)
+  TTree* get_tree(checker& checks, TFile& file, std::string const& name)
   {
     auto* tree = file.Get<TTree>(name.c_str());
-    check(tree != nullptr, "container '" + name + "' is present");
+    checks.check(tree != nullptr, "container '" + name + "' is present");
     return tree;
   }
 
@@ -114,11 +120,13 @@ namespace {
   }
 
   /// Read the per-creator index ids in row order.
-  std::vector<std::string> read_creator_index(TFile& file, std::string const& creator)
+  std::vector<std::string> read_creator_index(checker& checks,
+                                              TFile& file,
+                                              std::string const& creator)
   {
     auto* tree = file.Get<TTree>(creator.c_str());
     if (tree == nullptr) {
-      check(false, "per-creator container '" + creator + "' is present");
+      checks.check(false, "per-creator container '" + creator + "' is present");
       return {};
     }
     return read_string_column(*tree, "index");
@@ -126,7 +134,8 @@ namespace {
 
   /// Cross-check that navigation's (cell, creator) -> row points to the same data cell recorded by
   /// the per-creator index.
-  void cross_check(TFile& file,
+  void cross_check(checker& checks,
+                   TFile& file,
                    TTree& nav,
                    std::vector<std::string> const& layer_columns,
                    std::vector<std::string> const& creators)
@@ -139,21 +148,21 @@ namespace {
 
     for (auto const& creator : creators) {
       auto const rows = read_uint_column(nav, (creator + "_row").c_str());
-      auto const recorded_ids = read_creator_index(file, creator);
+      auto const recorded_ids = read_creator_index(checks, file, creator);
 
       for (std::size_t row = 0; row < rows.size(); ++row) {
         if (rows[row] == invalid_row_id) {
           continue; // this creator never wrote this data cell
         }
         if (rows[row] >= recorded_ids.size()) {
-          check(false,
-                "navigation row for creator '" + creator + "' is within its index container");
+          checks.check(
+            false, "navigation row for creator '" + creator + "' is within its index container");
           continue;
         }
 
         auto const recorded = layer_values_of(recorded_ids[rows[row]]);
         if (!recorded) {
-          check(false, "id at the navigated row has the expected data cell form");
+          checks.check(false, "id at the navigated row has the expected data cell form");
           continue;
         }
 
@@ -162,9 +171,9 @@ namespace {
         for (auto const& layer : layers) {
           expected.push_back(layer[row]);
         }
-        check(recorded == expected,
-              "creator '" + creator + "' row " + std::to_string(rows[row]) +
-                " holds the data cell navigation says it does");
+        checks.check(recorded == expected,
+                     "creator '" + creator + "' row " + std::to_string(rows[row]) +
+                       " holds the data cell navigation says it does");
       }
     }
   }
@@ -183,25 +192,26 @@ int main(int const argc, char const** argv)
     return 1;
   }
 
-  // One navigation container per hierarchy; the toy writer produces two.
-  auto* segment_nav = get_tree(*file, "nav_cells_event_segment");
-  auto* event_nav = get_tree(*file, "nav_cells_event");
-  auto* dictionary = get_tree(*file, "nav_products");
+  checker checks;
+
+  auto* segment_nav = get_tree(checks, *file, "nav_root_ttree_cells_event_segment");
+  auto* event_nav = get_tree(checks, *file, "nav_root_ttree_cells_event");
+  auto* dictionary = get_tree(checks, *file, "nav_root_ttree_products");
   if (segment_nav == nullptr || event_nav == nullptr || dictionary == nullptr) {
     return 1;
   }
 
   // Each hierarchy carries its own layer columns; navigation does not assume a fixed layer tuple.
-  check(branch_names(*segment_nav) ==
-          std::set<std::string>{"event", "segment", "Toy_Tracker_row"},
-        "the {event, segment} table has its own layer columns");
-  check(branch_names(*event_nav) ==
-          std::set<std::string>{"event", "Toy_Tracker_Event_row"},
-        "the {event} table has its own layer columns");
+  checks.check(branch_names(*segment_nav) ==
+                 std::set<std::string>{"event", "segment", "Toy_Tracker_row"},
+               "the {event, segment} table has its own layer columns");
+  checks.check(branch_names(*event_nav) == std::set<std::string>{"event", "Toy_Tracker_Event_row"},
+               "the {event} table has its own layer columns");
 
   // One row per data cell: 4 x 15 for {event, segment}, and 4 for {event}.
-  check(segment_nav->GetEntries() == 60, "the {event, segment} table has one row per data cell");
-  check(event_nav->GetEntries() == 4, "the {event} table has one row per data cell");
+  checks.check(segment_nav->GetEntries() == 60,
+               "the {event, segment} table has one row per data cell");
+  checks.check(event_nav->GetEntries() == 4, "the {event} table has one row per data cell");
 
   // The dictionary maps each product to the navigation column that locates its data.
   auto const products = read_string_column(*dictionary, "product_name");
@@ -217,18 +227,21 @@ int main(int const argc, char const** argv)
       continue;
     }
     found_track_start = true;
-    check(containers[i] == "Toy_Tracker/trackStart", "trackStart names its product container");
-    check(hierarchies[i] == "event_segment", "trackStart belongs to the {event, segment} hierarchy");
-    check(nav_containers[i] == "nav_cells_event_segment", "trackStart names its navigation table");
-    check(nav_columns[i] == "Toy_Tracker_row", "trackStart names its creator's row column");
+    checks.check(containers[i] == "Toy_Tracker/trackStart",
+                 "trackStart names its product container");
+    checks.check(hierarchies[i] == "event_segment",
+                 "trackStart belongs to the {event, segment} hierarchy");
+    checks.check(nav_containers[i] == "nav_root_ttree_cells_event_segment",
+                 "trackStart names its navigation table");
+    checks.check(nav_columns[i] == "Toy_Tracker_row", "trackStart names its creator's row column");
   }
-  check(found_track_start, "the dictionary has an entry for trackStart");
+  checks.check(found_track_start, "the dictionary has an entry for trackStart");
 
-  cross_check(*file, *segment_nav, {"event", "segment"}, {"Toy_Tracker"});
-  cross_check(*file, *event_nav, {"event"}, {"Toy_Tracker_Event"});
+  cross_check(checks, *file, *segment_nav, {"event", "segment"}, {"Toy_Tracker"});
+  cross_check(checks, *file, *event_nav, {"event"}, {"Toy_Tracker_Event"});
 
-  if (failures != 0) {
-    std::cerr << failures << " navigation check(s) failed\n";
+  if (checks.failures() != 0) {
+    std::cerr << checks.failures() << " navigation check(s) failed\n";
     return 1;
   }
   std::cout << "navigation layout verified\n";
