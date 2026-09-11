@@ -126,15 +126,17 @@ namespace phlex::detail::internal {
       return key;
     }
 
-    // Transition to pass-through mode; output any cached product and disable caching
+    // An exact-match index transitions this node to pass-through mode. Retire its cache entry now:
+    // its pending-invocations balance may already include a flush for the same key and therefore
+    // cannot be used to determine when this entry is complete.
     if (!cache) {
       cache_enabled_ = false;
       if (accessor a; cached_products_.find(a, key)) {
         auto* entry = &a->second;
         if (entry->data_msg) {
           output_port<0>(repeater_).try_put(*entry->data_msg);
-          ++entry->pending_invocations;
         }
+        cached_products_.erase(a);
       }
       return key;
     }
@@ -161,7 +163,9 @@ namespace phlex::detail::internal {
 
     auto* entry = &a->second;
     if (!cache_enabled_) {
-      if (entry->pending_invocations == 0 and entry->data_msg) {
+      // Entries from before the transition may still be in flight. Emit their data regardless of
+      // the normal pending-invocations accounting, which no longer applies.
+      if (entry->data_msg) {
         output_port<0>(repeater_).try_put(*entry->data_msg);
       }
       cached_products_.erase(a);
