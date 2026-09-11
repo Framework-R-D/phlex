@@ -8,11 +8,11 @@
 #include "fmt/format.h"
 
 #include <cassert>
-#include <map>
 #include <memory>
 #include <stdexcept>
 #include <typeindex>
 #include <typeinfo>
+#include <unordered_map>
 #include <utility>
 
 namespace phlex::detail {
@@ -73,7 +73,7 @@ namespace phlex::detail {
       return dynamic_cast<Entry*>(found->second.get());
     }
 
-    std::map<std::type_index, std::unique_ptr<resource_base>> resources_;
+    std::unordered_map<std::type_index, std::unique_ptr<resource_base>> resources_;
   };
 }
 
