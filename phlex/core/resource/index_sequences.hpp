@@ -16,39 +16,28 @@ namespace phlex::detail::internal {
     using type = std::index_sequence<First..., Second...>;
   };
 
-  template <std::size_t I, typename... Resources>
-  struct serialized_resource_indices;
+  template <std::size_t I, template <typename> typename Predicate, typename... Resources>
+  struct matching_indices_impl;
 
-  template <std::size_t I>
-  struct serialized_resource_indices<I> {
+  template <std::size_t I, template <typename> typename Predicate>
+  struct matching_indices_impl<I, Predicate> {
     using type = std::index_sequence<>;
   };
 
-  template <std::size_t I, typename Resource, typename... Resources>
-  struct serialized_resource_indices<I, Resource, Resources...> {
-    using tail = serialized_resource_indices<I + 1, Resources...>::type;
+  template <std::size_t I,
+            template <typename> typename Predicate,
+            typename Resource,
+            typename... Resources>
+  struct matching_indices_impl<I, Predicate, Resource, Resources...> {
+    using tail = matching_indices_impl<I + 1, Predicate, Resources...>::type;
     using type =
-      std::conditional_t<serialized_resource<Resource>,
+      std::conditional_t<Predicate<Resource>::value,
                          typename concatenate_index_sequences<std::index_sequence<I>, tail>::type,
                          tail>;
   };
 
-  template <std::size_t I, typename... Resources>
-  struct unlimited_resource_indices;
-
-  template <std::size_t I>
-  struct unlimited_resource_indices<I> {
-    using type = std::index_sequence<>;
-  };
-
-  template <std::size_t I, typename Resource, typename... Resources>
-  struct unlimited_resource_indices<I, Resource, Resources...> {
-    using tail = unlimited_resource_indices<I + 1, Resources...>::type;
-    using type =
-      std::conditional_t<unlimited_resource<Resource>,
-                         typename concatenate_index_sequences<std::index_sequence<I>, tail>::type,
-                         tail>;
-  };
+  template <template <typename> typename Predicate, typename... Resources>
+  using matching_indices = matching_indices_impl<0, Predicate, Resources...>::type;
 }
 
 #endif // PHLEX_CORE_RESOURCE_INDEX_SEQUENCES_HPP
