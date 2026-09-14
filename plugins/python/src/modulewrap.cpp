@@ -915,13 +915,13 @@ static PyObject* parse_args(PyObject* args,
         PyObject* optcnt = PyObject_CallOneArg(opt_counter, callable);
         if (optcnt) {
           long l = PyLong_AsLong(optcnt);
+          Py_DECREF(optcnt);
           if (l != (long)-1) {
             if ((l + input_selectors.size()) >= input_types.size())
               optok = true;
           } else {
             PyErr_Clear();
           }
-          Py_DECREF(optcnt);
         }
         // LCOV_EXCL_START
         else {
