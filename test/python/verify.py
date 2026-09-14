@@ -111,6 +111,6 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     elif op == "min":
         assert_sum = MinimumVerifier(config["sum_total"])
     else:
-        raise RuntimeError("unknonw verification requested (%s)", op)
+        raise RuntimeError(f"unknown verification requested ({op})")
 
     m.observe(assert_sum, input_family=config["input"])
