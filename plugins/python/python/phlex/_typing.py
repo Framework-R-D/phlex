@@ -8,9 +8,10 @@ C++ side, and thus simplifies the maintenance of that code.
 
 import builtins
 import ctypes
+import inspect
 import typing
 from types import UnionType
-from typing import Any, Dict, Union
+from typing import Any, Callable, Dict, Union
 
 import numpy as np
 
@@ -22,6 +23,7 @@ except ImportError:
     has_numba = False
 
 __all__ = [
+    "count_optional_arguments",
     "normalize_type",
 ]
 
@@ -231,3 +233,35 @@ def normalize_type(tp: Any, globalns: Dict | None = None, localns: Dict | None =
 
     # fallback for everything else, expecting repr() to be unique and consistent
     return repr(tp)
+
+
+def count_optional_arguments(pycall: Callable[..., Any]) -> int:
+    """Count the number of optional arguments that the callable will accept.
+
+    Uses the inspect module to determine the number of defaulted optional
+    arguments.
+
+    Note that on error, 0 is returned as a safety valve.
+
+    Args:
+        pycall (Callable): Some callable.
+
+    Returns:
+        Number of optional arguments.
+    """
+    try:
+        pycall = pycall.phlex_callable
+    except AttributeError:
+        pass # not a Variant-style type callable
+
+    try:
+        sig = inspect.signature(pycall)
+    except (ValueError, TypeError):
+        return 0   # unknown or not a callable
+
+    nopt = 0
+    for p in sig.parameters.values():
+        if p.default is not inspect.Parameter.empty:
+            nopt += 1
+
+    return nopt

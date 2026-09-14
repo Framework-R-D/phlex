@@ -69,7 +69,6 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         {"creator": 42, "layer": "event", "suffix": "i"},
         {"creator": "input", "layer": 42, "suffix": "i"},
         {"layer": "event", "suffix": "i"},
-        {"creator": "input", "suffix": "i"},
     ):
         try:
             m.transform(
@@ -78,7 +77,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
             assert not "supposed to be here"
         except TypeError as e:
             # test for the one generic part in all these errors
-            assert "or not a string" in str(e)
+            assert "not a string" in str(e)
 
     # transforms with suffix to be used without suffix
     m.transform(

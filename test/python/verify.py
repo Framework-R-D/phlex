@@ -47,6 +47,24 @@ class Verifier:
         assert value == self._expected_value
 
 
+class MinimumVerifier(Verifier):
+    """Check for a minimum value, rather than equal value."""
+
+    def __call__(self, value: int) -> None:
+        """Verify the `value`.
+
+        Check that `value` is greater or equal than the pre-registered value.
+
+        Args:
+            value (int): The value to verify.
+
+        Raises:
+            AssertionError: if the provided value is smaller than the
+                pre-registered value.
+        """
+        assert value >= self._expected_value
+
+
 class BoolVerifier:
     """Verifier for boolean values."""
 
@@ -83,5 +101,16 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     except (KeyError, TypeError):
         pass  # Optional bool configuration missing; fall through to the default sum verifier
 
-    assert_sum = Verifier(config["sum_total"])
+    try:
+        op = config["operation"]
+    except (KeyError, TypeError):
+        op = "eq"
+
+    if op == "eq":
+        assert_sum = Verifier(config["sum_total"])
+    elif op == "min":
+        assert_sum = MinimumVerifier(config["sum_total"])
+    else:
+        raise RuntimeError("unknonw verification requested (%s)", op)
+
     m.observe(assert_sum, input_family=config["input"])
