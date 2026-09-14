@@ -65,6 +65,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         raise AssertionError("m.transform() should reject registrations without an output suffix")
 
     # functional transform registration
-    print("here!", flush=True)
     m.transform(int_adder, input_family=config["input"], output_product_suffixes=config["output"])
-    print("there!", flush=True)
