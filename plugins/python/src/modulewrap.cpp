@@ -1116,6 +1116,9 @@ static std::optional<identifier> transform_output_layer(
   // otherwise also specify no layer for the intermediates (TODO: it may be worthwhile
   // to explore using a "workspace" layer)
   std::optional<identifier> output_layer;
+  // note: the following treats the first layer as special (as in, if the first layer
+  // is optional, but the next one is not, the check will succeed), but that's fine
+  // as for now such mixing isn't supported by the product selector
   if (input_selectors[0].layer) {
     output_layer = static_cast<identifier>(input_selectors[0].layer);
     // TODO: it's not clear what the output layer will be if the input layers are not
