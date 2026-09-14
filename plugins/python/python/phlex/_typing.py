@@ -252,7 +252,7 @@ def count_optional_arguments(pycall: Callable[..., Any]) -> int:
     try:
         pycall = pycall.phlex_callable
     except AttributeError:
-        pass # not a Variant-style type callable
+        pass  # not a Variant-style type callable
 
     try:
         sig = inspect.signature(pycall)
