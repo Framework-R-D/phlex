@@ -17,11 +17,13 @@
 #include <vector>
 
 namespace phlex::detail {
+  enum class require_layers : char { never, multi_input_only, always };
   class PHLEX_CORE_EXPORT products_consumer : public consumer {
   public:
     products_consumer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
-                      product_selectors input_products);
+                      product_selectors input_products,
+                      require_layers layers_required);
 
     virtual ~products_consumer();
 

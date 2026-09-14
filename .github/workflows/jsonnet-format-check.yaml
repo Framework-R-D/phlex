@@ -89,7 +89,7 @@ jobs:
 
       - name: Setup jsonnet
         id: setup-jsonnet
-        uses: zendesk/setup-jsonnet@74119dac8a540c99167a65f14aa1ee99ff143ec2 # v16
+        uses: zendesk/setup-jsonnet@76fef91403b40b20e4344a88f6c06a85be4f97d4 # v17
         with:
           version: v0.22.0
           github_token: ${{ github.token }}
