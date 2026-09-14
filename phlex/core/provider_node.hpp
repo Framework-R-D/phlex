@@ -18,16 +18,16 @@
 #include <string>
 #include <vector>
 
-namespace phlex::detail {
-  // Function type for type-erased data-product types (used by implicit providers)
+namespace phlex::experimental {
+  // This implicit-provider construction API is experimental and may change before promotion.
   using provider_function = std::function<product_ptr(data_cell_index const&)>;
 }
 
 namespace phlex {
   struct PHLEX_CORE_EXPORT provider_bundle {
-    detail::provider_function provider_function;
+    experimental::provider_function provider_function;
     concurrency max_concurrency;
-    detail::product_specification spec;
+    experimental::product_specification spec;
     std::string layer;
     std::string stage;
   };
@@ -43,13 +43,13 @@ namespace phlex::detail {
     provider_node(phlex::experimental::algorithm_name algo_name,
                   std::size_t concurrency,
                   tbb::flow::graph& g,
-                  provider_function provider_func,
-                  product_specification output_spec,
+                  phlex::experimental::provider_function provider_func,
+                  phlex::experimental::product_specification output_spec,
                   phlex::experimental::identifier output_layer,
                   phlex::experimental::identifier stage);
 
     phlex::experimental::algorithm_name const& name() const noexcept;
-    product_specification const& output_product() const noexcept;
+    phlex::experimental::product_specification const& output_product() const noexcept;
     phlex::experimental::identifier const& layer() const noexcept;
     phlex::experimental::identifier const& stage() const noexcept;
 
@@ -59,7 +59,7 @@ namespace phlex::detail {
 
   private:
     phlex::experimental::algorithm_name name_;
-    product_specification output_;
+    phlex::experimental::product_specification output_;
     phlex::experimental::identifier layer_;
     phlex::experimental::identifier stage_;
     tbb::flow::function_node<index_message, message> provider_;

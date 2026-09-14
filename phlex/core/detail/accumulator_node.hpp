@@ -38,8 +38,8 @@ namespace phlex::detail::internal {
     auto release_as_product()
     {
       auto result = std::move(accumulator_);
-      using phlex::experimental::send;
-      if constexpr (phlex::experimental::has_send<T>) {
+      using namespace phlex::experimental;
+      if constexpr (has_send<T>) {
         return std::make_unique<product<sendable_t>>(send(*result));
       } else {
         return std::make_unique<product<sendable_t>>(std::move(*result));
@@ -62,7 +62,7 @@ namespace phlex::detail::internal {
     }
 
     message release_as_message(std::string const& node_name,
-                               product_specifications const& output,
+                               phlex::experimental::product_specifications const& output,
                                std::size_t original_id)
     {
       auto store = std::make_shared<phlex::experimental::product_store>(index, node_name);
@@ -93,7 +93,7 @@ namespace phlex::detail::internal {
     accumulator_node(tbb::flow::graph& g,
                      std::string node_name,
                      phlex::experimental::identifier partition_layer_name,
-                     product_specifications output,
+                     phlex::experimental::product_specifications output,
                      result_initializer_t initializer);
 
     accumulator_node(accumulator_node const&) = delete;
@@ -147,7 +147,7 @@ namespace phlex::detail::internal {
     std::string node_name_;
     phlex::experimental::identifier partition_layer_;
     result_initializer_t initializer_;
-    product_specifications output_;
+    phlex::experimental::product_specifications output_;
     std::atomic<std::size_t> emitted_result_count_{0};
   };
 
@@ -158,7 +158,7 @@ namespace phlex::detail::internal {
   accumulator_node<Result>::accumulator_node(tbb::flow::graph& g,
                                              std::string node_name,
                                              phlex::experimental::identifier partition_layer_name,
-                                             product_specifications output,
+                                             phlex::experimental::product_specifications output,
                                              result_initializer_t initializer) :
     base_t{g},
     indexer_{g},
