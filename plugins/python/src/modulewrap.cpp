@@ -919,9 +919,9 @@ static PyObject* parse_args(PyObject* args,
             if ((l + input_selectors.size()) >= input_types.size())
               optok = true;
           } else {
-            Py_DECREF(optcnt);
             PyErr_Clear();
           }
+          Py_DECREF(optcnt);
         }
         // LCOV_EXCL_START
         else {
