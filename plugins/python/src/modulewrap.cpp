@@ -465,13 +465,15 @@ namespace {
             for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); ++i) {
               PyObject* item = PyTuple_GET_ITEM(args, i);
               std::string const& inp_ann = annotation_as_text(item);
-              if (inp_ann.empty())
+              if (inp_ann.empty()) {
                 break;
+              }
               input_types.push_back(inp_ann);
             }
 
-            if (static_cast<Py_ssize_t>(input_types.size()) == PyTuple_GET_SIZE(args))
+            if (static_cast<Py_ssize_t>(input_types.size()) == PyTuple_GET_SIZE(args)) {
               conversion_ok = true;
+            }
           }
         } else {
           PyErr_Clear();
@@ -916,9 +918,10 @@ static PyObject* parse_args(PyObject* args,
         if (optcnt) {
           long l = PyLong_AsLong(optcnt);
           Py_DECREF(optcnt);
-          if (l != (long)-1) {
-            if ((l + input_selectors.size()) >= input_types.size())
+          if (l != -1l) {
+            if ((l + input_selectors.size()) >= input_types.size()) {
               optok = true;
+            }
           } else {
             PyErr_Clear();
           }
