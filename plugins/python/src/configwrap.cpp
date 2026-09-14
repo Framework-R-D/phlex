@@ -59,6 +59,9 @@ static PyObject* pcm_get(py_config_map* pcm, PyObject* args)
   PyObject* value =
     Py_TYPE(pcm)->tp_as_mapping->mp_subscript(reinterpret_cast<PyObject*>(pcm), pykey);
   if (!value) {
+    if (!PyErr_ExceptionMatches(PyExc_KeyError)) {
+      return nullptr;
+    }
     PyErr_Clear();
     Py_INCREF(pydefval);
     return pydefval;
