@@ -67,7 +67,7 @@ namespace phlex::detail {
     virtual tbb::flow::sender<message>& output_port() = 0;
     virtual tbb::flow::sender<index_message>& output_index_port() = 0;
     virtual tbb::flow::sender<unfold_flush>& flush_sender() = 0;
-    virtual product_specifications const& output() const = 0;
+    virtual phlex::experimental::product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
 
     std::string const& child_layer() const noexcept { return child_layer_; }
@@ -173,7 +173,7 @@ namespace phlex::detail {
     {
       return tbb::flow::output_port<2>(unfold_);
     }
-    product_specifications const& output() const override { return output_; }
+    phlex::experimental::product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(Predicate const& predicate,
@@ -220,7 +220,7 @@ namespace phlex::detail {
     std::size_t product_count() const final { return product_count_.load(); }
 
     input_retriever_types<input_args> input_{input_arguments<input_args>()};
-    product_specifications output_;
+    phlex::experimental::product_specifications output_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::multifunction_node<messages_t<num_inputs>,
                                   std::tuple<message, index_message, unfold_flush>>

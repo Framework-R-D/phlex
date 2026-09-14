@@ -139,6 +139,8 @@ namespace phlex::detail {
                         phlex::experimental::identifier output_layer,
                         phlex::experimental::identifier stage = "CURRENT"_id)
     {
+      using namespace phlex::experimental;
+
       using return_type_t = return_type<typename AlgorithmBits::algorithm_type>;
       product_specification output_spec(
         std::move(creator), std::move(suffix), make_type_id<return_type_t>());

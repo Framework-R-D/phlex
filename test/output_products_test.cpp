@@ -37,20 +37,20 @@ namespace {
 
   constexpr std::string brahms() { return "Brahms"; }
 
-  detail::product_ptr give_me_a_name(data_cell_index const&)
+  experimental::product_ptr give_me_a_name(data_cell_index const&)
   {
-    return detail::product_for(brahms());
+    return experimental::product_for(brahms());
   }
 
   class test_source : public detail::source {
     provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental;
-      using namespace phlex::detail;
       provider_bundles bundles;
       std::string const layer = "spill";
       std::string const stage = "previous_process";
-      product_specification spec{"provide_name", "", make_type_id<std::string>()};
+      experimental::product_specification spec{
+        "provide_name", "", experimental::make_type_id<std::string>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
         bundles.push_back(provider_bundle{.provider_function = give_me_a_name,
