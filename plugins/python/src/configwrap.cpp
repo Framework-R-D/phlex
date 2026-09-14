@@ -73,11 +73,11 @@ static PyObject* pcm_get(py_config_map* pcm, PyObject* args)
 // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static std::array<PyMethodDef, 2> pcm_methods{
-  {{"get",
-    reinterpret_cast<PyCFunction>(pcm_get),
-    METH_VARARGS,
-    "lookup an entry by name or return the given default"},
-   {nullptr, nullptr, 0, nullptr}}};
+  {{.ml_name = "get",
+    .ml_meth = reinterpret_cast<PyCFunction>(pcm_get),
+    .ml_flags = METH_VARARGS,
+    .ml_doc = "lookup an entry by name or return the given default"},
+   {}}};
 
 // Returns the array size as Py_ssize_t, or std::nullopt (and sets a Python
 // OverflowError) if the size exceeds PY_SSIZE_T_MAX.
