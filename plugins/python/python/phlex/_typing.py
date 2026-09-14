@@ -62,7 +62,7 @@ if has_numba:
             nb_types.uint16: "uint16_t",
             nb_types.uint32: "uint32_t",
             nb_types.uint64: "uint64_t",
-            nb_types.Float: "float",
+            nb_types.Float: "float",  # type: ignore[attr-defined]
             nb_types.float32: "float",
             nb_types.double: "double",
             nb_types.void: "None",
@@ -250,7 +250,7 @@ def count_optional_arguments(pycall: Callable[..., Any]) -> int:
         Number of optional arguments.
     """
     try:
-        pycall = pycall.phlex_callable
+        pycall = pycall.phlex_callable  # type: ignore[attr-defined]
     except AttributeError:
         pass  # not a Variant-style type callable
 
