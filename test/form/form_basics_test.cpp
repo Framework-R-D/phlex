@@ -1257,7 +1257,6 @@ TEST_CASE("navigation: the per-creator index is still written", "[form]")
   write_record(writer, "tracker", {"hits"}, event_cell(1));
   writer.finalize();
 
-  CHECK(std::find(store->filled_containers.begin(),
-                  store->filled_containers.end(),
-                  "tracker/index") != store->filled_containers.end());
+  CHECK(std::ranges::find(store->filled_containers, "tracker/index") !=
+        store->filled_containers.end());
 }
