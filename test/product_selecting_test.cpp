@@ -50,15 +50,13 @@ namespace {
                .layer = "event",
                .stage = "previous_process"}};
     }
-
-    index_generator indices() override { co_return; }
   };
 
   class copy_temperature_once {
   public:
     explicit copy_temperature_once(double const temperature) : temperature_{temperature} {}
-    bool initial_value() const { return true; }
-    bool predicate(bool const emit) const { return emit; }
+    static bool initial_value() { return true; }
+    static bool predicate(bool const emit) { return emit; }
     auto unfold(bool const) const { return std::pair{false, temperature_}; }
 
   private:

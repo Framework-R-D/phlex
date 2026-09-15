@@ -23,7 +23,7 @@ namespace phlex {
   namespace detail {
     class creator_name {
     public:
-      creator_name() : content_{std::nullopt} {}
+      creator_name() = default;
       creator_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
       {
         if (content_ && content_.value().empty()) {
@@ -54,7 +54,7 @@ namespace phlex {
 
     class layer_name {
     public:
-      layer_name() : content_(std::nullopt) {}
+      layer_name() = default;
       layer_name(std::optional<experimental::identifier>&& content) : content_{std::move(content)}
       {
         if (content_ && content_.value().empty()) {

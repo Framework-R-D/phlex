@@ -12,7 +12,7 @@
 using namespace phlex::detail;
 
 namespace {
-  enum class test_enum { small, medium, large };
+  enum class test_enum : unsigned char { small, medium, large };
 
   struct test_struct {
     int a;
@@ -107,7 +107,7 @@ TEST_CASE("Type ID string formatting", "[type_id]")
   CHECK(fmt::format("{}", make_type_id<long double>()) == "long double");
   CHECK(fmt::format("{}", make_type_id<std::vector<float>>()) == "LIST float");
   CHECK(fmt::format("{}", make_type_id<std::vector<unsigned int>>()) == "LIST unsigned int");
-  CHECK(fmt::format("{}", make_type_id<test_struct>()) == "STRUCT {int, char, int, int}");
+  CHECK(fmt::format("{}", make_type_id<test_struct>()) == "STRUCT {int, char, unsigned char, int}");
   CHECK(fmt::format("{}", make_type_id<std::vector<test_struct>>()) ==
-        "LIST STRUCT {int, char, int, int}");
+        "LIST STRUCT {int, char, unsigned char, int}");
 }
