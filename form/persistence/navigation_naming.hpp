@@ -7,6 +7,7 @@
 #include "core/technology.hpp"
 
 #include <cctype>
+#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -31,6 +32,18 @@ namespace form::detail::experimental {
     return sanitize_name(name);
   }
 
+  /// Return a physical name for the layer at `position` when the framework left it unnamed.
+  inline std::string unnamed_layer_name(std::size_t position)
+  {
+    return "layer" + std::to_string(position);
+  }
+
+  /// Return the physical name of the layer at `position` in a hierarchy.
+  inline std::string layer_column_name(std::string_view layer_name, std::size_t position)
+  {
+    return layer_name.empty() ? unnamed_layer_name(position) : sanitize_name(layer_name);
+  }
+
   /// Flatten a hierarchy for use in a container name.
   inline std::string hierarchy_key(cell_hierarchy const& hierarchy)
   {
@@ -39,11 +52,11 @@ namespace form::detail::experimental {
     }
 
     std::string key;
-    for (auto const& layer_name : hierarchy.layer_names) {
+    for (std::size_t position = 0; position < hierarchy.layer_names.size(); ++position) {
       if (!key.empty()) {
         key += '_';
       }
-      key += sanitize_name(layer_name);
+      key += layer_column_name(hierarchy.layer_names[position], position);
     }
     return key;
   }

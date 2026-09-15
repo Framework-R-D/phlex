@@ -26,19 +26,13 @@ namespace {
 
     // The job root has no parent and is not a data layer.
     for (auto const* node = &index; node->has_parent(); node = node->parent().get()) {
-      cell.layer_names.push_back(node->layer_name().trans_get_string());
+      cell.hierarchy.layer_names.push_back(node->layer_name().trans_get_string());
       cell.layer_values.push_back(static_cast<std::uint64_t>(node->number()));
     }
     // Reverse to outermost-first layer order.
-    std::ranges::reverse(cell.layer_names);
+    std::ranges::reverse(cell.hierarchy.layer_names);
     std::ranges::reverse(cell.layer_values);
 
-    // Generate names for unnamed layers.
-    for (std::size_t i = 0; i < cell.layer_names.size(); ++i) {
-      if (cell.layer_names[i].empty()) {
-        cell.layer_names[i] = form::detail::experimental::unnamed_layer_name(i);
-      }
-    }
     return cell;
   }
 

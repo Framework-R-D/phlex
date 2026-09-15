@@ -6,10 +6,10 @@
 #include "navigation_naming.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
-#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -48,9 +48,16 @@ namespace {
       if (!text.empty()) {
         text += ", ";
       }
-      text += name;
+      // Show unnamed layers rather than leaving a gap the reader has to count.
+      text += name.empty() ? "<unnamed>" : name;
     }
     return text;
+  }
+
+  std::string layer_label(std::string const& layer_name, std::size_t position)
+  {
+    return layer_name.empty() ? "the unnamed layer at position " + std::to_string(position)
+                              : "layer '" + layer_name + "'";
   }
 }
 
@@ -144,6 +151,8 @@ token persistence_writer::register_write(placement const& plcmnt,
 void persistence_writer::commit_place(placement const& plcmnt, cell_index const& cell)
 {
   try {
+    auto staged = stage_navigation(plcmnt, cell);
+
     auto const it = index_by_product_.find(
       std::make_tuple(plcmnt.file_name(), plcmnt.container_name(), plcmnt.technology()));
     placement const index_place =
@@ -151,8 +160,8 @@ void persistence_writer::commit_place(placement const& plcmnt, cell_index const&
     store_writer_->fill_container(index_place, &cell.id, typeid(std::string));
     store_writer_->commit_containers(plcmnt);
 
-    // Record navigation only after the product commit succeeds.
-    record_navigation(plcmnt, cell);
+    // The record is on disk; now record where it went.
+    apply_navigation(std::move(staged));
   } catch (...) {
     pending_by_place_.clear();
     throw;
@@ -197,41 +206,90 @@ void persistence_writer::record_dictionary_entries(place_key const& place,
   }
 }
 
-void persistence_writer::record_navigation(placement const& plcmnt, cell_index const& cell)
+persistence_writer::staged_record persistence_writer::stage_navigation(placement const& plcmnt,
+                                                                       cell_index const& cell)
 {
   // Remove pending writes before processing the record.
-  place_key const place{plcmnt.file_name(), plcmnt.technology()};
-  auto const pending = std::exchange(pending_by_place_[place], {});
-  if (pending.empty()) {
-    return;
-  }
-
-  auto const row_by_creator = rows_by_creator(pending, cell);
+  place_key place{plcmnt.file_name(), plcmnt.technology()};
+  auto pending = std::exchange(pending_by_place_[place], {});
 
   if (!cell.consistent()) {
     throw std::runtime_error("persistence_writer: data cell " + cell.id + " has " +
-                             std::to_string(cell.layer_names.size()) + " layer names but " +
-                             std::to_string(cell.layer_values.size()) + " layer values");
+                             std::to_string(cell.hierarchy.layer_names.size()) +
+                             " layer names but " + std::to_string(cell.layer_values.size()) +
+                             " layer values");
   }
 
-  auto const hierarchy = cell.hierarchy();
-  auto& table = navigation_tables_[navigation_key{
-    .file_name = plcmnt.file_name(), .technology = plcmnt.technology(), .hierarchy = hierarchy}];
+  if (pending.empty()) {
+    return staged_record{};
+  }
 
-  auto& cell_rows = table.rows[cell.layer_values];
-  for (auto const& [creator, row] : row_by_creator) {
-    auto const [it, inserted] = cell_rows.try_emplace(creator, row);
-    if (!inserted) {
-      // One navigation row per creator and data cell.
-      throw std::runtime_error("persistence_writer: creator '" + creator + "' wrote data cell " +
-                               cell.id +
-                               " more than once; the navigation table holds one row per creator "
-                               "per data cell");
+  auto row_by_creator = rows_by_creator(pending, cell);
+  auto const& hierarchy = cell.hierarchy;
+  navigation_key key{
+    .file_name = plcmnt.file_name(), .technology = plcmnt.technology(), .hierarchy = hierarchy};
+  auto table_name = navigation_table_name(hierarchy, key.technology);
+
+  auto const table_it = navigation_tables_.find(key);
+  auto const* table = table_it != navigation_tables_.end() ? &table_it->second : nullptr;
+
+  auto const claims_table_name = check_table_name(key, table_name);
+  check_rows_are_new(table, cell, row_by_creator);
+
+  std::map<std::string, std::string> new_columns;
+  if (table == nullptr) {
+    for (std::size_t position = 0; position < hierarchy.layer_names.size(); ++position) {
+      auto const& layer_name = hierarchy.layer_names[position];
+      stage_column(new_columns,
+                   table,
+                   table_name,
+                   layer_column_name(layer_name, position),
+                   layer_label(layer_name, position));
     }
+  }
+  for (auto const& [creator, row] : row_by_creator) {
+    if (table != nullptr && table->creators.contains(creator)) {
+      continue;
+    }
+    stage_column(
+      new_columns, table, table_name, navigation_row_column(creator), "creator '" + creator + "'");
+  }
+
+  return staged_record{.place = std::move(place),
+                       .key = std::move(key),
+                       .table_name = std::move(table_name),
+                       .pending = std::move(pending),
+                       .row_by_creator = std::move(row_by_creator),
+                       .layer_values = cell.layer_values,
+                       .new_columns = std::move(new_columns),
+                       .claims_table_name = claims_table_name};
+}
+
+void persistence_writer::apply_navigation(staged_record staged)
+{
+  if (staged.pending.empty()) {
+    return;
+  }
+
+  if (staged.claims_table_name) {
+    claimed_table_names_.emplace(
+      std::make_tuple(staged.key.file_name, staged.key.technology, std::move(staged.table_name)),
+      staged.key.hierarchy);
+  }
+
+  // The key is still needed below, so only the record's own storage is taken here.
+  auto& table = navigation_tables_[staged.key];
+  // merge() splices the staged nodes across rather than copying them.
+  table.column_sources.merge(staged.new_columns);
+
+  auto& cell_rows = table.rows[std::move(staged.layer_values)];
+  for (auto const& [creator, row] : staged.row_by_creator) {
+    cell_rows.emplace(creator, row);
     table.creators.insert(creator);
   }
 
-  record_dictionary_entries(place, pending, hierarchy, plcmnt.technology());
+  record_dictionary_entries(
+    staged.place, staged.pending, staged.key.hierarchy, staged.key.technology);
 }
 
 void persistence_writer::finalize()
@@ -245,49 +303,81 @@ void persistence_writer::finalize()
   write_product_dictionaries();
 }
 
-void persistence_writer::check_table_names() const
+bool persistence_writer::check_table_name(navigation_key const& key,
+                                          std::string const& table_name) const
 {
-  // Check for navigation container name collisions before writing.
-  std::map<std::tuple<std::string, technology::id, std::string>, cell_hierarchy> claimed;
-  for (auto const& entry : navigation_tables_) {
-    auto const& key = entry.first;
-    auto const [it, inserted] = claimed.try_emplace(
-      std::make_tuple(
-        key.file_name, key.technology, navigation_table_name(key.hierarchy, key.technology)),
-      key.hierarchy);
-    if (!inserted) {
-      throw std::runtime_error("persistence_writer: hierarchies [" + layer_names_text(it->second) +
-                               "] and [" + layer_names_text(key.hierarchy) +
-                               "] both name their navigation container '" + std::get<2>(it->first) +
-                               "' in file '" + key.file_name +
-                               "'; rename a layer so the two can be told apart on disk");
+  auto const it =
+    claimed_table_names_.find(std::make_tuple(key.file_name, key.technology, table_name));
+  if (it == claimed_table_names_.end()) {
+    return true;
+  }
+  if (it->second != key.hierarchy) {
+    throw std::runtime_error(
+      "persistence_writer: hierarchies [" + layer_names_text(it->second) + "] and [" +
+      layer_names_text(key.hierarchy) + "] both name their navigation container '" + table_name +
+      "' in file '" + key.file_name + "'; rename a layer so the two can be told apart on disk");
+  }
+  return false;
+}
+
+void persistence_writer::check_rows_are_new(
+  navigation_table const* table,
+  cell_index const& cell,
+  std::map<std::string, std::uint64_t> const& row_by_creator)
+{
+  if (table == nullptr) {
+    return;
+  }
+  auto const rows_it = table->rows.find(cell.layer_values);
+  if (rows_it == table->rows.end()) {
+    return;
+  }
+  for (auto const& [creator, row] : row_by_creator) {
+    if (rows_it->second.contains(creator)) {
+      throw std::runtime_error("persistence_writer: creator '" + creator + "' wrote data cell " +
+                               cell.id +
+                               " more than once; the navigation table holds one row per creator "
+                               "per data cell");
     }
+  }
+}
+
+void persistence_writer::stage_column(std::map<std::string, std::string>& staged,
+                                      navigation_table const* table,
+                                      std::string const& table_name,
+                                      std::string const& column,
+                                      std::string const& source)
+{
+  auto const clash = [&](std::string const& holder) {
+    return std::runtime_error("persistence_writer: in navigation table '" + table_name + "', " +
+                              holder + " and " + source + " both name column '" + column +
+                              "'; rename one so the two can be told apart on disk");
+  };
+
+  if (table != nullptr) {
+    auto const it = table->column_sources.find(column);
+    if (it != table->column_sources.end()) {
+      throw clash(it->second);
+    }
+  }
+  auto const [it, inserted] = staged.try_emplace(column, source);
+  if (!inserted) {
+    throw clash(it->second);
   }
 }
 
 void persistence_writer::write_navigation_tables()
 {
-  check_table_names();
-
   for (auto const& [key, table] : navigation_tables_) {
     auto const table_name = navigation_table_name(key.hierarchy, key.technology);
 
     std::vector<std::string> columns;
     columns.reserve(key.hierarchy.layer_names.size() + table.creators.size());
-    for (auto const& layer_name : key.hierarchy.layer_names) {
-      columns.push_back(sanitize_name(layer_name));
+    for (std::size_t position = 0; position < key.hierarchy.layer_names.size(); ++position) {
+      columns.push_back(layer_column_name(key.hierarchy.layer_names[position], position));
     }
     for (auto const& creator : table.creators) {
       columns.push_back(navigation_row_column(creator));
-    }
-
-    std::set<std::string> seen;
-    for (auto const& column : columns) {
-      if (!seen.insert(column).second) {
-        std::string message{"persistence_writer: navigation table '"};
-        message.append(table_name).append("' has two columns named '").append(column).append("'");
-        throw std::runtime_error(message);
-      }
     }
 
     auto const places = create_table_columns(

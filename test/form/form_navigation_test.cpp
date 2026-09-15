@@ -242,7 +242,7 @@ namespace {
   }
 }
 
-int main(int const argc, char const** argv)
+int main(int const argc, char* argv[])
 {
   if (argc < 3) {
     std::cerr << "usage: form_navigation_test <file.root> <technology>\n";

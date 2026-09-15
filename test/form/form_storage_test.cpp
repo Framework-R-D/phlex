@@ -48,7 +48,7 @@ namespace {
   {
     return cell_index{.id = "[event:" + std::to_string(event) +
                             ", segment:" + std::to_string(segment) + "]",
-                      .layer_names = {"event", "segment"},
+                      .hierarchy = {{"event", "segment"}},
                       .layer_values = {event, segment}};
   }
 }

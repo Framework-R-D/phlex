@@ -172,7 +172,7 @@ namespace {
   cell_index event_cell(std::uint64_t event)
   {
     return cell_index{.id = "[event:" + std::to_string(event) + "]",
-                      .layer_names = {"event"},
+                      .hierarchy = {{"event"}},
                       .layer_values = {event}};
   }
 
@@ -181,7 +181,7 @@ namespace {
   {
     return cell_index{.id = "[event:" + std::to_string(event) +
                             ", segment:" + std::to_string(segment) + "]",
-                      .layer_names = {"event", "segment"},
+                      .hierarchy = {{"event", "segment"}},
                       .layer_values = {event, segment}};
   }
 
@@ -898,12 +898,12 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
   SECTION("a cell's hierarchy is its layer names, and only those")
   {
     cell_index const cell{
-      .id = "[event:1, segment:2]", .layer_names = {"event", "segment"}, .layer_values = {1, 2}};
-    CHECK(cell.hierarchy() == cell_hierarchy{{"event", "segment"}});
+      .id = "[event:1, segment:2]", .hierarchy = {{"event", "segment"}}, .layer_values = {1, 2}};
+    CHECK(cell.hierarchy == cell_hierarchy{{"event", "segment"}});
 
     cell_index const other{
-      .id = "[event:7, segment:0]", .layer_names = {"event", "segment"}, .layer_values = {7, 0}};
-    CHECK(cell.hierarchy() == other.hierarchy());
+      .id = "[event:7, segment:0]", .hierarchy = {{"event", "segment"}}, .layer_values = {7, 0}};
+    CHECK(cell.hierarchy == other.hierarchy);
   }
 
   SECTION("hierarchies that flatten alike are still different hierarchies")
@@ -918,13 +918,22 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
   {
     CHECK(hierarchy_key(cell_hierarchy{}) == "job");
     CHECK(cell_index{.id = "[]"}.is_job());
-    CHECK(cell_index{.id = "[]"}.hierarchy() == cell_hierarchy{});
+    CHECK(cell_index{.id = "[]"}.hierarchy == cell_hierarchy{});
   }
 
   SECTION("a layer the framework left unnamed still gets a usable column")
   {
     CHECK(unnamed_layer_name(0) == "layer0");
-    CHECK(hierarchy_key(cell_hierarchy{{unnamed_layer_name(0)}}) == "layer0");
+    CHECK(hierarchy_key(cell_hierarchy{{""}}) == "layer0");
+    CHECK(hierarchy_key(cell_hierarchy{{"event", ""}}) == "event_layer1");
+  }
+
+  SECTION("an unnamed layer is not the layer that happens to be called 'layer0'")
+  {
+    cell_hierarchy const unnamed{{""}};
+    cell_hierarchy const named{{"layer0"}};
+    CHECK(unnamed != named);
+    CHECK(hierarchy_key(unnamed) == hierarchy_key(named));
   }
 
   SECTION("names ROOT rejects are sanitized")
@@ -938,8 +947,8 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
   SECTION("parallel layer vectors are what makes a cell usable")
   {
     CHECK(
-      cell_index{.id = "[event:1]", .layer_names = {"event"}, .layer_values = {1}}.consistent());
-    CHECK_FALSE(cell_index{.id = "[event:1]", .layer_names = {"event"}}.consistent());
+      cell_index{.id = "[event:1]", .hierarchy = {{"event"}}, .layer_values = {1}}.consistent());
+    CHECK_FALSE(cell_index{.id = "[event:1]", .hierarchy = {{"event"}}}.consistent());
   }
 
   SECTION("a navigation name carries the technology that wrote it")
@@ -1101,6 +1110,9 @@ TEST_CASE("navigation: a creator whose products disagree on their row is rejecte
 
   CHECK_THROWS_AS(writer.commit_place(product_place("tracker", "hits"), event_cell(1)),
                   std::runtime_error);
+
+  CHECK(std::ranges::find(store->filled_containers, "tracker/index") ==
+        store->filled_containers.end());
 }
 
 TEST_CASE("navigation: a failed product write abandons the whole record", "[form]")
@@ -1146,11 +1158,10 @@ TEST_CASE("navigation: a layer column colliding with a creator column is rejecte
 
   // A layer named "tracker_row" yields the same column name as creator "tracker" does.
   cell_index const cell{
-    .id = "[tracker_row:1]", .layer_names = {"tracker_row"}, .layer_values = {1}};
-  write_record(writer, "tracker", {"hits"}, cell);
+    .id = "[tracker_row:1]", .hierarchy = {{"tracker_row"}}, .layer_values = {1}};
 
-  // The clash is only visible once every creator is known, so finalize is where it throws.
-  CHECK_THROWS_AS(writer.finalize(), std::runtime_error);
+  // The record that introduces the clash is where it throws, so the job can still report it.
+  CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, cell), std::runtime_error);
 }
 
 TEST_CASE("navigation: the job cell is a hierarchy with no layer columns", "[form]")
@@ -1171,41 +1182,39 @@ TEST_CASE("navigation: the job cell is a hierarchy with no layer columns", "[for
 
 TEST_CASE("navigation: two hierarchies claiming one container name are rejected", "[form]")
 {
-  auto both_records_then_finalize = [](cell_index const& first, cell_index const& second) {
+  auto second_record_throws = [](cell_index const& first, cell_index const& second) {
     auto spy = std::make_unique<spy_storage_writer>();
     auto* store = spy.get();
     form::detail::experimental::persistence_writer writer{std::move(spy)};
 
     write_record(writer, "tracker", {"hits"}, first);
-    write_record(writer, "tracker", {"hits"}, second);
-
-    CHECK_THROWS_AS(writer.finalize(), std::runtime_error);
+    CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, second), std::runtime_error);
     CHECK(store->tables.empty());
   };
 
   cell_index const job_cell{.id = "[]"};
-  cell_index const named_job{.id = "[job:1]", .layer_names = {"job"}, .layer_values = {1}};
+  cell_index const named_job{.id = "[job:1]", .hierarchy = {{"job"}}, .layer_values = {1}};
   cell_index const joined{
-    .id = "[event_segment:1]", .layer_names = {"event_segment"}, .layer_values = {1}};
+    .id = "[event_segment:1]", .hierarchy = {{"event_segment"}}, .layer_values = {1}};
 
   SECTION("the job cell and a layer literally named job")
   {
-    both_records_then_finalize(job_cell, named_job);
+    second_record_throws(job_cell, named_job);
   }
 
   SECTION("a layer literally named job and the job cell")
   {
-    both_records_then_finalize(named_job, job_cell);
+    second_record_throws(named_job, job_cell);
   }
 
   SECTION("one layer name collides with two joined ones")
   {
-    both_records_then_finalize(joined, event_segment_cell(1, 0));
+    second_record_throws(joined, event_segment_cell(1, 0));
   }
 
   SECTION("two joined layer names collide with one")
   {
-    both_records_then_finalize(event_segment_cell(1, 0), joined);
+    second_record_throws(event_segment_cell(1, 0), joined);
   }
 }
 
@@ -1216,7 +1225,7 @@ TEST_CASE("navigation: a cell whose layer vectors disagree is rejected", "[form]
 
   // Layer names and values must line up; otherwise the row cannot be built.
   cell_index const broken{
-    .id = "[event:1]", .layer_names = {"event", "segment"}, .layer_values = {1}};
+    .id = "[event:1]", .hierarchy = {{"event", "segment"}}, .layer_values = {1}};
   CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, broken), std::runtime_error);
 }
 

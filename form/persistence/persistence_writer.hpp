@@ -70,6 +70,9 @@ namespace form::detail::experimental {
       /// Layer values -> creator -> physical row.
       /// A missing creator entry means that creator did not write the cell.
       std::map<std::vector<std::uint64_t>, std::map<std::string, std::uint64_t>> rows;
+
+      /// Physical column name -> what claimed it, so a clash can name both sides.
+      std::map<std::string, std::string> column_sources;
     };
 
     /// One product dictionary entry describing how a product maps to its navigation column.
@@ -82,7 +85,23 @@ namespace form::detail::experimental {
       std::string navigation_column;
     };
 
-    void record_navigation(placement const& plcmnt, cell_index const& cell);
+    /// Validated navigation update, not yet applied.
+    struct staged_record {
+      place_key place;
+      navigation_key key;
+      std::string table_name;
+      std::vector<pending_write> pending;
+      std::map<std::string, std::uint64_t> row_by_creator;
+      std::vector<std::uint64_t> layer_values;
+      std::map<std::string, std::string> new_columns;
+      bool claims_table_name{false};
+    };
+
+    /// Validate a record and compute its navigation update without mutating state.
+    staged_record stage_navigation(placement const& plcmnt, cell_index const& cell);
+
+    /// Apply a validated navigation update, consuming it.
+    void apply_navigation(staged_record staged);
 
     /// Return one row per creator, throwing if a creator's products use different rows.
     static std::map<std::string, std::uint64_t> rows_by_creator(
@@ -94,8 +113,21 @@ namespace form::detail::experimental {
                                    cell_hierarchy const& hierarchy,
                                    technology::id tech);
 
-    /// Throw if two hierarchies in one place would claim the same container name.
-    void check_table_names() const;
+    /// Throw if another hierarchy already claims this container name.
+    /// Returns true if this hierarchy would be the first to claim it.
+    bool check_table_name(navigation_key const& key, std::string const& table_name) const;
+
+    /// Throw if this record would overwrite rows already recorded for the cell.
+    static void check_rows_are_new(navigation_table const* table,
+                                   cell_index const& cell,
+                                   std::map<std::string, std::uint64_t> const& row_by_creator);
+
+    /// Stage a column claim, throwing if it conflicts with an existing or staged claim.
+    static void stage_column(std::map<std::string, std::string>& staged,
+                             navigation_table const* table,
+                             std::string const& table_name,
+                             std::string const& column,
+                             std::string const& source);
 
     void write_navigation_tables();
     void write_product_dictionaries();
@@ -119,6 +151,10 @@ namespace form::detail::experimental {
 
     /// Navigation tables grouped by destination and hierarchy.
     std::map<navigation_key, navigation_table> navigation_tables_;
+
+    /// (file, technology, container name) -> the hierarchy holding that name.
+    std::map<std::tuple<std::string, technology::id, std::string>, cell_hierarchy>
+      claimed_table_names_;
 
     /// Dictionary entries grouped by place and (creator, product, hierarchy).
     /// A product contributes one dictionary row per hierarchy.

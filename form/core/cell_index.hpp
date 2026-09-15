@@ -25,20 +25,18 @@ namespace form::detail::experimental {
     auto operator<=>(cell_hierarchy const&) const = default;
   };
 
-  /// Identifies a data cell by its canonical ID and layer coordinates.
+  /// Identifies a data cell as a position within a hierarchy.
   struct cell_index {
     /// Canonical cell ID as rendered by the framework.
     std::string id;
-    /// Layer names, from outermost to innermost.
-    std::vector<std::string> layer_names;
-    /// Layer values corresponding to layer_names.
+    /// The hierarchy this cell belongs to.
+    cell_hierarchy hierarchy;
+    /// Layer values corresponding to hierarchy.layer_names.
     std::vector<std::uint64_t> layer_values;
 
-    bool is_job() const { return layer_names.empty(); }
+    bool is_job() const { return hierarchy.layer_names.empty(); }
     /// Whether layer names and values have matching sizes.
-    bool consistent() const { return layer_names.size() == layer_values.size(); }
-    /// The hierarchy this cell belongs to.
-    cell_hierarchy hierarchy() const { return cell_hierarchy{layer_names}; }
+    bool consistent() const { return hierarchy.layer_names.size() == layer_values.size(); }
   };
 
   /// Replace characters not allowed in names with '_'.
@@ -51,12 +49,6 @@ namespace form::detail::experimental {
       result.push_back(std::isalnum(uc) != 0 || c == '_' ? c : '_');
     }
     return result;
-  }
-
-  /// Return a name for an unnamed layer.
-  inline std::string unnamed_layer_name(std::size_t position)
-  {
-    return "layer" + std::to_string(position);
   }
 
 } // namespace form::detail::experimental

@@ -97,7 +97,7 @@ int main(int argc, char** argv)
       std::string const seg_id_text = std::format("[event:{}, segment:{}]", nevent, nseg);
       form::detail::experimental::cell_index const segment_id{
         .id = seg_id_text,
-        .layer_names = {"event", "segment"},
+        .hierarchy = {{"event", "segment"}},
         .layer_values = {static_cast<std::uint64_t>(nevent), static_cast<std::uint64_t>(nseg)}};
 
       std::vector<form::experimental::product_with_name> products;
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
     std::string const evt_id_text = std::format("[event:{}]", nevent);
     form::detail::experimental::cell_index const event_id{
       .id = evt_id_text,
-      .layer_names = {"event"},
+      .hierarchy = {{"event"}},
       .layer_values = {static_cast<std::uint64_t>(nevent)}};
 
     std::string const creator = "Toy_Tracker_Event";
