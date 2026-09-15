@@ -162,8 +162,23 @@ def _load_kilo_config() -> dict:
                 else:
                     cleaned.append(char)
             i += 1
-        # Parse JSON after comment removal
-        data = json.loads("".join(cleaned))
+        # JSONC permits trailing commas, which json.loads does not accept.
+        without_trailing_commas = []
+        i = 0
+        while i < len(cleaned):
+            char = cleaned[i]
+            if char == ",":
+                next_char = i + 1
+                while next_char < len(cleaned) and cleaned[next_char].isspace():
+                    next_char += 1
+                if next_char < len(cleaned) and cleaned[next_char] in "]}":
+                    i += 1
+                    continue
+            without_trailing_commas.append(char)
+            i += 1
+
+        # Parse JSON after removing JSONC comments and trailing commas.
+        data = json.loads("".join(without_trailing_commas))
         # Validate structure: top-level must be a dict with required keys.
         if not isinstance(data, dict):
             raise ValueError("Kilo config top-level is not a mapping")

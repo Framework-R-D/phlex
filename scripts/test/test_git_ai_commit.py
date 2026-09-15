@@ -1562,6 +1562,42 @@ class TestKiloConfig:
         finally:
             _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
 
+    def test_load_kilo_config_accepts_jsonc_trailing_commas(self, tmp_path: Path) -> None:
+        """_load_kilo_config accepts the trailing commas in current Kilo JSONC."""
+        config_file = tmp_path / "kilo.json"
+        config_file.write_text(
+            """
+            {
+              "disabled_providers": [],
+              "provider": {
+                "fnal-ow": {
+                  "models": {
+                    "qwen3-coder-next": {
+                      "id": "qwen/qwen3-coder-next",
+                    },
+                  },
+                },
+              },
+            }
+            """,
+            encoding="utf-8",
+        )
+        original = _M._KILO_CONFIG_CANDIDATES  # type: ignore[attr-defined]
+        try:
+            _M._KILO_CONFIG_CANDIDATES = (config_file,)  # type: ignore[attr-defined]
+            assert _M._load_kilo_config() == {  # type: ignore[attr-defined]
+                "disabled_providers": [],
+                "provider": {
+                    "fnal-ow": {
+                        "models": {
+                            "qwen3-coder-next": {"id": "qwen/qwen3-coder-next"},
+                        }
+                    }
+                },
+            }
+        finally:
+            _M._KILO_CONFIG_CANDIDATES = original  # type: ignore[attr-defined]
+
     def test_load_kilo_config_with_models_maps_providers(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
