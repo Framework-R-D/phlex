@@ -44,7 +44,7 @@ namespace phlex::detail {
     ~declared_fold() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
-    virtual product_specifications const& output() const = 0;
+    virtual phlex::experimental::product_specifications const& output() const = 0;
     virtual tbb::flow::receiver<index_message>& partition_port() = 0;
     virtual std::size_t product_count() const = 0;
     phlex::experimental::identifier const& partition_layer() const { return partition_layer_; }
@@ -130,7 +130,7 @@ namespace phlex::detail {
 
     tbb::flow::receiver<index_message>& partition_port() override { return join_.partition_port(); }
     tbb::flow::sender<message>& output_port() override { return join_.output_port(); }
-    product_specifications const& output() const override { return output_; }
+    phlex::experimental::product_specifications const& output() const override { return output_; }
 
     named_index_ports index_ports() final { return join_.index_ports(); }
     std::size_t num_calls() const final { return calls_.load(); }
@@ -150,7 +150,7 @@ namespace phlex::detail {
     }
 
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    product_specifications output_;
+    phlex::experimental::product_specifications output_;
     fold_join_node<result_type, num_inputs> join_;
     tbb::flow::function_node<accumulator_with_messages<result_type, num_inputs>,
                              tbb::flow::continue_msg>

@@ -9,7 +9,8 @@
 #include <functional>
 #include <vector>
 
-using namespace phlex::detail;
+using phlex::experimental::make_type_id;
+using phlex::experimental::type_id;
 
 namespace {
   enum class test_enum { small, medium, large };
@@ -89,8 +90,8 @@ TEST_CASE("Type ID children detection", "[type_id]")
 TEST_CASE("Type ID output type deduction", "[type_id]")
 {
   std::function test_fn = [](int a, float b) -> std::tuple<int, float> { return {a, b}; };
-  type_ids test_fn_out{make_type_id<int>(), make_type_id<float>()};
-  CHECK(make_output_type_ids<decltype(test_fn)>() == test_fn_out);
+  phlex::detail::type_ids test_fn_out{make_type_id<int>(), make_type_id<float>()};
+  CHECK(phlex::detail::make_output_type_ids<decltype(test_fn)>() == test_fn_out);
 }
 
 TEST_CASE("Type ID string formatting", "[type_id]")

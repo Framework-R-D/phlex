@@ -101,16 +101,16 @@ namespace phlex {
     detail::layer_name layer;
     std::optional<experimental::identifier> suffix;
     std::optional<experimental::identifier> stage;
-    detail::type_id type;
+    experimental::type_id type;
 
     // Check that all products selected by /other/ would satisfy this query
     bool match(product_selector const& other) const;
 
     // Check if a product_specification satisfies this query
-    bool match(detail::product_specification const& spec) const;
+    bool match(experimental::product_specification const& spec) const;
 
     // Check if a product_specification, layer, and stage together satisfies this query
-    bool match(detail::product_specification const& spec,
+    bool match(experimental::product_specification const& spec,
                experimental::identifier const& layer,
                experimental::identifier const& stage) const;
 
@@ -139,7 +139,7 @@ namespace phlex {
       template <typename T>
       void set_type(C& container)
       {
-        container.at(index_).type = detail::make_type_id<T>();
+        container.at(index_).type = phlex::experimental::make_type_id<T>();
         ++index_;
       }
 
@@ -163,7 +163,7 @@ namespace phlex {
 
   // This lives here rather than as a member-function of product_store because product_store is in model
   // and product_selector in core, with core depending on model.
-  PHLEX_CORE_EXPORT detail::product_specification const* resolve_in_store(
+  PHLEX_CORE_EXPORT experimental::product_specification const* resolve_in_store(
     product_selector const& query, experimental::product_store const& store);
 }
 

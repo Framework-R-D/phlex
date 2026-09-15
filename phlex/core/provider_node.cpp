@@ -22,8 +22,8 @@ namespace phlex::detail {
   provider_node::provider_node(phlex::experimental::algorithm_name algo_name,
                                std::size_t concurrency,
                                tbb::flow::graph& g,
-                               provider_function provider_func,
-                               product_specification output_spec,
+                               phlex::experimental::provider_function provider_func,
+                               phlex::experimental::product_specification output_spec,
                                phlex::experimental::identifier output_layer,
                                phlex::experimental::identifier stage) :
     name_{std::move(algo_name)},
@@ -57,7 +57,10 @@ namespace phlex::detail {
 
   phlex::experimental::algorithm_name const& provider_node::name() const noexcept { return name_; }
 
-  product_specification const& provider_node::output_product() const noexcept { return output_; }
+  phlex::experimental::product_specification const& provider_node::output_product() const noexcept
+  {
+    return output_;
+  }
 
   phlex::experimental::identifier const& provider_node::layer() const noexcept { return layer_; }
 
