@@ -36,7 +36,7 @@ namespace {
 
   class archived_count_source : public source {
   public:
-    detail::provider_bundles create_providers(product_selector const& selector) override
+    provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental::literals;
       phlex::detail::product_specification spec{

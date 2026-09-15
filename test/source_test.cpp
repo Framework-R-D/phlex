@@ -6,7 +6,7 @@ using namespace phlex;
 
 namespace {
   class empty_source final : public source {
-    detail::provider_bundles create_providers(product_selector const&) override { return {}; }
+    provider_bundles create_providers(product_selector const&) override { return {}; }
   };
 }
 

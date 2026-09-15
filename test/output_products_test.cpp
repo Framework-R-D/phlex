@@ -43,7 +43,7 @@ namespace {
   }
 
   class test_source : public detail::source {
-    detail::provider_bundles create_providers(product_selector const& selector) override
+    provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental;
       using namespace phlex::detail;
@@ -53,11 +53,11 @@ namespace {
       product_specification spec{"provide_name", "", make_type_id<std::string>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(phlex::detail::provider_bundle{.provider_function = give_me_a_name,
-                                                         .max_concurrency = concurrency::unlimited,
-                                                         .spec = std::move(spec),
-                                                         .layer = layer,
-                                                         .stage = stage});
+        bundles.push_back(provider_bundle{.provider_function = give_me_a_name,
+                                          .max_concurrency = concurrency::unlimited,
+                                          .spec = std::move(spec),
+                                          .layer = layer,
+                                          .stage = stage});
       }
       return bundles;
     }

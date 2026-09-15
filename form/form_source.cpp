@@ -75,12 +75,11 @@ namespace {
       form::experimental::ensure_builtin_form_product_types_registered();
     }
 
-    phlex::detail::provider_bundles create_providers(
-      phlex::product_selector const& selector) override
+    phlex::provider_bundles create_providers(phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
       using namespace phlex::detail;
-      phlex::detail::provider_bundles bundles;
+      phlex::provider_bundles bundles;
 
       std::string const* product_type_name =
         form::experimental::find_form_product_type_name(selector.type);
@@ -113,11 +112,11 @@ namespace {
         };
 
         bundles.push_back(
-          phlex::detail::provider_bundle{.provider_function = provider_func,
-                                         .max_concurrency = phlex::concurrency::serial,
-                                         .spec = std::move(spec),
-                                         .layer = std::string(selector_layer.trans_get_string()),
-                                         .stage = std::string(selector_stage.trans_get_string())});
+          phlex::provider_bundle{.provider_function = provider_func,
+                                 .max_concurrency = phlex::concurrency::serial,
+                                 .spec = std::move(spec),
+                                 .layer = std::string(selector_layer.trans_get_string()),
+                                 .stage = std::string(selector_stage.trans_get_string())});
       }
 
       return bundles;
