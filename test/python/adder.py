@@ -19,7 +19,7 @@ class AddableProtocol[T](Protocol):
 Addable = TypeVar("Addable", bound=AddableProtocol)
 
 
-def add(i: Addable, j: Addable) -> Addable:
+def add(i: Addable, j: Addable = 42) -> Addable:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together
@@ -54,7 +54,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    int_adder = Variant(add, {"i": int, "j": int, "return": int}, "iadd")
+    int_adder = Variant(add, {"i": int, "j": int, "return": int}, config.get("name", "iadd"))
 
     try:
         # intentional failure to check error path of missing output suffix

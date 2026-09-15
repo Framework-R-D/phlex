@@ -13,6 +13,7 @@
   modules: {
     pyadd: {
       py: 'adder',
+      name: 'iadd',
       input: [
         {
           creator: 'input',
@@ -27,8 +28,20 @@
       ],
       output: ['sum'],
     },
+    pyadd_layerless: {
+      py: 'adder',
+      name: 'iadd_layerless',
+      input: [
+        {
+          creator: 'input',
+          suffix: 'i',
+        },
+      ],
+      output: ['sum_layerless'],
+    },
     pyverify: {
       py: 'verify',
+      operation: 'eq',
       input: [
         {
           creator: 'iadd',
@@ -40,6 +53,7 @@
     },
     pyverify_nosuff: {
       py: 'verify',
+      operation: 'eq',
       input: [
         {
           creator: 'iadd',
@@ -47,6 +61,17 @@
         },
       ],
       sum_total: 1,
+    },
+    pyverify_layerless: {
+      py: 'verify',
+      operation: 'min',
+      input: [
+        {
+          creator: 'iadd_layerless',
+          suffix: 'sum_layerless',
+        },
+      ],
+      sum_total: 3,
     },
   },
 }
