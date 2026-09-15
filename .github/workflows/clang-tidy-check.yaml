@@ -3,7 +3,9 @@ name: Clang-Tidy Check
 
 concurrency:
   group: clang-tidy-check-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Ignore incidental issue-comment invocations so they cannot cancel an active
+  # pull-request analysis before the job-level command filter skips them.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
