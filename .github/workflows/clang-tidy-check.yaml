@@ -75,6 +75,9 @@ jobs:
             ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name ||
             needs.setup.outputs.repo }}
           persist-credentials: false
+          # The diff must start at the actual merge base, which may predate the
+          # current base SHA for an unrebased pull request.
+          fetch-depth: 0
 
       - name: Setup build environment
         uses: Framework-R-D/action-setup-build-env@780fd75b00a291df6a42d9d2337651330ebdb907 # v1
@@ -108,8 +111,9 @@ jobs:
           SOURCE_DIR="$GITHUB_WORKSPACE/$SOURCE_PATH"
           BUILD_DIR="$GITHUB_WORKSPACE/$BUILD_PATH"
 
-          # Manual runs analyze the whole branch.  Other events fetch the base because
-          # the diff drives both the files to analyze and eligible failure lines.
+          # Manual runs analyze the whole branch. Other events compare from the
+          # actual merge base so an unrebased branch does not appear to modify
+          # upstream changes that it simply has not incorporated yet.
           cd "$SOURCE_DIR"
           sources=()
           if [ "$FULL_BRANCH_CHECK" = true ]; then
@@ -122,10 +126,11 @@ jobs:
               git remote add "$FETCH_REMOTE" "https://github.com/${BASE_REPO}.git" 2>/dev/null || true
             fi
             if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
-              git fetch --depth=1 "$FETCH_REMOTE" "$BASE_SHA"
+              git fetch --no-tags "$FETCH_REMOTE" "$BASE_SHA"
             fi
+            DIFF_BASE=$(git merge-base "$BASE_SHA" HEAD)
 
-            git diff --unified=0 "$BASE_SHA" HEAD -- \
+            git diff --unified=0 "$DIFF_BASE" HEAD -- \
               '*.cpp' '*.hpp' '*.c' '*.h' '*.cxx' '*.cc' '*.hxx' '*.icc' \
               > "$BUILD_DIR/patch.diff"
 
@@ -137,7 +142,7 @@ jobs:
                   *.hpp|*.h|*.hxx|*.icc) header_changed=true ;;
                 esac
               fi
-            done < <(git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- \
+            done < <(git diff --name-only -z --diff-filter=ACMR "$DIFF_BASE" HEAD -- \
               '*.cpp' '*.hpp' '*.c' '*.h' '*.cxx' '*.cc' '*.hxx' '*.icc')
 
             # A header has no compilation database entry of its own.  Analyze all
