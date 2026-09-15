@@ -74,7 +74,9 @@ namespace {
 
     ~form_output_module()
     {
-      // Phlex has no end-of-job hook, so finalize while the interface is alive.
+      // Phlex currently has no end-of-job hook for output modules. Finalize here as the last
+      // opportunity while the interface is alive. Failures during destruction can only be logged.
+      // TODO: Move finalization to an end-of-job hook when one is available.
       try {
         form_interface_->finalize();
       } catch (std::exception const& e) {

@@ -46,8 +46,9 @@ namespace form::detail::experimental {
     // Persistence owns the navigation container.
     virtual void commit_place(placement const& plcmnt, cell_index const& cell) = 0;
 
-    // Write accumulated navigation tables and product metadata, then flush the output.
-    // Must be idempotent.
+    // Finish the output by writing the accumulated navigation tables and product dictionary.
+    // May throw on finalization errors. The destructor calls finalize() as a safety net and
+    // suppresses exceptions. Idempotent; a failed call is not retried by the destructor.
     virtual void finalize() = 0;
   };
 

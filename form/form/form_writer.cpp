@@ -33,7 +33,8 @@ namespace form::experimental {
 
   form_writer_interface::~form_writer_interface()
   {
-    // Finalize on destruction; do not let exceptions escape.
+    // Safety net only; call finalize() explicitly to handle errors. Errors during destruction are
+    // reported but cannot be propagated.
     try {
       finalize();
     } catch (std::exception const& e) {
@@ -48,6 +49,7 @@ namespace form::experimental {
     if (finalized_) {
       return;
     }
+    // Mark finalized before closing so a failed close is not retried by the destructor.
     finalized_ = true;
     pers_writer_->finalize();
   }
@@ -74,6 +76,15 @@ namespace form::experimental {
   {
     using form::detail::experimental::build_full_label;
     using form::detail::experimental::placement;
+
+    // Writes are not allowed after finalize(): the navigation tables have already been written and
+    // cannot record products written afterwards.
+    if (finalized_) {
+      throw std::runtime_error("form_writer_interface: creator '" + creator + "' wrote data cell " +
+                               cell.id +
+                               " after the writer was finalized; the navigation tables are "
+                               "already written and cannot record it");
+    }
 
     write_plan& plan = plans_[creator];
 

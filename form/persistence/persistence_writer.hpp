@@ -57,20 +57,13 @@ namespace form::detail::experimental {
     struct navigation_key {
       std::string file_name;
       form::technology::id technology;
-      std::string hierarchy_key;
+      cell_hierarchy hierarchy;
 
       auto operator<=>(navigation_key const&) const = default;
     };
 
     /// A "wide" navigation table for one hierarchy.
     struct navigation_table {
-      /// Layer names for this hierarchy.
-      std::vector<std::string> layer_names;
-
-      /// Whether layer_names has been set by the first cell recorded here.
-      /// Tracked separately because the job hierarchy has no layers.
-      bool layers_set{false};
-
       /// Creators contributing to this hierarchy, kept ordered for stable column order.
       std::set<std::string> creators;
 
@@ -95,14 +88,14 @@ namespace form::detail::experimental {
     static std::map<std::string, std::uint64_t> rows_by_creator(
       std::vector<pending_write> const& pending, cell_index const& cell);
 
-    /// Return the table for a key, initializing its layers on first use and throwing on mismatch.
-    navigation_table& table_for(navigation_key const& key, cell_index const& cell);
-
     /// Add one dictionary row per (creator, product, hierarchy) seen in this record.
     void record_dictionary_entries(place_key const& place,
                                    std::vector<pending_write> const& pending,
-                                   std::string const& hierarchy,
+                                   cell_hierarchy const& hierarchy,
                                    technology::id tech);
+
+    /// Throw if two hierarchies in one place would claim the same container name.
+    void check_table_names() const;
 
     void write_navigation_tables();
     void write_product_dictionaries();
@@ -130,7 +123,7 @@ namespace form::detail::experimental {
     /// Dictionary entries grouped by place and (creator, product, hierarchy).
     /// A product contributes one dictionary row per hierarchy.
     std::map<place_key,
-             std::map<std::tuple<std::string, std::string, std::string>, dictionary_entry>>
+             std::map<std::tuple<std::string, std::string, cell_hierarchy>, dictionary_entry>>
       dictionaries_;
     bool finalized_{false};
   };

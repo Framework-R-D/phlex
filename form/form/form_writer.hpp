@@ -32,7 +32,8 @@ namespace form::experimental {
       config::item_config const& config_item,
       config::tech_setting_config const& tech_config,
       std::unique_ptr<form::detail::experimental::i_persistence_writer> pers_writer);
-    /// Finalizes if needed, ensuring navigation tables are written on destruction.
+    /// Safety net for finalize(): closes the output if it was not finalized explicitly.
+    /// Errors are reported rather than propagated; call finalize() explicitly to handle errors.
     ~form_writer_interface();
 
     form_writer_interface(form_writer_interface const&) = delete;
@@ -49,7 +50,8 @@ namespace form::experimental {
                form::detail::experimental::cell_index const& cell,
                std::vector<product_with_name> const& products);
 
-    /// Finalize the writer and write navigation tables. Safe to call multiple times.
+    /// Close the output and write navigation tables accumulated from all write() calls.
+    /// Idempotent; after the first call, write() is no longer valid and throws.
     void finalize();
 
   private:

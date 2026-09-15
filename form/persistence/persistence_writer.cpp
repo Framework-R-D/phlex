@@ -3,6 +3,7 @@
 #include "persistence_writer.hpp"
 
 #include "core/cell_index.hpp"
+#include "navigation_naming.hpp"
 
 #include <array>
 #include <cstdint>
@@ -12,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <typeinfo>
 #include <utility>
 
@@ -37,6 +39,18 @@ namespace {
     return placement{product_place.file_name(),
                      build_full_label(creator_of(product_place.container_name()), "index"),
                      product_place.technology()};
+  }
+
+  std::string layer_names_text(cell_hierarchy const& hierarchy)
+  {
+    std::string text;
+    for (auto const& name : hierarchy.layer_names) {
+      if (!text.empty()) {
+        text += ", ";
+      }
+      text += name;
+    }
+    return text;
   }
 }
 
@@ -165,34 +179,9 @@ std::map<std::string, std::uint64_t> persistence_writer::rows_by_creator(
   return row_by_creator;
 }
 
-persistence_writer::navigation_table& persistence_writer::table_for(navigation_key const& key,
-                                                                    cell_index const& cell)
-{
-  auto& table = navigation_tables_[key];
-  if (!table.layers_set) {
-    table.layer_names = cell.layer_names;
-    table.layers_set = true;
-    return table;
-  }
-  if (table.layer_names == cell.layer_names) {
-    return table;
-  }
-
-  std::string existing;
-  for (auto const& name : table.layer_names) {
-    if (!existing.empty()) {
-      existing += ", ";
-    }
-    existing += name;
-  }
-  throw std::runtime_error("persistence_writer: data cell " + cell.id + " maps to hierarchy '" +
-                           key.hierarchy_key + "', which is already indexed with layer names [" +
-                           existing + "]");
-}
-
 void persistence_writer::record_dictionary_entries(place_key const& place,
                                                    std::vector<pending_write> const& pending,
-                                                   std::string const& hierarchy,
+                                                   cell_hierarchy const& hierarchy,
                                                    technology::id tech)
 {
   auto& dictionary = dictionaries_[place];
@@ -202,7 +191,7 @@ void persistence_writer::record_dictionary_entries(place_key const& place,
       dictionary_entry{.product_name = write.label,
                        .creator = write.creator,
                        .container_name = write.container_name,
-                       .hierarchy_key = hierarchy,
+                       .hierarchy_key = hierarchy_key(hierarchy),
                        .navigation_container = navigation_table_name(hierarchy, tech),
                        .navigation_column = navigation_row_column(write.creator)});
   }
@@ -225,11 +214,9 @@ void persistence_writer::record_navigation(placement const& plcmnt, cell_index c
                              std::to_string(cell.layer_values.size()) + " layer values");
   }
 
-  auto const hierarchy = hierarchy_key(cell.layer_names);
-  auto& table = table_for(navigation_key{.file_name = plcmnt.file_name(),
-                                         .technology = plcmnt.technology(),
-                                         .hierarchy_key = hierarchy},
-                          cell);
+  auto const hierarchy = cell.hierarchy();
+  auto& table = navigation_tables_[navigation_key{
+    .file_name = plcmnt.file_name(), .technology = plcmnt.technology(), .hierarchy = hierarchy}];
 
   auto& cell_rows = table.rows[cell.layer_values];
   for (auto const& [creator, row] : row_by_creator) {
@@ -258,12 +245,36 @@ void persistence_writer::finalize()
   write_product_dictionaries();
 }
 
+void persistence_writer::check_table_names() const
+{
+  // Check for navigation container name collisions before writing.
+  std::map<std::tuple<std::string, technology::id, std::string>, cell_hierarchy> claimed;
+  for (auto const& entry : navigation_tables_) {
+    auto const& key = entry.first;
+    auto const [it, inserted] = claimed.try_emplace(
+      std::make_tuple(
+        key.file_name, key.technology, navigation_table_name(key.hierarchy, key.technology)),
+      key.hierarchy);
+    if (!inserted) {
+      throw std::runtime_error("persistence_writer: hierarchies [" + layer_names_text(it->second) +
+                               "] and [" + layer_names_text(key.hierarchy) +
+                               "] both name their navigation container '" + std::get<2>(it->first) +
+                               "' in file '" + key.file_name +
+                               "'; rename a layer so the two can be told apart on disk");
+    }
+  }
+}
+
 void persistence_writer::write_navigation_tables()
 {
+  check_table_names();
+
   for (auto const& [key, table] : navigation_tables_) {
+    auto const table_name = navigation_table_name(key.hierarchy, key.technology);
+
     std::vector<std::string> columns;
-    columns.reserve(table.layer_names.size() + table.creators.size());
-    for (auto const& layer_name : table.layer_names) {
+    columns.reserve(key.hierarchy.layer_names.size() + table.creators.size());
+    for (auto const& layer_name : key.hierarchy.layer_names) {
       columns.push_back(sanitize_name(layer_name));
     }
     for (auto const& creator : table.creators) {
@@ -273,12 +284,12 @@ void persistence_writer::write_navigation_tables()
     std::set<std::string> seen;
     for (auto const& column : columns) {
       if (!seen.insert(column).second) {
-        throw std::runtime_error("persistence_writer: navigation table for hierarchy '" +
-                                 key.hierarchy_key + "' has two columns named '" + column + "'");
+        std::string message{"persistence_writer: navigation table '"};
+        message.append(table_name).append("' has two columns named '").append(column).append("'");
+        throw std::runtime_error(message);
       }
     }
 
-    auto const table_name = navigation_table_name(key.hierarchy_key, key.technology);
     auto const places = create_table_columns(
       key.file_name, key.technology, table_name, columns, typeid(std::uint64_t));
 

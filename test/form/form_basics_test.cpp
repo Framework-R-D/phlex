@@ -6,6 +6,7 @@
 #include "form/form_reader.hpp"
 #include "form/form_source_type_registry.hpp"
 #include "form/form_writer.hpp"
+#include "persistence/navigation_naming.hpp"
 #include "persistence/persistence_reader.hpp"
 #include "persistence/persistence_writer.hpp"
 #include "storage/factories.hpp"
@@ -786,6 +787,46 @@ TEST_CASE("form_writer_interface destruction survives a failing finalize", "[for
   }
 }
 
+namespace {
+  class counting_finalize_writer : public spy_persistence_writer {
+  public:
+    int finalize_calls = 0;
+
+    void finalize() override { ++finalize_calls; }
+  };
+}
+
+TEST_CASE("form_writer_interface is closed once finalized", "[form]")
+{
+  using namespace form::experimental::config;
+
+  item_config cfg;
+  cfg.add_item("prod", "form_writer_closed.root", form::technology::root_ttree);
+
+  auto spy = std::make_unique<counting_finalize_writer>();
+  auto* spy_raw = spy.get();
+  form::experimental::form_writer_interface writer{cfg, tech_setting_config{}, std::move(spy)};
+
+  int payload = 7;
+  form::experimental::product_with_name prod{
+    .label = "prod", .data = &payload, .type = &typeid(int)};
+  writer.write("creator", event_cell(1), std::vector{prod});
+
+  writer.finalize();
+  REQUIRE(spy_raw->finalize_calls == 1);
+
+  SECTION("finalizing again does nothing")
+  {
+    writer.finalize();
+    CHECK(spy_raw->finalize_calls == 1);
+  }
+
+  SECTION("writing after finalize is rejected")
+  {
+    CHECK_THROWS_AS(writer.write("creator", event_cell(2), std::vector{prod}), std::runtime_error);
+  }
+}
+
 TEST_CASE("form_source_type_registry product_from_data_fn throws on null data", "[form]")
 {
   using namespace form::experimental;
@@ -850,20 +891,40 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
 {
   SECTION("a hierarchy is its layer names, as the data cell carried them")
   {
-    CHECK(hierarchy_key({"run", "subrun", "event"}) == "run_subrun_event");
-    CHECK(hierarchy_key({"event", "segment"}) == "event_segment");
+    CHECK(hierarchy_key(cell_hierarchy{{"run", "subrun", "event"}}) == "run_subrun_event");
+    CHECK(hierarchy_key(cell_hierarchy{{"event", "segment"}}) == "event_segment");
+  }
+
+  SECTION("a cell's hierarchy is its layer names, and only those")
+  {
+    cell_index const cell{
+      .id = "[event:1, segment:2]", .layer_names = {"event", "segment"}, .layer_values = {1, 2}};
+    CHECK(cell.hierarchy() == cell_hierarchy{{"event", "segment"}});
+
+    cell_index const other{
+      .id = "[event:7, segment:0]", .layer_names = {"event", "segment"}, .layer_values = {7, 0}};
+    CHECK(cell.hierarchy() == other.hierarchy());
+  }
+
+  SECTION("hierarchies that flatten alike are still different hierarchies")
+  {
+    cell_hierarchy const split{{"a_b", "c"}};
+    cell_hierarchy const joined{{"a", "b_c"}};
+    CHECK(split != joined);
+    CHECK(hierarchy_key(split) == hierarchy_key(joined));
   }
 
   SECTION("the job cell has no layers")
   {
-    CHECK(hierarchy_key({}) == "job");
+    CHECK(hierarchy_key(cell_hierarchy{}) == "job");
     CHECK(cell_index{.id = "[]"}.is_job());
+    CHECK(cell_index{.id = "[]"}.hierarchy() == cell_hierarchy{});
   }
 
   SECTION("a layer the framework left unnamed still gets a usable column")
   {
     CHECK(unnamed_layer_name(0) == "layer0");
-    CHECK(hierarchy_key({unnamed_layer_name(0)}) == "layer0");
+    CHECK(hierarchy_key(cell_hierarchy{{unnamed_layer_name(0)}}) == "layer0");
   }
 
   SECTION("names ROOT rejects are sanitized")
@@ -871,7 +932,7 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
     CHECK(sanitize_name("plugin:algorithm") == "plugin_algorithm");
     CHECK(sanitize_name("a.b") == "a_b");
     CHECK(navigation_row_column("plugin:algorithm") == "plugin_algorithm_row");
-    CHECK(hierarchy_key({"a.b", "c"}) == "a_b_c");
+    CHECK(hierarchy_key(cell_hierarchy{{"a.b", "c"}}) == "a_b_c");
   }
 
   SECTION("parallel layer vectors are what makes a cell usable")
@@ -887,15 +948,16 @@ TEST_CASE("hierarchy keys and navigation column names", "[form]")
     CHECK(technology_name(form::technology::root_rntuple) == "root_rntuple");
     CHECK(technology_name(form::technology::id{}) == "generic");
 
-    CHECK(navigation_table_name("event", form::technology::root_ttree) ==
+    CHECK(navigation_table_name(cell_hierarchy{{"event"}}, form::technology::root_ttree) ==
           "nav_root_ttree_cells_event");
-    CHECK(navigation_table_name("event_segment", form::technology::root_rntuple) ==
-          "nav_root_rntuple_cells_event_segment");
+    CHECK(
+      navigation_table_name(cell_hierarchy{{"event", "segment"}}, form::technology::root_rntuple) ==
+      "nav_root_rntuple_cells_event_segment");
     CHECK(navigation_dictionary_name(form::technology::root_ttree) == "nav_root_ttree_products");
 
     // Navigation name use the reserved prefix.
-    CHECK(
-      navigation_table_name("event", form::technology::root_ttree).starts_with(navigation_prefix));
+    CHECK(navigation_table_name(cell_hierarchy{{"event"}}, form::technology::root_ttree)
+            .starts_with(navigation_prefix));
     CHECK(navigation_dictionary_name(form::technology::id{}).starts_with(navigation_prefix));
   }
 }
@@ -1107,51 +1169,43 @@ TEST_CASE("navigation: the job cell is a hierarchy with no layer columns", "[for
   CHECK(table.rows[0] == std::vector<std::string>{num(0)});
 }
 
-TEST_CASE("navigation: one hierarchy key from different layers is rejected", "[form]")
+TEST_CASE("navigation: two hierarchies claiming one container name are rejected", "[form]")
 {
-  // Distinct hierarchies must not share the same navigation table.
+  auto both_records_then_finalize = [](cell_index const& first, cell_index const& second) {
+    auto spy = std::make_unique<spy_storage_writer>();
+    auto* store = spy.get();
+    form::detail::experimental::persistence_writer writer{std::move(spy)};
+
+    write_record(writer, "tracker", {"hits"}, first);
+    write_record(writer, "tracker", {"hits"}, second);
+
+    CHECK_THROWS_AS(writer.finalize(), std::runtime_error);
+    CHECK(store->tables.empty());
+  };
+
   cell_index const job_cell{.id = "[]"};
   cell_index const named_job{.id = "[job:1]", .layer_names = {"job"}, .layer_values = {1}};
+  cell_index const joined{
+    .id = "[event_segment:1]", .layer_names = {"event_segment"}, .layer_values = {1}};
 
-  SECTION("job cell first")
+  SECTION("the job cell and a layer literally named job")
   {
-    auto spy = std::make_unique<spy_storage_writer>();
-    form::detail::experimental::persistence_writer writer{std::move(spy)};
-
-    write_record(writer, "tracker", {"hits"}, job_cell);
-    CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, named_job), std::runtime_error);
+    both_records_then_finalize(job_cell, named_job);
   }
 
-  SECTION("named layer first")
+  SECTION("a layer literally named job and the job cell")
   {
-    auto spy = std::make_unique<spy_storage_writer>();
-    form::detail::experimental::persistence_writer writer{std::move(spy)};
-
-    write_record(writer, "tracker", {"hits"}, named_job);
-    CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, job_cell), std::runtime_error);
+    both_records_then_finalize(named_job, job_cell);
   }
 
   SECTION("one layer name collides with two joined ones")
   {
-    auto spy = std::make_unique<spy_storage_writer>();
-    form::detail::experimental::persistence_writer writer{std::move(spy)};
-
-    cell_index const joined{
-      .id = "[event_segment:1]", .layer_names = {"event_segment"}, .layer_values = {1}};
-    write_record(writer, "tracker", {"hits"}, joined);
-    CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, event_segment_cell(1, 0)),
-                    std::runtime_error);
+    both_records_then_finalize(joined, event_segment_cell(1, 0));
   }
 
   SECTION("two joined layer names collide with one")
   {
-    auto spy = std::make_unique<spy_storage_writer>();
-    form::detail::experimental::persistence_writer writer{std::move(spy)};
-
-    cell_index const joined{
-      .id = "[event_segment:1]", .layer_names = {"event_segment"}, .layer_values = {1}};
-    write_record(writer, "tracker", {"hits"}, event_segment_cell(1, 0));
-    CHECK_THROWS_AS(write_record(writer, "tracker", {"hits"}, joined), std::runtime_error);
+    both_records_then_finalize(event_segment_cell(1, 0), joined);
   }
 }
 
