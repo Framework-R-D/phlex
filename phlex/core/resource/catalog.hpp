@@ -4,8 +4,8 @@
 #include "phlex/core/resource/entries.hpp"
 
 #include "boost/core/demangle.hpp"
-
 #include "fmt/format.h"
+#include <gsl/pointers>
 
 #include <cassert>
 #include <memory>
@@ -47,22 +47,20 @@ namespace phlex::detail {
     template <unlimited_resource T>
     gsl::not_null<T const*> access_for() const
     {
-      auto* entry = entry_for<unlimited_resource_entry<T>>();
-      assert(entry != nullptr && "resource catalog entry has unexpected unlimited entry type");
+      auto entry = entry_for<unlimited_resource_entry<T>>();
       return entry->access();
     }
 
     template <serialized_resource T>
     auto& limiter_for() const
     {
-      auto* entry = entry_for<serialized_resource_entry<T>>();
-      assert(entry != nullptr && "resource catalog entry has unexpected serialized entry type");
+      auto entry = entry_for<serialized_resource_entry<T>>();
       return entry->limiter();
     }
 
   private:
     template <typename Entry>
-    Entry* entry_for() const
+    gsl::not_null<Entry*> entry_for() const
     {
       using resource_type = Entry::resource_type;
       auto const found = resources_.find(std::type_index(typeid(resource_type)));
@@ -70,7 +68,10 @@ namespace phlex::detail {
         throw std::runtime_error(fmt::format("Resource of type '{}' has not been registered",
                                              boost::core::demangle(typeid(resource_type).name())));
       }
-      return dynamic_cast<Entry*>(found->second.get());
+      // The dynamic cast must succeed based on the construction of the catalog; the
+      // 'gsl::not_null' constructor expects this as a precondition and will terminate if the
+      // precondition is not satisfied.
+      return gsl::not_null{dynamic_cast<Entry*>(found->second.get())};
     }
 
     std::unordered_map<std::type_index, std::unique_ptr<resource_base>> resources_;
