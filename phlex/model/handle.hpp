@@ -63,7 +63,7 @@ namespace phlex {
     explicit handle(std::same_as<T> auto const& product,
                     data_cell_index const& id,
                     experimental::product_specification const& key,
-                    std::optional<experimental::identifier> stage = {}) :
+                    experimental::identifier const& stage) :
       product_{&product},
       id_{&id},
       creator_plugin_{key.plugin()},
@@ -100,13 +100,7 @@ namespace phlex {
     }
     std::string_view suffix() const noexcept { return std::string_view(suffix_); }
     std::string_view layer() const noexcept { return std::string_view(id_->layer_name()); }
-    std::string_view stage() const noexcept
-    {
-      if (stage_.has_value()) {
-        return std::string_view(stage_.value());
-      }
-      return str_current;
-    }
+    std::string_view stage() const noexcept { return std::string_view(stage_); }
     std::string layer_path() const { return id_->layer_path().to_string(); }
 
     template <typename U>
@@ -125,11 +119,8 @@ namespace phlex {
     experimental::identifier creator_plugin_;
     experimental::identifier creator_algorithm_;
     experimental::identifier suffix_;
+    experimental::identifier stage_;
     experimental::type_id type_;
-    std::optional<experimental::identifier> stage_;
-
-    // Utilities for stage name access until configuration supports these
-    constexpr static std::string_view str_current = "CURRENT";
   };
 
   template <typename T>

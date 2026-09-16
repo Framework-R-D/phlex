@@ -76,7 +76,7 @@ TEST_CASE("Different data layers of fold", "[graph]")
   gen->add_layer("run", {.parent_layer = "job", .count = index_limit});
   gen->add_layer("event", {.parent_layer = "run", .count = number_limit});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   g.provide("provide_number", provide_number, concurrency::unlimited)
@@ -120,7 +120,7 @@ TEST_CASE("Fold output without send consumed downstream", "[graph]")
   gen->add_layer("run", {.parent_layer = "job", .count = index_limit});
   gen->add_layer("event", {.parent_layer = "run", .count = number_limit});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   g.provide("provide_number", provide_number, concurrency::unlimited)

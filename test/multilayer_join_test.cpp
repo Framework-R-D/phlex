@@ -35,7 +35,7 @@ namespace {
   template <typename T>
   product_store_ptr store_with_product(char const* creator, char const* suffix, T value)
   {
-    auto store = product_store::base(creator);
+    auto store = product_store::base(creator, "test_stage"_id);
     store->add_product(spec<T>(creator, suffix), std::move(value));
     return store;
   }

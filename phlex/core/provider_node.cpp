@@ -45,7 +45,7 @@ namespace phlex::detail {
                 products new_products{1uz};
                 new_products.add(output_, std::move(new_product));
                 auto store = std::make_shared<phlex::experimental::product_store>(
-                  index, name_, std::move(new_products), stage_);
+                  index, name_, stage_, std::move(new_products));
 
                 return {.store = std::move(store), .id = msg_id};
               }}

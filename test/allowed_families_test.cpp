@@ -39,7 +39,7 @@ TEST_CASE("Testing families", "[data model]")
   gen->add_layer("subrun", {.parent_layer = "run", .count = 1});
   gen->add_layer("event", {.parent_layer = "subrun", .count = 1});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   // Wire up providers for each level

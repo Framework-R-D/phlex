@@ -6,9 +6,16 @@
 #include <boost/json.hpp>
 
 #include <optional>
+#include <string>
 
 namespace phlex::detail {
-  RUN_PHLEX_EXPORT void run(boost::json::object const& configurations, int max_parallelism);
+  struct overridable_configuration {
+    std::optional<std::string> stage;
+    int max_parallelism;
+  };
+
+  RUN_PHLEX_EXPORT void run(boost::json::object const& configurations,
+                            overridable_configuration const& overrides);
 }
 
 #endif // PHLEX_APP_RUN_HPP

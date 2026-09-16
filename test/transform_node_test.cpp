@@ -15,6 +15,7 @@
 using namespace phlex;
 using namespace phlex::detail;
 using namespace phlex::experimental;
+using namespace phlex::experimental::literals;
 
 namespace {
   constexpr auto message_id = 42u;
@@ -77,7 +78,7 @@ namespace {
   template <typename T>
   product_store_ptr store_with_product(char const* creator, char const* suffix, T value)
   {
-    auto store = product_store::base(creator);
+    auto store = product_store::base(creator, "test_stage"_id);
     store->add_product(spec<T>(creator, suffix), std::move(value));
     return store;
   }
@@ -97,8 +98,15 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
   auto alg = algorithm_bits_for(double_value);
   resource_catalog resources;
 
-  transform_node<decltype(alg)> node{
-    algorithm_name{"double_value"}, 1u, {}, graph, std::move(alg), {input_selector}, {}, resources};
+  transform_node<decltype(alg)> node{algorithm_name{"double_value"},
+                                     "test_stage"_id,
+                                     1u,
+                                     {},
+                                     graph,
+                                     std::move(alg),
+                                     {input_selector},
+                                     {},
+                                     resources};
   declared_transform& transform = node;
 
   auto const& output_specs = transform.output();
@@ -135,6 +143,7 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
   resource_catalog resources;
 
   transform_node<decltype(alg)> node{algorithm_name{"number_and_label"},
+                                     "test_stage"_id,
                                      1u,
                                      {},
                                      graph,

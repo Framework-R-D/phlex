@@ -76,7 +76,7 @@ TEST_CASE("Explicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   g.provide("my_name_here", give_me_vertices, concurrency::unlimited)
@@ -100,7 +100,7 @@ TEST_CASE("Explicit providers")
 
 TEST_CASE("Explicit Provider Ambiguity")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   // Register two providers that can provide the same product
   g.provide("provide_vertices", give_me_vertices, concurrency::unlimited)
@@ -126,7 +126,7 @@ TEST_CASE("Implicit providers")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = num_spills, .start_at = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_source<vertices_source>("vertices_source");
 
@@ -149,7 +149,7 @@ TEST_CASE("Implicit providers")
 
 TEST_CASE("Throw when two sources with the same name are registered")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
   g.add_source<vertices_source>("vertices_source");
   g.add_source<vertices_source>("vertices_source");
 
@@ -159,7 +159,7 @@ TEST_CASE("Throw when two sources with the same name are registered")
 
 TEST_CASE("Throw when no provider found for required product")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   // Register an observer that needs a product from a creator that does not exist in the graph.
   // Since there is no matching provider, make_computational_edges should throw listing all
@@ -175,7 +175,7 @@ TEST_CASE("Throw when no provider found for required product")
 
 TEST_CASE("Throw when two implicit providers are found for the same product")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   // Register two sources that can provide the same product
   g.add_source<vertices_source>("vertices_source_1");
@@ -197,7 +197,7 @@ TEST_CASE("Throw when implicit provider insertion fails")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = 1u});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(std::move(gen));
   g.add_source<vertices_source>("duplicate_vertices_source");
 
