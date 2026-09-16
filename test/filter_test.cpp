@@ -115,7 +115,7 @@ TEST_CASE("Two predicates", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -142,7 +142,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -165,7 +165,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -196,7 +196,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
 
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");
@@ -223,7 +223,7 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide("provide_num", give_me_nums, concurrency::unlimited)
     .output_product("input", "num", "event");

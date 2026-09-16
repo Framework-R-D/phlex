@@ -26,7 +26,7 @@ namespace {
   auto make_run_with_product(int run_number, int value)
   {
     auto index = make_run_index(run_number);
-    auto store = std::make_shared<product_store>(index);
+    auto store = std::make_shared<product_store>(index, "test_algorithm", "test_stage"_id);
     store->add_product("value", value);
     return std::pair{index, store};
   }

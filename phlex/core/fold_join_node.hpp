@@ -76,13 +76,18 @@ namespace phlex::detail {
   public:
     fold_join_node(tbb::flow::graph& g,
                    std::string const& node_name,
+                   phlex::experimental::identifier const& stage,
                    phlex::experimental::identifier const& partition_layer_name,
                    std::vector<phlex::experimental::identifier> layer_names,
                    phlex::experimental::product_specifications output,
                    result_initializer_t result_initializer) :
       base_t{g},
-      result_repeater_{
-        g, node_name, partition_layer_name, std::move(output), std::move(result_initializer)},
+      result_repeater_{g,
+                       node_name,
+                       stage,
+                       partition_layer_name,
+                       std::move(output),
+                       std::move(result_initializer)},
       join_{make_join(g, std::make_index_sequence<NInputs>{})},
       name_{node_name},
       partition_layer_{partition_layer_name},

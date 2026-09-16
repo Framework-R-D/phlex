@@ -40,7 +40,7 @@ namespace {
 
 TEST_CASE("Catch STL exceptions", "[graph]")
 {
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(driver_bundle{
     .driver = [](framework_driver&) { throw std::runtime_error("STL error"); }, .hierarchy = {}});
   CHECK_THROWS_AS(g.execute(), std::exception);
@@ -48,7 +48,7 @@ TEST_CASE("Catch STL exceptions", "[graph]")
 
 TEST_CASE("Catch other exceptions", "[graph]")
 {
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(driver_bundle{.driver = [](framework_driver&) { throw 2.5; }, .hierarchy = {}});
   CHECK_THROWS_AS(g.execute(), double);
 }
@@ -58,7 +58,7 @@ TEST_CASE("Make progress with one thread", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = 1000});
 
-  auto g = phlex::detail::framework_graph::without_driver(1);
+  auto g = phlex::detail::framework_graph::without_driver("test", 1);
   g.add_driver(gen);
   g.provide(
      "provide_number",
@@ -80,7 +80,7 @@ TEST_CASE("Stop driver when workflow throws exception", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = 1000});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide(
      "throw_exception",
@@ -118,7 +118,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 1, .start_at = 1});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.provide(
      "provide_num",
@@ -139,7 +139,7 @@ TEST_CASE("Throw when predicate specified by consumer does not exist", "[graph]"
 
 TEST_CASE("Throw for invalid deferred driver setup", "[graph]")
 {
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
 
   SECTION("Throw when source specified for driver does not exist")
   {
@@ -164,7 +164,7 @@ TEST_CASE("Throw for invalid deferred driver setup", "[graph]")
 
 TEST_CASE("Use default driver", "[graph]")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   SECTION("Throw when attempting to add a driver in default mode")
   {
@@ -194,7 +194,7 @@ TEST_CASE("Use default driver", "[graph]")
 
 TEST_CASE("Throw on duplicate node registration", "[graph]")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   g.observe(
      "duplicate_name", [](unsigned int const) {}, concurrency::unlimited)
@@ -213,7 +213,7 @@ TEST_CASE("Allow late driver configuration", "[graph]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("spill", {.parent_layer = "job", .count = 3});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
 
   g.provide(
      "provide_number",
@@ -266,7 +266,7 @@ TEST_CASE("driver_proxy creates bundle from driver builder", "[graph]")
 
 TEST_CASE("Driver function receives registered source", "[graph]")
 {
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_source<test_source>("src");
 
   test_source const* received_src{nullptr};
@@ -283,7 +283,7 @@ TEST_CASE("Driver function throws on source type mismatch", "[graph]")
 {
   // Register other_source but declare test_source const& in the driver function.
   // The source downcast inside invoke_driver_with_sources throws with context.
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_source<other_source>("src");
 
   auto bundle = g.driver_proxy({"src"}).driver(fixed_hierarchy{},
@@ -300,7 +300,7 @@ TEST_CASE("Driver function throws on source type mismatch", "[graph]")
 
 TEST_CASE("Throw when configuring driver twice", "[graph]")
 {
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
 
   auto gen = experimental::layer_generator::make();
   CHECK_NOTHROW(g.add_driver(gen));

@@ -7,25 +7,21 @@
 namespace phlex::experimental {
 
   product_store::product_store(data_cell_index_ptr id,
-                               algorithm_name source,
-                               phlex::detail::products new_products,
-                               std::optional<identifier> stage) :
-    products_{std::move(new_products)},
-    id_{std::move(id)},
-    source_{std::move(source)},
-    stage_{std::move(stage)}
+                               algorithm_name const& source,
+                               identifier const& stage,
+                               phlex::detail::products new_products) :
+    products_{std::move(new_products)}, id_{std::move(id)}, source_{&source}, stage_{&stage}
   {
   }
 
   product_store::~product_store() = default;
 
-  product_store_ptr product_store::base(algorithm_name base_name)
+  product_store_ptr product_store::base(algorithm_name const& base_name, identifier const& stage)
   {
-    return std::make_shared<product_store>(data_cell_index::job(), std::move(base_name));
+    return std::make_shared<product_store>(data_cell_index::job(), base_name, stage);
   }
-
-  identifier const& product_store::layer_name() const noexcept { return id_->layer_name(); }
-  algorithm_name const& product_store::source() const noexcept { return source_; }
+  identifier const& product_store::stage() const noexcept { return *stage_; }
+  algorithm_name const& product_store::source() const noexcept { return *source_; }
   data_cell_index_ptr const& product_store::index() const noexcept { return id_; }
 
   product_store_ptr const& detail::more_derived(product_store_ptr const& a,

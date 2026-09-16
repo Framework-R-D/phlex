@@ -62,7 +62,7 @@ TEST_CASE("Fold different layer paths with same trailing name", "[graph]")
   gen->add_layer("event", {.parent_layer = "run", .count = number_limit});
   gen->add_layer("event", {.parent_layer = "job", .count = top_level_event_limit});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   // Register provider

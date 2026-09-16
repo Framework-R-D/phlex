@@ -69,7 +69,7 @@ TEST_CASE("Querying products in different ways", "[graph]")
   constexpr int num_events = 25;
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = num_events});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_source<archived_count_source>("archived_count_source");
 

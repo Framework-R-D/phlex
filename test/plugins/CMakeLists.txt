@@ -15,6 +15,7 @@ cet_test(
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/add.jsonnet
+  --stage test
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
