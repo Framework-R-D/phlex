@@ -22,7 +22,7 @@ namespace phlex::detail::internal {
     public tbb::flow::composite_node<repeater_node_input, message_tuple<1>> {
   public:
     repeater_node(tbb::flow::graph& g,
-                  std::string node_name,
+                  phlex::experimental::algorithm_name node_name,
                   phlex::experimental::identifier layer_name);
 
     tbb::flow::receiver<message>& data_port();
@@ -68,7 +68,7 @@ namespace phlex::detail::internal {
     multifunction_node_t repeater_;
     cache_t cached_products_;
     std::atomic<cache_mode> index_cache_mode_{cache_mode::unset};
-    std::string node_name_;
+    phlex::experimental::algorithm_name node_name_;
     phlex::experimental::identifier layer_;
   };
 }

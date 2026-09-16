@@ -61,7 +61,7 @@ namespace phlex::detail::internal {
       return {.index = index, .partial_result = partial_result, .id = new_id};
     }
 
-    message release_as_message(std::string const& node_name,
+    message release_as_message(phlex::experimental::algorithm_name const& node_name,
                                phlex::experimental::identifier const& stage,
                                phlex::experimental::product_specifications const& output,
                                std::size_t original_id)
@@ -92,7 +92,7 @@ namespace phlex::detail::internal {
 
   public:
     accumulator_node(tbb::flow::graph& g,
-                     std::string node_name,
+                     phlex::experimental::algorithm_name node_name,
                      phlex::experimental::identifier const& stage,
                      phlex::experimental::identifier partition_layer_name,
                      phlex::experimental::product_specifications output,
@@ -146,7 +146,7 @@ namespace phlex::detail::internal {
     tbb::flow::indexer_node<index_message, indexed_end_token, index_message, std::size_t> indexer_;
     multifunction_node_t repeater_;
     cache_t cached_results_;
-    std::string node_name_;
+    phlex::experimental::algorithm_name node_name_;
     phlex::experimental::identifier stage_;
     phlex::experimental::identifier partition_layer_;
     result_initializer_t initializer_;
@@ -159,7 +159,7 @@ namespace phlex::detail::internal {
 
   template <typename Result>
   accumulator_node<Result>::accumulator_node(tbb::flow::graph& g,
-                                             std::string node_name,
+                                             phlex::experimental::algorithm_name node_name,
                                              phlex::experimental::identifier const& stage,
                                              phlex::experimental::identifier partition_layer_name,
                                              phlex::experimental::product_specifications output,
@@ -240,16 +240,19 @@ namespace phlex::detail::internal {
       return;
     }
 
-    spdlog::warn(
-      "[{}/{}] Cached accumulators: {}", node_name_, partition_layer_, cached_results_.size());
+    spdlog::warn("[{}/{}] Cached accumulators: {}",
+                 node_name_.to_string(),
+                 partition_layer_,
+                 cached_results_.size());
     for (auto const& [_, cache] : cached_results_) {
       if (cache.accumulator_msg) {
         spdlog::warn("[{}/{}]   Partition {}",
-                     node_name_,
+                     node_name_.to_string(),
                      partition_layer_,
                      cache.accumulator_msg->index->to_string());
       } else {
-        spdlog::warn("[{}/{}]   Partition index not yet received", node_name_, partition_layer_);
+        spdlog::warn(
+          "[{}/{}]   Partition index not yet received", node_name_.to_string(), partition_layer_);
       }
     }
   }

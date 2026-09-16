@@ -75,7 +75,7 @@ namespace phlex::detail {
     static constexpr auto number_output_products = num_outputs;
 
     transform_node(phlex::experimental::algorithm_name algo_name,
-                   phlex::experimental::identifier const& stage,
+                   phlex::experimental::identifier stage,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
@@ -92,9 +92,9 @@ namespace phlex::detail {
         concurrency,
         resources,
         alg.release_algorithm(),
-        [this, &stage](function_t const& ft,
-                       messages_t<num_products> const& messages,
-                       auto&&... resource_tokens) -> message {
+        [this, stage = std::move(stage)](function_t const& ft,
+                                         messages_t<num_products> const& messages,
+                                         auto&&... resource_tokens) -> message {
           using namespace phlex::experimental::detail;
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
