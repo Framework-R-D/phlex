@@ -31,8 +31,7 @@ namespace phlex {
 namespace phlex::detail {
 
   template <typename T>
-  concept selector_or_resource =
-    std::same_as<std::remove_cvref_t<T>, product_selector> || is_resource<T>;
+  concept selector_or_resource = is_product_selector<T> || is_resource<T>;
 
   template <typename Split, typename... Args>
   auto partition_selectors_and_resources(Args&&... args)
