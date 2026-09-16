@@ -11,7 +11,10 @@ using namespace phlex::experimental::literals;
 
 TEST_CASE("Product store insertion", "[data model]")
 {
-  auto store = product_store::base("test_algorithm", "test_stage"_id);
+  auto const dummy_creator_name = algorithm_name::create("test_algorithm");
+  auto const dummy_stage_name = "test_stage"_id;
+
+  auto store = product_store::base(dummy_creator_name, dummy_stage_name);
   CHECK(store->empty());
 
   constexpr int number = 4;

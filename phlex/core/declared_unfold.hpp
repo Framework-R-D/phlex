@@ -117,7 +117,7 @@ namespace phlex::detail {
 
   public:
     unfold_node(phlex::experimental::algorithm_name algo_name,
-                phlex::experimental::identifier const& stage,
+                phlex::experimental::identifier stage,
                 std::size_t concurrency,
                 std::vector<std::string> predicates,
                 tbb::flow::graph& g,
@@ -136,7 +136,7 @@ namespace phlex::detail {
       join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       unfold_{g,
               concurrency,
-              [this, &stage, p = std::move(predicate), ufold = std::move(unfold)](
+              [this, stage = std::move(stage), p = std::move(predicate), ufold = std::move(unfold)](
                 messages_t<num_inputs> const& messages, auto& outputs) {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;

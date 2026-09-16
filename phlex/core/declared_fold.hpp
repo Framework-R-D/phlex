@@ -100,7 +100,7 @@ namespace phlex::detail {
                     std::move(partition_layer)},
       output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       join_{g,
-            name().to_string(),
+            name(),
             stage,
             this->partition_layer(),
             layers(),

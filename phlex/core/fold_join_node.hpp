@@ -8,8 +8,6 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
-#include <set>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -75,7 +73,7 @@ namespace phlex::detail {
 
   public:
     fold_join_node(tbb::flow::graph& g,
-                   std::string const& node_name,
+                   phlex::experimental::algorithm_name const& node_name,
                    phlex::experimental::identifier const& stage,
                    phlex::experimental::identifier const& partition_layer_name,
                    std::vector<phlex::experimental::identifier> layer_names,
@@ -170,7 +168,7 @@ namespace phlex::detail {
     tbb::flow::join_node<join_args_t, tbb::flow::tag_matching> join_;
     // Immutable after construction; tbb::flow::join_node is already non-movable.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    std::string const name_;
+    phlex::experimental::algorithm_name const name_;
     phlex::experimental::identifier const partition_layer_;
     std::vector<phlex::experimental::identifier> const layers_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
