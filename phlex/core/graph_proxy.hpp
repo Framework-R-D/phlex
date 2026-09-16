@@ -85,7 +85,7 @@ namespace phlex::detail {
                    concurrency c = concurrency::serial) const;
 
     /// @brief Registers an unfold node.
-    template <typename Splitter>
+    template <typename Unfolder>
     auto unfold(std::string_view name,
                 is_predicate_like auto pred,
                 auto unf,
@@ -188,14 +188,14 @@ namespace phlex::detail {
   }
 
   template <typename T>
-  template <typename Splitter>
+  template <typename Unfolder>
   auto graph_proxy<T>::unfold(std::string_view name,
                               is_predicate_like auto pred,
                               auto unf,
                               std::string destination_data_layer,
                               concurrency c) const
   {
-    return glue<Splitter>{graph_, nodes_, nullptr, errors_, resources_, config_}.unfold(
+    return glue<Unfolder>{graph_, nodes_, nullptr, errors_, resources_, config_}.unfold(
       name, std::move(pred), std::move(unf), c, std::move(destination_data_layer));
   }
 
