@@ -46,7 +46,7 @@ namespace phlex::detail {
     ~declared_transform() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
-    virtual product_specifications const& output() const = 0;
+    virtual phlex::experimental::product_specifications const& output() const = 0;
     virtual std::size_t product_count() const = 0;
   };
 
@@ -115,7 +115,7 @@ namespace phlex::detail {
     }
 
     tbb::flow::sender<message>& output_port() override { return transform_; }
-    product_specifications const& output() const override { return output_; }
+    phlex::experimental::product_specifications const& output() const override { return output_; }
 
     template <std::size_t... Is>
     auto call(function_t const& ft,
@@ -141,7 +141,7 @@ namespace phlex::detail {
     }
 
     input_retriever_types<input_parameter_types> input_{input_arguments<input_parameter_types>()};
-    product_specifications output_;
+    phlex::experimental::product_specifications output_;
     join_or_none_t<num_inputs> join_;
     tbb::flow::function_node<messages_t<num_inputs>, message> transform_;
     std::atomic<std::size_t> calls_;

@@ -16,9 +16,29 @@
 #include <type_traits>
 #include <vector>
 
+namespace phlex::experimental {
+  class type_id;
+
+  template <typename T>
+  constexpr type_id make_type_id();
+
+  std::size_t hash_value(type_id const& id);
+}
+
+namespace phlex::detail {
+  using type_ids = std::vector<experimental::type_id>;
+
+  template <typename T>
+  type_ids make_type_ids();
+
+  template <typename F>
+  type_ids make_output_type_ids();
+
+}
+
 // This is a type_id class to store the "product concept"
 // Using our own class means we can treat, for example, all "List"s the same
-namespace phlex::detail {
+namespace phlex::experimental {
   class type_id {
   public:
     // Least significant nibble will store the fundamental type
@@ -93,122 +113,120 @@ namespace phlex::detail {
     // This is used only if the product type is a struct
     std::vector<type_id> children_;
   };
+}
 
-  using type_ids = std::vector<type_id>;
-
-  namespace internal {
-    template <typename T>
-    consteval unsigned char make_type_id_helper_integral()
-    {
-      // Special case plain `char` in case it's unsigned
-      if constexpr (std::is_same_v<char, T>) {
-        return static_cast<unsigned char>(type_id::builtin::char_v);
-      }
-
-      unsigned char id = 0;
-      // The following are integral types so we also need to get their signedness
-      if constexpr (std::is_unsigned_v<T>) {
-        id = 0x10;
-      } else {
-        id = 0x0;
-      }
-      using signed_t = std::make_signed_t<T>;
-
-      if constexpr (std::is_same_v<signed char, signed_t>) {
-        // We're choosing to treat signed char and char identically
-        return id | static_cast<unsigned char>(type_id::builtin::char_v);
-      } else if constexpr (std::is_same_v<int, signed_t>) {
-        // ints are generally either long or long long, depending on implementation
-        // Treating them separately here to reduce confusion
-        id |= static_cast<unsigned char>(type_id::builtin::int_v);
-        return id;
-      } else if constexpr (std::is_same_v<short, signed_t>) {
-        id |= static_cast<unsigned char>(type_id::builtin::short_v);
-        return id;
-      } else if constexpr (std::is_same_v<long, signed_t>) {
-        id |= static_cast<unsigned char>(type_id::builtin::long_v);
-        return id;
-      } else if constexpr (std::is_same_v<long long, signed_t>) {
-        id |= static_cast<unsigned char>(type_id::builtin::long_long_v);
-        return id;
-      } else {
-        // If we got here, something went wrong
-        // This condition is always false, but makes the error message more useful
-        static_assert(std::is_same_v<T, void>, "Taking type_id of an unsupported fundamental type");
-      }
+namespace phlex::detail::internal {
+  template <typename T>
+  consteval unsigned char make_type_id_helper_integral()
+  {
+    // Special case plain `char` in case it's unsigned
+    if constexpr (std::is_same_v<char, T>) {
+      return static_cast<unsigned char>(experimental::type_id::builtin::char_v);
     }
 
-    template <typename T>
-    consteval unsigned char make_type_id_helper_fundamental()
-    {
-      if constexpr (std::is_same_v<void, T>) {
-        return static_cast<unsigned char>(type_id::builtin::void_v);
-      } else if constexpr (std::is_same_v<bool, T>) {
-        return static_cast<unsigned char>(type_id::builtin::bool_v);
-      } else if constexpr (std::is_same_v<float, T>) {
-        return static_cast<unsigned char>(type_id::builtin::float_v);
-      } else if constexpr (std::is_same_v<double, T>) {
-        return static_cast<unsigned char>(type_id::builtin::double_v);
-      } else if constexpr (std::is_same_v<long double, T>) {
-        return static_cast<unsigned char>(type_id::builtin::long_double_v);
-      } else {
-        return make_type_id_helper_integral<T>();
-      }
+    unsigned char id = 0;
+    // The following are integral types so we also need to get their signedness
+    if constexpr (std::is_unsigned_v<T>) {
+      id = 0x10;
+    } else {
+      id = 0x0;
     }
+    using signed_t = std::make_signed_t<T>;
 
-    template <typename T>
-    consteval unsigned char make_type_id_helper_enum()
-    {
-      return make_type_id_helper_fundamental<std::underlying_type_t<T>>();
+    if constexpr (std::is_same_v<signed char, signed_t>) {
+      // We're choosing to treat signed char and char identically
+      return id | static_cast<unsigned char>(experimental::type_id::builtin::char_v);
+    } else if constexpr (std::is_same_v<int, signed_t>) {
+      // ints are generally either long or long long, depending on implementation
+      // Treating them separately here to reduce confusion
+      id |= static_cast<unsigned char>(experimental::type_id::builtin::int_v);
+      return id;
+    } else if constexpr (std::is_same_v<short, signed_t>) {
+      id |= static_cast<unsigned char>(experimental::type_id::builtin::short_v);
+      return id;
+    } else if constexpr (std::is_same_v<long, signed_t>) {
+      id |= static_cast<unsigned char>(experimental::type_id::builtin::long_v);
+      return id;
+    } else if constexpr (std::is_same_v<long long, signed_t>) {
+      id |= static_cast<unsigned char>(experimental::type_id::builtin::long_long_v);
+      return id;
+    } else {
+      // If we got here, something went wrong
+      // This condition is always false, but makes the error message more useful
+      static_assert(std::is_same_v<T, void>, "Taking type_id of an unsupported fundamental type");
     }
-
-    template <typename A>
-      requires(std::is_aggregate_v<A>)
-    class aggregate_to_plain_tuple {
-    private:
-      template <std::size_t... Is>
-      static consteval auto get_tuple(std::index_sequence<Is...>) -> auto
-      {
-        // Atomics are why we can't just use boost::pfr::structure_to_tuple
-        return std::tuple<
-          remove_atomic_t<std::remove_cvref_t<boost::pfr::tuple_element_t<Is, A>>>...>{};
-      }
-
-    public:
-      using type = decltype(get_tuple(std::make_index_sequence<boost::pfr::tuple_size_v<A>>()));
-    };
-
-    template <typename A>
-    using aggregate_to_plain_tuple_t = aggregate_to_plain_tuple<A>::type;
-
-    template <typename T>
-    struct is_handle : std::false_type {};
-
-    template <typename T>
-    struct is_handle<phlex::handle<T>> : std::true_type {};
   }
 
-  // Forward declaration
-  template <typename T1, typename... Ts>
-  type_ids make_type_ids();
+  template <typename T>
+  consteval unsigned char make_type_id_helper_fundamental()
+  {
+    if constexpr (std::is_same_v<void, T>) {
+      return static_cast<unsigned char>(experimental::type_id::builtin::void_v);
+    } else if constexpr (std::is_same_v<bool, T>) {
+      return static_cast<unsigned char>(experimental::type_id::builtin::bool_v);
+    } else if constexpr (std::is_same_v<float, T>) {
+      return static_cast<unsigned char>(experimental::type_id::builtin::float_v);
+    } else if constexpr (std::is_same_v<double, T>) {
+      return static_cast<unsigned char>(experimental::type_id::builtin::double_v);
+    } else if constexpr (std::is_same_v<long double, T>) {
+      return static_cast<unsigned char>(experimental::type_id::builtin::long_double_v);
+    } else {
+      return make_type_id_helper_integral<T>();
+    }
+  }
 
+  template <typename T>
+  consteval unsigned char make_type_id_helper_enum()
+  {
+    return make_type_id_helper_fundamental<std::underlying_type_t<T>>();
+  }
+
+  template <typename A>
+    requires(std::is_aggregate_v<A>)
+  class aggregate_to_plain_tuple {
+  private:
+    template <std::size_t... Is>
+    static consteval auto get_tuple(std::index_sequence<Is...>) -> auto
+    {
+      // Atomics are why we can't just use boost::pfr::structure_to_tuple
+      return std::tuple<phlex::detail::remove_atomic_t<
+        std::remove_cvref_t<boost::pfr::tuple_element_t<Is, A>>>...>{};
+    }
+
+  public:
+    using type = decltype(get_tuple(std::make_index_sequence<boost::pfr::tuple_size_v<A>>()));
+  };
+
+  template <typename A>
+  using aggregate_to_plain_tuple_t = aggregate_to_plain_tuple<A>::type;
+
+  template <typename T>
+  struct is_handle : std::false_type {};
+
+  template <typename T>
+  struct is_handle<phlex::handle<T>> : std::true_type {};
+}
+
+namespace phlex::experimental {
   template <typename T>
   constexpr type_id make_type_id()
   {
+    using namespace phlex::detail::internal;
+
     // First deal with handles
-    if constexpr (internal::is_handle<T>::value) {
+    if constexpr (is_handle<T>::value) {
       return make_type_id<typename T::value_type>();
     }
 
     type_id result{};
-    using basic = remove_atomic_t<std::remove_cvref_t<std::remove_pointer_t<T>>>;
+    using basic = phlex::detail::remove_atomic_t<std::remove_cvref_t<std::remove_pointer_t<T>>>;
     if constexpr (std::is_fundamental_v<basic>) {
-      result.id_ = internal::make_type_id_helper_fundamental<basic>();
+      result.id_ = make_type_id_helper_fundamental<basic>();
     }
 
     // enumerations
     else if constexpr (std::is_enum_v<basic>) {
-      result.id_ = internal::make_type_id_helper_enum<basic>();
+      result.id_ = make_type_id_helper_enum<basic>();
     }
 
     // builtin arrays
@@ -219,14 +237,14 @@ namespace phlex::detail {
 
     // classes (both containers and "simple" aggregates)
     else if constexpr (std::is_class_v<basic>) {
-      if constexpr (contiguous_container<basic>) {
+      if constexpr (phlex::detail::contiguous_container<basic>) {
         result = make_type_id<typename basic::value_type>();
         result.id_ |= 0x20;
       } else if constexpr (std::is_aggregate_v<basic>) {
         // This case isn't evaluable at compile time because vector uses operator new
-        using child_tuple = internal::aggregate_to_plain_tuple_t<basic>;
+        using child_tuple = aggregate_to_plain_tuple_t<basic>;
         result.id_ = 0x40; // has_children
-        result.children_ = make_type_ids<child_tuple>();
+        result.children_ = phlex::detail::make_type_ids<child_tuple>();
       } else {
         // // If we got here, something went wrong
         // // This condition is always false, but makes the error message more useful
@@ -246,40 +264,40 @@ namespace phlex::detail {
     result.exact_ = &typeid(basic);
     return result;
   }
+}
 
+namespace phlex::detail {
   namespace internal {
     template <typename T>
     struct tuple_type_ids {
-      static type_ids get() { return {make_type_id<T>()}; }
+      static type_ids get() { return {phlex::experimental::make_type_id<T>()}; }
     };
 
     template <typename... Ts>
     struct tuple_type_ids<std::tuple<Ts...>> {
-      static type_ids get() { return {make_type_id<Ts>()...}; }
+      static type_ids get() { return {phlex::experimental::make_type_id<Ts>()...}; }
     };
 
     template <typename... Ts>
     struct tuple_type_ids<std::pair<Ts...>> {
-      static type_ids get() { return {make_type_id<Ts>()...}; }
+      static type_ids get() { return {phlex::experimental::make_type_id<Ts>()...}; }
     };
   }
 
-  template <typename T1, typename... Ts>
+  template <typename T>
   type_ids make_type_ids()
   {
-    if constexpr (sizeof...(Ts) == 0) {
-      return internal::tuple_type_ids<T1>::get();
-    } else {
-      return type_ids{make_type_id<T1>(), make_type_id<Ts>()...};
-    }
+    return internal::tuple_type_ids<T>::get();
   }
 
   template <typename F>
   type_ids make_output_type_ids()
   {
-    return make_type_ids<return_type<F>>();
+    return make_type_ids<phlex::detail::return_type<F>>();
   }
+}
 
+namespace phlex::experimental {
   inline std::size_t hash_value(type_id const& id)
   {
     std::size_t hash = std::hash<unsigned char>{}(id.id_);
@@ -291,11 +309,11 @@ namespace phlex::detail {
 }
 
 template <>
-struct fmt::formatter<phlex::detail::type_id> : formatter<std::string> {
-  auto format(phlex::detail::type_id type, format_context& ctx) const
+struct fmt::formatter<phlex::experimental::type_id> : formatter<std::string> {
+  auto format(phlex::experimental::type_id type, format_context& ctx) const
   {
     using namespace std::string_literals;
-    using namespace phlex::detail;
+    using namespace phlex::experimental;
     if (!type.valid()) {
       return fmt::formatter<std::string>::format("INVALID / EMPTY"s, ctx);
     }

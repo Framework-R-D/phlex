@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <string>
 
+using phlex::experimental::product_base;
+using phlex::experimental::product_specification;
+
 namespace phlex::detail {
   products::products(std::size_t number_known_products)
   {

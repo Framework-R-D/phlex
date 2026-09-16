@@ -16,7 +16,8 @@
 #include <utility>
 #include <vector>
 
-namespace phlex::detail {
+namespace phlex::experimental {
+  // This erased-product construction API is experimental and may change before promotion.
 
   struct PHLEX_MODEL_EXPORT product_base {
     virtual ~product_base() = default;
@@ -58,8 +59,12 @@ namespace phlex::detail {
     }
   }
 
+}
+
+namespace phlex::detail {
   class PHLEX_MODEL_EXPORT products {
-    using collection_t = std::vector<std::pair<product_specification, product_ptr>>;
+    using collection_t = std::vector<
+      std::pair<phlex::experimental::product_specification, phlex::experimental::product_ptr>>;
 
   public:
     using const_iterator = collection_t::const_iterator;
@@ -69,20 +74,20 @@ namespace phlex::detail {
     explicit products(std::size_t number_known_products);
 
     template <typename T>
-    void add(product_specification const& spec, T t)
+    void add(phlex::experimental::product_specification const& spec, T t)
     {
-      products_.emplace_back(spec, product_for(std::move(t)));
+      products_.emplace_back(spec, phlex::experimental::product_for(std::move(t)));
     }
 
     template <typename Ts>
-    void add_all(product_specifications const& names, Ts ts)
+    void add_all(phlex::experimental::product_specifications const& names, Ts ts)
     {
       assert(names.size() == 1ull);
       add(names[0], std::move(ts));
     }
 
     template <typename... Ts>
-    void add_all(product_specifications const& names, std::tuple<Ts...> ts)
+    void add_all(phlex::experimental::product_specifications const& names, std::tuple<Ts...> ts)
     {
       assert(names.size() == sizeof...(Ts));
       [this, &names]<std::size_t... Is>(auto tuple, std::index_sequence<Is...>) {
@@ -91,11 +96,12 @@ namespace phlex::detail {
     }
 
     template <typename T>
-    T const& get(product_specification const& spec) const
+    T const& get(phlex::experimental::product_specification const& spec) const
     {
       auto const available_product = find_product(spec);
 
-      if (auto const* desired_product = dynamic_cast<product<T> const*>(available_product.get())) {
+      if (auto const* desired_product =
+            dynamic_cast<phlex::experimental::product<T> const*>(available_product.get())) {
         return desired_product->obj;
       }
 
@@ -110,10 +116,12 @@ namespace phlex::detail {
   private:
     // Throws if no product matches the specification; the returned pointer is therefore
     // never null.
-    gsl::not_null<product_base const*> find_product(product_specification const& spec) const;
-    static void throw_mismatched_type [[noreturn]] (product_specification const& spec,
-                                                    char const* requested_type,
-                                                    char const* available_type);
+    gsl::not_null<phlex::experimental::product_base const*> find_product(
+      phlex::experimental::product_specification const& spec) const;
+    static void throw_mismatched_type
+      [[noreturn]] (phlex::experimental::product_specification const& spec,
+                    char const* requested_type,
+                    char const* available_type);
 
     collection_t products_;
   };

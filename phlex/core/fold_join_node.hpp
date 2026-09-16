@@ -78,7 +78,7 @@ namespace phlex::detail {
                    std::string const& node_name,
                    phlex::experimental::identifier const& partition_layer_name,
                    std::vector<phlex::experimental::identifier> layer_names,
-                   product_specifications output,
+                   phlex::experimental::product_specifications output,
                    result_initializer_t result_initializer) :
       base_t{g},
       result_repeater_{
