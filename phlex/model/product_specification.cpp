@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace phlex::detail {
+namespace phlex::experimental {
   product_specification::product_specification() = default;
 
   product_specification::product_specification(char const* name) :
@@ -50,9 +50,13 @@ namespace phlex::detail {
     return {experimental::algorithm_name::create(""), experimental::identifier(s), type_id{}};
   }
 
-  product_specifications to_product_specifications(experimental::algorithm_name const& algo_name,
-                                                   std::vector<std::string> output_suffixes,
-                                                   std::vector<type_id> output_types)
+}
+
+namespace phlex::detail {
+  experimental::product_specifications to_product_specifications(
+    experimental::algorithm_name const& algo_name,
+    std::vector<std::string> output_suffixes,
+    type_ids output_types)
   {
     static std::string const default_product_suffix;
 
@@ -70,9 +74,9 @@ namespace phlex::detail {
     // We can use std::views::zip_transform once the AppleClang C++ STL supports it.
     return std::views::zip(output_suffixes, output_types) |
            std::views::transform([&algo_name](auto const& p) {
-             return product_specification{
+             return experimental::product_specification{
                algo_name, experimental::identifier(std::get<0>(p)), std::get<1>(p)};
            }) |
-           std::ranges::to<product_specifications>();
+           std::ranges::to<experimental::product_specifications>();
   }
 }

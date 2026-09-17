@@ -29,6 +29,8 @@ namespace Catch {
 
 using namespace oneapi;
 using namespace phlex::detail;
+using phlex::experimental::product_specification;
+using phlex::experimental::product_specifications;
 
 namespace {
   auto make_run_index(int run_number)

@@ -31,6 +31,29 @@ namespace form::experimental {
     pers_writer_->configure_tech_settings(tech_config);
   }
 
+  form_writer_interface::~form_writer_interface()
+  {
+    // Safety net only; call finalize() explicitly to handle errors. Errors during destruction are
+    // reported but cannot be propagated.
+    try {
+      finalize();
+    } catch (std::exception const& e) {
+      std::cerr << "form_writer_interface: finalize() failed: " << e.what() << '\n';
+    } catch (...) {
+      std::cerr << "form_writer_interface: finalize() failed with an unknown exception\n";
+    }
+  }
+
+  void form_writer_interface::finalize()
+  {
+    if (finalized_) {
+      return;
+    }
+    // Mark finalized before closing so a failed close is not retried by the destructor.
+    finalized_ = true;
+    pers_writer_->finalize();
+  }
+
   void form_writer_interface::parse_config(config::item_config const& config_item)
   {
     // Parse the product configuration exactly once: collect every configured destination for each
@@ -41,18 +64,27 @@ namespace form::experimental {
   }
 
   void form_writer_interface::write(std::string const& creator,
-                                    std::string const& segment_id,
+                                    form::detail::experimental::cell_index const& cell,
                                     product_with_name const& product)
   {
-    write(creator, segment_id, std::vector<product_with_name>{product});
+    write(creator, cell, std::vector<product_with_name>{product});
   }
 
   void form_writer_interface::write(std::string const& creator,
-                                    std::string const& segment_id,
+                                    form::detail::experimental::cell_index const& cell,
                                     std::vector<product_with_name> const& products)
   {
     using form::detail::experimental::build_full_label;
     using form::detail::experimental::placement;
+
+    // Writes are not allowed after finalize(): the navigation tables have already been written and
+    // cannot record products written afterwards.
+    if (finalized_) {
+      throw std::runtime_error("form_writer_interface: creator '" + creator + "' wrote data cell " +
+                               cell.id +
+                               " after the writer was finalized; the navigation tables are "
+                               "already written and cannot record it");
+    }
 
     write_plan& plan = plans_[creator];
 
@@ -139,7 +171,7 @@ namespace form::experimental {
       if (!written_places.contains(place_key)) {
         continue; // nothing written to this (file, technology)
       }
-      pers_writer_->commit_place(commit_rep, segment_id);
+      pers_writer_->commit_place(commit_rep, cell);
     }
   }
 }
