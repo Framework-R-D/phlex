@@ -17,9 +17,9 @@ namespace phlex::experimental {
 
   product_store::~product_store() = default;
 
-  product_store_ptr product_store::base(algorithm_name const& base_name, identifier const& stage)
+  product_store_ptr product_store::base(algorithm_name const& creator, identifier const& stage)
   {
-    return std::make_shared<product_store>(data_cell_index::job(), base_name, stage);
+    return std::make_shared<product_store>(data_cell_index::job(), creator, stage);
   }
   identifier const& product_store::stage() const noexcept { return *stage_; }
   algorithm_name const& product_store::source() const noexcept { return *source_; }

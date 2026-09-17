@@ -49,11 +49,12 @@ namespace phlex::detail {
 
   private:
     phlex::experimental::product_store_ptr parent_;
-    // References declared_unfold::child_layer_, which outlives this short-lived object.
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // References declared_unfold data members, which outlive this short-lived object.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     phlex::experimental::algorithm_name const& node_name_;
     phlex::experimental::identifier const& stage_;
     std::string const& child_layer_name_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::size_t child_layer_hash_;
     std::size_t child_count_ = 0;
   };

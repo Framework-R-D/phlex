@@ -26,7 +26,7 @@ namespace phlex::experimental {
                            identifier const& stage,
                            phlex::detail::products new_products = {});
     ~product_store();
-    static product_store_ptr base(algorithm_name const& source, identifier const& stage);
+    static product_store_ptr base(algorithm_name const& creator, identifier const& stage);
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
