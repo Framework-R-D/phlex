@@ -59,6 +59,23 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     except TypeError as e:
         assert "unknown annotation formatting" in str(e)
 
+    # annotations are malformed
+    problematic = ["", "unknown", None, object]
+    for problem in problematic:
+        try:
+            malformed_func = Variant(mismatch_func, {"a": int, "b": "", "return": int}, "mf")
+            m.transform(
+                malformed_func,
+                input_family=[
+                    {"creator": "input", "layer": "event", "suffix": "i"},
+                    {"creator": "input", "layer": "event", "suffix": "j"},
+                ],
+                output_product_suffixes=["sum"],
+            )
+            assert not "supposed to be here"
+        except TypeError as e:
+           assert "unsupported" in str(e)
+
     # input_family has 1 element, but function takes 2 arguments
     # This should trigger the error in modulewrap.cpp (this final error is
     # checked by cmake by verify output code and message log)
