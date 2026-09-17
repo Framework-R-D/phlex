@@ -215,12 +215,12 @@ TEST_CASE("node builder supplies value resource tokens", "[node_builder][resourc
     concurrency::serial.value,
     resources,
     [&called](int value, value_token_resource_type token) {
-      CHECK(value == 42);
+      CHECK(value == 43);
       CHECK(token.value == 42);
       called = true;
     },
     invoke_operation);
-  REQUIRE(node.try_put(42));
+  REQUIRE(node.try_put(43));
   graph.wait_for_all();
   CHECK(called);
 }
@@ -238,12 +238,12 @@ TEST_CASE("node builder supplies custom resource tokens", "[node_builder][resour
     concurrency::serial.value,
     resources,
     [&called](int value, int token) {
-      CHECK(value == 42);
+      CHECK(value == 43);
       CHECK(token == 42);
       called = true;
     },
     invoke_operation);
-  REQUIRE(node.try_put(42));
+  REQUIRE(node.try_put(43));
   graph.wait_for_all();
   CHECK(called);
 }
