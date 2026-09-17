@@ -5,6 +5,7 @@
 
 #include "core/technology.hpp"
 
+#include <compare>
 #include <string>
 
 /* @class placement
@@ -26,6 +27,9 @@ namespace form::detail::experimental {
     std::string const& container_name() const;
     /// Access technology type
     technology::id technology() const;
+
+    /// Enable placement to be used as a key in ordered containers.
+    auto operator<=>(placement const&) const = default;
 
   private:
     /// Technology identifier

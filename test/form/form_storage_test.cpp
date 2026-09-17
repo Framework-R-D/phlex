@@ -7,6 +7,7 @@
 #include "persistence/persistence_writer.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
+#include "storage/istorage.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
@@ -19,6 +20,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <numbers>
 #include <numeric>
@@ -207,6 +209,45 @@ TEST_CASE("FORM Container setup error handling")
       CHECK_THROWS_AS(associative_write->set_parent(bad_write_parent), std::runtime_error);
     }
   }
+}
+
+TEST_CASE("storage_writer: technology is part of a container's identity", "[form]")
+{
+  // The same file and container name may be used by different technologies. They must remain
+  // distinct in write_containers_.
+  std::string const file_name = "storage_writer_technology_key.root";
+  std::string const container_name = "creator/product";
+  placement const backed{file_name, container_name, technology};
+
+  form::technology::id const generic_tech{};
+  placement const generic{file_name, container_name, generic_tech};
+
+  auto writer = create_storage_writer();
+  form::experimental::config::tech_setting_config const settings;
+  std::vector<float> data(4, 1.5F);
+  auto const& type_info = typeid(data);
+
+  auto create = [&writer, &settings](placement const& place) {
+    std::map<std::unique_ptr<placement>, std::type_info const*> containers;
+    containers.emplace(std::make_unique<placement>(place), &type_info);
+    writer->create_containers(containers, settings);
+  };
+
+  create(backed);
+  create(generic);
+
+  CHECK(writer->fill_container(backed, &data, type_info) != invalid_row_id);
+  CHECK(writer->fill_container(generic, &data, type_info) == invalid_row_id);
+
+  writer->commit_containers(backed);
+}
+
+TEST_CASE("storage_writer: committing an unknown placement throws", "[form]")
+{
+  auto writer = create_storage_writer();
+  std::vector<float> data(1, 0.5F);
+  placement const absent{"storage_writer_no_such_file.root", "creator/product", technology};
+  CHECK_THROWS_AS(writer->commit_containers(absent), std::runtime_error);
 }
 
 template <class T>
