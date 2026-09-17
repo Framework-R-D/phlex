@@ -16,6 +16,7 @@ TEST_CASE("Product store insertion", "[data model]")
 
   auto store = product_store::base(dummy_creator_name, dummy_stage_name);
   CHECK(store->empty());
+  CHECK(store->stage() == dummy_stage_name);
 
   constexpr int number = 4;
   std::vector many_numbers{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -59,6 +60,8 @@ TEST_CASE("Product store derivation", "[data model]")
   auto root = product_store::base(dummy_creator_name, dummy_stage_name);
   auto trunk = std::make_shared<product_store>(
     root->index()->make_child("trunk", 1), dummy_creator_name, dummy_stage_name);
+  CHECK(trunk->layer_name() == "trunk"_id);
+
   SECTION("Compare different generations")
   {
     CHECK(trunk == more_derived(root, trunk));

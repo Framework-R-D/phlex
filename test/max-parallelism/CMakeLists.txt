@@ -30,8 +30,7 @@ cet_test(
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_cli.jsonnet
-  --stage
-  test
+  --stage test
   -j
   7
   TEST_PROPERTIES
@@ -48,8 +47,7 @@ cet_test(
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_config.jsonnet
-  --stage
-  test
+  --stage test
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
@@ -68,10 +66,36 @@ cet_test(
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_BINARY_DIR}/check_parallelism_cli_over_config.jsonnet
-  --stage
-  test
+  --stage test
   -j
   9
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
+)
+
+configure_file(check_stage_config.jsonnet check_stage_config.jsonnet COPYONLY)
+cet_test(
+  job:check_stage_config
+  HANDBUILT
+  TEST_EXEC
+  phlex::phlex
+  TEST_ARGS
+  -c ${CMAKE_CURRENT_BINARY_DIR}/check_stage_config.jsonnet
+  TEST_PROPERTIES
+  ENVIRONMENT
+  "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
+)
+
+configure_file(check_stage_cli_over_config.jsonnet check_stage_cli_over_config.jsonnet COPYONLY)
+cet_test(
+  job:check_stage_cli_over_config
+  HANDBUILT
+  TEST_EXEC
+  phlex::phlex
+  TEST_ARGS
+  -c ${CMAKE_CURRENT_BINARY_DIR}/check_stage_cli_over_config.jsonnet
+  --stage command-line-stage
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"
