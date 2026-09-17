@@ -23,6 +23,7 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
+#include <gsl/pointers>
 #include <oneapi/tbb/concurrent_unordered_map.h>
 #include <oneapi/tbb/flow_graph.h>
 
@@ -107,7 +108,8 @@ namespace phlex::detail {
           products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
           auto new_store = std::make_shared<phlex::experimental::product_store>(
-            store->index(), name(), stage, std::move(new_products));
+            store->index(), gsl::not_null{&name()}, gsl::not_null{&stage}, std::move(new_products));
+
           return {.store = std::move(new_store), .id = message_id};
         })}
     {

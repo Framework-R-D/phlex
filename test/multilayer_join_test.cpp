@@ -14,6 +14,7 @@
 using namespace phlex;
 using namespace phlex::detail;
 using namespace phlex::experimental;
+using namespace phlex::experimental::literals;
 
 namespace {
   constexpr auto message_id = 42u;
@@ -27,16 +28,18 @@ namespace {
   };
 
   template <typename T>
-  product_specification spec(char const* creator, char const* suffix)
+  product_specification spec(algorithm_name const& creator)
   {
-    return {algorithm_name{creator}, identifier{suffix}, make_type_id<T>()};
+    return {creator, ""_id, make_type_id<T>()};
   }
 
   template <typename T>
-  product_store_ptr store_with_product(char const* creator, char const* suffix, T value)
+  product_store_ptr store_with_product(gsl::not_null<algorithm_name const*> creator,
+                                       gsl::not_null<identifier const*> stage,
+                                       T value)
   {
-    auto store = product_store::base(creator, "test_stage"_id);
-    store->add_product(spec<T>(creator, suffix), std::move(value));
+    auto store = product_store::base(creator, stage);
+    store->add_product(spec<T>(*creator), std::move(value));
     return store;
   }
 }
@@ -44,8 +47,15 @@ namespace {
 TEST_CASE("multilayer_join_node joins multiple input products", "[join]")
 {
   oneapi::tbb::flow::graph graph;
-  auto left_store = store_with_product("left_input", "", input_type_1{17});
-  auto right_store = store_with_product("right_input", "", input_type_2{25});
+
+  auto const stage = "test_stage"_id;
+  auto const left_creator_name = algorithm_name::create("left_input");
+  auto const right_creator_name = algorithm_name::create("right_input");
+
+  auto left_store = store_with_product(
+    gsl::make_not_null(&left_creator_name), gsl::make_not_null(&stage), input_type_1{17});
+  auto right_store = store_with_product(
+    gsl::make_not_null(&right_creator_name), gsl::make_not_null(&stage), input_type_2{25});
 
   // Force repeaters by passing distinct layer names.
   // The actual routing is performed by matching index hashes between data, index, and flush.

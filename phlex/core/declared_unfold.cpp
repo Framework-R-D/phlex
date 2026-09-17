@@ -9,8 +9,8 @@
 namespace phlex::detail {
 
   generator::generator(phlex::experimental::product_store_const_ptr const& parent,
-                       phlex::experimental::algorithm_name const& node_name,
-                       phlex::experimental::identifier const& stage,
+                       gsl::not_null<phlex::experimental::algorithm_name const*> node_name,
+                       gsl::not_null<phlex::experimental::identifier const*> stage,
                        std::string const& child_layer_name) :
     parent_{std::const_pointer_cast<phlex::experimental::product_store>(parent)},
     node_name_{node_name},

@@ -53,12 +53,15 @@ TEST_CASE("Filter data map", "[filtering]")
   data_map data{data_products_to_cache};
 
   // Stores with the data products "a" and "b" in the spill data layer
+  auto const creator = algorithm_name::create("input");
+  auto const stage = "test_stage"_id;
+  auto creator_ptr = gsl::make_not_null(&creator);
+  auto stage_ptr = gsl::make_not_null(&stage);
+
   auto const spill_index = phlex::data_cell_index::job()->make_child("spill", 0);
-  auto store_with_a =
-    std::make_shared<product_store>(spill_index, algorithm_name::create("input"), "test_stage"_id);
+  auto store_with_a = std::make_shared<product_store>(spill_index, creator_ptr, stage_ptr);
   store_with_a->add_product("input/a", 1);
-  auto store_with_b =
-    std::make_shared<product_store>(spill_index, algorithm_name::create("input"), "test_stage"_id);
+  auto store_with_b = std::make_shared<product_store>(spill_index, creator_ptr, stage_ptr);
   store_with_b->add_product("input/b", 2);
 
   std::size_t const msg_id{1};
@@ -82,7 +85,10 @@ TEST_CASE("Data map for output only", "[filtering]")
   CHECK(not data.is_complete(msg_id));
 
   // Output-only data maps accept any store (no product lookup required)
-  auto store = product_store::base(algorithm_name::create("output_only"), "test_stage"_id);
+  auto const creator = algorithm_name::create("output_only");
+  auto const stage = "test_stage"_id;
+  auto store = product_store::base(gsl::make_not_null(&creator), gsl::make_not_null(&stage));
+
   data.update(msg_id, store);
   CHECK(data.is_complete(msg_id));
 

@@ -8,16 +8,17 @@
 namespace phlex::experimental {
 
   product_store::product_store(data_cell_index_ptr id,
-                               algorithm_name const& source,
-                               identifier const& stage,
+                               gsl::not_null<algorithm_name const*> source,
+                               gsl::not_null<identifier const*> stage,
                                phlex::detail::products new_products) :
-    products_{std::move(new_products)}, id_{std::move(id)}, source_{&source}, stage_{&stage}
+    products_{std::move(new_products)}, id_{std::move(id)}, source_{source}, stage_{stage}
   {
   }
 
   product_store::~product_store() = default;
 
-  product_store_ptr product_store::base(algorithm_name const& creator, identifier const& stage)
+  product_store_ptr product_store::base(gsl::not_null<algorithm_name const*> creator,
+                                        gsl::not_null<identifier const*> stage)
   {
     return std::make_shared<product_store>(data_cell_index::job(), creator, stage);
   }

@@ -18,6 +18,7 @@
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
+#include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
@@ -39,8 +40,8 @@ namespace phlex::detail {
   class PHLEX_CORE_EXPORT generator {
   public:
     explicit generator(phlex::experimental::product_store_const_ptr const& parent,
-                       phlex::experimental::algorithm_name const& node_name,
-                       phlex::experimental::identifier const& stage,
+                       gsl::not_null<phlex::experimental::algorithm_name const*> node_name,
+                       gsl::not_null<phlex::experimental::identifier const*> stage,
                        std::string const& child_layer_name);
 
     std::size_t child_layer_hash() const { return child_layer_hash_; }
@@ -50,11 +51,10 @@ namespace phlex::detail {
   private:
     phlex::experimental::product_store_ptr parent_;
     // References declared_unfold data members, which outlive this short-lived object.
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    phlex::experimental::algorithm_name const& node_name_;
-    phlex::experimental::identifier const& stage_;
+    gsl::not_null<phlex::experimental::algorithm_name const*> node_name_;
+    gsl::not_null<phlex::experimental::identifier const*> stage_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::size_t child_layer_hash_;
     std::size_t child_count_ = 0;
   };
@@ -144,30 +144,31 @@ namespace phlex::detail {
                                         std::move(output_product_suffixes),
                                         make_type_ids<skip_first_type<return_type<Unfold>>>())},
       join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
-      unfold_{builder::make(g,
-                            concurrency,
-                            resources,
-                            std::move(unfold),
-                            [this, stage = std::move(stage), p = std::move(predicate)](
-                              function_t const& ufold,
-                              messages_t<num_inputs> const& messages,
-                              auto& outputs,
-                              auto&&... resource_tokens) {
-                              auto const& msg = most_derived(messages);
-                              auto const& store = msg.store;
+      unfold_{builder::make(
+        g,
+        concurrency,
+        resources,
+        std::move(unfold),
+        [this, stage = std::move(stage), p = std::move(predicate)](
+          function_t const& ufold,
+          messages_t<num_inputs> const& messages,
+          auto& outputs,
+          auto&&... resource_tokens) {
+          auto const& msg = most_derived(messages);
+          auto const& store = msg.store;
 
-                              generator gen{store, name(), stage, child_layer()};
-                              call(p,
-                                   ufold,
-                                   store->index(),
-                                   gen,
-                                   messages,
-                                   std::make_index_sequence<num_inputs>{},
-                                   resource_tokens...);
-                              std::get<2>(outputs).try_put({.index = store->index(),
-                                                            .layer_hash = gen.child_layer_hash(),
-                                                            .count = gen.child_count()});
-                            })}
+          generator gen{store, gsl::not_null{&name()}, gsl::not_null{&stage}, child_layer()};
+          call(p,
+               ufold,
+               store->index(),
+               gen,
+               messages,
+               std::make_index_sequence<num_inputs>{},
+               resource_tokens...);
+          std::get<2>(outputs).try_put({.index = store->index(),
+                                        .layer_hash = gen.child_layer_hash(),
+                                        .count = gen.child_count()});
+        })}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, unfold_);

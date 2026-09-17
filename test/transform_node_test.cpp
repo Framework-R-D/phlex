@@ -64,24 +64,25 @@ namespace {
   }
 
   template <typename T>
-  product_specification spec(algorithm_name const& creator, char const* suffix)
+  product_specification spec(algorithm_name const& creator)
   {
-    return {creator, identifier{suffix}, make_type_id<T>()};
+    return {creator, ""_id, make_type_id<T>()};
   }
 
   template <typename T>
-  product_selector selector(algorithm_name const& creator, char const* suffix)
+  product_selector selector(algorithm_name const& creator)
   {
     return {
-      .creator = creator.algorithm(), .layer = "job", .suffix = suffix, .type = make_type_id<T>()};
+      .creator = creator.algorithm(), .layer = "job", .suffix = "", .type = make_type_id<T>()};
   }
 
   template <typename T>
-  product_store_ptr store_with_product(algorithm_name const& creator, T value)
+  product_store_ptr store_with_product(gsl::not_null<algorithm_name const*> creator,
+                                       gsl::not_null<identifier const*> stage,
+                                       T value)
   {
-    static auto const dummy_stage_name = "test_stage"_id;
-    auto store = product_store::base(creator, dummy_stage_name);
-    store->add_product(spec<T>(creator, ""), std::move(value));
+    auto store = product_store::base(creator, stage);
+    store->add_product(spec<T>(*creator), std::move(value));
     return store;
   }
 
@@ -96,8 +97,10 @@ TEST_CASE("transform_node directly transforms one input product", "[transform_no
 {
   oneapi::tbb::flow::graph graph;
   auto const input_creator_name = algorithm_name::create("input");
-  auto input_selector = selector<input_type_1>(input_creator_name, "");
-  auto input_store = store_with_product(input_creator_name, input_type_1{21});
+  identifier const stage_name = "test_stage"_id;
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store = store_with_product(
+    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
   auto alg = algorithm_bits_for(double_value);
   resource_catalog resources;
 
@@ -141,8 +144,10 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
 {
   oneapi::tbb::flow::graph graph;
   auto const input_creator_name = algorithm_name::create("input");
-  auto input_selector = selector<input_type_1>(input_creator_name, "");
-  auto input_store = store_with_product(input_creator_name, input_type_1{7});
+  identifier const stage{"test_stage"};
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store =
+    store_with_product(gsl::not_null{&input_creator_name}, gsl::not_null{&stage}, input_type_1{7});
   auto alg = algorithm_bits_for(number_and_label);
   resource_catalog resources;
 
