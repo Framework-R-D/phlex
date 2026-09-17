@@ -107,26 +107,26 @@ namespace {
   constexpr auto number_of_messages = 64uz;
 
   // Zero-resource node shapes.
-  static_assert(
-    std::same_as<node_type_for_t<int, no_outputs_t, std::tuple<>>, tbb::flow::function_node<int>>);
-  static_assert(std::same_as<node_type_for_t<int, std::tuple<int>, std::tuple<>>,
+  static_assert(std::same_as<node_builder<int, no_outputs_t, std::tuple<>>::node_t,
+                             tbb::flow::function_node<int>>);
+  static_assert(std::same_as<node_builder<int, std::tuple<int>, std::tuple<>>::node_t,
                              tbb::flow::function_node<int, int>>);
-  static_assert(std::same_as<node_type_for_t<int, multifunction_outputs<int>, std::tuple<>>,
+  static_assert(std::same_as<node_builder<int, multifunction_outputs<int>, std::tuple<>>::node_t,
                              tbb::flow::multifunction_node<int, std::tuple<int>>>);
 
   // Resource-dependent node selection.
   static_assert(
-    std::same_as<node_type_for_t<int, no_outputs_t, std::tuple<unlimited_resource_type>>,
+    std::same_as<node_builder<int, no_outputs_t, std::tuple<unlimited_resource_type>>::node_t,
                  tbb::flow::function_node<int>>);
   static_assert(
-    std::same_as<node_type_for_t<int, std::tuple<int>, std::tuple<unlimited_resource_type>>,
+    std::same_as<node_builder<int, std::tuple<int>, std::tuple<unlimited_resource_type>>::node_t,
                  tbb::flow::function_node<int, int>>);
   static_assert(
     std::same_as<
-      node_type_for_t<int, multifunction_outputs<int>, std::tuple<unlimited_resource_type>>,
+      node_builder<int, multifunction_outputs<int>, std::tuple<unlimited_resource_type>>::node_t,
       tbb::flow::multifunction_node<int, std::tuple<int>>>);
   static_assert(
-    std::same_as<node_type_for_t<int, no_outputs_t, std::tuple<serialized_resource_type>>,
+    std::same_as<node_builder<int, no_outputs_t, std::tuple<serialized_resource_type>>::node_t,
                  tbb::flow::resource_limited_node<int, no_outputs_t>>);
 }
 
@@ -137,17 +137,16 @@ TEST_CASE("node builder supplies unlimited resources", "[node_builder][resource]
   resources.add_unlimited<unlimited_resource_type>();
   std::atomic<bool> called{};
 
-  using function_t = std::function<void(int, unlimited_resource_type const*)>;
-  using builder_t =
-    node_builder<int, function_t, no_outputs_t, std::tuple<unlimited_resource_type>>;
-  auto node = builder_t::make(graph,
-                              concurrency::serial.value,
-                              resources,
-                              function_t{[&called](int value, unlimited_resource_type const*) {
-                                CHECK(value == 42);
-                                called = true;
-                              }},
-                              invoke_operation);
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<unlimited_resource_type>>;
+  auto node = builder_t::make(
+    graph,
+    concurrency::serial.value,
+    resources,
+    [&called](int value, unlimited_resource_type const*) {
+      CHECK(value == 42);
+      called = true;
+    },
+    invoke_operation);
   REQUIRE(node.try_put(42));
   graph.wait_for_all();
   CHECK(called);
@@ -162,21 +161,16 @@ TEST_CASE("node builder preserves unlimited then serialized resource order",
   resources.add_serialized<serialized_resource_type>();
   std::atomic<bool> called{};
 
-  using function_t =
-    std::function<void(int, unlimited_resource_type const*, serialized_resource_type const*)>;
-  using builder_t = node_builder<int,
-                                 function_t,
-                                 no_outputs_t,
-                                 std::tuple<unlimited_resource_type, serialized_resource_type>>;
+  using builder_t =
+    node_builder<int, no_outputs_t, std::tuple<unlimited_resource_type, serialized_resource_type>>;
   auto node = builder_t::make(
     graph,
     concurrency::serial.value,
     resources,
-    function_t{
-      [&called](int value, unlimited_resource_type const*, serialized_resource_type const*) {
-        CHECK(value == 42);
-        called = true;
-      }},
+    [&called](int value, unlimited_resource_type const*, serialized_resource_type const*) {
+      CHECK(value == 42);
+      called = true;
+    },
     invoke_operation);
   REQUIRE(node.try_put(42));
   graph.wait_for_all();
@@ -192,21 +186,16 @@ TEST_CASE("node builder preserves serialized then unlimited resource order",
   resources.add_serialized<serialized_resource_type>();
   std::atomic<bool> called{};
 
-  using function_t =
-    std::function<void(int, serialized_resource_type const*, unlimited_resource_type const*)>;
-  using builder_t = node_builder<int,
-                                 function_t,
-                                 no_outputs_t,
-                                 std::tuple<serialized_resource_type, unlimited_resource_type>>;
+  using builder_t =
+    node_builder<int, no_outputs_t, std::tuple<serialized_resource_type, unlimited_resource_type>>;
   auto node = builder_t::make(
     graph,
     concurrency::serial.value,
     resources,
-    function_t{
-      [&called](int value, serialized_resource_type const*, unlimited_resource_type const*) {
-        CHECK(value == 42);
-        called = true;
-      }},
+    [&called](int value, serialized_resource_type const*, unlimited_resource_type const*) {
+      CHECK(value == 42);
+      called = true;
+    },
     invoke_operation);
   REQUIRE(node.try_put(42));
   graph.wait_for_all();
@@ -220,18 +209,17 @@ TEST_CASE("node builder supplies value resource tokens", "[node_builder][resourc
   resources.add_serialized<value_token_resource_type>(42);
   std::atomic<bool> called{};
 
-  using function_t = std::function<void(int, value_token_resource_type)>;
-  using builder_t =
-    node_builder<int, function_t, no_outputs_t, std::tuple<value_token_resource_type>>;
-  auto node = builder_t::make(graph,
-                              concurrency::serial.value,
-                              resources,
-                              function_t{[&called](int value, value_token_resource_type token) {
-                                CHECK(value == 42);
-                                CHECK(token.value == 42);
-                                called = true;
-                              }},
-                              invoke_operation);
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<value_token_resource_type>>;
+  auto node = builder_t::make(
+    graph,
+    concurrency::serial.value,
+    resources,
+    [&called](int value, value_token_resource_type token) {
+      CHECK(value == 42);
+      CHECK(token.value == 42);
+      called = true;
+    },
+    invoke_operation);
   REQUIRE(node.try_put(42));
   graph.wait_for_all();
   CHECK(called);
@@ -244,18 +232,17 @@ TEST_CASE("node builder supplies custom resource tokens", "[node_builder][resour
   resources.add_serialized<custom_token_resource_type>();
   std::atomic<bool> called{};
 
-  using function_t = std::function<void(int, int)>;
-  using builder_t =
-    node_builder<int, function_t, no_outputs_t, std::tuple<custom_token_resource_type>>;
-  auto node = builder_t::make(graph,
-                              concurrency::serial.value,
-                              resources,
-                              function_t{[&called](int value, int token) {
-                                CHECK(value == 42);
-                                CHECK(token == 42);
-                                called = true;
-                              }},
-                              invoke_operation);
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<custom_token_resource_type>>;
+  auto node = builder_t::make(
+    graph,
+    concurrency::serial.value,
+    resources,
+    [&called](int value, int token) {
+      CHECK(value == 42);
+      CHECK(token == 42);
+      called = true;
+    },
+    invoke_operation);
   REQUIRE(node.try_put(42));
   graph.wait_for_all();
   CHECK(called);
@@ -269,13 +256,11 @@ TEST_CASE("a shared serialized resource limits concurrency",
   resources.add_serialized<serialized_resource_type>();
   concurrency_observations observations;
 
-  using function_t = std::function<void(int, serialized_resource_type const*)>;
-  using builder_t =
-    node_builder<int, function_t, no_outputs_t, std::tuple<serialized_resource_type>>;
-  auto function = function_t{[&observations](int, serialized_resource_type const*) {
+  using builder_t = node_builder<int, no_outputs_t, std::tuple<serialized_resource_type>>;
+  auto function = [&observations](int, serialized_resource_type const*) {
     concurrency_observations::scope const invocation{observations};
     spin_for(1ms);
-  }};
+  };
   auto node1 =
     builder_t::make(graph, concurrency::unlimited.value, resources, function, invoke_operation);
   auto node2 =
@@ -302,21 +287,16 @@ TEST_CASE("mixed resources are limited by the serialized resource",
   resources.add_serialized<serialized_resource_type>();
   concurrency_observations observations;
 
-  using function_t =
-    std::function<void(int, unlimited_resource_type const*, serialized_resource_type const*)>;
-  using builder_t = node_builder<int,
-                                 function_t,
-                                 no_outputs_t,
-                                 std::tuple<unlimited_resource_type, serialized_resource_type>>;
+  using builder_t =
+    node_builder<int, no_outputs_t, std::tuple<unlimited_resource_type, serialized_resource_type>>;
   auto node = builder_t::make(
     graph,
     concurrency::unlimited.value,
     resources,
-    function_t{
-      [&observations](int, unlimited_resource_type const*, serialized_resource_type const*) {
-        concurrency_observations::scope const invocation{observations};
-        spin_for(1ms);
-      }},
+    [&observations](int, unlimited_resource_type const*, serialized_resource_type const*) {
+      concurrency_observations::scope const invocation{observations};
+      spin_for(1ms);
+    },
     invoke_operation);
 
   // Submitting concurrently keeps the node contending for the single token; feeding it

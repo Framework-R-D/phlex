@@ -15,61 +15,6 @@
 
 namespace phlex::detail {
 
-  using no_outputs_t = std::tuple<>;
-
-  template <typename... Outputs>
-  struct multifunction_outputs {};
-
-  template <typename InputMessages, typename Function, typename Outputs, typename Resources>
-  struct node_builder;
-
-  // TBB node template arguments model product-message flow only. Resource access is supplied
-  // separately by the node body: unlimited resources come from resource_catalog, while TBB
-  // acquires serialized-resource tokens from the resource_limiter objects passed to the node. Each
-  // output shape is split into two mutually exclusive specializations, selected by a requires
-  // clause on has_serialized<Resources...>.
-  template <typename InputMessages, typename Outputs, typename Resources>
-  struct node_type_for;
-
-  template <typename InputMessages, typename... Resources>
-    requires(not has_serialized<Resources...>)
-  struct node_type_for<InputMessages, no_outputs_t, std::tuple<Resources...>> {
-    using type = tbb::flow::function_node<InputMessages>;
-  };
-
-  template <typename InputMessages, typename... Resources>
-    requires(has_serialized<Resources...>)
-  struct node_type_for<InputMessages, no_outputs_t, std::tuple<Resources...>> {
-    using type = tbb::flow::resource_limited_node<InputMessages, no_outputs_t>;
-  };
-
-  template <typename InputMessages, typename Output, typename... Resources>
-    requires(not has_serialized<Resources...>)
-  struct node_type_for<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
-    using type = tbb::flow::function_node<InputMessages, Output>;
-  };
-
-  template <typename InputMessages, typename Output, typename... Resources>
-    requires(has_serialized<Resources...>)
-  struct node_type_for<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
-    using type = tbb::flow::resource_limited_node<InputMessages, std::tuple<Output>>;
-  };
-
-  template <typename InputMessages, typename... Outputs, typename... Resources>
-    requires(not has_serialized<Resources...>)
-  struct node_type_for<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
-    using type = tbb::flow::multifunction_node<InputMessages, std::tuple<Outputs...>>;
-  };
-
-  template <typename InputMessages, typename... Outputs, typename... Resources>
-    requires(has_serialized<Resources...>)
-  struct node_type_for<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
-    using type = tbb::flow::resource_limited_node<InputMessages, std::tuple<Outputs...>>;
-  };
-
-  template <typename InputMessages, typename Outputs, typename Resources>
-  using node_type_for_t = node_type_for<InputMessages, Outputs, Resources>::type;
-
   // For each resource, in declaration order, the index it would occupy within just the
   // unlimited or just the serialized subsequence, so a single pass can pick its argument
   // from the right tuple.
@@ -84,6 +29,8 @@ namespace phlex::detail {
     return indices;
   }();
 
+  // Return either the unlimited resource (from the cached tuple) or the serialized-resource token
+  // (from the per-call tuple).
   template <typename Resource, std::size_t LocalIndex>
   decltype(auto) resource_argument(auto const& unlimited_resources, auto&& serialized_tokens)
   {
@@ -115,23 +62,32 @@ namespace phlex::detail {
     }(std::index_sequence_for<Resources...>{});
   }
 
-  template <typename InputMessages, typename Function, typename... Resources>
-    requires(not has_serialized<Resources...>)
-  struct node_builder<InputMessages, Function, no_outputs_t, std::tuple<Resources...>> {
-    using node_t = node_type_for_t<InputMessages, no_outputs_t, std::tuple<Resources...>>;
+  using no_outputs_t = std::tuple<>;
 
-    template <typename NodeBody>
+  template <typename... Outputs>
+  struct multifunction_outputs {};
+
+  template <typename InputMessages, typename Outputs, typename Resources>
+  struct node_builder;
+
+  template <typename InputMessages, typename... Resources>
+    requires(not has_serialized<Resources...>)
+  struct node_builder<InputMessages, no_outputs_t, std::tuple<Resources...>> {
+    using node_t = tbb::flow::function_node<InputMessages>;
+
+    template <typename Function, typename NodeBody>
     static node_t make(tbb::flow::graph& g,
                        std::size_t concurrency,
                        resource_catalog& resources,
                        Function ft,
                        NodeBody node_body)
     {
-      auto unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources);
       return {
         g,
         concurrency,
-        [ft = std::move(ft), node_body = std::move(node_body), unlimited = std::move(unlimited)](
+        [ft = std::move(ft),
+         node_body = std::move(node_body),
+         unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages) mutable -> oneapi::tbb::flow::continue_msg {
           invoke_with_resources<Resources...>(
             node_body, std::forward_as_tuple(ft, messages), std::forward_as_tuple(), unlimited);
@@ -140,24 +96,25 @@ namespace phlex::detail {
     }
   };
 
-  template <typename InputMessages, typename Function, typename... Resources>
+  template <typename InputMessages, typename... Resources>
     requires(has_serialized<Resources...>)
-  struct node_builder<InputMessages, Function, no_outputs_t, std::tuple<Resources...>> {
-    using node_t = node_type_for_t<InputMessages, no_outputs_t, std::tuple<Resources...>>;
+  struct node_builder<InputMessages, no_outputs_t, std::tuple<Resources...>> {
+    using node_t = tbb::flow::resource_limited_node<InputMessages, no_outputs_t>;
 
-    template <typename NodeBody>
+    template <typename Function, typename NodeBody>
     static node_t make(tbb::flow::graph& g,
                        std::size_t concurrency,
                        resource_catalog& resources,
                        Function ft,
                        NodeBody node_body)
     {
-      auto unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources);
       return {
         g,
         concurrency,
         resource_dependencies<Resources...>::serialized_resource_limiters(resources),
-        [ft = std::move(ft), node_body = std::move(node_body), unlimited = std::move(unlimited)](
+        [ft = std::move(ft),
+         node_body = std::move(node_body),
+         unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages, auto&, auto&... resource_tokens) mutable {
           invoke_with_resources<Resources...>(node_body,
                                               std::forward_as_tuple(ft, messages),
@@ -167,23 +124,24 @@ namespace phlex::detail {
     }
   };
 
-  template <typename InputMessages, typename Function, typename Output, typename... Resources>
+  template <typename InputMessages, typename Output, typename... Resources>
     requires(not has_serialized<Resources...>)
-  struct node_builder<InputMessages, Function, std::tuple<Output>, std::tuple<Resources...>> {
-    using node_t = node_type_for_t<InputMessages, std::tuple<Output>, std::tuple<Resources...>>;
+  struct node_builder<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
+    using node_t = tbb::flow::function_node<InputMessages, Output>;
 
-    template <typename NodeBody>
+    template <typename Function, typename NodeBody>
     static node_t make(tbb::flow::graph& g,
                        std::size_t concurrency,
                        resource_catalog& resources,
                        Function ft,
                        NodeBody node_body)
     {
-      auto unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources);
       return {
         g,
         concurrency,
-        [ft = std::move(ft), node_body = std::move(node_body), unlimited = std::move(unlimited)](
+        [ft = std::move(ft),
+         node_body = std::move(node_body),
+         unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages) mutable {
           return invoke_with_resources<Resources...>(
             node_body, std::forward_as_tuple(ft, messages), std::forward_as_tuple(), unlimited);
@@ -193,24 +151,25 @@ namespace phlex::detail {
     static tbb::flow::sender<Output>& output_port(node_t& node) { return node; }
   };
 
-  template <typename InputMessages, typename Function, typename Output, typename... Resources>
+  template <typename InputMessages, typename Output, typename... Resources>
     requires(has_serialized<Resources...>)
-  struct node_builder<InputMessages, Function, std::tuple<Output>, std::tuple<Resources...>> {
-    using node_t = node_type_for_t<InputMessages, std::tuple<Output>, std::tuple<Resources...>>;
+  struct node_builder<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
+    using node_t = tbb::flow::resource_limited_node<InputMessages, std::tuple<Output>>;
 
-    template <typename NodeBody>
+    template <typename Function, typename NodeBody>
     static node_t make(tbb::flow::graph& g,
                        std::size_t concurrency,
                        resource_catalog& resources,
                        Function ft,
                        NodeBody node_body)
     {
-      auto unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources);
       return {
         g,
         concurrency,
         resource_dependencies<Resources...>::serialized_resource_limiters(resources),
-        [ft = std::move(ft), node_body = std::move(node_body), unlimited = std::move(unlimited)](
+        [ft = std::move(ft),
+         node_body = std::move(node_body),
+         unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages, auto& ports, auto&... resource_tokens) mutable {
           std::get<0>(ports).try_put(
             invoke_with_resources<Resources...>(node_body,
@@ -226,58 +185,51 @@ namespace phlex::detail {
     }
   };
 
-  template <typename InputMessages, typename Function, typename... Outputs, typename... Resources>
+  template <typename InputMessages, typename... Outputs, typename... Resources>
     requires(not has_serialized<Resources...>)
-  struct node_builder<InputMessages,
-                      Function,
-                      multifunction_outputs<Outputs...>,
-                      std::tuple<Resources...>> {
-    using node_t =
-      node_type_for_t<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>>;
+  struct node_builder<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
+    using node_t = tbb::flow::multifunction_node<InputMessages, std::tuple<Outputs...>>;
 
-    template <typename NodeBody>
+    template <typename Function, typename NodeBody>
     static node_t make(tbb::flow::graph& g,
                        std::size_t concurrency,
                        resource_catalog& resources,
                        Function ft,
                        NodeBody node_body)
     {
-      auto unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources);
-      return {
-        g,
-        concurrency,
-        [ft = std::move(ft), node_body = std::move(node_body), unlimited = std::move(unlimited)](
-          InputMessages const& messages, auto& ports) mutable {
-          invoke_with_resources<Resources...>(node_body,
-                                              std::forward_as_tuple(ft, messages, ports),
-                                              std::forward_as_tuple(),
-                                              unlimited);
-        }};
+      return {g,
+              concurrency,
+              [ft = std::move(ft),
+               node_body = std::move(node_body),
+               unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(
+                 resources)](InputMessages const& messages, auto& ports) mutable {
+                invoke_with_resources<Resources...>(node_body,
+                                                    std::forward_as_tuple(ft, messages, ports),
+                                                    std::forward_as_tuple(),
+                                                    unlimited);
+              }};
     }
   };
 
-  template <typename InputMessages, typename Function, typename... Outputs, typename... Resources>
+  template <typename InputMessages, typename... Outputs, typename... Resources>
     requires(has_serialized<Resources...>)
-  struct node_builder<InputMessages,
-                      Function,
-                      multifunction_outputs<Outputs...>,
-                      std::tuple<Resources...>> {
-    using node_t =
-      node_type_for_t<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>>;
+  struct node_builder<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
+    using node_t = tbb::flow::resource_limited_node<InputMessages, std::tuple<Outputs...>>;
 
-    template <typename NodeBody>
+    template <typename Function, typename NodeBody>
     static node_t make(tbb::flow::graph& g,
                        std::size_t concurrency,
                        resource_catalog& resources,
                        Function ft,
                        NodeBody node_body)
     {
-      auto unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources);
       return {
         g,
         concurrency,
         resource_dependencies<Resources...>::serialized_resource_limiters(resources),
-        [ft = std::move(ft), node_body = std::move(node_body), unlimited = std::move(unlimited)](
+        [ft = std::move(ft),
+         node_body = std::move(node_body),
+         unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages, auto& ports, auto&... resource_tokens) mutable {
           invoke_with_resources<Resources...>(node_body,
                                               std::forward_as_tuple(ft, messages, ports),
