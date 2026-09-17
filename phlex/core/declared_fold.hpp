@@ -85,6 +85,7 @@ namespace phlex::detail {
 
   public:
     fold_node(phlex::experimental::algorithm_name algo_name,
+              phlex::experimental::identifier const& stage,
               std::size_t concurrency,
               std::vector<std::string> predicates,
               tbb::flow::graph& g,
@@ -99,7 +100,8 @@ namespace phlex::detail {
                     std::move(partition_layer)},
       output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       join_{g,
-            name().to_string(),
+            name(),
+            stage,
             this->partition_layer(),
             layers(),
             this->output(),

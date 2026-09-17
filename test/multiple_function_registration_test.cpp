@@ -43,7 +43,7 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
 
   g.provide("provide_numbers",
             [](data_cell_index const&) -> std::vector<unsigned> { return {0, 1, 2, 3, 4}; })

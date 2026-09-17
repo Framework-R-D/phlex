@@ -19,6 +19,7 @@
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include <gsl/pointers>
 
 #include <atomic>
 #include <concepts>
@@ -39,7 +40,8 @@ namespace phlex::detail {
   class PHLEX_CORE_EXPORT generator {
   public:
     explicit generator(phlex::experimental::product_store_const_ptr const& parent,
-                       phlex::experimental::algorithm_name node_name,
+                       gsl::not_null<phlex::experimental::algorithm_name const*> node_name,
+                       gsl::not_null<phlex::experimental::identifier const*> stage,
                        std::string const& child_layer_name);
 
     std::size_t child_layer_hash() const { return child_layer_hash_; }
@@ -48,8 +50,9 @@ namespace phlex::detail {
 
   private:
     phlex::experimental::product_store_ptr parent_;
-    phlex::experimental::algorithm_name node_name_;
-    // References declared_unfold::child_layer_, which outlives this short-lived object.
+    // References declared_unfold data members, which outlive this short-lived object.
+    gsl::not_null<phlex::experimental::algorithm_name const*> node_name_;
+    gsl::not_null<phlex::experimental::identifier const*> stage_;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
     std::size_t child_layer_hash_;
@@ -115,6 +118,7 @@ namespace phlex::detail {
 
   public:
     unfold_node(phlex::experimental::algorithm_name algo_name,
+                phlex::experimental::identifier stage,
                 std::size_t concurrency,
                 std::vector<std::string> predicates,
                 tbb::flow::graph& g,
@@ -133,12 +137,12 @@ namespace phlex::detail {
       join_{make_join_or_none<num_inputs>(g, name().to_string(), layers())},
       unfold_{g,
               concurrency,
-              [this, p = std::move(predicate), ufold = std::move(unfold)](
+              [this, stage = std::move(stage), p = std::move(predicate), ufold = std::move(unfold)](
                 messages_t<num_inputs> const& messages, auto& outputs) {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
 
-                generator gen{store, name(), child_layer()};
+                generator gen{store, gsl::not_null{&name()}, gsl::not_null{&stage}, child_layer()};
                 call(
                   p, ufold, store->index(), gen, messages, std::make_index_sequence<num_inputs>{});
                 std::get<2>(outputs).try_put({.index = store->index(),

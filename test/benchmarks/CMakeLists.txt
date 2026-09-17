@@ -47,6 +47,7 @@ foreach(
       TEST_ARGS
       -c
       ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet
+      --stage benchmark
       TEST_PROPERTIES
       ENVIRONMENT
       PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}

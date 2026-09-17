@@ -1,4 +1,5 @@
 #include "phlex/app/load_module.hpp"
+#include "phlex/app/run.hpp"
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_string.hpp"
@@ -58,4 +59,20 @@ TEST_CASE("Both py and cpp specified, cpp as string", "[config]")
   - cpp: my_other_python_phlex_module)""";
   CHECK_THROWS_WITH(adjust_config("malformed3", std::move(obj)),
                     Catch::Matchers::ContainsSubstring(err_msg));
+}
+
+TEST_CASE("A stage is required to run phlex", "[config]")
+{
+  CHECK_THROWS_WITH(phlex::detail::run({}, {}), "Must provide a 'stage' name.");
+}
+
+TEST_CASE("Malformed driver configuration identifies its parameter", "[config]")
+{
+  boost::json::object configurations;
+  configurations["driver"] = "not an object";
+
+  phlex::detail::overridable_configuration const overrides{.stage = "test"};
+
+  CHECK_THROWS_WITH(phlex::detail::run(configurations, overrides),
+                    Catch::Matchers::ContainsSubstring("Error retrieving parameter 'driver' :"));
 }

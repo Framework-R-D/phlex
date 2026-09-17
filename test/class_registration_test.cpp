@@ -101,7 +101,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
 {
   auto const products = input_products();
 
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
   register_input_providers(g);
 
   SECTION("No framework, static member function")
@@ -155,7 +155,7 @@ TEST_CASE("Reuse bound glue object for multiple transforms", "[programming model
 {
   auto const products = input_products();
 
-  auto g = phlex::detail::framework_graph::with_default_driver();
+  auto g = phlex::detail::framework_graph::with_default_driver("test");
   register_input_providers(g);
 
   auto glueball = g.make<test_struct>();

@@ -10,6 +10,8 @@
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/products.hpp"
 
+#include <gsl/pointers>
+
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -21,11 +23,12 @@ namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
-                           algorithm_name source = default_source(),
-                           phlex::detail::products new_products = {},
-                           std::optional<identifier> stage = {});
+                           gsl::not_null<algorithm_name const*> source,
+                           gsl::not_null<identifier const*> stage,
+                           phlex::detail::products new_products = {});
     ~product_store();
-    static product_store_ptr base(algorithm_name base_name = default_source());
+    static product_store_ptr base(gsl::not_null<algorithm_name const*> creator,
+                                  gsl::not_null<identifier const*> stage);
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
@@ -34,6 +37,7 @@ namespace phlex::experimental {
 
     identifier const& layer_name() const noexcept;
     algorithm_name const& source() const noexcept;
+    identifier const& stage() const noexcept;
     data_cell_index_ptr const& index() const noexcept;
 
     // Product interface
@@ -56,9 +60,8 @@ namespace phlex::experimental {
   private:
     phlex::detail::products products_;
     data_cell_index_ptr id_;
-    algorithm_name
-      source_; // FIXME: Should not have to copy (the source should outlive the product store)
-    std::optional<identifier> stage_; // No value means current stage
+    gsl::not_null<algorithm_name const*> source_;
+    gsl::not_null<identifier const*> stage_;
   };
 
   namespace detail {
@@ -114,7 +117,7 @@ namespace phlex::experimental {
   template <typename T>
   [[nodiscard]] handle<T> product_store::get_handle(product_specification const& key) const
   {
-    return handle<T>{products_.get<T>(key), *id_, key, stage_};
+    return handle<T>{products_.get<T>(key), *id_, key, *stage_};
   }
 
   template <typename T>

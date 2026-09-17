@@ -57,7 +57,7 @@ TEST_CASE("Cached function calls", "[data model]")
   gen->add_layer("subrun", {.parent_layer = "run", .count = n_subruns});
   gen->add_layer("event", {.parent_layer = "subrun", .count = n_events});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   // Register providers
