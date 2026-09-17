@@ -4,7 +4,7 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
-from typing import cast, Any, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar, cast
 
 from phlex import Variant
 
@@ -18,8 +18,9 @@ class AddableProtocol[T](Protocol):
 
 Addable = TypeVar("Addable", bound=AddableProtocol)
 
+_DEFAULT_ADDABLE = cast(Any, 42)
 
-def add(i: Addable, j: Addable = cast(Any, 42)) -> Addable:
+def add(i: Addable, j: Addable = _DEFAULT_ADDABLE) -> Addable:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together
