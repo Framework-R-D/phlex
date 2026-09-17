@@ -913,7 +913,7 @@ static PyObject* parse_args(PyObject* args,
           if (!opt_counter) {
             PyErr_Clear();
           }
-          // LCOV_EXCL_STOPT
+          // LCOV_EXCL_STOP
         }
       }
 
