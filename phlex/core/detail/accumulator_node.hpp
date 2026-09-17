@@ -10,6 +10,7 @@
 #include "oneapi/tbb/concurrent_queue.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
+#include <gsl/pointers>
 
 #include <atomic>
 #include <cassert>
@@ -61,8 +62,8 @@ namespace phlex::detail::internal {
       return {.index = index, .partial_result = partial_result, .id = new_id};
     }
 
-    message release_as_message(phlex::experimental::algorithm_name const& node_name,
-                               phlex::experimental::identifier const& stage,
+    message release_as_message(gsl::not_null<phlex::experimental::algorithm_name const*> node_name,
+                               gsl::not_null<phlex::experimental::identifier const*> stage,
                                phlex::experimental::product_specifications const& output,
                                std::size_t original_id)
     {
@@ -330,7 +331,7 @@ namespace phlex::detail::internal {
     if (entry->flush_received.test() and entry->pending_invocations == 0 and
         entry->accumulator_msg) {
       output_port<0>(repeater_).try_put(entry->accumulator_msg->release_as_message(
-        node_name_, stage_, output_, entry->original_message_id));
+        gsl::not_null{&node_name_}, gsl::not_null{&stage_}, output_, entry->original_message_id));
       ++emitted_result_count_;
       cached_results_.erase(a);
     }

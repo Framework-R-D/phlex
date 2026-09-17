@@ -29,7 +29,8 @@ namespace {
       phlex::experimental::algorithm_name::create("test_algorithm");
     static auto const dummy_stage_name = "test_stage"_id;
     auto index = make_run_index(run_number);
-    auto store = std::make_shared<product_store>(index, dummy_creator_name, dummy_stage_name);
+    auto store = std::make_shared<product_store>(
+      index, gsl::not_null{&dummy_creator_name}, gsl::not_null{&dummy_stage_name});
     store->add_product("value", value);
     return std::pair{index, store};
   }

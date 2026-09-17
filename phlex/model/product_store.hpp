@@ -23,11 +23,12 @@ namespace phlex::experimental {
   class PHLEX_MODEL_EXPORT product_store {
   public:
     explicit product_store(data_cell_index_ptr id,
-                           algorithm_name const& source,
-                           identifier const& stage,
+                           gsl::not_null<algorithm_name const*> source,
+                           gsl::not_null<identifier const*> stage,
                            phlex::detail::products new_products = {});
     ~product_store();
-    static product_store_ptr base(algorithm_name const& creator, identifier const& stage);
+    static product_store_ptr base(gsl::not_null<algorithm_name const*> creator,
+                                  gsl::not_null<identifier const*> stage);
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }

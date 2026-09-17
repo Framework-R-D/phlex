@@ -19,6 +19,7 @@
 #include "phlex/utilities/simple_ptr_map.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include <gsl/pointers>
 
 #include <atomic>
 #include <concepts>
@@ -39,8 +40,8 @@ namespace phlex::detail {
   class PHLEX_CORE_EXPORT generator {
   public:
     explicit generator(phlex::experimental::product_store_const_ptr const& parent,
-                       phlex::experimental::algorithm_name const& node_name,
-                       phlex::experimental::identifier const& stage,
+                       gsl::not_null<phlex::experimental::algorithm_name const*> node_name,
+                       gsl::not_null<phlex::experimental::identifier const*> stage,
                        std::string const& child_layer_name);
 
     std::size_t child_layer_hash() const { return child_layer_hash_; }
@@ -50,11 +51,10 @@ namespace phlex::detail {
   private:
     phlex::experimental::product_store_ptr parent_;
     // References declared_unfold data members, which outlive this short-lived object.
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    phlex::experimental::algorithm_name const& node_name_;
-    phlex::experimental::identifier const& stage_;
+    gsl::not_null<phlex::experimental::algorithm_name const*> node_name_;
+    gsl::not_null<phlex::experimental::identifier const*> stage_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::string const& child_layer_name_;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::size_t child_layer_hash_;
     std::size_t child_count_ = 0;
   };
@@ -142,7 +142,7 @@ namespace phlex::detail {
                 auto const& msg = most_derived(messages);
                 auto const& store = msg.store;
 
-                generator gen{store, name(), stage, child_layer()};
+                generator gen{store, gsl::not_null{&name()}, gsl::not_null{&stage}, child_layer()};
                 call(
                   p, ufold, store->index(), gen, messages, std::make_index_sequence<num_inputs>{});
                 std::get<2>(outputs).try_put({.index = store->index(),
