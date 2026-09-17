@@ -249,13 +249,18 @@ namespace {
       return std::nullopt;
     }
 
-    // creator is required
+    // creator is optional
+    std::optional<identifier> c;
     PyObject* pyc = PyDict_GetItemString(pysel, "creator");
-    if (!pyc || !PyUnicode_Check(pyc)) {
-      PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
-      return std::nullopt;
+    if (pyc) {
+      if (!PyUnicode_Check(pyc)) {
+        PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
+        return std::nullopt;
+      }
+      c = PyUnicode_AsUTF8(pyc);
+    } else {
+      PyErr_Clear();
     }
-    char const* c = PyUnicode_AsUTF8(pyc);
 
     // layer is optional
     std::optional<identifier> l;
@@ -284,12 +289,11 @@ namespace {
     }
 
     // in the following, each of these parameters is passed differently b/c:
-    //   "c" is still a string and needs conversion to an identifier
-    //   "layer" is an internal type that only takes an optional through a
+    //   "c" and "layer" are internal types that only takes an optional through a
     //     move for its contructor
     //   "suffix" is an optional itself, so can pass directly
     return std::optional<product_selector>{
-      product_selector{.creator = identifier(c), .layer = std::move(l), .suffix = s}};
+      product_selector{.creator = std::move(c), .layer = std::move(l), .suffix = s}};
   }
 
   std::vector<product_selector> validate_input(PyObject* input)

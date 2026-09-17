@@ -28,17 +28,6 @@
       ],
       output: ['sum'],
     },
-    pyadd_layerless: {
-      py: 'adder',
-      name: 'iadd_layerless',
-      input: [
-        {
-          creator: 'input',
-          suffix: 'i',
-        },
-      ],
-      output: ['sum_layerless'],
-    },
     pyverify: {
       py: 'verify',
       operation: 'eq',
@@ -51,16 +40,38 @@
       ],
       sum_total: 1,
     },
-    pyverify_nosuff: {
-      py: 'verify',
-      operation: 'eq',
+    pyadd_nocreator: {
+      py: 'adder',
+      name: 'iadd_nocreator',
       input: [
         {
-          creator: 'iadd',
           layer: 'event',
+          suffix: 'i',
         },
       ],
-      sum_total: 1,
+      output: ['sum_nocreator'],
+    },
+    pyverify_nocreator: {
+      py: 'verify',
+      operation: 'min',
+      input: [
+        {
+          layer: 'event',
+          suffix: 'sum_nocreator',
+        },
+      ],
+      sum_total: 3,
+    },
+    pyadd_layerless: {
+      py: 'adder',
+      name: 'iadd_layerless',
+      input: [
+        {
+          creator: 'input',
+          suffix: 'i',
+        },
+      ],
+      output: ['sum_layerless'],
     },
     pyverify_layerless: {
       py: 'verify',
@@ -72,6 +83,37 @@
         },
       ],
       sum_total: 3,
+    },
+    pyadd_only_suffix: {
+      py: 'adder',
+      name: 'iadd_only_suffix',
+      input: [
+        {
+          suffix: 'i',
+        },
+      ],
+      output: ['sum_only_suffix'],
+    },
+    pyverify_only_suffix: {
+      py: 'verify',
+      operation: 'min',
+      input: [
+        {
+          suffix: 'sum_only_suffix',
+        },
+      ],
+      sum_total: 3,
+    },
+    pyverify_nosuff: {
+      py: 'verify',
+      operation: 'eq',
+      input: [
+        {
+          creator: 'iadd',
+          layer: 'event',
+        },
+      ],
+      sum_total: 1,
     },
   },
 }

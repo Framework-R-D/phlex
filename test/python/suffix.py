@@ -68,7 +68,6 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     for input_query in (
         {"creator": 42, "layer": "event", "suffix": "i"},
         {"creator": "input", "layer": 42, "suffix": "i"},
-        {"layer": "event", "suffix": "i"},
     ):
         try:
             m.transform(
