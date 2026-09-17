@@ -40,7 +40,7 @@ namespace phlex::detail {
       suffixes.emplace(query.suffix->hash(), &*query.suffix);
     }
     std::map<std::uint64_t, experimental::algorithm_name const*> creators;
-    std::map<std::uint64_t, type_id const*> types;
+    std::map<std::uint64_t, phlex::experimental::type_id const*> types;
 
     for (auto const& [key, producer] : std::ranges::subrange{b, e}) {
       // Prevent self-edges
