@@ -63,13 +63,19 @@ namespace phlex::detail {
   }
 
   using no_outputs_t = std::tuple<>;
+  using no_serialized_resources_t = std::tuple<>;
 
   template <typename... Outputs>
   struct multifunction_outputs {};
 
+  // Selects and constructs the TBB node that matches an algorithm's output shape and resource
+  // dependencies. Specializations use function_node or multifunction_node when all resources are
+  // unlimited, and resource_limited_node when any resource is serialized. They also adapt each
+  // node body's construction interface and provide output_port() only for node shapes with outputs.
   template <typename InputMessages, typename Outputs, typename Resources>
   struct node_builder;
 
+  // Specialization for an observer or a fold (no serialized resources)
   template <typename InputMessages, typename... Resources>
     requires(not has_serialized<Resources...>)
   struct node_builder<InputMessages, no_outputs_t, std::tuple<Resources...>> {
@@ -90,12 +96,13 @@ namespace phlex::detail {
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages) mutable -> oneapi::tbb::flow::continue_msg {
           invoke_with_resources<Resources...>(
-            node_body, std::forward_as_tuple(ft, messages), std::forward_as_tuple(), unlimited);
+            node_body, std::forward_as_tuple(ft, messages), no_serialized_resources_t{}, unlimited);
           return {};
         }};
     }
   };
 
+  // Specialization for an observer or a fold (serialized resources)
   template <typename InputMessages, typename... Resources>
     requires(has_serialized<Resources...>)
   struct node_builder<InputMessages, no_outputs_t, std::tuple<Resources...>> {
@@ -115,7 +122,7 @@ namespace phlex::detail {
         [ft = std::move(ft),
          node_body = std::move(node_body),
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
-          InputMessages const& messages, auto&, auto&... resource_tokens) mutable {
+          InputMessages const& messages, no_outputs_t&, auto&... resource_tokens) mutable {
           invoke_with_resources<Resources...>(node_body,
                                               std::forward_as_tuple(ft, messages),
                                               std::forward_as_tuple(resource_tokens...),
@@ -124,6 +131,7 @@ namespace phlex::detail {
     }
   };
 
+  // Specialization for a transform or a predicate (no serialized resources)
   template <typename InputMessages, typename Output, typename... Resources>
     requires(not has_serialized<Resources...>)
   struct node_builder<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
@@ -144,13 +152,14 @@ namespace phlex::detail {
          unlimited = resource_dependencies<Resources...>::unlimited_resource_accesses(resources)](
           InputMessages const& messages) mutable {
           return invoke_with_resources<Resources...>(
-            node_body, std::forward_as_tuple(ft, messages), std::forward_as_tuple(), unlimited);
+            node_body, std::forward_as_tuple(ft, messages), no_serialized_resources_t{}, unlimited);
         }};
     }
 
     static tbb::flow::sender<Output>& output_port(node_t& node) { return node; }
   };
 
+  // Specialization for a transform or a predicate (serialized resources)
   template <typename InputMessages, typename Output, typename... Resources>
     requires(has_serialized<Resources...>)
   struct node_builder<InputMessages, std::tuple<Output>, std::tuple<Resources...>> {
@@ -185,6 +194,7 @@ namespace phlex::detail {
     }
   };
 
+  // Specialization for an unfold (no serialized resources)
   template <typename InputMessages, typename... Outputs, typename... Resources>
     requires(not has_serialized<Resources...>)
   struct node_builder<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
@@ -205,12 +215,13 @@ namespace phlex::detail {
                  resources)](InputMessages const& messages, auto& ports) mutable {
                 invoke_with_resources<Resources...>(node_body,
                                                     std::forward_as_tuple(ft, messages, ports),
-                                                    std::forward_as_tuple(),
+                                                    no_serialized_resources_t{},
                                                     unlimited);
               }};
     }
   };
 
+  // Specialization for an unfold (serialized resources)
   template <typename InputMessages, typename... Outputs, typename... Resources>
     requires(has_serialized<Resources...>)
   struct node_builder<InputMessages, multifunction_outputs<Outputs...>, std::tuple<Resources...>> {
