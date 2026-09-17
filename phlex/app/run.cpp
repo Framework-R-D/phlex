@@ -28,8 +28,7 @@ namespace phlex::detail {
       throw std::runtime_error("Must provide a 'stage' name.");
     }
 
-    auto g = framework_graph::without_driver(std::move(overrides.stage.value()),
-                                             overrides.max_parallelism);
+    auto g = framework_graph::without_driver(overrides.stage.value(), overrides.max_parallelism);
 
     // It is allowed for users to not specify any modules
     boost::json::object module_configs;

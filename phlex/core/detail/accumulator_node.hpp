@@ -93,7 +93,7 @@ namespace phlex::detail::internal {
   public:
     accumulator_node(tbb::flow::graph& g,
                      phlex::experimental::algorithm_name node_name,
-                     phlex::experimental::identifier const& stage,
+                     phlex::experimental::identifier stage,
                      phlex::experimental::identifier partition_layer_name,
                      phlex::experimental::product_specifications output,
                      result_initializer_t initializer);
@@ -160,7 +160,7 @@ namespace phlex::detail::internal {
   template <typename Result>
   accumulator_node<Result>::accumulator_node(tbb::flow::graph& g,
                                              phlex::experimental::algorithm_name node_name,
-                                             phlex::experimental::identifier const& stage,
+                                             phlex::experimental::identifier stage,
                                              phlex::experimental::identifier partition_layer_name,
                                              phlex::experimental::product_specifications output,
                                              result_initializer_t initializer) :

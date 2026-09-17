@@ -38,7 +38,7 @@ namespace phlex::detail {
 
     graph_proxy(configuration const& config,
                 tbb::flow::graph& g,
-                phlex::experimental::identifier const& stage,
+                phlex::experimental::identifier stage,
                 node_catalog& nodes,
                 std::vector<std::string>& errors)
       requires(not is_bound_object<T>);
@@ -109,7 +109,7 @@ namespace phlex::detail {
 
     graph_proxy(configuration const* config,
                 tbb::flow::graph& g,
-                phlex::experimental::identifier const& stage,
+                phlex::experimental::identifier stage,
                 node_catalog& nodes,
                 std::shared_ptr<T> bound_obj,
                 std::vector<std::string>& errors)
@@ -123,9 +123,9 @@ namespace phlex::detail {
     // short-lived builder.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     tbb::flow::graph& graph_;
-    phlex::experimental::identifier const& stage_;
     node_catalog& nodes_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+    phlex::experimental::identifier stage_;
     std::shared_ptr<T> bound_obj_;
     std::vector<std::string>& errors_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
@@ -133,11 +133,11 @@ namespace phlex::detail {
   template <typename T>
   graph_proxy<T>::graph_proxy(configuration const& config,
                               tbb::flow::graph& g,
-                              phlex::experimental::identifier const& stage,
+                              phlex::experimental::identifier stage,
                               node_catalog& nodes,
                               std::vector<std::string>& errors)
     requires(not is_bound_object<T>)
-    : config_{&config}, graph_{g}, stage_{stage}, nodes_{nodes}, errors_{errors}
+    : config_{&config}, graph_{g}, nodes_{nodes}, stage_{std::move(stage)}, errors_{errors}
   {
   }
 
@@ -229,7 +229,7 @@ namespace phlex::detail {
   template <typename T>
   graph_proxy<T>::graph_proxy(configuration const* config,
                               tbb::flow::graph& g,
-                              phlex::experimental::identifier const& stage,
+                              phlex::experimental::identifier stage,
                               node_catalog& nodes,
                               std::shared_ptr<T> bound_obj,
                               std::vector<std::string>& errors)
@@ -237,8 +237,8 @@ namespace phlex::detail {
     :
     config_{config},
     graph_{g},
-    stage_{stage},
     nodes_{nodes},
+    stage_{std::move(stage)},
     bound_obj_{std::move(bound_obj)},
     errors_{errors}
   {
