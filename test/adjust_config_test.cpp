@@ -1,4 +1,5 @@
 #include "phlex/app/load_module.hpp"
+#include "phlex/app/run.hpp"
 #include "phlex/core/framework_graph.hpp"
 
 #include <boost/json.hpp>
@@ -68,4 +69,20 @@ TEST_CASE("Loading resources requires a cpp parameter", "[config]")
     phlex::detail::load_resource(graph, "my_resource", {}),
     Catch::Matchers::ContainsSubstring(
       "Missing 'cpp' parameter for my_resource -- only C++ resources are supported."));
+}
+
+TEST_CASE("A stage is required to run phlex", "[config]")
+{
+  CHECK_THROWS_WITH(phlex::detail::run({}, {}), "Must provide a 'stage' name.");
+}
+
+TEST_CASE("Malformed driver configuration identifies its parameter", "[config]")
+{
+  boost::json::object configurations;
+  configurations["driver"] = "not an object";
+
+  phlex::detail::overridable_configuration const overrides{.stage = "test"};
+
+  CHECK_THROWS_WITH(phlex::detail::run(configurations, overrides),
+                    Catch::Matchers::ContainsSubstring("Error retrieving parameter 'driver' :"));
 }

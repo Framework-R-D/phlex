@@ -21,6 +21,7 @@ namespace phlex::experimental {
   {
     return std::make_shared<product_store>(data_cell_index::job(), creator, stage);
   }
+  identifier const& product_store::layer_name() const noexcept { return id_->layer_name(); }
   identifier const& product_store::stage() const noexcept { return *stage_; }
   algorithm_name const& product_store::source() const noexcept { return *source_; }
   data_cell_index_ptr const& product_store::index() const noexcept { return id_; }
