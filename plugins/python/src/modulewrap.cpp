@@ -922,7 +922,8 @@ static PyObject* parse_args(PyObject* args,
         if (optcnt) {
           long l = PyLong_AsLong(optcnt);
           Py_DECREF(optcnt);
-          if (l != -1l) {
+          // I'd use -1l if clang-tidy would allow it, but it insists on -1L ...
+          if (l != static_cast<long>(-1)) {
             if ((l + input_selectors.size()) >= input_types.size()) {
               optok = true;
             }
