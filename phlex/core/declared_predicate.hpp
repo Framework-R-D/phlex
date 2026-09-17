@@ -89,6 +89,8 @@ namespace phlex::detail {
             call(ft, messages, std::make_index_sequence<num_products>{}, resource_tokens...);
           ++calls_;
           return {message_id, rc};
+        })},
+      graph_{g}
     {
       if constexpr (num_products > 1ull) {
         make_edge(join_, predicate_);

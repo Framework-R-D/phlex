@@ -128,7 +128,8 @@ namespace phlex::detail {
           ++calls_;
 
           join_.notify_result_repeater_port().try_put(partition_hash);
-        })}
+        })},
+      graph_{g}
     {
       make_edge(join_, fold_);
     }

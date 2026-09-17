@@ -108,7 +108,8 @@ namespace phlex::detail {
             store->index(), name(), std::move(new_products));
 
           return {.store = std::move(new_store), .id = message_id};
-        })}
+        })},
+      graph_{g}
     {
       if constexpr (num_products > 1ull) {
         make_edge(join_, transform_);

@@ -161,6 +161,8 @@ namespace phlex::detail {
                               std::get<2>(outputs).try_put({.index = store->index(),
                                                             .layer_hash = gen.child_layer_hash(),
                                                             .count = gen.child_count()});
+                            })},
+      graph_{g}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, unfold_);

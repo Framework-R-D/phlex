@@ -77,6 +77,8 @@ namespace phlex::detail {
                auto&&... resource_tokens) {
           call(ft, messages, std::make_index_sequence<num_products>{}, resource_tokens...);
           ++calls_;
+        })},
+      graph_{g}
     {
       if constexpr (num_products > 1ull) {
         make_edge(join_, observer_);
