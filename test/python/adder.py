@@ -19,7 +19,7 @@ class AddableProtocol[T](Protocol):
 Addable = TypeVar("Addable", bound=AddableProtocol)
 
 
-def add(i: Addable, j: Addable1 = cast(Any, 42)) -> Addable:
+def add(i: Addable, j: Addable = cast(Any, 42)) -> Addable:
     """Add the inputs together and return the sum total.
 
     Use the standard `+` operator to add the two inputs together
