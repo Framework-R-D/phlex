@@ -65,20 +65,24 @@ namespace phlex::detail {
 
   tbb::flow::receiver<message>& products_consumer::port(product_selector const& input_product)
   {
-    // Everything has a layer for now, so everything needs this
     auto& next = port_for(input_product);
 
-    auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
-      graph(),
-      tbb::flow::unlimited,
-      [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
-        message const& msg, auto& output) {
-        if (msg.store->layer_name() == layer) {
-          std::get<0>(output).try_put(msg);
-        }
-      }));
-    make_edge(tbb::flow::output_port<0>(*layer_check), next);
-    return *layer_check;
+    // If input_product doesn't have a layer, it must be for a node that allows layer omission
+    if (input_product.layer) {
+      auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
+        graph(),
+        tbb::flow::unlimited,
+        [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
+          message const& msg, auto& output) {
+          if (msg.store->layer_name() == layer) {
+            std::get<0>(output).try_put(msg);
+          }
+        }));
+      make_edge(tbb::flow::output_port<0>(*layer_check), next);
+      return *layer_check;
+    }
+    // else
+    return next;
   }
 
   product_selectors const& products_consumer::input() const noexcept { return input_products_; }
