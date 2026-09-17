@@ -63,7 +63,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     problematic = ["", "unknown", None, object]
     for problem in problematic:
         try:
-            malformed_func = Variant(mismatch_func, {"a": int, "b": "", "return": int}, "mf")
+            malformed_func = Variant(mismatch_func, {"a": int, "b": problem, "return": int}, "mf")
             m.transform(
                 malformed_func,
                 input_family=[
