@@ -113,7 +113,7 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
         )
         assert not "supposed to be here"
     except TypeError as e:
-        assert "is not a string" in str(e)
+        assert "not a string" in str(e)
         m.observe(
             observe_one,
             input_family=[
