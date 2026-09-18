@@ -242,50 +242,38 @@ namespace {
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
   // input/output validation helpers
-  inline std::optional<product_selector> validate_selector(PyObject* pysel)
+  inline std::optional<identifier> try_item(PyObject* pysel,
+                                            std::string const& item,
+                                            bool allow_optionals)
+  {
+    PyObject* pyii = PyDict_GetItemString(pysel, item.c_str());
+    if ((!pyii && !allow_optionals) || (pyii && !PyUnicode_Check(pyii))) {
+      PyErr_Format(PyExc_TypeError, ("missing " + item + " or not a string").c_str());
+      return std::nullopt;
+    }
+    if (!pyii) {
+      PyErr_Clear();
+      return std::nullopt;
+    }
+    return std::optional<identifier>{PyUnicode_AsUTF8(pyii)};
+  }
+
+  inline std::optional<product_selector> validate_selector(PyObject* pysel,
+                                                           bool allow_optionals = true)
   {
     if (!PyDict_Check(pysel)) {
       PyErr_Format(PyExc_TypeError, "selector should be a product specification");
       return std::nullopt;
     }
 
-    // creator is optional
-    std::optional<identifier> c;
-    PyObject* pyc = PyDict_GetItemString(pysel, "creator");
-    if (pyc) {
-      if (!PyUnicode_Check(pyc)) {
-        PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
-        return std::nullopt;
-      }
-      c = PyUnicode_AsUTF8(pyc);
-    } else {
-      PyErr_Clear();
+    std::optional<identifier> c = try_item(pysel, "creator", allow_optionals);
+    std::optional<identifier> l = try_item(pysel, "layer", allow_optionals);
+    if (!allow_optionals && !(c.has_value() && l.has_value())) {
+      return std::nullopt;
     }
-
-    // layer is optional
-    std::optional<identifier> l;
-    PyObject* pyl = PyDict_GetItemString(pysel, "layer");
-    if (pyl) {
-      if (!PyUnicode_Check(pyl)) {
-        PyErr_Format(PyExc_TypeError, "provided \"layer\" is not a string");
-        return std::nullopt;
-      }
-      l = identifier(PyUnicode_AsUTF8(pyl));
-    } else {
-      PyErr_Clear();
-    }
-
-    // suffix is optional
-    std::optional<identifier> s;
-    PyObject* pys = PyDict_GetItemString(pysel, "suffix");
-    if (pys) {
-      if (!PyUnicode_Check(pys)) {
-        PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
-        return std::nullopt;
-      }
-      s = identifier(PyUnicode_AsUTF8(pys));
-    } else {
-      PyErr_Clear();
+    std::optional<identifier> s = try_item(pysel, "suffix", true); // always optional
+    if (!s.has_value() && PyErr_Occurred()) {
+      return std::nullopt;
     }
 
     // in the following, each of these parameters is passed differently b/c:
@@ -1650,7 +1638,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // translate and validate the output "selectors"
   // Since a selector in Python is just a dictionary, it isn't called out in the user
   // API as a selector
-  auto opq = validate_selector(registration->output);
+  auto opq = validate_selector(registration->output, false);
   if (!opq.has_value()) {
     // validate_selector has set a python exception with details about the error
     Py_XDECREF(wrapped_callable);
