@@ -61,7 +61,6 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
         assert "missing required argument" in str(e)
 
     try:
-
         class C:
             def __call__(self, di):
                 pass
@@ -122,6 +121,15 @@ def PHLEX_REGISTER_PROVIDERS(s, config):
     except UnicodeEncodeError as e:
         assert "surrogates not allowed" in str(e)
 
+    # provider output requires a layer and selector
+    freq = Variant(lambda di: 42, {"di": "data_cell_index", "return": int}, "freq")
+    for selector, msg in [({"layer": "b", "suffix": "c"}, "missing creator"),
+                          ({"creator": "a", "suffix": "c"}, "missing layer")]:
+        try:
+            s.provide(freq, selector)
+            assert not "supposed to be here"
+        except TypeError as e:
+            assert msg in str(e)
 
 def PHLEX_REGISTER_ALGORITHMS(m, config):
     """Register python consumers as observers to check providers' output.
