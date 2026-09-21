@@ -1,0 +1,9 @@
+<lcgdict>
+  <class name="dune_example::plane_id"/>
+  <class name="dune_example::wire_id"/>
+  <class name="dune_example::hit"/>
+  <class name="std::vector<dune_example::hit>"/>
+  <class name="dune_example::hit_candidate"/>
+  <class name="std::vector<dune_example::hit_candidate>"/>
+  <class name="std::vector<std::vector<dune_example::hit_candidate> >"/>
+</lcgdict>
