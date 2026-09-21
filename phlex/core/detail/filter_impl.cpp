@@ -5,6 +5,27 @@
 #include <string>
 
 namespace {
+  bool is_output_only(phlex::product_selectors const& input_products)
+  {
+    if (input_products.size() != 1) {
+      return false;
+    }
+
+    auto const& sel = input_products[0];
+    static auto const out_id = "for_output_only"_id;
+    static auto const dummy_layer_id = "dummy_layer"_id;
+    if (!sel.creator || (*sel.creator != out_id)) {
+      return false;
+    }
+    if (!sel.suffix || (*sel.suffix != out_id)) {
+      return false;
+    }
+    if (!sel.layer || (*sel.layer != dummy_layer_id)) {
+      return false;
+    }
+    return true;
+  }
+
   phlex::product_selectors const& for_output_only()
   {
     static phlex::product_selector const output_dummy = phlex::product_selector{
@@ -71,10 +92,8 @@ namespace phlex::detail {
       a->second.resize(nargs_);
     }
     auto& elem = a->second;
-    if (nargs_ == 1ull) {
-      // We do not check that the product is in the store if only one argument is
-      // forwarded.  This enables us to forward arguments for regular nodes and also
-      // output nodes, which do not take individual data products.
+    if (is_output_only(*input_products_)) {
+      // Forward arguments for output stores
       elem[0] = store;
       return;
     }
