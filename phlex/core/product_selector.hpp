@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -125,10 +126,14 @@ namespace phlex {
 
   inline std::string format_as(product_selector const& q) { return q.to_string(); }
   using product_selectors = std::vector<product_selector>;
+
+  template <typename T>
+  concept is_product_selector = std::same_as<std::remove_cvref_t<T>, product_selector>;
+
   namespace detail {
     // C is a container of product_selectors
     template <typename C, typename T>
-      requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_selector> &&
+      requires is_product_selector<typename std::remove_cvref_t<C>::value_type> &&
                phlex::detail::is_tuple<T>::value
     struct product_selectors_type_setter {};
     template <typename C, typename... Ts>
@@ -153,7 +158,7 @@ namespace phlex {
   }
 
   template <typename Tup, typename C>
-    requires std::is_same_v<typename std::remove_cvref_t<C>::value_type, product_selector> &&
+    requires is_product_selector<typename std::remove_cvref_t<C>::value_type> &&
              phlex::detail::is_tuple<Tup>::value
   void populate_types(C& container)
   {
