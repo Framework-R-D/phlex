@@ -5,7 +5,9 @@
 #include "fmt/format.h"
 #include "fmt/ranges.h"
 #include "spdlog/spdlog.h"
+#include <concepts>
 #include <ranges>
+#include <string_view>
 
 namespace {
   // Auxiliary functions to reduce complexity of find_producers
@@ -13,6 +15,36 @@ namespace {
   using namespace phlex::experimental;
   using namespace phlex::detail;
   using named_output_port = producer_catalog::named_output_port;
+
+  /// Add an item to a tracking set to detect duplicates
+  template <typename T>
+    requires fmt::formattable<T> || requires(T const& value) {
+      { value.to_string() } -> std::same_as<std::string>;
+    }
+  void add_to_tracker(std::map<std::uint64_t, T const*>& values,
+                      std::uint64_t const hash,
+                      T const& value,
+                      std::string_view const kind)
+  {
+    auto const& [elem, inserted] = values.emplace(hash, &value);
+    auto const display = [](T const& item) {
+      if constexpr (fmt::formattable<T>) {
+        return item;
+      } else {
+        return item.to_string();
+      }
+    };
+    // LCOV_EXCL_START
+    // A collision requires distinct values with the same 64-bit hash.
+    if (!inserted && *(elem->second) != value) {
+      throw std::runtime_error(fmt::format("Encountered two {} ({} and {}) which share the hash {}",
+                                           kind,
+                                           display(*(elem->second)),
+                                           display(value),
+                                           elem->first));
+    }
+    // LCOV_EXCL_STOP
+  }
 
   bool preconditions_violated(product_selector const& query,
                               std::multimap<product_suffix_t, named_output_port> const& producers)
@@ -140,7 +172,7 @@ namespace phlex::detail {
     // Don't really want to copy these fields so we'll use hashes and store a pointer to one copy
     std::map<std::uint64_t, experimental::identifier const*> suffixes;
     if (query.suffix.has_value()) {
-      suffixes.emplace(query.suffix->hash(), &*query.suffix);
+      add_to_tracker(suffixes, query.suffix->hash(), *query.suffix, "identifiers");
     }
     std::map<std::uint64_t, experimental::algorithm_name const*> creators;
     std::map<std::uint64_t, experimental::type_id const*> types;
@@ -159,11 +191,13 @@ namespace phlex::detail {
       if (producer_matches(query, producer)) {
         candidates.push_back(&producer);
         if (!query.suffix.has_value()) {
-          suffixes.emplace(key.hash(), &key);
+          add_to_tracker(suffixes, key.hash(), key, "identifiers");
         }
-        creators.emplace(
+        add_to_tracker(
+          creators,
           phlex::detail::hash(producer.node.plugin().hash(), producer.node.algorithm().hash()),
-          &producer.node);
+          producer.node,
+          "algorithms");
         types.emplace(hash_value(producer.type), &producer.type);
       }
     }
