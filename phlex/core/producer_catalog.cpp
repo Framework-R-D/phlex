@@ -27,6 +27,8 @@ namespace {
                       std::string_view const kind)
   {
     auto const& [elem, inserted] = values.emplace(hash, &value);
+    // Exclude from coverage. It won't run unless we have a hash collision.
+    // LCOV_EXCL_START
     auto const display = [](T const& item) {
       if constexpr (fmt::formattable<T>) {
         return item;
@@ -34,7 +36,7 @@ namespace {
         return item.to_string();
       }
     };
-    // LCOV_EXCL_START
+
     // A collision requires distinct values with the same 64-bit hash.
     if (!inserted && *(elem->second) != value) {
       throw std::runtime_error(fmt::format("Encountered two {} ({} and {}) which share the hash {}",
@@ -46,8 +48,8 @@ namespace {
     // LCOV_EXCL_STOP
   }
 
-  bool preconditions_violated(product_selector const& query,
-                              std::multimap<product_suffix_t, named_output_port> const& producers)
+  bool providers_only(product_selector const& query,
+                      std::multimap<product_suffix_t, named_output_port> const& producers)
   {
     // Will need an update when we have a way to set the current stage name
     if (query.stage.has_value() && query.stage.value() != "CURRENT"_idq) {
@@ -126,8 +128,8 @@ namespace {
                                   bulleted_list(std::views::transform(candidates, port_to_node),
                                                 /*indent=*/1));
     if (suffixes.size() == 1 && creators.size() == 1 && types.size() == 1) {
-      spdlog::info(msg);
-      spdlog::info("This is permitted -- layers may differ");
+      spdlog::debug(msg);
+      spdlog::debug("This is permitted -- layers may differ");
       return;
     }
 
@@ -155,7 +157,7 @@ namespace phlex::detail {
   std::vector<producer_catalog::named_output_port const*> producer_catalog::find_producers(
     product_selector const& query, phlex::experimental::algorithm_name const& consumer_name) const
   {
-    if (preconditions_violated(query, producers_)) {
+    if (providers_only(query, producers_)) {
       return {};
     }
     auto [b, e] = query.suffix.has_value() ? producers_.equal_range(*query.suffix)
