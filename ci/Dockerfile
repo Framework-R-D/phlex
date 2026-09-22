@@ -51,9 +51,14 @@ ARG GPG_KEY_ID
 
 FROM ubuntu:24.04 AS base
 
-# Build arguments must be redeclared in the stage where they are consumed.
-ARG PHLEX_SPACK_TARGET=amd64
+# Build arguments
+# ARG PHLEX_SPACK_TARGET=amd64
+ARG PHLEX_SPACK_TARGET=aarch64
 ARG PHLEX_LLVM_TARGET=auto
+ARG PHLEX_GCC_VERSION=15.3
+# ARG PHLEX_GCC_VERSION=16.2
+ARG PHLEX_LLVM_VERSION=22.1.8
+# ARG PHLEX_LLVM_VERSION=23.1.2
 ARG PHLEX_DEFAULT_COMPILER=gcc
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -64,6 +69,8 @@ ENV SPACK_DISABLE_LOCAL_CONFIG=true
 ENV PHLEX_SPACK_ENV=/opt/spack-environments/phlex-ci
 ENV PHLEX_SPACK_SOURCE_TARGET=${PHLEX_SPACK_TARGET}
 ENV PHLEX_LLVM_SOURCE_TARGET=${PHLEX_LLVM_TARGET}
+ENV PHLEX_GCC_VERSION=${PHLEX_GCC_VERSION}
+ENV PHLEX_LLVM_VERSION=${PHLEX_LLVM_VERSION}
 ENV PHLEX_DEFAULT_COMPILER=${PHLEX_DEFAULT_COMPILER}
 
 SHELL ["/bin/bash", "-c"]
@@ -80,9 +87,9 @@ case "$PHLEX_SPACK_SOURCE_TARGET" in
     ;;
 esac
 case "$PHLEX_LLVM_SOURCE_TARGET" in
-  auto|x86|AArch64) ;;
+  auto|x86|aarch64) ;;
   *)
-    echo "ERROR: PHLEX_LLVM_TARGET must be 'auto', 'x86', or 'AArch64'" >&2
+    echo "ERROR: PHLEX_LLVM_TARGET must be 'auto', 'x86', or 'aarch64'" >&2
     echo "       Got: '$PHLEX_LLVM_SOURCE_TARGET'" >&2
     exit 1
     ;;
@@ -100,6 +107,42 @@ ARCH_MAP_VALIDATE
 ########################################################################
 # Install essential build tools, git, and Python
 
+RUN <<'INSTALL_ESSENTIALS'
+set -euo pipefail
+
+# Install locale support required by tooling and Spack
+apt-get update
+apt-get upgrade -y --no-install-recommends
+apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    cmake \
+    curl \
+    file \
+    git \
+    gnupg \
+    locales-all \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxslt1-dev \
+    libxml2-dev \
+    lsb-release \
+    ninja-build \
+    pkg-config \
+    rpm \
+    rpm2cpio \
+    software-properties-common \
+    sudo \
+    unzip \
+    zlib1g-dev
+
+apt autoremove -y
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+INSTALL_ESSENTIALS
+
+########################################################################
+# Validate and preserve architecture and build details
 RUN <<'ARCHITECTURE_CHECK'
 set -euo pipefail
 
@@ -125,7 +168,7 @@ case "$NATIVE_ARCH" in
     fi
     # Normalize arm64 to aarch64 for Spack
     normalized_spack_target=aarch64
-    normalized_llvm_target=AArch64
+    normalized_llvm_target=aarch64
     ;;
   *)
     echo "ERROR: Unknown host architecture '$NATIVE_ARCH'" >&2
@@ -142,42 +185,15 @@ fi
 
 # RUN layers do not retain shell exports. Persist normalized values for later
 # Spack operations instead of relying on Docker layer state.
-printf 'export PHLEX_SPACK_TARGET=%q\nexport PHLEX_LLVM_TARGET=%q\n' \
-  "$normalized_spack_target" "$normalized_llvm_target" > /etc/profile.d/phlex-targets.sh
+cat > /etc/profile.d/phlex-targets.sh <<EOF
+export PHLEX_SPACK_TARGET="$normalized_spack_target"
+export PHLEX_LLVM_TARGET="$normalized_llvm_target"
+export PHLEX_NATIVE_GCC_VERSION="$(/usr/bin/gcc --version | sed -Ene '1 { s&^gcc[[:space:]]+(\(.*\)[[:space:]]+)?&&p; }')"
+export PHLEX_GCC_VERSION="$PHLEX_GCC_VERSION"
+export PHLEX_LLVM_VERSION="$PHLEX_LLVM_VERSION"
+EOF
 chmod 644 /etc/profile.d/phlex-targets.sh
 ARCHITECTURE_CHECK
-
-RUN <<'INSTALL_ESSENTIALS'
-set -euo pipefail
-
-# Install locale support required by tooling and Spack
-apt-get update
-apt-get upgrade -y --no-install-recommends
-apt-get install -y --no-install-recommends \
-    build-essential \
-    ca-certificates \
-    cmake \
-    curl \
-    file \
-    git \
-    gnupg \
-    locales-all \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxslt1-dev \
-    libxml2-dev \
-    lsb-release \
-    ninja-build \
-    pkg-config \
-    software-properties-common \
-    sudo \
-    unzip \
-    zlib1g-dev
-
-apt autoremove -y
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-INSTALL_ESSENTIALS
 
 ########################################################################
 # Clone Spack checkout used by both CI and dev images
@@ -228,49 +244,28 @@ find "$SPACK_REPO_ROOT" -type d -exec chmod g+s {} +
 . /spack/share/spack/setup-env.sh
 . /etc/profile.d/phlex-targets.sh
 
-render_target_descriptor() {
-  if [ "$#" -ne 4 ]; then
-    echo "ERROR: render_target_descriptor requires template, output, spack-count, llvm-count" >&2
+render_spack_template() {
+  if [ "$#" -ne 2 ]; then
+    echo "ERROR: render_target_descriptor requires template, output" >&2
     exit 1
   fi
 
   local template_path=$1
   local output_path=$2
-  local expected_spack_count=$3
-  local expected_llvm_count=$4
-  local spack_expr='${PHLEX_SPACK_TARGET:-x86_64_v3}'
-  local llvm_expr='${PHLEX_LLVM_TARGET:-x86}'
-  local spack_count
-  local llvm_count
 
-  : "${PHLEX_SPACK_TARGET:?PHLEX_SPACK_TARGET must be set before rendering}"
+  : "${PHLEX_GCC_VERSION:?PHLEX_GCC_VERSION must be set before rendering}"
   : "${PHLEX_LLVM_TARGET:?PHLEX_LLVM_TARGET must be set before rendering}"
+  : "${PHLEX_LLVM_VERSION:?PHLEX_LLVM_VERSION must be set before rendering}"
+  : "${PHLEX_NATIVE_GCC_VERSION:?PHLEX_NATIVE_GCC_VERSION must be set before rendering}"
+  : "${PHLEX_SPACK_TARGET:?PHLEX_SPACK_TARGET must be set before rendering}"
 
-  spack_count=$({ grep -Foc "$spack_expr" "$template_path" || true; })
-  llvm_count=$({ grep -Foc "$llvm_expr" "$template_path" || true; })
-
-  if [ "$spack_count" -ne "$expected_spack_count" ]; then
-    echo "ERROR: Expected $expected_spack_count occurrences of $spack_expr in $template_path, found $spack_count" >&2
-    exit 1
-  fi
-  if [ "$llvm_count" -ne "$expected_llvm_count" ]; then
-    echo "ERROR: Expected $expected_llvm_count occurrences of $llvm_expr in $template_path, found $llvm_count" >&2
-    exit 1
-  fi
-
-  sed \
-    -e "s|${spack_expr}|${PHLEX_SPACK_TARGET}|g" \
-    -e "s|${llvm_expr}|${PHLEX_LLVM_TARGET}|g" \
+  sed -E \
+    -e "s|\\$\\{PHLEX_GCC_VERSION\\}|${PHLEX_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_TARGET\\}|${PHLEX_LLVM_TARGET}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_VERSION\\}|${PHLEX_LLVM_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_NATIVE_GCC_VERSION\\}|${PHLEX_NATIVE_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_SPACK_TARGET\\}|${PHLEX_SPACK_TARGET}|g" \
     "$template_path" > "$output_path"
-
-  if grep -Fq "$spack_expr" "$output_path"; then
-    echo "ERROR: Unresolved $spack_expr remained in $output_path" >&2
-    exit 1
-  fi
-  if grep -Fq "$llvm_expr" "$output_path"; then
-    echo "ERROR: Unresolved $llvm_expr remained in $output_path" >&2
-    exit 1
-  fi
 }
 
 # Other config settings
@@ -283,7 +278,7 @@ spack config --scope defaults add config:install_tree:padded_length:255
 spack --timestamp compiler find --scope site
 
 # Install settings from the rendered build-time packages.yaml copy.
-render_target_descriptor /tmp/packages.yaml.template /tmp/packages.yaml 1 0
+render_spack_template /tmp/packages.yaml.template /tmp/packages.yaml
 spack config --scope site add -f /tmp/packages.yaml
 rm -f /tmp/packages.yaml /tmp/packages.yaml.template
 
@@ -306,7 +301,6 @@ rm -f /tmp/upgrade_repos.py
 spack repo list
 spack clean -m
 spack audit configs
-
 SPACK_CONFIGURE_DEFAULTS
 
 ########################################################################
@@ -366,11 +360,11 @@ GCC_TARGET="${PHLEX_SPACK_TARGET}"
 
 spack --timestamp install --fail-fast -j "$(nproc)" \
       --no-check-signature \
-      gcc@15.3 target="${GCC_TARGET}" \
+      gcc@${PHLEX_GCC_VERSION} target="${GCC_TARGET}" \
       +binutils+graphite~nvptx+piclibs+strip \
       build_type=Release \
       languages=c,c++,fortran,lto \
-      %c,cxx=gcc@13.3.0 # % must be LAST (along with ^ dependencies)
+      %c,cxx=gcc@${PHLEX_NATIVE_GCC_VERSION} # % must be LAST (along with ^ dependencies)
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}
@@ -379,13 +373,13 @@ if [ -d "/build-cache" ]; then
   else
     key_args=(-u)
   fi
-  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) --update-index \
-        /build-cache $(spack find --no-groups -LI | \
-        sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
+  spack --timestamp buildcache create --allow-missing ${key_args[*]:+"${key_args[@]}"} -j $(nproc) \
+  --update-index /build-cache $(spack find --no-groups -LI | \
+  sed -Ene 's&^\[\+\] +([^[:space:]]+).*$&/\1&p')
 fi
 
 # Make GCC external to simplify concretization
-spack compiler find $(spack location -i gcc@15)
+spack compiler find $(spack location -i gcc@${PHLEX_GCC_VERSION})
 
 spack clean -dfs
 SPACK_INSTALL_GCC
@@ -404,52 +398,31 @@ set -euo pipefail
 . /spack/share/spack/setup-env.sh
 . /etc/profile.d/phlex-targets.sh
 
-render_target_descriptor() {
-  if [ "$#" -ne 4 ]; then
-    echo "ERROR: render_target_descriptor requires template, output, spack-count, llvm-count" >&2
+render_spack_template() {
+  if [ "$#" -ne 2 ]; then
+    echo "ERROR: render_target_descriptor requires template, output" >&2
     exit 1
   fi
 
   local template_path=$1
   local output_path=$2
-  local expected_spack_count=$3
-  local expected_llvm_count=$4
-  local spack_expr='${PHLEX_SPACK_TARGET:-x86_64_v3}'
-  local llvm_expr='${PHLEX_LLVM_TARGET:-x86}'
-  local spack_count
-  local llvm_count
 
-  : "${PHLEX_SPACK_TARGET:?PHLEX_SPACK_TARGET must be set before rendering}"
+  : "${PHLEX_GCC_VERSION:?PHLEX_GCC_VERSION must be set before rendering}"
   : "${PHLEX_LLVM_TARGET:?PHLEX_LLVM_TARGET must be set before rendering}"
+  : "${PHLEX_LLVM_VERSION:?PHLEX_LLVM_VERSION must be set before rendering}"
+  : "${PHLEX_NATIVE_GCC_VERSION:?PHLEX_NATIVE_GCC_VERSION must be set before rendering}"
+  : "${PHLEX_SPACK_TARGET:?PHLEX_SPACK_TARGET must be set before rendering}"
 
-  spack_count=$({ grep -Foc "$spack_expr" "$template_path" || true; })
-  llvm_count=$({ grep -Foc "$llvm_expr" "$template_path" || true; })
-
-  if [ "$spack_count" -ne "$expected_spack_count" ]; then
-    echo "ERROR: Expected $expected_spack_count occurrences of $spack_expr in $template_path, found $spack_count" >&2
-    exit 1
-  fi
-  if [ "$llvm_count" -ne "$expected_llvm_count" ]; then
-    echo "ERROR: Expected $expected_llvm_count occurrences of $llvm_expr in $template_path, found $llvm_count" >&2
-    exit 1
-  fi
-
-  sed \
-    -e "s|${spack_expr}|${PHLEX_SPACK_TARGET}|g" \
-    -e "s|${llvm_expr}|${PHLEX_LLVM_TARGET}|g" \
+  sed -E \
+    -e "s|\\$\\{PHLEX_GCC_VERSION\\}|${PHLEX_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_TARGET\\}|${PHLEX_LLVM_TARGET}|g" \
+    -e "s|\\$\\{PHLEX_LLVM_VERSION\\}|${PHLEX_LLVM_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_NATIVE_GCC_VERSION\\}|${PHLEX_NATIVE_GCC_VERSION}|g" \
+    -e "s|\\$\\{PHLEX_SPACK_TARGET\\}|${PHLEX_SPACK_TARGET}|g" \
     "$template_path" > "$output_path"
-
-  if grep -Fq "$spack_expr" "$output_path"; then
-    echo "ERROR: Unresolved $spack_expr remained in $output_path" >&2
-    exit 1
-  fi
-  if grep -Fq "$llvm_expr" "$output_path"; then
-    echo "ERROR: Unresolved $llvm_expr remained in $output_path" >&2
-    exit 1
-  fi
 }
 
-render_target_descriptor /tmp/spack.yaml.template /tmp/spack.yaml 1 2
+render_spack_template /tmp/spack.yaml.template /tmp/spack.yaml
 mkdir -p "$(dirname "$PHLEX_SPACK_ENV")"
 rm -rf "$PHLEX_SPACK_ENV"
 spack --timestamp env create -d "$PHLEX_SPACK_ENV" /tmp/spack.yaml
@@ -476,7 +449,6 @@ set -euo pipefail
 # failures (EXDEV) when Spack rotates view -> view.old.<hash>.
 rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
-
 
 spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature \
@@ -533,11 +505,11 @@ rm -rf "$PHLEX_SPACK_ENV/.spack-env/view"
 rm -rf "$PHLEX_SPACK_ENV"/.spack-env/view.old.*
 
 # PHLEX_LLVM_TARGET is sourced from the normalized carrier prepared early in the build
-# Valid values: x86 (for x86_64_v3), AArch64 (for aarch64)
+# Valid values: x86 (for x86_64_v3), aarch64 (for aarch64)
 
 spack --timestamp install --fail-fast -j $(nproc) \
   --no-add --only-concrete --no-check-signature \
-  llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets="${PHLEX_LLVM_TARGET}"
+  llvm@${PHLEX_LLVM_VERSION} +zstd +llvm_dylib +link_llvm_dylib ~lldb targets="${PHLEX_LLVM_TARGET}"
 
 if [ -d "/build-cache" ]; then
   key_id=${GPG_KEY_ID:-$({ gpg --list-secret-keys --with-colons | grep -Ee '^sec' | cut -d: -f 5 | head -n1; } 2>/dev/null || true)}

@@ -1,7 +1,7 @@
 # ######################################################################
 # In this environment, we specify that some packages be built with the
-# native compiler (currently GCC 13 on Ubuntu 24.04), and others with
-# the compiler required to build Phlex (currently GCC 15).
+# native compiler (currently GCC ${PHLEX_NATIVE_GCC_VERSION}), and others with
+# the compiler required to build Phlex (currently GCC ${PHLEX_GCC_VERSION}).
 # ######################################################################
 
 spack:
@@ -16,7 +16,7 @@ spack:
     - py-pytest-cov # Needed for Python coverage reports
     - py-pyyaml # Needed by run-clang-tidy --export-fixes to merge per-TU fix files
     - |
-      llvm@22.1.8 +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=${PHLEX_LLVM_TARGET:-x86}
+      llvm@${PHLEX_LLVM_VERSION} +zstd +llvm_dylib +link_llvm_dylib ~lldb targets=${PHLEX_LLVM_TARGET}
 
   view:
     default:
@@ -38,19 +38,19 @@ spack:
       require:
         - "~qtgui"
         - "@4:"
-        - "target=${PHLEX_SPACK_TARGET:-x86_64_v3}"
+        - "target=${PHLEX_SPACK_TARGET}"
 
     llvm:
       require:
-        - "target=${PHLEX_LLVM_TARGET:-x86}"
-        - "%c,cxx=gcc@15"
+        - "targets=${PHLEX_LLVM_TARGET}"
+        - "%c,cxx=gcc@${PHLEX_GCC_VERSION}"
 
     phlex:
       require:
         - "@develop"
         - "+form"
         - "cxxstd=23"
-        - "%cxx=gcc@15"
+        - "%cxx=gcc@${PHLEX_GCC_VERSION}"
         - "^intel-tbb@2023.0.0:"
 
     py-cython:
@@ -74,13 +74,15 @@ spack:
       require:
         - "@3.12"
 
-    # root and its dependents (phlex) must be built with gcc@15 so
-    # they share a single ABI.  root's own dependencies (e.g. zlib,
-    # python, xrootd) inherit the gcc@13 site default instead.
+    # ROOT and its dependents (e.g. phlex) must be built with
+    # ${PHLEX_GCC_VERSION} so they share a single ABI. ROOT's own
+    # dependencies (e.g. zlib, python, xrootd) inherit the
+    # gcc@${PHLEX_NATIVE_GCC_VERSION} native compiler dependency.
+    #
     # ROOT should be built with the same version of the C++ standard
     # as will be used by Phlex (C++23 for now).
     root:
       require:
         - "~x" # No graphics libraries required
         - "cxxstd=23"
-        - "%c,cxx=gcc@15"
+        - "%c,cxx=gcc@${PHLEX_GCC_VERSION}"
