@@ -6,8 +6,7 @@
 #include <compare>
 #include <iosfwd>
 
-
-namespace dune_example {
+namespace form::test {
 
   /// A readout plane: cryostat, TPC, and plane number.
   struct plane_id {
@@ -83,6 +82,6 @@ namespace dune_example {
   std::ostream& operator<<(std::ostream& os, wire_id const& id);
   std::ostream& operator<<(std::ostream& os, hit const& h);
 
-} // namespace dune_example
+} // namespace form::test
 
 #endif // TEST_FORM_DATA_PRODUCTS_DUNE_EXAMPLE_HIT_HPP

@@ -4,7 +4,7 @@
 
 #include <ostream>
 
-namespace dune_example {
+namespace form::test {
 
   std::ostream& operator<<(std::ostream& os, hit_candidate const& candidate)
   {
@@ -13,4 +13,4 @@ namespace dune_example {
               << ", height=" << candidate.hit_height << "}";
   }
 
-} // namespace dune_example
+} // namespace form::test

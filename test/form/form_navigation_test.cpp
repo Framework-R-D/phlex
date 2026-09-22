@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-using namespace form::test::navigation;
+using namespace form::test;
 
 namespace {
 
@@ -44,8 +44,14 @@ namespace {
 
     // 4 events, 15 segments each, from one creator; then 4 events from the other.
     for (auto const& [name, layer_columns, creators, rows] :
-         {expectation{segment_table, {"event", "segment"}, {"Toy_Tracker"}, 60},
-          expectation{event_table, {"event"}, {"Toy_Tracker_Event"}, 4}}) {
+         {expectation{.table = segment_table,
+                      .layer_columns = {"event", "segment"},
+                      .creators = {"Toy_Tracker"},
+                      .rows = 60},
+          expectation{.table = event_table,
+                      .layer_columns = {"event"},
+                      .creators = {"Toy_Tracker_Event"},
+                      .rows = 4}}) {
       auto const* table = found.table(name);
       checks.check(table != nullptr, "the file has a navigation table " + name);
       if (table == nullptr) {
@@ -55,6 +61,7 @@ namespace {
       checks.check(table->entries() == rows, name + " has one row per data cell");
 
       std::vector<std::string> names;
+      names.reserve(table->creators.size());
       for (auto const& creator : table->creators) {
         names.push_back(creator.creator);
       }

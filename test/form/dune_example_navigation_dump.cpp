@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-using namespace form::test::navigation;
+using namespace form::test;
 
 namespace {
 
@@ -30,16 +30,14 @@ namespace {
 
   expected_shape expected()
   {
-    namespace fixture = dune_example::fixture;
-
     expected_shape shape;
-    shape.spill_cells = fixture::number_of_spills;
-    shape.wire_cells = fixture::number_of_spills * fixture::number_of_wires;
-    for (unsigned int spill = 0; spill != fixture::number_of_spills; ++spill) {
-      for (unsigned int wire = 0; wire != fixture::number_of_wires; ++wire) {
-        for (unsigned int roi = 0, rois = fixture::rois_in(spill, wire); roi != rois; ++roi) {
+    shape.spill_cells = number_of_spills;
+    shape.wire_cells = std::size_t{number_of_spills} * number_of_wires;
+    for (unsigned int spill = 0; spill != number_of_spills; ++spill) {
+      for (unsigned int wire = 0; wire != number_of_wires; ++wire) {
+        for (unsigned int roi = 0, rois = rois_in(spill, wire); roi != rois; ++roi) {
           ++shape.roi_cells;
-          if (!fixture::fit_succeeded(spill, wire, roi)) {
+          if (!fit_succeeded(spill, wire, roi)) {
             ++shape.unfitted_rois;
           }
         }
@@ -60,14 +58,18 @@ namespace {
     };
 
     for (auto const& [name, layer_columns, creators, rows] :
-         {expectation{prefix + "_cells_spill_wire_roi",
-                      {"spill", "wire", "roi"},
-                      {"cand_hit_standard", "find_hits_with_gaussians"},
-                      shape.roi_cells},
-          expectation{
-            prefix + "_cells_spill_wire", {"spill", "wire"}, {"fold_roi_hits"}, shape.wire_cells},
-          expectation{
-            prefix + "_cells_spill", {"spill"}, {"fold_hits_into_vector"}, shape.spill_cells}}) {
+         {expectation{.table = prefix + "_cells_spill_wire_roi",
+                      .layer_columns = {"spill", "wire", "roi"},
+                      .creators = {"cand_hit_standard", "find_hits_with_gaussians"},
+                      .rows = shape.roi_cells},
+          expectation{.table = prefix + "_cells_spill_wire",
+                      .layer_columns = {"spill", "wire"},
+                      .creators = {"fold_roi_hits"},
+                      .rows = shape.wire_cells},
+          expectation{.table = prefix + "_cells_spill",
+                      .layer_columns = {"spill"},
+                      .creators = {"fold_hits_into_vector"},
+                      .rows = shape.spill_cells}}) {
       auto const* table = found.table(name);
       checks.check(table != nullptr, "the file has a navigation table " + name);
       if (table == nullptr) {
@@ -78,6 +80,7 @@ namespace {
       checks.check(table->entries() == rows, name + " has one row per data cell");
 
       std::vector<std::string> names;
+      names.reserve(table->creators.size());
       for (auto const& creator : table->creators) {
         names.push_back(creator.creator);
       }
@@ -121,8 +124,8 @@ namespace {
     checks.check(std::ranges::none_of(candidates->rows,
                                       [](std::uint64_t row) { return row == invalid_row_id; }),
                  "cand_hit_standard wrote every data cell of its hierarchy");
-    checks.check(static_cast<std::size_t>(std::ranges::count(fitted->rows, invalid_row_id)) ==
-                   expected().unfitted_rois,
+    auto const absent = std::ranges::count(fitted->rows, invalid_row_id);
+    checks.check(std::cmp_equal(absent, expected().unfitted_rois),
                  "find_hits_with_gaussians is marked absent exactly where it wrote nothing");
   }
 

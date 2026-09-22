@@ -7,8 +7,7 @@
 #include <iosfwd>
 #include <vector>
 
-
-namespace dune_example {
+namespace form::test {
 
   /// A candidate hit before Gaussian fitting.
   struct hit_candidate {
@@ -31,6 +30,6 @@ namespace dune_example {
 
   std::ostream& operator<<(std::ostream& os, hit_candidate const& candidate);
 
-} // namespace dune_example
+} // namespace form::test
 
 #endif // TEST_FORM_DATA_PRODUCTS_DUNE_EXAMPLE_HIT_CANDIDATE_HPP

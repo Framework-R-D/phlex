@@ -4,7 +4,7 @@
 
 #include <ostream>
 
-namespace dune_example {
+namespace form::test {
 
   std::ostream& operator<<(std::ostream& os, plane_id const& id)
   {
@@ -31,4 +31,4 @@ namespace dune_example {
               << ", " << h.wire << "}";
   }
 
-} // namespace dune_example
+} // namespace form::test

@@ -19,7 +19,7 @@
  *   {spill}             fold_hits_into_vector     -> spillHits
  */
 
-namespace dune_example::fixture {
+namespace form::test {
 
   /// Number of spills in the fixture.
   inline constexpr unsigned int number_of_spills = 2;
@@ -51,6 +51,6 @@ namespace dune_example::fixture {
   /// Fitted hits for a spill.
   std::vector<hit> hits_in_spill(unsigned int spill);
 
-} // namespace dune_example::fixture
+} // namespace form::test
 
 #endif // TEST_FORM_DUNE_EXAMPLE_HIT_MAKER_HPP

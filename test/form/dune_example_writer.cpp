@@ -27,6 +27,8 @@
  * deliberately small enough that the whole navigation layout prints on one page.
  */
 
+using namespace form::test;
+
 namespace {
 
   // Creators. Named after the design-3 GausHitFinder nodes in phlex-examples, so that the
@@ -61,9 +63,91 @@ namespace {
 
   form::detail::experimental::cell_index spill_cell(unsigned int const spill)
   {
-    return {.id = std::format("[spill:{}]", spill),
-            .hierarchy = {{"spill"}},
-            .layer_values = {spill}};
+    return {
+      .id = std::format("[spill:{}]", spill), .hierarchy = {{"spill"}}, .layer_values = {spill}};
+  }
+
+  struct counts {
+    unsigned int roi_cells{};
+    unsigned int fitted_rois{};
+  };
+
+  form::experimental::config::item_config products_config(std::string const& filename,
+                                                          form::technology::id const technology)
+  {
+    form::experimental::config::item_config config_items;
+    config_items.add_item(hit_candidates_label, filename, technology);
+    config_items.add_item(roi_hits_label, filename, technology);
+    config_items.add_item(wire_hits_label, filename, technology);
+    config_items.add_item(spill_hits_label, filename, technology);
+    return config_items;
+  }
+
+  // hit holds a wire_id, which derives from plane_id, and  merged_hit_candidates is a vector of
+  // vectors. RNTuple's native field mapping does not cover either, so ask for the streamer field.
+  form::experimental::config::tech_setting_config streamer_field_config()
+  {
+    form::experimental::config::tech_setting_config tech_config;
+    for (auto const& container : {std::string(cand_hit_standard) + "/" + hit_candidates_label,
+                                  std::string(find_hits_with_gaussians) + "/" + roi_hits_label,
+                                  std::string(fold_roi_hits) + "/" + wire_hits_label,
+                                  std::string(fold_hits_into_vector) + "/" + spill_hits_label}) {
+      tech_config.container_settings[form::technology::root_rntuple][container].emplace_back(
+        "force_streamer_field", "true");
+    }
+    return tech_config;
+  }
+
+  /// Both creators of the {spill, wire, roi} hierarchy, for one region of interest.
+  void write_roi(form::experimental::form_writer_interface& form,
+                 counts& tally,
+                 unsigned int const spill,
+                 unsigned int const wire,
+                 unsigned int const roi)
+  {
+    auto const cell = roi_cell(spill, wire, roi);
+    ++tally.roi_cells;
+
+    // Candidate finding
+    auto const candidates = candidates_in_roi(spill, wire, roi);
+    form::experimental::product_with_name const candidate_product{
+      .label = hit_candidates_label, .data = &candidates, .type = &typeid(merged_hit_candidates)};
+    form.write(cand_hit_standard, cell, candidate_product);
+
+    // Gaussian fit
+    auto const hits = hits_in_roi(spill, wire, roi);
+    if (hits.empty()) {
+      std::cout << "  " << cell.id << " no surviving candidate -- " << find_hits_with_gaussians
+                << " writes nothing\n";
+      return;
+    }
+    ++tally.fitted_rois;
+    form::experimental::product_with_name const roi_product{
+      .label = roi_hits_label, .data = &hits, .type = &typeid(std::vector<hit>)};
+    form.write(find_hits_with_gaussians, cell, roi_product);
+  }
+
+  counts write_everything(form::experimental::form_writer_interface& form)
+  {
+    counts tally;
+    for (unsigned int spill = 0; spill != number_of_spills; ++spill) {
+      for (unsigned int wire = 0; wire != number_of_wires; ++wire) {
+        for (unsigned int roi = 0, rois = rois_in(spill, wire); roi != rois; ++roi) {
+          write_roi(form, tally, spill, wire, roi);
+        }
+
+        auto const wire_hits = hits_on_wire(spill, wire);
+        form::experimental::product_with_name const wire_product{
+          .label = wire_hits_label, .data = &wire_hits, .type = &typeid(std::vector<hit>)};
+        form.write(fold_roi_hits, wire_cell(spill, wire), wire_product);
+      }
+
+      auto const spill_hits = hits_in_spill(spill);
+      form::experimental::product_with_name const spill_product{
+        .label = spill_hits_label, .data = &spill_hits, .type = &typeid(std::vector<hit>)};
+      form.write(fold_hits_into_vector, spill_cell(spill), spill_product);
+    }
+    return tally;
   }
 
 } // namespace
@@ -73,84 +157,20 @@ int main(int argc, char** argv)
   std::string const filename = (argc > 1) ? argv[1] : "dune_example_navigation.root";
   auto const technology = form::test::get_technology((argc > 2) ? argv[2] : "ROOT_TTREE");
 
-  form::experimental::config::item_config config_items;
-  config_items.add_item(hit_candidates_label, filename, technology);
-  config_items.add_item(roi_hits_label, filename, technology);
-  config_items.add_item(wire_hits_label, filename, technology);
-  config_items.add_item(spill_hits_label, filename, technology);
-
-  // dune_example::hit holds a dune_example::wire_id, which derives from plane_id, and
-  // dune_example::merged_hit_candidates is a vector of vectors. RNTuple's native field mapping does
-  // not cover either, so ask for the streamer field, as the toy fixture already does for
-  // Toy_Tracker/trackStartPoints.
-  form::experimental::config::tech_setting_config tech_config;
-  for (auto const& container : {std::string(cand_hit_standard) + "/" + hit_candidates_label,
-                                std::string(find_hits_with_gaussians) + "/" + roi_hits_label,
-                                std::string(fold_roi_hits) + "/" + wire_hits_label,
-                                std::string(fold_hits_into_vector) + "/" + spill_hits_label}) {
-    tech_config.container_settings[form::technology::root_rntuple][container].emplace_back(
-      "force_streamer_field", "true");
-  }
-
+  auto const config_items = products_config(filename, technology);
+  auto const tech_config = streamer_field_config();
   form::experimental::form_writer_interface form(config_items, tech_config);
 
   std::cout << "FORM navigation example: writing " << filename << '\n';
 
-  unsigned int roi_cells = 0;
-  unsigned int fitted_rois = 0;
-
-  for (unsigned int spill = 0; spill != dune_example::fixture::number_of_spills; ++spill) {
-    for (unsigned int wire = 0; wire != dune_example::fixture::number_of_wires; ++wire) {
-      unsigned int const rois = dune_example::fixture::rois_in(spill, wire);
-      for (unsigned int roi = 0; roi != rois; ++roi) {
-        auto const cell = roi_cell(spill, wire, roi);
-        ++roi_cells;
-
-        // Creator 1 of 2 on this hierarchy: candidate finding, which writes every region.
-        auto const candidates = dune_example::fixture::candidates_in_roi(spill, wire, roi);
-        form::experimental::product_with_name const candidate_product{
-          .label = hit_candidates_label,
-          .data = &candidates,
-          .type = &typeid(dune_example::merged_hit_candidates)};
-        form.write(cand_hit_standard, cell, candidate_product);
-
-        // Creator 2 of 2: the Gaussian fit, which writes nothing when no candidate survives.
-        // Those regions are what put invalid_row_id into the wide navigation table.
-        auto const hits = dune_example::fixture::hits_in_roi(spill, wire, roi);
-        if (hits.empty()) {
-          std::cout << "  " << cell.id << " no surviving candidate -- " << find_hits_with_gaussians
-                    << " writes nothing\n";
-          continue;
-        }
-        ++fitted_rois;
-        form::experimental::product_with_name const roi_product{
-          .label = roi_hits_label, .data = &hits, .type = &typeid(std::vector<dune_example::hit>)};
-        form.write(find_hits_with_gaussians, cell, roi_product);
-      }
-
-      auto const wire_hits = dune_example::fixture::hits_on_wire(spill, wire);
-      form::experimental::product_with_name const wire_product{
-        .label = wire_hits_label,
-        .data = &wire_hits,
-        .type = &typeid(std::vector<dune_example::hit>)};
-      form.write(fold_roi_hits, wire_cell(spill, wire), wire_product);
-    }
-
-    auto const spill_hits = dune_example::fixture::hits_in_spill(spill);
-    form::experimental::product_with_name const spill_product{
-      .label = spill_hits_label,
-      .data = &spill_hits,
-      .type = &typeid(std::vector<dune_example::hit>)};
-    form.write(fold_hits_into_vector, spill_cell(spill), spill_product);
-  }
+  auto const tally = write_everything(form);
 
   // Not strictly needed -- the destructor would do it -- but this is the example, so it shows
   // the call that writes the navigation tables.
   form.finalize();
 
-  namespace fixture = dune_example::fixture;
-  std::cout << "FORM navigation example: wrote " << roi_cells << " roi cells (" << fitted_rois
-            << " fitted), " << (fixture::number_of_spills * fixture::number_of_wires)
-            << " wire cells, " << fixture::number_of_spills << " spill cells\n";
+  std::cout << "FORM navigation example: wrote " << tally.roi_cells << " roi cells ("
+            << tally.fitted_rois << " fitted), " << (number_of_spills * number_of_wires)
+            << " wire cells, " << number_of_spills << " spill cells\n";
   return 0;
 }

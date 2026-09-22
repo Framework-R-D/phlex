@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <format>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -32,7 +33,7 @@
  * storage layer, so the checks are independent of the fixture and storage technology.
  */
 
-namespace form::test::navigation {
+namespace form::test {
 
   using form::detail::experimental::create_file;
   using form::detail::experimental::create_read_container;
@@ -262,16 +263,157 @@ namespace form::test::navigation {
       if (key == "job") {
         return {}; // the job cell has no layers
       }
-      auto const candidates = split_on(key, '_');
+      auto candidates = split_on(key, '_');
       for (auto const& candidate : candidates) {
         if (!reader.has(column_of(table, candidate))) {
           checks.check(false,
-                       "hierarchy key '" + key + "' resolves to the layer columns of " + table +
-                         " (no column '" + candidate + "'; a layer name containing '_'?)");
+                       std::format("hierarchy key '{}' resolves to the layer columns of {} (no "
+                                   "column '{}'; a layer name containing '_'?)",
+                                   key,
+                                   table,
+                                   candidate));
           return {};
         }
       }
       return candidates;
+    }
+
+    inline std::vector<std::string> table_headers(navigation_table const& table)
+    {
+      std::vector<std::string> headers;
+      headers.reserve(table.layer_columns.size() + table.creators.size());
+      headers.insert(headers.end(), table.layer_columns.begin(), table.layer_columns.end());
+      for (auto const& creator : table.creators) {
+        headers.push_back(creator.column);
+      }
+      return headers;
+    }
+
+    inline std::vector<std::string> table_row(navigation_table const& table, std::size_t const row)
+    {
+      std::vector<std::string> values;
+      values.reserve(table.layers.size() + table.creators.size());
+      for (auto const& layer : table.layers) {
+        values.push_back(std::to_string(layer[row]));
+      }
+      for (auto const& creator : table.creators) {
+        auto const id = creator.rows[row];
+        values.push_back(id == invalid_row_id ? "-" : std::to_string(id));
+      }
+      return values;
+    }
+
+    inline std::vector<std::size_t> column_widths(navigation_table const& table,
+                                                  std::vector<std::string> const& headers)
+    {
+      std::vector<std::size_t> widths;
+      widths.reserve(headers.size());
+      for (auto const& header : headers) {
+        widths.push_back(header.size());
+      }
+      for (std::size_t row = 0; row != table.entries(); ++row) {
+        auto const values = table_row(table, row);
+        for (std::size_t col = 0; col != values.size() && col != widths.size(); ++col) {
+          widths[col] = std::max(widths[col], values[col].size());
+        }
+      }
+      return widths;
+    }
+
+    inline void print_row(std::vector<std::size_t> const& widths,
+                          std::vector<std::string> const& values)
+    {
+      std::ostringstream line;
+      for (std::size_t col = 0; col != values.size() && col != widths.size(); ++col) {
+        line << (col == 0 ? "  " : " | ") << std::setw(static_cast<int>(widths[col]))
+             << values[col];
+      }
+      std::cout << line.str() << '\n';
+    }
+
+    inline void check_table_shape(checker& checks, navigation_table const& table)
+    {
+      auto const entries = table.entries();
+      checks.check(entries != 0, table.name + " is not empty");
+
+      for (std::size_t col = 0; col != table.layers.size(); ++col) {
+        checks.check(table.layers[col].size() == entries,
+                     table.name + " column '" + table.layer_columns[col] +
+                       "' has one value per row");
+      }
+      for (auto const& creator : table.creators) {
+        checks.check(creator.rows.size() == entries,
+                     table.name + " column '" + creator.column + "' has one value per row");
+      }
+
+      if (table.layers.empty()) {
+        return;
+      }
+      for (std::size_t row = 1; row < entries; ++row) {
+        checks.check(table.layer_key(row - 1) < table.layer_key(row),
+                     table.name + " row " + std::to_string(row) +
+                       " sorts after the one before it, so cells are sorted and unique");
+      }
+    }
+
+    inline void check_against_creator_index(checker& checks,
+                                            column_reader& reader,
+                                            navigation_table const& table)
+    {
+      for (auto const& creator : table.creators) {
+        auto const recorded_ids = reader.column<std::string>(column_of(creator.creator, "index"));
+        checks.check(!recorded_ids.empty(),
+                     "per-creator index '" + creator.creator + "/index' is readable");
+
+        bool wrote_something = false;
+        for (std::size_t row = 0; row != creator.rows.size(); ++row) {
+          auto const id = creator.rows[row];
+          if (id == invalid_row_id) {
+            continue;
+          }
+          wrote_something = true;
+          if (id >= recorded_ids.size()) {
+            checks.check(false,
+                         "navigation row for creator '" + creator.creator +
+                           "' is within its index container");
+            continue;
+          }
+          auto const recorded = layer_values_of(recorded_ids[id]);
+          if (!recorded) {
+            checks.check(false, "id at the navigated row has the expected data cell form");
+            continue;
+          }
+          if (!table.layers.empty()) {
+            checks.check(*recorded == table.layer_key(row),
+                         "creator '" + creator.creator + "' row " + std::to_string(id) +
+                           " holds the data cell navigation says it does");
+          }
+        }
+        checks.check(wrote_something,
+                     "creator '" + creator.creator + "' has a column in " + table.name +
+                       " only because it wrote there");
+      }
+    }
+
+    inline void check_dictionary(checker& checks, layout const& found)
+    {
+      for (auto const& product : found.products) {
+        auto const what = "dictionary entry '" + product.product_name + "'";
+        checks.check(product.container_name == product.creator + "/" + product.product_name,
+                     what + " names its product container");
+        checks.check(product.navigation_container ==
+                       "nav_" + found.technology_token + "_cells_" + product.hierarchy_key,
+                     what + " names the navigation table of its hierarchy");
+        checks.check(product.navigation_column == sanitized(product.creator) + "_row",
+                     what + " names its creator's row column");
+
+        auto const* table = found.table(product.navigation_container);
+        checks.check(table != nullptr, what + " points at a table that exists");
+        if (table != nullptr) {
+          checks.check(table->creator(product.creator) != nullptr,
+                       what + " points at a table its creator has a column in");
+        }
+      }
     }
 
   } // namespace detail
@@ -341,66 +483,30 @@ namespace form::test::navigation {
 
   inline void print_table(navigation_table const& table)
   {
-    std::vector<std::string> headers = table.layer_columns;
-    for (auto const& creator : table.creators) {
-      headers.push_back(creator.column);
-    }
-
-    auto const cells = [&table](std::size_t row) {
-      std::vector<std::string> values;
-      for (auto const& layer : table.layers) {
-        values.push_back(std::to_string(layer[row]));
-      }
-      for (auto const& creator : table.creators) {
-        auto const id = creator.rows[row];
-        values.push_back(id == invalid_row_id ? "-" : std::to_string(id));
-      }
-      return values;
-    };
-
-    std::vector<std::size_t> widths;
-    widths.reserve(headers.size());
-    for (auto const& header : headers) {
-      widths.push_back(header.size());
-    }
-    for (std::size_t row = 0; row != table.entries(); ++row) {
-      auto const values = cells(row);
-      for (std::size_t col = 0; col != values.size() && col != widths.size(); ++col) {
-        widths[col] = std::max(widths[col], values[col].size());
-      }
-    }
-
-    auto const print_row = [&widths](std::vector<std::string> const& values) {
-      std::ostringstream line;
-      for (std::size_t col = 0; col != values.size() && col != widths.size(); ++col) {
-        line << (col == 0 ? "  " : " | ") << std::setw(static_cast<int>(widths[col]))
-             << values[col];
-      }
-      std::cout << line.str() << '\n';
-    };
+    auto const headers = detail::table_headers(table);
+    auto const widths = detail::column_widths(table, headers);
 
     std::cout << '\n'
-              << table.name << "   hierarchy {" << table.hierarchy_key << "}, "
-              << table.entries() << " rows, " << table.creators.size() << " creator(s)\n";
-    print_row(headers);
+              << table.name << "   hierarchy {" << table.hierarchy_key << "}, " << table.entries()
+              << " rows, " << table.creators.size() << " creator(s)\n";
+    detail::print_row(widths, headers);
 
     std::vector<std::string> rule;
     rule.reserve(widths.size());
     for (auto const width : widths) {
       rule.emplace_back(width, '-');
     }
-    print_row(rule);
+    detail::print_row(widths, rule);
 
     for (std::size_t row = 0; row != table.entries(); ++row) {
-      print_row(cells(row));
+      detail::print_row(widths, detail::table_row(table, row));
     }
   }
 
   /// Print the product dictionary, one block per product so that nothing has to be truncated.
   inline void print_dictionary(layout const& found)
   {
-    std::cout << '\n'
-              << found.dictionary << "   " << found.products.size() << " product(s)\n";
+    std::cout << '\n' << found.dictionary << "   " << found.products.size() << " product(s)\n";
     for (auto const& product : found.products) {
       std::cout << '\n';
       auto const field = [](char const* name, std::string const& value) {
@@ -434,83 +540,13 @@ namespace form::test::navigation {
     checks.check(!found.tables.empty(), "the file has at least one navigation table");
 
     for (auto const& table : found.tables) {
-      auto const entries = table.entries();
-      checks.check(entries != 0, table.name + " is not empty");
-
-      for (std::size_t col = 0; col != table.layers.size(); ++col) {
-        checks.check(table.layers[col].size() == entries,
-                     table.name + " column '" + table.layer_columns[col] +
-                       "' has one value per row");
-      }
-      for (auto const& creator : table.creators) {
-        checks.check(creator.rows.size() == entries,
-                     table.name + " column '" + creator.column + "' has one value per row");
-      }
-
-      if (!table.layers.empty()) {
-        for (std::size_t row = 1; row < entries; ++row) {
-          checks.check(table.layer_key(row - 1) < table.layer_key(row),
-                       table.name + " row " + std::to_string(row) +
-                         " sorts after the one before it, so cells are sorted and unique");
-        }
-      }
-
-      // Cross-check (cell, creator) -> row against the per-creator index. This is what licenses
-      // dropping the per-creator index later.
-      for (auto const& creator : table.creators) {
-        auto const recorded_ids = reader.column<std::string>(column_of(creator.creator, "index"));
-        checks.check(!recorded_ids.empty(),
-                     "per-creator index '" + creator.creator + "/index' is readable");
-
-        bool wrote_something = false;
-        for (std::size_t row = 0; row != creator.rows.size(); ++row) {
-          auto const id = creator.rows[row];
-          if (id == invalid_row_id) {
-            continue;
-          }
-          wrote_something = true;
-          if (id >= recorded_ids.size()) {
-            checks.check(false,
-                         "navigation row for creator '" + creator.creator +
-                           "' is within its index container");
-            continue;
-          }
-          auto const recorded = layer_values_of(recorded_ids[id]);
-          if (!recorded) {
-            checks.check(false, "id at the navigated row has the expected data cell form");
-            continue;
-          }
-          if (!table.layers.empty()) {
-            checks.check(*recorded == table.layer_key(row),
-                         "creator '" + creator.creator + "' row " + std::to_string(id) +
-                           " holds the data cell navigation says it does");
-          }
-        }
-        checks.check(wrote_something,
-                     "creator '" + creator.creator + "' has a column in " + table.name +
-                       " only because it wrote there");
-      }
+      detail::check_table_shape(checks, table);
+      detail::check_against_creator_index(checks, reader, table);
     }
 
-    for (auto const& product : found.products) {
-      auto const what = "dictionary entry '" + product.product_name + "'";
-      checks.check(product.container_name == product.creator + "/" + product.product_name,
-                   what + " names its product container");
-      checks.check(product.navigation_container ==
-                     "nav_" + found.technology_token + "_cells_" + product.hierarchy_key,
-                   what + " names the navigation table of its hierarchy");
-      checks.check(product.navigation_column == sanitized(product.creator) + "_row",
-                   what + " names its creator's row column");
-
-      auto const* table = found.table(product.navigation_container);
-      checks.check(table != nullptr, what + " points at a table that exists");
-      if (table != nullptr) {
-        checks.check(table->creator(product.creator) != nullptr,
-                     what + " points at a table its creator has a column in");
-      }
-    }
+    detail::check_dictionary(checks, found);
   }
 
-} // namespace form::test::navigation
+} // namespace form::test
 
 #endif // TEST_FORM_NAVIGATION_CHECK_HPP

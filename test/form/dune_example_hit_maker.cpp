@@ -30,7 +30,7 @@ namespace {
 
 } // namespace
 
-namespace dune_example::fixture {
+namespace form::test {
 
   unsigned int rois_in(unsigned int const spill, unsigned int const wire)
   {
@@ -66,15 +66,15 @@ namespace dune_example::fixture {
       candidates.reserve(how_many);
 
       for (unsigned int index = 0; index != how_many; ++index) {
-        unsigned int const centre = start + 40 + (group * 120) + (index * 35);
-        float const nth = static_cast<float>(index);
-        candidates.push_back(hit_candidate{.start_tick = centre - 12,
-                                           .stop_tick = centre + 12,
-                                           .max_tick = centre - 4,
-                                           .min_tick = centre + 4,
+        unsigned int const center = start + 40 + (group * 120) + (index * 35);
+        auto const nth = static_cast<float>(index);
+        candidates.push_back(hit_candidate{.start_tick = center - 12,
+                                           .stop_tick = center + 12,
+                                           .max_tick = center - 4,
+                                           .min_tick = center + 4,
                                            .max_derivative = 3.5F + nth,
                                            .min_derivative = -3.5F - nth,
-                                           .hit_center = static_cast<float>(centre),
+                                           .hit_center = static_cast<float>(center),
                                            .hit_sigma = 4.25F,
                                            .hit_height = 18.0F + (6.0F * nth)});
       }
@@ -97,18 +97,18 @@ namespace dune_example::fixture {
 
     std::vector<hit> hits;
     for (auto const& group : candidates_in_roi(spill, wire, roi)) {
-      short int const multiplicity = static_cast<short int>(group.size());
+      auto const multiplicity = static_cast<short int>(group.size());
       short int local_index = 0;
 
       for (auto const& candidate : group) {
-        float const centre = candidate.hit_center;
+        float const center = candidate.hit_center;
         float const sigma = candidate.hit_sigma;
         float const height = candidate.hit_height;
 
         hits.push_back(hit{.channel = channel_of(wire),
                            .start_tick = static_cast<int>(candidate.start_tick),
                            .end_tick = static_cast<int>(candidate.stop_tick),
-                           .peak_time = centre,
+                           .peak_time = center,
                            .sigma_peak_time = 0.25F,
                            .rms = sigma,
                            .peak_amplitude = height,
@@ -151,4 +151,4 @@ namespace dune_example::fixture {
     return hits;
   }
 
-} // namespace dune_example::fixture
+} // namespace form::test
