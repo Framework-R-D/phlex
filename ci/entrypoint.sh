@@ -1,4 +1,9 @@
-#!/bin/bash
+# vi: set ft=sh b:is_bash=1 fenc=utf-8 :
+# -*- Local Variables:
+# -*- mode: shell-script
+# -*- coding: utf-8
+# -*- sh-shell: bash
+# -*- End:
 
 # Disable Spack's user scope to prevent user-level config interference
 export SPACK_USER_CONFIG_PATH=/dev/null

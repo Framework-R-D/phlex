@@ -7,9 +7,9 @@
 #
 # Design notes:
 #   - All packages default to target derived from PHLEX_SPACK_TARGET (amd64->x86_64_v3, arm64->aarch64)
-#     and compiler gcc@13. This covers root's own dependencies (e.g. zlib, python, xrootd)
-#     which do not need to share the gcc@15 ABI of root itself.
-#   - root and its dependents (phlex) require gcc@15; those overrides
+#     and compiler gcc@${PHLEX_NATIVE_GCC_VERSION}. This covers root's own dependencies (e.g. zlib, python, xrootd)
+#     which do not need to share the gcc@${PHLEX_GCC_VERSION} ABI of root itself.
+#   - root and its dependents (phlex) require gcc@${PHLEX_GCC_VERSION}; those overrides
 #     live in each environment's spack.yaml, not here.
 #   - System zlib is declared external so Spack does not build its own
 #     zlib / zlib-ng, eliminating duplicate virtual-provider builds.
@@ -19,16 +19,16 @@
 packages:
   all:
     require:
-      - target=${PHLEX_SPACK_TARGET:-x86_64_v3}
+      - target=${PHLEX_SPACK_TARGET}
     providers:
       "zlib-api:": [zlib]
 
   c:
-    prefer: ["gcc@13"]
+    prefer: ["gcc@${PHLEX_NATIVE_GCC_VERSION}"]
   cxx:
-    prefer: ["gcc@13"]
+    prefer: ["gcc@${PHLEX_NATIVE_GCC_VERSION}"]
   fortran:
-    prefer: ["gcc@13"]
+    prefer: ["gcc@${PHLEX_NATIVE_GCC_VERSION}"]
 
   # Use the system zlib rather than building zlib / zlib-ng from source.
   # The external entry must match the Ubuntu 24.04 package layout.
