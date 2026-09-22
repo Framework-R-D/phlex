@@ -40,7 +40,8 @@ namespace phlex::detail {
   public:
     declared_predicate(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
-                       product_selectors input_products);
+                       product_selectors input_products,
+                       tbb::flow::graph& graph);
     ~declared_predicate() override;
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
@@ -72,7 +73,7 @@ namespace phlex::detail {
                    AlgorithmBits alg,
                    product_selectors input_products,
                    resource_catalog& resources) :
-      declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products), g},
       join_{make_join_or_none<num_products>(g, name().to_string(), layers())},
       predicate_{builder::make(
         g,
@@ -89,8 +90,7 @@ namespace phlex::detail {
             call(ft, messages, std::make_index_sequence<num_products>{}, resource_tokens...);
           ++calls_;
           return {message_id, rc};
-        })},
-      graph_{g}
+        })}
     {
       if constexpr (num_products > 1ull) {
         make_edge(join_, predicate_);
@@ -133,8 +133,6 @@ namespace phlex::detail {
     join_or_none_t<num_products> join_;
     node_t predicate_;
     std::atomic<std::size_t> calls_;
-    tbb::flow::graph& graph() const override { return graph_; }
-    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 
 }

@@ -62,6 +62,7 @@ namespace phlex::detail {
     declared_unfold(phlex::experimental::algorithm_name name,
                     std::vector<std::string> predicates,
                     product_selectors input_products,
+                    tbb::flow::graph& graph,
                     std::string child_layer);
     ~declared_unfold() override;
 
@@ -134,6 +135,7 @@ namespace phlex::detail {
       declared_unfold{std::move(algo_name),
                       std::move(predicates),
                       std::move(input_products),
+                      g,
                       std::move(child_layer_name)},
       output_{to_product_specifications(name(),
                                         std::move(output_product_suffixes),
@@ -161,8 +163,7 @@ namespace phlex::detail {
                               std::get<2>(outputs).try_put({.index = store->index(),
                                                             .layer_hash = gen.child_layer_hash(),
                                                             .count = gen.child_count()});
-                            })},
-      graph_{g}
+                            })}
     {
       if constexpr (num_inputs > 1ull) {
         make_edge(join_, unfold_);
@@ -245,8 +246,6 @@ namespace phlex::detail {
     std::atomic<std::size_t> msg_counter_; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_;
     std::atomic<std::size_t> product_count_;
-    tbb::flow::graph& graph() const override { return graph_; }
-    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 

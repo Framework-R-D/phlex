@@ -13,6 +13,7 @@
 
 #include "oneapi/tbb/flow_graph.h"
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,7 @@ namespace phlex::detail {
     products_consumer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
                       product_selectors input_products,
+                      tbb::flow::graph& graph,
                       require_layers layers_required);
 
     virtual ~products_consumer();
@@ -48,10 +50,11 @@ namespace phlex::detail {
 
   private:
     virtual tbb::flow::receiver<message>& port_for(product_selector const& input_product) = 0;
-    virtual tbb::flow::graph& graph() const = 0;
+    tbb::flow::graph& graph() const { return graph_; }
     product_selectors input_products_;
     std::vector<phlex::experimental::identifier> layers_;
     std::vector<std::unique_ptr<layer_check_node_t>> layer_checkers_;
+    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 

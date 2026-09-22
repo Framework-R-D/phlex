@@ -51,10 +51,12 @@ namespace phlex::detail {
   products_consumer::products_consumer(phlex::experimental::algorithm_name name,
                                        std::vector<std::string> predicates,
                                        product_selectors input_products,
+                                       tbb::flow::graph& graph,
                                        require_layers layers_required) :
     consumer{std::move(name), std::move(predicates)},
     input_products_{std::move(input_products)},
-    layers_{layers_from(input_products_)}
+    layers_{layers_from(input_products_)},
+    graph_{graph}
   {
     validate_layers(layers_required, input_products_, this->name());
   }

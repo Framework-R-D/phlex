@@ -41,6 +41,7 @@ namespace phlex::detail {
     declared_fold(phlex::experimental::algorithm_name name,
                   std::vector<std::string> predicates,
                   product_selectors input_products,
+                  tbb::flow::graph& graph,
                   std::string partition_layer);
     ~declared_fold() override;
 
@@ -106,6 +107,7 @@ namespace phlex::detail {
       declared_fold{std::move(algo_name),
                     std::move(predicates),
                     std::move(input_products),
+                    g,
                     std::move(partition_layer)},
       output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       join_{g,
@@ -128,8 +130,7 @@ namespace phlex::detail {
           ++calls_;
 
           join_.notify_result_repeater_port().try_put(partition_hash);
-        })},
-      graph_{g}
+        })}
     {
       make_edge(join_, fold_);
     }
@@ -171,8 +172,6 @@ namespace phlex::detail {
     fold_join_node<result_type, num_input_products> join_;
     node_t fold_;
     std::atomic<std::size_t> calls_;
-    tbb::flow::graph& graph() const override { return graph_; }
-    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 

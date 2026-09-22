@@ -45,7 +45,8 @@ namespace phlex::detail {
   public:
     declared_transform(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
-                       product_selectors input_products);
+                       product_selectors input_products,
+                       tbb::flow::graph& graph);
     ~declared_transform() override;
 
     virtual tbb::flow::sender<message>& output_port() = 0;
@@ -81,7 +82,7 @@ namespace phlex::detail {
                    product_selectors input_products,
                    std::vector<std::string> output,
                    resource_catalog& resources) :
-      declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      declared_transform{std::move(algo_name), std::move(predicates), std::move(input_products), g},
       output_{
         to_product_specifications(name(), std::move(output), make_output_type_ids<function_t>())},
       join_{make_join_or_none<num_products>(g, name().to_string(), layers())},
@@ -108,8 +109,7 @@ namespace phlex::detail {
             store->index(), name(), std::move(new_products));
 
           return {.store = std::move(new_store), .id = message_id};
-        })},
-      graph_{g}
+        })}
     {
       if constexpr (num_products > 1ull) {
         make_edge(join_, transform_);
@@ -161,9 +161,6 @@ namespace phlex::detail {
     node_t transform_;
     std::atomic<std::size_t> calls_;
     tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
-
-    tbb::flow::graph& graph() const override { return graph_; }
-    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 
 }
