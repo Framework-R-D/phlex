@@ -19,6 +19,9 @@ namespace phlex::detail {
   RUN_PHLEX_EXPORT void load_module(framework_graph& g,
                                     std::string const& label,
                                     boost::json::object config);
+  RUN_PHLEX_EXPORT void load_resources(framework_graph& g,
+                                       std::string const& label,
+                                       boost::json::object config);
   RUN_PHLEX_EXPORT void load_source(framework_graph& g,
                                     std::string const& label,
                                     boost::json::object config);
