@@ -5,33 +5,17 @@
 #include <string>
 
 namespace {
-  bool is_output_only(phlex::product_selectors const& input_products)
-  {
-    if (input_products.size() != 1) {
-      return false;
-    }
-
-    auto const& sel = input_products[0];
-    static auto const out_id = "for_output_only"_id;
-    static auto const dummy_layer_id = "dummy_layer"_id;
-    if (!sel.creator || (*sel.creator != out_id)) {
-      return false;
-    }
-    if (!sel.suffix || (*sel.suffix != out_id)) {
-      return false;
-    }
-    if (!sel.layer || (*sel.layer != dummy_layer_id)) {
-      return false;
-    }
-    return true;
-  }
-
   phlex::product_selectors const& for_output_only()
   {
     static phlex::product_selector const output_dummy = phlex::product_selector{
       .creator = "for_output_only"_id, .layer = "dummy_layer"_id, .suffix = "for_output_only"_id};
     static phlex::product_selectors const for_output_only_queries{output_dummy};
     return for_output_only_queries;
+  }
+
+  bool is_output_only(phlex::product_selectors const& input_products)
+  {
+    return input_products == for_output_only();
   }
 }
 
