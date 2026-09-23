@@ -121,9 +121,7 @@ namespace form::detail::experimental {
                "for "
             << type_name
             << ".  This class is probably using something obsolete like TLorentzVector.  Storing "
-               "it "
-               "in streamer mode to keep the application going."
-            << '\n';
+               "it in streamer mode to keep the application going.\n";
           field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
         }
       }
