@@ -83,21 +83,6 @@ namespace {
     return config_items;
   }
 
-  // hit holds a wire_id, which derives from plane_id, and  merged_hit_candidates is a vector of
-  // vectors. RNTuple's native field mapping does not cover either, so ask for the streamer field.
-  form::experimental::config::tech_setting_config streamer_field_config()
-  {
-    form::experimental::config::tech_setting_config tech_config;
-    for (auto const& container : {std::string(cand_hit_standard) + "/" + hit_candidates_label,
-                                  std::string(find_hits_with_gaussians) + "/" + roi_hits_label,
-                                  std::string(fold_roi_hits) + "/" + wire_hits_label,
-                                  std::string(fold_hits_into_vector) + "/" + spill_hits_label}) {
-      tech_config.container_settings[form::technology::root_rntuple][container].emplace_back(
-        "force_streamer_field", "true");
-    }
-    return tech_config;
-  }
-
   /// Both creators of the {spill, wire, roi} hierarchy, for one region of interest.
   void write_roi(form::experimental::form_writer_interface& form,
                  counts& tally,
@@ -158,8 +143,8 @@ int main(int argc, char** argv)
   auto const technology = form::test::get_technology((argc > 2) ? argv[2] : "ROOT_TTREE");
 
   auto const config_items = products_config(filename, technology);
-  auto const tech_config = streamer_field_config();
-  form::experimental::form_writer_interface form(config_items, tech_config);
+  form::experimental::form_writer_interface form(config_items,
+                                                 form::experimental::config::tech_setting_config{});
 
   std::cout << "FORM navigation example: writing " << filename << '\n';
 
