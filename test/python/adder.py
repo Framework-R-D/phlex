@@ -20,6 +20,7 @@ Addable = TypeVar("Addable", bound=AddableProtocol)
 
 _DEFAULT_ADDABLE = cast(Any, 42)
 
+
 def add(i: Addable, j: Addable = _DEFAULT_ADDABLE) -> Addable:
     """Add the inputs together and return the sum total.
 

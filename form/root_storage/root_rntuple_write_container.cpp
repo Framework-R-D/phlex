@@ -25,7 +25,8 @@ namespace form::detail::experimental {
         writer_->CommitDataset();
       } catch (ROOT::RException const& e) {
         std::cerr << std::source_location::current().function_name() << ": "
-                  << "failed to commit an RNTuple with name " << name() << " in file " << tfile_->GetName() << " when destroying FORM containers because:\n"
+                  << "failed to commit an RNTuple with name " << name() << " in file "
+                  << tfile_->GetName() << " when destroying FORM containers because:\n"
                   << e.what() << "\n";
       }
     }
@@ -65,7 +66,9 @@ namespace form::detail::experimental {
       try {
         writer_ = ROOT::RNTupleWriter::Append(std::move(model_), name(), *tfile_);
       } catch (ROOT::RException const& e) {
-        handle_rexception("failed to open an RNTuple named " + name() + " from a ROOT file named " + tfile_->GetName(), e);
+        handle_rexception("failed to open an RNTuple named " + name() + " from a ROOT file named " +
+                            tfile_->GetName(),
+                          e);
       }
     }
 
@@ -83,7 +86,8 @@ namespace form::detail::experimental {
       try {
         entry_ = get_writer().CreateRawPtrWriteEntry();
       } catch (ROOT::RException const& e) {
-        handle_rexception("failed to create an RRawPtrWriteEntry from an RNTuple named " + name(), e);
+        handle_rexception("failed to create an RRawPtrWriteEntry from an RNTuple named " + name(),
+                          e);
       }
     }
     return *entry_;
