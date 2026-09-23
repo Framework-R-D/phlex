@@ -120,7 +120,8 @@ namespace form::detail::experimental {
             << "root_rfield_write_container_imp::setup_write could not create column-wise storage "
                "for "
             << type_name
-            << ".  This class is probably using something obsolete like TLorentzVector.  Storing it "
+            << ".  This class is probably using something obsolete like TLorentzVector.  Storing "
+               "it "
                "in streamer mode to keep the application going."
             << '\n';
           field = std::make_unique<ROOT::RStreamerField>(col_name(), type_name);
@@ -130,7 +131,8 @@ namespace form::detail::experimental {
       assert(rntuple_parent_->get_model());
       rntuple_parent_->get_model()->AddField(std::move(field));
     } catch (ROOT::RException const& e) {
-      handle_rexception("failed to create a field for " + col_name() + " with type " + type_name, e);
+      handle_rexception("failed to create a field for " + col_name() + " with type " + type_name,
+                        e);
     }
   }
 }

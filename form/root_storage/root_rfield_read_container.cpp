@@ -61,7 +61,9 @@ namespace form::detail::experimental {
       try {
         reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
       } catch (ROOT::RException const& e) {
-        handle_rexception("failed to open an RNTuple named " + top_name() + " in a file named " + tfile_->GetName(), e);
+        handle_rexception("failed to open an RNTuple named " + top_name() + " in a file named " +
+                            tfile_->GetName(),
+                          e);
       }
     }
 
@@ -80,18 +82,18 @@ namespace form::detail::experimental {
     try {
 
       //Connect to file at the last possible moment at the cost of a little run-time branching
-    if (!view_) {
-      create_view(type);
+      if (!view_) {
+        create_view(type);
       }
-  
+
       if (std::cmp_greater_equal(id, reader_->GetNEntries())) {
         return false;
       }
-  
+
       //Using RNTupleView<> to read instead of reusing REntry gives us full schema evolution support: the ROOT feature that lets us read files with an old class version into a new class version's memory.
       auto buffer = view_->GetField().CreateObject<void>(); //PHLEX gets ownership of this memory
       assert(buffer);
-  
+
       view_->BindRawPtr(buffer.get());
       (*view_)(id);
       *data =
@@ -115,7 +117,9 @@ namespace form::detail::experimental {
       try {
         reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
       } catch (ROOT::RException const& e) {
-        handle_rexception("Failed to open an RNTuple named " + top_name() + " from a file named " + tfile_->GetName(), e);
+        handle_rexception("Failed to open an RNTuple named " + top_name() + " from a file named " +
+                            tfile_->GetName(),
+                          e);
       }
     }
 
@@ -140,7 +144,9 @@ namespace form::detail::experimental {
       try {
         reader_ = ROOT::RNTupleReader::Open(top_name(), tfile_->GetName());
       } catch (ROOT::RException const& e) {
-        handle_rexception("failed to open an RNTuple named " + top_name() + " in a file named " + tfile_->GetName(), e);
+        handle_rexception("failed to open an RNTuple named " + top_name() + " in a file named " +
+                            tfile_->GetName(),
+                          e);
       }
     }
 
@@ -155,9 +161,10 @@ namespace form::detail::experimental {
           !TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str()) ||
           (strcmp(TDictionary::GetDictionary(view_->GetField().GetTypeName().c_str())->GetName(),
                   TDictionary::GetDictionary(type)->GetName()) != 0)) {
-        handle_rexception("type " + demangle_name(type) +
-                          " requested for a field named " + col_name() +
-                          " does not match the type in the file: " + view_->GetField().GetTypeName(), e);
+        handle_rexception(
+          "type " + demangle_name(type) + " requested for a field named " + col_name() +
+            " does not match the type in the file: " + view_->GetField().GetTypeName(),
+          e);
       }
     }
   }
