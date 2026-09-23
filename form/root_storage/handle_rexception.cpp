@@ -4,6 +4,6 @@
 
 namespace form::detail::experimental {
   void handle_rexception(std::string const& message, ROOT::RException const& e, std::source_location const loc) {
-    throw std::runtime_error(std::string(loc.function_name()) + ": " + message + " because:\n" + e.what());
+    std::throw_with_nested(std::runtime_error(std::string(loc.function_name()) + ": " + message + " because:\n" + e.what()));
   }
 }
