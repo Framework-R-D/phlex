@@ -64,6 +64,45 @@ if(FORM_USE_ROOT_STORAGE)
     )
     target_include_directories("form_navigation_${TECH}" PRIVATE ${PROJECT_SOURCE_DIR}/form)
 
+    # DUNE-shaped navigation example covering multiple hierarchies and creators.
+    cet_test(
+        "dune_example_write_navigation_${TECH}"
+        SOURCE
+        dune_example_writer.cpp
+        dune_example_hit_maker.cpp
+        LIBRARIES
+        form
+        form_test_dune_example_data_products
+        form_test_utils
+        TEST_ARGS
+        "${CMAKE_CURRENT_BINARY_DIR}/dune_example_navigation_${TECH}.root"
+        ${TECH}
+    )
+    target_include_directories(
+      "dune_example_write_navigation_${TECH}"
+      PRIVATE ${PROJECT_SOURCE_DIR}/form
+    )
+
+    cet_test(
+        "dune_example_navigation_dump_${TECH}"
+        SOURCE
+        dune_example_navigation_dump.cpp
+        dune_example_hit_maker.cpp
+        LIBRARIES
+        storage
+        root_storage
+        TEST_ARGS
+        "${CMAKE_CURRENT_BINARY_DIR}/dune_example_navigation_${TECH}.root"
+        ${TECH}
+        TEST_PROPERTIES
+        DEPENDS
+        "dune_example_write_navigation_${TECH}"
+    )
+    target_include_directories(
+      "dune_example_navigation_dump_${TECH}"
+      PRIVATE ${PROJECT_SOURCE_DIR}/form
+    )
+
     cet_test(
         "form_root_schema_write_${TECH}"
         SOURCE

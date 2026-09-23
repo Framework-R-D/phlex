@@ -18,4 +18,5 @@ if(FORM_USE_ROOT_STORAGE)
   target_link_libraries(${FORM_DATA_PROD_LIB_NAME} PRIVATE ROOT::RIO)
 
   add_subdirectory(extra_member)
+  add_subdirectory(dune_example)
 endif()
