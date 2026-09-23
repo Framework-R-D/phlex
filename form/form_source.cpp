@@ -75,12 +75,10 @@ namespace {
       form::experimental::ensure_builtin_form_product_types_registered();
     }
 
-    phlex::detail::provider_bundles create_providers(
-      phlex::product_selector const& selector) override
+    phlex::provider_bundles create_providers(phlex::product_selector const& selector) override
     {
       using namespace phlex::experimental;
-      using namespace phlex::detail;
-      phlex::detail::provider_bundles bundles;
+      phlex::provider_bundles bundles;
 
       std::string const* product_type_name =
         form::experimental::find_form_product_type_name(selector.type);
@@ -107,17 +105,18 @@ namespace {
 
         reader_->prime(actual_creator_, name, *selected_entry->cpp_type);
 
-        auto provider_func = [this, name, product_type = *product_type_name](
-                               phlex::data_cell_index const& id) -> phlex::detail::product_ptr {
+        auto provider_func =
+          [this, name, product_type = *product_type_name](
+            phlex::data_cell_index const& id) -> phlex::experimental::product_ptr {
           return this->read_product_from_form(actual_creator_, name, id.to_string(), product_type);
         };
 
         bundles.push_back(
-          phlex::detail::provider_bundle{.provider_function = provider_func,
-                                         .max_concurrency = phlex::concurrency::serial,
-                                         .spec = std::move(spec),
-                                         .layer = std::string(selector_layer.trans_get_string()),
-                                         .stage = std::string(selector_stage.trans_get_string())});
+          phlex::provider_bundle{.provider_function = provider_func,
+                                 .max_concurrency = phlex::concurrency::serial,
+                                 .spec = std::move(spec),
+                                 .layer = std::string(selector_layer.trans_get_string()),
+                                 .stage = std::string(selector_stage.trans_get_string())});
       }
 
       return bundles;
@@ -137,10 +136,10 @@ namespace {
       }
     }
 
-    phlex::detail::product_ptr read_product_from_form(std::string const& creator,
-                                                      std::string const& product_name,
-                                                      std::string const& index_str,
-                                                      std::string const& product_type)
+    phlex::experimental::product_ptr read_product_from_form(std::string const& creator,
+                                                            std::string const& product_name,
+                                                            std::string const& index_str,
+                                                            std::string const& product_type)
     {
       form::experimental::form_source_type_entry const* entry =
         form::experimental::find_form_product_type(product_type);

@@ -25,7 +25,7 @@ namespace phlex::detail {
     struct named_output_port {
       phlex::experimental::algorithm_name node;
       tbb::flow::sender<message>* output_port;
-      type_id type;
+      phlex::experimental::type_id type;
     };
 
     named_output_port const* find_producer(

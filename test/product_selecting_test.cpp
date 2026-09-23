@@ -29,18 +29,18 @@ namespace {
     return fmt::format("John the {}th", dci.number());
   }
 
-  detail::product_ptr provide_archived_count(data_cell_index const& dci)
+  experimental::product_ptr provide_archived_count(data_cell_index const& dci)
   {
-    return std::make_unique<detail::product<int>>(static_cast<int>(dci.number()));
+    return experimental::product_for(static_cast<int>(dci.number()));
   }
 
   class archived_count_source : public source {
   public:
-    detail::provider_bundles create_providers(product_selector const& selector) override
+    provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental::literals;
-      phlex::detail::product_specification spec{
-        "archived_input", "archived_count", phlex::detail::make_type_id<int>()};
+      phlex::experimental::product_specification spec{
+        "archived_input", "archived_count", phlex::experimental::make_type_id<int>()};
       if (!selector.match(spec, "event"_id, "previous_process"_id)) {
         return {};
       }
@@ -50,15 +50,13 @@ namespace {
                .layer = "event",
                .stage = "previous_process"}};
     }
-
-    index_generator indices() override { co_return; }
   };
 
   class copy_temperature_once {
   public:
     explicit copy_temperature_once(double const temperature) : temperature_{temperature} {}
-    bool initial_value() const { return true; }
-    bool predicate(bool const emit) const { return emit; }
+    static bool initial_value() { return true; }
+    static bool predicate(bool const emit) { return emit; }
     auto unfold(bool const) const { return std::pair{false, temperature_}; }
 
   private:

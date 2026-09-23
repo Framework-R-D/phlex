@@ -56,9 +56,7 @@ void storage_writer::create_containers(
   form::experimental::config::tech_setting_config const& settings)
 {
   for (auto const& [plcmnt, type] : containers) {
-    // Use file+container as composite key
-    auto cont_key = std::make_pair(plcmnt->file_name(), plcmnt->container_name());
-    auto cont = write_containers_.find(cont_key);
+    auto cont = write_containers_.find(*plcmnt);
     if (cont == write_containers_.end()) {
       // Ensure the file exists
       auto file = files_.find(plcmnt->file_name());
@@ -74,12 +72,14 @@ void storage_writer::create_containers(
       }
       // Create and bind container to file
       auto container = create_write_container(plcmnt->technology(), plcmnt->container_name());
-      write_containers_.insert({cont_key, container});
+      write_containers_.insert({*plcmnt, container});
       // For associative container, create association layer
       auto associative_container =
         dynamic_pointer_cast<storage_associative_write_container>(container);
       if (associative_container) {
-        auto parent_key = std::make_pair(plcmnt->file_name(), associative_container->top_name());
+        // The association shares its product's file and technology; only the name differs.
+        placement const parent_key{
+          plcmnt->file_name(), associative_container->top_name(), plcmnt->technology()};
         auto parent = write_containers_.find(parent_key);
         if (parent == write_containers_.end()) {
           auto parent_cont =
@@ -107,9 +107,7 @@ std::uint64_t storage_writer::fill_container(placement const& plcmnt,
                                              void const* data,
                                              std::type_info const& /* type*/)
 {
-  // Use file+container as composite key
-  auto cont_key = std::make_pair(plcmnt.file_name(), plcmnt.container_name());
-  auto cont = write_containers_.find(cont_key);
+  auto cont = write_containers_.find(plcmnt);
   if (cont == write_containers_.end()) {
     // FIXME: For now throw an exception here, but in future, we may have storage technology do that.
     throw std::runtime_error("storage_writer::fill_container Container doesn't exist: " +
@@ -120,7 +118,10 @@ std::uint64_t storage_writer::fill_container(placement const& plcmnt,
 
 void storage_writer::commit_containers(placement const& plcmnt)
 {
-  auto cont_key = std::make_pair(plcmnt.file_name(), plcmnt.container_name());
-  auto cont = write_containers_.find(cont_key);
+  auto cont = write_containers_.find(plcmnt);
+  if (cont == write_containers_.end()) {
+    throw std::runtime_error("storage_writer::commit_containers Container doesn't exist: " +
+                             plcmnt.container_name());
+  }
   cont->second->commit();
 }

@@ -7,6 +7,7 @@
 #include "persistence/persistence_writer.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
+#include "storage/istorage.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
@@ -18,6 +19,8 @@
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstdint>
+#include <map>
 #include <memory>
 #include <numbers>
 #include <numeric>
@@ -41,6 +44,14 @@ namespace {
                            form::technology::id tech)
   {
     return placement{file_name, creator + "/" + label, tech};
+  }
+
+  cell_index make_cell(std::uint64_t event, std::uint64_t segment)
+  {
+    return cell_index{.id = "[event:" + std::to_string(event) +
+                            ", segment:" + std::to_string(segment) + "]",
+                      .hierarchy = {{"event", "segment"}},
+                      .layer_values = {event, segment}};
   }
 }
 
@@ -198,6 +209,45 @@ TEST_CASE("FORM Container setup error handling")
       CHECK_THROWS_AS(associative_write->set_parent(bad_write_parent), std::runtime_error);
     }
   }
+}
+
+TEST_CASE("storage_writer: technology is part of a container's identity", "[form]")
+{
+  // The same file and container name may be used by different technologies. They must remain
+  // distinct in write_containers_.
+  std::string const file_name = "storage_writer_technology_key.root";
+  std::string const container_name = "creator/product";
+  placement const backed{file_name, container_name, technology};
+
+  form::technology::id const generic_tech{};
+  placement const generic{file_name, container_name, generic_tech};
+
+  auto writer = create_storage_writer();
+  form::experimental::config::tech_setting_config const settings;
+  std::vector<float> data(4, 1.5F);
+  auto const& type_info = typeid(data);
+
+  auto create = [&writer, &settings](placement const& place) {
+    std::map<std::unique_ptr<placement>, std::type_info const*> containers;
+    containers.emplace(std::make_unique<placement>(place), &type_info);
+    writer->create_containers(containers, settings);
+  };
+
+  create(backed);
+  create(generic);
+
+  CHECK(writer->fill_container(backed, &data, type_info) != invalid_row_id);
+  CHECK(writer->fill_container(generic, &data, type_info) == invalid_row_id);
+
+  writer->commit_containers(backed);
+}
+
+TEST_CASE("storage_writer: committing an unknown placement throws", "[form]")
+{
+  auto writer = create_storage_writer();
+  std::vector<float> data(1, 0.5F);
+  placement const absent{"storage_writer_no_such_file.root", "creator/product", technology};
+  CHECK_THROWS_AS(writer->commit_containers(absent), std::runtime_error);
 }
 
 template <class T>
@@ -383,8 +433,8 @@ TEST_CASE("Persistence round-trip: structured index normalization and listing", 
   std::vector<int> first = {10, 20, 30};
   std::vector<int> second = {40, 50, 60};
 
-  std::string const first_id = "[event:1, segment:2]";
-  std::string const second_id = "[event:3, segment:4]";
+  cell_index const first_id = make_cell(1, 2);
+  cell_index const second_id = make_cell(3, 4);
 
   {
     auto writer = create_persistence_writer();
@@ -443,10 +493,10 @@ TEST_CASE("register_write returns a token locating the written product", "[form]
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
 
     token_first = writer->register_write(prod_place, &first, typeid(std::vector<int>));
-    writer->commit_place(prod_place, "[event:1, segment:1]");
+    writer->commit_place(prod_place, make_cell(1, 1));
 
     token_second = writer->register_write(prod_place, &second, typeid(std::vector<int>));
-    writer->commit_place(prod_place, "[event:1, segment:2]");
+    writer->commit_place(prod_place, make_cell(1, 2));
   }
 
   // The returned token carries the placement and the 0-based, monotonically increasing row
@@ -520,7 +570,7 @@ TEST_CASE("Persistence round-trip: all-zero structured id fallback", "[form]")
     // Persistence adds the place's index container itself; the caller names only the product.
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
     writer->register_write(prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, "");
+    writer->commit_place(prod_place, cell_index{});
   }
 
   auto reader = create_persistence_reader();
@@ -554,7 +604,7 @@ TEST_CASE("storage_reader get_index: malformed ids and compatibility fallbacks",
     // Persistence adds the place's index container itself; the caller names only the product.
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
     writer->register_write(prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, "[event:1, segment:2]");
+    writer->commit_place(prod_place, make_cell(1, 2));
   }
 
   storage_reader reader;
@@ -604,7 +654,7 @@ TEST_CASE("storage_reader get_index: empty container and tech-table branches", "
     // Persistence adds the place's index container itself; the caller names only the product.
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
     writer->register_write(prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, "[event:5, segment:6]");
+    writer->commit_place(prod_place, make_cell(5, 6));
   }
 
   tech_setting_config attr_settings;
@@ -635,7 +685,7 @@ TEST_CASE("storage_reader prime/list_indices/read_container: attribute and error
     // Persistence adds the place's index container itself; the caller names only the product.
     writer->create_containers({{prod_place, &typeid(std::vector<int>)}});
     writer->register_write(prod_place, &payload, typeid(std::vector<int>));
-    writer->commit_place(prod_place, "[event:9, segment:8]");
+    writer->commit_place(prod_place, make_cell(9, 8));
   }
 
   storage_reader reader;

@@ -27,43 +27,40 @@ namespace {
   }
 
   // Type-erased provider function
-  detail::product_ptr give_me_vertices_erased(data_cell_index const& id)
+  experimental::product_ptr give_me_vertices_erased(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices_erased: {}", id.number());
-    return std::make_unique<detail::product<toy::vertex_collection>>(
-      toy::make_collection(id.number()));
+    return experimental::product_for(toy::make_collection(id.number()));
   }
 
   // Vertices source for implicit provider test
   class vertices_source : public phlex::source {
   public:
-    phlex::detail::provider_bundles create_providers(product_selector const& selector) override
+    provider_bundles create_providers(product_selector const& selector) override
     {
       using namespace experimental;
-      using namespace phlex::detail;
       provider_bundles bundles;
       std::string const layer = "spill";
       std::string const stage = "previous_process";
-      product_specification spec{
-        "vertices_maker", "happy_vertices", make_type_id<toy::vertex_collection>()};
+      experimental::product_specification spec{
+        "vertices_maker", "happy_vertices", experimental::make_type_id<toy::vertex_collection>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(
-          phlex::detail::provider_bundle{.provider_function = give_me_vertices_erased,
-                                         .max_concurrency = concurrency::unlimited,
-                                         .spec = std::move(spec),
-                                         .layer = layer,
-                                         .stage = stage});
+        bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
+                                          .max_concurrency = concurrency::unlimited,
+                                          .spec = std::move(spec),
+                                          .layer = layer,
+                                          .stage = stage});
       }
 
-      product_specification int_spec{"vertices_maker", "num_happy_vertices", make_type_id<int>()};
+      experimental::product_specification int_spec{
+        "vertices_maker", "num_happy_vertices", experimental::make_type_id<int>()};
       if (selector.match(int_spec, identifier{layer}, identifier{stage})) {
-        bundles.push_back(
-          phlex::detail::provider_bundle{.provider_function = give_me_vertices_erased,
-                                         .max_concurrency = concurrency::unlimited,
-                                         .spec = std::move(int_spec),
-                                         .layer = layer,
-                                         .stage = stage});
+        bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
+                                          .max_concurrency = concurrency::unlimited,
+                                          .spec = std::move(int_spec),
+                                          .layer = layer,
+                                          .stage = stage});
       }
       return bundles;
     }

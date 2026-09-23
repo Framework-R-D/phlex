@@ -21,17 +21,11 @@ using phlex::detail::framework_driver;
 
 namespace {
   struct test_source final : phlex::source {
-    phlex::detail::provider_bundles create_providers(product_selector const&) override
-    {
-      return {};
-    }
+    provider_bundles create_providers(product_selector const&) override { return {}; }
   };
 
   struct other_source final : phlex::source {
-    phlex::detail::provider_bundles create_providers(product_selector const&) override
-    {
-      return {};
-    }
+    provider_bundles create_providers(product_selector const&) override { return {}; }
   };
 
   struct test_driver_builder {

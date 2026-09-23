@@ -3,6 +3,9 @@
 
 #include "phlex/metaprogramming/type_deduction.hpp"
 
+#include "boost/mp11/algorithm.hpp"
+
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -67,6 +70,10 @@ namespace phlex::detail {
     using algorithm_type = Algorithm;
     using input_parameter_types = function_parameter_types<Algorithm>;
     static constexpr auto number_inputs = std::tuple_size_v<input_parameter_types>;
+    static constexpr auto number_outputs = number_output_objects<Algorithm>;
+
+    template <std::size_t Number>
+    using input_parameters = boost::mp11::mp_take_c<input_parameter_types, Number>;
 
     // A single templated constructor handles both cases: 'object' deduces to
     // shared_ptr<void_tag> for free functions and closures, and to shared_ptr<T>

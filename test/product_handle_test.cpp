@@ -10,7 +10,7 @@
 
 using namespace phlex;
 using namespace phlex::experimental::literals;
-using spec_t = detail::product_specification;
+using spec_t = experimental::product_specification;
 using opt_id_t = std::optional<experimental::identifier>;
 
 namespace {
