@@ -1,14 +1,13 @@
 #ifndef PHLEX_MODEL_PRODUCT_STORE_HPP
 #define PHLEX_MODEL_PRODUCT_STORE_HPP
 
-#include "phlex/phlex_model_export.hpp"
-
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/fwd.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/products.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include <cstddef>
 #include <memory>

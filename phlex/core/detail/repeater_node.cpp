@@ -1,7 +1,7 @@
 #include "phlex/core/detail/repeater_node.hpp"
 
-#include "spdlog/spdlog.h"
 #include <gsl/assert>
+#include <spdlog/spdlog.h>
 
 #include <cassert>
 

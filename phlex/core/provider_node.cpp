@@ -1,7 +1,8 @@
 #include "phlex/core/provider_node.hpp"
+
 #include "phlex/model/product_store.hpp"
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 #include <functional>
 #include <memory>

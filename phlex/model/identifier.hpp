@@ -6,7 +6,6 @@
 #include <boost/hash2/hash_append.hpp>
 #include <boost/hash2/xxhash.hpp>
 #include <boost/json/fwd.hpp>
-
 #include <fmt/format.h>
 
 #include <compare>

@@ -2,8 +2,8 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_store.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "oneapi/tbb/flow_graph.h"
+#include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <memory>
 #include <string>

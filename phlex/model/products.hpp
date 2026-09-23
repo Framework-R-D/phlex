@@ -1,9 +1,8 @@
 #ifndef PHLEX_MODEL_PRODUCTS_HPP
 #define PHLEX_MODEL_PRODUCTS_HPP
 
-#include "phlex/phlex_model_export.hpp"
-
 #include "phlex/model/product_specification.hpp"
+#include "phlex/phlex_model_export.hpp"
 
 #include <gsl/pointers>
 

@@ -1,9 +1,8 @@
 #include "phlex/app/load_module.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "catch2/matchers/catch_matchers_string.hpp"
-
-#include "boost/json.hpp"
+#include <boost/json.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 using namespace phlex::detail::internal;
 

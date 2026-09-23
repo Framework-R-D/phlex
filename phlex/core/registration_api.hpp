@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_REGISTRATION_API_HPP
 #define PHLEX_CORE_REGISTRATION_API_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/declared_fold.hpp"
@@ -13,6 +11,7 @@
 #include "phlex/metaprogramming/delegate.hpp"
 #include "phlex/metaprogramming/type_deduction.hpp"
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include <array>
 #include <concepts>

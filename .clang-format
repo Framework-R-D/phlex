@@ -141,19 +141,23 @@ ForEachMacros:
   - BOOST_FOREACH
 IfMacros:
   - KJ_IF_MAYBE
-IncludeBlocks: Preserve
+IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^"(llvm|llvm-c|clang|clang-c)/'
-    Priority: 2
-    SortPriority: 0
-    CaseSensitive: false
-  - Regex: '^(<|"(gtest|gmock|isl|json)/)'
-    Priority: 3
-    SortPriority: 0
-    CaseSensitive: false
-  - Regex: ".*"
+  - Regex: '^".*"'
     Priority: 1
-    SortPriority: 0
+    SortPriority: 1
+    CaseSensitive: false
+  - Regex: '^<(algorithm|any|array|atomic|barrier|bit|bitset|cassert|cctype|cerrno|chrono|cmath|compare|complex|concepts|condition_variable|coroutine|csetjmp|csignal|cstdarg|cstddef|cstdint|cstdio|cstdlib|cstring|ctime|ctype|cwchar|cwctype|deque|exception|execution|expected|filesystem|format|forward_list|fstream|functional|future|generator|initializer_list|iomanip|ios|iosfwd|iostream|istream|iterator|latch|limits|list|locale|map|mdspan|memory|memory_resource|mutex|new|numbers|numeric|optional|ostream|print|queue|random|ranges|ratio|regex|scoped_allocator|semaphore|set|shared_mutex|source_location|span|spanstream|sstream|stack|stdexcept|stdfloat|stop_token|streambuf|string|string_view|strstream|syncstream|system_error|thread|tuple|type_traits|typeindex|typeinfo|unordered_map|unordered_set|utility|valarray|variant|vector|version)>$'
+    Priority: 3
+    SortPriority: 3
+    CaseSensitive: false
+  - Regex: '^<.*>'
+    Priority: 2
+    SortPriority: 2
+    CaseSensitive: false
+  - Regex: '.*'
+    Priority: 3
+    SortPriority: 3
     CaseSensitive: false
 IncludeIsMainRegex: "(Test)?$"
 IncludeIsMainSourceRegex: ""

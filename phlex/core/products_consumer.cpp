@@ -1,7 +1,7 @@
 #include "phlex/core/products_consumer.hpp"
-#include <spdlog/spdlog.h>
 
-#include "fmt/format.h"
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 namespace {
   std::vector<phlex::experimental::identifier> layers_from(phlex::product_selectors const& queries)

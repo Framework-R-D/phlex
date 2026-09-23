@@ -1,7 +1,7 @@
-#include "waveforms.hpp"
-
 #include "waveform_generator.hpp"
+
 #include "waveform_generator_input.hpp"
+#include "waveforms.hpp"
 
 #include <cstddef>
 

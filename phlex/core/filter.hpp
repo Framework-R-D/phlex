@@ -1,13 +1,12 @@
 #ifndef PHLEX_CORE_FILTER_HPP
 #define PHLEX_CORE_FILTER_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
 #include "phlex/core/message.hpp"
+#include "phlex/phlex_core_export.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 namespace phlex::detail {
   using filter_base =

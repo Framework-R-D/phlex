@@ -2,8 +2,8 @@
 
 #include "phlex/utilities/bulleted_list.hpp"
 
-#include "fmt/format.h"
-#include "spdlog/spdlog.h"
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 #include <ranges>
 

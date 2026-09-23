@@ -1,6 +1,6 @@
 #include "phlex/model/algorithm_name.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>

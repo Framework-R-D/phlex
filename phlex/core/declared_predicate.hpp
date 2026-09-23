@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_DECLARED_PREDICATE_HPP
 #define PHLEX_CORE_DECLARED_PREDICATE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/detail/filter_impl.hpp"
 #include "phlex/core/fwd.hpp"
@@ -18,9 +16,10 @@
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <concepts>
 #include <cstddef>

@@ -1,6 +1,6 @@
 #include "phlex/model/layer_path.hpp"
 
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 using namespace phlex::experimental;
 

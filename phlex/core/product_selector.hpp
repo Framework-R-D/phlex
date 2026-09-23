@@ -1,12 +1,11 @@
 #ifndef PHLEX_CORE_PRODUCT_SELECTOR_HPP
 #define PHLEX_CORE_PRODUCT_SELECTOR_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 #include "phlex/model/type_id.hpp"
+#include "phlex/phlex_core_export.hpp"
 
 #include <concepts>
 #include <format>

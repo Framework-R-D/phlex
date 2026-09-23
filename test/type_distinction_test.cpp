@@ -4,9 +4,8 @@
 #include "phlex/model/product_store.hpp"
 #include "plugins/layer_generator.hpp"
 
-#include "spdlog/spdlog.h"
-
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <spdlog/spdlog.h>
 
 #include <ranges>
 #include <tuple>

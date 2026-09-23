@@ -1,8 +1,8 @@
 #include "phlex/core/make_computational_edges.hpp"
 
-#include "fmt/format.h"
-#include "oneapi/tbb/flow_graph.h"
-#include "spdlog/spdlog.h"
+#include <fmt/format.h>
+#include <oneapi/tbb/flow_graph.h>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <cassert>

@@ -21,10 +21,10 @@
 #include "plugins/layer_generator.hpp"
 #include "test/products_for_output.hpp"
 
-#include "catch2/catch_test_macros.hpp"
-#include "fmt/chrono.h"
-#include "fmt/std.h"
-#include "spdlog/spdlog.h"
+#include <catch2/catch_test_macros.hpp>
+#include <fmt/chrono.h>
+#include <fmt/std.h>
+#include <spdlog/spdlog.h>
 
 #include <atomic>
 #include <chrono>

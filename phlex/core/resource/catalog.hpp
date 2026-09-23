@@ -3,8 +3,8 @@
 
 #include "phlex/core/resource/entries.hpp"
 
-#include "boost/core/demangle.hpp"
-#include "fmt/format.h"
+#include <boost/core/demangle.hpp>
+#include <fmt/format.h>
 #include <gsl/pointers>
 
 #include <cassert>

@@ -1,8 +1,6 @@
 #ifndef PHLEX_CORE_DECLARED_FOLD_HPP
 #define PHLEX_CORE_DECLARED_FOLD_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/concurrency.hpp"
 #include "phlex/core/concepts.hpp"
 #include "phlex/core/fold/send.hpp"
@@ -18,10 +16,11 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/concurrent_unordered_map.h"
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/concurrent_unordered_map.h>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
 #include <cassert>

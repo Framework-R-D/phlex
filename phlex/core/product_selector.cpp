@@ -1,6 +1,6 @@
 #include "phlex/core/product_selector.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 namespace phlex {
   // Check that all products selected by /other/ would satisfy this query

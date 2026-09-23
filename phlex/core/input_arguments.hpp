@@ -6,7 +6,7 @@
 #include "phlex/model/handle.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <cstddef>

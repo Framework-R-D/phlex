@@ -1,4 +1,5 @@
 #include "phlex/module.hpp"
+
 #include "test/plugins/add.hpp"
 
 #include <cassert>

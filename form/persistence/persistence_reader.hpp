@@ -3,10 +3,9 @@
 #ifndef FORM_PERSISTENCE_PERSISTENCE_READER_HPP
 #define FORM_PERSISTENCE_PERSISTENCE_READER_HPP
 
-#include "ipersistence_reader.hpp"
-
 #include "core/container_naming.hpp"
 #include "core/token.hpp"
+#include "ipersistence_reader.hpp"
 #include "storage/istorage.hpp"
 
 #include <map>

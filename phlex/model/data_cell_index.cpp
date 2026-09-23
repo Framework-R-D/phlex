@@ -1,7 +1,8 @@
 #include "phlex/model/data_cell_index.hpp"
+
 #include "phlex/utilities/hashing.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>

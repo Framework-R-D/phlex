@@ -1,6 +1,6 @@
 #include "plugins/layer_generator.hpp"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>

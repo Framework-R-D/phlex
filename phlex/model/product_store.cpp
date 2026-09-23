@@ -1,4 +1,5 @@
 #include "phlex/model/product_store.hpp"
+
 #include "phlex/model/data_cell_index.hpp"
 
 #include <memory>

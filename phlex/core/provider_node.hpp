@@ -1,16 +1,15 @@
 #ifndef PHLEX_CORE_PROVIDER_NODE_HPP
 #define PHLEX_CORE_PROVIDER_NODE_HPP
 
-#include "phlex/phlex_core_export.hpp"
-
 #include "phlex/concurrency.hpp"
 #include "phlex/core/message.hpp"
 #include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/product_specification.hpp"
+#include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
-#include "oneapi/tbb/flow_graph.h"
+#include <oneapi/tbb/flow_graph.h>
 
 #include <cstddef>
 #include <functional>
