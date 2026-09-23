@@ -242,41 +242,46 @@ namespace {
   using jit_callback = jit_callback_impl<RT, std::make_index_sequence<N>>;
 
   // input/output validation helpers
-  inline std::optional<product_selector> validate_selector(PyObject* pysel)
+  inline std::optional<identifier> try_item(PyObject* pysel,
+                                            std::string const& item,
+                                            bool allow_optionals)
+  {
+    PyObject* pyii = PyDict_GetItemString(pysel, item.c_str());
+    if ((!pyii && !allow_optionals) || (pyii && !PyUnicode_Check(pyii))) {
+      PyErr_Format(PyExc_TypeError, ("missing " + item + " or not a string").c_str());
+      return std::nullopt;
+    }
+    if (!pyii) {
+      PyErr_Clear();
+      return std::nullopt;
+    }
+    return std::optional<identifier>{PyUnicode_AsUTF8(pyii)};
+  }
+
+  inline std::optional<product_selector> validate_selector(PyObject* pysel,
+                                                           bool allow_optionals = true)
   {
     if (!PyDict_Check(pysel)) {
       PyErr_Format(PyExc_TypeError, "selector should be a product specification");
       return std::nullopt;
     }
 
-    PyObject* pyc = PyDict_GetItemString(pysel, "creator");
-    if (!pyc || !PyUnicode_Check(pyc)) {
-      PyErr_Format(PyExc_TypeError, "missing \"creator\" or not a string");
+    std::optional<identifier> c = try_item(pysel, "creator", allow_optionals);
+    std::optional<identifier> l = try_item(pysel, "layer", allow_optionals);
+    if (!allow_optionals && !(c.has_value() && l.has_value())) {
       return std::nullopt;
     }
-    char const* c = PyUnicode_AsUTF8(pyc);
-
-    PyObject* pyl = PyDict_GetItemString(pysel, "layer");
-    if (!pyl || !PyUnicode_Check(pyl)) {
-      PyErr_Format(PyExc_TypeError, "missing \"layer\" or not a string");
+    std::optional<identifier> s = try_item(pysel, "suffix", true); // always optional
+    if (!s.has_value() && PyErr_Occurred()) {
       return std::nullopt;
     }
-    char const* l = PyUnicode_AsUTF8(pyl);
 
-    std::optional<identifier> s;
-    PyObject* pys = PyDict_GetItemString(pysel, "suffix");
-    if (pys) {
-      if (!PyUnicode_Check(pys)) {
-        PyErr_Format(PyExc_TypeError, "provided \"suffix\" is not a string");
-        return std::nullopt;
-      }
-      s = identifier(PyUnicode_AsUTF8(pys));
-    } else {
-      PyErr_Clear();
-    }
-
+    // in the following, each of these parameters is passed differently b/c:
+    //   "c" and "layer" are internal types that only takes an optional through a
+    //     move for its contructor
+    //   "suffix" is an optional itself, so can pass directly
     return std::optional<product_selector>{
-      product_selector{.creator = identifier(c), .layer = identifier(l), .suffix = s}};
+      product_selector{.creator = std::move(c), .layer = std::move(l), .suffix = s}};
   }
 
   std::vector<product_selector> validate_input(PyObject* input)
@@ -446,12 +451,22 @@ namespace {
         PyObject* args = PyObject_GetAttrString(sig, "args");
 
         if (ret && args && PyTuple_CheckExact(args)) {
-          output_types.push_back(annotation_as_text(ret));
-          for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); ++i) {
-            PyObject* item = PyTuple_GET_ITEM(args, i);
-            input_types.push_back(annotation_as_text(item));
+          std::string const& ret_ann = annotation_as_text(ret);
+          if (!ret_ann.empty()) {
+            output_types.push_back(ret_ann);
+            for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); ++i) {
+              PyObject* item = PyTuple_GET_ITEM(args, i);
+              std::string const& inp_ann = annotation_as_text(item);
+              if (inp_ann.empty()) {
+                break;
+              }
+              input_types.push_back(inp_ann);
+            }
+
+            if (static_cast<Py_ssize_t>(input_types.size()) == PyTuple_GET_SIZE(args)) {
+              conversion_ok = true;
+            }
           }
-          conversion_ok = true;
         } else {
           PyErr_Clear();
         }
@@ -868,13 +883,59 @@ static PyObject* parse_args(PyObject* args,
   // if annotations were correct (and correctly parsed), there should be as many
   // input types as input product selectors
   if (input_types.size() != input_selectors.size()) {
-    PyErr_Format(PyExc_TypeError,
-                 "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
-                 input_selectors.size(),
-                 stringify(input_selectors).c_str(),
-                 input_types.size(),
-                 stringify(input_types).c_str());
-    return nullptr;
+    // allow fewer selectors than types if there are sufficient optional
+    // parameters on the Python side
+    bool optok = false;
+    if (input_selectors.size() < input_types.size()) {
+      static PyObject* opt_counter = nullptr;
+      if (!opt_counter) {
+        PyObject* phlexmod = PyImport_ImportModule("phlex");
+        if (phlexmod) {
+          opt_counter = PyObject_GetAttrString(phlexmod, "count_optional_arguments");
+          Py_DECREF(phlexmod);
+
+          // LCOV_EXCL_START
+          // this would only fail if the phlex installation were broken and
+          // only exists to get a proper error message instead of a segfault
+          // in that rather unlikely case
+          if (!opt_counter) {
+            PyErr_Clear();
+          }
+          // LCOV_EXCL_STOP
+        }
+      }
+
+      if (opt_counter) {
+        PyObject* optcnt = PyObject_CallOneArg(opt_counter, callable);
+        if (optcnt) {
+          long l = PyLong_AsLong(optcnt);
+          Py_DECREF(optcnt);
+          // I'd use -1l if clang-tidy would allow it, but it insists on -1L ...
+          if (l != static_cast<long>(-1)) {
+            if ((l + input_selectors.size()) >= input_types.size()) {
+              optok = true;
+            }
+          } else {
+            PyErr_Clear();
+          }
+        }
+        // LCOV_EXCL_START
+        else {
+          PyErr_Clear(); // count_optional_arguments doesn't raise
+        }
+        // LCOV_EXCL_STOP
+      }
+    }
+
+    if (!optok) {
+      PyErr_Format(PyExc_TypeError,
+                   "number of inputs (%d; %s) does not match number of annotation types (%d; %s)",
+                   input_selectors.size(),
+                   stringify(input_selectors).c_str(),
+                   input_types.size(),
+                   stringify(input_types).c_str());
+      return nullptr;
+    }
   }
 
   // special case of Phlex Variant wrapper
@@ -1047,16 +1108,27 @@ static void* numba_function_address(PyObject* callable)
 static std::optional<identifier> transform_output_layer(
   std::string const& name, std::vector<product_selector> const& input_selectors)
 {
-  // TODO: output layers are ambiguous when inputs span layers. Reject that case until a
-  // well-defined output-layer policy exists.
-  auto result = static_cast<identifier>(input_selectors[0].layer);
-  for (auto const& selector : input_selectors | std::views::drop(1)) {
-    if (static_cast<identifier>(selector.layer) != result) {
-      PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", name.c_str());
-      return std::nullopt;
+  // if a layer was provided, we'll re-use it for the intermediate Python products,
+  // otherwise also specify no layer for the intermediates (TODO: it may be worthwhile
+  // to explore using a "workspace" layer)
+  std::optional<identifier> output_layer;
+  // note: the following treats the first layer as special (as in, if the first layer
+  // is optional, but the next one is not, the check will succeed), but that's fine
+  // as for now such mixing isn't supported by the product selector
+  if (input_selectors[0].layer) {
+    output_layer = static_cast<identifier>(input_selectors[0].layer);
+    // TODO: it's not clear what the output layer will be if the input layers are not
+    // all the same, so for now, simply raise an error if their is any ambiguity
+    if (1 < input_selectors.size()) {
+      for (auto const& iq_pq : input_selectors | std::views::drop(1)) {
+        if (static_cast<identifier>(iq_pq.layer) != output_layer.value()) {
+          PyErr_Format(PyExc_ValueError, "transform %s output layer is ambiguous", name.c_str());
+          return std::nullopt; // error return
+        }
+      }
     }
   }
-  return result;
+  return output_layer; // not an error return if nullopt
 }
 
 static bool validate_transform_output(std::string const& name,
@@ -1141,14 +1213,15 @@ static std::optional<product_selector> register_transform_callback(
   std::vector<product_selector> const& input_selectors,
   std::string const& output_type,
   std::string const& output_suffix,
-  identifier const& output_layer,
+  std::optional<identifier> output_layer,
   concurrency nconcur)
 {
   // Only a single output is supported until typed tuple conversion is implemented.
   std::string const pyname = "py_" + name;
   std::string const pyoutput = output_suffix + "_py";
-  auto output_selector = product_selector{
-    .creator = identifier(pyname), .layer = output_layer, .suffix = identifier(pyoutput)};
+  auto output_selector = product_selector{.creator = identifier(pyname),
+                                          .layer = std::move(output_layer),
+                                          .suffix = identifier(pyoutput)};
   auto register_n_args = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
     constexpr std::size_t n = sizeof...(Is);
     if (ccallf) {
@@ -1195,7 +1268,11 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
   }
 
   auto const output_layer = transform_output_layer(cname, input_selectors);
-  if (!output_layer) {
+  // transform_output_layer only exists to make clang-tidy happy and if it
+  // doesn't return an output_layer, then that's not necessarily an error as
+  // layer are optional: an actual error is communicated around the back using
+  // a Python exception that is reported to the caller in the usual way
+  if (!output_layer && PyErr_Occurred()) {
     Py_DECREF(callable);
     return nullptr;
   }
@@ -1218,7 +1295,7 @@ static PyObject* md_transform(py_phlex_module* mod, PyObject* args, PyObject* kw
                                                            input_selectors,
                                                            out_type,
                                                            output_suffixes[0],
-                                                           *output_layer,
+                                                           output_layer,
                                                            nconcur);
   if (!output_selector) {
     Py_DECREF(callable);
@@ -1286,13 +1363,16 @@ static PyObject* md_observe(py_phlex_module* mod, PyObject* args, PyObject* kwds
     constexpr size_t n = sizeof...(Is);
 
     auto make_product_selector = [&](size_t i) {
-      auto pq = input_selectors[i];
+      auto const& pq = input_selectors[i];
       std::string c = input_converter_name(cname, i);
       std::string suff =
         "py_" + (pq.suffix ? std::string{static_cast<std::string_view>(*pq.suffix)} : "");
 
+      // make a copy of "layer" so we can move it without involving a temporary
+      // identifier (which will fail, if no layer was specified)
+      auto l = pq.layer;
       return product_selector{
-        .creator = identifier(c), .layer = pq.layer, .suffix = identifier(suff)};
+        .creator = identifier(c), .layer = std::move(l), .suffix = identifier(suff)};
     };
 
     auto insert_observe_for_callback = [&](auto& cb) {
@@ -1558,7 +1638,7 @@ static PyObject* sc_provide(py_phlex_source* src, PyObject* args, PyObject* kwds
   // translate and validate the output "selectors"
   // Since a selector in Python is just a dictionary, it isn't called out in the user
   // API as a selector
-  auto opq = validate_selector(registration->output);
+  auto opq = validate_selector(registration->output, false);
   if (!opq.has_value()) {
     // validate_selector has set a python exception with details about the error
     Py_XDECREF(wrapped_callable);
