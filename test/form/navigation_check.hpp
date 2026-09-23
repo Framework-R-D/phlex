@@ -75,7 +75,13 @@ namespace form::test {
       if (colon == std::string::npos) {
         return std::nullopt;
       }
-      values.push_back(std::stoull(field.substr(colon + 1)));
+      try {
+        values.push_back(std::stoull(field.substr(colon + 1)));
+      } catch (std::invalid_argument const&) {
+        return std::nullopt;
+      } catch (std::out_of_range const&) {
+        return std::nullopt;
+      }
       if (comma == std::string::npos) {
         break;
       }
@@ -366,7 +372,7 @@ namespace form::test {
                      "per-creator index '" + creator.creator + "/index' is readable");
 
         bool wrote_something = false;
-        for (std::size_t row = 0; row != creator.rows.size(); ++row) {
+        for (std::size_t row = 0; row != table.entries(); ++row) {
           auto const id = creator.rows[row];
           if (id == invalid_row_id) {
             continue;

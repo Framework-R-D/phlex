@@ -6,7 +6,9 @@ target_include_directories(
   PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/include
 )
 add_library(
-  ${FORM_DUNE_EXAMPLE_DATA_PROD_LIB_NAME} SHARED $<TARGET_OBJECTS:dune_example_data_products_obj>
+  ${FORM_DUNE_EXAMPLE_DATA_PROD_LIB_NAME}
+  SHARED
+  $<TARGET_OBJECTS:dune_example_data_products_obj>
 )
 
 set_target_properties(
