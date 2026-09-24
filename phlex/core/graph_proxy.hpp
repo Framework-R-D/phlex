@@ -155,8 +155,8 @@ namespace phlex::detail {
     :
     config_{&config},
     graph_{g},
-    stage_{std::move(stage)},
     nodes_{nodes},
+    stage_{std::move(stage)},
     errors_{errors},
     resources_{resources}
   {

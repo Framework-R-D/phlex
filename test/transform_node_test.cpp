@@ -191,13 +191,17 @@ TEST_CASE("transform_node stores multiple output products", "[transform_node]")
 TEST_CASE("transform_node receives a resource token", "[transform_node][resource]")
 {
   oneapi::tbb::flow::graph graph;
-  auto input_selector = selector<input_type_1>("input", "");
-  auto input_store = store_with_product("input", "", input_type_1{21});
+  auto const input_creator_name = algorithm_name::create("input");
+  identifier const stage_name = "test_stage"_id;
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store = store_with_product(
+    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
   auto alg = algorithm_bits_for(increment_with_resource);
   resource_catalog resources;
   resources.add_serialized<transform_resource>();
 
   transform_node<decltype(alg), transform_resource> node{algorithm_name{"increment_with_resource"},
+                                                         "test_stage"_id,
                                                          1u,
                                                          {},
                                                          graph,
@@ -223,14 +227,18 @@ TEST_CASE("transform_node receives a resource token", "[transform_node][resource
 TEST_CASE("transform_node receives an unlimited resource", "[transform_node][resource]")
 {
   oneapi::tbb::flow::graph graph;
-  auto input_selector = selector<input_type_1>("input", "");
-  auto input_store = store_with_product("input", "", input_type_1{21});
+  auto const input_creator_name = algorithm_name::create("input");
+  identifier const stage_name = "test_stage"_id;
+  auto input_selector = selector<input_type_1>(input_creator_name);
+  auto input_store = store_with_product(
+    gsl::not_null{&input_creator_name}, gsl::not_null{&stage_name}, input_type_1{21});
   auto alg = algorithm_bits_for(increment_with_unlimited_resource);
   resource_catalog resources;
   resources.add_unlimited<unlimited_transform_resource>();
 
   transform_node<decltype(alg), unlimited_transform_resource> node{
     algorithm_name{"increment_with_unlimited_resource"},
+    "test_stage"_id,
     1u,
     {},
     graph,

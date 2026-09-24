@@ -149,7 +149,7 @@ TEST_CASE("Fold receives a resource token", "[graph][fold][resource]")
   gen->add_layer("run", {.parent_layer = "job", .count = number_runs});
   gen->add_layer("event", {.parent_layer = "run", .count = number_events});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_serialized_resource<fold_resource_1>();
   g.add_serialized_resource<fold_resource_2>();

@@ -124,7 +124,7 @@ TEST_CASE("Predicate receives a resource token", "[filtering][resource]")
 {
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_serialized_resource<predicate_resource>();
   g.provide("provide_num", give_me_nums, concurrency::unlimited)

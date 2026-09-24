@@ -278,7 +278,7 @@ TEST_CASE("Unfold receives a resource token", "[graph][unfold][resource]")
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = num_events});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
   g.add_serialized_resource<unfold_resource>();
 

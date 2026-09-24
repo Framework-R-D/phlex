@@ -105,15 +105,15 @@ namespace phlex::detail {
       } else {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
-            return std::make_unique<hof_type>(std::move(name_),
-                                              stage_,
-                                              concurrency_.value,
-                                              std::move(predicates),
-                                              graph_,
-                                              std::move(alg_),
-                                              std::vector(inputs.begin(), inputs.end()),
-                                              std::move(output_product_suffixes),
-                                              resources_);
+            return std::make_unique<node_type>(std::move(name_),
+                                               stage_,
+                                               concurrency_.value,
+                                               std::move(predicates),
+                                               graph_,
+                                               std::move(alg_),
+                                               std::vector(inputs.begin(), inputs.end()),
+                                               std::move(output_product_suffixes),
+                                               resources_);
           });
       }
       return upstream_predicates<NodePtr, num_outputs>{std::move(registrar_), config_};
@@ -167,7 +167,7 @@ namespace phlex::detail {
                          std::vector<std::string>& errors,
                          resource_catalog& resources)
   {
-    return registration_api<HOF, AlgorithmBits>{
+    return registration_api<HOF, NodePtr, AlgorithmBits>{
       config, name, stage, std::move(alg), c, g, nodes, errors, resources};
   }
 
@@ -289,7 +289,8 @@ namespace phlex::detail {
 
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
-          return std::make_unique<fold_node<AlgorithmBits, init_tuple>>(
+          return std::make_unique<
+            fold_node<AlgorithmBits, init_tuple, internal::resource_type_t<Resources>...>>(
             std::move(name_),
             stage_,
             concurrency_.value,
@@ -404,7 +405,8 @@ namespace phlex::detail {
 
       registrar_.set_creator([this, inputs = std::move(input_args)](auto upstream_predicates,
                                                                     auto output_product_suffixes) {
-        return std::make_unique<unfold_node<Object, Predicate, Unfold>>(
+        return std::make_unique<
+          unfold_node<Object, Predicate, Unfold, internal::resource_type_t<Resources>...>>(
           std::move(name_),
           stage_,
           concurrency_,
