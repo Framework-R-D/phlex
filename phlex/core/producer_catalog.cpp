@@ -136,20 +136,26 @@ namespace {
     spdlog::error(msg);
 
     if (suffixes.size() > 1) {
-      spdlog::error("Not permitted -- distinguishable by suffix {}",
+      spdlog::error("Selector matches multiple products with different suffixes.\n"
+                    "Suffix must be specified to disambiguate\n"
+                    "Suffixes found: {}",
                     suffixes | std::views::values | deref_view);
     }
     if (creators.size() > 1) {
-      spdlog::error("Not permitted -- distinguishable by creator {}",
+      spdlog::error("Selector matches multiple products with different creators.\n"
+                    "Creator must be specified to disambiguate\n"
+                    "Creators found: {}",
                     creators | std::views::values |
                       std::views::transform(
                         [](experimental::algorithm_name const* p) { return p->to_string(); }));
     }
     if (types.size() > 1) {
-      spdlog::error("Not permitted -- distinguishable by type {}",
+      spdlog::error("Selector matches multiple products with different types.\n"
+                    "Type must be specified to disambiguate\n"
+                    "Types found: {}",
                     types | std::views::values | deref_view);
     }
-    throw std::runtime_error("Multiple products in candidate set -- see errors");
+    throw std::runtime_error("Ambiguous product selector -- see errors");
   }
 }
 

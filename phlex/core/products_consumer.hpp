@@ -42,6 +42,7 @@ namespace phlex::detail {
     virtual std::size_t num_calls() const = 0;
 
   protected:
+    std::reference_wrapper<tbb::flow::graph> graph_;
     template <typename InputParameterTuple>
     auto input_arguments()
     {
@@ -50,11 +51,9 @@ namespace phlex::detail {
 
   private:
     virtual tbb::flow::receiver<message>& port_for(product_selector const& input_product) = 0;
-    tbb::flow::graph& graph() const { return graph_; }
     product_selectors input_products_;
     std::vector<phlex::experimental::identifier> layers_;
     std::vector<std::unique_ptr<layer_check_node_t>> layer_checkers_;
-    std::reference_wrapper<tbb::flow::graph> graph_;
   };
 }
 

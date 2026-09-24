@@ -54,9 +54,9 @@ namespace phlex::detail {
                                        tbb::flow::graph& graph,
                                        require_layers layers_required) :
     consumer{std::move(name), std::move(predicates)},
+    graph_{graph},
     input_products_{std::move(input_products)},
-    layers_{layers_from(input_products_)},
-    graph_{graph}
+    layers_{layers_from(input_products_)}
   {
     validate_layers(layers_required, input_products_, this->name());
   }
@@ -72,7 +72,7 @@ namespace phlex::detail {
     // If input_product doesn't have a layer, it must be for a node that allows layer omission
     if (input_product.layer) {
       auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
-        graph(),
+        graph_,
         tbb::flow::unlimited,
         [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
           message const& msg, auto& output) {
