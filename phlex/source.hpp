@@ -10,18 +10,6 @@
 #include <utility>
 
 namespace phlex::detail {
-
-  struct source_bundle {
-    // Non-owning references to framework-owned resources; source_bundle is a short-lived struct.
-    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    configuration const& config;
-    tbb::flow::graph& graph;
-    node_catalog& nodes;
-    resource_catalog& resources;
-    std::vector<std::string>& registration_errors;
-    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
-  };
-
   /// @brief Proxy for registering explicit provider nodes.
   ///
   /// Passed to @c PHLEX_REGISTER_PROVIDERS plugin entry points. Only provide
@@ -31,7 +19,7 @@ namespace phlex::detail {
     using base = graph_proxy<T>;
 
   public:
-    providers_graph_proxy(source_bundle bundle) :
+    providers_graph_proxy(graph_registration_bundle bundle) :
       base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors, bundle.resources}
     {
     }
@@ -58,7 +46,7 @@ namespace phlex::detail {
     using base = graph_proxy<T>;
 
   public:
-    source_graph_proxy(source_bundle bundle) :
+    source_graph_proxy(graph_registration_bundle bundle) :
       base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors, bundle.resources}
     {
     }
@@ -68,7 +56,7 @@ namespace phlex::detail {
   };
 
   namespace internal {
-    using source_creator_t = void(source_bundle, configuration const&);
+    using source_creator_t = void(graph_registration_bundle, configuration const&);
   }
 }
 

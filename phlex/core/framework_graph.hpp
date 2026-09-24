@@ -76,7 +76,7 @@ namespace phlex::detail {
       return {config, graph_, nodes_, registration_errors_, resources_};
     }
 
-    source_bundle source_proxy(configuration const& config)
+    graph_registration_bundle registration_bundle(configuration const& config)
     {
       return {.config = config,
               .graph = graph_,
