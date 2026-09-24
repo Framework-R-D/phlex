@@ -1,12 +1,12 @@
-#include "test/plugins/resources.hpp"
 #include "phlex/configuration.hpp"
 #include "phlex/resource.hpp"
+#include "test/plugins/resources_for_testing.hpp"
 
 using namespace phlex;
 using namespace test::plugins;
 
 namespace {
-  using proxy = detail::resources_graph_proxy<detail::void_tag>;
+  using proxy = detail::resources_graph_proxy;
 
   template <typename T>
   concept exposes_observe =

@@ -7,11 +7,11 @@ target_link_libraries(ij_source PRIVATE phlex::source)
 add_library(output MODULE output.cpp)
 target_link_libraries(output PRIVATE phlex::module)
 
-add_library(test_resources MODULE resources.cpp)
-target_link_libraries(test_resources PRIVATE phlex::resource)
+add_library(register_resources_for_testing MODULE register_resources_for_testing.cpp)
+target_link_libraries(register_resources_for_testing PRIVATE phlex::resource)
 
-add_library(resources_module MODULE resources_module.cpp)
-target_link_libraries(resources_module PRIVATE phlex::module)
+add_library(verify_resources MODULE verify_resources.cpp)
+target_link_libraries(verify_resources PRIVATE phlex::module)
 
 cet_test(
   job:add
@@ -33,7 +33,7 @@ cet_test(
   phlex::phlex
   TEST_ARGS
   -c
-  ${CMAKE_CURRENT_SOURCE_DIR}/resources.jsonnet
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_resources.jsonnet
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}"

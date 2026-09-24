@@ -1,5 +1,5 @@
 #include "phlex/module.hpp"
-#include "test/plugins/resources.hpp"
+#include "test/plugins/resources_for_testing.hpp"
 
 #include <cassert>
 

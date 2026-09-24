@@ -12,7 +12,6 @@ namespace phlex::detail {
   ///
   /// Passed to @c PHLEX_REGISTER_RESOURCES plugin entry points. Only resource
   /// registration is accessible. Users never construct this type directly.
-  template <typename T>
   class resources_graph_proxy {
   public:
     explicit resources_graph_proxy(graph_registration_bundle bundle) : resources_{bundle.resources}
@@ -38,12 +37,17 @@ namespace phlex::detail {
   };
 
   namespace internal {
-    using resource_creator_t = void(resources_graph_proxy<void_tag> const&, configuration const&);
+    using resource_creator_t = void(resources_graph_proxy const&, configuration const&);
+
+    // The plugin mechanism requires a template, but resources_graph_proxy doesn't need to be one.
+    // The following template alias is the workaround.
+    template <std::same_as<void_tag> T>
+    using resources_graph_proxy_shim = resources_graph_proxy;
   }
 }
 
 #define PHLEX_REGISTER_RESOURCES(...)                                                              \
   PHLEX_DETAIL_REGISTER_PLUGIN(                                                                    \
-    phlex::detail::resources_graph_proxy, create, create_resources, __VA_ARGS__)
+    phlex::detail::internal::resources_graph_proxy_shim, create, create_resources, __VA_ARGS__)
 
 #endif // PHLEX_RESOURCE_HPP

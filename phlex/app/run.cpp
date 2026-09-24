@@ -25,7 +25,7 @@ namespace phlex::detail {
     }
 
     for (auto const& [key, value] : resource_configs) {
-      load_resources(g, key, value.as_object());
+      load_resource(g, key, value.as_object());
     }
 
     // It is allowed for users to not specify any modules

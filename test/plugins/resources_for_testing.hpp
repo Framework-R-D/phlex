@@ -1,5 +1,5 @@
-#ifndef TEST_PLUGINS_RESOURCES_HPP
-#define TEST_PLUGINS_RESOURCES_HPP
+#ifndef TEST_PLUGINS_RESOURCES_FOR_TESTING_HPP
+#define TEST_PLUGINS_RESOURCES_FOR_TESTING_HPP
 
 namespace test::plugins {
   struct configured_resource {
@@ -13,4 +13,4 @@ namespace test::plugins {
   };
 }
 
-#endif // TEST_PLUGINS_RESOURCES_HPP
+#endif // TEST_PLUGINS_RESOURCES_FOR_TESTING_HPP

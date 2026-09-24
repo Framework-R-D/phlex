@@ -1,7 +1,7 @@
 {
   resources: {
-    test: {
-      cpp: 'test_resources',
+    resources_for_testing: {
+      cpp: 'register_resources_for_testing',
       value: 42,
     },
   },
@@ -17,8 +17,8 @@
     },
   },
   modules: {
-    resources: {
-      cpp: 'resources_module',
+    verify_resources: {
+      cpp: 'verify_resources',
     },
   },
 }
