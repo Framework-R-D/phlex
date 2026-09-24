@@ -259,3 +259,22 @@ cet_test(
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
 )
+
+if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
+  cet_test(
+    "form_rntuple_error_handling_extra"
+    USE_CATCH2_MAIN
+    SOURCE
+    form_rntuple_error_handling_extra.cpp
+    LIBRARIES
+    root_storage
+    storage
+    persistence
+    form
+    form_test_utils
+    form_test_data_products
+    TEST_PROPERTIES
+    RESOURCE_LOCK
+    "FORMTestFile.root"
+  )
+endif()

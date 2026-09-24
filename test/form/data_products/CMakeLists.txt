@@ -1,8 +1,8 @@
 set(FORM_DATA_PROD_LIB_NAME "form_test_data_products")
-add_library(track_start_obj OBJECT track_start.cpp)
-set_target_properties(track_start_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(track_start_obj PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/include)
-add_library(${FORM_DATA_PROD_LIB_NAME} SHARED $<TARGET_OBJECTS:track_start_obj>)
+add_library(${FORM_DATA_PROD_LIB_NAME}_obj OBJECT track_start.cpp unserializable.cpp)
+set_target_properties(${FORM_DATA_PROD_LIB_NAME}_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(${FORM_DATA_PROD_LIB_NAME}_obj PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/include)
+add_library(${FORM_DATA_PROD_LIB_NAME} SHARED $<TARGET_OBJECTS:${FORM_DATA_PROD_LIB_NAME}_obj>)
 
 set_target_properties(
   ${FORM_DATA_PROD_LIB_NAME}
