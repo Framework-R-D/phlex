@@ -20,3 +20,17 @@ TEST_CASE("automatic streamer mode", "[form RNTuple]")
 
   REQUIRE(!std_err_redirect.str().empty());
 }
+
+TEST_CASE("RNTuple open failure", "[form RNTuple]")
+{
+  //TODO: create a read-only file and pass it to RNTuple write backend
+  double test_data = 42.;
+  auto file = create_file(tech, "form_read_only_file_rntuple.root", 'z');
+  auto assoc = create_write_association(tech, "test");
+  assoc->set_file(file);
+  assoc->setup_write(typeid(test_data));
+  auto writer = create_write_container(tech, "test/test_data");
+  dynamic_pointer_cast<storage_associative_write_container>(writer)->set_parent(assoc);
+  writer->setup_write(typeid(test_data));
+  CHECK_THROWS_AS(writer->fill(&test_data), std::runtime_error);
+}
