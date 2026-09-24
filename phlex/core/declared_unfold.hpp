@@ -62,6 +62,7 @@ namespace phlex::detail {
     declared_unfold(phlex::experimental::algorithm_name name,
                     std::vector<std::string> predicates,
                     product_selectors input_products,
+                    tbb::flow::graph& graph,
                     std::string child_layer);
     ~declared_unfold() override;
 
@@ -134,6 +135,7 @@ namespace phlex::detail {
       declared_unfold{std::move(algo_name),
                       std::move(predicates),
                       std::move(input_products),
+                      g,
                       std::move(child_layer_name)},
       output_{to_product_specifications(name(),
                                         std::move(output_product_suffixes),

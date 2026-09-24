@@ -37,7 +37,8 @@ namespace phlex::detail {
   public:
     declared_observer(phlex::experimental::algorithm_name name,
                       std::vector<std::string> predicates,
-                      product_selectors input_products);
+                      product_selectors input_products,
+                      tbb::flow::graph& graph);
     ~declared_observer() override;
   };
 
@@ -65,7 +66,7 @@ namespace phlex::detail {
                   AlgorithmBits alg,
                   product_selectors input_products,
                   resource_catalog& resources) :
-      declared_observer{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      declared_observer{std::move(algo_name), std::move(predicates), std::move(input_products), g},
       join_{make_join_or_none<num_products>(g, name().to_string(), layers())},
       observer_{builder::make(
         g,

@@ -4,9 +4,13 @@ namespace phlex::detail {
   declared_fold::declared_fold(phlex::experimental::algorithm_name name,
                                std::vector<std::string> predicates,
                                product_selectors input_products,
+                               tbb::flow::graph& graph,
                                std::string partition_layer) :
-    products_consumer{
-      std::move(name), std::move(predicates), std::move(input_products), require_layers::always},
+    products_consumer{std::move(name),
+                      std::move(predicates),
+                      std::move(input_products),
+                      graph,
+                      require_layers::always},
     partition_layer_{std::move(partition_layer)}
   {
   }

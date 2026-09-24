@@ -199,4 +199,21 @@ TEST_CASE("Querying products in different ways", "[graph]")
     CHECK(g.execution_count("copy_archived_count") == num_events);
     CHECK(g.execution_count("observe_archived_count") == num_events);
   }
+
+  SECTION("Products from this job, using layer only")
+  {
+    g.fold(
+       "duplicate_temperature",
+       [](std::atomic<double>& summary, double temp) { summary += temp; },
+       concurrency::unlimited,
+       "job")
+      .input_family(product_selector{.creator = "input", .layer = "event"})
+      .output_product_suffixes("temperature");
+
+    g.transform("layer_only", [](double const& d) { return d; })
+      .input_family(product_selector{.layer = "job"})
+      .output_product_suffixes("job_temp");
+    g.execute();
+    CHECK(g.execution_count("layer_only") == 1);
+  }
 }

@@ -1,4 +1,5 @@
 #include "phlex/core/products_consumer.hpp"
+#include <spdlog/spdlog.h>
 
 #include "fmt/format.h"
 
@@ -50,8 +51,10 @@ namespace phlex::detail {
   products_consumer::products_consumer(phlex::experimental::algorithm_name name,
                                        std::vector<std::string> predicates,
                                        product_selectors input_products,
+                                       tbb::flow::graph& graph,
                                        require_layers layers_required) :
     consumer{std::move(name), std::move(predicates)},
+    graph_{graph},
     input_products_{std::move(input_products)},
     layers_{layers_from(input_products_)}
   {
@@ -64,7 +67,24 @@ namespace phlex::detail {
 
   tbb::flow::receiver<message>& products_consumer::port(product_selector const& input_product)
   {
-    return port_for(input_product);
+    auto& next = port_for(input_product);
+
+    // If input_product doesn't have a layer, it must be for a node that allows layer omission
+    if (input_product.layer) {
+      auto& layer_check = layer_checkers_.emplace_back(std::make_unique<layer_check_node_t>(
+        graph_,
+        tbb::flow::unlimited,
+        [&layer = static_cast<experimental::identifier const&>(input_product.layer)](
+          message const& msg, auto& output) {
+          if (msg.store->layer_name() == layer) {
+            std::get<0>(output).try_put(msg);
+          }
+        }));
+      make_edge(tbb::flow::output_port<0>(*layer_check), next);
+      return *layer_check;
+    }
+    // else
+    return next;
   }
 
   product_selectors const& products_consumer::input() const noexcept { return input_products_; }

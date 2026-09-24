@@ -41,6 +41,7 @@ namespace phlex::detail {
     declared_fold(phlex::experimental::algorithm_name name,
                   std::vector<std::string> predicates,
                   product_selectors input_products,
+                  tbb::flow::graph& graph,
                   std::string partition_layer);
     ~declared_fold() override;
 
@@ -106,6 +107,7 @@ namespace phlex::detail {
       declared_fold{std::move(algo_name),
                     std::move(predicates),
                     std::move(input_products),
+                    g,
                     std::move(partition_layer)},
       output_{to_product_specifications(name(), std::move(output), make_type_ids<result_type>())},
       join_{g,

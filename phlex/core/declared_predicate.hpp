@@ -40,7 +40,8 @@ namespace phlex::detail {
   public:
     declared_predicate(phlex::experimental::algorithm_name name,
                        std::vector<std::string> predicates,
-                       product_selectors input_products);
+                       product_selectors input_products,
+                       tbb::flow::graph& graph);
     ~declared_predicate() override;
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
@@ -72,7 +73,7 @@ namespace phlex::detail {
                    AlgorithmBits alg,
                    product_selectors input_products,
                    resource_catalog& resources) :
-      declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products)},
+      declared_predicate{std::move(algo_name), std::move(predicates), std::move(input_products), g},
       join_{make_join_or_none<num_products>(g, name().to_string(), layers())},
       predicate_{builder::make(
         g,
