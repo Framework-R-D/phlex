@@ -111,7 +111,7 @@ namespace phlex::detail {
                                                std::move(predicates),
                                                graph_,
                                                std::move(alg_),
-                                               std::vector(inputs.begin(), inputs.end()),
+                                               std::vector(std::from_range, std::move(inputs)),
                                                std::move(output_product_suffixes),
                                                resources_);
           });
@@ -298,7 +298,7 @@ namespace phlex::detail {
             graph_,
             std::move(alg_),
             std::move(init_),
-            std::vector(inputs.begin(), inputs.end()),
+            std::vector(std::from_range, std::move(inputs)),
             std::move(output_product_suffixes),
             std::move(partition_),
             resources_);
@@ -414,7 +414,7 @@ namespace phlex::detail {
           graph_,
           std::move(predicate_),
           std::move(unfold_),
-          std::vector(inputs.begin(), inputs.end()),
+          std::vector(std::from_range, std::move(inputs)),
           std::move(output_product_suffixes),
           std::move(destination_layer_),
           resources_);

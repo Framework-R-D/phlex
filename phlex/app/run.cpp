@@ -23,13 +23,14 @@ namespace {
 }
 
 namespace phlex::detail {
-  void run(boost::json::object const& configurations, overridable_configuration const& overrides)
+  void run(boost::json::object const& configurations, overridable_configuration const& overridables)
   {
-    if (!overrides.stage) {
+    if (!overridables.stage) {
       throw std::runtime_error("Must provide a 'stage' name.");
     }
 
-    auto g = framework_graph::without_driver(overrides.stage.value(), overrides.max_parallelism);
+    auto g =
+      framework_graph::without_driver(overridables.stage.value(), overridables.max_parallelism);
 
     boost::json::object resource_configs;
     if (configurations.contains("resources")) {
