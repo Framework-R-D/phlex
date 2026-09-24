@@ -15,10 +15,10 @@ public:
   size_t get_size() const;
 
 private:
+  size_t size_;
   double* x_;
   double* y_;
   double* z_;
-  size_t size_;
 };
 
 #endif //TEST_FORM_DATA_PRODUCTS_UNSERIALIZABLE_HPP
