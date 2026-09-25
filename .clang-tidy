@@ -2,38 +2,38 @@
 # Clang-tidy configuration for Phlex project
 # Enforces C++ Core Guidelines and modern C++23 best practices
 
-Checks: >
-  -*,
-  bugprone-*,
-  -bugprone-easily-swappable-parameters,
-  -bugprone-exception-escape,
-  cert-*,
-  clang-analyzer-*,
-  concurrency-*,
-  cppcoreguidelines-*,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-avoid-c-arrays,
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  -cppcoreguidelines-macro-usage,
-  -cppcoreguidelines-non-private-member-variables-in-classes,
-  -llvm-header-guard, # Use scripts/fix_header_guards.py instead
-  misc-*,
-  -misc-non-private-member-variables-in-classes,
-  -misc-no-recursion,
-  modernize-*,
-  -modernize-use-trailing-return-type,
-  -modernize-use-nodiscard,
-  performance-*,
-  portability-*,
-  readability-*,
-  -readability-function-cognitive-complexity,
-  -readability-identifier-length,
-  -readability-implicit-bool-conversion,
-  -readability-magic-numbers,
-  -readability-named-parameter,
-  -readability-uppercase-literal-suffix,
+Checks:
+  - '-*'
+  - 'bugprone-*'
+  - '-bugprone-easily-swappable-parameters'
+  - '-bugprone-exception-escape'
+  - 'cert-*'
+  - 'clang-analyzer-*'
+  - 'concurrency-*'
+  - 'cppcoreguidelines-*'
+  - '-cppcoreguidelines-avoid-magic-numbers'
+  - '-cppcoreguidelines-avoid-c-arrays'
+  - '-cppcoreguidelines-pro-bounds-array-to-pointer-decay'
+  - '-cppcoreguidelines-pro-bounds-avoid-unchecked-container-access'
+  - '-cppcoreguidelines-pro-bounds-pointer-arithmetic'
+  - '-cppcoreguidelines-macro-usage'
+  - '-cppcoreguidelines-non-private-member-variables-in-classes'
+  - '-llvm-header-guard' # Use scripts/fix_header_guards.py instead
+  - 'misc-*'
+  - '-misc-non-private-member-variables-in-classes'
+  - '-misc-no-recursion'
+  - 'modernize-*'
+  - '-modernize-use-trailing-return-type'
+  - '-modernize-use-nodiscard'
+  - 'performance-*'
+  - 'portability-*'
+  - 'readability-*'
+  - '-readability-function-cognitive-complexity'
+  - '-readability-identifier-length'
+  - '-readability-implicit-bool-conversion'
+  - '-readability-magic-numbers'
+  - '-readability-named-parameter'
+  - '-readability-uppercase-literal-suffix'
 
 WarningsAsErrors: ''
 
