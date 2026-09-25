@@ -79,9 +79,9 @@ namespace {
 
   class accumulator_test_fixture {
   public:
-    explicit accumulator_test_fixture(std::string node_name) :
+    explicit accumulator_test_fixture(std::string const& node_name) :
       accumulator_{g_,
-                   std::move(node_name),
+                   node_name,
                    "test_stage"_id,
                    "run"_id,
                    product_specifications(1),
