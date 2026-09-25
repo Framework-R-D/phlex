@@ -1,8 +1,14 @@
 #include "phlex/configuration.hpp"
+#include "phlex/core/product_selector.hpp"
 
-#include <boost/json.hpp>
+#include <boost/json/object.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace phlex;
 using namespace Catch::Matchers;
@@ -57,7 +63,7 @@ TEST_CASE("Retrieve product_selector", "[config]")
   underlying_config["malformed1"] = std::move(malformed_input1);
   underlying_config["malformed2"] = std::move(malformed_input2);
   underlying_config["malformed3"] = std::move(malformed_input3);
-  configuration config{underlying_config};
+  configuration const config{underlying_config};
 
   auto input_query = config.get<product_selector>("input");
   CHECK(input_query.match(

@@ -1,16 +1,25 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/resource/catalog.hpp"
+#include "phlex/core/resource/concepts.hpp"
+#include "phlex/core/resource/dependencies.hpp"
 #include "phlex/core/resource_api.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/sleep_for.hpp"
 #include "phlex/utilities/thread_counter.hpp"
 
+#include <boost/mp11/list.hpp> // IWYU pragma: keep
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <array>
 #include <atomic>
-#include <chrono>
+#include <chrono> // IWYU pragma: keep
 #include <concepts>
+#include <utility>
 
 using namespace phlex;
 using namespace phlex::detail;
@@ -217,7 +226,7 @@ TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
   std::atomic<unsigned int> expected_numbers_seen{};
   auto verify_number = [&counter, &expected_numbers_seen](int const num, pointer_resource const*) {
     // Both observers share one resource token and must not run concurrently.
-    thread_counter throw_if_more_than_one_thread{counter};
+    thread_counter const throw_if_more_than_one_thread{counter};
     if (num == 42) {
       ++expected_numbers_seen;
     }

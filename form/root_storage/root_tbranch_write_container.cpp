@@ -5,13 +5,22 @@
 #include "demangle_name.hpp"
 #include "root_tfile.hpp"
 #include "root_ttree_write_container.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_associative_write_container.hpp"
 
+#include <RtypesCore.h>
 #include <TBranch.h>
-#include <TFile.h>
+#include <TDataType.h>
+#include <TDictionary.h>
 #include <TLeaf.h>
 #include <TTree.h>
 
-#include <unordered_map>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 
@@ -108,7 +117,7 @@ std::uint64_t root_tbranch_write_container_imp::fill(void const* data)
   if (branch_ == nullptr) {
     throw std::runtime_error("root_tbranch_write_container_imp::fill no branch found");
   }
-  TLeaf* leaf = branch_->GetLeaf(col_name().c_str());
+  TLeaf const* leaf = branch_->GetLeaf(col_name().c_str());
   if (leaf != nullptr &&
       TDictionary::GetDictionary(leaf->GetTypeName())->Property() & EProperty::kIsFundamental) {
     branch_->SetAddress(const_cast<void*>(data));

@@ -21,7 +21,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
 PHLEX_REGISTER_DRIVER(d, config)
 {

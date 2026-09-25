@@ -1,18 +1,30 @@
 #include "phlex/core/index_router.hpp"
 
+#include "phlex/core/message.hpp"
+#include "phlex/model/data_cell_index.hpp"
 #include "phlex/model/flush_gate.hpp"
+#include "phlex/model/flush_messages.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
-#include "phlex/utilities/hashing.hpp"
 
-#include <fmt/std.h>
+#include <fmt/format.h>
 #include <oneapi/tbb/flow_graph.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <map>
+#include <memory>
 #include <ranges>
 #include <set>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 using phlex::experimental::identifier;
 using phlex::experimental::layer_path;
@@ -338,7 +350,7 @@ namespace phlex::detail {
       return nullptr;
     }
 
-    std::string msg = fmt::format(
+    std::string const msg = fmt::format(
       "Multiple layers match specification {}:\n{}",
       layer_path,
       bulleted_list(candidates | std::views::transform([](auto const& it) { return it->first; })));

@@ -5,14 +5,14 @@
 #include "data_products/dune_example/hit.hpp"
 #include "data_products/dune_example/hit_candidate.hpp"
 #include "dune_example_hit_maker.hpp"
+#include "form/config.hpp"
 #include "form/form_writer.hpp"
+#include "form/product_with_name.hpp"
 #include "test_utils.hpp"
 
-#include <cstdint>
 #include <format>
 #include <iostream>
 #include <string>
-#include <typeinfo>
 #include <vector>
 
 /* @file dune_example_writer.cpp

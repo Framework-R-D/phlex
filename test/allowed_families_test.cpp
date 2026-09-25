@@ -1,10 +1,9 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
-
-#include <iostream>
 
 using namespace phlex;
 using namespace oneapi::tbb;

@@ -1,4 +1,6 @@
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/module.hpp"
 #include "phlex/source.hpp"
 
@@ -10,28 +12,33 @@
 
 using namespace phlex;
 
-//A gaussian_generator generates a vector<int> sampled from a Gaussian distribution
-class gaussian_generator {
-public:
-  gaussian_generator(int const n_time_ticks, int const seed, float const mean, float const stddev) :
-    n_time_ticks_(n_time_ticks), gen_(seed), dist_(mean, stddev)
-  {
-  }
-
-  std::vector<int> operator()([[maybe_unused]] data_cell_index const& idx)
-  {
-    std::vector<int> randoms(n_time_ticks_);
-    for (auto& random : randoms) {
-      random = static_cast<int>(dist_(gen_));
+namespace {
+  //A gaussian_generator generates a vector<int> sampled from a Gaussian distribution
+  class gaussian_generator {
+  public:
+    gaussian_generator(int const n_time_ticks,
+                       int const seed,
+                       float const mean,
+                       float const stddev) :
+      n_time_ticks_(n_time_ticks), gen_(seed), dist_(mean, stddev)
+    {
     }
-    return randoms;
-  }
 
-private:
-  int n_time_ticks_;
-  std::mt19937 gen_;
-  std::normal_distribution<float> dist_;
-};
+    std::vector<int> operator()(data_cell_index const&)
+    {
+      std::vector<int> randoms(n_time_ticks_);
+      for (auto& random : randoms) {
+        random = static_cast<int>(dist_(gen_));
+      }
+      return randoms;
+    }
+
+  private:
+    int n_time_ticks_;
+    std::mt19937 gen_;
+    std::normal_distribution<float> dist_;
+  };
+} // namespace
 
 PHLEX_REGISTER_PROVIDERS(graph, config)
 {

@@ -1,13 +1,21 @@
 #include "plugins/layer_generator.hpp"
 
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fixed_hierarchy.hpp"
+#include "phlex/model/index_generator.hpp"
+
 #include <fmt/format.h>
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <ranges>
 #include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace phlex::experimental {
 
@@ -54,7 +62,7 @@ namespace phlex::experimental {
                                            std::string const& parent_layer_spec) const
   {
     // Seed result with the specified parent_layer_spec
-    std::string result{"/" + parent_layer_spec};
+    std::string const result{"/" + parent_layer_spec};
     std::string const* found_parent{nullptr};
     for (auto const& path : layer_paths_) {
       if (path.ends_with(parent_layer_spec)) {
@@ -162,7 +170,7 @@ namespace phlex::experimental {
       auto const full_child_path = fmt::format("{}/{}", cell_lp, child);
       auto const& [_, count, start_at] = layers_.at(full_child_path);
       bool const has_children = parent_to_children_.contains(full_child_path);
-      for (unsigned int i : std::views::iota(start_at, count + start_at)) {
+      for (unsigned int const i : std::views::iota(start_at, count + start_at)) {
         auto child_cell = cell->make_child(child, i);
         ++emitted_cells_.at(full_child_path);
         co_yield child_cell;

@@ -3,7 +3,9 @@
 #include "waveform_generator_input.hpp"
 #include "waveforms.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <utility>
 
 demo::waveform_generator::waveform_generator(wgi const& wgi) : maxsize_{wgi.size} {}
 

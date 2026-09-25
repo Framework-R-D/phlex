@@ -24,6 +24,7 @@
 // =======================================================================================
 
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
 #include "phlex/utilities/sleep_for.hpp"
@@ -33,6 +34,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
+#include <chrono> // IWYU pragma: keep
+#include <cstddef>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -162,7 +165,7 @@ TEST_CASE("Fold receives a resource token", "[graph][fold][resource]")
                                        unsigned int number,
                                        fold_resource_1 const*,
                                        fold_resource_2 const*) {
-    detail::thread_counter throw_if_more_than_one_thread{counter};
+    detail::thread_counter const throw_if_more_than_one_thread{counter};
     detail::spin_for(5ms);
     sum += number;
   };

@@ -1,17 +1,25 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/driver.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/utilities/max_allowed_parallelism.hpp"
+#include "phlex/model/fixed_hierarchy.hpp"
+#include "phlex/model/fwd.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <boost/core/demangle.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <fmt/format.h>
 
+#include <exception>
 #include <functional>
+#include <memory>
 #include <stdexcept>
 #include <typeinfo>
+#include <utility>
 #include <vector>
 
 using namespace phlex;
@@ -235,7 +243,7 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
   std::vector<phlex::source const*> sources{};
   auto src = std::make_unique<test_source>();
   sources.push_back(src.get());
-  detail::driver_proxy proxy{sources};
+  detail::driver_proxy const proxy{sources};
 
   SECTION("Throw when source parameter count mismatches")
   {
@@ -257,7 +265,7 @@ TEST_CASE("driver_proxy validates sources and generator", "[graph]")
 
 TEST_CASE("driver_proxy creates bundle from driver builder", "[graph]")
 {
-  detail::driver_proxy proxy{{}};
+  detail::driver_proxy const proxy{{}};
   auto const bundle = proxy.driver(std::make_shared<test_driver_builder>());
 
   CHECK(static_cast<bool>(bundle.driver));

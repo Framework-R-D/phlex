@@ -3,6 +3,9 @@
 #include "ROOT/RError.hxx"
 
 #include <exception>
+#include <source_location>
+#include <stdexcept>
+#include <string>
 
 namespace form::detail::experimental {
   void handle_rexception(std::string const& message,

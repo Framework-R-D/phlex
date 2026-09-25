@@ -1,11 +1,18 @@
 //Tests for FORM's storage layer's design requirements
 
+#include "core/cell_index.hpp"
+#include "core/placement.hpp"
+#include "core/technology.hpp"
+#include "core/token.hpp"
 #include "form/config.hpp"
+#include "persistence/ipersistence_reader.hpp"
+#include "persistence/ipersistence_writer.hpp"
 #include "persistence/persistence_reader.hpp"
-#include "persistence/persistence_writer.hpp"
 #include "root_storage/root_tfile.hpp"
 #include "root_storage/root_ttree_write_container.hpp"
+#include "storage/factories.hpp"
 #include "storage/istorage.hpp"
+#include "storage/storage_associative_write_container.hpp"
 #include "storage/storage_file.hpp"
 #include "storage/storage_reader.hpp"
 #include "storage/storage_write_container.hpp"
@@ -22,9 +29,9 @@
 #include <memory>
 #include <numbers>
 #include <numeric>
+#include <stdexcept>
 #include <string>
 #include <typeinfo>
-#include <utility>
 #include <vector>
 
 using namespace form::detail::experimental;
@@ -176,7 +183,7 @@ TEST_CASE("FORM Container setup error handling")
 
     SECTION("set_file() on parent with wrong file type")
     {
-      std::shared_ptr<i_storage_file> wrong_file(
+      std::shared_ptr<i_storage_file> const wrong_file(
         new storage_file("testContainerErrorHandling.root", 'o'));
       CHECK_THROWS_AS(parent->set_file(wrong_file), std::runtime_error);
     }
@@ -191,7 +198,7 @@ TEST_CASE("FORM Container setup error handling")
 
   SECTION("mismatched file type")
   {
-    std::shared_ptr<i_storage_file> wrong_file(
+    std::shared_ptr<i_storage_file> const wrong_file(
       new storage_file("testContainerErrorHandling.root", 'o'));
     CHECK_THROWS_AS(read_container->set_file(wrong_file), std::runtime_error);
     CHECK_THROWS_AS(write_container->set_file(wrong_file), std::runtime_error);
@@ -202,7 +209,7 @@ TEST_CASE("FORM Container setup error handling")
   if (associative_write) {
     SECTION("mismatched parent type")
     {
-      std::shared_ptr<i_storage_write_container> bad_write_parent(
+      std::shared_ptr<i_storage_write_container> const bad_write_parent(
         new storage_write_container("bad"));
       CHECK_THROWS_AS(associative_write->set_parent(bad_write_parent), std::runtime_error);
     }
@@ -243,20 +250,22 @@ TEST_CASE("storage_writer: technology is part of a container's identity", "[form
 TEST_CASE("storage_writer: committing an unknown placement throws", "[form]")
 {
   auto writer = create_storage_writer();
-  std::vector<float> data(1, 0.5F);
+  std::vector<float> const data(1, 0.5F);
   placement const absent{"storage_writer_no_such_file.root", "creator/product", technology};
   CHECK_THROWS_AS(writer->commit_containers(absent), std::runtime_error);
 }
 
-template <class T>
-void test_fundamental(T const expected)
-{
-  SECTION(form::test::get_type_name<T>())
+namespace {
+  template <class T>
+  void test_fundamental(T const expected)
   {
-    form::test::write(technology, expected);
-    auto const [result] = form::test::read<T>(technology);
-    REQUIRE(result != nullptr);
-    CHECK(*result == expected);
+    SECTION(form::test::get_type_name<T>())
+    {
+      form::test::write(technology, expected);
+      auto const [result] = form::test::read<T>(technology);
+      REQUIRE(result != nullptr);
+      CHECK(*result == expected);
+    }
   }
 }
 
@@ -630,7 +639,7 @@ TEST_CASE("storage_reader get_index: empty container and tech-table branches", "
   token const index_token{
     "storage_reader_hdf5_get_index.root", "creator/index", form::technology::hdf5};
 
-  tech_setting_config empty_settings;
+  tech_setting_config const empty_settings;
   CHECK_THROWS_AS(reader.get_index(index_token, "[event:1, segment:1]", empty_settings),
                   std::runtime_error);
 
@@ -700,7 +709,7 @@ TEST_CASE("storage_reader prime/list_indices/read_container: attribute and error
                                       typeid(std::vector<int>),
                                       file_attr_settings));
 
-  tech_setting_config empty_settings;
+  tech_setting_config const empty_settings;
   CHECK_THROWS_AS(reader.list_indices(
                     token{"storage_reader_hdf5_misc.root", "creator/index", form::technology::hdf5},
                     empty_settings),

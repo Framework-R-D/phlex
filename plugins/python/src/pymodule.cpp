@@ -1,24 +1,24 @@
 #include "phlex/core/framework_graph.hpp"
-#include "phlex/model/data_cell_index.hpp"
+#include "phlex/module.hpp"
 #include "phlex/source.hpp"
 #include "wrap.hpp"
 
-#include <dlfcn.h>
 #define PY_ARRAY_UNIQUE_SYMBOL phlex_ARRAY_API
-#include <numpy/arrayobject.h>
+#include <numpy/arrayobject.h> // IWYU pragma: keep
 
 #include <atomic>
-#include <cstdint>
 #include <cstdlib>
-#include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 using namespace phlex::experimental;
 using namespace phlex;
-using phlex::detail::framework_graph;
 
-static bool initialize();
+namespace {
+  bool initialize();
+} // namespace
 
 // the expansion of registration macros within the same file would lead to
 // symbol duplication, hence the use of separate namespaces here
@@ -27,7 +27,7 @@ namespace pymodule_register_providers {
   {
     initialize();
 
-    py_gilraii g;
+    py_gilraii const g;
 
     auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
@@ -67,7 +67,7 @@ namespace pymodule_register_algorithms {
   {
     initialize();
 
-    py_gilraii g;
+    py_gilraii const g;
 
     auto modname = config.get<std::string>("py");
     PyObject* mod = PyImport_ImportModule(modname.c_str());
@@ -98,118 +98,123 @@ namespace pymodule_register_algorithms {
   }
 } // namespace pymodule_register_algorithms
 
-static void import_numpy(bool control_interpreter)
-{
-  static std::atomic<bool> numpy_imported{false};
-  if (!numpy_imported.exchange(true)) {
-    if (_import_array() < 0) {
-      PyErr_Print();
-      if (control_interpreter) {
-        Py_Finalize();
+namespace {
+
+  void import_numpy(bool control_interpreter)
+  {
+    static std::atomic<bool> numpy_imported{false};
+    if (!numpy_imported.exchange(true)) {
+      if (_import_array() < 0) {
+        PyErr_Print();
+        if (control_interpreter) {
+          Py_Finalize();
+        }
+        throw std::runtime_error("build with numpy support, but numpy not importable");
       }
-      throw std::runtime_error("build with numpy support, but numpy not importable");
-    }
-  }
-}
-
-static void add_cmake_prefix_paths_to_syspath(char const* cmake_prefix_path)
-{
-  std::string prefix_path_str(cmake_prefix_path);
-  std::istringstream iss(prefix_path_str);
-  std::string path_entry;
-  std::vector<std::string> site_package_paths;
-
-  // Build site-packages paths from each CMAKE_PREFIX_PATH token
-  while (std::getline(iss, path_entry, ':')) {
-    if (!path_entry.empty()) {
-      std::string site_packages = path_entry + "/lib/python" + std::to_string(PY_MAJOR_VERSION) +
-                                  "." + std::to_string(PY_MINOR_VERSION) + "/site-packages";
-      site_package_paths.push_back(site_packages);
     }
   }
 
-  // Add each site-packages path to sys.path
-  if (site_package_paths.empty()) {
-    return;
-  }
+  void add_cmake_prefix_paths_to_syspath(char const* cmake_prefix_path)
+  {
+    std::string const prefix_path_str(cmake_prefix_path);
+    std::istringstream iss(prefix_path_str);
+    std::string path_entry;
+    std::vector<std::string> site_package_paths;
 
-  if (PyObject* sys = PyImport_ImportModule("sys")) {
-    if (PyObject* sys_path = PyObject_GetAttrString(sys, "path")) {
-      if (PyList_Check(sys_path)) {
-        for (auto const& sp_path : site_package_paths) {
-          if (PyObject* py_path = PyUnicode_FromString(sp_path.c_str())) {
-            // Insert at beginning to prioritize these paths
-            PyList_Insert(sys_path, 0, py_path);
-            Py_DECREF(py_path);
+    // Build site-packages paths from each CMAKE_PREFIX_PATH token
+    while (std::getline(iss, path_entry, ':')) {
+      if (!path_entry.empty()) {
+        std::string const site_packages = path_entry + "/lib/python" +
+                                          std::to_string(PY_MAJOR_VERSION) + "." +
+                                          std::to_string(PY_MINOR_VERSION) + "/site-packages";
+        site_package_paths.push_back(site_packages);
+      }
+    }
+
+    // Add each site-packages path to sys.path
+    if (site_package_paths.empty()) {
+      return;
+    }
+
+    if (PyObject* sys = PyImport_ImportModule("sys")) {
+      if (PyObject* sys_path = PyObject_GetAttrString(sys, "path")) {
+        if (PyList_Check(sys_path)) {
+          for (auto const& sp_path : site_package_paths) {
+            if (PyObject* py_path = PyUnicode_FromString(sp_path.c_str())) {
+              // Insert at beginning to prioritize these paths
+              PyList_Insert(sys_path, 0, py_path);
+              Py_DECREF(py_path);
+            }
           }
         }
+        Py_DECREF(sys_path);
       }
-      Py_DECREF(sys_path);
+      Py_DECREF(sys);
     }
-    Py_DECREF(sys);
   }
-}
 
-static bool initialize()
-{
-  if (Py_IsInitialized()) {
-    import_numpy(false);
+  bool initialize()
+  {
+    if (Py_IsInitialized()) {
+      import_numpy(false);
+      return true;
+    }
+
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+    PyConfig_SetString(&config, &config.program_name, L"phlex");
+
+    PyStatus const status = Py_InitializeFromConfig(&config);
+    PyConfig_Clear(&config);
+    if (PyStatus_Exception(status)) {
+      throw std::runtime_error("Python initialization failed");
+    }
+
+    // try again to see if the interpreter is now initialized
+    if (!Py_IsInitialized()) {
+      throw std::runtime_error("Python can not be initialized");
+    }
+
+    // LCOV_EXCL_START
+    // add custom types
+    if (PyType_Ready(&phlex_config_type) < 0) {
+      return false;
+    }
+    if (PyType_Ready(&phlex_module_type) < 0) {
+      return false;
+    }
+    if (PyType_Ready(&phlex_source_type) < 0) {
+      return false;
+    }
+    if (PyType_Ready(&phlex_data_cell_index_type) < 0) {
+      return false;
+    }
+    if (PyType_Ready(&phlex_lifeline_type) < 0) {
+      return false;
+    }
+    // LCOV_EXCL_STOP
+
+    // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
+    //        CMAKE_PREFIX_PATH. Add site-packages directories from CMAKE_PREFIX_PATH
+    //        to sys.path so Python can find packages in Spack views.
+    // NOLINTNEXTLINE(concurrency-mt-unsafe) - Single-threaded context
+    if (char const* cmake_prefix_path = std::getenv("CMAKE_PREFIX_PATH")) {
+      add_cmake_prefix_paths_to_syspath(cmake_prefix_path);
+    }
+
+    // load numpy (see also above, if already initialized)
+    import_numpy(true);
+
+    // TODO: the GIL should first be released on the main thread and this seems
+    // to be the only place to do it. However, there is no equivalent place to
+    // re-acquire it after the TBB runs are done, so normal shutdown of the
+    // Python interpreter will not happen atm.
+    static std::atomic<bool> gil_released{false};
+    if (!gil_released.exchange(true)) {
+      PyEval_SaveThread(); // state not saved, as no place to restore
+    }
+
     return true;
   }
 
-  PyConfig config;
-  PyConfig_InitPythonConfig(&config);
-  PyConfig_SetString(&config, &config.program_name, L"phlex");
-
-  PyStatus status = Py_InitializeFromConfig(&config);
-  PyConfig_Clear(&config);
-  if (PyStatus_Exception(status)) {
-    throw std::runtime_error("Python initialization failed");
-  }
-
-  // try again to see if the interpreter is now initialized
-  if (!Py_IsInitialized()) {
-    throw std::runtime_error("Python can not be initialized");
-  }
-
-  // LCOV_EXCL_START
-  // add custom types
-  if (PyType_Ready(&phlex_config_type) < 0) {
-    return false;
-  }
-  if (PyType_Ready(&phlex_module_type) < 0) {
-    return false;
-  }
-  if (PyType_Ready(&phlex_source_type) < 0) {
-    return false;
-  }
-  if (PyType_Ready(&phlex_data_cell_index_type) < 0) {
-    return false;
-  }
-  if (PyType_Ready(&phlex_lifeline_type) < 0) {
-    return false;
-  }
-  // LCOV_EXCL_STOP
-
-  // FIXME: Spack does not set PYTHONPATH or VIRTUAL_ENV, but it does set
-  //        CMAKE_PREFIX_PATH. Add site-packages directories from CMAKE_PREFIX_PATH
-  //        to sys.path so Python can find packages in Spack views.
-  // NOLINTNEXTLINE(concurrency-mt-unsafe) - Single-threaded context
-  if (char const* cmake_prefix_path = std::getenv("CMAKE_PREFIX_PATH")) {
-    add_cmake_prefix_paths_to_syspath(cmake_prefix_path);
-  }
-
-  // load numpy (see also above, if already initialized)
-  import_numpy(true);
-
-  // TODO: the GIL should first be released on the main thread and this seems
-  // to be the only place to do it. However, there is no equivalent place to
-  // re-acquire it after the TBB runs are done, so normal shutdown of the
-  // Python interpreter will not happen atm.
-  static std::atomic<bool> gil_released{false};
-  if (!gil_released.exchange(true)) {
-    PyEval_SaveThread(); // state not saved, as no place to restore
-  }
-
-  return true;
-}
+} // namespace

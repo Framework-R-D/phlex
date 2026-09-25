@@ -1,7 +1,8 @@
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/core/resource_api.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/model/identifier.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -9,6 +10,11 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <atomic>
+#include <cstdlib>
+#include <initializer_list>
+#include <iterator>
+#include <vector>
 
 using namespace phlex;
 using namespace phlex::detail;
@@ -222,9 +228,9 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
     unsigned int begin;
     unsigned int end;
   };
-  std::vector<predicate_config> configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
-                                        {.name = "exclude_6_to_7", .begin = 6, .end = 7},
-                                        {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
+  std::vector<predicate_config> const configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
+                                              {.name = "exclude_6_to_7", .begin = 6, .end = 7},
+                                              {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});

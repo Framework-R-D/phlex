@@ -8,7 +8,11 @@
 
 #include <ffi.h>
 
+#include <cstdint>
 #include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <variant>
 
 using namespace phlex::experimental;
 

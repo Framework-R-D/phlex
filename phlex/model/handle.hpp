@@ -63,7 +63,7 @@ namespace phlex {
     explicit handle(std::same_as<T> auto const& product,
                     data_cell_index const& id,
                     experimental::product_specification const& key,
-                    experimental::identifier const& stage) :
+                    experimental::identifier stage) :
       product_{&product},
       id_{&id},
       creator_plugin_{key.plugin()},

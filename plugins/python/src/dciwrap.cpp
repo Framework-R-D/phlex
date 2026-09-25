@@ -8,12 +8,12 @@ using namespace phlex;
 
 // Provide selected (for now) access to Phlex's data_cell_index instances.
 // clang-format off
-namespace phlex::experimental {
+namespace {
   struct py_data_cell_index {
     PyObject_HEAD
     data_cell_index const* ph_dci;
   };
-}
+} // namespace
 // clang-format on
 
 PyObject* phlex::experimental::wrap_dci(data_cell_index const& dci)
@@ -25,19 +25,23 @@ PyObject* phlex::experimental::wrap_dci(data_cell_index const& dci)
 }
 
 // simple forwarding methods
-static PyObject* dci_number(py_data_cell_index* pydci)
-{
-  return PyLong_FromLong(static_cast<long>(pydci->ph_dci->number()));
-}
+namespace {
 
-// PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static std::array<PyMethodDef, 2> dci_methods{
-  {{.ml_name = "number",
-    .ml_meth = reinterpret_cast<PyCFunction>(dci_number),
-    .ml_flags = METH_NOARGS,
-    .ml_doc = "index number"},
-   {.ml_name = nullptr, .ml_meth = nullptr, .ml_flags = 0, .ml_doc = nullptr}}};
+  PyObject* dci_number(py_data_cell_index* pydci)
+  {
+    return PyLong_FromLong(static_cast<long>(pydci->ph_dci->number()));
+  }
+
+  // PyMethodDef arrays must be non-const; tp_methods in PyTypeObject takes a non-const pointer.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  std::array<PyMethodDef, 2> dci_methods{
+    {{.ml_name = "number",
+      .ml_meth = reinterpret_cast<PyCFunction>(dci_number),
+      .ml_flags = METH_NOARGS,
+      .ml_doc = "index number"},
+     {.ml_name = nullptr, .ml_meth = nullptr, .ml_flags = 0, .ml_doc = nullptr}}};
+
+} // namespace
 
 // PyType_Ready() modifies PyTypeObject in-place; the Python C API requires non-const.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)

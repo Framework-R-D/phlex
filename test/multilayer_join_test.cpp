@@ -1,8 +1,13 @@
+#include "phlex/core/message.hpp"
 #include "phlex/core/multilayer_join_node.hpp"
-#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <gsl/pointers>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <memory>

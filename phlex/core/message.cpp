@@ -1,11 +1,13 @@
 #include "phlex/core/message.hpp"
 
-#include "phlex/model/data_cell_index.hpp"
+#include "phlex/core/product_selector.hpp"
 #include "phlex/model/product_store.hpp"
 
 #include <fmt/format.h>
 
 #include <algorithm>
+#include <cassert>
+#include <cstddef>
 #include <iterator>
 #include <stdexcept>
 #include <tuple>

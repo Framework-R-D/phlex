@@ -4,15 +4,23 @@
 
 #include "demangle_name.hpp"
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_read_container.hpp"
 
+#include <RtypesCore.h>
 #include <TBranch.h>
-#include <TFile.h>
-#include <TLeaf.h>
+#include <TClass.h>
+#include <TDataType.h>
+#include <TDictionary.h>
+#include <TFile.h> // IWYU pragma: keep
 #include <TTree.h>
 #include <gsl/pointers>
 
+#include <memory>
 #include <mutex>
-#include <unordered_map>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 using namespace form::detail::experimental;
 
@@ -41,7 +49,7 @@ void root_tbranch_read_container_imp::set_file(std::shared_ptr<i_storage_file> f
 
 void root_tbranch_read_container_imp::prime(std::type_info const& type)
 {
-  std::scoped_lock guard(root_tbranch_read_mutex());
+  std::scoped_lock const guard(root_tbranch_read_mutex());
 
   if (tfile_ == nullptr) {
     throw std::runtime_error("root_tbranch_read_container_imp::prime no file attached");
@@ -79,7 +87,7 @@ void root_tbranch_read_container_imp::prime(std::type_info const& type)
 
 bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_info const& type)
 {
-  std::scoped_lock guard(root_tbranch_read_mutex());
+  std::scoped_lock const guard(root_tbranch_read_mutex());
 
   if (tfile_ == nullptr) {
     throw std::runtime_error("root_tbranch_read_container_imp::read no file attached");
@@ -185,7 +193,7 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
       std::to_string(branch_status));
   }
 
-  Long64_t tentry = tree_->LoadTree(id);
+  Long64_t const tentry = tree_->LoadTree(id);
   branch_->GetEntry(tentry);
   *data = branch_buffer;
 
@@ -197,7 +205,7 @@ bool root_tbranch_read_container_imp::read(int id, void const** data, std::type_
 
 int root_tbranch_read_container_imp::entries()
 {
-  std::scoped_lock guard(root_tbranch_read_mutex());
+  std::scoped_lock const guard(root_tbranch_read_mutex());
 
   if (tfile_ == nullptr) {
     throw std::runtime_error("root_tbranch_read_container_imp::entries no file attached");

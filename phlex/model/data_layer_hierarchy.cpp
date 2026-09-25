@@ -1,11 +1,20 @@
 #include "phlex/model/data_layer_hierarchy.hpp"
 
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <iterator>
+#include <map>
+#include <memory>
 #include <ranges>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace {
   std::string const& maybe_name(std::string const& name)
@@ -56,7 +65,7 @@ namespace phlex::detail {
     }
 
     if (candidates.size() > 1ull) {
-      std::string msg =
+      std::string const msg =
         fmt::format("The following data layers match the specification {}:\n\n{}"
                     "\n\nPlease specify the full layer path to disambiguate between them.",
                     layer,

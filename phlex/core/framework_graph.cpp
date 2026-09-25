@@ -1,19 +1,34 @@
 #include "phlex/core/framework_graph.hpp"
 
-#include "phlex/concurrency.hpp"
+#include "phlex/core/declared_fold.hpp"
+#include "phlex/core/declared_predicate.hpp"
+#include "phlex/core/declared_unfold.hpp"
+#include "phlex/core/filter.hpp"
+#include "phlex/core/index_router.hpp"
 #include "phlex/core/make_computational_edges.hpp"
-#include "phlex/model/product_store.hpp"
+#include "phlex/driver.hpp"
+#include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/flush_messages.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/layer_path.hpp"
 #include "phlex/utilities/bulleted_list.hpp"
 
 #include <fmt/format.h>
-#include <fmt/ranges.h>
+#include <oneapi/tbb/flow_graph.h>
 #include <spdlog/cfg/env.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <cstddef>
+#include <exception>
 #include <format>
-#include <iostream>
+#include <map>
+#include <ranges>
 #include <set>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace phlex::detail {
   namespace {

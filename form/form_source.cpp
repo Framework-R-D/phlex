@@ -2,10 +2,22 @@
 #include "form/config.hpp"
 #include "form/form_reader.hpp"
 #include "form/form_source_type_registry.hpp"
+#include "form/product_with_name.hpp"
+#include "phlex/concurrency.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/fwd.hpp"
+#include "phlex/model/index_generator.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/products.hpp"
 #include "phlex/source.hpp"
 
 #include <cassert>
+#include <cstddef>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -178,7 +190,7 @@ PHLEX_REGISTER_SOURCE(s, config)
   auto const technology = form::technology::from_string(tech_string);
 
   form::experimental::config::item_config input_cfg;
-  form::experimental::config::tech_setting_config tech_cfg;
+  form::experimental::config::tech_setting_config const tech_cfg;
   for (auto const& name : products) {
     input_cfg.add_item(name, input_file, technology);
   }

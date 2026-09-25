@@ -5,14 +5,23 @@
 #include "demangle_name.hpp"
 #include "handle_rexception.hpp"
 #include "root_tfile.hpp"
+#include "storage/istorage.hpp"
+#include "storage/storage_read_container.hpp"
 
+#include <ROOT/RError.hxx>
 #include <ROOT/RNTupleReader.hxx>
+#include <ROOT/RNTupleTypes.hxx>
 #include <ROOT/RNTupleView.hxx>
 #include <TDictionary.h>
-#include <TFile.h>
+#include <TFile.h> // IWYU pragma: keep
 
-#include <exception>
+#include <cassert>
+#include <cstring>
+#include <memory>
 #include <mutex>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 #include <utility>
 
 namespace {
@@ -52,7 +61,7 @@ namespace form::detail::experimental {
 
   void root_rfield_read_container_imp::prime(std::type_info const& type)
   {
-    std::scoped_lock guard(root_rfield_read_mutex());
+    std::scoped_lock const guard(root_rfield_read_mutex());
 
     if (!tfile_) {
       throw std::runtime_error("root_rfield_read_container_imp::prime No file loaded");
@@ -79,7 +88,7 @@ namespace form::detail::experimental {
 
   bool root_rfield_read_container_imp::read(int id, void const** data, std::type_info const& type)
   {
-    std::scoped_lock guard(root_rfield_read_mutex());
+    std::scoped_lock const guard(root_rfield_read_mutex());
     try {
 
       //Connect to file at the last possible moment at the cost of a little run-time branching
@@ -109,7 +118,7 @@ namespace form::detail::experimental {
 
   int root_rfield_read_container_imp::entries()
   {
-    std::scoped_lock guard(root_rfield_read_mutex());
+    std::scoped_lock const guard(root_rfield_read_mutex());
 
     if (!reader_) {
       if (!tfile_) {

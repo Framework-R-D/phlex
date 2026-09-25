@@ -1,12 +1,14 @@
+#include "phlex/configuration.hpp"
 #include "phlex/model/identifier.hpp"
 
-#include <boost/json.hpp>
+#include <boost/json/object.hpp>
+#include <boost/json/parse.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <fmt/format.h>
-#include <phlex/configuration.hpp>
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <string_view>
 
 using namespace phlex::experimental;
@@ -29,7 +31,8 @@ TEST_CASE("Identifier equality and inequality", "[identifier]")
 TEST_CASE("Identifier from JSON", "[identifier]")
 {
   identifier b = "b"_id;
-  boost::json::object parsed_json = boost::json::parse(R"( {"identifier": "b" } )").as_object();
+  boost::json::object const parsed_json =
+    boost::json::parse(R"( {"identifier": "b" } )").as_object();
   auto b_from_json = phlex::detail::value_if_exists(parsed_json, "identifier");
   REQUIRE(b_from_json);
   // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- `REQUIRE` protects against incorrect access

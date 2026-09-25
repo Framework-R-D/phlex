@@ -3,6 +3,7 @@
 #include "phlex/utilities/resumable_driver.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <oneapi/tbb/flow_graph.h>
 #include <tbb/flow_graph.h>
 
 #include <ranges>
@@ -19,13 +20,13 @@ namespace {
   {
     auto job_id = data_cell_index::job();
     co_yield job_id;
-    for (unsigned int r : std::views::iota(0u, num_runs)) {
+    for (unsigned int const r : std::views::iota(0u, num_runs)) {
       auto run_id = job_id->make_child("run", r);
       co_yield run_id;
-      for (unsigned int sr : std::views::iota(0u, num_subruns)) {
+      for (unsigned int const sr : std::views::iota(0u, num_subruns)) {
         auto subrun_id = run_id->make_child("subrun", sr);
         co_yield subrun_id;
-        for (unsigned int spill : std::views::iota(0u, num_spills)) {
+        for (unsigned int const spill : std::views::iota(0u, num_spills)) {
           co_yield subrun_id->make_child("spill", spill);
         }
       }

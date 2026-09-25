@@ -1,11 +1,16 @@
 #include "phlex/model/product_specification.hpp"
 
 #include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/type_id.hpp"
+
+#include <fmt/format.h>
 
 #include <cassert>
 #include <ranges>
-#include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace phlex::experimental {
   product_specification::product_specification() = default;

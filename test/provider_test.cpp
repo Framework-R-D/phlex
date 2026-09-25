@@ -1,38 +1,47 @@
+#include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/core/provider_node.hpp"
+#include "phlex/core/source.hpp"
 #include "phlex/model/data_cell_index.hpp"
-#include "phlex/source.hpp"
+#include "phlex/model/handle.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/model/product_specification.hpp"
+#include "phlex/model/products.hpp"
+#include "phlex/model/type_id.hpp"
 #include "plugins/layer_generator.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
-#include <fmt/std.h>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <cstddef>
+#include <string>
+#include <utility>
 
 using namespace phlex;
 using Catch::Matchers::ContainsSubstring;
 
-namespace toy {
+namespace {
   struct vertex_collection {
     std::size_t data;
+    static auto make(std::size_t i) { return vertex_collection{i}; }
   };
-  auto make_collection(std::size_t i) { return vertex_collection{i}; }
-}
 
-namespace {
   // Provider algorithms
-  toy::vertex_collection give_me_vertices(data_cell_index const& id)
+  vertex_collection give_me_vertices(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices: {}", id.number());
-    return toy::make_collection(id.number());
+    return vertex_collection::make(id.number());
   }
 
   // Type-erased provider function
   experimental::product_ptr give_me_vertices_erased(data_cell_index const& id)
   {
     spdlog::info("give_me_vertices_erased: {}", id.number());
-    return experimental::product_for(toy::make_collection(id.number()));
+    return experimental::product_for(vertex_collection::make(id.number()));
   }
 
   // Vertices source for implicit provider test
@@ -45,7 +54,7 @@ namespace {
       std::string const layer = "spill";
       std::string const stage = "previous_process";
       experimental::product_specification spec{
-        "vertices_maker", "happy_vertices", experimental::make_type_id<toy::vertex_collection>()};
+        "vertices_maker", "happy_vertices", experimental::make_type_id<vertex_collection>()};
 
       if (selector.match(spec, identifier{layer}, identifier{stage})) {
         bundles.push_back(provider_bundle{.provider_function = give_me_vertices_erased,
@@ -73,7 +82,7 @@ namespace {
     provider_bundles create_providers(product_selector const& selector) override
     {
       experimental::product_specification spec{
-        "vertices_maker", "happy_vertices", experimental::make_type_id<toy::vertex_collection>()};
+        "vertices_maker", "happy_vertices", experimental::make_type_id<vertex_collection>()};
       assert(selector.match(spec, "job"_id, "CURRENT"_id));
       return {{.provider_function = give_me_vertices_erased,
                .max_concurrency = concurrency::unlimited,
@@ -83,7 +92,7 @@ namespace {
     }
   };
 
-  unsigned pass_on(toy::vertex_collection const& vertices) { return vertices.data; }
+  unsigned pass_on(vertex_collection const& vertices) { return vertices.data; }
 }
 
 TEST_CASE("Explicit providers")
@@ -104,13 +113,13 @@ TEST_CASE("Explicit providers")
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.observe(
      "verify_explicit_stage",
-     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "test"); },
+     [](handle<vertex_collection> h) { CHECK(h.stage() == "test"); },
      concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
   g.observe(
      "verify_named_stage",
-     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "test"); },
+     [](handle<vertex_collection> h) { CHECK(h.stage() == "test"); },
      concurrency::unlimited)
     .input_family(product_selector{.creator = "vertices_maker",
                                    .layer = "spill",
@@ -136,7 +145,7 @@ TEST_CASE("Specifying current stage does not match a provider from another stage
 
   // The following is run for *both* sections above.
   g.observe(
-     "observer", [](toy::vertex_collection const&) {}, concurrency::unlimited)
+     "observer", [](vertex_collection const&) {}, concurrency::unlimited)
     .input_family(product_selector{.creator = "vertices_maker",
                                    .layer = "job",
                                    .suffix = "happy_vertices",
@@ -184,7 +193,7 @@ TEST_CASE("Implicit providers")
 
   g.observe(
      "verify_implicit_stage",
-     [](handle<toy::vertex_collection> h) { CHECK(h.stage() == "previous_process"); },
+     [](handle<vertex_collection> h) { CHECK(h.stage() == "previous_process"); },
      concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "spill", .suffix = "happy_vertices"});
@@ -200,7 +209,7 @@ TEST_CASE("Implicit provider cannot use the reserved CURRENT stage")
   auto g = phlex::detail::framework_graph::with_default_driver("test");
   g.add_source<current_stage_source>("current_stage_source");
   g.observe(
-     "observer", [](toy::vertex_collection const&) {}, concurrency::unlimited)
+     "observer", [](vertex_collection const&) {}, concurrency::unlimited)
     .input_family(
       product_selector{.creator = "vertices_maker", .layer = "job", .suffix = "happy_vertices"});
 

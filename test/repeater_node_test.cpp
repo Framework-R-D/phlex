@@ -1,15 +1,22 @@
 #include "phlex/core/detail/repeater_node.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/model/algorithm_name.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_store.hpp"
 #include "test/ostream_logger.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <gsl/pointers>
+#include <oneapi/tbb/flow_graph.h>
 
 #include <algorithm>
-#include <atomic>
+#include <cstddef>
 #include <memory>
 #include <ranges>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -66,8 +73,8 @@ namespace {
 
   class repeater_test_fixture {
   public:
-    explicit repeater_test_fixture(std::string node_name) :
-      repeater_{g_, std::move(node_name), "run"_id}, consumer_{g_}
+    explicit repeater_test_fixture(std::string const& node_name) :
+      repeater_{g_, node_name, "run"_id}, consumer_{g_}
     {
       make_edge(repeater_, consumer_);
     }

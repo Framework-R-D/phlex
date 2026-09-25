@@ -2,15 +2,22 @@
 
 #include "storage_reader.hpp"
 
+#include "core/technology.hpp"
+#include "core/token.hpp"
+#include "form/config.hpp"
 #include "storage/factories.hpp"
-#include "storage_file.hpp"
-#include "storage_read_container.hpp"
+#include "storage/istorage.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <typeinfo>
+#include <utility>
+#include <vector>
 using namespace form::detail::experimental;
 
 namespace {
@@ -67,7 +74,7 @@ namespace {
       return std::nullopt;
     }
 
-    for (char ch : value) {
+    for (char const ch : value) {
       if (!std::isdigit(static_cast<unsigned char>(ch))) {
         return std::nullopt;
       }
@@ -120,7 +127,7 @@ namespace {
       return true;
     };
 
-    for (char ch : body) {
+    for (char const ch : body) {
       if (ch == ',' || ch == ';') {
         if (!commit_token(token)) {
           return std::nullopt;
@@ -224,7 +231,7 @@ int storage_reader::get_index(token const& token,
     int entry = 0;
     void const* raw_data = nullptr;
     while (cont->second->read(entry, &raw_data, type)) {
-      std::unique_ptr<std::string const> data(static_cast<std::string const*>(raw_data));
+      std::unique_ptr<std::string const> const data(static_cast<std::string const*>(raw_data));
       index_maps_[token.container_name()].insert(std::make_pair(*data, entry));
       entry++;
     }
@@ -334,7 +341,7 @@ std::vector<std::string> storage_reader::list_indices(
     int entry = 0;
     void const* raw_data = nullptr;
     while (cont->second->read(entry, &raw_data, type)) {
-      std::unique_ptr<std::string const> data(static_cast<std::string const*>(raw_data));
+      std::unique_ptr<std::string const> const data(static_cast<std::string const*>(raw_data));
       index_maps_[token.container_name()].insert(std::make_pair(*data, entry));
       entry++;
     }

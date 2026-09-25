@@ -70,7 +70,7 @@ namespace phlex {
       auto const& value = config_.at(key); // may throw
 
       auto k = value.kind();
-      bool is_array = k == boost::json::kind::array;
+      bool const is_array = k == boost::json::kind::array;
 
       if (is_array) {
         // The current configuration interface only supports homogenous containers,

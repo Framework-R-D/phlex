@@ -1,7 +1,21 @@
 #include "phlex/core/products_consumer.hpp"
 
+#include "phlex/core/consumer.hpp"
+#include "phlex/core/message.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/model/algorithm_name.hpp"
+#include "phlex/model/identifier.hpp"
+#include "phlex/utilities/bulleted_list.hpp"
+
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
+#include <oneapi/tbb/flow_graph.h>
+
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace {
   std::vector<phlex::experimental::identifier> layers_from(phlex::product_selectors const& queries)
@@ -37,10 +51,11 @@ namespace {
       }
     }
     if (!err_selectors.empty()) {
-      std::string error = fmt::format("Must specify layers in the product selectors for node {}:\n"
-                                      "  (Only invalid selectors are listed)\n{}",
-                                      algo.to_string(),
-                                      bulleted_list(err_selectors));
+      std::string const error =
+        fmt::format("Must specify layers in the product selectors for node {}:\n"
+                    "  (Only invalid selectors are listed)\n{}",
+                    algo.to_string(),
+                    bulleted_list(err_selectors));
       throw std::runtime_error(error);
     }
   }

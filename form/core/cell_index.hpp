@@ -44,7 +44,7 @@ namespace form::detail::experimental {
   {
     std::string result;
     result.reserve(name.size());
-    for (char c : name) {
+    for (char const c : name) {
       auto const uc = static_cast<unsigned char>(c);
       result.push_back(std::isalnum(uc) != 0 || c == '_' ? c : '_');
     }

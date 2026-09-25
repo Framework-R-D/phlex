@@ -2,6 +2,10 @@
 
 #include "token.hpp"
 
+#include "core/technology.hpp"
+
+#include <cstdint>
+#include <string>
 #include <utility>
 
 using namespace form::detail::experimental;

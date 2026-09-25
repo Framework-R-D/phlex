@@ -2,16 +2,19 @@
 
 #include "core/technology.hpp"
 #include "data_products/track_start.hpp"
+#include "form/config.hpp"
 #include "form/form_reader.hpp"
-#include "test_helpers.hpp"
+#include "form/product_with_name.hpp"
 #include "test_utils.hpp"
 
 #include <cmath>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -20,15 +23,17 @@ static int const number_segment = 15;
 
 static float const tolerance = 1e-3f;
 
-// Structs to hold expected checksums
-struct seg_checksum {
-  float check;
-  float cpx, cpy, cpz;
-};
+namespace {
+  // Structs to hold expected checksums
+  struct seg_checksum {
+    float check;
+    float cpx, cpy, cpz;
+  };
 
-struct evt_checksum {
-  float check;
-};
+  struct evt_checksum {
+    float check;
+  };
+} // namespace
 
 int main(int argc, char** argv)
 {
@@ -75,7 +80,7 @@ int main(int argc, char** argv)
   config_items.add_item("trackStartPoints", filename, technology);
   config_items.add_item("trackStartX", filename, technology);
 
-  form::experimental::config::tech_setting_config tech_config;
+  form::experimental::config::tech_setting_config const tech_config;
 
   form::experimental::form_reader_interface form(config_items, tech_config);
 
@@ -100,7 +105,7 @@ int main(int argc, char** argv)
         .label = "trackStart", .data = raw_ptr, .type = &typeid(std::vector<float>)};
 
       form.read(creator, segment_id, pb);
-      std::unique_ptr<std::vector<float> const> track_start_x(
+      std::unique_ptr<std::vector<float> const> const track_start_x(
         static_cast<std::vector<float> const*>(pb.data));
 
       raw_ptr = nullptr;
@@ -108,7 +113,7 @@ int main(int argc, char** argv)
         .label = "trackNumberHits", .data = raw_ptr, .type = &typeid(std::vector<int>)};
 
       form.read(creator, segment_id, pb_int);
-      std::unique_ptr<std::vector<int> const> track_n_hits(
+      std::unique_ptr<std::vector<int> const> const track_n_hits(
         static_cast<std::vector<int> const*>(pb_int.data));
 
       raw_ptr = nullptr;
@@ -116,18 +121,18 @@ int main(int argc, char** argv)
         .label = "trackStartPoints", .data = raw_ptr, .type = &typeid(std::vector<track_start>)};
 
       form.read(creator, segment_id, pb_points);
-      std::unique_ptr<std::vector<track_start> const> start_points(
+      std::unique_ptr<std::vector<track_start> const> const start_points(
         static_cast<std::vector<track_start> const*>(pb_points.data));
 
       float check = 0.0;
-      for (float val : *track_start_x) {
+      for (float const val : *track_start_x) {
         check += val;
       }
-      for (int val : *track_n_hits) {
+      for (int const val : *track_n_hits) {
         check += static_cast<float>(val);
       }
       track_start check_points;
-      for (track_start val : *start_points) {
+      for (track_start const val : *start_points) {
         check_points += val;
       }
       std::cout << "PHLEX: Segment = " << nseg << ": seg_id_text = " << seg_id_text
@@ -139,10 +144,10 @@ int main(int argc, char** argv)
       auto key = std::make_pair(nevent, nseg);
       if (expected_seg.contains(key)) {
         auto const& exp = expected_seg[key];
-        bool seg_ok = (std::fabs(check - exp.check) <= tolerance) &&
-                      (std::fabs(check_points.get_x() - exp.cpx) <= tolerance) &&
-                      (std::fabs(check_points.get_y() - exp.cpy) <= tolerance) &&
-                      (std::fabs(check_points.get_z() - exp.cpz) <= tolerance);
+        bool const seg_ok = (std::fabs(check - exp.check) <= tolerance) &&
+                            (std::fabs(check_points.get_x() - exp.cpx) <= tolerance) &&
+                            (std::fabs(check_points.get_y() - exp.cpy) <= tolerance) &&
+                            (std::fabs(check_points.get_z() - exp.cpz) <= tolerance);
         if (seg_ok) {
           std::cout << "VERIFY PASS: event=" << nevent << " seg=" << nseg << '\n';
         } else {
@@ -175,7 +180,7 @@ int main(int argc, char** argv)
     track_x.reset(static_cast<std::vector<float> const*>(pb.data));
 
     float check = 0.0;
-    for (float val : *track_x) {
+    for (float const val : *track_x) {
       check += val;
     }
     std::cout << "PHLEX: Event = " << nevent << ": evt_id_text = " << evt_id_text
@@ -184,7 +189,7 @@ int main(int argc, char** argv)
     // Verify event checksum
     if (expected_evt.contains(nevent)) {
       auto const& exp = expected_evt[nevent];
-      bool evt_ok = (std::fabs(check - exp.check) <= tolerance);
+      bool const evt_ok = (std::fabs(check - exp.check) <= tolerance);
       if (evt_ok) {
         std::cout << "VERIFY PASS: event=" << nevent << '\n';
       } else {

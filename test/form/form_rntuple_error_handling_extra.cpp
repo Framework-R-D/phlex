@@ -1,17 +1,22 @@
+#include "core/technology.hpp"
+#include "storage/factories.hpp"
+#include "storage/storage_associative_write_container.hpp"
 #include "test/form/data_products/unserializable.hpp"
 #include "test/form/test_utils.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <stdexcept>
 
 auto constexpr tech = form::technology::root_rntuple;
 
 TEST_CASE("automatic streamer mode", "[form RNTuple]")
 {
   unserializable empty(1);
-  std::stringstream std_err_redirect;
+  std::stringstream const std_err_redirect;
   auto* original_cerr = std::cerr.rdbuf(std_err_redirect.rdbuf());
 
   form::test::write(tech, empty);

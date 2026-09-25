@@ -1,14 +1,19 @@
 #include "phlex/core/detail/accumulator_node.hpp"
+#include "phlex/core/message.hpp"
 #include "phlex/model/data_cell_index.hpp"
+#include "phlex/model/identifier.hpp"
 #include "phlex/model/product_specification.hpp"
 #include "test/ostream_logger.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_tostring.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <oneapi/tbb/flow_graph.h>
 
 #include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <format>
 #include <map>
 #include <memory>
@@ -74,9 +79,9 @@ namespace {
 
   class accumulator_test_fixture {
   public:
-    explicit accumulator_test_fixture(std::string node_name) :
+    explicit accumulator_test_fixture(std::string const& node_name) :
       accumulator_{g_,
-                   std::move(node_name),
+                   node_name,
                    "test_stage"_id,
                    "run"_id,
                    product_specifications(1),
