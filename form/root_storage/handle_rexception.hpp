@@ -1,7 +1,7 @@
 #include <source_location>
 #include <string>
 
-namespace ROOT { // NOLINT
+namespace ROOT {    // NOLINT
   class RException; // NOLINT
 }
 
