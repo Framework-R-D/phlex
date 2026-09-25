@@ -6,6 +6,7 @@
 #include "phlex/phlex_core_export.hpp"
 #include "phlex/utilities/signed_size.hpp"
 
+#include <gsl/pointers>
 #include <oneapi/tbb/concurrent_hash_map.h>
 #include <oneapi/tbb/concurrent_queue.h>
 #include <oneapi/tbb/flow_graph.h>
@@ -61,11 +62,12 @@ namespace phlex::detail::internal {
       return {.index = index, .partial_result = partial_result, .id = new_id};
     }
 
-    message release_as_message(std::string const& node_name,
+    message release_as_message(gsl::not_null<phlex::experimental::algorithm_name const*> node_name,
+                               gsl::not_null<phlex::experimental::identifier const*> stage,
                                phlex::experimental::product_specifications const& output,
                                std::size_t original_id)
     {
-      auto store = std::make_shared<phlex::experimental::product_store>(index, node_name);
+      auto store = std::make_shared<phlex::experimental::product_store>(index, node_name, stage);
       // FIXME: Only read the first output specification, which is a temporary limitation until
       // we support multiple outputs from folds.
       store->add_product(output.front(), partial_result->release_as_product());
@@ -91,7 +93,8 @@ namespace phlex::detail::internal {
 
   public:
     accumulator_node(tbb::flow::graph& g,
-                     std::string node_name,
+                     phlex::experimental::algorithm_name node_name,
+                     phlex::experimental::identifier stage,
                      phlex::experimental::identifier partition_layer_name,
                      phlex::experimental::product_specifications output,
                      result_initializer_t initializer);
@@ -144,7 +147,8 @@ namespace phlex::detail::internal {
     tbb::flow::indexer_node<index_message, indexed_end_token, index_message, std::size_t> indexer_;
     multifunction_node_t repeater_;
     cache_t cached_results_;
-    std::string node_name_;
+    phlex::experimental::algorithm_name node_name_;
+    phlex::experimental::identifier stage_;
     phlex::experimental::identifier partition_layer_;
     result_initializer_t initializer_;
     phlex::experimental::product_specifications output_;
@@ -156,7 +160,8 @@ namespace phlex::detail::internal {
 
   template <typename Result>
   accumulator_node<Result>::accumulator_node(tbb::flow::graph& g,
-                                             std::string node_name,
+                                             phlex::experimental::algorithm_name node_name,
+                                             phlex::experimental::identifier stage,
                                              phlex::experimental::identifier partition_layer_name,
                                              phlex::experimental::product_specifications output,
                                              result_initializer_t initializer) :
@@ -179,6 +184,7 @@ namespace phlex::detail::internal {
                 }
               }},
     node_name_{std::move(node_name)},
+    stage_{std::move(stage)},
     partition_layer_{std::move(partition_layer_name)},
     initializer_{std::move(initializer)},
     output_{std::move(output)}
@@ -235,16 +241,19 @@ namespace phlex::detail::internal {
       return;
     }
 
-    spdlog::warn(
-      "[{}/{}] Cached accumulators: {}", node_name_, partition_layer_, cached_results_.size());
+    spdlog::warn("[{}/{}] Cached accumulators: {}",
+                 node_name_.to_string(),
+                 partition_layer_,
+                 cached_results_.size());
     for (auto const& [_, cache] : cached_results_) {
       if (cache.accumulator_msg) {
         spdlog::warn("[{}/{}]   Partition {}",
-                     node_name_,
+                     node_name_.to_string(),
                      partition_layer_,
                      cache.accumulator_msg->index->to_string());
       } else {
-        spdlog::warn("[{}/{}]   Partition index not yet received", node_name_, partition_layer_);
+        spdlog::warn(
+          "[{}/{}]   Partition index not yet received", node_name_.to_string(), partition_layer_);
       }
     }
   }
@@ -322,7 +331,7 @@ namespace phlex::detail::internal {
     if (entry->flush_received.test() and entry->pending_invocations == 0 and
         entry->accumulator_msg) {
       output_port<0>(repeater_).try_put(entry->accumulator_msg->release_as_message(
-        node_name_, output_, entry->original_message_id));
+        gsl::not_null{&node_name_}, gsl::not_null{&stage_}, output_, entry->original_message_id));
       ++emitted_result_count_;
       cached_results_.erase(a);
     }

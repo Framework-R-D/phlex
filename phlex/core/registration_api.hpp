@@ -59,6 +59,7 @@ namespace phlex::detail {
   public:
     registration_api(configuration const* config,
                      std::string_view name,
+                     phlex::experimental::identifier const& stage,
                      AlgorithmBits alg,
                      concurrency c,
                      tbb::flow::graph& g,
@@ -67,6 +68,7 @@ namespace phlex::detail {
                      resource_catalog& resources) :
       config_{config},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
+      stage_{stage},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -104,6 +106,7 @@ namespace phlex::detail {
         registrar_.set_creator(
           [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
             return std::make_unique<node_type>(std::move(name_),
+                                               stage_,
                                                concurrency_.value,
                                                std::move(predicates),
                                                graph_,
@@ -143,6 +146,8 @@ namespace phlex::detail {
   private:
     configuration const* config_;
     phlex::experimental::algorithm_name name_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    phlex::experimental::identifier const& stage_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -154,6 +159,7 @@ namespace phlex::detail {
   template <template <typename...> typename HOF, typename NodePtr, typename AlgorithmBits>
   auto make_registration(configuration const* config,
                          std::string_view name,
+                         phlex::experimental::identifier const& stage,
                          AlgorithmBits alg,
                          concurrency c,
                          tbb::flow::graph& g,
@@ -162,7 +168,7 @@ namespace phlex::detail {
                          resource_catalog& resources)
   {
     return registration_api<HOF, NodePtr, AlgorithmBits>{
-      config, name, std::move(alg), c, g, nodes, errors, resources};
+      config, name, stage, std::move(alg), c, g, nodes, errors, resources};
   }
 
   // ====================================================================================
@@ -173,6 +179,7 @@ namespace phlex::detail {
   public:
     provider_api(configuration const* config,
                  std::string_view name,
+                 phlex::experimental::identifier const& stage,
                  AlgorithmBits alg,
                  concurrency c,
                  tbb::flow::graph& g,
@@ -181,6 +188,7 @@ namespace phlex::detail {
                  resource_catalog& resources) :
       config_{config},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
+      stage_{stage},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -195,6 +203,11 @@ namespace phlex::detail {
                         phlex::experimental::identifier stage = "CURRENT"_id)
     {
       using namespace phlex::experimental;
+
+      // "CURRENT" is special and means "use the stage configured for this program execution."
+      if (stage == "CURRENT"_id) {
+        stage = stage_;
+      }
 
       using return_type_t = return_type<typename AlgorithmBits::algorithm_type>;
       product_specification output_spec(
@@ -223,6 +236,8 @@ namespace phlex::detail {
   private:
     configuration const* config_;
     phlex::experimental::algorithm_name name_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    phlex::experimental::identifier const& stage_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -247,6 +262,7 @@ namespace phlex::detail {
   public:
     fold_api(configuration const* config,
              std::string_view name,
+             phlex::experimental::identifier const& stage,
              AlgorithmBits alg,
              concurrency c,
              tbb::flow::graph& g,
@@ -257,6 +273,7 @@ namespace phlex::detail {
              InitArgs&&... init_args) :
       config_{config},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
+      stage_{stage},
       alg_{std::move(alg)},
       concurrency_{c},
       graph_{g},
@@ -281,18 +298,19 @@ namespace phlex::detail {
 
       registrar_.set_creator(
         [this, inputs = std::move(input_args)](auto predicates, auto output_product_suffixes) {
-          using node_type =
-            fold_node<AlgorithmBits, init_tuple, internal::resource_type_t<Resources>...>;
-          return std::make_unique<node_type>(std::move(name_),
-                                             concurrency_.value,
-                                             std::move(predicates),
-                                             graph_,
-                                             std::move(alg_),
-                                             std::move(init_),
-                                             std::vector(std::from_range, std::move(inputs)),
-                                             std::move(output_product_suffixes),
-                                             std::move(partition_),
-                                             resources_);
+          return std::make_unique<
+            fold_node<AlgorithmBits, init_tuple, internal::resource_type_t<Resources>...>>(
+            std::move(name_),
+            stage_,
+            concurrency_.value,
+            std::move(predicates),
+            graph_,
+            std::move(alg_),
+            std::move(init_),
+            std::vector(std::from_range, std::move(inputs)),
+            std::move(output_product_suffixes),
+            std::move(partition_),
+            resources_);
         });
       return upstream_predicates<declared_fold_ptr, num_outputs>{std::move(registrar_), config_};
     }
@@ -324,6 +342,8 @@ namespace phlex::detail {
   private:
     configuration const* config_;
     phlex::experimental::algorithm_name name_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    phlex::experimental::identifier const& stage_;
     AlgorithmBits alg_;
     concurrency concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
@@ -355,6 +375,7 @@ namespace phlex::detail {
   public:
     unfold_api(configuration const* config,
                std::string_view name,
+               phlex::experimental::identifier const& stage,
                Predicate predicate,
                Unfold unfold,
                concurrency c,
@@ -366,6 +387,7 @@ namespace phlex::detail {
       config_{config},
       registrar_{nodes.registrar_for<declared_unfold_ptr>(errors)},
       name_{phlex::experimental::internal::make_algorithm_name(config, name)},
+      stage_{stage},
       concurrency_{c.value},
       graph_{g},
       predicate_{std::move(predicate)},
@@ -392,18 +414,19 @@ namespace phlex::detail {
 
       registrar_.set_creator([this, inputs = std::move(input_args)](auto upstream_predicates,
                                                                     auto output_product_suffixes) {
-        using node_type =
-          unfold_node<Object, Predicate, Unfold, internal::resource_type_t<Resources>...>;
-        return std::make_unique<node_type>(std::move(name_),
-                                           concurrency_,
-                                           std::move(upstream_predicates),
-                                           graph_,
-                                           std::move(predicate_),
-                                           std::move(unfold_),
-                                           std::vector(std::from_range, std::move(inputs)),
-                                           std::move(output_product_suffixes),
-                                           std::move(destination_layer_),
-                                           resources_);
+        return std::make_unique<
+          unfold_node<Object, Predicate, Unfold, internal::resource_type_t<Resources>...>>(
+          std::move(name_),
+          stage_,
+          concurrency_,
+          std::move(upstream_predicates),
+          graph_,
+          std::move(predicate_),
+          std::move(unfold_),
+          std::vector(std::from_range, std::move(inputs)),
+          std::move(output_product_suffixes),
+          std::move(destination_layer_),
+          resources_);
       });
       return upstream_predicates<declared_unfold_ptr, num_outputs>{std::move(registrar_), config_};
     }
@@ -437,6 +460,8 @@ namespace phlex::detail {
     configuration const* config_;
     registrar<declared_unfold_ptr> registrar_;
     phlex::experimental::algorithm_name name_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    phlex::experimental::identifier const& stage_;
     std::size_t concurrency_;
     // Non-owning reference to the TBB graph; this class is a short-lived registration builder.
     tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)

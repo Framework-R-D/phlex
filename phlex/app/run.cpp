@@ -4,6 +4,13 @@
 #include "phlex/concurrency.hpp"
 #include "phlex/core/framework_graph.hpp"
 
+#include <fmt/format.h>
+
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+
 using namespace std::string_literals;
 
 namespace {
@@ -11,14 +18,26 @@ namespace {
   try {
     return obj.at(key).as_object();
   } catch (std::exception const& e) {
-    throw std::runtime_error("Error retrieving parameter '" + key + "':\n" + e.what());
+    throw std::runtime_error(fmt::format("Error retrieving parameter '{}' :\n{}", key, e.what()));
   }
 }
 
 namespace phlex::detail {
-  void run(boost::json::object const& configurations, int const max_parallelism)
+  void run(boost::json::object const& configurations, overridable_configuration const& overridables)
   {
-    auto g = framework_graph::without_driver(max_parallelism);
+    if (!overridables.stage) {
+      throw std::runtime_error("Must provide a 'stage' name.");
+    }
+    // FIXME: Eventually, make it impossible to create a stage name that is empty or "CURRENT".
+    auto stage = overridables.stage.value();
+    if (stage.empty()) {
+      throw std::runtime_error("Stage name cannot be empty.");
+    }
+    if (stage == "CURRENT") {
+      throw std::runtime_error("'CURRENT' is a reserved stage name.");
+    }
+
+    auto g = framework_graph::without_driver(std::move(stage), overridables.max_parallelism);
 
     boost::json::object resource_configs;
     if (configurations.contains("resources")) {

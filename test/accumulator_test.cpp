@@ -77,6 +77,7 @@ namespace {
     explicit accumulator_test_fixture(std::string node_name) :
       accumulator_{g_,
                    std::move(node_name),
+                   "test_stage"_id,
                    "run"_id,
                    product_specifications(1),
                    [](phlex::data_cell_index const&) { return std::make_unique<int>(0); }},
@@ -223,6 +224,7 @@ TEST_CASE("Test accumulator warning message if cache is not flushed", "[multithr
   auto accumulator = std::make_unique<internal::accumulator_node<int>>(
     g,
     "test_accumulator_warning",
+    "test_stage"_id,
     "run"_id,
     product_specifications(1),
     [](phlex::data_cell_index const&) { return std::make_unique<int>(0); });

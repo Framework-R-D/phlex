@@ -23,6 +23,7 @@
 #include "phlex/model/product_store.hpp"
 #include "phlex/utilities/simple_ptr_map.hpp"
 
+#include <gsl/pointers>
 #include <oneapi/tbb/concurrent_unordered_map.h>
 #include <oneapi/tbb/flow_graph.h>
 
@@ -75,6 +76,7 @@ namespace phlex::detail {
     static constexpr auto number_output_products = num_outputs;
 
     transform_node(phlex::experimental::algorithm_name algo_name,
+                   phlex::experimental::identifier stage,
                    std::size_t concurrency,
                    std::vector<std::string> predicates,
                    tbb::flow::graph& g,
@@ -91,9 +93,9 @@ namespace phlex::detail {
         concurrency,
         resources,
         alg.release_algorithm(),
-        [this](function_t const& ft,
-               messages_t<num_products> const& messages,
-               auto&&... resource_tokens) -> message {
+        [this, stage = std::move(stage)](function_t const& ft,
+                                         messages_t<num_products> const& messages,
+                                         auto&&... resource_tokens) -> message {
           using namespace phlex::experimental::detail;
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
@@ -106,7 +108,7 @@ namespace phlex::detail {
           products new_products{num_outputs};
           new_products.add_all(output_, std::move(result));
           auto new_store = std::make_shared<phlex::experimental::product_store>(
-            store->index(), name(), std::move(new_products));
+            store->index(), gsl::not_null{&name()}, gsl::not_null{&stage}, std::move(new_products));
 
           return {.store = std::move(new_store), .id = message_id};
         })}

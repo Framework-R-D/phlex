@@ -204,7 +204,7 @@ namespace {
 
 TEST_CASE("registering a pointer resource with the graph", "[graph][resource]")
 {
-  auto g = framework_graph::with_default_driver();
+  auto g = framework_graph::with_default_driver("test");
   g.add_serialized_resource<pointer_resource>();
 
   g.provide(

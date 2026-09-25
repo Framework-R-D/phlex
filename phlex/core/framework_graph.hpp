@@ -43,9 +43,9 @@ namespace phlex::detail {
   class PHLEX_CORE_EXPORT framework_graph {
   public:
     [[nodiscard]] static framework_graph with_default_driver(
-      int max_parallelism = oneapi::tbb::info::default_concurrency());
+      std::string stage_name, int max_parallelism = oneapi::tbb::info::default_concurrency());
     [[nodiscard]] static framework_graph without_driver(
-      int max_parallelism = oneapi::tbb::info::default_concurrency());
+      std::string stage_name, int max_parallelism = oneapi::tbb::info::default_concurrency());
 
     ~framework_graph();
     framework_graph(framework_graph const&) = delete;
@@ -72,7 +72,7 @@ namespace phlex::detail {
 
     module_graph_proxy<void_tag> module_proxy(configuration const& config)
     {
-      return {config, graph_, nodes_, registration_errors_, resources_};
+      return {config, graph_, stage_, nodes_, registration_errors_, resources_};
     }
 
     graph_registration_bundle registration_bundle(configuration const& config)
@@ -201,7 +201,7 @@ namespace phlex::detail {
       if constexpr (is_bound_object<T> && Construct) {
         bound_object = std::make_shared<T>(std::forward<Args>(args)...);
       }
-      return {graph_, nodes_, std::move(bound_object), registration_errors_, resources_};
+      return {graph_, stage_, nodes_, std::move(bound_object), registration_errors_, resources_};
     }
 
     void run();
@@ -211,9 +211,10 @@ namespace phlex::detail {
     void make_bookkeeping_edges();
 
     enum class driver_mode : std::uint8_t { default_driver, deferred_driver };
-    explicit framework_graph(driver_mode mode, int max_parallelism);
+    explicit framework_graph(driver_mode mode, std::string stage, int max_parallelism);
 
     resource_usage graph_resource_usage_;
+    phlex::experimental::identifier stage_;
     max_allowed_parallelism parallelism_limit_;
     fixed_hierarchy fixed_hierarchy_;
     // The graph_ object uses the filters_, nodes_, resources_, and hierarchy_ objects implicitly.

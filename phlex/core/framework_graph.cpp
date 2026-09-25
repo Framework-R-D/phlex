@@ -80,18 +80,21 @@ namespace phlex::detail {
     }
   }
 
-  framework_graph framework_graph::with_default_driver(int const max_parallelism)
+  framework_graph framework_graph::with_default_driver(std::string stage, int const max_parallelism)
   {
-    return framework_graph{driver_mode::default_driver, max_parallelism};
+    return framework_graph{driver_mode::default_driver, std::move(stage), max_parallelism};
   }
 
-  framework_graph framework_graph::without_driver(int const max_parallelism)
+  framework_graph framework_graph::without_driver(std::string stage, int const max_parallelism)
   {
-    return framework_graph{driver_mode::deferred_driver, max_parallelism};
+    return framework_graph{driver_mode::deferred_driver, std::move(stage), max_parallelism};
   }
 
   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-  framework_graph::framework_graph(driver_mode const mode, int const max_parallelism) :
+  framework_graph::framework_graph(driver_mode const mode,
+                                   std::string stage,
+                                   int const max_parallelism) :
+    stage_{std::move(stage)},
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
          [this](tbb::flow_control& fc) mutable -> ready_flushes_then_emit {
@@ -238,7 +241,7 @@ namespace phlex::detail {
     make_bookkeeping_edges();
 
     auto [provider_input_ports, multilayer_join_index_ports] =
-      make_computational_edges(nodes_, filters_, graph_);
+      make_computational_edges(nodes_, filters_, graph_, stage_);
 
     if (provider_input_ports.empty()) {
       assert(multilayer_join_index_ports.empty());

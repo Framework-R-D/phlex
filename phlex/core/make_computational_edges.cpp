@@ -15,10 +15,15 @@ using namespace std::string_literals;
 namespace phlex::detail {
   namespace {
     provider_node* find_matching_provider(provider_nodes& providers,
-                                          product_selector const& input_product)
+                                          product_selector const& input_product,
+                                          phlex::experimental::identifier const& stage)
     {
-      auto pred = [&input_product](auto const& p) {
-        return input_product.match(p->output_product(), p->layer(), p->stage());
+      auto query = input_product;
+      if (query.stage == "CURRENT"_idq) {
+        query.stage = stage;
+      }
+      auto pred = [&query](auto const& p) {
+        return query.match(p->output_product(), p->layer(), p->stage());
       };
       auto proj = [](auto const& pair) -> provider_node* { return pair.second.get(); };
 
@@ -47,14 +52,26 @@ namespace phlex::detail {
     {
       provider_bundles result;
       for (auto const& src : sources | std::views::values) {
-        result.append_range(src->create_providers(input_product));
+        // FIXME: Eventually, make it impossible to create a stage named "CURRENT"
+        // so that we can remove this check.
+        auto implicit_providers = src->create_providers(input_product);
+        for (auto const& provider : implicit_providers) {
+          if (provider.stage == "CURRENT") {
+            throw std::runtime_error(fmt::format(
+              "Implicit provider for product '{}' has stage 'CURRENT', which is reserved.\nThe "
+              "implicit provider must provide a stage that is not 'CURRENT'.",
+              input_product.to_string()));
+          }
+        }
+        result.append_range(std::views::as_rvalue(implicit_providers));
       }
       return result;
     }
 
     std::pair<index_router::provider_input_ports_t, index_router::head_ports_t>
     edges_from_explicit_providers(index_router::head_ports_t const& head_ports,
-                                  provider_nodes& explicit_providers)
+                                  provider_nodes& explicit_providers,
+                                  phlex::experimental::identifier const& stage)
     {
       assert(!head_ports.empty());
 
@@ -64,7 +81,8 @@ namespace phlex::detail {
         for (auto const& [input_product, port] : ports) {
           // Find the provider that has the right product name (hidden in the
           // output port) and the right family (hidden in the input port).
-          if (auto* matched_provider = find_matching_provider(explicit_providers, input_product)) {
+          if (auto* matched_provider =
+                find_matching_provider(explicit_providers, input_product, stage)) {
             auto const provider_name = matched_provider->name().to_string();
             auto&& [it, _] = provider_input_ports.try_emplace(
               provider_name, input_product, matched_provider->input_port());
@@ -151,7 +169,8 @@ namespace phlex::detail {
     index_router::head_ports_t edges_within_computational_graph(
       producer_catalog const& producers,
       std::map<std::string, filter>& filters,
-      std::span<products_consumer* const> consumers)
+      std::span<products_consumer* const> consumers,
+      phlex::experimental::identifier const& stage)
     {
       index_router::head_ports_t result;
       for (auto* node : consumers) {
@@ -163,7 +182,7 @@ namespace phlex::detail {
 
         for (auto const& query : node->input()) {
           auto* receiver_port = collector ? collector : &node->port(query);
-          auto producer_ports = producers.find_producers(query, node->name());
+          auto producer_ports = producers.find_producers(query, node->name(), stage);
           if (producer_ports.empty()) {
             // Is there a way to detect mis-specified product dependencies?
             result[node_name].push_back({.input_product = query, .port = receiver_port});
@@ -208,19 +227,20 @@ namespace phlex::detail {
   std::tuple<index_router::provider_input_ports_t, std::map<std::string, named_index_ports>>
   make_computational_edges(node_catalog& nodes,
                            std::map<std::string, filter>& filters,
-                           tbb::flow::graph& g)
+                           tbb::flow::graph& g,
+                           phlex::experimental::identifier const& stage)
   {
     auto const producers = nodes.producers();
     auto const consumers = nodes.consumers();
 
-    auto head_ports = edges_within_computational_graph(producers, filters, consumers);
+    auto head_ports = edges_within_computational_graph(producers, filters, consumers, stage);
     if (head_ports.empty()) {
       // This can happen for jobs that only execute the driver, which is helpful for debugging
       return {};
     }
 
     auto [explicit_provider_input_ports, unconsumed_head_ports] =
-      edges_from_explicit_providers(head_ports, nodes.providers);
+      edges_from_explicit_providers(head_ports, nodes.providers, stage);
 
     auto [implicit_provider_input_ports, unmatched_head_ports] =
       edges_from_implicit_providers(unconsumed_head_ports, nodes.providers, nodes.sources, g);

@@ -45,12 +45,14 @@ namespace phlex::detail {
   class glue {
   public:
     glue(tbb::flow::graph& g,
+         phlex::experimental::identifier const& stage,
          node_catalog& nodes,
          std::shared_ptr<T> bound_obj,
          std::vector<std::string>& errors,
          resource_catalog& resources,
          configuration const* config = nullptr) :
       graph_{g},
+      stage_{stage},
       nodes_{nodes},
       bound_obj_{std::move(bound_obj)},
       errors_{errors},
@@ -71,6 +73,7 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return fold_api{config_,
                       name,
+                      stage_,
                       algorithm_bits(bound_obj_, std::move(f)),
                       c,
                       graph_,
@@ -92,6 +95,7 @@ namespace phlex::detail {
       return make_registration<observer_node, declared_observer_ptr>(
         config_,
         name,
+        stage_,
         algorithm_bits{bound_obj_, std::move(f)},
         c,
         graph_,
@@ -110,6 +114,7 @@ namespace phlex::detail {
       internal::verify_name(name, config_);
       return provider_api{config_,
                           name,
+                          stage_,
                           algorithm_bits{bound_obj_, std::move(f)},
                           c,
                           graph_,
@@ -129,6 +134,7 @@ namespace phlex::detail {
       return make_registration<transform_node, declared_transform_ptr>(
         config_,
         name,
+        stage_,
         algorithm_bits{bound_obj_, std::move(f)},
         c,
         graph_,
@@ -148,6 +154,7 @@ namespace phlex::detail {
       return make_registration<predicate_node, declared_predicate_ptr>(
         config_,
         name,
+        stage_,
         algorithm_bits{bound_obj_, std::move(f)},
         c,
         graph_,
@@ -167,6 +174,7 @@ namespace phlex::detail {
       return unfold_api<T, decltype(predicate), decltype(unfold)>{
         config_,
         name,
+        stage_,
         std::move(predicate),
         std::move(unfold),
         c,
@@ -199,8 +207,11 @@ namespace phlex::detail {
 
   private:
     // Non-owning references to framework-owned resources; glue<T> is a short-lived builder.
-    tbb::flow::graph& graph_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    node_catalog& nodes_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    tbb::flow::graph& graph_;
+    phlex::experimental::identifier const& stage_;
+    node_catalog& nodes_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     std::shared_ptr<T> bound_obj_;
     std::vector<std::string>& errors_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     resource_catalog& resources_;      // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)

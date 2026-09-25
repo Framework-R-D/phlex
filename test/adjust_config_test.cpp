@@ -1,4 +1,5 @@
 #include "phlex/app/load_module.hpp"
+#include "phlex/app/run.hpp"
 #include "phlex/core/framework_graph.hpp"
 
 #include <boost/json.hpp>
@@ -62,10 +63,38 @@ TEST_CASE("Both py and cpp specified, cpp as string", "[config]")
 
 TEST_CASE("Loading resources requires a cpp parameter", "[config]")
 {
-  auto graph = phlex::detail::framework_graph::without_driver();
+  auto graph = phlex::detail::framework_graph::without_driver("test");
 
   CHECK_THROWS_WITH(
     phlex::detail::load_resource(graph, "my_resource", {}),
     Catch::Matchers::ContainsSubstring(
       "Missing 'cpp' parameter for my_resource -- only C++ resources are supported."));
+}
+
+TEST_CASE("A stage is required to run phlex", "[config]")
+{
+  CHECK_THROWS_WITH(phlex::detail::run({}, {}), "Must provide a 'stage' name.");
+}
+
+TEST_CASE("An empty stage cannot be used to run phlex", "[config]")
+{
+  phlex::detail::overridable_configuration const overrides{.stage = ""};
+  CHECK_THROWS_WITH(phlex::detail::run({}, overrides), "Stage name cannot be empty.");
+}
+
+TEST_CASE("CURRENT is a reserved stage name for running phlex", "[config]")
+{
+  phlex::detail::overridable_configuration const overrides{.stage = "CURRENT"};
+  CHECK_THROWS_WITH(phlex::detail::run({}, overrides), "'CURRENT' is a reserved stage name.");
+}
+
+TEST_CASE("Malformed driver configuration identifies its parameter", "[config]")
+{
+  boost::json::object configurations;
+  configurations["driver"] = "not an object";
+
+  phlex::detail::overridable_configuration const overrides{.stage = "test"};
+
+  CHECK_THROWS_WITH(phlex::detail::run(configurations, overrides),
+                    Catch::Matchers::ContainsSubstring("Error retrieving parameter 'driver' :"));
 }

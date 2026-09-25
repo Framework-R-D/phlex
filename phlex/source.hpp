@@ -20,7 +20,8 @@ namespace phlex::detail {
 
   public:
     providers_graph_proxy(graph_registration_bundle bundle) :
-      base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors, bundle.resources}
+      base{
+        bundle.config, bundle.graph, {}, bundle.nodes, bundle.registration_errors, bundle.resources}
     {
     }
 
@@ -47,7 +48,8 @@ namespace phlex::detail {
 
   public:
     source_graph_proxy(graph_registration_bundle bundle) :
-      base{bundle.config, bundle.graph, bundle.nodes, bundle.registration_errors, bundle.resources}
+      base{
+        bundle.config, bundle.graph, {}, bundle.nodes, bundle.registration_errors, bundle.resources}
     {
     }
 

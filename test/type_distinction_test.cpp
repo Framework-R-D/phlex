@@ -45,7 +45,7 @@ TEST_CASE("Distinguish products with same name and different types", "[programmi
   auto gen = experimental::layer_generator::make();
   gen->add_layer("event", {.parent_layer = "job", .count = 10, .start_at = 1});
 
-  auto g = phlex::detail::framework_graph::without_driver();
+  auto g = phlex::detail::framework_graph::without_driver("test");
   g.add_driver(gen);
 
   // Register providers

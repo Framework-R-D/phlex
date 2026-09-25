@@ -182,6 +182,7 @@ cet_test(
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/form_test.jsonnet
+  --stage test
   TEST_PROPERTIES
   ENVIRONMENT
   "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
@@ -196,6 +197,7 @@ if(FORM_USE_ROOT_STORAGE AND FORM_USE_RNTUPLE_STORAGE)
     TEST_ARGS
     -c
     ${CMAKE_CURRENT_SOURCE_DIR}/form_test_rntuple.jsonnet
+    --stage test
     TEST_PROPERTIES
     ENVIRONMENT
     "PHLEX_PLUGIN_PATH=${PROJECT_BINARY_DIR}/${phlex_LIBRARY_DIR}:${CMAKE_BINARY_DIR}/form"
@@ -235,6 +237,7 @@ cet_test(
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/form_source_write_ttree.jsonnet
+  --stage test
   TEST_WORKDIR
   form_source_coverage_ttree
   TEST_PROPERTIES
@@ -250,6 +253,7 @@ cet_test(
   TEST_ARGS
   -c
   ${CMAKE_CURRENT_SOURCE_DIR}/form_source_read_ttree.jsonnet
+  --stage test
   DIRTY_WORKDIR
   TEST_WORKDIR
   form_source_coverage_ttree
